@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -339,7 +339,7 @@ protected:
   void addAnchorPoint(Value v) { anchor_points.insert(v); }
   void addTerminationPoint(Value v) { termination_points.insert(v); }
 
-  void calculateSubcircuitForQubitForward(OpResult v) {
+  void calculateSubcircuitForQubitForward(Value v) {
     if (seen.contains(v))
       return;
     seen.insert(v);
@@ -403,7 +403,7 @@ protected:
       anchor_points.pop_back();
       if (seen.contains(next))
         continue;
-      calculateSubcircuitForQubitForward(dyn_cast<OpResult>(next));
+      calculateSubcircuitForQubitForward(next);
       // Remove next from seen for working backwards
       seen.remove(next);
       calculateSubcircuitForQubitBackward(next);

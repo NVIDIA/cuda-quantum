@@ -176,7 +176,7 @@ func.func @rz_plus_rz_to_s() {
 // CHECK:         return
 // CHECK:       }
 
-// T + S = Rz(3*pi/4) (no named gate match, falls back to Rz)
+// T + S = S then T (exact Clifford+T decomposition)
 func.func @t_plus_s() {
   %w0 = quake.null_wire
   %w1 = quake.null_wire
@@ -190,17 +190,15 @@ func.func @t_plus_s() {
   return
 }
 
-// CHECK-LABEL: func.func @t_plus_s() {
-// CHECK:         %[[W0:.*]] = quake.null_wire
-// CHECK:         %[[W1:.*]] = quake.null_wire
-// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
-// CHECK:         %[[T0:.*]] = quake.t %[[CX0]]#1 :
-// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[T0]] :
-// CHECK:         %[[T1:.*]] = quake.t %[[CX1]]#0 :
-// CHECK:         %[[CSTA:.*]] = arith.constant 0.78539816339744828 : f64
-// CHECK:         %[[CSTB:.*]] = arith.constant 1.5707963267948966 : f64
-// CHECK:         %[[SUM:.*]] = arith.addf %[[CSTA]], %[[CSTB]] : f64
-// CHECK:         %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[CX1]]#1 :
-// CHECK:         quake.x {{\[}}%[[RZ]]{{\]}} %[[T1]] :
-// CHECK:         return
-// CHECK:       }
+// CHECK-LABEL:   func.func @t_plus_s() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_0:.*]] = quake.t %[[X_0]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[T_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_1:.*]] = quake.t %[[X_1]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[S_0:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[T_2:.*]] = quake.t %[[S_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_2:.*]]:2 = quake.x {{\[}}%[[T_2]]] %[[T_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           return
+// CHECK:         }
