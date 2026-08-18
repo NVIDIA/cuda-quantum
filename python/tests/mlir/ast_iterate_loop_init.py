@@ -51,14 +51,20 @@ def test_iterate_list_init():
 # CHECK:             %[[VAL_22:.*]] = cc.load %[[VAL_21]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_23:.*]] = cc.cast signed %[[VAL_22]] : (i64) -> f64
 # CHECK:             %[[VAL_24:.*]] = arith.addf %[[VAL_20]], %[[VAL_23]] : f64
-# CHECK:             %[[VAL_25:.*]] = arith.remui %[[VAL_22]], %[[VAL_5]] : i64
-# CHECK:             %[[VAL_26:.*]] = quake.extract_ref %[[VAL_7]]{{\[}}%[[VAL_25]]] : (!quake.veq<4>, i64) -> !quake.ref
-# CHECK:             quake.ry (%[[VAL_24]]) %[[VAL_26]] : (f64, !quake.ref) -> ()
+# CHECK:             %[[VAL_25:.*]] = arith.remsi %[[VAL_22]], %[[VAL_5]] : i64
+# CHECK:             %[[VAL_26:.*]] = arith.cmpi ne, %[[VAL_25]], %[[VAL_4]] : i64
+# CHECK:             %[[VAL_27:.*]] = arith.xori %[[VAL_25]], %[[VAL_5]] : i64
+# CHECK:             %[[VAL_28:.*]] = arith.cmpi slt, %[[VAL_27]], %[[VAL_4]] : i64
+# CHECK:             %[[VAL_29:.*]] = arith.andi %[[VAL_26]], %[[VAL_28]] : i1
+# CHECK:             %[[VAL_30:.*]] = arith.addi %[[VAL_25]], %[[VAL_5]] : i64
+# CHECK:             %[[VAL_31:.*]] = arith.select %[[VAL_29]], %[[VAL_30]], %[[VAL_25]] : i64
+# CHECK:             %[[VAL_32:.*]] = quake.extract_ref %[[VAL_7]]{{\[}}%[[VAL_31]]] : (!quake.veq<4>, i64) -> !quake.ref
+# CHECK:             quake.ry (%[[VAL_24]]) %[[VAL_32]] : (f64, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_18]], %[[VAL_22]], %[[VAL_24]] : i64, i64, f64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_27:.*]]: i64, %[[VAL_28:.*]]: i64, %[[VAL_29:.*]]: f64):
-# CHECK:             %[[VAL_30:.*]] = arith.addi %[[VAL_27]], %[[VAL_3]] : i64
-# CHECK:             cc.continue %[[VAL_30]], %[[VAL_28]], %[[VAL_29]] : i64, i64, f64
+# CHECK:           ^bb0(%[[VAL_33:.*]]: i64, %[[VAL_34:.*]]: i64, %[[VAL_35:.*]]: f64):
+# CHECK:             %[[VAL_36:.*]] = arith.addi %[[VAL_33]], %[[VAL_3]] : i64
+# CHECK:             cc.continue %[[VAL_36]], %[[VAL_34]], %[[VAL_35]] : i64, i64, f64
 # CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_7]] : !quake.veq<4>
 # CHECK:           return

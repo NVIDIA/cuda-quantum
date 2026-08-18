@@ -5948,10 +5948,60 @@ class PyASTBridge(ast.NodeVisitor):
 
         if issubclass(nodeType, ast.Mod):
             if IntegerType.isinstance(left.type):
-                self.pushValue(arith.RemUIOp(left, right).result)
+                # Python's `%` yields a remainder that takes the sign of the
+                # divisor (floor modulo), whereas `arith.remsi` truncates the
+                # quotient towards zero and hence yields a remainder with the
+                # sign of the dividend. Correct the truncated remainder by
+                # adding the divisor whenever the remainder is non-zero and
+                # its sign differs from the divisor's. This matches the
+                # `arith.floordivsi` emitted for `//` above, such that the
+                # identity `a == (a // b) * b + a % b` holds.
+                intTy = IntegerType(left.type)
+                zero = self.getConstantInt(0, width=intTy.width)
+                nePred = self.getIntegerAttr(self.getIntegerType(), 1)
+                sltPred = self.getIntegerAttr(self.getIntegerType(), 2)
+                remainder = arith.RemSIOp(left, right).result
+                isNonZero = arith.CmpIOp(nePred, remainder, zero).result
+                # The sign bit of `remainder ^ right` is set exactly when the
+                # remainder and the divisor have opposite signs.
+                signsDiffer = arith.CmpIOp(
+                    sltPred,
+                    arith.XOrIOp(remainder, right).result, zero).result
+                needsCorrection = arith.AndIOp(isNonZero, signsDiffer).result
+                self.pushValue(
+                    arith.SelectOp(needsCorrection,
+                                   arith.AddIOp(remainder, right).result,
+                                   remainder).result)
                 return
             if (F64Type.isinstance(left.type) or F32Type.isinstance(left.type)):
-                self.pushValue(arith.RemFOp(left, right).result)
+                # `arith.remf` is C `fmod`: the quotient is truncated towards
+                # zero, so the remainder takes the sign of the dividend.
+                # Python's `%` instead gives the remainder the sign of the
+                # divisor, and gives a zero remainder the divisor's sign.
+                # Apply the same two corrections CPython applies on top of
+                # `fmod`: add the divisor when the remainder is non-zero and
+                # its sign differs from the divisor's, and replace a zero
+                # remainder with a zero carrying the divisor's sign.
+                zero = self.getConstantFloatWithType(0.0, left.type)
+                negZero = self.getConstantFloatWithType(-0.0, left.type)
+                unePred = self.getIntegerAttr(self.getIntegerType(), 13)
+                oltPred = self.getIntegerAttr(self.getIntegerType(), 4)
+                remainder = arith.RemFOp(left, right).result
+                # Unordered inequality, so that a `NaN` remainder counts as
+                # non-zero exactly as it does in CPython's `if (mod)`.
+                isNonZero = arith.CmpFOp(unePred, remainder, zero).result
+                divisorIsNegative = arith.CmpFOp(oltPred, right, zero).result
+                signsDiffer = arith.XOrIOp(
+                    arith.CmpFOp(oltPred, remainder, zero).result,
+                    divisorIsNegative).result
+                needsCorrection = arith.AndIOp(isNonZero, signsDiffer).result
+                corrected = arith.SelectOp(
+                    needsCorrection,
+                    arith.AddFOp(remainder, right).result, remainder).result
+                signedZero = arith.SelectOp(divisorIsNegative, negZero,
+                                            zero).result
+                self.pushValue(
+                    arith.SelectOp(isNonZero, corrected, signedZero).result)
                 return
             else:
                 self.emitFatalError("unhandled BinOp.Mod types",

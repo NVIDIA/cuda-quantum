@@ -264,6 +264,95 @@ def test_integer_floor_division_matches_python():
         assert python_floor_div(left, right) == kernel_floor_div(left, right)
 
 
+def test_integer_modulo_matches_python():
+
+    def python_mod(left: int, right: int) -> int:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod(left: int, right: int) -> int:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_i32(left: np.int32, right: np.int32) -> np.int32:
+        return left % right
+
+    # The remainder takes the sign of the divisor, as it does in Python.
+    for left, right in [(-1, 3), (-5, 3), (5, -3), (7, 3), (9, 2), (-9, 2),
+                        (9, -2), (-9, -2), (4, 2), (-4, 2), (4, -2), (-4, -2)]:
+        expected = python_mod(left, right)
+        assert kernel_mod(left, right) == expected
+        assert kernel_mod_i32(np.int32(left), np.int32(right)) == expected
+
+
+def test_integer_floor_division_modulo_identity():
+
+    @cudaq.kernel
+    def kernel_identity(left: int, right: int) -> int:
+        return (left // right) * right + left % right
+
+    # `a == (a // b) * b + a % b` must hold for any non-zero divisor.
+    for left in range(-6, 7):
+        for right in [-6, -3, -2, -1, 1, 2, 3, 6]:
+            assert kernel_identity(left, right) == left
+
+
+def test_float_modulo_matches_python():
+
+    def python_mod(left: float, right: float) -> float:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_f32(left: np.float32, right: np.float32) -> np.float32:
+        return left % right
+
+    # The remainder takes the sign of the divisor, as it does in Python, and
+    # not the sign of the dividend as C `fmod` does.
+    for left, right in [(9.0, 2.0), (-9.0, 2.0), (9.0, -2.0), (-9.0, -2.0),
+                        (-0.5, 2.0), (0.5, -2.0), (1.0, 0.1), (-1.0, 0.1),
+                        (7.5, 2.5), (-7.5, 2.5)]:
+        assert kernel_mod(left, right) == python_mod(left, right)
+
+        left32 = np.float32(left)
+        right32 = np.float32(right)
+        assert kernel_mod_f32(left32, right32) == python_mod(left32, right32)
+
+
+def test_float_modulo_zero_remainder_takes_sign_of_divisor():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    # Python returns `math.copysign(0.0, right)` when the remainder is zero,
+    # so `-4.0 % 2.0` is `0.0` while `4.0 % -2.0` is `-0.0`. Both compare
+    # equal to zero, so compare the signs explicitly as well.
+    for left, right in [(4.0, 2.0), (-4.0, 2.0), (4.0, -2.0), (-4.0, -2.0),
+                        (0.0, 2.0), (-0.0, 2.0), (0.0, -2.0), (-0.0, -2.0)]:
+        expected = left % right
+        actual = kernel_mod(left, right)
+        assert actual == expected
+        assert math.copysign(1.0, actual) == math.copysign(1.0, expected)
+
+
+def test_float_modulo_infinite_divisor():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    # `fmod(x, inf)` is `x`, so it is the sign correction that turns
+    # `-5.0 % inf` into the `inf` that Python returns.
+    infinity = float("inf")
+    for left, right in [(5.0, infinity), (-5.0, infinity), (5.0, -infinity),
+                        (-5.0, -infinity)]:
+        assert kernel_mod(left, right) == left % right
+
+
 def test_float_floor_division_error():
     error = ("floor division with floating-point operands is not supported; "
              "use integer operands or math.floor(...), numpy.floor(...), or "
