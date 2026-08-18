@@ -1391,8 +1391,9 @@ struct CRxToCX
     qRewriter.create<cudaq::quake::RzOp>(loc, /*isAdj*/ negControl, negPI_2,
                                          noControls, target);
 
-    // This residue is a scalar over the complete two-qubit unitary, not a
-    // phase conditioned on the source Rx control.
+    // Keep this correction uncontrolled. It removes the decomposition's global
+    // phase mismatch. Attaching the source Rx control would introduce a
+    // relative phase and change the controlled-Rx unitary.
     Value phase =
         createConstant(loc, negControl ? M_PI_4 : -M_PI_4, angleType, rewriter);
     // Emit `quake.phase(phase) target`; its empty predicate is deliberate.
