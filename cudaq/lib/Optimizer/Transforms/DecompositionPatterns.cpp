@@ -1932,10 +1932,10 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     }
     auto correction = cudaq::opt::emitPhaseCorrection(
         rewriter, loc, phase, controls, negatedControls, targets.back());
-    controls = std::move(correction.controls);
     targets.back() = correction.anchor;
 
-    rewriter.replaceOp(op, cudaq::opt::getWireValues(controls, targets));
+    rewriter.replaceOp(op,
+                       cudaq::opt::getWireValues(correction.controls, targets));
     return success();
   }
 };
