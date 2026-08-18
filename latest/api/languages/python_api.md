@@ -7231,6 +7231,10 @@ discriminated bits into an integer.)
     :   Per-qubit circuit depth (all gates), as a dict mapping qubit
         index to depth.
 
+    *[property]{.pre}[ ]{.w}*[[t_depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.t_depth "Permalink to this definition"){.headerlink}
+
+    :   The dependency-aware depth of T and T-dagger gates.
+
     [[to_dict]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.to_dict "Permalink to this definition"){.headerlink}
 
     :   Return a dictionary of the raw resource counts that are stored

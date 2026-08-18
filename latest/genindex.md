@@ -5851,141 +5851,145 @@ latest
 ## T {#T}
 
 +-----------------------------------+-----------------------------------+
-| -   [Target (class in             | -   [to_matrix()                  |
-|     cudaq)](api/langua            |                                   |
-| ges/python_api.html#cudaq.Target) |   (cudaq.operators.ScalarOperator |
-| -   [target                       |     method)](api/l                |
-|     (cudaq.ope                    | anguages/python_api.html#cudaq.op |
-| rators.boson.BosonOperatorElement | erators.ScalarOperator.to_matrix) |
-|     property)](api/languages/     | -   [to_numpy                     |
-| python_api.html#cudaq.operators.b |     (cudaq.ComplexMatrix          |
-| oson.BosonOperatorElement.target) |     attri                         |
-|     -   [(cudaq.operato           | bute)](api/languages/python_api.h |
-| rs.fermion.FermionOperatorElement | tml#cudaq.ComplexMatrix.to_numpy) |
-|                                   |     -   [(cudaq.State             |
-|     property)](api/languages/pyth |                                   |
-| on_api.html#cudaq.operators.fermi |    attribute)](api/languages/pyth |
-| on.FermionOperatorElement.target) | on_api.html#cudaq.State.to_numpy) |
-|     -   [(cudaq.o                 | -   [to_sparse_matrix             |
-| perators.spin.SpinOperatorElement |     (cu                           |
-|         property)](api/language   | daq.operators.boson.BosonOperator |
-| s/python_api.html#cudaq.operators |     attribute)](api/languages/pyt |
-| .spin.SpinOperatorElement.target) | hon_api.html#cudaq.operators.boso |
-| -   [targets                      | n.BosonOperator.to_sparse_matrix) |
-|     (cudaq.ptsbe.TraceInstruction |     -   [(cudaq.                  |
-|     property)](a                  | operators.boson.BosonOperatorTerm |
-| pi/languages/python_api.html#cuda |                                   |
-| q.ptsbe.TraceInstruction.targets) | attribute)](api/languages/python_ |
-| -   [Tensor (class in             | api.html#cudaq.operators.boson.Bo |
-|     cudaq)](api/langua            | sonOperatorTerm.to_sparse_matrix) |
-| ges/python_api.html#cudaq.Tensor) |     -   [(cudaq.                  |
-| -   [term_count                   | operators.fermion.FermionOperator |
-|     (cu                           |                                   |
-| daq.operators.boson.BosonOperator | attribute)](api/languages/python_ |
-|     property)](api/languag        | api.html#cudaq.operators.fermion. |
-| es/python_api.html#cudaq.operator | FermionOperator.to_sparse_matrix) |
-| s.boson.BosonOperator.term_count) |     -   [(cudaq.oper              |
-|     -   [(cudaq.                  | ators.fermion.FermionOperatorTerm |
-| operators.fermion.FermionOperator |         attr                      |
-|                                   | ibute)](api/languages/python_api. |
-|        property)](api/languages/p | html#cudaq.operators.fermion.Ferm |
-| ython_api.html#cudaq.operators.fe | ionOperatorTerm.to_sparse_matrix) |
-| rmion.FermionOperator.term_count) |     -   [(                        |
-|     -                             | cudaq.operators.spin.SpinOperator |
-|  [(cudaq.operators.MatrixOperator |                                   |
-|         property)](api/la         |       attribute)](api/languages/p |
-| nguages/python_api.html#cudaq.ope | ython_api.html#cudaq.operators.sp |
-| rators.MatrixOperator.term_count) | in.SpinOperator.to_sparse_matrix) |
-|     -   [(                        |     -   [(cuda                    |
-| cudaq.operators.spin.SpinOperator | q.operators.spin.SpinOperatorTerm |
-|         property)](api/langu      |                                   |
-| ages/python_api.html#cudaq.operat |   attribute)](api/languages/pytho |
-| ors.spin.SpinOperator.term_count) | n_api.html#cudaq.operators.spin.S |
-|     -   [(cuda                    | pinOperatorTerm.to_sparse_matrix) |
-| q.operators.spin.SpinOperatorTerm | -   [to_string                    |
-|         property)](api/languages  |     (cudaq.ope                    |
-| /python_api.html#cudaq.operators. | rators.boson.BosonOperatorElement |
-| spin.SpinOperatorTerm.term_count) |     attribute)](api/languages/pyt |
-| -   [term_id                      | hon_api.html#cudaq.operators.boso |
-|     (cudaq.                       | n.BosonOperatorElement.to_string) |
-| operators.boson.BosonOperatorTerm |     -   [(cudaq.operato           |
-|     property)](api/language       | rs.fermion.FermionOperatorElement |
-| s/python_api.html#cudaq.operators |                                   |
-| .boson.BosonOperatorTerm.term_id) | attribute)](api/languages/python_ |
-|     -   [(cudaq.oper              | api.html#cudaq.operators.fermion. |
-| ators.fermion.FermionOperatorTerm | FermionOperatorElement.to_string) |
-|                                   |     -   [(cuda                    |
-|       property)](api/languages/py | q.operators.MatrixOperatorElement |
-| thon_api.html#cudaq.operators.fer |         attribute)](api/language  |
-| mion.FermionOperatorTerm.term_id) | s/python_api.html#cudaq.operators |
-|     -   [(c                       | .MatrixOperatorElement.to_string) |
-| udaq.operators.MatrixOperatorTerm |     -   [(cudaq.o                 |
-|         property)](api/lan        | perators.spin.SpinOperatorElement |
-| guages/python_api.html#cudaq.oper |                                   |
-| ators.MatrixOperatorTerm.term_id) |       attribute)](api/languages/p |
-|     -   [(cuda                    | ython_api.html#cudaq.operators.sp |
-| q.operators.spin.SpinOperatorTerm | in.SpinOperatorElement.to_string) |
-|         property)](api/langua     | -   [TraceInstruction (class in   |
-| ges/python_api.html#cudaq.operato |     cudaq.p                       |
-| rs.spin.SpinOperatorTerm.term_id) | tsbe)](api/languages/python_api.h |
-| -   [to_bools() (in module        | tml#cudaq.ptsbe.TraceInstruction) |
-|     cudaq)](api/language          | -   [TraceInstructionType (class  |
-| s/python_api.html#cudaq.to_bools) |     in                            |
-| -   [to_dict (cudaq.Resources     |     cudaq.ptsbe                   |
-|                                   | )](api/languages/python_api.html# |
-| attribute)](api/languages/python_ | cudaq.ptsbe.TraceInstructionType) |
-| api.html#cudaq.Resources.to_dict) | -   [trajectories                 |
-| -   [to_json                      |                                   |
-|     (                             |   (cudaq.ptsbe.PTSBEExecutionData |
-| cudaq.operators.spin.SpinOperator |     property)](api/lang           |
-|     attribute)](api/la            | uages/python_api.html#cudaq.ptsbe |
-| nguages/python_api.html#cudaq.ope | .PTSBEExecutionData.trajectories) |
-| rators.spin.SpinOperator.to_json) | -   [trajectory_id                |
-|     -   [(cuda                    |     (cudaq.ptsbe.KrausTrajectory  |
-| q.operators.spin.SpinOperatorTerm |     property)](api/la             |
-|         attribute)](api/langua    | nguages/python_api.html#cudaq.pts |
-| ges/python_api.html#cudaq.operato | be.KrausTrajectory.trajectory_id) |
-| rs.spin.SpinOperatorTerm.to_json) | -   [translate() (in module       |
-| -   [to_json()                    |     cudaq)](api/languages         |
-|     (cudaq.PyKernelDecorator      | /python_api.html#cudaq.translate) |
-|     metho                         | -   [trim                         |
-| d)](api/languages/python_api.html |     (cu                           |
-| #cudaq.PyKernelDecorator.to_json) | daq.operators.boson.BosonOperator |
-| -   [to_matrix                    |     attribute)](api/l             |
-|     (cu                           | anguages/python_api.html#cudaq.op |
-| daq.operators.boson.BosonOperator | erators.boson.BosonOperator.trim) |
-|     attribute)](api/langua        |     -   [(cudaq.                  |
-| ges/python_api.html#cudaq.operato | operators.fermion.FermionOperator |
-| rs.boson.BosonOperator.to_matrix) |         attribute)](api/langu     |
-|     -   [(cudaq.ope               | ages/python_api.html#cudaq.operat |
-| rators.boson.BosonOperatorElement | ors.fermion.FermionOperator.trim) |
-|                                   |     -                             |
-|     attribute)](api/languages/pyt |  [(cudaq.operators.MatrixOperator |
-| hon_api.html#cudaq.operators.boso |         attribute)](              |
-| n.BosonOperatorElement.to_matrix) | api/languages/python_api.html#cud |
-|     -   [(cudaq.                  | aq.operators.MatrixOperator.trim) |
-| operators.boson.BosonOperatorTerm |     -   [(                        |
+| -   [t_depth (cudaq.Resources     | -   [to_matrix()                  |
+|                                   |                                   |
+|  property)](api/languages/python_ |   (cudaq.operators.ScalarOperator |
+| api.html#cudaq.Resources.t_depth) |     method)](api/l                |
+| -   [Target (class in             | anguages/python_api.html#cudaq.op |
+|     cudaq)](api/langua            | erators.ScalarOperator.to_matrix) |
+| ges/python_api.html#cudaq.Target) | -   [to_numpy                     |
+| -   [target                       |     (cudaq.ComplexMatrix          |
+|     (cudaq.ope                    |     attri                         |
+| rators.boson.BosonOperatorElement | bute)](api/languages/python_api.h |
+|     property)](api/languages/     | tml#cudaq.ComplexMatrix.to_numpy) |
+| python_api.html#cudaq.operators.b |     -   [(cudaq.State             |
+| oson.BosonOperatorElement.target) |                                   |
+|     -   [(cudaq.operato           |    attribute)](api/languages/pyth |
+| rs.fermion.FermionOperatorElement | on_api.html#cudaq.State.to_numpy) |
+|                                   | -   [to_sparse_matrix             |
+|     property)](api/languages/pyth |     (cu                           |
+| on_api.html#cudaq.operators.fermi | daq.operators.boson.BosonOperator |
+| on.FermionOperatorElement.target) |     attribute)](api/languages/pyt |
+|     -   [(cudaq.o                 | hon_api.html#cudaq.operators.boso |
+| perators.spin.SpinOperatorElement | n.BosonOperator.to_sparse_matrix) |
+|         property)](api/language   |     -   [(cudaq.                  |
+| s/python_api.html#cudaq.operators | operators.boson.BosonOperatorTerm |
+| .spin.SpinOperatorElement.target) |                                   |
+| -   [targets                      | attribute)](api/languages/python_ |
+|     (cudaq.ptsbe.TraceInstruction | api.html#cudaq.operators.boson.Bo |
+|     property)](a                  | sonOperatorTerm.to_sparse_matrix) |
+| pi/languages/python_api.html#cuda |     -   [(cudaq.                  |
+| q.ptsbe.TraceInstruction.targets) | operators.fermion.FermionOperator |
+| -   [Tensor (class in             |                                   |
+|     cudaq)](api/langua            | attribute)](api/languages/python_ |
+| ges/python_api.html#cudaq.Tensor) | api.html#cudaq.operators.fermion. |
+| -   [term_count                   | FermionOperator.to_sparse_matrix) |
+|     (cu                           |     -   [(cudaq.oper              |
+| daq.operators.boson.BosonOperator | ators.fermion.FermionOperatorTerm |
+|     property)](api/languag        |         attr                      |
+| es/python_api.html#cudaq.operator | ibute)](api/languages/python_api. |
+| s.boson.BosonOperator.term_count) | html#cudaq.operators.fermion.Ferm |
+|     -   [(cudaq.                  | ionOperatorTerm.to_sparse_matrix) |
+| operators.fermion.FermionOperator |     -   [(                        |
 |                                   | cudaq.operators.spin.SpinOperator |
-|        attribute)](api/languages/ |         attribute)](api           |
-| python_api.html#cudaq.operators.b | /languages/python_api.html#cudaq. |
-| oson.BosonOperatorTerm.to_matrix) | operators.spin.SpinOperator.trim) |
-|     -   [(cudaq.                  | -   [type                         |
-| operators.fermion.FermionOperator |     (c                            |
-|                                   | udaq.ptsbe.ShotAllocationStrategy |
-|        attribute)](api/languages/ |     property)](api/               |
-| python_api.html#cudaq.operators.f | languages/python_api.html#cudaq.p |
-| ermion.FermionOperator.to_matrix) | tsbe.ShotAllocationStrategy.type) |
-|     -   [(cudaq.operato           |     -                             |
-| rs.fermion.FermionOperatorElement |    [(cudaq.ptsbe.TraceInstruction |
-|                                   |         property)                 |
-| attribute)](api/languages/python_ | ](api/languages/python_api.html#c |
-| api.html#cudaq.operators.fermion. | udaq.ptsbe.TraceInstruction.type) |
-| FermionOperatorElement.to_matrix) | -   [type_to_str()                |
-|     -   [(cudaq.oper              |     (cudaq.PyKernelDecorator      |
-| ators.fermion.FermionOperatorTerm |     static                        |
-|                                   |     method)](                     |
-|    attribute)](api/languages/pyth | api/languages/python_api.html#cud |
-| on_api.html#cudaq.operators.fermi | aq.PyKernelDecorator.type_to_str) |
+|        property)](api/languages/p |                                   |
+| ython_api.html#cudaq.operators.fe |       attribute)](api/languages/p |
+| rmion.FermionOperator.term_count) | ython_api.html#cudaq.operators.sp |
+|     -                             | in.SpinOperator.to_sparse_matrix) |
+|  [(cudaq.operators.MatrixOperator |     -   [(cuda                    |
+|         property)](api/la         | q.operators.spin.SpinOperatorTerm |
+| nguages/python_api.html#cudaq.ope |                                   |
+| rators.MatrixOperator.term_count) |   attribute)](api/languages/pytho |
+|     -   [(                        | n_api.html#cudaq.operators.spin.S |
+| cudaq.operators.spin.SpinOperator | pinOperatorTerm.to_sparse_matrix) |
+|         property)](api/langu      | -   [to_string                    |
+| ages/python_api.html#cudaq.operat |     (cudaq.ope                    |
+| ors.spin.SpinOperator.term_count) | rators.boson.BosonOperatorElement |
+|     -   [(cuda                    |     attribute)](api/languages/pyt |
+| q.operators.spin.SpinOperatorTerm | hon_api.html#cudaq.operators.boso |
+|         property)](api/languages  | n.BosonOperatorElement.to_string) |
+| /python_api.html#cudaq.operators. |     -   [(cudaq.operato           |
+| spin.SpinOperatorTerm.term_count) | rs.fermion.FermionOperatorElement |
+| -   [term_id                      |                                   |
+|     (cudaq.                       | attribute)](api/languages/python_ |
+| operators.boson.BosonOperatorTerm | api.html#cudaq.operators.fermion. |
+|     property)](api/language       | FermionOperatorElement.to_string) |
+| s/python_api.html#cudaq.operators |     -   [(cuda                    |
+| .boson.BosonOperatorTerm.term_id) | q.operators.MatrixOperatorElement |
+|     -   [(cudaq.oper              |         attribute)](api/language  |
+| ators.fermion.FermionOperatorTerm | s/python_api.html#cudaq.operators |
+|                                   | .MatrixOperatorElement.to_string) |
+|       property)](api/languages/py |     -   [(cudaq.o                 |
+| thon_api.html#cudaq.operators.fer | perators.spin.SpinOperatorElement |
+| mion.FermionOperatorTerm.term_id) |                                   |
+|     -   [(c                       |       attribute)](api/languages/p |
+| udaq.operators.MatrixOperatorTerm | ython_api.html#cudaq.operators.sp |
+|         property)](api/lan        | in.SpinOperatorElement.to_string) |
+| guages/python_api.html#cudaq.oper | -   [TraceInstruction (class in   |
+| ators.MatrixOperatorTerm.term_id) |     cudaq.p                       |
+|     -   [(cuda                    | tsbe)](api/languages/python_api.h |
+| q.operators.spin.SpinOperatorTerm | tml#cudaq.ptsbe.TraceInstruction) |
+|         property)](api/langua     | -   [TraceInstructionType (class  |
+| ges/python_api.html#cudaq.operato |     in                            |
+| rs.spin.SpinOperatorTerm.term_id) |     cudaq.ptsbe                   |
+| -   [to_bools() (in module        | )](api/languages/python_api.html# |
+|     cudaq)](api/language          | cudaq.ptsbe.TraceInstructionType) |
+| s/python_api.html#cudaq.to_bools) | -   [trajectories                 |
+| -   [to_dict (cudaq.Resources     |                                   |
+|                                   |   (cudaq.ptsbe.PTSBEExecutionData |
+| attribute)](api/languages/python_ |     property)](api/lang           |
+| api.html#cudaq.Resources.to_dict) | uages/python_api.html#cudaq.ptsbe |
+| -   [to_json                      | .PTSBEExecutionData.trajectories) |
+|     (                             | -   [trajectory_id                |
+| cudaq.operators.spin.SpinOperator |     (cudaq.ptsbe.KrausTrajectory  |
+|     attribute)](api/la            |     property)](api/la             |
+| nguages/python_api.html#cudaq.ope | nguages/python_api.html#cudaq.pts |
+| rators.spin.SpinOperator.to_json) | be.KrausTrajectory.trajectory_id) |
+|     -   [(cuda                    | -   [translate() (in module       |
+| q.operators.spin.SpinOperatorTerm |     cudaq)](api/languages         |
+|         attribute)](api/langua    | /python_api.html#cudaq.translate) |
+| ges/python_api.html#cudaq.operato | -   [trim                         |
+| rs.spin.SpinOperatorTerm.to_json) |     (cu                           |
+| -   [to_json()                    | daq.operators.boson.BosonOperator |
+|     (cudaq.PyKernelDecorator      |     attribute)](api/l             |
+|     metho                         | anguages/python_api.html#cudaq.op |
+| d)](api/languages/python_api.html | erators.boson.BosonOperator.trim) |
+| #cudaq.PyKernelDecorator.to_json) |     -   [(cudaq.                  |
+| -   [to_matrix                    | operators.fermion.FermionOperator |
+|     (cu                           |         attribute)](api/langu     |
+| daq.operators.boson.BosonOperator | ages/python_api.html#cudaq.operat |
+|     attribute)](api/langua        | ors.fermion.FermionOperator.trim) |
+| ges/python_api.html#cudaq.operato |     -                             |
+| rs.boson.BosonOperator.to_matrix) |  [(cudaq.operators.MatrixOperator |
+|     -   [(cudaq.ope               |         attribute)](              |
+| rators.boson.BosonOperatorElement | api/languages/python_api.html#cud |
+|                                   | aq.operators.MatrixOperator.trim) |
+|     attribute)](api/languages/pyt |     -   [(                        |
+| hon_api.html#cudaq.operators.boso | cudaq.operators.spin.SpinOperator |
+| n.BosonOperatorElement.to_matrix) |         attribute)](api           |
+|     -   [(cudaq.                  | /languages/python_api.html#cudaq. |
+| operators.boson.BosonOperatorTerm | operators.spin.SpinOperator.trim) |
+|                                   | -   [type                         |
+|        attribute)](api/languages/ |     (c                            |
+| python_api.html#cudaq.operators.b | udaq.ptsbe.ShotAllocationStrategy |
+| oson.BosonOperatorTerm.to_matrix) |     property)](api/               |
+|     -   [(cudaq.                  | languages/python_api.html#cudaq.p |
+| operators.fermion.FermionOperator | tsbe.ShotAllocationStrategy.type) |
+|                                   |     -                             |
+|        attribute)](api/languages/ |    [(cudaq.ptsbe.TraceInstruction |
+| python_api.html#cudaq.operators.f |         property)                 |
+| ermion.FermionOperator.to_matrix) | ](api/languages/python_api.html#c |
+|     -   [(cudaq.operato           | udaq.ptsbe.TraceInstruction.type) |
+| rs.fermion.FermionOperatorElement | -   [type_to_str()                |
+|                                   |     (cudaq.PyKernelDecorator      |
+| attribute)](api/languages/python_ |     static                        |
+| api.html#cudaq.operators.fermion. |     method)](                     |
+| FermionOperatorElement.to_matrix) | api/languages/python_api.html#cud |
+|     -   [(cudaq.oper              | aq.PyKernelDecorator.type_to_str) |
+| ators.fermion.FermionOperatorTerm |                                   |
+|                                   |                                   |
+|    attribute)](api/languages/pyth |                                   |
+| on_api.html#cudaq.operators.fermi |                                   |
 | on.FermionOperatorTerm.to_matrix) |                                   |
 |     -                             |                                   |
 |  [(cudaq.operators.MatrixOperator |                                   |
