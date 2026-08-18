@@ -94,6 +94,19 @@ void addAOTPipelineConvertToQIR(mlir::PassManager &pm,
                                 mlir::StringRef convertTo = {},
                                 bool useValueSemantics = true);
 
+/// Stage 1 of the C++ `kernel_builder` JIT path. Unlike the AOT driver, the
+/// builder JITs in-process and so must generate its own device code loader and
+/// kernel execution (thunk / `argsCreator`) stubs. Must run to completion
+/// before stage 2: loop unrolling needs `cc.loop`, which kernel execution
+/// generation can reintroduce.
+void addKernelBuilderJITPrepPipeline(mlir::OpPassManager &pm);
+
+/// Stage 2: lower to CFG, then to the QIR API and the LLVM-IR dialect. Pass
+/// false for combineQuantumAllocations to leave quantum allocations in
+/// place, as required when simulating with user-provided state vectors.
+void addKernelBuilderJITLoweringPipeline(mlir::OpPassManager &pm,
+                                         bool combineQuantumAllocations = true);
+
 /// Pipeline builder to convert Quake to Open QASM 2.0
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 
