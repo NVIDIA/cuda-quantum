@@ -368,3 +368,712 @@ func.func @invalid_exp_pauli_nested_relaxed_literal_length(%theta : f64) {
   quake.exp_pauli (%theta) %relaxed1 to "X" : (f64, !quake.veq<?>) -> ()
   return
 }
+
+// -----
+
+// quake.alloca verification errors
+
+// expected-error@+1 {{size operand required}}
+%0 = quake.alloca !quake.veq<?>
+
+// -----
+
+%c2 = arith.constant 2 : i32
+// expected-error@+1 {{cannot specify size with this quantum type}}
+%0 = quake.alloca !quake.ref[%c2 : i32]
+
+// -----
+
+func.func @test_alloca_init_state_use(%arg0: !cc.ptr<!cc.array<complex<f64> x 4>>) {
+  // expected-error@+1 {{init_state must be the only use}}
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
+  quake.dealloc %0 : !quake.veq<2>
+  return
+}
+
+// -----
+
+// quake.init_state verification errors
+
+func.func @test_init_state_not_pow2(%arg0: !cc.ptr<!cc.array<complex<f64> x 3>>) {
+  %0 = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{initialize state vector must be power of 2}}
+  %1 = quake.init_state %0, %arg0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 3>>) -> !quake.veq<2>
+  return
+}
+
+// -----
+
+func.func @test_init_state_bad_array_element(%arg0: !cc.ptr<!cc.array<i32 x 4>>) {
+  %0 = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{invalid data pointer type}}
+  %1 = quake.init_state %0, %arg0 : (!quake.veq<2>, !cc.ptr<!cc.array<i32 x 4>>) -> !quake.veq<2>
+  return
+}
+
+// -----
+
+func.func @test_init_state_bad_scalar_element(%arg0: !cc.ptr<i32>) {
+  %0 = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{invalid data pointer type}}
+  %1 = quake.init_state %0, %arg0 : (!quake.veq<2>, !cc.ptr<i32>) -> !quake.veq<2>
+  return
+}
+
+// -----
+
+// quake.apply verification errors
+
+func.func private @takes_one(i32)
+
+%1 = arith.constant 4 : i32
+%2 = arith.constant 5 : i32
+// expected-error@+1 {{hidden argument must be callable}}
+quake.apply @takes_one %1, %2 : (i32, i32) -> ()
+
+// -----
+
+// quake.apply_noise verification errors
+
+func.func @test_apply_noise_key_type(%key: i32) {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{key must be i64}}
+  quake.apply_noise %key() %0 : (i32, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @test_apply_noise_bad_vector(%key: i64, %p: !cc.sequence<f32>) {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{must be std::vector<double>}}
+  quake.apply_noise %key(%p) %0 : (i64, !cc.sequence<f32>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @test_apply_noise_bad_pointer(%key: i64, %p: !cc.ptr<i64>) {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{must be floating-point}}
+  quake.apply_noise %key(%p) %0 : (i64, !cc.ptr<i64>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @test_apply_noise_bad_parameter(%key: i64, %p: f64) {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{must be std::vector<double> or floating-point}}
+  quake.apply_noise %key(%p) %0 : (i64, f64, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @test_apply_noise_bad_pointer_list(%key: i64, %p1: !cc.ptr<f64>, %p2: !cc.ptr<i32>) {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{must be floating-point}}
+  quake.apply_noise %key(%p1, %p2) %0 : (i64, !cc.ptr<f64>, !cc.ptr<i32>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @test_apply_noise_no_qubits(%key: i64, %p: !cc.ptr<f64>) {
+  // expected-error@+1 {{must have at least one qubit}}
+  quake.apply_noise %key(%p) : (i64, !cc.ptr<f64>) -> ()
+  return
+}
+
+// -----
+
+// quake.borrow_wire verification errors
+
+func.func @test_borrow_wire_no_set() {
+  // expected-error@+1 {{wire set could not be found}}
+  %0 = quake.borrow_wire @nonexistent[0] : !quake.wire
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @tiny[2]
+
+func.func @test_borrow_wire_negative() {
+  // expected-error@+1 {{id cannot be negative}}
+  %0 = quake.borrow_wire @tiny[-1] : !quake.wire
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @tiny[2]
+
+func.func @test_borrow_wire_out_of_bounds() {
+  // expected-error@+1 {{id is out of bounds for wire set}}
+  %0 = quake.borrow_wire @tiny[2] : !quake.wire
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+// quake.concat verification errors
+
+// expected-error@+1 {{must have at least 1 operand}}
+%0 = quake.concat : () -> !quake.veq<1>
+
+// -----
+
+// quake.exp_pauli verification errors
+
+func.func @test_exp_pauli_two_parameters(%theta: f64) {
+  %q = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{can only have 0 or 1 parameter}}
+  quake.exp_pauli (%theta, %theta) %q to "XY" : (f64, f64, !quake.veq<2>) -> ()
+  return
+}
+
+// -----
+
+// quake.extract_ref verification errors
+
+func.func @test_extract_ref_out_of_bounds(%v: !quake.veq<2>) {
+  // expected-error@+1 {{invalid index [4] because >= size [2]}}
+  %0 = quake.extract_ref %v[4] : (!quake.veq<2>) -> !quake.ref
+  return
+}
+
+// -----
+
+// quake.get_member verification errors
+
+func.func @test_get_member_result_type(%arg: !quake.struq<!quake.veq<1>, !quake.veq<2>>) {
+  // expected-error@+1 {{result type does not match member 0 type}}
+  %0 = quake.get_member %arg[0] : (!quake.struq<!quake.veq<1>, !quake.veq<2>>) -> !quake.veq<2>
+  return
+}
+
+// -----
+
+// quake.relax_size verification errors
+// NB: RelaxSizeOp::verify() currently emits this diagnostic without returning
+// failure. -verify-diagnostics matches the emitted diagnostic either way, so
+// this test also stays valid if the verifier is later changed to return
+// failure.
+
+func.func @test_relax_size_specified(%v: !quake.veq<4>) {
+  // expected-error@+1 {{return veq type must not specify a size}}
+  %0 = quake.relax_size %v : (!quake.veq<4>) -> !quake.veq<4>
+  return
+}
+
+// -----
+
+// quake.mz verification errors
+
+func.func @test_mz_scalar_result(%q: !quake.ref) {
+  // expected-error@+1 {{must return `!quake.measure` or `!cc.measure_handle` when measuring exactly one qubit}}
+  %m = quake.mz %q : (!quake.ref) -> !cc.sequence<!quake.measure>
+  return
+}
+
+// -----
+
+// quake.discriminate verification errors
+
+func.func @test_discriminate_sequence(%m: !cc.sequence<!quake.measure>) {
+  // expected-error@+1 {{must return a !cc.sequence<integral> type}}
+  %0 = quake.discriminate %m : (!cc.sequence<!quake.measure>) -> i1
+  return
+}
+
+// -----
+
+func.func @test_discriminate_scalar(%m: !quake.measure) {
+  // expected-error@+1 {{must return integral type when discriminating exactly one qubit}}
+  %0 = quake.discriminate %m : (!quake.measure) -> !cc.sequence<i1>
+  return
+}
+
+// -----
+
+// Cable operation verification errors
+
+func.func @test_bundle_cable_size() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  // expected-error@+1 {{the cable type size must equal the arity}}
+  %2 = quake.bundle_cable %0, %1 : (!quake.wire, !quake.wire) -> !quake.cable<3>
+  quake.sink %2 : !quake.cable<3>
+  return
+}
+
+// -----
+
+func.func @test_split_cable_size() {
+  %0 = quake.null_cable !quake.cable<3>
+  // expected-error@+1 {{the cable type size must equal the coarity}}
+  %1:2 = quake.split_cable %0 : (!quake.cable<3>) -> (!quake.wire, !quake.wire)
+  quake.sink %1#0 : !quake.wire
+  quake.sink %1#1 : !quake.wire
+  return
+}
+
+// -----
+
+func.func @test_detach_wire_out_of_bounds() {
+  %0 = quake.null_cable !quake.cable<2>
+  // expected-error@+1 {{index into the cable is out of bounds}}
+  %1:2 = quake.detach_wire %0[5] : (!quake.cable<2>) -> (!quake.wire, !quake.cable<1>)
+  quake.sink %1#0 : !quake.wire
+  quake.sink %1#1 : !quake.cable<1>
+  return
+}
+
+// -----
+
+func.func @test_detach_wire_result_size() {
+  %0 = quake.null_cable !quake.cable<3>
+  // expected-error@+1 {{the cable result type size must equal the size of the cable argument - 1}}
+  %1:2 = quake.detach_wire %0[0] : (!quake.cable<3>) -> (!quake.wire, !quake.cable<3>)
+  quake.sink %1#0 : !quake.wire
+  quake.sink %1#1 : !quake.cable<3>
+  return
+}
+
+// -----
+
+func.func @test_detach_wire_empty_cable() {
+  %0 = quake.null_cable !quake.cable<0>
+  // expected-error@+1 {{cannot remove a wire from an empty cable}}
+  %1:2 = quake.detach_wire %0[0] : (!quake.cable<0>) -> (!quake.wire, !quake.cable<0>)
+  quake.sink %1#0 : !quake.wire
+  quake.sink %1#1 : !quake.cable<0>
+  return
+}
+
+// -----
+
+func.func @test_attach_wire_out_of_bounds() {
+  %0 = quake.null_cable !quake.cable<2>
+  %1 = quake.null_wire
+  // expected-error@+1 {{index into the cable is out of bounds}}
+  %2 = quake.attach_wire %1, %0[5] : (!quake.wire, !quake.cable<2>) -> !quake.cable<3>
+  quake.sink %2 : !quake.cable<3>
+  return
+}
+
+// -----
+
+func.func @test_attach_wire_result_size() {
+  %0 = quake.null_cable !quake.cable<2>
+  %1 = quake.null_wire
+  // expected-error@+1 {{the cable result type size must equal the size of the cable argument + 1}}
+  %2 = quake.attach_wire %1, %0[1] : (!quake.wire, !quake.cable<2>) -> !quake.cable<2>
+  quake.sink %2 : !quake.cable<2>
+  return
+}
+
+// -----
+
+// quake.custom_unitary_call verification errors
+
+func.func @test_custom_unitary_call_no_symbol() {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{symbol must be a func.func}}
+  quake.custom_unitary_call @not_a_func %0 : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// quake.custom_unitary_constant verification errors
+
+module {
+  func.func @test_custom_unitary_missing_global() {
+    %0 = quake.alloca !quake.ref
+    // expected-error@+1 {{Invalid matrix symbol, must reference a `cc.global`}}
+    quake.custom_unitary_constant @missing_mat %0 : (!quake.ref) -> ()
+    return
+  }
+}
+
+// -----
+
+module {
+  func.func @test_custom_unitary_too_many_qubits() {
+    %0 = quake.alloca !quake.veq<32>
+    // expected-error@+1 {{Too many qubits (>=32), not supported}}
+    quake.custom_unitary_constant @small_mat %0 : (!quake.veq<32>) -> ()
+    return
+  }
+  cc.global constant private @small_mat (dense<[(1.0,0.0), (0.0,0.0), (0.0,0.0), (1.0,0.0)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+}
+
+// -----
+
+// Quantum operator trait verification errors
+
+func.func @test_hermitian_adjoint() {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{may not be adjoint}}
+  quake.x<adj> %0 : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @test_wire_arity_coarity() {
+  %0 = quake.null_wire
+  // expected-error@+1 {{arity does not equal coarity of wires}}
+  quake.x %0 : (!quake.wire) -> ()
+  return
+}
+
+// -----
+
+func.func @test_wire_multiple_uses() {
+  %0 = quake.null_wire
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// -----
+
+// cc.cast verification errors
+
+func.func @test_cast_ext_needs_sign(%0: i32) -> i64 {
+  // expected-error@+1 {{integer extension must be signed or unsigned}}
+  %1 = cc.cast %0 : (i32) -> i64
+  return %1 : i64
+}
+
+// -----
+
+func.func @test_cast_bitcast_int_to_float(%0: i32) -> f64 {
+  // expected-error@+1 {{bitcast must be same number of bits}}
+  %1 = cc.cast %0 : (i32) -> f64
+  return %1 : f64
+}
+
+// -----
+
+func.func @test_cast_bitcast_float_to_int(%0: f32) -> i64 {
+  // expected-error@+1 {{bitcast must be same number of bits}}
+  %1 = cc.cast %0 : (f32) -> i64
+  return %1 : i64
+}
+
+// -----
+
+func.func @test_cast_invalid_integer(%0: i32) {
+  // expected-error@+1 {{invalid integer cast}}
+  %1 = cc.cast %0 : (i32) -> complex<f32>
+  return
+}
+
+// -----
+
+func.func @test_cast_invalid(%0: complex<f64>) {
+  // expected-error@+1 {{invalid cast}}
+  %1 = cc.cast %0 : (complex<f64>) -> f64
+  return
+}
+
+// -----
+
+func.func @test_cast_signed_pointer(%0: !cc.ptr<i8>) {
+  // expected-error@+1 {{signed (unsigned) may only be applied to integer to integer or integer to/from float}}
+  %1 = cc.cast signed %0 : (!cc.ptr<i8>) -> i64
+  return
+}
+
+// -----
+
+func.func @test_cast_signed_complex_float(%0: complex<f64>) {
+  // expected-error@+1 {{may only be applied to complex of integer}}
+  %1 = cc.cast signed %0 : (complex<f64>) -> complex<f32>
+  return
+}
+
+// -----
+
+// cc.extract_value verification errors
+
+func.func @test_extract_value_unknown_size(%0: !cc.array<i32 x ?>) {
+  // expected-error@+1 {{array must have constant size}}
+  %1 = cc.extract_value %0[0] : (!cc.array<i32 x ?>) -> i32
+  return
+}
+
+// -----
+
+func.func @test_extract_value_array_bounds(%0: !cc.array<i32 x 4>) {
+  // expected-error@+1 {{array cannot index out of bounds elements}}
+  %1 = cc.extract_value %0[10] : (!cc.array<i32 x 4>) -> i32
+  return
+}
+
+// -----
+
+func.func @test_extract_value_dynamic_struct_index(%0: !cc.struct<{i32, i8}>, %i: i32) {
+  // expected-error@+1 {{struct cannot have non-constant index}}
+  %1 = cc.extract_value %0[%i] : (!cc.struct<{i32, i8}>, i32) -> i32
+  return
+}
+
+// -----
+
+func.func @test_extract_value_struct_bounds(%0: !cc.struct<{i32, i8}>) {
+  // expected-error@+1 {{struct cannot index out of bounds members}}
+  %1 = cc.extract_value %0[5] : (!cc.struct<{i32, i8}>) -> i32
+  return
+}
+
+// -----
+
+func.func @test_extract_value_complex_bounds(%0: complex<f64>) {
+  // expected-error@+1 {{complex index is out of bounds}}
+  %1 = cc.extract_value %0[3] : (complex<f64>) -> f64
+  return
+}
+
+// -----
+
+func.func @test_extract_value_too_many_indices(%0: !cc.array<i32 x 4>) {
+  // expected-error@+1 {{too many indices}}
+  %1 = cc.extract_value %0[0, 0] : (!cc.array<i32 x 4>) -> i32
+  return
+}
+
+// -----
+
+func.func @test_extract_value_result_type(%0: !cc.struct<{i32, i8}>) {
+  // expected-error@+1 {{result type does not match input}}
+  %1 = cc.extract_value %0[0] : (!cc.struct<{i32, i8}>) -> f64
+  return
+}
+
+// -----
+
+// cc.compute_ptr verification errors
+
+func.func @test_compute_ptr_array_bounds(%0: !cc.ptr<!cc.array<i32 x 4>>) {
+  // expected-error@+1 {{array cannot index out of bounds elements}}
+  %1 = cc.compute_ptr %0[7] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+  return
+}
+
+// -----
+
+func.func @test_compute_ptr_dynamic_struct_index(%0: !cc.ptr<!cc.struct<{i32, f64}>>, %i: i64) {
+  // expected-error@+1 {{struct cannot have non-constant index}}
+  %1 = cc.compute_ptr %0[%i] : (!cc.ptr<!cc.struct<{i32, f64}>>, i64) -> !cc.ptr<i32>
+  return
+}
+
+// -----
+
+func.func @test_compute_ptr_struct_bounds(%0: !cc.ptr<!cc.struct<{i32, f64}>>) {
+  // expected-error@+1 {{struct cannot index out of bounds members}}
+  %1 = cc.compute_ptr %0[4] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
+  return
+}
+
+// -----
+
+func.func @test_compute_ptr_complex_bounds(%0: !cc.ptr<complex<f64>>) {
+  // expected-error@+1 {{complex index is out of bounds}}
+  %1 = cc.compute_ptr %0[2] : (!cc.ptr<complex<f64>>) -> !cc.ptr<f64>
+  return
+}
+
+// -----
+
+func.func @test_compute_ptr_too_many_indices(%0: !cc.ptr<i32>) {
+  // expected-error@+1 {{too many indices}}
+  %1 = cc.compute_ptr %0[0] : (!cc.ptr<i32>) -> !cc.ptr<i32>
+  return
+}
+
+// -----
+
+func.func @test_compute_ptr_result_type(%0: !cc.ptr<!cc.array<i32 x 4>>) {
+  // expected-error@+1 {{result type does not match input}}
+  %1 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<f32>
+  return
+}
+
+// -----
+
+// cc.offsetof verification errors
+
+func.func @test_offsetof_struct_bounds() {
+  // expected-error@+1 {{out of bounds for struct}}
+  %0 = cc.offsetof !cc.struct<{i32, f64}> [5] : i64
+  return
+}
+
+// -----
+
+func.func @test_offsetof_unknown_array_size() {
+  // expected-error@+1 {{array must have bounds}}
+  %0 = cc.offsetof !cc.array<i32 x ?> [0] : i64
+  return
+}
+
+// -----
+
+func.func @test_offsetof_complex_bounds() {
+  // expected-error@+1 {{out of bounds for complex}}
+  %0 = cc.offsetof !cc.struct<{complex<f64>}> [0, 3] : i64
+  return
+}
+
+// -----
+
+// cc.address_of verification errors
+
+func.func @test_address_of_undefined() {
+  // expected-error@+1 {{must reference a global}}
+  %0 = cc.address_of @does_not_exist : !cc.ptr<i8>
+  return
+}
+
+// -----
+
+// cc.sequence_init verification errors
+
+func.func @test_sequence_init_needs_length(%p: !cc.ptr<!cc.array<f64 x ?>>) {
+  // expected-error@+1 {{must specify a length}}
+  %0 = cc.sequence_init %p : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.sequence<f64>
+  return
+}
+
+// -----
+
+func.func @test_sequence_init_length_exceeds(%p: !cc.ptr<!cc.array<f64 x 4>>) {
+  %c100 = arith.constant 100 : i64
+  // expected-error@+1 {{length override exceeds array length}}
+  %0 = cc.sequence_init %p, %c100 : (!cc.ptr<!cc.array<f64 x 4>>, i64) -> !cc.sequence<f64>
+  return
+}
+
+// -----
+
+func.func @test_sequence_init_element_types(%p: !cc.ptr<!cc.array<f64 x 4>>) {
+  // expected-error@+1 {{element types must be the same}}
+  %0 = cc.sequence_init %p : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.sequence<i32>
+  return
+}
+
+// -----
+
+// cc.call_callable verification errors
+
+func.func @test_call_callable_arity(%c: !cc.callable<(i32) -> ()>) {
+  // expected-error@+1 {{call has incorrect arity}}
+  cc.call_callable %c : (!cc.callable<(i32) -> ()>) -> ()
+  return
+}
+
+// -----
+
+func.func @test_call_callable_argument_type(%c: !cc.callable<(i32) -> ()>, %arg: f64) {
+  // expected-error@+1 {{argument type mismatch}}
+  cc.call_callable %c, %arg : (!cc.callable<(i32) -> ()>, f64) -> ()
+  return
+}
+
+// -----
+
+func.func @test_call_callable_coarity(%c: !cc.callable<() -> i32>) {
+  // expected-error@+1 {{call has incorrect coarity}}
+  cc.call_callable %c : (!cc.callable<() -> i32>) -> ()
+  return
+}
+
+// -----
+
+func.func @test_call_callable_result_type(%c: !cc.callable<() -> i32>) {
+  // expected-error@+1 {{result type mismatch}}
+  %0 = cc.call_callable %c : (!cc.callable<() -> i32>) -> f64
+  return
+}
+
+// -----
+
+// cc.call_indirect_callable verification errors
+
+func.func @test_call_indirect_callable_arity(%c: !cc.indirect_callable<(i32) -> ()>) {
+  // expected-error@+1 {{call has incorrect arity}}
+  cc.call_indirect_callable %c : (!cc.indirect_callable<(i32) -> ()>) -> ()
+  return
+}
+
+// -----
+
+func.func @test_call_indirect_callable_result_type(%c: !cc.indirect_callable<() -> i32>) {
+  // expected-error@+1 {{result type mismatch}}
+  %0 = cc.call_indirect_callable %c : (!cc.indirect_callable<() -> i32>) -> f64
+  return
+}
+
+// -----
+
+// cc.noinline_call verification errors
+
+func.func @test_noinline_call_missing_callee() {
+  // expected-error@+1 {{'missing' does not reference a valid function}}
+  cc.noinline_call @missing() : () -> ()
+  return
+}
+
+// -----
+
+func.func private @takes_int(i32)
+
+func.func @test_noinline_call_operand_count() {
+  // expected-error@+1 {{incorrect number of operands for callee}}
+  cc.noinline_call @takes_int() : () -> ()
+  return
+}
+
+// -----
+
+func.func private @takes_int(i32)
+
+func.func @test_noinline_call_operand_type(%arg: f64) {
+  // expected-error@+1 {{operand type mismatch: expected operand type}}
+  cc.noinline_call @takes_int(%arg) : (f64) -> ()
+  return
+}
+
+// -----
+
+func.func private @returns_nothing()
+
+func.func @test_noinline_call_result_count() {
+  // expected-error@+1 {{incorrect number of results for callee}}
+  %0 = cc.noinline_call @returns_nothing() : () -> i32
+  return
+}
+
+// -----
+
+// cc.reify_span verification errors
+
+func.func @test_reify_span_not_constant() {
+  %0 = cc.undef !cc.array<f64 x 4>
+  // expected-error@+1 {{requires a constant array argument}}
+  %1 = cc.reify_span %0 : (!cc.array<f64 x 4>) -> !cc.sequence<f64>
+  return
+}
