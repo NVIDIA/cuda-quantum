@@ -88,7 +88,7 @@ RUN cd /cuda-quantum && git init && \
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
     # Pre-built binaries for doxygen are (only) available for x86_64.
-    wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz && \
+    wget https://github.com/doxygen/doxygen/releases/download/Release_1_9_7/doxygen-1.9.7.linux.bin.tar.gz && \
     tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7*; \
     else \
     apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
