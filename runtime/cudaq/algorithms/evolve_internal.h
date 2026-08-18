@@ -367,8 +367,7 @@ evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
     return result;
   }();
 
-  auto programJson = nlohmann::json(program);
-  auto programString = programJson.dump();
+  auto programString = cudaq::ahs::toJsonString(program);
   CUDAQ_DBG("Program JSON: {}", programString);
 
   auto sampleResults = launchAnalogKernel(programName.str(), programString,
