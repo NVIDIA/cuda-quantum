@@ -133,8 +133,9 @@ struct CommutationResult {
 /// indeterminate. The analysis does not follow identity through reusable
 /// `!quake.control`, `quake.to_ctrl`, `quake.from_ctrl`, calls, references,
 /// aggregates, or unsupported non-unitary quantum operations. Each wire block
-/// argument establishes a local identity that is not correlated with values on
-/// predecessor edges.
+/// argument remains unidentified because function entries, CFG edges, and
+/// nested regions do not guarantee that incoming wires are distinct. Operations
+/// reached only from those arguments therefore remain indeterminate.
 ///
 /// Any mutation of the block invalidates the analysis instance. The caller
 /// must discard it before querying the changed block.

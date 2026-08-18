@@ -24,16 +24,17 @@ namespace cudaq::quake::detail {
 /// `CommutationAnalysis` uses these identifiers to determine whether operations
 /// act on the same or disjoint virtual qubits.
 ///
-/// Block arguments, `quake.null_wire`, and `quake.borrow_wire` establish local
-/// identities. The analysis propagates them through operators whose controls
-/// and targets are all scalar wires, and through scalar-wire results of
-/// measurement instruments and reset channels.
+/// `quake.null_wire` and `quake.borrow_wire` establish local identities. The
+/// analysis propagates them through operators whose controls and targets are
+/// all scalar wires, and through scalar-wire results of measurement instruments
+/// and reset channels.
 ///
-/// The analysis does not propagate identifiers through reusable
-/// `!quake.control` values, conversions, calls, references, aggregates,
-/// unsupported non-unitary quantum operations, or block edges. Values that
-/// cannot be identified unambiguously remain unidentified. Any mutation of the
-/// block invalidates the analysis.
+/// Block arguments remain unidentified because valid IR does not guarantee
+/// that their incoming wires are distinct. The analysis also does not propagate
+/// identifiers through reusable `!quake.control` values, conversions, calls,
+/// references, aggregates, unsupported non-unitary quantum operations, or block
+/// edges. Values that cannot be identified unambiguously remain unidentified.
+/// Any mutation of the block invalidates the analysis.
 class QubitIdentityAnalysis {
 public:
   using QubitId = std::uint32_t;

@@ -29,17 +29,14 @@ static void propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
   }
 }
 
-// Build block-local qubit identities in program order. Block arguments and
-// null wires introduce IDs, repeated borrows reuse their (wire set, identity)
-// ID, and supported scalar-wire operations propagate IDs.
+// Build block-local qubit identities in program order. Null wires introduce
+// IDs, repeated borrows reuse their (wire set, identity) ID, and supported
+// scalar-wire operations propagate IDs. Block arguments remain unknown because
+// valid IR does not guarantee distinct incoming wires.
 static void buildQubitIdMap(Block &block,
                             llvm::DenseMap<Value, QubitId> &qubitIds) {
   QubitId nextQubitId = 0;
   llvm::DenseMap<BorrowKey, QubitId> borrowedQubitIds;
-
-  for (BlockArgument argument : block.getArguments())
-    if (isa<cudaq::quake::WireType>(argument.getType()))
-      qubitIds.try_emplace(argument, nextQubitId++);
 
   for (Operation &operation : block) {
     if (auto nullWire = dyn_cast<cudaq::quake::NullWireOp>(operation)) {

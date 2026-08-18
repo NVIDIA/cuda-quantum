@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Verifier.h"
@@ -150,8 +151,8 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   EXPECT_FALSE(analysis.getQubitId(mixedX.getWires()[0]));
   EXPECT_FALSE(analysis.getQubitId(mixedX.getWires()[1]));
 
-  // Wire block arguments and null wires introduce distinct local identities.
-  ASSERT_TRUE(analysis.getQubitId(function.getArgument(0)));
+  // Block arguments have no identity without a verified no-alias guarantee.
+  EXPECT_FALSE(analysis.getQubitId(function.getArgument(0)));
   EXPECT_FALSE(analysis.getQubitId(function.getArgument(1)));
   ASSERT_TRUE(analysis.getQubitId(distinct));
   EXPECT_NE(initialId, analysis.getQubitId(distinct));
@@ -177,4 +178,42 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   EXPECT_FALSE(analysis.getQubitId(function.getArgument(2)));
   EXPECT_FALSE(analysis.getQubitId(call.getResult(0)));
   EXPECT_FALSE(analysis.getQubitId(unwrapped.getResult()));
+}
+
+TEST(QubitIdentityAnalysisTest, LeavesSuccessorArgumentsUnknown) {
+  MLIRContext context;
+  context.loadDialect<cf::ControlFlowDialect>();
+  context.loadDialect<func::FuncDialect>();
+  context.loadDialect<cudaq::quake::QuakeDialect>();
+  auto module = parseSourceString<ModuleOp>(R"mlir(
+    module {
+      func.func @successor_arguments() {
+        %wire = quake.null_wire
+        cf.br ^bb1(%wire, %wire : !quake.wire, !quake.wire)
+      ^bb1(%first: !quake.wire, %second: !quake.wire):
+        %x = quake.x %first : (!quake.wire) -> !quake.wire
+        %h = quake.h %second : (!quake.wire) -> !quake.wire
+        quake.sink %x : !quake.wire
+        quake.sink %h : !quake.wire
+        return
+      }
+    }
+  )mlir",
+                                            &context);
+
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(succeeded(verify(*module)));
+  auto function = module->lookupSymbol<func::FuncOp>("successor_arguments");
+  ASSERT_TRUE(function);
+  ASSERT_EQ(function.getBlocks().size(), 2u);
+
+  Block &successor = function.back();
+  QubitIdentityAnalysis analysis(successor);
+  EXPECT_FALSE(analysis.getQubitId(successor.getArgument(0)));
+  EXPECT_FALSE(analysis.getQubitId(successor.getArgument(1)));
+  auto operators =
+      llvm::to_vector(successor.getOps<cudaq::quake::OperatorInterface>());
+  ASSERT_EQ(operators.size(), 2u);
+  EXPECT_FALSE(analysis.getQubitId(operators[0].getTargets().front()));
+  EXPECT_FALSE(analysis.getQubitId(operators[1].getTargets().front()));
 }

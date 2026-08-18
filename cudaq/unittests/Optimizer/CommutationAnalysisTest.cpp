@@ -14,6 +14,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Verifier.h"
@@ -31,6 +32,7 @@ class CommutationAnalysisTest : public ::testing::Test {
 protected:
   void SetUp() override {
     context.loadDialect<arith::ArithDialect>();
+    context.loadDialect<cf::ControlFlowDialect>();
     context.loadDialect<func::FuncDialect>();
     context.loadDialect<cudaq::cc::CCDialect>();
     context.loadDialect<cudaq::quake::QuakeDialect>();
@@ -101,6 +103,34 @@ TEST_F(CommutationAnalysisTest, DisjointSupport) {
   // X and H act on different virtual qubits.
   expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
              CommutationReason::DisjointSupport);
+}
+
+TEST_F(CommutationAnalysisTest, UnknownSuccessorArgumentSupport) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @successor_arguments() {
+        %wire = quake.null_wire
+        cf.br ^bb1(%wire, %wire : !quake.wire, !quake.wire)
+      ^bb1(%first: !quake.wire, %second: !quake.wire):
+        %x = quake.x %first : (!quake.wire) -> !quake.wire
+        %h = quake.h %second : (!quake.wire) -> !quake.wire
+        quake.sink %x : !quake.wire
+        quake.sink %h : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+  auto function = getFunction(*module, "successor_arguments");
+  ASSERT_EQ(function.getBlocks().size(), 2u);
+  Block &successor = function.back();
+  auto operators =
+      llvm::to_vector(successor.getOps<cudaq::quake::OperatorInterface>());
+  ASSERT_EQ(operators.size(), 2u);
+
+  CommutationAnalysis analysis(successor);
+  expectPair(analysis, operators[0], operators[1],
+             CommutationStatus::Indeterminate,
+             CommutationReason::UnmappedQubitId);
 }
 
 TEST_F(CommutationAnalysisTest, SameOperation) {
