@@ -1,9 +1,9 @@
 // ========================================================================== //
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         //
-// All rights reserved.                                                        //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
-// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
 // RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
@@ -467,3 +467,28 @@ func.func @non_linear_boundary(%arg0: !quake.wire)
 // CHECK-NEXT:    %[[RIGHT_S:.*]] = quake.s %[[RIGHT_T0]]
 // CHECK-NEXT:    %[[RIGHT_T1:.*]] = quake.t %[[RIGHT_S]]
 // CHECK-NEXT:    return %[[LEFT_T1]], %[[RIGHT_T1]]
+
+func.func @sibling_atomic_scopes(%arg0: !quake.wire) -> !quake.wire {
+  %0 = cc.scope -> (!quake.wire) {
+    %1 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+    cc.continue %1 : !quake.wire
+  } {atomic_quantum_region}
+  %2 = cc.scope -> (!quake.wire) {
+    %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  } {atomic_quantum_region}
+  return %2 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @sibling_atomic_scopes(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[H_0:.*]] = quake.h %[[ARG0]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[H_0]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[H_1:.*]] = quake.h %[[SCOPE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[H_1]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           return %[[SCOPE_1]] : !quake.wire
+// CHECK:         }
