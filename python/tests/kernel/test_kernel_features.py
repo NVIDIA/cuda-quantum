@@ -2166,6 +2166,68 @@ def test_nested_loops_with_continue():
     print(prog)
 
 
+def test_for_else_with_constant_trip_count():
+    # A `for ... else` whose trip count is a compile-time constant must still
+    # run the else body. The loop unroller used to drop the else region.
+
+    @cudaq.kernel
+    def counter() -> int:
+        r = 0
+        for i in range(4):
+            r = r + 1
+        else:
+            r = r + 7
+        return r
+
+    assert counter() == 11
+
+    @cudaq.kernel
+    def circuit():
+        q = cudaq.qvector(2)
+        for i in range(2):
+            h(q[0])
+        else:
+            x(q[1])
+
+    # `h` applied twice to q0 is the identity, so q0 is |0>; the else body
+    # flips q1.
+    counts = cudaq.sample(circuit, shots_count=100)
+    assert counts['01'] == 100
+
+
+def test_while_else_with_constant_trip_count():
+
+    @cudaq.kernel
+    def counter() -> int:
+        r = 0
+        i = 0
+        while i < 4:
+            r = r + 1
+            i = i + 1
+        else:
+            r = r + 7
+        return r
+
+    assert counter() == 11
+
+
+def test_for_else_break_skips_else():
+
+    @cudaq.kernel
+    def counter() -> int:
+        r = 0
+        for i in range(4):
+            if i == 2:
+                r = r + 100
+                break
+            r = r + 1
+        else:
+            r = r + 7
+        return r
+
+    assert counter() == 102
+
+
 def test_issue_1682():
 
     @cudaq.kernel

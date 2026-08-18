@@ -162,6 +162,17 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // Check for cases that are clearly not going to be unrolled.
     if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
       return failure();
+    // A Python `for ... else` / `while ... else` loop carries an else region
+    // that is entered exactly when the loop terminates without a break. This
+    // pattern clones only the while, body, and step regions, so unrolling such
+    // a loop would silently discard the else code. Leave the loop rolled and
+    // let LowerToCFG, which handles the else region, lower it. (The mapping
+    // pass declines these loops for the same reason.)
+    if (loop.hasPythonElse()) {
+      if (signalFailure)
+        loop.emitOpError("python for/while-else loop cannot be unrolled");
+      return failure();
+    }
     // Opt-in selective unrolling for value-semantics pipelines: a loop that
     // does not itself index or slice qubits dynamically is left rolled unless
     // it must be unrolled first to make a nested wire-blocking loop's trip
