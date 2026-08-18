@@ -37,6 +37,52 @@ void filterArgs(SmallVector<Value> &args, C collection) {
       args.push_back(item);
 }
 
+// Nearest enclosing `cc.scope` carrying the `atomic_quantum_region` marker,
+// skipping any ordinary scopes in between.
+static cudaq::cc::ScopeOp getEnclosingAtomicQuantumRegion(Operation *op) {
+  for (auto parentScope = op->getParentOfType<cudaq::cc::ScopeOp>();
+       parentScope;
+       parentScope = parentScope->getParentOfType<cudaq::cc::ScopeOp>())
+    if (parentScope.getAtomicQuantumRegionAttr())
+      return parentScope;
+  return {};
+}
+
+// Enforce the atomic-region optimization contract: a pattern may combine
+// two operations only when they have the same nearest enclosing
+// `atomic_quantum_region` scope and every region boundary between them is an
+// ordinary single-block `cc.scope`.
+static bool shareOptimizationRegion(Operation *later, Operation *earlier) {
+  if (getEnclosingAtomicQuantumRegion(later) !=
+      getEnclosingAtomicQuantumRegion(earlier))
+    return false;
+
+  // Defining operations may be visible from nested regions. Only ordinary,
+  // single-block scopes are transparent to these local rewrites.
+  Block *nested = later->getBlock();
+  Block *outer = earlier->getBlock();
+  while (nested != outer) {
+    if (!nested)
+      return false;
+    auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(nested->getParentOp());
+    if (!scope || scope.getAtomicQuantumRegionAttr() ||
+        !scope.getInitRegion().hasOneBlock())
+      return false;
+    nested = scope->getBlock();
+  }
+  return true;
+}
+
+// MLIR canonicalization can temporarily duplicate wire uses across blocks, and
+// Quake's verifier accepts that degraded form for later linearity repair.
+// Require every producer result to have exactly one use before rewriting or
+// erasing it.
+static bool shouldSkipRewrite(Operation *later, Operation *earlier) {
+  return !shareOptimizationRegion(later, earlier) ||
+         !llvm::all_of(earlier->getResults(),
+                       [](Value result) { return result.hasOneUse(); });
+}
+
 #include "RewriteRotationsToCliffordT.inc"
 
 // Apply some simple quantum optimizations to quake. The quake operations are
@@ -69,6 +115,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same\n");
       return failure();
     }
+    if (shouldSkipRewrite(qop, prev))
+      return failure();
     if (prev.getNegatedQubitControls())
       return failure();
 
@@ -162,6 +210,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operations must be the same\n");
       return failure();
     }
+    if (shouldSkipRewrite(qop, prev0))
+      return failure();
     if (prev0.getNegatedQubitControls())
       return failure();
 
@@ -250,6 +300,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same class\n");
       return failure();
     }
+    if (shouldSkipRewrite(qop, prev))
+      return failure();
     if (prev.getNegatedQubitControls())
       return failure();
 
@@ -355,6 +407,8 @@ public:
                               << qop << '\n');
       return failure();
     }
+    if (shouldSkipRewrite(qop, prev))
+      return failure();
     if (prev.getNegatedQubitControls())
       return failure();
 
@@ -515,6 +569,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same\n");
       return failure();
     }
+    if (shouldSkipRewrite(qop, prev))
+      return failure();
     if (prev.getNegatedQubitControls())
       return failure();
     if (qop.isAdj() != prev.isAdj()) {
@@ -612,6 +668,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be T\n");
       return failure();
     }
+    if (shouldSkipRewrite(qop, prev))
+      return failure();
     if (prev.getNegatedQubitControls())
       return failure();
     if (qop.isAdj() != prev.isAdj()) {
@@ -717,6 +775,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous previous operation must be Y\n");
       return failure();
     }
+    if (shouldSkipRewrite(qop, prev0) || shouldSkipRewrite(qop, prev))
+      return failure();
     if (prev0.getNegatedQubitControls() || prev.getNegatedQubitControls())
       return failure();
 
@@ -799,6 +859,8 @@ public:
       return failure();
     auto reset0 = target.template getDefiningOp<cudaq::quake::ResetOp>();
     if (reset0) {
+      if (shouldSkipRewrite(reset, reset0))
+        return failure();
       LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
       rewriter.replaceOp(reset, reset0.getResults());
       ++stat;
@@ -810,6 +872,8 @@ public:
                  << "previous operation must be reset or null_wire\n");
       return failure();
     }
+    if (shouldSkipRewrite(reset, nullwire))
+      return failure();
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
     rewriter.replaceOp(reset, nullwire.getResult());
     ++stat;
@@ -838,6 +902,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be reset\n");
       return failure();
     }
+    if (shouldSkipRewrite(sink, reset0))
+      return failure();
 
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset0 << '\n');
     rewriter.replaceOp(reset0, reset0.getTargets());
