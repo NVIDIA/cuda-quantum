@@ -64,7 +64,7 @@ private:
   [[nodiscard]] CompileTarget makeCompileTarget() const;
 
   std::optional<int> nShots;
-  std::shared_ptr<QDMIState> state;
+  std::unique_ptr<QDMIState> state;
   std::map<std::string, std::string> backendConfig;
   config::TargetConfig targetConfig;
 };
