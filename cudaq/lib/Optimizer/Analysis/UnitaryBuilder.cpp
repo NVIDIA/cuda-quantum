@@ -265,7 +265,7 @@ LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
 void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, unsigned numTargets,
                                    ArrayRef<Qubit> qubits) {
   if (qubits.size() == 1u) {
-    applyMatrix(m, qubits);
+    applyMatrix(m, qubits[0]);
     return;
   }
   if (numTargets == 1) {
@@ -376,15 +376,17 @@ static void indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
 
 // TODO:  Optimize!  There are ways to specialize for diagonal and anti-diagonal
 // matrices.
-void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, ArrayRef<Qubit> qubits) {
+void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, Qubit qubit) {
   auto *m = matrix.data();
-  SmallVector<unsigned, 8> idx(1u << qubits.size());
-  for (unsigned k = 0u, end = (matrix.size() >> 1u); k < end; ++k) {
-    indicies(qubits, qubits, k, idx);
-    auto cache = m[idx[0]];
-    m[idx[0]] = u[0] * cache + u[2] * m[idx[1]];
-    m[idx[1]] = u[1] * cache + u[3] * m[idx[1]];
-  }
+  const std::size_t bit = std::size_t{1} << qubit;
+  const std::size_t end = matrix.size();
+  for (std::size_t base = 0; base < end; base += (bit << 1))
+    for (std::size_t i = base, stop = base + bit; i < stop; ++i) {
+      const Complex lo = m[i];
+      const Complex hi = m[i + bit];
+      m[i] = u[0] * lo + u[2] * hi;
+      m[i + bit] = u[1] * lo + u[3] * hi;
+    }
 }
 
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,

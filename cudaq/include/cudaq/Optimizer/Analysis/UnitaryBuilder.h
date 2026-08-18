@@ -84,7 +84,7 @@ private:
                      mlir::ArrayRef<Qubit> qubits);
 
   /// Applies a general single-qubit unitary matrix
-  void applyMatrix(mlir::ArrayRef<Complex> m, mlir::ArrayRef<Qubit> qubits);
+  void applyMatrix(mlir::ArrayRef<Complex> m, Qubit qubit);
 
   /// Applies a general multiple-control, multiple-target unitary matrix
   void applyMatrix(mlir::ArrayRef<Complex> m, unsigned numTargets,
