@@ -83,10 +83,6 @@ protected:
   /// @brief Indicate the execution context of this call
   ExecutionContextType resultType = ExecutionContextType::sample;
 
-  /// Observable required to reconstruct a persisted asynchronous observe
-  /// result. This is provider-neutral result metadata.
-  std::optional<spin_op> persistedSpinOp;
-
   /// @brief Raw output data, if any, that is being returned
   /// from the server. This is used for `run` calls.
   std::vector<char> *inFutureRawOutput = nullptr;
@@ -127,18 +123,9 @@ public:
         inFutureRawOutput(rawOutput) {}
 
   future &operator=(future &other);
-  future &operator=(future &&other) noexcept;
+  future &operator=(future &&other);
 
   sample_result get();
-
-  void setSpinOp(const spin_op &op) {
-    persistedSpinOp = op;
-    persistedSpinOp->canonicalize();
-  }
-
-  [[nodiscard]] const std::optional<spin_op> &getSpinOp() const {
-    return persistedSpinOp;
-  }
 
   friend std::ostream &operator<<(std::ostream &, future &);
   friend std::istream &operator>>(std::istream &, future &);
@@ -181,7 +168,6 @@ public:
     if (op) {
       spinOp = *op;
       spinOp.value().canonicalize();
-      result.setSpinOp(*spinOp);
     }
   }
   async_result(detail::future &&f,
@@ -201,8 +187,6 @@ public:
       return data;
 
     if constexpr (std::is_same_v<T, observe_result>) {
-      if (!spinOp)
-        spinOp = result.getSpinOp();
       if (!spinOp)
         throw std::runtime_error(
             "Returning an observe_result requires a spin_op.");

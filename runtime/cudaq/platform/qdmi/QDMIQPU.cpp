@@ -9,6 +9,7 @@
 #include "QDMIQPU.h"
 
 #include "common/ExecutionContext.h"
+#include "common/FmtCore.h"
 #include "common/KernelExecution.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq_internal/compiler/Compiler.h"
@@ -18,28 +19,27 @@
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 
+#include "llvm/ADT/SmallString.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/FileUtilities.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <chrono>
 #include <cstdint>
-#include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <fstream>
 #include <future>
 #include <iterator>
 #include <map>
 #include <memory>
 #include <optional>
-#include <random>
 #include <ranges>
 #include <set>
 #include <span>
@@ -53,6 +53,7 @@
 namespace {
 
 using BackendConfig = std::map<std::string, std::string>;
+using Connectivity = std::vector<std::pair<std::size_t, std::size_t>>;
 using JobParameters = std::array<std::optional<qdmi::CustomJobParameter>, 5>;
 
 enum class ProgramEncoding : std::uint8_t { text, qirText, qirModule };
@@ -229,18 +230,11 @@ BasisMetadata queryBasis(const qdmi::Device &device) {
         "QDMI device advertises no gate operation that CUDA-Q can use as a "
         "compiler basis.");
 
-  std::string serialized;
-  for (const auto &gate : basis) {
-    if (!serialized.empty())
-      serialized += ',';
-    serialized += gate;
-  }
-  return {.value = std::move(serialized),
+  return {.value = fmt::format("{}", fmt::join(basis, ",")),
           .excludedOperations = std::move(excludedOperations)};
 }
 
-std::optional<std::vector<std::pair<std::size_t, std::size_t>>>
-queryConnectivity(const qdmi::Device &device) {
+std::optional<Connectivity> queryConnectivity(const qdmi::Device &device) {
   const auto couplingMap = device.getCouplingMap();
   if (!couplingMap)
     return std::nullopt;
@@ -261,82 +255,24 @@ queryConnectivity(const qdmi::Device &device) {
     edges.emplace(std::min(sourcePosition->second, targetPosition->second),
                   std::max(sourcePosition->second, targetPosition->second));
   }
-  return std::vector(edges.begin(), edges.end());
+  return Connectivity(edges.begin(), edges.end());
 }
 
-class TemporaryFile {
-public:
-  static TemporaryFile create(const std::string_view filename) {
-    std::mt19937_64 generator(
-        static_cast<std::mt19937_64::result_type>(
-            std::chrono::steady_clock::now().time_since_epoch().count()) ^
-        std::random_device{}());
-    const auto temporaryDirectory = std::filesystem::temp_directory_path();
-    for (std::size_t attempt = 0; attempt < 32; ++attempt) {
-      auto directory =
-          temporaryDirectory / ("cudaq-qdmi-" + std::to_string(generator()));
-      std::error_code error;
-      if (std::filesystem::create_directory(directory, error))
-        return TemporaryFile(std::move(directory), filename);
-      if (error && error != std::errc::file_exists)
-        throw std::filesystem::filesystem_error(
-            "Could not create a QDMI temporary directory", directory, error);
-    }
-    throw std::runtime_error("Could not create a QDMI temporary directory.");
-  }
-
-  TemporaryFile(const TemporaryFile &) = delete;
-  TemporaryFile &operator=(const TemporaryFile &) = delete;
-  TemporaryFile(TemporaryFile &&other) noexcept
-      : directory_(std::exchange(other.directory_, {})),
-        path_(std::exchange(other.path_, {})) {}
-  TemporaryFile &operator=(TemporaryFile &&other) noexcept {
-    if (this == &other)
-      return *this;
-    remove();
-    directory_ = std::exchange(other.directory_, {});
-    path_ = std::exchange(other.path_, {});
-    return *this;
-  }
-  ~TemporaryFile() { remove(); }
-
-  [[nodiscard]] const std::filesystem::path &path() const { return path_; }
-
-private:
-  TemporaryFile(std::filesystem::path directory,
-                const std::string_view filename)
-      : directory_(std::move(directory)), path_(directory_ / filename) {}
-
-  void remove() noexcept {
-    std::error_code error;
-    if (!path_.empty())
-      std::filesystem::remove(path_, error);
-    error.clear();
-    if (!directory_.empty())
-      std::filesystem::remove(directory_, error);
-  }
-
-  std::filesystem::path directory_;
-  std::filesystem::path path_;
-};
-
-/*
- * CUDA-Q's qubit-mapping pass currently reads a connectivity file. Use a
- * private temporary directory so another process cannot replace the file
- * between path selection and file creation.
- */
-std::optional<TemporaryFile> writeConnectivity(
-    const std::optional<std::vector<std::pair<std::size_t, std::size_t>>>
-        &connectivity,
-    const std::size_t qubitCount) {
+void writeConnectivity(const std::optional<Connectivity> &connectivity,
+                       const std::size_t qubitCount,
+                       std::optional<std::filesystem::path> &file) {
   if (!connectivity)
-    return std::nullopt;
+    return;
 
-  auto file = TemporaryFile::create("connectivity.txt");
-  std::ofstream output(file.path(), std::ios::out | std::ios::trunc);
-  if (!output)
-    throw std::runtime_error("Could not create QDMI connectivity file '" +
-                             file.path().string() + "'.");
+  llvm::SmallString<128> path;
+  int descriptor = -1;
+  if (const auto error = llvm::sys::fs::createTemporaryFile(
+          "cudaq-qdmi-connectivity", "txt", descriptor, path))
+    throw std::runtime_error("Could not create a QDMI connectivity file: " +
+                             error.message());
+
+  llvm::raw_fd_ostream output(descriptor, /*shouldClose=*/true);
+  llvm::FileRemover removeOnFailure(path);
 
   std::map<std::size_t, std::set<std::size_t>> adjacency;
   for (const auto &[source, target] : *connectivity) {
@@ -351,13 +287,17 @@ std::optional<TemporaryFile> writeConnectivity(
     output << "}\n";
   }
   output.flush();
-  if (!output)
-    throw std::runtime_error("Could not write QDMI connectivity file.");
-  return file;
+  if (const auto error = output.error())
+    throw std::runtime_error("Could not write the QDMI connectivity file: " +
+                             error.message());
+
+  file.emplace(path.str().str());
+  removeOnFailure.releaseFile();
 }
 
-std::string serializeConnectivity(const std::optional<TemporaryFile> &file) {
-  return file ? "file(" + file->path().string() + ")" : "bypass";
+std::string
+serializeConnectivity(const std::optional<std::filesystem::path> &file) {
+  return file ? "file(" + file->string() + ")" : "bypass";
 }
 
 std::optional<std::string> makeIQMQubitMapping(const qdmi::Device &device) {
@@ -408,21 +348,6 @@ std::string materializeTextProgram(const std::string &code,
                                    const ProgramFormat &format) {
   return format.encoding == ProgramEncoding::qirText ? qirBitcodeToText(code)
                                                      : code;
-}
-
-void dumpProgram(const std::span<const std::byte> program) {
-  const auto *path = std::getenv("CUDAQ_QDMI_DUMP_PROGRAM");
-  if (!path)
-    return;
-  std::ofstream output(path, std::ios::binary);
-  output.write(reinterpret_cast<const char *>(program.data()),
-               static_cast<std::streamsize>(program.size()));
-  if (!output)
-    throw std::runtime_error("Could not dump the QDMI program.");
-}
-
-void dumpProgram(const std::string &program) {
-  dumpProgram(std::as_bytes(std::span(program)));
 }
 
 cudaq::CountsDictionary
@@ -508,9 +433,8 @@ void projectResults(std::map<std::string, std::size_t> &counts,
     });
 }
 
-cudaq::observe_result
-observeResultFromCounts(const cudaq::observe_policy &policy,
-                        cudaq::sample_result data) {
+cudaq::observe_result makeObserveResult(const cudaq::observe_policy &policy,
+                                        cudaq::sample_result data) {
   double sum = 0.0;
   for (const auto &term : policy.spin) {
     if (term.is_identity())
@@ -549,22 +473,24 @@ namespace cudaq {
 class QDMIState {
 public:
   QDMIState(qdmi::Device device, ProgramFormat format, JobParameters parameters,
-            std::string deviceId, std::string basis,
-            std::optional<std::vector<std::pair<std::size_t, std::size_t>>>
-                connectivity,
-            std::optional<TemporaryFile> connectivityFile)
+            std::string deviceId, std::string basis)
       : device(std::move(device)), format(format),
         jobParameters(std::move(parameters)), deviceId(std::move(deviceId)),
-        basis(std::move(basis)), connectivity(std::move(connectivity)),
-        connectivityFile(std::move(connectivityFile)) {}
+        basis(std::move(basis)) {}
+
+  ~QDMIState() {
+    if (connectivityFile) {
+      std::error_code error;
+      std::filesystem::remove(*connectivityFile, error);
+    }
+  }
 
   qdmi::Device device;
   ProgramFormat format;
   JobParameters jobParameters;
   std::string deviceId;
   std::string basis;
-  std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
-  std::optional<TemporaryFile> connectivityFile;
+  std::optional<std::filesystem::path> connectivityFile;
 };
 
 namespace {
@@ -622,22 +548,21 @@ sample_result normalizeJobResult(qdmi::Job &job, const KernelExecution &code,
 
 qdmi::Job submitJob(const QDMIState &state, const KernelExecution &code,
                     const std::size_t shots) {
+  const auto submit = [&](const auto &program) {
+    return state.device.submitJob(
+        program, state.format.qdmi, shots, state.jobParameters[0],
+        state.jobParameters[1], state.jobParameters[2], state.jobParameters[3],
+        state.jobParameters[4]);
+  };
+
   if (state.format.encoding == ProgramEncoding::qirModule) {
     const auto bitcode = decodeQirBitcode(code.code);
     const auto bytes = std::as_bytes(std::span(bitcode));
-    dumpProgram(bytes);
-    return state.device.submitJob(
-        bytes, state.format.qdmi, shots, state.jobParameters[0],
-        state.jobParameters[1], state.jobParameters[2], state.jobParameters[3],
-        state.jobParameters[4]);
+    return submit(bytes);
   }
 
   const auto program = materializeTextProgram(code.code, state.format);
-  dumpProgram(program);
-  return state.device.submitJob(program, state.format.qdmi, shots,
-                                state.jobParameters[0], state.jobParameters[1],
-                                state.jobParameters[2], state.jobParameters[3],
-                                state.jobParameters[4]);
+  return submit(program);
 }
 
 std::vector<qdmi::Job> submitAllJobs(const QDMIState &state,
@@ -648,28 +573,6 @@ std::vector<qdmi::Job> submitAllJobs(const QDMIState &state,
   for (const auto &code : codes)
     jobs.emplace_back(submitJob(state, code, shots));
   return jobs;
-}
-
-sample_result executeJobs(const std::shared_ptr<QDMIState> &state,
-                          const std::vector<KernelExecution> &codes,
-                          const detail::ExecutionContextType execType,
-                          const std::size_t shots) {
-  if (!state)
-    throw std::runtime_error("QDMI QPU is not configured.");
-  if (execType == detail::ExecutionContextType::run)
-    throw std::runtime_error("QDMI does not support cudaq::run.");
-
-  auto jobs = submitAllJobs(*state, codes, shots);
-
-  sample_result result;
-  for (std::size_t index = 0; index < jobs.size(); ++index) {
-    auto jobResult = normalizeJobResult(jobs[index], codes[index], execType);
-    if (index != 0)
-      result += jobResult;
-    else
-      result = std::move(jobResult);
-  }
-  return result;
 }
 
 sample_result collectJobs(std::vector<qdmi::Job> &jobs,
@@ -689,28 +592,30 @@ sample_result collectJobs(std::vector<qdmi::Job> &jobs,
   return result;
 }
 
-detail::future submitJobsAsync(QDMIQPU &qpu,
-                               const std::shared_ptr<QDMIState> &state,
+sample_result executeJobs(const QDMIState &state,
+                          const std::vector<KernelExecution> &codes,
+                          const detail::ExecutionContextType execType,
+                          const std::size_t shots) {
+  auto jobs = submitAllJobs(state, codes, shots);
+  return collectJobs(jobs, codes, execType);
+}
+
+detail::future submitJobsAsync(QDMIQPU &qpu, const QDMIState &state,
                                std::vector<KernelExecution> codes,
                                const detail::ExecutionContextType execType,
                                const std::size_t shots) {
-  if (!state)
-    throw std::runtime_error("QDMI QPU is not configured.");
-
   struct PendingJobs {
-    std::shared_ptr<QDMIState> state;
     std::vector<qdmi::Job> jobs;
     std::vector<KernelExecution> codes;
   };
 
   auto pending = std::make_shared<PendingJobs>();
-  pending->state = state;
   pending->codes = std::move(codes);
-  pending->jobs = submitAllJobs(*state, pending->codes, shots);
+  pending->jobs = submitAllJobs(state, pending->codes, shots);
 
   std::vector<detail::future::Job> serializedJobs;
   std::map<std::string, std::string> serializedConfig{
-      {"schema", "1"}, {"device", state->deviceId}};
+      {"schema", "1"}, {"device", state.deviceId}};
   serializedJobs.reserve(pending->jobs.size());
   for (std::size_t index = 0; index < pending->jobs.size(); ++index) {
     const auto id = pending->jobs[index].getId();
@@ -854,7 +759,6 @@ void QDMIQPU::setTargetBackend(const std::string &) {
                           getValue(backendConfig, "qdmi_program_format"));
   const auto qubitCount = device.getQubitsNum();
   auto connectivity = queryConnectivity(device);
-  auto connectivityFile = writeConnectivity(connectivity, qubitCount);
   auto parameters = getJobParameters(backendConfig);
   if (format.qdmi == QDMI_PROGRAM_FORMAT_IQMJSON && !parameters[4])
     if (auto mapping = makeIQMQubitMapping(device))
@@ -862,29 +766,24 @@ void QDMIQPU::setTargetBackend(const std::string &) {
 
   auto basis = queryBasis(device);
   if (!basis.excludedOperations.empty()) {
-    std::string excluded;
-    for (const auto &name : basis.excludedOperations) {
-      if (!excluded.empty())
-        excluded += ", ";
-      excluded += name;
-    }
     CUDAQ_DBG("QDMI operations not used for CUDA-Q basis conversion: {}.",
-              excluded);
+              fmt::join(basis.excludedOperations, ", "));
   }
-  state = std::make_shared<QDMIState>(
-      std::move(device), format, std::move(parameters), *deviceId,
-      std::move(basis.value), std::move(connectivity),
-      std::move(connectivityFile));
+  auto newState = std::make_unique<QDMIState>(std::move(device), format,
+                                              std::move(parameters), *deviceId,
+                                              std::move(basis.value));
+  writeConnectivity(connectivity, qubitCount, newState->connectivityFile);
   numQubits = qubitCount;
-  this->connectivity = state->connectivity;
+  this->connectivity = std::move(connectivity);
 
-  backendConfig["qdmi_basis"] = state->basis;
+  backendConfig["qdmi_basis"] = newState->basis;
   backendConfig["qdmi_connectivity"] =
-      serializeConnectivity(state->connectivityFile);
+      serializeConnectivity(newState->connectivityFile);
   targetBackend.CodegenEmission = std::string(format.codegen);
   if (format.qdmi == QDMI_PROGRAM_FORMAT_IQMJSON)
     targetBackend.JITMidLevelPipeline = std::string(iqmPipeline);
   targetConfig.BackendConfig = std::move(targetBackend);
+  state = std::move(newState);
 
   CUDAQ_INFO("Opened QDMI device '{}' ({} qubits) through '{}' transport.",
              state->device.getName(), qubitCount, format.name);
@@ -924,7 +823,7 @@ CompileTarget QDMIQPU::getCompileTarget(const other_policies &,
 sample_result QDMIQPU::launchKernel(const sample_policy &policy,
                                     const CompiledModule &module, KernelArgs) {
   const auto codes = runCodegen(module, getCompileTarget(policy));
-  return executeJobs(state, codes, detail::ExecutionContextType::sample,
+  return executeJobs(*state, codes, detail::ExecutionContextType::sample,
                      resolveShots(nShots, policy.options.shots));
 }
 
@@ -933,15 +832,15 @@ async_sample_result QDMIQPU::launchKernel(const async_sample_policy &policy,
                                           KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy.inner));
   return async_sample_result(submitJobsAsync(
-      *this, state, std::move(codes), detail::ExecutionContextType::sample,
+      *this, *state, std::move(codes), detail::ExecutionContextType::sample,
       resolveShots(nShots, policy.inner.options.shots)));
 }
 
 observe_result QDMIQPU::launchKernel(const observe_policy &policy,
                                      const CompiledModule &module, KernelArgs) {
   const auto codes = runCodegen(module, getCompileTarget(policy));
-  return observeResultFromCounts(
-      policy, executeJobs(state, codes, detail::ExecutionContextType::observe,
+  return makeObserveResult(
+      policy, executeJobs(*state, codes, detail::ExecutionContextType::observe,
                           resolveShots(nShots, policy.options.shots)));
 }
 
@@ -950,7 +849,7 @@ async_observe_result QDMIQPU::launchKernel(const async_observe_policy &policy,
                                            KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy.inner));
   return async_observe_result(
-      submitJobsAsync(*this, state, std::move(codes),
+      submitJobsAsync(*this, *state, std::move(codes),
                       detail::ExecutionContextType::observe,
                       resolveShots(nShots, policy.inner.options.shots)),
       &policy.inner.spin);

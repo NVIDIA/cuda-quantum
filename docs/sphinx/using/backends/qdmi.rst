@@ -301,8 +301,18 @@ Use these steps to reopen the future in another process:
 
 #. Configure the same QDMI device and provider environment.
 #. Select the QDMI target with the same stable device ID.
-#. Read the future from the file.
+#. Create the receiving future. For an ``observe`` job, give it the same
+   observable that was used for submission.
+#. Read the stored future into the receiving future.
 #. Call ``get()``.
+
+For example, reopen an ``observe`` job as follows:
+
+.. code:: cpp
+
+    cudaq::async_observe_result future(&observable);
+    std::ifstream("observe-job.json") >> future;
+    const auto result = future.get();
 
 CUDA-Q opens a new QDMI device session and asks the device to retrieve each job
 by ID. The immediate and reopened paths use the same result conversion.
@@ -316,7 +326,6 @@ The persisted data contains the following information:
 * the CUDA-Q result and register names
 * the output and qubit-reorder metadata
 * the execution type
-* the observable for an ``observe`` operation
 
 The persisted data does not contain credentials, native handles, device library
 paths, or live QDMI client objects.
