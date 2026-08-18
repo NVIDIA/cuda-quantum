@@ -25,10 +25,6 @@ on:
         required: false
         type: boolean
         default: false
-      test_scope:
-        required: false
-        type: string
-        default: all
 
 name: Run CI within the dev environment container
 
@@ -117,7 +113,6 @@ jobs:
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \
             --build-arg enable_qdmi="${{ inputs.enable_qdmi }}" \
-            --build-arg test_scope="${{ inputs.test_scope }}" \
             --build-arg run_tests=true \
             --target devbuild
 
@@ -130,7 +125,6 @@ jobs:
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \
             --build-arg enable_qdmi="${{ inputs.enable_qdmi }}" \
-            --build-arg test_scope="${{ inputs.test_scope }}" \
             --build-arg run_tests=true \
             --target test
 
@@ -143,7 +137,6 @@ jobs:
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \
             --build-arg enable_qdmi="${{ inputs.enable_qdmi }}" \
-            --build-arg test_scope="${{ inputs.test_scope }}" \
             --build-arg run_tests=true \
             --target test-mpi
 
