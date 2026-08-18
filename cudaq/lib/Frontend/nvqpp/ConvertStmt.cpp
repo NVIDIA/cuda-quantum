@@ -137,7 +137,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   if (!TraverseStmt(x->getRangeInit()))
     return false;
   // `std::vector<measure_handle>` locals are stack-allocated by
-  // `ConvertDecl.cpp` and arrive here as `!cc.ptr<!cc.stdvec<...>>`; the
+  // `ConvertDecl.cpp` and arrive here as `!cc.ptr<!cc.sequence<...>>`; the
   // `SpanLikeType` dispatch below needs the descriptor value, not the slot
   // pointer. Other handle-vec consumers in `ConvertExpr.cpp` call the same
   // helper. The `quake::VeqType` arm is unaffected.
@@ -146,8 +146,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();
   auto i64Ty = builder.getI64Type();
-  if (auto stdvecTy = dyn_cast<cc::SpanLikeType>(buffer.getType())) {
-    auto eleTy = stdvecTy.getElementType();
+  if (auto sequenceTy = dyn_cast<cc::SpanLikeType>(buffer.getType())) {
+    auto eleTy = sequenceTy.getElementType();
     const bool isBool = eleTy == builder.getI1Type();
     if (isBool)
       eleTy = builder.getI8Type();
@@ -192,8 +192,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
           return {i, {}, initial, stepBy};
         }
       }
-      Value i = cc::StdvecSizeOp::create(builder, loc, i64Ty, buffer);
-      Value p = cc::StdvecDataOp::create(builder, loc, dataArrPtrTy, buffer);
+      Value i = cc::SequenceSizeOp::create(builder, loc, i64Ty, buffer);
+      Value p = cc::SequenceDataOp::create(builder, loc, dataArrPtrTy, buffer);
       return {i, p, {}, {}};
     }();
 
@@ -367,7 +367,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       // refresh that branch tests the stale pointer type and is skipped,
       // returning a descriptor that aliases a buffer freed when the callee
       // returns.
-      if (auto sv = dyn_cast<cc::StdvecType>(result.getType());
+      if (auto sv = dyn_cast<cc::SequenceType>(result.getType());
           sv && isa<cc::MeasureHandleType>(sv.getElementType()))
         resTy = result.getType();
       if (load.getType() == builder.getI8Type()) {
@@ -387,15 +387,15 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       auto eleTy = vecTy.getElementType();
       auto createVectorInit = [&](Value eleSize) {
         auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-        Value resBuff = cc::StdvecDataOp::create(builder, loc, ptrTy, result);
-        Value dynSize = cc::StdvecSizeOp::create(builder, loc,
-                                                 builder.getI64Type(), result);
+        Value resBuff = cc::SequenceDataOp::create(builder, loc, ptrTy, result);
+        Value dynSize = cc::SequenceSizeOp::create(
+            builder, loc, builder.getI64Type(), result);
         Value heapCopy =
             func::CallOp::create(builder, loc, ptrTy, "__nvqpp_vectorCopyCtor",
                                  ValueRange{resBuff, dynSize, eleSize})
                 .getResult(0);
-        return cc::StdvecInitOp::create(builder, loc, resTy,
-                                        ValueRange{heapCopy, dynSize});
+        return cc::SequenceInitOp::create(builder, loc, resTy,
+                                          ValueRange{heapCopy, dynSize});
       };
       IRBuilder irb(builder);
       Value tySize;

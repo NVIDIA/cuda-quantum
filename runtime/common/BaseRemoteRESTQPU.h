@@ -8,13 +8,14 @@
 
 #pragma once
 
+#include "CompiledModule.h"
+#include "common/AnalysisScope.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
 #include "common/ServerHelper.h"
-#include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/sample/policy.h"
@@ -80,12 +81,25 @@ protected:
   /// @brief The target configuration
   cudaq::config::TargetConfig targetConfig;
 
+  CompileTarget createCompileTarget(bool skipPipelineSubstitutions = false) {
+    std::map<std::string, std::string> pipelineSubstitutions{};
+    if (!skipPipelineSubstitutions)
+      pipelineSubstitutions =
+          serverHelper->getPipelineSubstitutions(platformPath);
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         pipelineSubstitutions);
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
+    return target;
+  }
+
 public:
-  // This class overrides `launchKernel(dem_policy)` (local DEM generation,
-  // shared by all remote QPUs) but not the `sample`/`observe` overloads (those
-  // are overridden in the leaf QPUs). Re-import QPU's `launchKernel` overloads
-  // so this partial override does not trip nvcc "overloaded virtual function
-  // only partially overridden" error.
+  // This class overrides `launchKernel(dem_policy)` and
+  // `launchKernel(estimate_policy)` (local analyses, shared by all remote
+  // QPUs) but not the `sample`/`observe` overloads (those are overridden in
+  // the leaf QPUs). Re-import QPU's `launchKernel` overloads so this partial
+  // override does not trip nvcc "overloaded virtual function only partially
+  // overridden" error.
   using QPU::launchKernel;
 
   /// @brief The constructor
@@ -138,7 +152,7 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
+    if (cudaq::detail::AnalysisScope::is_active())
       throw std::runtime_error(
           "Illegal use of a resource counter on a remote QPU.");
 
@@ -223,70 +237,59 @@ public:
   }
 
   using QPU::getCompileTarget;
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const other_policies &, ExecutionContext *ctx) override {
+  CompileTarget getCompileTarget(const other_policies &,
+                                 ExecutionContext *ctx) override {
     if (!ctx)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
-    if (ctx && ctx->name == "resource-count")
-      target->emitResourceCounts = true;
+    return createCompileTarget();
+  }
 
+  CompileTarget getCompileTarget(const sample_policy &policy) override {
+    auto ct = createCompileTarget();
+    ct.pipelineConfig.addMeasurements = true;
+    return ct;
+  }
+
+  CompileTarget getCompileTarget(const observe_policy &policy) override {
+    auto target = createCompileTarget();
+    target.pauliTermSplitObservable = policy.spin;
     return target;
   }
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &policy) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->supportConditionalsOnMeasureResults = !emulate;
-    target->pipelineConfig.addMeasurements = true;
-    target->storeReorderIdx = true;
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
-    return target;
-  }
-
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->overrideAOTCompilation = true;
-    target->pauliTermSplitObservable = policy.spin;
-    target->pipelineConfig.replaceStateWithKernel = true;
-    return target;
-  }
-
-  std::unique_ptr<CompileTarget> getCompileTarget(const run_policy &) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
-    return target;
+  CompileTarget getCompileTarget(const run_policy &) override {
+    return createCompileTarget();
   }
 
   /// Build a local JIT artifact for DEM analysis. No provider target code is
   /// emitted or submitted while this policy is active.
-  std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
+  CompileTarget getCompileTarget(const dem_policy &) override {
     // Skip pipeline substitutions: this path never builds the lowering pipeline
     // and should not trigger server-helper side effects (e.g. IQM arch fetch).
-    auto target =
-        std::make_unique<CompileTarget>(targetConfig, backendConfig, emulate);
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
-    target->emitJit = true;
-    target->emitTargetCode = false;
-    target->pipelineConfig.skipTargetLoweringPipeline = true;
-    return target;
+    return createCompileTarget(/*skipPipelineSubstitutions=*/true);
+  }
+
+  CompileTarget getCompileTarget(const estimate_policy &) override {
+    return createCompileTarget();
+  }
+
+  estimate_result launchKernel(const estimate_policy &policy,
+                               const CompiledModule &module,
+                               KernelArgs args) override {
+    CUDAQ_INFO("BaseRemoteRESTQPU::launchKernel {} locally", policy.name);
+    if (!module.getJit())
+      throw std::runtime_error(
+          "Remote QPU could not produce the local JIT artifact required for "
+          "resource estimation.");
+
+    // RAII: the scope is released (and the resource-counter state cleared) on
+    // every exit path, including exceptions thrown from the kernel.
+    auto rcScope = nvqir::resource_counter::make_scope(policy.choice);
+    return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
+      [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
+    });
   }
 
   /// Generate the DEM locally while preserving the selected remote target.
@@ -300,7 +303,7 @@ public:
           "detector error model generation.");
 
     return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      [[maybe_unused]] auto kernelResult = runJITCompiledModule(module, args);
+      [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
     });
   }
 
@@ -319,19 +322,6 @@ public:
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->kernelTrace = std::move(context.kernelTrace);
-      return;
-    }
-
-    if (executionContext->name == "resource-count") {
-      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
-      cudaq::ExecutionContext context("resource-count");
-      context.executionManager = cudaq::getDefaultExecutionManager();
-      context.hasConditionalsOnMeasureResults =
-          codes[0].hasConditionalsOnMeasureResults;
-      nvqir::resource_counter::prepopulate(
-          std::move(codes[0].resourceCounts.value()));
-      cudaq::platform::with_execution_context(
-          context, [&]() { codes[0].jit->run(kernelName); });
       return;
     }
 
@@ -356,24 +346,8 @@ public:
     // output log.
     assert(codes.size() == 1 && codes[0].jit);
     return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      // Run each shot with the thread-local execution context cleared.
-      // CircuitSimulator::deallocateQubits skips deallocation while an
-      // execution context is set, so if the context stays set across the whole
-      // shot loop the per-shot qubits allocated by the kernel accumulate and
-      // blow up the simulator state (OOM). Clearing it lets each shot fully
-      // deallocate, matching the pre-policy behavior where the shot loop ran on
-      // a separate thread with no execution context.
-      auto *savedContext = cudaq::getExecutionContext();
-      cudaq::detail::resetExecutionContext();
-      cudaq::detail::try_finally(
-          [&] {
-            for (std::size_t shot = 0; shot < policy.shots; shot++)
-              codes[0].jit->run(kernelName);
-          },
-          [&] {
-            if (savedContext)
-              cudaq::detail::setExecutionContext(savedContext);
-          });
+      for (std::size_t shot = 0; shot < policy.shots; shot++)
+        codes[0].jit->run(kernelName);
     });
   }
 

@@ -30,7 +30,7 @@ def test_elif():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost..
-# CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i64
@@ -39,13 +39,13 @@ def test_elif():
 # CHECK-DAG:       %[[VAL_6:.*]] = cc.undef f64
 # CHECK-DAG:       %[[VAL_7:.*]] = cc.undef i64
 # CHECK-DAG:       %[[VAL_8:.*]] = quake.alloca !quake.veq<4>
-# CHECK-DAG:       %[[VAL_9:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
+# CHECK-DAG:       %[[VAL_9:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<f64>) -> i64
 # CHECK:           %[[VAL_10:.*]]:3 = cc.loop while ((%[[VAL_11:.*]] = %[[VAL_4]], %[[VAL_12:.*]] = %[[VAL_7]], %[[VAL_13:.*]] = %[[VAL_6]]) -> (i64, i64, f64)) {
 # CHECK:             %[[VAL_14:.*]] = arith.cmpi slt, %[[VAL_11]], %[[VAL_9]] : i64
 # CHECK:             cc.condition %[[VAL_14]](%[[VAL_11]], %[[VAL_12]], %[[VAL_13]] : i64, i64, f64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_15:.*]]: i64, %[[VAL_16:.*]]: i64, %[[VAL_17:.*]]: f64):
-# CHECK:             %[[VAL_18:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+# CHECK:             %[[VAL_18:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 # CHECK:             %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_18]]{{\[}}%[[VAL_15]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_19]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_21:.*]] = cc.cast signed %[[VAL_15]] : (i64) -> f64

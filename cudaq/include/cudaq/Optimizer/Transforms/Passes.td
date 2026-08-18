@@ -162,6 +162,117 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
+def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
+  let summary = "Approximate constant-angle Rz rotations as Clifford+T sequences.";
+  let description = [{
+    Rewrites `quake.rz` operations with constant angles into sequences of
+    `quake.h`, `quake.s`, `quake.t`, and `quake.x` (Clifford+T) gates. The
+    synthesis algorithm is gridsynth (Ross & Selinger, arXiv:1403.2975)
+    provided by the embedded `cudaq::synth` library.
+
+    Only `quake.rz` is handled. `quake.rx`, `quake.ry`, and `quake.r1` must be
+    reduced to Rz first via the `RxToRz`, `RyToRz`, and `R1ToRz` decomposition
+    patterns; the `cudaq-fault-tolerant-target` pipeline runs that reduction
+    ahead of this pass. Any other rotation left in the IR is passed through
+    untouched.
+
+    Both memory semantics (`!quake.ref` targets, in-place) and value
+    semantics (`!quake.wire` targets, threaded) are handled. The synthesized
+    per-angle helper mirrors the form of the rotation it replaces.
+
+    Preconditions (must be enforced by upstream passes):
+    - Rx/Ry/R1 rotations are reduced to Rz - run the `decomposition` pass with
+      the `RxToRz`, `RyToRz`, `R1ToRz` patterns enabled first.
+    - Rotation angles are folded to constants - run `ArgumentSynthesis` and
+      constant-propagation passes first.
+    - Controls and adjoints are materialized - run `ApplyOpSpecialization`
+      first. The omega global-phase contributions are dropped on the
+      assumption that no consumer wraps the kernel with `cudaq::control`
+      after this pass runs.
+      TODO: track and preserve the omega global phase once global-phase
+      support lands in Quake, so that controlled uses of a synthesized
+      kernel remain correct (the phase becomes an observable relative phase
+      under `cudaq::control`).
+
+    Gridsynth is probabilistic and slow (seconds per rotation). This pass
+    is opt-in via the `cudaq-fault-tolerant-target` pipeline only; it is
+    NOT added to the default target-prep pipeline.
+  }];
+  let options = [
+    Option<"epsilon", "epsilon", "double", /*default=*/"1e-10",
+      "Approximation tolerance epsilon for Clifford+T synthesis.">,
+    Option<"diophantineTimeoutMs", "diophantine-timeout-ms", "int32_t",
+      /*default=*/"200", "Per-candidate Diophantine solver timeout (ms).">,
+    Option<"factoringTimeoutMs", "factoring-timeout-ms", "int32_t",
+      /*default=*/"50", "Per-candidate integer-factoring timeout (ms).">,
+    Option<"retryCount", "retry-count", "int32_t", /*default=*/"3",
+      "Retry attempts with doubled timeouts on gridsynth failure.">,
+    Option<"onDynamicAngle", "on-dynamic-angle", "std::string",
+      /*default=*/"\"error\"",
+      "Behavior on non-constant rotation angles: 'error' or 'skip'.">,
+    // TODO: Remove this option once controlled Clifford+T synthesis preserves
+    // the synthesis global phase.
+    Option<"failOnControlledRotation", "fail-on-controlled-rotation", "bool",
+      /*default=*/"false",
+      "Fail instead of preserving a controlled rotation that cannot be "
+      "synthesized without global-phase support.">,
+    Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
+      "Erase (treat as identity) rotations whose |theta| is below this "
+      "threshold, rather than synthesizing a Clifford+T approximation for "
+      "them. Set to 0 to disable and synthesize every constant-angle "
+      "rotation.">,
+  ];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "quake::QuakeDialect"];
+}
+
+def OptimizeSingleQubitCliffordT
+    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+  let summary = "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
+  let description = [{
+    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Rewrites exact, uncontrolled one-qubit Clifford+T chains on scalar
+    `!quake.wire` values to Matsumoto-Amano normal form. Supports chains
+    through single-block `cc.scope`. Scalar normal-form phases are emitted as
+    anchored `quake.phase` operations, preserving the exact unitary.
+
+    The normal form is defined by K. Matsumoto and K. Amano, "Representation
+    of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,
+    https://arxiv.org/abs/0806.3834.
+
+  }];
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
+def PruneNegligibleRotations
+    : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
+  let summary = "Erase constant-angle rotations that are effectively identity.";
+  let description = [{
+    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations whose
+    constant angle has magnitude below `threshold`, treating them as the
+    identity. In memory semantics (`!quake.ref` targets) the op is simply
+    dropped and in value semantics (`!quake.wire` targets) the input wire is
+    threaded straight through to the users of the result.
+
+    Only uncontrolled rotations are pruned: a controlled rotation with a
+    negligible angle is left in place (materialize controls with
+    `ApplyOpSpecialization` first if pruning them matters). Non-constant and
+    non-finite angles are also left untouched.
+
+    This is the negligible-rotation pruning used internally by
+    `clifford-t-synthesis`, exposed as a standalone pass so it can be run
+    independently of Clifford+T synthesis.
+  }];
+  let options = [
+    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
+      "Erase (treat as identity) rotations whose |theta| is below this "
+      "threshold. Set to 0 to disable.">,
+  ];
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
   let summary = "Perform the rough-in cabling for value semantics conversion.";
   let description = [{
@@ -223,7 +334,7 @@ def CombineMeasurements :
       %1 = ... : !quake.veq<4>
       %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
             !quake.veq<2>
-      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
     }
     ```
     with:
@@ -231,7 +342,7 @@ def CombineMeasurements :
     func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
     "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
       %1 = ... : !quake.veq<4>
-      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
     }
     ```
   }];
@@ -286,6 +397,13 @@ def DeadQuantumElimination : Pass<"dqe"> {
     Eliminate any clearly dead quantum (`!quake.ref` or `!quake.wire`)
     allocations from the IR. (quantum here means some flavor of qudit.)
   }];
+
+  let statistics = [
+    Statistic<"numRefsEliminated", "refs-eliminated",
+              "Number of dead quantum ref allocations eliminated">,
+    Statistic<"numWiresEliminated", "wires-eliminated",
+              "Number of dead quantum wires eliminated">
+  ];
 }
 
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
@@ -307,9 +425,9 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     patterns, ensuring every gate is decomposed to the specified basis in a
     unique way.
     
-    ## Options
+    #### Pattern selection
 
-    The following options are available and are all optional:
+    Pattern selection can be controlled with the following optional settings:
 
     - `disable-patterns`: used to filter out specific rewrite patterns from the
        selection.
@@ -370,7 +488,7 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
     used. If two virtual qubits have non-overlapping lifetimes, they can be
     assigned to the same physical qubit, as every virtual qubit is assumed to be
     fully reset before release. Failure to fully reset virtual qubits before
-    release is undefinied behavior, and will likely lead to incorrect output
+    release is undefined behavior and will likely lead to incorrect output
     when running DependencyAnalysis.
   }];
 
@@ -380,7 +498,7 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
     Statistic<"numVirtualQubits", "num-virtual-qubits",
               "Number of virtual qubits used">,
     Statistic<"numPhysicalQubits", "num-physical-qubits",
-              "Number of phyiscal qubits used">,
+              "Number of physical qubits used">,
     Statistic<"numCycles", "num-cycles",
               "Length of kernel in cycles">,
   ];
@@ -653,13 +771,13 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::ModuleOp"> {
     ```mlir
       module {
         func.func @__nvqpp__mlirgen__function_foo_generator_1.bar(%arg0:
-            !cc.stdvec<f64>) -> !cc.stdvec<complex<f64>> {
+            !cc.sequence<f64>) -> !cc.sequence<complex<f64>> {
           ...
           %0 = cc.address_of
               @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 :
               !cc.ptr<!cc.array<complex<f64> x 4>>
           ...
-          return %3 : !cc.stdvec<complex<f64>>
+          return %3 : !cc.sequence<complex<f64>>
         }
 
         func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
@@ -711,6 +829,17 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
     global object, but the tree of spans working outward from those objects
     must be constructed. This pass can replace the reify_span operation with
     smaller granularity operations that build these trees of spans.
+  }];
+}
+
+def InjectImplicitOutput : Pass<"inject-implicit-output", "mlir::func::FuncOp"> {
+  let summary = "Inject quake.log_output ops for implicitly output quantum values.";
+  let description = [{
+    This pass inserts `quake.log_output` operations for each `quake.alloca` at
+    the top level of a `func.func`. The log_output ops are added to a new exit
+    block that all return ops are redirected through, preserving the declaration
+    order of the allocations. Unlike `add-dealloc`, this pass does not recurse
+    into nested regions.
   }];
 }
 
@@ -901,6 +1030,18 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
+def LowerPhase : Pass<"lower-phase", "mlir::func::FuncOp"> {
+  let summary = "Lower phase bookkeeping operations to ordinary Quake gates";
+  let description = [{
+    Lowers controlled `quake.phase` operations to exact `quake.r1`/`quake.rz`
+    gate sequences and erases uncontrolled phases after forwarding their wire
+    results. This pass is intentionally exposed in isolation until the global
+    phase lifecycle is integrated into production pipelines.
+  }];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
+}
+
 def ConvertToCFG : Pass<"convert-to-cfg"> {
   let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
   let description = [{
@@ -934,6 +1075,17 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
       // exit loop
     ```
   }];
+
+  let options = [
+    Option<"unsafeQuantumAlloc", "unsafe-quantum-alloc", "bool",
+           /*default=*/"false",
+           "When true, suppress adding the cc.no_qubit_combine attribute when "
+           "lowering a cc.scope that contains a quantum allocation.  This is "
+           "unsafe in general (the subsequent combine-quantum-alloc pass may "
+           "combine allocations across scope boundaries), but useful when "
+           "lower-to-cfg is followed immediately by combine-quantum-alloc and "
+           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
+  ];
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
 }
@@ -1081,7 +1233,13 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     Option<"classicalValues", "classical", "bool",
       /*default=*/"true", "Promote classical stack slots to values.">,
     Option<"quantumValues", "quantum", "bool",
-      /*default=*/"true", "Promote of quantum values.">
+      /*default=*/"true", "Promote quantum references to wire values.">
+  ];
+  let statistics = [
+    Statistic<"numProcessOpWithRegionsCalls", "process-op-with-regions-calls",
+      "Number of times processOpWithRegions was called">,
+    Statistic<"numWorklistIterations", "worklist-iterations",
+      "Number of worklist loop iterations in processOpWithRegions">
   ];
 }
 
@@ -1089,7 +1247,7 @@ def MultiControlDecomposition :
     Pass<"multicontrol-decomposition", "mlir::func::FuncOp"> {
   let summary = "Break down multi-control quantum operations.";
   let description = [{
-    This pass decomposes multi-control quantum operations. The decompostion
+    This pass decomposes multi-control quantum operations. The decomposition
     involves allocating new qubits to hold intermediate results. The number of
     extra qubits depends on the particular operation being decomposed.
     Pauli-X and Pauli-Z operations add _N_ - 2 qubits, while other operations
@@ -1099,6 +1257,20 @@ def MultiControlDecomposition :
     to decompose. In such cases, all qubits will be extracted. If the size is
     unknown at compilation-time, the pass leaves the operation as-is.
   }];
+}
+
+def NormalizePhasePlacement :
+    Pass<"normalize-phase-placement", "mlir::func::FuncOp"> {
+  let summary = "Normalize block-local placement of phase corrections";
+  let description = [{
+    Conservatively sinks `quake.phase` operations within safe straight-line
+    portions of a basic block, reconnects value-semantics wire chains, and
+    combines corrections with identical ordered control predicates. Movement
+    stops at control-changing gates, calls, regions, terminators, non-unitary
+    operations, unknown effects, or whenever wire reconnection is ambiguous.
+  }];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
 }
 
 def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
@@ -1123,13 +1295,7 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     phase represents the state of a qubit based on the Swap, NOT, and CNOT
     operations applied to it.
 
-    First, a preprocessing step identifies each subcircuit consisting only of
-    Swap, NOT, CNOT, and Rz gates. Currently, we restrict this subcircuit to
-    only working with `!quake.ref` types directly from `quake.alloca`s, as
-    values extraced from `quake.veq`s via `extract_ref` may have hidden side
-    effects that could cause the subcircuits to be incorrect.
-
-    At the beginning of the subcircuit, each qubit is assigned a unique phase
+    At the beginning of each subcircuit, each qubit is assigned a unique phase
     variable. A phase is an exclusive sum of the phase variables determining
     the current state of a qubit, calculated as follows. While walking the
     subcircuit:
@@ -1138,15 +1304,17 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     * A CNOT gate sets the phase of the target to the exclusive sum of the
       phase variables in the phases for the control and target qubits.
     * If multiple `rz` ops are found at the same phase, they will be combined
-      by replacing the rotation angle of the latter occuring op to the sum of
+      by replacing the rotation angle of the latter occurring op with the sum of
       the rotation angles of both ops, and removing the prior op.
+
+    Operates on `!quake.wire` SSA values. Traverses def-use chains directly.
   }];
 
   let options = [
     Option<"minimumBlockLength", "min-length", "unsigned", /*default=*/"20",
-    "Minimumn subcircuit length to run phase folding">,
-    Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"20",
-    "Minimumn percentage of rz ops in subcircuit to run phase folding">,
+    "Minimum subcircuit length to run phase folding">,
+    Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"0.2",
+    "Minimum percentage of rz ops in subcircuit to run phase folding">,
   ];
 
   let dependentDialects = ["cudaq::cc::CCDialect",
@@ -1163,7 +1331,7 @@ def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
 }
 
 def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
-  let summary = "Removes artifical control constraints between quantum ops.";
+  let summary = "Removes artificial control constraints between quantum ops.";
   let description = [{
     In the value semantics, quantum gates may be overly constrained in terms of
     control qubits. These constraints can be removed within the IR to get a more
@@ -1217,10 +1385,10 @@ def PySynthCallableBlockArgs :
   let summary =
     "Synthesize / Inline cc.callable_func on function block arguments.";
   let description = [{
-    This pass is leveraged by the Python bindings to synthesize any 
-    cc.callable block arguments. By synthesis we mean replace all uses of the 
-    callable block argument with a specific in-Module function call (func.call) 
-    retrieved at runtime (the name of the function passed to the kernel at the 
+    The Python bindings use this pass to synthesize any
+    cc.callable block arguments. Synthesis replaces all uses of the callable
+    block argument with a specific in-module function call (`func.call`)
+    retrieved at runtime (the name of the function passed to the kernel at the
     cc.callable block argument index).
   }];
 }
@@ -1268,7 +1436,59 @@ def QuakeSimplify : Pass<"quake-simplify"> {
   let description = [{
     This pass performs several simplifications on quake operations. The
     IR is expected to be in value-semantics form.
+
+    Among these, a constant-angle rotation that is the identity is erased. The
+    angle is first folded into the period after which the rotation is exactly
+    the identity (`4*pi` for the axis rotations, which are spinors, and
+    `2*pi` for `r1`) so a full turn is pruned just like a zero angle.
+    Non-constant and non-finite angles are left untouched.
+
+    A rotation is erased when its folded angle has magnitude at or below
+    `threshold`.
+
+    The optional `rotations-to-clifford-t` pattern family recognizes constant
+    `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and replaces them
+    with named-gate sequences instead of leaving them for approximate synthesis.
+    The replacement is exact, with no global-phase difference from the original
+    rotation. When needed, this includes injecting a `quake.phase` bookkeeping
+    operation.
+    With a positive `clifford-t-epsilon`, nearby angles are accepted only when
+    their operator-norm distance from the selected exact rotation is within that
+    epsilon. The family is disabled by default because targets with native
+    arbitrary rotations do not benefit from this legalization.
   }];
+  let options = [
+    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
+      "Erase (treat as identity) rotations whose angle, folded into its "
+      "identity period, has magnitude at or below this value.">,
+    Option<"rotationsToCliffordT", "rotations-to-clifford-t", "bool",
+      /*default=*/"false",
+      "Enable canonicalization of pi/4 rotation classes to Clifford+T gates.">,
+    Option<"cliffordTEpsilon", "clifford-t-epsilon", "double",
+      /*default=*/"0.0",
+      "Operator-norm epsilon for snapping rotations to a neighboring pi/4 "
+      "class. Zero enables bit-exact matching only.">,
+  ];
+  let statistics = [
+    Statistic<"numHermitianEliminations", "hermitian-eliminations",
+              "Number of back-to-back Hermitian gate pairs eliminated">,
+    Statistic<"numAdjointEliminations", "adjoint-eliminations",
+              "Number of back-to-back adjoint gate pairs eliminated">,
+    Statistic<"numZeroRotationsEliminated", "zero-rotations-eliminated",
+              "Number of identity rotations eliminated">,
+    Statistic<"numRotationsCombined", "rotations-combined",
+              "Number of rotation pairs combined">,
+    Statistic<"numDoubleSRewrites", "double-s-rewrites",
+              "Number of SS -> Z rewrites">,
+    Statistic<"numDoubleTRewrites", "double-t-rewrites",
+              "Number of TT -> S rewrites">,
+    Statistic<"numReduceYSXRewrites", "reduce-ysx-rewrites",
+              "Number of YSX -> S rewrites">,
+    Statistic<"numResetsErased", "resets-erased",
+              "Number of redundant resets erased (double-reset or reset-before-sink)">,
+    Statistic<"numCliffordTRotations", "clifford-t-rotations",
+              "Number of rotations canonicalized to Clifford+T gates">,
+  ];
 }
 
 def QubitResetBeforeReuse :
@@ -1354,6 +1574,10 @@ def RepairLinearType : Pass<"repair-linear-type", "mlir::func::FuncOp"> {
     value is lifted to a reference type, which is a valid SSA value.
   }];
   let dependentDialects = ["cudaq::quake::QuakeDialect"];
+  let statistics = [
+    Statistic<"numRepairs", "repairs",
+              "Number of linear type violations repaired with wrap/unwrap">,
+  ];
 }
 
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
@@ -1451,11 +1675,11 @@ def ResourceCountPreprocess :
       }
     ```
 
-    The initial `h(q[0])` will always be run once, so we can precount it and
-    remove it. Similarly, it is trivial to see that the loop will run 10 times,
-    so we can pre count `y(q[i])` ten times as well. However, because `x(q[i])`
-    is gated by `mz(q[i])`, it is not invariant, so it will remain and be
-    counted during simulation.
+    The initial `h(q[0])` will always be run once, so we can count it in advance
+    and remove it. Similarly, it is trivial to see that the loop will run 10
+    times, so we can count `y(q[i])` ten times in advance as well. However,
+    because `x(q[i])` is gated by `mz(q[i])`, it is not invariant, so it will
+    remain and be counted during simulation.
 
     Currently, the detection of "invariance" is purposefully dumb.
 
@@ -1478,16 +1702,15 @@ def ResourceCountPreprocess :
 }
 
 def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
-  let summary = "Run semantics hackery";
+  let summary = "Adapt vector results for cudaq::run entry points.";
   let description = [{
-    The design of the `cudaq::run` feature breaks the semantics of the host
-    language.  While that is a terrible design decision, we strive to work
-    around the inherent flaws. This pass should be used after the
-    `kernel-execution` pass to clean up some of the semantics potholes and
-    brokenness left behind.
-
-    Ideally, we'd just fix the CUDA-Q spec and use first-class output logging
-    functions.
+    `cudaq::run` entry points log kernel results instead of returning them
+    through the host ABI. After the `kernel-execution` pass creates the `.run`
+    wrapper, this pass finds wrappers that call kernels returning `!cc.sequence`,
+    clones those kernels, removes calls to `__nvqpp_vectorCopyCtor` from the
+    clones, and redirects the wrappers to call the clones. It must run after
+    `kernel-execution`, while both the generated wrapper and original kernel are
+    present.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
@@ -1667,6 +1890,15 @@ def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
     Option<"hoistOnly", "hoist-only", "bool", /*default=*/"false",
       "Hoist the variables only.">
   ];
+}
+
+def VerifyNoPhase : Pass<"verify-no-phase", "mlir::ModuleOp"> {
+  let summary =
+      "Verify that phase bookkeeping was eliminated before code generation";
+  let description = [{
+    Emits an error if any `quake.phase` operation survives to the final
+    code-generation boundary.
+  }];
 }
 
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {

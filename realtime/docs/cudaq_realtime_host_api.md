@@ -4,23 +4,25 @@ This document explains the C host API for realtime dispatch, the RPC wire
 protocol, and complete wiring examples. It is written for external partners
 integrating CUDA-QX decoders with their own transport mechanisms. The API and
 protocol are **transport-agnostic** and support multiple data transport options,
-including NVIDIA HSB (RDMA via ConnectX NIC's), `libibverbs`, and proprietary
-transport layers. Handlers can execute on GPU (via CUDA kernels) or CPU (via
-host threads). Examples in this document use HSB's 3-kernel workflow (RX
+including the NVIDIA GpuRoceTransceiver (RDMA via ConnectX NIC's, from the
+Holoscan Sensor Bridge project), `libibverbs`, and proprietary transport layers.
+Handlers can execute on GPU (via CUDA kernels) or CPU (via host threads).
+Examples in this document use the GpuRoceTransceiver's 3-kernel workflow (RX
 kernel/dispatch/TX kernel) for illustration, but the same principles apply to
 other transport mechanisms.
 
-## What is HSB?
+## What is the GpuRoceTransceiver?
 
-**HSB** is NVIDIA's low-latency sensor bridge framework that enables
-direct GPU memory access from external devices (FPGAs, sensors) over Ethernet
-using RDMA (Remote Direct Memory Access) via ConnectX NIC's. In the context of
-quantum error correction, HSB is one example of a transport mechanism that
-connects the quantum control system (typically an FPGA) to GPU-based decoders.
+**GpuRoceTransceiver** is the GPU RoCE transceiver from NVIDIA's Holoscan
+Sensor Bridge (HSB) framework. It enables direct GPU memory access from
+external devices (FPGAs, sensors) over Ethernet using RDMA (Remote Direct
+Memory Access) via ConnectX NIC's. In the context of quantum error correction,
+the GpuRoceTransceiver is one example of a transport mechanism that connects
+the quantum control system (typically an FPGA) to GPU-based decoders.
 
 **Repository**: [`nvidia-holoscan/holoscan-sensor-bridge`](https://github.com/nvidia-holoscan/holoscan-sensor-bridge)
 
-HSB handles:
+The GpuRoceTransceiver handles:
 
 - **RX (Receive)**: RX kernel receives data from the FPGA directly into GPU memory
  via RDMA
@@ -41,7 +43,7 @@ sending responses from TX ring buffer slots back to the FPGA.
 
 ### Supported Transport Options
 
-**HSB (GPU-based with GPUDirect)**:
+**GpuRoceTransceiver (GPU-based with GPUDirect)**:
 
 - Uses ConnectX-7 NIC's with RDMA for zero-copy data movement
 - RX and TX are persistent GPU kernels that directly access GPU memory
@@ -66,10 +68,10 @@ The key requirement is that the transport mechanism implements the ring buffer
 slot + flag protocol: writing RPC messages to RX slots and setting `rx_flags`,
 then reading TX slots after `tx_flags` are set.
 
-## The 3-Kernel Architecture (HSB Example)
+## The 3-Kernel Architecture (GpuRoceTransceiver Example)
 
-The HSB workflow separates concerns into three persistent GPU kernels that
-communicate via shared ring buffers:
+The GpuRoceTransceiver workflow separates concerns into three persistent GPU
+kernels that communicate via shared ring buffers:
 
 ![3-kernel architecture](assets/three_kernel_architecture.svg)
 
@@ -128,7 +130,7 @@ are decoupled
 2. **Reusability**: Same dispatch kernel works with any decoder handler
 3. **Testability**: Dispatch kernel can be tested without HSB hardware
 4. **Flexibility**: RX/TX kernels can be replaced with different transport mechanisms
-5. **Transport independence**: The protocol works with HSB, `libibverbs`,
+5. **Transport independence**: The protocol works with the GpuRoceTransceiver, `libibverbs`,
 or proprietary transports
 
 For use cases where lowest possible latency is needed, see
@@ -160,16 +162,16 @@ The symmetric ring layout means the response overwrites the request in the same
 buffer slot.  `RPCHeader` fields (`request_id`, `ptp_timestamp`) are saved to
 registers before the handler runs.
 
-For example, the HSB/`DOCA` transport implementation polls a `DOCA` completion
-queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step 5, and re-posts a `DOCA`
-receive `WQE` in step 6.  Other transports would substitute their own receive and
-send primitives.
+For example, the `GpuRoceTransceiver`/`DOCA` transport implementation polls a
+`DOCA` completion queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step
+5, and re-posts a `DOCA` receive `WQE` in step 6. Other transports would
+substitute their own receive and send primitives.
 
 ### Transport-Agnostic Design
 
 The unified dispatch mode is fully transport-agnostic, just like the 3-kernel
 mode.  The core dispatcher library (`libcudaq-realtime.so`) has no dependency
-on any specific transport (no `DOCA`, no HSB).  Unified mode introduces:
+on any specific transport (no `DOCA`, no `GpuRoceTransceiver`).  Unified mode introduces:
 
 - `CUDAQ_KERNEL_UNIFIED` -- a new `cudaq_kernel_type_t` enum value
 - `cudaq_unified_launch_fn_t` -- a launch function type that receives an opaque
@@ -180,12 +182,12 @@ on any specific transport (no `DOCA`, no HSB).  Unified mode introduces:
 Transport-specific details are packed into an opaque struct and passed through
 the `void* transport_ctx` pointer.  The transport provider supplies both the
 context struct and the launch function implementation.  For example, the
-HSB/`DOCA` transport packs `DOCA` `QP` handles, memory keys, and ring buffer
-addresses into a `doca_transport_ctx` and provides
-`hololink_launch_unified_dispatch` as the launch function (compiled into
-`libcudaq-realtime-bridge-hololink.so`).  A different transport would define
-its own context struct and launch function; the dispatcher manages them
-identically without any transport-specific knowledge.
+`GpuRoceTransceiver`/`DOCA` transport packs `DOCA` `QP` handles, memory keys,
+and ring buffer addresses into a `doca_transport_ctx` and provides
+`gpu_roce_launch_unified_dispatch` as the launch function (compiled into
+`libcudaq-realtime-bridge-gpu-roce.so`). A different transport would define its
+own context struct and launch function; the dispatcher manages them identically
+without any transport-specific knowledge.
 
 ### When to Use Which Mode
 
@@ -200,7 +202,7 @@ identically without any transport-specific knowledge.
 
 - Lowest latency for regular (non-cooperative) handlers
 - Transport-agnostic API -- the transport provides a pluggable launch function
-    and opaque context (e.g., HSB/`DOCA` supplies `hololink_launch_unified_dispatch`)
+    and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
 - Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
@@ -233,16 +235,16 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 - `num_slots` and `slot_size` in the `config` may be zero
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
-### Wiring Example (Unified Mode with HSB)
+### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
 ```cpp
 // Pack DOCA transport handles
 doca_transport_ctx ctx;
-ctx.gpu_dev_qp     = hololink_get_gpu_dev_qp(transceiver);
-ctx.rx_ring_data   = hololink_get_rx_ring_data_addr(transceiver);
-ctx.rx_ring_stride_sz  = hololink_get_page_size(transceiver);
-ctx.rx_ring_mkey   = htonl(hololink_get_rkey(transceiver));
-ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+ctx.gpu_dev_qp     = gpu_roce_get_gpu_dev_qp(transceiver);
+ctx.rx_ring_data   = gpu_roce_get_rx_ring_data_addr(transceiver);
+ctx.rx_ring_stride_sz  = gpu_roce_get_page_size(transceiver);
+ctx.rx_ring_mkey   = htonl(gpu_roce_get_rkey(transceiver));
+ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
 ctx.frame_size     = frame_size;
 
 // Configure dispatcher for unified mode
@@ -253,7 +255,7 @@ config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
 cudaq_dispatcher_set_unified_launch(
-    dispatcher, &hololink_launch_unified_dispatch, &ctx);
+    dispatcher, &gpu_roce_launch_unified_dispatch, &ctx);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
@@ -262,13 +264,13 @@ cudaq_dispatcher_start(dispatcher);
 ## What This API Does (In One Paragraph)
 
 The host API wires a dispatcher (GPU kernel or CPU thread) to shared ring buffers.
-The transport mechanism (e.g., HSB RX/TX kernels, `libibverbs` threads, or
-proprietary transport) places incoming RPC messages into RX slots and retrieves
-responses from TX slots.
-The dispatcher polls RX flags (see Message completion note), looks up a
-handler by `function_id`, executes it on the GPU, and writes a response into the
-same slot. The transport's RX/TX components handle I/O; the dispatch kernel sits
-in the middle and runs the decoder handler.
+The transport mechanism (e.g., GpuRoceTransceiver RX/TX kernels, `libibverbs`
+threads, or proprietary transport) places incoming RPC messages into RX slots
+and retrieves responses from TX slots. The dispatcher polls RX flags (see
+Message completion note), looks up a handler by `function_id`, executes it on
+the GPU, and writes a response into the same slot. The transport's RX/TX
+components handle I/O; the dispatch kernel sits in the middle and runs the
+decoder handler.
 
 ## Scope
 
@@ -442,7 +444,7 @@ Parameters:
   - `num_slots` (required)
   - `slot_size` (required)
   - `vp_id` (default 0): tags a dispatcher to a transport channel.
-  Queue pair selection and NIC port/IP binding are configured in HSB,
+  Queue pair selection and NIC port/IP binding are configured in the GpuRoceTransceiver,
   not in this API.
   - `kernel_type` (default `CUDAQ_KERNEL_REGULAR`)
     - `CUDAQ_KERNEL_REGULAR`: standard kernel launch
@@ -472,7 +474,7 @@ Parameters:
   - `skip_tx_markers` (default 0): when non-zero, the host dispatcher
   does **not** write the `CUDAQ_TX_FLAG_IN_FLIGHT` sentinel to `tx_flags`
   before graph launch. Set this when an external GPU kernel
-  (e.g., HSB TX) polls the same `tx_flags` array,
+  (e.g., GpuRoceTransceiver TX) polls the same `tx_flags` array,
   since the sentinel would be misinterpreted as a valid buffer address.
   Only meaningful when `dispatch_path == CUDAQ_DISPATCH_PATH_HOST`.
 
@@ -638,8 +640,8 @@ Parameters:
 
 Before calling `cudaq_dispatcher_start`, call the appropriate occupancy query
 to force eager loading of the dispatch kernel module. This avoids lazy-load
-deadlocks when the dispatch kernel and transport kernels (e.g., HSB RX/TX)
-run as persistent kernels.
+deadlocks when the dispatch kernel and transport kernels (e.g.,
+GpuRoceTransceiver RX/TX) run as persistent kernels.
 
 **`cudaq_dispatch_kernel_query_occupancy`** returns the
 maximum number of active blocks per multiprocessor for the **regular** dispatch
@@ -1058,7 +1060,7 @@ Use `CUDAQ_DISPATCH_PATH_DEVICE` when:
 - Sub-microsecond dispatch latency is required (GPU-resident kernel avoids
     CPU round-trip)
 - Handlers are simple `__device__` functions or cooperative kernels
-- Transport uses GPU-polled RDMA (e.g., HSB 3-kernel or unified mode)
+- Transport uses GPU-polled RDMA (e.g., GpuRoceTransceiver 3-kernel or unified mode)
 - Graph-based handlers are not needed, or the workload is limited to at most
     120 messages per session
 
@@ -1125,7 +1127,7 @@ mailbox entry contains the device pointer to the RX slot.  The graph kernel
 de-references `d_mailbox_bank[worker_id]` to find the slot, processes the
 request, and writes the `RPCResponse` in-place.
 
-When `rx_data != tx_data` (separate RX/TX buffers, the HSB
+When `rx_data != tx_data` (separate RX/TX buffers, the GpuRoceTransceiver
 configuration), the mailbox entry contains a device pointer to a
 `GraphIOContext` struct (described below).  The graph kernel reads its
 fields to find the input slot, output slot, and TX flag.
@@ -1184,7 +1186,7 @@ Sentinel constants (from `rpc_wire_format.h`):
 When `skip_tx_markers` is set in the configuration, the dispatcher skips writing
 `CUDAQ_TX_FLAG_IN_FLIGHT`.  The TX flag transitions directly from 0
 (empty) to the buffer address (ready) once the graph kernel sets it.  This
-is required when an external GPU kernel (e.g., HSB TX) polls the same
+is required when an external GPU kernel (e.g., GpuRoceTransceiver TX) polls the same
 `tx_flags` array and would misinterpret the in-flight sentinel as a valid
 address.
 
@@ -1412,7 +1414,7 @@ cudaFreeHost(h_mailbox_bank);
 Real code from `test_realtime_decoding.cu`:
 
 Note: this host-side snippet emulates what the external device/FPGA would do
-when populating RX slots in an HSB deployment.
+when populating RX slots in a GpuRoceTransceiver deployment.
 
 ```cpp
 /// @brief Write detection events to RX buffer in RPC format.
@@ -1439,7 +1441,7 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
 Real code from `test_realtime_decoding.cu`:
 
 Note: this host-side snippet emulates what the external device/FPGA would do
-when consuming TX slots in an HSB deployment.
+when consuming TX slots in a GpuRoceTransceiver deployment.
 
 ```cpp
 /// @brief Read response from TX buffer.
@@ -1529,16 +1531,16 @@ For multi-argument payloads, arguments are **concatenated in schema order**:
 The schema specifies the size of each argument, allowing the dispatcher to
 compute offsets.
 
-## HSB 3-Kernel Workflow (Primary)
+## GpuRoceTransceiver 3-Kernel Workflow (Primary)
 
-See the [3-Kernel Architecture](#the-3-kernel-architecture-hsb-example)
+See the [3-Kernel Architecture](#the-3-kernel-architecture-gpurocetransceiver-example)
 diagram above for the complete data flow.
 The key integration points are:
 
 **Ring buffer handoff (RX → Dispatch)**:
 
 ```cpp
-// HSB RX kernel sets this after writing detection event data
+// GpuRoceTransceiver RX kernel sets this after writing detection event data
 rx_flags[slot] = device_ptr_to_slot_data;
 ```
 
@@ -1557,7 +1559,7 @@ TX kernel polls and sends → RDMA read completes
 All three kernels are **persistent** (launched once, run indefinitely), so
 there is no kernel launch overhead in the hot path.
 
-## NIC-Free Testing (No HSB / No ConnectX-7)
+## NIC-Free Testing (No GpuRoceTransceiver / No ConnectX-7)
 
 Emulate RX/TX with mapped host memory:
 

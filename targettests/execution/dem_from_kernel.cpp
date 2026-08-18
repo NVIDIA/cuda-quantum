@@ -348,7 +348,7 @@ int main() {
   // multi-target observable.
   runCase("MEM_EXP_2R", memoryExperimentTwoRounds{});
 
-  // Vectorized stdvec form producing the same shape as MEM_EXP_2R.
+  // Vectorized sequence form producing the same shape as MEM_EXP_2R.
   runCase("VECTORIZED", vectorizedDetectors{});
 
   // Correlated XX error: raw DEM keeps a four-detector hyperedge; decomposed

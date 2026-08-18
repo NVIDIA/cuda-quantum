@@ -78,46 +78,46 @@ __qpu__ float floatVectorKernel(std::vector<float> values) {
   return cudaq::device_call(0, sumFloatVector, values, 35.0f);
 }
 
-static bool runInputStdvecTests() {
+static bool runInputSequenceTests() {
   std::vector<bool> bits = {true, false, true,  true, false,
                             true, false, false, true, true};
   auto boolResults = cudaq::run(1, boolVectorKernel, bits);
   int boolValue = boolResults.front();
-  std::printf("device_call bool stdvec input result = %d\n", boolValue);
+  std::printf("device_call bool sequence input result = %d\n", boolValue);
 
   int measureValue = measureVectorKernel();
-  std::printf("device_call measure stdvec input result = %d\n", measureValue);
+  std::printf("device_call measure sequence input result = %d\n", measureValue);
 
   std::vector<int> intValues = {3, 4, 5, 6};
   int intValue = intVectorKernel(intValues);
-  std::printf("device_call i32 stdvec input result = %d\n", intValue);
+  std::printf("device_call i32 sequence input result = %d\n", intValue);
 
   std::vector<std::uint8_t> byteValues = {1, 2, 250};
   auto byteResults = cudaq::run(1, byteVectorKernel, byteValues);
   int byteValue = byteResults.front();
-  std::printf("device_call u8 stdvec input result = %d\n", byteValue);
+  std::printf("device_call u8 sequence input result = %d\n", byteValue);
 
   std::vector<float> floatValues = {1.5f, 2.5f, 3.0f};
   auto floatResults = cudaq::run(1, floatVectorKernel, floatValues);
   float floatValue = floatResults.front();
-  std::printf("device_call f32 stdvec input result = %.1f\n", floatValue);
+  std::printf("device_call f32 sequence input result = %.1f\n", floatValue);
 
   return boolValue == 21 && measureValue == 21 && intValue == 42 &&
          byteValue == 256 && floatValue == 42.0f;
 }
 
-static bool runByRefOutputStdvecTests() {
+static bool runByRefOutputSequenceTests() {
   std::vector<int> intValues = {3, 4, 5, 6};
   auto incrementedRuns = cudaq::run(1, incrementIntVectorKernel, intValues);
   auto incremented = incrementedRuns.front();
-  std::printf("device_call i32 stdvec by-ref output =");
+  std::printf("device_call i32 sequence by-ref output =");
   for (auto value : incremented)
     std::printf(" %d", value);
   std::printf("\n");
 
   auto binaryRuns = cudaq::run(1, binaryVectorKernel, std::uint64_t{813});
   auto bits = binaryRuns.front();
-  std::printf("device_call bool stdvec by-ref output =");
+  std::printf("device_call bool sequence by-ref output =");
   for (bool bit : bits)
     std::printf(" %d", bit ? 1 : 0);
   std::printf("\n");
@@ -130,23 +130,23 @@ static bool runByRefOutputStdvecTests() {
 
 int main(int argc, char **argv) {
   cudaq::realtime::initialize(argc, argv);
-  bool passed = runInputStdvecTests() && runByRefOutputStdvecTests();
+  bool passed = runInputSequenceTests() && runByRefOutputSequenceTests();
 
   cudaq::realtime::finalize();
   return passed ? 0 : 1;
 }
 
-// SHM: device_call bool stdvec input result = 21
-// SHM: device_call measure stdvec input result = 21
-// SHM: device_call i32 stdvec input result = 42
-// SHM: device_call u8 stdvec input result = 256
-// SHM: device_call f32 stdvec input result = 42.0
-// SHM: device_call i32 stdvec by-ref output = 4 5 6 7
-// SHM: device_call bool stdvec by-ref output = 1 0 1 1 0 1 0 0 1 1
-// HOST: device_call bool stdvec input result = 21
-// HOST: device_call measure stdvec input result = 21
-// HOST: device_call i32 stdvec input result = 42
-// HOST: device_call u8 stdvec input result = 256
-// HOST: device_call f32 stdvec input result = 42.0
-// HOST: device_call i32 stdvec by-ref output = 4 5 6 7
-// HOST: device_call bool stdvec by-ref output = 1 0 1 1 0 1 0 0 1 1
+// SHM: device_call bool sequence input result = 21
+// SHM: device_call measure sequence input result = 21
+// SHM: device_call i32 sequence input result = 42
+// SHM: device_call u8 sequence input result = 256
+// SHM: device_call f32 sequence input result = 42.0
+// SHM: device_call i32 sequence by-ref output = 4 5 6 7
+// SHM: device_call bool sequence by-ref output = 1 0 1 1 0 1 0 0 1 1
+// HOST: device_call bool sequence input result = 21
+// HOST: device_call measure sequence input result = 21
+// HOST: device_call i32 sequence input result = 42
+// HOST: device_call u8 sequence input result = 256
+// HOST: device_call f32 sequence input result = 42.0
+// HOST: device_call i32 sequence by-ref output = 4 5 6 7
+// HOST: device_call bool sequence by-ref output = 1 0 1 1 0 1 0 0 1 1

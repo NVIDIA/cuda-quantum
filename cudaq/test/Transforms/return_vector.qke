@@ -15,12 +15,12 @@ module attributes{ quake.mangled_name_map = {
 
 func.func private @malloc(i64) -> !cc.ptr<i8>
 
-func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.stdvec<i32> {
+func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.sequence<i32> {
   %0 = arith.constant 256 : i64
   %1 = call @malloc(%0) : (i64) -> !cc.ptr<i8>
   %2 = arith.constant 8 : i64
-  %3 = cc.stdvec_init %1, %2 : (!cc.ptr<i8>, i64) -> !cc.stdvec<i32>
-  return %3 : !cc.stdvec<i32>
+  %3 = cc.sequence_init %1, %2 : (!cc.ptr<i8>, i64) -> !cc.sequence<i32>
+  return %3 : !cc.sequence<i32>
 }
 
 func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>> {llvm.sret = !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>}, %1: !cc.ptr<i8>, %2: i32) {
@@ -28,12 +28,12 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_0(
-// CHECK-SAME:      %[[VAL_0:.*]]: i32) -> !cc.stdvec<i32> {
+// CHECK-SAME:      %[[VAL_0:.*]]: i32) -> !cc.sequence<i32> {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 256 : i64
 // CHECK:           %[[VAL_3:.*]] = call @malloc(%[[VAL_2]]) : (i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_3]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i32>
-// CHECK:           return %[[VAL_4]] : !cc.stdvec<i32>
+// CHECK:           %[[VAL_4:.*]] = cc.sequence_init %[[VAL_3]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.sequence<i32>
+// CHECK:           return %[[VAL_4]] : !cc.sequence<i32>
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @test_0(
@@ -113,12 +113,12 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           return
 // CHECK:         }
 
-func.func @__nvqpp__mlirgen__test_1(%arg0: i32) -> !cc.stdvec<f64> {
+func.func @__nvqpp__mlirgen__test_1(%arg0: i32) -> !cc.sequence<f64> {
   %0 = arith.constant 520 : i64
   %1 = call @malloc(%0) : (i64) -> !cc.ptr<i8>
   %2 = arith.constant 9 : i64
-  %3 = cc.stdvec_init %1, %2 : (!cc.ptr<i8>, i64) -> !cc.stdvec<f64>
-  return %3 : !cc.stdvec<f64>
+  %3 = cc.sequence_init %1, %2 : (!cc.ptr<i8>, i64) -> !cc.sequence<f64>
+  return %3 : !cc.sequence<f64>
 }
 
 func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f64>}>> {llvm.sret = !cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f64>}>}, %1: !cc.ptr<i8>, %2: i32) {
@@ -126,12 +126,12 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_1(
-// CHECK-SAME:      %[[VAL_0:.*]]: i32) -> !cc.stdvec<f64> {
+// CHECK-SAME:      %[[VAL_0:.*]]: i32) -> !cc.sequence<f64> {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 9 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 520 : i64
 // CHECK:           %[[VAL_3:.*]] = call @malloc(%[[VAL_2]]) : (i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_3]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<f64>
-// CHECK:           return %[[VAL_4]] : !cc.stdvec<f64>
+// CHECK:           %[[VAL_4:.*]] = cc.sequence_init %[[VAL_3]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.sequence<f64>
+// CHECK:           return %[[VAL_4]] : !cc.sequence<f64>
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @test_1(
@@ -270,10 +270,10 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}> : i64
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_6:.*]] = cc.noinline_call @__nvqpp__mlirgen__test_0(%[[VAL_5]]) : (i32) -> !cc.stdvec<i32>
+// CHECK:           %[[VAL_6:.*]] = cc.noinline_call @__nvqpp__mlirgen__test_0(%[[VAL_5]]) : (i32) -> !cc.sequence<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>
-// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>) -> !cc.ptr<!cc.stdvec<i32>>
-// CHECK:           cc.store %[[VAL_6]], %[[VAL_8]] : !cc.ptr<!cc.stdvec<i32>>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>) -> !cc.ptr<!cc.sequence<i32>>
+// CHECK:           cc.store %[[VAL_6]], %[[VAL_8]] : !cc.ptr<!cc.sequence<i32>>
 // CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
 // CHECK:         ^bb1:
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>
@@ -325,10 +325,10 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}> : i64
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_6:.*]] = cc.noinline_call @__nvqpp__mlirgen__test_1(%[[VAL_5]]) : (i32) -> !cc.stdvec<f64>
+// CHECK:           %[[VAL_6:.*]] = cc.noinline_call @__nvqpp__mlirgen__test_1(%[[VAL_5]]) : (i32) -> !cc.sequence<f64>
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>
-// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>) -> !cc.ptr<!cc.stdvec<f64>>
-// CHECK:           cc.store %[[VAL_6]], %[[VAL_8]] : !cc.ptr<!cc.stdvec<f64>>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>) -> !cc.ptr<!cc.sequence<f64>>
+// CHECK:           cc.store %[[VAL_6]], %[[VAL_8]] : !cc.ptr<!cc.sequence<f64>>
 // CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
 // CHECK:         ^bb1:
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>

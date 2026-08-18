@@ -23,7 +23,6 @@ inline void registerCudaqPassesAndPipelines() {
   // CUDA-Q pipelines
   opt::registerAggressiveInliningPipeline();
   opt::registerUnrollingPipeline();
-  opt::registerPhaseFoldingPipeline();
   opt::registerClassicalOptimizationPipeline();
   opt::registerToExecutionManagerCCPipeline();
   opt::registerToQIRAPIPipeline();
@@ -31,6 +30,9 @@ inline void registerCudaqPassesAndPipelines() {
   opt::registerWireSetToProfileQIRPipeline();
   opt::registerMappingPipeline();
   opt::registerToCFGPipeline();
+  opt::registerFaultTolerantTargetPipeline();
+  opt::registerCodegenForQIRPipeline();
+  opt::registerConvertToLinearValuesPipeline();
 
   // JIT compiler pipelines
   opt::registerJITPipelines();

@@ -49,14 +49,14 @@ func.func @testy1(%arg0: !cc.charspan) {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 10 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.48692C2074686572652100 : !cc.ptr<!llvm.array<11 x i8>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<11 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_0]] : (!cc.ptr<i8>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_3:.*]] = cc.sequence_init %[[VAL_2]], %[[VAL_0]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           call @callee1(%[[VAL_3]]) : (!cc.charspan) -> ()
 // CHECK:           return
 // CHECK:         }
 
-func.func private @callee2(!cc.stdvec<i32>)
-func.func @testy2(%arg0: !cc.stdvec<i32>) {
-  call @callee2(%arg0) : (!cc.stdvec<i32>) -> ()
+func.func private @callee2(!cc.sequence<i32>)
+func.func @testy2(%arg0: !cc.sequence<i32>) {
+  call @callee2(%arg0) : (!cc.sequence<i32>) -> ()
   return
 }
 
@@ -75,8 +75,8 @@ func.func @testy2(%arg0: !cc.stdvec<i32>) {
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_5]][3] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_5]], %[[VAL_0]] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.stdvec<i32>
-// CHECK:           call @callee2(%[[VAL_10]]) : (!cc.stdvec<i32>) -> ()
+// CHECK:           %[[VAL_10:.*]] = cc.sequence_init %[[VAL_5]], %[[VAL_0]] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.sequence<i32>
+// CHECK:           call @callee2(%[[VAL_10]]) : (!cc.sequence<i32>) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -100,9 +100,9 @@ func.func @testy3(%arg0: !cc.struct<{i32, f64, i8, i16}>) {
 // CHECK:           return
 // CHECK:         }
 
-func.func private @callee4(!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>)
-func.func @testy4(%arg0: !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) {
-  call @callee4(%arg0) : (!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) -> ()
+func.func private @callee4(!cc.sequence<!cc.struct<{i32, f64, i8, i16}>>)
+func.func @testy4(%arg0: !cc.sequence<!cc.struct<{i32, f64, i8, i16}>>) {
+  call @callee4(%arg0) : (!cc.sequence<!cc.struct<{i32, f64, i8, i16}>>) -> ()
   return
 }
 
@@ -142,8 +142,8 @@ func.func @testy4(%arg0: !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) {
 // CHECK:           %[[VAL_30:.*]] = cc.insert_value %[[VAL_29]][3], %[[VAL_1]] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_31:.*]] = cc.compute_ptr %[[VAL_13]][2] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           cc.store %[[VAL_30]], %[[VAL_31]] : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
-// CHECK:           %[[VAL_32:.*]] = cc.stdvec_init %[[VAL_13]], %[[VAL_0]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>, i64) -> !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>
-// CHECK:           call @callee4(%[[VAL_32]]) : (!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) -> ()
+// CHECK:           %[[VAL_32:.*]] = cc.sequence_init %[[VAL_13]], %[[VAL_0]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>, i64) -> !cc.sequence<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           call @callee4(%[[VAL_32]]) : (!cc.sequence<!cc.struct<{i32, f64, i8, i16}>>) -> ()
 // CHECK:           return
 // CHECK:         }
 

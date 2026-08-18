@@ -61,7 +61,7 @@ def test_random_unitary_3q():
     # KAK children on q[0]/q[1] interleaved with three two-control gray-code
     # multiplexors (Rz, Ry, Rz) targeting q[2]. The 12 multiplexor CNOTs are the
     # optimal gray-code count.
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def synth_kernel8():
         q = cudaq.qvector(3)
 

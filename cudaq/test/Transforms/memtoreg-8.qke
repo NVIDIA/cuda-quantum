@@ -1,0 +1,185 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize --memtoreg %s | FileCheck %s
+
+func.func @nested_concat_dynamic_alias(%index: i64) {
+  %r0 = quake.alloca !quake.ref
+  %r1 = quake.alloca !quake.ref
+  %r2 = quake.alloca !quake.ref
+  %inner = quake.concat %r0, %r1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %outer = quake.concat %inner, %r2 : (!quake.veq<2>, !quake.ref) -> !quake.veq<3>
+
+  // %index may be 0, so this operation may act on the qubit in %r0.
+  %selected = quake.extract_ref %outer[%index] : (!quake.veq<3>, i64) -> !quake.ref
+  quake.h %selected : (!quake.ref) -> ()
+
+  // A correct memtoreg lowering must not reuse a wire for %r0 that predates
+  // the dynamic access above.
+  quake.x %r0 : (!quake.ref) -> ()
+  quake.dealloc %r2 : !quake.ref
+  quake.dealloc %r1 : !quake.ref
+  quake.dealloc %r0 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @nested_concat_dynamic_alias(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]] : (!quake.ref, !quake.ref, !quake.ref) -> !quake.veq<3>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<3>, i64) -> !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_2]] : !quake.wire
+// CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_3]] : !quake.wire
+// CHECK:           quake.sink %[[X_0]] : !quake.wire
+
+func.func @ai_failure_scenario_2(%arg0 : i64, %arg1 : i1) {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  %3 = quake.concat %0, %1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %4 = quake.concat %3, %2 : (!quake.veq<2>, !quake.ref) -> !quake.veq<3>
+  cc.if(%arg1) {
+    %5 = quake.extract_ref %4[%arg0] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.h %5 : (!quake.ref) -> ()
+    quake.x %0 : (!quake.ref) -> ()
+  }
+  quake.dealloc %2 : !quake.ref
+  quake.dealloc %1 : !quake.ref
+  quake.dealloc %0 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @ai_failure_scenario_2(
+// CHECK-SAME:      %[[ARG0:.*]]: i64, %[[ARG1:.*]]: i1) {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.wrap %[[UNWRAP_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CHECK:           quake.wrap %[[UNWRAP_1]] to %[[ALLOCA_1]] : !quake.wire, !quake.ref
+// CHECK:           quake.wrap %[[UNWRAP_2]] to %[[ALLOCA_2]] : !quake.wire, !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]] : (!quake.ref, !quake.ref, !quake.ref) -> !quake.veq<3>
+// CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[IF_0:.*]] = cc.if(%[[ARG1]]) ((%[[VAL_0:.*]] = %[[UNWRAP_3]])) -> !quake.wire {
+// CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<3>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_4:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_4]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:             %[[UNWRAP_5:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_5]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[X_0]] : !quake.wire
+// CHECK:           } else {
+// CHECK:             cc.continue %[[VAL_1:.*]] : !quake.wire
+// CHECK:           }
+// CHECK:           quake.wrap %[[IF_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CHECK:           %[[UNWRAP_6:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_6]] : !quake.wire
+// CHECK:           %[[UNWRAP_7:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_7]] : !quake.wire
+// CHECK:           %[[UNWRAP_8:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_8]] : !quake.wire
+
+func.func @init_state(%ar0: !cc.ptr<!quake.state>) {
+    %c5_i64 = arith.constant 5 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %a = quake.alloca !quake.veq<5>
+    %0 = quake.init_state %a, %ar0 : (!quake.veq<5>, !cc.ptr<!quake.state>) -> !quake.veq<5>
+    %1 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+      %7 = arith.cmpi slt, %arg0, %c5_i64 : i64
+      cc.condition %7(%arg0 : i64)
+    } do {
+    ^bb0(%arg0: i64):
+      %7 = quake.extract_ref %0[%arg0] : (!quake.veq<5>, i64) -> !quake.ref
+      quake.x %7 : (!quake.ref) -> ()
+      cc.continue %arg0 : i64
+    } step {
+    ^bb0(%arg0: i64):
+      %7 = arith.addi %arg0, %c1_i64 : i64
+      cc.continue %7 : i64
+    } {invariant}
+    %g3 = quake.extract_ref %0[0] : (!quake.veq<5>) -> !quake.ref
+    quake.y %g3 : (!quake.ref) -> ()
+    %c0_i64_0 = arith.constant 0 : i64
+    %2 = quake.veq_size %0 : (!quake.veq<5>) -> i64
+    %3 = arith.addi %c0_i64_0, %2 : i64
+    %c0_i64_1 = arith.constant 0 : i64
+    %c1_i64_2 = arith.constant 1 : i64
+    %4 = quake.veq_size %0 : (!quake.veq<5>) -> i64
+    %c0_i64_3 = arith.constant 0 : i64
+    %c1_i64_4 = arith.constant 1 : i64
+    %5 = cc.loop while ((%arg0 = %c0_i64_3) -> (i64)) {
+      %7 = arith.cmpi slt, %arg0, %4 : i64
+      cc.condition %7(%arg0 : i64)
+    } do {
+    ^bb0(%arg0: i64):
+      %7 = quake.extract_ref %0[%arg0] : (!quake.veq<5>, i64) -> !quake.ref
+      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
+      %8 = arith.addi %arg0, %c0_i64_1 : i64
+      cc.continue %arg0 : i64
+    } step {
+    ^bb0(%arg0: i64):
+      %7 = arith.addi %arg0, %c1_i64_4 : i64
+      cc.continue %7 : i64
+    } {invariant}
+    %6 = arith.addi %c0_i64_1, %4 : i64
+    return
+}
+
+// CHECK-LABEL:   func.func @init_state(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.ptr<!quake.state>) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 5 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 0 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           %[[INIT_STATE_0:.*]] = quake.init_state %[[ALLOCA_0]], %[[ARG0]] : (!quake.veq<5>, !cc.ptr<!quake.state>) -> !quake.veq<5>
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_2]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[CONSTANT_0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[INIT_STATE_0]]{{\[}}%[[VAL_1]]] : (!quake.veq<5>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[X_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_0]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[INIT_STATE_0]][0] : (!quake.veq<5>) -> !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[Y_0:.*]] = quake.y %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[Y_0]] to %[[EXTRACT_REF_1]] : !quake.wire, !quake.ref
+// CHECK:           %[[LOOP_1:.*]] = cc.loop while ((%[[VAL_3:.*]] = %[[CONSTANT_2]]) -> (i64)) {
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_3]], %[[CONSTANT_0]] : i64
+// CHECK:             cc.condition %[[CMPI_1]](%[[VAL_3]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_4:.*]]: i64):
+// CHECK:             %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[INIT_STATE_0]]{{\[}}%[[VAL_4]]] : (!quake.veq<5>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_2:.*]] = quake.unwrap %[[EXTRACT_REF_2]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[VAL_5:.*]], %[[MZ_0:.*]] = quake.mz %[[UNWRAP_2]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:             quake.wrap %[[MZ_0]] to %[[EXTRACT_REF_2]] : !quake.wire, !quake.ref
+// CHECK:             cc.continue %[[VAL_4]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_6:.*]]: i64):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_6]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]] : i64
+// CHECK:           } {invariant}

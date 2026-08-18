@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | FileCheck %s
+
+// Two rotations with the same angle share a single outlined helper: gridsynth
+// runs once and both call sites reference the same symbol. The helper name is
+// derived from the angle bits, so identical angles collide deterministically
+// even though gridsynth output is otherwise stochastic.
+
+func.func @dedup() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.rz (%a) %q0 : (f64, !quake.ref) -> ()
+  quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK: func.func private @[[HELPER:__cliffordt_rz_[0-9a-fx]+]](
+// CHECK-LABEL: func.func @dedup
+// CHECK:         call @[[HELPER]]
+// CHECK:         call @[[HELPER]]

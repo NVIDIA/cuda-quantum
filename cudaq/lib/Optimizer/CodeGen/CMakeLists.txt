@@ -21,6 +21,7 @@ add_cudaq_library(OptCodeGen
   ConvertToQIR.cpp
   ConvertToQIRAPI.cpp
   DelayMeasurements.cpp
+  EraseCGLogOutput.cpp
   OptUtils.cpp
   Passes.cpp
   Pipelines.cpp
@@ -73,4 +74,4 @@ add_cudaq_library(OptCodeGen
     Passes
 )
 
-register_cudaq_mlir_lib(OptCodeGen)
+check_registered_mlir_lib(OptCodeGen)

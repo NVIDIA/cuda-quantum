@@ -33,34 +33,29 @@ struct kernel {
 
 // clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
-// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 1)
-// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_2]], align 8
-// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_4]])
-// CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 2)
-// CHECK:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_5]], align 8
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_4]], ptr %[[VAL_6]])
-// CHECK:         %[[VAL_7:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_8:.*]] = load ptr, ptr %[[VAL_7]], align 8
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_8]], ptr %[[VAL_4]])
-// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_8]])
-// CHECK:         %[[VAL_9:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_8]], ptr nonnull @cstr.623000)
-// CHECK:         %[[VAL_11:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_4]], ptr nonnull @cstr.623100)
-// CHECK:         %[[VAL_11_PTR:.*]] = inttoptr i64 %[[VAL_11]] to ptr
-// CHECK:         %[[VAL_12:.*]] = tail call i1 @__quantum__rt__read_result(ptr %[[VAL_11_PTR]])
-// CHECK:         br i1 %[[VAL_12]], label %[[VAL_14:.*]], label %[[VAL_15:.*]]
-// CHECK:       {{[0-9]+}}:
-// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_6]])
-// CHECK:         br label %[[VAL_15]]
-// CHECK:       {{[0-9]+}}:
-// CHECK:         %[[VAL_9_PTR:.*]] = inttoptr i64 %[[VAL_9]] to ptr
-// CHECK:         %[[VAL_10:.*]] = tail call i1 @__quantum__rt__read_result(ptr %[[VAL_9_PTR]])
-// CHECK:         br i1 %[[VAL_10]], label %[[VAL_18:.*]], label %[[VAL_19:.*]]
-// CHECK:       {{[0-9]+}}:
-// CHECK:         tail call void @__quantum__qis__z(ptr %[[VAL_6]])
-// CHECK:         br label %[[VAL_19]]
-// CHECK:       {{[0-9]+}}:
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
+// CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
+// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_1]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_1]], ptr %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_0]], ptr %[[VAL_1]])
+// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_0]])
+// CHECK:         %[[VAL_3:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_0]], ptr nonnull @cstr.623000)
+// CHECK:         %[[VAL_4:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_1]], ptr nonnull @cstr.
+// CHECK:         %[[VAL_5:.*]] = inttoptr i64 %[[VAL_4]] to ptr
+// CHECK:         %[[VAL_6:.*]] = tail call i1 @__quantum__rt__read_result(ptr %[[VAL_5]])
+// CHECK:         br i1 %[[VAL_6]], label %[[VAL_7:.*]], label %[[VAL_8:.*]]
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_8]]
+// CHECK:         %[[VAL_10:.*]] = inttoptr i64 %[[VAL_3]] to ptr
+// CHECK:         %[[VAL_11:.*]] = tail call i1 @__quantum__rt__read_result(ptr %[[VAL_10]])
+// CHECK:         br i1 %[[VAL_11]], label %[[VAL_12:.*]], label %[[VAL_13:.*]]
+// CHECK:         tail call void @__quantum__qis__z(ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_13]]
+// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_0]])
+// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_1]])
+// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_2]])
 // CHECK:         ret void
 // CHECK:       }
+
 

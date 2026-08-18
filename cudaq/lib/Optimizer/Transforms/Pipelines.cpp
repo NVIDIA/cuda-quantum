@@ -70,10 +70,41 @@ struct TargetFinalizationJitPipelineOptions
           "Lower device calls (to normal function calls) in JIT pipeline."),
       llvm::cl::init(true)};
 };
+
+struct FaultTolerantTargetPipelineOptions
+    : public PassPipelineOptions<FaultTolerantTargetPipelineOptions> {
+  PassOptions::Option<double> epsilon{
+      *this, "epsilon",
+      llvm::cl::desc("Approximation tolerance for Clifford+T synthesis."),
+      llvm::cl::init(1e-10)};
+  PassOptions::Option<bool> failOnControlledRotation{
+      *this, "fail-on-controlled-rotation",
+      llvm::cl::desc("Reject controlled rotations left at synthesis."),
+      llvm::cl::init(false)};
+};
 } // namespace
+
+void cudaq::opt::addConvertToLinearValues(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(createCableRoughIn());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createRepairLinearType());
+  pm.addNestedPass<func::FuncOp>(createLinearCtrlRelations());
+}
+
+void cudaq::opt::registerConvertToLinearValuesPipeline() {
+  PassPipelineRegistration<>(
+      "convert-to-linear-values",
+      "Convert supported Quake IR to explicit linear values.",
+      addConvertToLinearValues);
+}
 
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());
@@ -87,6 +118,11 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // Apply specialization must see the quantum operations it is going to
+  // control. Inlining here exposes quantum work hidden behind ordinary
+  // func.call operations (e.g., the UCCSD helper hierarchy) before creating
+  // a control variant.
+  cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
   cudaq::opt::addAggressiveInlining(pm);
@@ -144,6 +180,55 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
   pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
+void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
+                                       bool failOnControlledRotation) {
+  pm.addPass(cudaq::opt::createUnitarySynthesis());
+  pm.addPass(cudaq::opt::createApplySpecialization());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
+  cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition", "U3ToRotations"});
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
+  cudaq::opt::addConvertToLinearValues(pm);
+  cudaq::opt::QuakeSimplifyOptions simplifyOpts;
+  simplifyOpts.rotationsToCliffordT = true;
+  simplifyOpts.cliffordTEpsilon = epsilon;
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify(simplifyOpts));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+
+  // Restore the memory-semantics form accepted by the existing decomposition
+  // and synthesis pipeline.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
+  // Reduce Rx, Ry, and R1 rotations to Rz + Clifford so that Clifford+T
+  // synthesis only has to handle Rz. These are the shared decomposition
+  // patterns.
+  cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
+  cudaq::opt::CliffordTSynthesisOptions ctsOpts;
+  ctsOpts.epsilon = epsilon;
+  ctsOpts.failOnControlledRotation = failOnControlledRotation;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
+  cudaq::opt::DecompositionOptions decOpts;
+  decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
+  pm.addPass(cudaq::opt::createDecomposition(decOpts));
+}
+
+void cudaq::opt::registerFaultTolerantTargetPipeline() {
+  PassPipelineRegistration<FaultTolerantTargetPipelineOptions>(
+      "cudaq-fault-tolerant-target",
+      "Lower rotations to the {H, S, T, X, Z, CNOT} basis via Clifford+T "
+      "synthesis.",
+      [](OpPassManager &pm, const FaultTolerantTargetPipelineOptions &options) {
+        cudaq::opt::addCliffordTSynthesis(pm, options.epsilon,
+                                          options.failOnControlledRotation);
+      });
+}
+
+void cudaq::opt::addPhaseLifecycle(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(mlir::createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
+}
+
 static void
 createTargetDeployPipeline(OpPassManager &pm,
                            const TargetDeployPipelineOptions &options) {
@@ -153,6 +238,9 @@ createTargetDeployPipeline(OpPassManager &pm,
   cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This
@@ -209,10 +297,15 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // Apply specialization must see the quantum operations directly. Inlining
+  // first prevents quantum func.call operations from being left uncontrolled
+  // in generated control or adjoint variants.
+  cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::GenerateKernelExecutionOptions gkeOpts;
   gkeOpts.genRunStack = options.autoGenRunStack;

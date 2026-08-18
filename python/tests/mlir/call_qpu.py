@@ -53,22 +53,21 @@ def test_qpu_call_return_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__func_achat..
-# CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.stdvec<i1> attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant false
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-# CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
-# CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<i1>) -> i64
+# CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.sequence<i1> attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+# CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+# CHECK:           %[[VAL_5:.*]] = cc.sequence_size %[[VAL_3]] : (!cc.sequence<i1>) -> i64
 # CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-# CHECK:           %[[VAL_7:.*]] = call @malloc(%[[VAL_5]]) : (i64) -> !cc.ptr<i8>
-# CHECK:           call @llvm.memcpy.p0.p0.i64(%[[VAL_7]], %[[VAL_6]], %[[VAL_5]], %[[VAL_1]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-# CHECK:           %[[VAL_8:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_5]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
-# CHECK:           return %[[VAL_8]] : !cc.stdvec<i1>
+# CHECK:           %[[VAL_7:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_6]], %[[VAL_5]], %[[VAL_1]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+# CHECK:           %[[VAL_8:.*]] = cc.sequence_init %[[VAL_7]], %[[VAL_5]] : (!cc.ptr<i8>, i64) -> !cc.sequence<i1>
+# CHECK:           return %[[VAL_8]] : !cc.sequence<i1>
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__func_shiim..
 # CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>,
-# CHECK-SAME:      %[[VAL_1:.*]]: !cc.callable<(!quake.veq<?>) -> !cc.stdvec<i1>> {quake.pylifted}) -> i64 attributes {"cudaq-kernel"} {
+# CHECK-SAME:      %[[VAL_1:.*]]: !cc.callable<(!quake.veq<?>) -> !cc.sequence<i1>> {quake.pylifted}) -> i64 attributes {"cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant false
 # CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : i8
@@ -76,9 +75,9 @@ def test_qpu_call_return_vector():
 # CHECK-DAG:       %[[VAL_6:.*]] = cc.undef i1
 # CHECK:           %[[VAL_7:.*]] = quake.subveq %[[VAL_0]], 1, 2 : (!quake.veq<?>) -> !quake.veq<2>
 # CHECK:           %[[VAL_8:.*]] = quake.relax_size %[[VAL_7]] : (!quake.veq<2>) -> !quake.veq<?>
-# CHECK:           %[[VAL_9:.*]] = cc.call_callable %[[VAL_1]], %[[VAL_8]] : (!cc.callable<(!quake.veq<?>) -> !cc.stdvec<i1>>, !quake.veq<?>) -> !cc.stdvec<i1> {symbol = "func_achat"}
-# CHECK:           %[[VAL_10:.*]] = cc.stdvec_data %[[VAL_9]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
-# CHECK:           %[[VAL_11:.*]] = cc.stdvec_size %[[VAL_9]] : (!cc.stdvec<i1>) -> i64
+# CHECK:           %[[VAL_9:.*]] = cc.call_callable %[[VAL_1]], %[[VAL_8]] : (!cc.callable<(!quake.veq<?>) -> !cc.sequence<i1>>, !quake.veq<?>) -> !cc.sequence<i1> {symbol = "func_achat"}
+# CHECK:           %[[VAL_10:.*]] = cc.sequence_data %[[VAL_9]] : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+# CHECK:           %[[VAL_11:.*]] = cc.sequence_size %[[VAL_9]] : (!cc.sequence<i1>) -> i64
 # CHECK:           %[[VAL_13:.*]] = cc.alloca i8{{\[}}%[[VAL_11]] : i64]
 # CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 # CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>

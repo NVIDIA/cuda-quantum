@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "QuakeOperatorUtilities.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
@@ -29,65 +32,34 @@ public:
 
   LogicalResult matchAndRewrite(OP op,
                                 PatternRewriter &rewriter) const override {
-    // Unfortunately, we may grow the # of controls as a result of this rewrite,
-    // so we must track a new list of controls and reconstruct the operands
-    // instead of replacing the controls in place.
-    SmallVector<Value> newControls;
-    SmallVector<bool> newNegatedControls;
     auto negatedControls = op.getNegatedQubitControls();
-    bool update = false;
+    // Unlike phase lowering, this rewrite cannot preserve an unresolved
+    // vector control. Check before materializing any scalar extracts.
+    if (cudaq::opt::hasUnresolvedControlVeq(op.getControls()))
+      return failure();
 
-    // Search through the controls for veqs with known sizes
-    for (auto [index, control] : llvm::enumerate(op.getControls())) {
-      if (isa<cudaq::quake::VeqType>(control.getType())) {
-        auto size = cudaq::quake::getVeqSize(control);
-        if (!size)
-          return failure();
-
-        // Use the inner sized veq for extract_ref when looking through
-        // RelaxSizeOp (extract_ref needs a sized veq operand).
-        Value veqVal = control;
-        if (auto relaxOp =
-                control.template getDefiningOp<cudaq::quake::RelaxSizeOp>())
-          veqVal = relaxOp.getInputVec();
-
-        // For each of the qubits in the veq, create an extraction instruction
-        // The result of the extraction will be a new control
-        // The veq is not added the newControls, so it will be dropped
-        for (size_t i = 0; i < *size; ++i) {
-          auto ext = cudaq::quake::ExtractRefOp::create(rewriter, op.getLoc(),
-                                                        veqVal, i);
-          newControls.push_back(ext);
-          update = true;
-        }
-
-        if (negatedControls)
-          newNegatedControls.append(*size, (*negatedControls)[index]);
-      } else {
-        newControls.push_back(control);
-        if (negatedControls)
-          newNegatedControls.push_back((*negatedControls)[index]);
-      }
-    }
-
-    if (!update)
+    auto expandedControls = cudaq::opt::expandKnownSizedControlVeqs(
+        rewriter, op.getLoc(), op.getControls(),
+        cudaq::opt::getControlPolarities(op.getControls(), negatedControls));
+    if (!expandedControls.didExpand)
       return failure();
 
     DenseBoolArrayAttr negatedControlsAttr;
     if (negatedControls)
-      negatedControlsAttr = rewriter.getDenseBoolArrayAttr(newNegatedControls);
+      negatedControlsAttr =
+          rewriter.getDenseBoolArrayAttr(expandedControls.polarities);
 
     // Reconstruct the operation with the new controls
     auto segmentSizes = rewriter.getDenseI32ArrayAttr(
         {static_cast<int32_t>(op.getParameters().size()),
-         static_cast<int32_t>(newControls.size()),
+         static_cast<int32_t>(expandedControls.controls.size()),
          static_cast<int32_t>(op.getTargets().size())});
 
     auto newOp = rewriter.replaceOpWithNewOp<OP>(
         op, op.getResultTypes(), op.getIsAdjAttr(), op.getParameters(),
-        newControls, op.getTargets(), negatedControlsAttr);
+        expandedControls.controls, op.getTargets(), negatedControlsAttr);
 
-    newOp->setAttr("operand_segment_sizes", segmentSizes);
+    newOp->setAttr(cudaq::runtime::operandSegmentSizes, segmentSizes);
 
     return success();
   }
@@ -118,18 +90,21 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<
         ExpandPat<cudaq::quake::HOp>, ExpandPat<cudaq::quake::PhasedRxOp>,
-        ExpandPat<cudaq::quake::R1Op>, ExpandPat<cudaq::quake::RxOp>,
-        ExpandPat<cudaq::quake::RyOp>, ExpandPat<cudaq::quake::RzOp>,
-        ExpandPat<cudaq::quake::SOp>, ExpandPat<cudaq::quake::SwapOp>,
-        ExpandPat<cudaq::quake::TOp>, ExpandPat<cudaq::quake::U2Op>,
-        ExpandPat<cudaq::quake::U3Op>, ExpandPat<cudaq::quake::XOp>,
-        ExpandPat<cudaq::quake::YOp>, ExpandPat<cudaq::quake::ZOp>>(ctx);
+        ExpandPat<cudaq::quake::PhaseOp>, ExpandPat<cudaq::quake::R1Op>,
+        ExpandPat<cudaq::quake::RxOp>, ExpandPat<cudaq::quake::RyOp>,
+        ExpandPat<cudaq::quake::RzOp>, ExpandPat<cudaq::quake::SOp>,
+        ExpandPat<cudaq::quake::SwapOp>, ExpandPat<cudaq::quake::TOp>,
+        ExpandPat<cudaq::quake::U2Op>, ExpandPat<cudaq::quake::U3Op>,
+        ExpandPat<cudaq::quake::XOp>, ExpandPat<cudaq::quake::YOp>,
+        ExpandPat<cudaq::quake::ZOp>>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::quake::QuakeDialect>();
     target.addDynamicallyLegalOp<cudaq::quake::HOp>(
         checkLegal<cudaq::quake::HOp>);
     target.addDynamicallyLegalOp<cudaq::quake::PhasedRxOp>(
         checkLegal<cudaq::quake::PhasedRxOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::PhaseOp>(
+        checkLegal<cudaq::quake::PhaseOp>);
     target.addDynamicallyLegalOp<cudaq::quake::R1Op>(
         checkLegal<cudaq::quake::R1Op>);
     target.addDynamicallyLegalOp<cudaq::quake::RxOp>(

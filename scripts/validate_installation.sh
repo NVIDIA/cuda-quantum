@@ -19,6 +19,8 @@
 #   and run this script from the home directory.
 #   Check the logged output.
 
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Auto-setup if running from repo root (detected by presence of docs/sphinx/examples)
 # This allows running validation directly from the repo without manual setup.
 if [ -d "docs/sphinx/examples" ]; then
@@ -122,6 +124,7 @@ should_skip_install_validation_target() {
     "opt-test.yml"
     "compiler-bench-nisq.yml"
     "compiler-bench-ftqc-logical.yml"
+    "compiler-bench-ftqc-clifford-t.yml"
   )
 
   for skipped_target_config in "${skipped_target_configs[@]}"; do
@@ -198,10 +201,29 @@ echo "Testing backends:"
 echo "$requested_backends"
 echo
 
-if $missing_backend || [ "$available_backends" == "" ]; 
+if $missing_backend || [ "$available_backends" == "" ];
 then
     echo "Abort due to missing backend configuration."
-    exit 1 
+    exit 1
+fi
+
+echo "============================="
+echo "==   License Compliance   =="
+echo "============================="
+
+# GMP and MPFR are redistributed with CUDA-Q under the LGPL v3; verify the
+# properties the redistribution relies on (license texts shipped, dynamic
+# linking only, libraries replaceable).
+let "samples+=1"
+if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+    if bash "$this_file_dir/validate_license_compliance.sh"; then
+        let "passed+=1"
+    else
+        let "failed+=1"
+    fi
+else
+    echo -e "\e[01;31mError: validate_license_compliance.sh not found in $this_file_dir.\e[0m" >&2
+    let "failed+=1"
 fi
 
 # Long-running tests
@@ -230,7 +252,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    # Look for a --target flag to nvq++ in the 
+    # Look for a --target flag to nvq++ in the
     # comment block at the beginning of the file.
     # Note: using sed instead of grep -P for macOS compatibility
     intended_target=$(sed -e '/^$/,$d' "$ex" | sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' | head -1)
@@ -280,7 +302,6 @@ do
         get_target_options() {
             case "$1" in
                 nvidia) echo "fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu" ;;
-                nvidia-legacy) echo "fp32 fp64 fp32,mqpu fp64,mqpu" ;;
                 tensornet) echo "fp32 fp64" ;;
                 tensornet-mps) echo "fp32 fp64" ;;
                 *) echo "" ;;
@@ -555,7 +576,14 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     else
         pip install jupyter ipykernel notebook -q
     fi
-    
+
+    # skqd.ipynb imports mpi4py, which is not shipped in the image.
+    if [ -n "$MPI_ROOT" ] && ! python3 -c "import mpi4py" 2>/dev/null; then
+        echo "Installing mpi4py for notebooks that require it..."
+        pip install "mpi4py~=4.1" -q \
+            || echo "Warning: could not install mpi4py; notebooks importing it will fail."
+    fi
+
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages
     JUPYTER_KERNEL_NAME="cudaq_nb_validation_container"

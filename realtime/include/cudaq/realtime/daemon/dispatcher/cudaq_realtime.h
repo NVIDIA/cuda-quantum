@@ -137,8 +137,8 @@ typedef struct {
   int skip_tx_markers; // when non-zero, the host dispatcher will NOT write
                        // sentinel markers (CUDAQ_TX_FLAG_IN_FLIGHT) to
                        // tx_flags before graph launch.  Set this when an
-                       // external GPU kernel (e.g. Hololink TX) polls the
-                       // same tx_flags array; the sentinel would be
+                       // external GPU kernel (e.g. GpuRoceTransceiver TX) polls
+                       // the same tx_flags array; the sentinel would be
                        // misinterpreted as a valid address.
   uint32_t shared_ring_mode; // when non-zero, the dispatcher cooperates with
                              // OTHER dispatchers on the SAME ring buffer.

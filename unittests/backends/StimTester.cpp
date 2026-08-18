@@ -8,8 +8,8 @@
 
 #include "CUDAQTestUtils.h"
 #include "StimCircuitSimulator.cpp"
+#include "common/AnalysisScope.h"
 #include "common/ExecutionContext.h"
-#include "nvqir/AnalysisScope.h"
 #include "nvqir/QIRTypes.h"
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -228,7 +228,7 @@ CUDAQ_TEST(StimQECTester, AdapterAcceptsRawChronologicalIndices) {
   __quantum__rt__clear_result_maps();
   StimCircuitSimulatorTester sim;
   sim.setRandomSeed(42);
-  nvqir::AnalysisScope scope{"stim_qec_adapter_test", sim, {}};
+  cudaq::detail::AnalysisScope scope{"stim_qec_adapter_test", sim, {}};
 
   auto q0 = sim.allocateQubit();
   auto q1 = sim.allocateQubit();

@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
@@ -22,6 +23,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace cudaq;
@@ -180,3 +182,47 @@ void detail::initServerHelperAndExecutor(
   runtimeTarget.runtimeConfig = backendConfig;
   serverHelper->setRuntimeTarget(runtimeTarget);
 }
+
+namespace {
+class ExecutionQueueRegistry {
+public:
+  void add(QuantumExecutionQueue &queue) {
+    std::lock_guard lock(mutex);
+    queues.insert(&queue);
+  }
+
+  void remove(QuantumExecutionQueue &queue) {
+    std::lock_guard lock(mutex);
+    queues.erase(&queue);
+  }
+
+  void shutdown() {
+    // Keep the lock across shutdown so registered queues cannot be destroyed
+    // while their raw pointers are in use.
+    std::lock_guard lock(mutex);
+    for (auto *queue : queues)
+      queue->shutdown();
+  }
+
+private:
+  std::mutex mutex;
+  std::unordered_set<QuantumExecutionQueue *> queues;
+};
+
+ExecutionQueueRegistry &executionQueueRegistry() {
+  // Process-lifetime registry: execution queues belong to platforms owned by
+  // thread-local storage and may unregister during static destruction.
+  static auto *const registry = new ExecutionQueueRegistry();
+  return *registry;
+}
+} // namespace
+
+void detail::registerExecutionQueue(QuantumExecutionQueue &queue) {
+  executionQueueRegistry().add(queue);
+}
+
+void detail::unregisterExecutionQueue(QuantumExecutionQueue &queue) {
+  executionQueueRegistry().remove(queue);
+}
+
+void detail::shutdownExecutionQueues() { executionQueueRegistry().shutdown(); }

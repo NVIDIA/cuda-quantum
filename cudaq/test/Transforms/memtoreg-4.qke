@@ -182,4 +182,3 @@ func.func @t3(%arg0: !quake.veq<?>) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
-

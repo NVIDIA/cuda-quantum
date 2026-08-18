@@ -52,6 +52,17 @@ Please refer to this [section](#using-docker) for instructions.
 
     <!--- -->
 
+    > **_NOTE:_** To install to a different location (which does not require
+    > `sudo`), pass `--installpath` to the installer, e.g.,
+    >
+    > ```bash
+    > ./install_cuda_quantum_realtime_cu13.arm64 --accept -- --installpath $HOME/.cudaq_realtime
+    > ```
+    >
+    > The paths used in the remaining steps then need to be adjusted accordingly.
+
+    <!--- -->
+
     > **_NOTE:_** After the installation, please follow the instructed
     > post-installation step to set the environment variable, e.g.,
     >
@@ -187,14 +198,14 @@ Using the Integrated Logic Analyzer (`ILA`) timestamp when the FPGA receives
 the response from the GPU, we can compute the round-trip latency,
 i.e., the elapsed time from the timestamp in the header to the `ILA` receive timestamp.
 
-Please refer to `hololink_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
+Please refer to `hsb_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
 for a sample of data generation tools.
 
 ## Troubleshooting
 
 <!-- markdownlint-disable MD013 -->
 
-### Error "`error while loading shared libraries: libcudaq-realtime-bridge-hololink.so cannot open shared object file: No such file or directory`"
+### Error "`error while loading shared libraries: libcudaq-realtime-bridge-gpu-roce.so cannot open shared object file: No such file or directory`"
 
 This can be resolved by following the post-installation step in the [setup](#setup) section to set the `LD_LIBRARY_PATH`.
 

@@ -128,13 +128,20 @@ public:
       // Remove the original alloca operation.
       rewriter.eraseOp(allocOp);
     } else {
-      // Uses are more complex so just concat the refs together.
-      SmallVector<Value> theRefs;
-      std::for_each(
-          newAllocs.begin(), newAllocs.end(),
-          [&](cudaq::quake::AllocaOp a) { theRefs.push_back(a.getResult()); });
-      rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(allocOp, veqTy,
-                                                          theRefs);
+      if (newAllocs.empty()) {
+        // The python bridge can generate quake.alloca with size 0, which has no
+        // semantics. Check here rather than propagating the bad IR.
+        return failure();
+      } else {
+        // Uses are more complex so just concat the refs together.
+        SmallVector<Value> theRefs;
+        std::for_each(newAllocs.begin(), newAllocs.end(),
+                      [&](cudaq::quake::AllocaOp a) {
+                        theRefs.push_back(a.getResult());
+                      });
+        rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(allocOp, veqTy,
+                                                            theRefs);
+      }
     }
     return success();
   }
@@ -187,6 +194,105 @@ public:
       rewriter.replaceOp(ext, newAllocs[start + index].getResult());
     }
     return success();
+  }
+};
+} // namespace
+
+/// Compute the index within the `concat` result at which the operand at
+/// position \p operandPos of \p concat lands. Returns `nullopt` if the index
+/// cannot be determined statically (e.g., a preceding `veq` has an unspecified
+/// size).
+static std::optional<std::size_t>
+concatResultIndex(cudaq::quake::ConcatOp concat, std::size_t operandPos) {
+  std::size_t idx = 0;
+  auto refTy = cudaq::quake::RefType::get(concat.getContext());
+  for (std::size_t i = 0; i < operandPos; ++i) {
+    auto t = concat.getTargets()[i].getType();
+    if (t == refTy) {
+      idx += 1;
+    } else if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(t)) {
+      if (!veqTy.hasSpecifiedSize())
+        return std::nullopt;
+      idx += veqTy.getSize();
+    } else {
+      return std::nullopt;
+    }
+  }
+  return idx;
+}
+
+namespace {
+/// When individual `!quake.ref` `alloca`s are aliased into a `veq` via
+/// `quake.concat` and then also used directly by gate or measurement `ops` that
+/// appear *after* the `concat` — either in the same block or inside a nested
+/// region of an op that follows the concat — this pattern replaces each such
+/// direct use with a fresh `quake.extract_ref` from the `concat` result at the
+/// correct index, making every post-`concat` qubit access go through the `veq`
+/// and eliminating use-def chain aliasing via the `concat` op.
+class ConcatAllocaAliasPattern
+    : public OpRewritePattern<cudaq::quake::ConcatOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    Block *concatBlock = concat->getBlock();
+    Value concatResult = concat.getResult();
+    bool modified = false;
+    auto refTy = cudaq::quake::RefType::get(rewriter.getContext());
+
+    // Returns true if `user` is dominated by `concat`.  This covers:
+    //   (a) same-block uses that come after the concat, and
+    //   (b) uses inside nested regions of ops that come after the concat.
+    auto dominatedByConcat = [&](Operation *user) -> bool {
+      // Walk up the parent-op chain until we reach concatBlock.
+      Block *block = user->getBlock();
+      while (block != concatBlock) {
+        Operation *parentOp = block->getParentOp();
+        if (!parentOp)
+          return false;
+        block = parentOp->getBlock();
+        if (!block)
+          return false;
+        // If we found concatBlock, check that the containing op follows concat.
+        if (block == concatBlock)
+          return concat->isBeforeInBlock(parentOp);
+      }
+      // Same block as concat — just check ordering.
+      return concat->isBeforeInBlock(user);
+    };
+
+    for (auto [pos, operand] : llvm::enumerate(concat.getTargets())) {
+      if (operand.getType() != refTy ||
+          !operand.getDefiningOp<cudaq::quake::AllocaOp>())
+        continue;
+
+      auto maybeIdx = concatResultIndex(concat, pos);
+      if (!maybeIdx)
+        continue;
+      std::size_t veqIdx = *maybeIdx;
+
+      // Replace every direct use of this alloca that (a) is dominated by the
+      // concat (same block after, or nested in an op after), and (b) is not the
+      // concat itself or a dealloc (deallocs manage lifetime, not qubit state).
+      for (OpOperand &use : llvm::make_early_inc_range(operand.getUses())) {
+        auto *user = use.getOwner();
+        if (user == concat.getOperation())
+          continue;
+        if (isa<cudaq::quake::DeallocOp>(user))
+          continue;
+        if (!dominatedByConcat(user))
+          continue;
+
+        rewriter.setInsertionPoint(user);
+        auto freshRef = cudaq::quake::ExtractRefOp::create(
+            rewriter, user->getLoc(), concatResult, veqIdx);
+        use.set(freshRef.getResult());
+        modified = true;
+      }
+    }
+
+    return success(modified);
   }
 };
 
@@ -293,6 +399,7 @@ public:
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<AllocaPattern>(ctx);
+    patterns.insert<ConcatAllocaAliasPattern>(ctx);
     if (failed(applyPatternsGreedily(func, std::move(patterns))))
       return failure();
     return success();

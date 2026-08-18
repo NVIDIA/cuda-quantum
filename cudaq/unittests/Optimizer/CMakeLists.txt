@@ -12,15 +12,16 @@ add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
         FactoryMergeModuleTest.cpp
         DecompositionPatternsTest.cpp
         DecompositionPatternSelectionTest.cpp
+        CliffordTSynthesisTester.cpp
     INCLUDES
         ${CMAKE_SOURCE_DIR}/runtime
         ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms
     LINKED_LIBS
         MLIRArithDialect
         MLIRFuncDialect
+        MLIRTransforms
         MLIRParser
         MLIRPass
-        MLIRTransforms
         QuakeDialect
         CCDialect
         OptTransforms

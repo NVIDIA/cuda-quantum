@@ -56,6 +56,13 @@ Setup
 
         ./install_cuda_quantum_realtime_cu13.arm64  --accept
 
+    The default installation location is ``/opt/nvidia/cudaq/realtime``, which usually requires ``sudo``.
+    To install somewhere else, pass ``--installpath`` to the installer. For example,
+
+    .. code-block:: console
+
+        ./install_cuda_quantum_realtime_cu13.arm64 --accept -- --installpath $HOME/.cudaq_realtime
+
   - Follow the instructions given by the installer for post-installation steps to set environment variables.
 
   - Program the FPGA with HSB.
@@ -136,4 +143,4 @@ The validation includes checking the data correctness and measuring the round-tr
   To measure latency with a custom networking implementation, implement a stimulus (data generation) tool that sends data to CUDA-Q Realtime according to the custom networking protocol.
   
   For example, in the HSB-based implementation, we use the `ptp_timestamp` field in the `RPCHeader` / `RPCResponse` (see the message protocol documentation) to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA) stores the 'send' timestamp in the `RPCHeader` (incoming message), which will be echoed by the GPU in the outgoing `RPCResponse` after processing it (e.g., with the RPC handler). Using the Integrated Logic Analyzer timestamp when the FPGA receives the response from the GPU, we can compute the round-trip latency.
-  `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hololink_fpga_playback.cpp>`__ contains an example of such a data generation tool.
+  `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hsb_fpga_playback.cpp>`__ contains an example of such a data generation tool.

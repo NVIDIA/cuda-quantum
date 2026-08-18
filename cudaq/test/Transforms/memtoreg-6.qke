@@ -39,7 +39,7 @@ func.func @__nvqpp__mlirgen__dummy() {
 // CHECK:           return
 // CHECK:         }
 
-func.func @test_2(%arg0: !quake.veq<?>, %arg1: !quake.veq<?>, %arg2: !quake.veq<?>, %arg3: i64, %arg4: !cc.stdvec<i64>, %arg5: !cc.stdvec<i64>, %arg6: i1, %arg7: i1, %arg8: f64, %arg9: !cc.stdvec<i64>, %arg10: i32) attributes {"cudaq-kernel", no_this} {
+func.func @test_2(%arg0: !quake.veq<?>, %arg1: !quake.veq<?>, %arg2: !quake.veq<?>, %arg3: i64, %arg4: !cc.sequence<i64>, %arg5: !cc.sequence<i64>, %arg6: i1, %arg7: i1, %arg8: f64, %arg9: !cc.sequence<i64>, %arg10: i32) attributes {"cudaq-kernel", no_this} {
   %false = arith.constant false
   %cst = arith.constant 0.000000e+00 : f64
   %c1_i64 = arith.constant 1 : i64
@@ -67,23 +67,23 @@ func.func @test_2(%arg0: !quake.veq<?>, %arg1: !quake.veq<?>, %arg2: !quake.veq<
       cc.condition %12
     } do {
       cc.scope {
-        %10 = func.call @test_2.a(%9, %arg5) : (!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.stdvec<i64>) -> !cc.stdvec<i1>
-        %11 = cc.stdvec_data %10 : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-        %12 = cc.stdvec_size %10 : (!cc.stdvec<i1>) -> i64
+        %10 = func.call @test_2.a(%9, %arg5) : (!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.sequence<i64>) -> !cc.sequence<i1>
+        %11 = cc.sequence_data %10 : (!cc.sequence<i1>) -> !cc.ptr<i8>
+        %12 = cc.sequence_size %10 : (!cc.sequence<i1>) -> i64
         %13 = cc.alloca i8[%12 : i64]
         %14 = cc.cast %13 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
         func.call @test_2.b(%14, %11, %12) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
-        %15 = cc.stdvec_init %13, %12 : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.stdvec<i1>
-        %16 = func.call @test_2.c(%9, %arg4) : (!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.stdvec<i64>) -> !cc.stdvec<i1>
-        %17 = cc.stdvec_data %16 : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-        %18 = cc.stdvec_size %16 : (!cc.stdvec<i1>) -> i64
+        %15 = cc.sequence_init %13, %12 : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.sequence<i1>
+        %16 = func.call @test_2.c(%9, %arg4) : (!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.sequence<i64>) -> !cc.sequence<i1>
+        %17 = cc.sequence_data %16 : (!cc.sequence<i1>) -> !cc.ptr<i8>
+        %18 = cc.sequence_size %16 : (!cc.sequence<i1>) -> i64
         %19 = cc.alloca i8[%18 : i64]
         %20 = cc.cast %19 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
         func.call @test_2.b(%20, %17, %18) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
-        %21 = cc.stdvec_init %19, %18 : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.stdvec<i1>
-        %22 = func.call @test_2.d(%15) : (!cc.stdvec<i1>) -> i64
+        %21 = cc.sequence_init %19, %18 : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.sequence<i1>
+        %22 = func.call @test_2.d(%15) : (!cc.sequence<i1>) -> i64
         cc.store %22, %3 : !cc.ptr<i64>
-        %23 = func.call @test_2.d(%21) : (!cc.stdvec<i1>) -> i64
+        %23 = func.call @test_2.d(%21) : (!cc.sequence<i1>) -> i64
         cc.store %23, %2 : !cc.ptr<i64>
         %24 = cc.load %2 : !cc.ptr<i64>
         %25 = arith.shli %24, %12 : i64
@@ -93,7 +93,7 @@ func.func @test_2(%arg0: !quake.veq<?>, %arg1: !quake.veq<?>, %arg2: !quake.veq<
         %28 = cc.load %1 : !cc.ptr<i64>
         %29 = cc.load %8 : !cc.ptr<i32>
         %30 = cc.cast signed %29 : (i32) -> i64
-        %31 = cc.stdvec_data %arg9 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+        %31 = cc.sequence_data %arg9 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
         %32 = cc.compute_ptr %31[%30] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
         %33 = cc.load %32 : !cc.ptr<i64>
         %34 = arith.xori %28, %33 : i64
@@ -112,7 +112,7 @@ func.func @test_2(%arg0: !quake.veq<?>, %arg1: !quake.veq<?>, %arg2: !quake.veq<
         }
         %36 = cc.load %8 : !cc.ptr<i32>
         %37 = cc.cast signed %36 : (i32) -> i64
-        %38 = cc.stdvec_data %arg9 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+        %38 = cc.sequence_data %arg9 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
         %39 = cc.compute_ptr %38[%37] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
         %40 = cc.load %1 : !cc.ptr<i64>
         cc.store %40, %39 : !cc.ptr<i64>
@@ -141,10 +141,10 @@ func.func @test_2(%arg0: !quake.veq<?>, %arg1: !quake.veq<?>, %arg2: !quake.veq<
   return
 }
 
-func.func private @test_2.a(!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.stdvec<i64>) -> !cc.stdvec<i1>
+func.func private @test_2.a(!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.sequence<i64>) -> !cc.sequence<i1>
 func.func private @test_2.b(!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
-func.func private @test_2.c(!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.stdvec<i64>) -> !cc.stdvec<i1>
-func.func private @test_2.d(!cc.stdvec<i1>) -> i64
+func.func private @test_2.c(!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, !cc.sequence<i64>) -> !cc.sequence<i1>
+func.func private @test_2.d(!cc.sequence<i1>) -> i64
 func.func private @test_2.e(i64, i1, i1, i64, i64) -> ()
 func.func private @test_2.f(!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>, f64, f64, f64) -> ()
 
@@ -289,3 +289,87 @@ func.func @test_5() {
 // CHECK:           call @live(%[[VAL_8:.*]]#0, %[[VAL_8]]#1, %[[VAL_8]]#2) : (i32, i32, i32) -> ()
 // CHECK:           return
 // CHECK:         }
+
+func.func @insert_sigma(%arg: i64) {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[%arg] : (!quake.veq<3>, i64) -> !quake.ref
+  %2 = cc.alloca i64
+  %zero = arith.constant 0 : i64
+  cc.store %zero, %2 : !cc.ptr<i64>
+  quake.h %1 : (!quake.ref) -> ()
+  cc.loop while {
+    %i = cc.load %2 : !cc.ptr<i64>
+    %three = arith.constant 3 : i64
+    %cond = arith.cmpi ult, %i, %three : i64
+    cc.condition %cond
+  } do {
+    %i2 = cc.load %2 : !cc.ptr<i64>
+    %cond2 = arith.cmpi ne, %i2, %arg : i64
+    cc.if (%cond2) {
+      %3 = quake.extract_ref %0[%i2] : (!quake.veq<3>, i64) -> !quake.ref
+      quake.x [%1] %3 : (!quake.ref, !quake.ref) -> ()
+    }
+    cc.continue
+  } step {
+    %i3 = cc.load %2 : !cc.ptr<i64>
+    %one = arith.constant 1 : i64
+    %inc_i = arith.addi %i3, %one : i64
+    cc.store %inc_i, %2 : !cc.ptr<i64>
+  }
+  quake.dealloc %0 : !quake.veq<3>
+  return
+}
+
+// CHECK-LABEL:   func.func @insert_sigma(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) {
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ER0:.*]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop while ((%[[VAL_0:.*]] = %[[H_0]], %[[VAL_1:.*]] = %{{.*}}) -> (!quake.wire, i64)) {
+// CHECK:           } do {
+// CHECK:             %[[IF_0:.*]] = cc.if(%{{.*}}) -> !quake.wire {
+// CHECK:               %{{.*}}:2 = quake.x
+// CHECK:           quake.wrap %[[LOOP_0]]#0 to %[[ER0]] : !quake.wire, !quake.ref
+
+func.func @insert_sigma_cfg(%arg0: i64) {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[%arg0] : (!quake.veq<3>, i64) -> !quake.ref
+  %2 = cc.alloca i64
+  %c0_i64 = arith.constant 0 : i64
+  cc.store %c0_i64, %2 : !cc.ptr<i64>
+  quake.h %1 : (!quake.ref) -> ()
+  cf.br ^bb1
+^bb1:  // 2 preds: ^bb0, ^bb5
+  %3 = cc.load %2 : !cc.ptr<i64>
+  %c3_i64 = arith.constant 3 : i64
+  %4 = arith.cmpi ult, %3, %c3_i64 : i64
+  cf.cond_br %4, ^bb2, ^bb6
+^bb2:  // pred: ^bb1
+  %5 = cc.load %2 : !cc.ptr<i64>
+  %6 = arith.cmpi ne, %5, %arg0 : i64
+  cf.cond_br %6, ^bb3, ^bb4
+^bb3:  // pred: ^bb2
+  %7 = quake.extract_ref %0[%5] : (!quake.veq<3>, i64) -> !quake.ref
+  quake.x [%1] %7 : (!quake.ref, !quake.ref) -> ()
+  cf.br ^bb4
+^bb4:  // 2 preds: ^bb2, ^bb3
+  cf.br ^bb5
+^bb5:  // pred: ^bb4
+  %8 = cc.load %2 : !cc.ptr<i64>
+  %c1_i64 = arith.constant 1 : i64
+  %9 = arith.addi %8, %c1_i64 : i64
+  cc.store %9, %2 : !cc.ptr<i64>
+  cf.br ^bb1
+^bb6:  // pred: ^bb1
+  quake.dealloc %0 : !quake.veq<3>
+  return
+}
+
+// CHECK-LABEL:   func.func @insert_sigma_cfg(
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:         ^bb1(%[[VAL_0:.*]]: i64, %[[VAL_1:.*]]: !quake.wire):
+// CHECK:           cf.cond_br %{{.*}}, ^bb2(%[[VAL_0]], %[[VAL_1]] : i64, !quake.wire), ^bb6(%[[VAL_1]] : !quake.wire)
+// CHECK:         ^bb6(%[[VAL_10:.*]]: !quake.wire):
+// CHECK:           quake.wrap %[[VAL_10]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:           quake.dealloc

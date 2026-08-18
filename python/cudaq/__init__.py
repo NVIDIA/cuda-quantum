@@ -271,8 +271,24 @@ del _discover_external_backends
 set_random_seed = cudaq_runtime.set_random_seed
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
-set_noise = cudaq_runtime.set_noise
-unset_noise = cudaq_runtime.unset_noise
+
+
+def set_noise(model):
+    warnings.warn(
+        "set_noise is deprecated; please use launch arguments or launch options.",
+        DeprecationWarning,
+        stacklevel=2)
+    return cudaq_runtime.set_noise(model)
+
+
+def unset_noise():
+    warnings.warn(
+        "unset_noise is deprecated; please use launch arguments or launch options.",
+        DeprecationWarning,
+        stacklevel=2)
+    return cudaq_runtime.unset_noise()
+
+
 register_set_target_callback = cudaq_runtime.register_set_target_callback
 unregister_set_target_callback = cudaq_runtime.unregister_set_target_callback
 
@@ -348,7 +364,7 @@ def to_bools(handles):
     ``list[bool]``. Device-only: this Python symbol exists so kernel
     code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
     the call and lowers it to a vector form ``quake.discriminate`` on
-    ``!cc.stdvec<!cc.measure_handle>``. Host-side invocation raises a
+    ``!cc.sequence<!cc.measure_handle>``. Host-side invocation raises a
     ``RuntimeError``.
     """
     raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))
@@ -399,6 +415,7 @@ def __clearKernelRegistries():
 # `_DEFERRED_STAR_MODULES` so new exports are picked up automatically.
 
 _LAZY_ATTRS = {
+    'DEMResult': '.runtime.dem',
     'Schedule': '.dynamics.schedule',
     'evolve': '.dynamics.evolution',
     'evolve_async': '.dynamics.evolution',
