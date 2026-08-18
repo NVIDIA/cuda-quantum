@@ -413,17 +413,21 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
 
 void UnitaryBuilder::applyControlledMatrix(ArrayRef<Complex> u,
                                            ArrayRef<Qubit> qubits) {
+  std::size_t controlMask = 0;
+  for (Qubit control : qubits.drop_back())
+    controlMask |= std::size_t{1} << control;
+  const std::size_t targetBit = std::size_t{1} << qubits.back();
+
   SmallVector<Qubit, 16> qubitsSorted(qubits);
   llvm::sort(qubitsSorted);
-  unsigned p0 = (1 << (qubits.size() - 1)) - 1;
-  unsigned p1 = (1 << qubits.size()) - 1;
 
   auto *m = matrix.data();
-  SmallVector<unsigned, 8> idx(1u << qubits.size());
   for (unsigned k = 0u, end = (matrix.size() >> qubits.size()); k < end; ++k) {
-    indicies(qubits, qubitsSorted, k, idx);
-    auto cache = m[idx[p0]];
-    m[idx[p0]] = u[0] * cache + u[2] * m[idx[p1]];
-    m[idx[p1]] = u[1] * cache + u[3] * m[idx[p1]];
+    const std::size_t i0 = first_idx(qubitsSorted, k) | controlMask;
+    const std::size_t i1 = i0 | targetBit;
+    const Complex lo = m[i0];
+    const Complex hi = m[i1];
+    m[i0] = u[0] * lo + u[2] * hi;
+    m[i1] = u[1] * lo + u[3] * hi;
   }
 }
