@@ -362,29 +362,28 @@ static unsigned first_idx(ArrayRef<UnitaryBuilder::Qubit> qubits, unsigned k) {
   return result;
 }
 
-static std::vector<unsigned>
-indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
-         ArrayRef<UnitaryBuilder::Qubit> qubitsSorted, unsigned k) {
-  std::vector<unsigned> result((1 << qubits.size()), 0u);
-  result.at(0) = first_idx(qubitsSorted, k);
+static void indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
+                     ArrayRef<UnitaryBuilder::Qubit> qubitsSorted, unsigned k,
+                     MutableArrayRef<unsigned> result) {
+  result[0] = first_idx(qubitsSorted, k);
   for (unsigned i = 0u, end = qubits.size(); i < end; ++i) {
     unsigned n = (1u << i);
     unsigned bit = (1u << qubits[i]);
     for (std::size_t j = 0; j < n; j++)
-      result.at(n + j) = result.at(j) | bit;
+      result[n + j] = result[j] | bit;
   }
-  return result;
 }
 
 // TODO:  Optimize!  There are ways to specialize for diagonal and anti-diagonal
 // matrices.
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, ArrayRef<Qubit> qubits) {
   auto *m = matrix.data();
+  SmallVector<unsigned, 8> idx(1u << qubits.size());
   for (unsigned k = 0u, end = (matrix.size() >> 1u); k < end; ++k) {
-    auto idx = indicies(qubits, qubits, k);
-    auto cache = m[idx.at(0)];
-    m[idx.at(0)] = u[0] * cache + u[2] * m[idx.at(1)];
-    m[idx.at(1)] = u[1] * cache + u[3] * m[idx.at(1)];
+    indicies(qubits, qubits, k, idx);
+    auto cache = m[idx[0]];
+    m[idx[0]] = u[0] * cache + u[2] * m[idx[1]];
+    m[idx[1]] = u[1] * cache + u[3] * m[idx[1]];
   }
 }
 
@@ -395,17 +394,18 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
 
   auto *m = matrix.data();
   const std::size_t dim = (1u << numTargets);
+  SmallVector<unsigned, 8> idx(1u << qubits.size());
+  SmallVector<Complex, 8> cache(dim);
   for (std::size_t k = 0u, end = (matrix.size() >> qubits.size()); k < end;
        ++k) {
-    auto idx = indicies(qubits, qubitsSorted, k);
-    SmallVector<Complex, 8> cache(dim, 0);
+    indicies(qubits, qubitsSorted, k, idx);
     for (std::size_t i = 0; i < dim; i++) {
-      cache[i] = m[idx.at(i)];
-      m[idx.at(i)] = 0.;
+      cache[i] = m[idx[i]];
+      m[idx[i]] = 0.;
     }
     for (std::size_t i = 0; i < dim; i++)
       for (std::size_t j = 0; j < dim; j++)
-        m[idx.at(i)] += u[i + dim * j] * cache[j];
+        m[idx[i]] += u[i + dim * j] * cache[j];
   }
 }
 
@@ -417,10 +417,11 @@ void UnitaryBuilder::applyControlledMatrix(ArrayRef<Complex> u,
   unsigned p1 = (1 << qubits.size()) - 1;
 
   auto *m = matrix.data();
+  SmallVector<unsigned, 8> idx(1u << qubits.size());
   for (unsigned k = 0u, end = (matrix.size() >> qubits.size()); k < end; ++k) {
-    auto idx = indicies(qubits, qubitsSorted, k);
-    auto cache = m[idx.at(p0)];
-    m[idx.at(p0)] = u[0] * cache + u[2] * m[idx.at(p1)];
-    m[idx.at(p1)] = u[1] * cache + u[3] * m[idx.at(p1)];
+    indicies(qubits, qubitsSorted, k, idx);
+    auto cache = m[idx[p0]];
+    m[idx[p0]] = u[0] * cache + u[2] * m[idx[p1]];
+    m[idx[p1]] = u[1] * cache + u[3] * m[idx[p1]];
   }
 }
