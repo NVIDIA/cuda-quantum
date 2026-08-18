@@ -374,18 +374,10 @@ static void indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
   }
 }
 
-void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, Qubit qubit) {
-  auto *m = matrix.data();
-  const std::size_t bit = std::size_t{1} << qubit;
-  const std::size_t end = matrix.size();
-
-  // Visits every index pair the operator combines (one index with `qubit`
-  // clear, one with it set).
-  auto forEachPair = [&](auto &&apply) {
-    for (std::size_t base = 0; base < end; base += (bit << 1))
-      for (std::size_t i = base, stop = base + bit; i < stop; ++i)
-        apply(i, i + bit);
-  };
+template <typename PairFn>
+static void applyToPairs(ArrayRef<std::complex<double>> u,
+                         std::complex<double> *m, PairFn forEachPair) {
+  using Complex = std::complex<double>;
 
   if (u[1] == 0. && u[2] == 0.) {
     if (u[0] == 1.) {
@@ -421,6 +413,19 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, Qubit qubit) {
   });
 }
 
+void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, Qubit qubit) {
+  const std::size_t bit = std::size_t{1} << qubit;
+  const std::size_t end = matrix.size();
+
+  // Every index pair the operator combines (one index with `qubit` clear, one
+  // with it set).
+  applyToPairs(u, matrix.data(), [&](auto &&apply) {
+    for (std::size_t base = 0; base < end; base += (bit << 1))
+      for (std::size_t i = base, stop = base + bit; i < stop; ++i)
+        apply(i, i + bit);
+  });
+}
+
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
                                  ArrayRef<Qubit> qubits) {
   SmallVector<Qubit, 16> qubitsSorted(qubits);
@@ -453,13 +458,11 @@ void UnitaryBuilder::applyControlledMatrix(ArrayRef<Complex> u,
   SmallVector<Qubit, 16> qubitsSorted(qubits);
   llvm::sort(qubitsSorted);
 
-  auto *m = matrix.data();
-  for (unsigned k = 0u, end = (matrix.size() >> qubits.size()); k < end; ++k) {
-    const std::size_t i0 = first_idx(qubitsSorted, k) | controlMask;
-    const std::size_t i1 = i0 | targetBit;
-    const Complex lo = m[i0];
-    const Complex hi = m[i1];
-    m[i0] = u[0] * lo + u[2] * hi;
-    m[i1] = u[1] * lo + u[3] * hi;
-  }
+  applyToPairs(u, matrix.data(), [&](auto &&apply) {
+    for (unsigned k = 0u, end = (matrix.size() >> qubits.size()); k < end;
+         ++k) {
+      const std::size_t i0 = first_idx(qubitsSorted, k) | controlMask;
+      apply(i0, i0 | targetBit);
+    }
+  });
 }
