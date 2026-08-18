@@ -1,0 +1,77 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --apply-op-specialization --split-input-file %s | \
+// RUN:   FileCheck --implicit-check-not="@marked_feedback.adj" \
+// RUN:   --implicit-check-not="@ordinary_feedback.adj" %s
+
+// Measurement feedback prevents adjoint specialization. Check the marked and
+// ordinary cases independently to prove the marker does not change that
+// existing behavior and neither case gains an `.adj` function.
+
+func.func private @marked_feedback(%q: !quake.ref) attributes {atomic_quantum_region} {
+  %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+  %bit = quake.discriminate %measurement : (!quake.measure) -> i1
+  cc.if(%bit) {
+    quake.z %q : (!quake.ref) -> ()
+  }
+  return
+}
+
+func.func @marked_caller(%q: !quake.ref) {
+  quake.apply<adj> @marked_feedback %q : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func private @ordinary_feedback(%q: !quake.ref) {
+  %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+  %bit = quake.discriminate %measurement : (!quake.measure) -> i1
+  cc.if(%bit) {
+    quake.z %q : (!quake.ref) -> ()
+  }
+  return
+}
+
+func.func @ordinary_caller(%q: !quake.ref) {
+  quake.apply<adj> @ordinary_feedback %q : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func private @marked_feedback(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) attributes {atomic_quantum_region} {
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ARG0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[DISCRIMINATE_0]]) {
+// CHECK:             quake.z %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @marked_caller(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) {
+// CHECK:           quake.apply<adj> @marked_feedback %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @ordinary_feedback(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) {
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ARG0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[DISCRIMINATE_0]]) {
+// CHECK:             quake.z %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @ordinary_caller(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) {
+// CHECK:           quake.apply<adj> @ordinary_feedback %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }

@@ -1,0 +1,28 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=openqasm2 %s | FileCheck --implicit-check-not='phase(' %s
+
+module {
+  func.func @phase_openqasm() attributes {"cudaq-entrypoint"} {
+    %theta = arith.constant 5.000000e-01 : f64
+    %positive = quake.alloca !quake.ref
+    %negative = quake.alloca !quake.ref
+    %anchor = quake.alloca !quake.ref
+    quake.phase (%theta) [%positive, %negative neg [false, true]] %anchor
+        : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK: qreg [[POSITIVE:var[0-9]+]][1];
+// CHECK: qreg [[NEGATIVE:var[0-9]+]][1];
+
+// CHECK: x [[NEGATIVE]][0];
+// CHECK-NEXT: cu1(5.000000e-01) [[NEGATIVE]][0], [[POSITIVE]][0];
+// CHECK-NEXT: x [[NEGATIVE]][0];

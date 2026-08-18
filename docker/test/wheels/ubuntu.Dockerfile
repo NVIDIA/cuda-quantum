@@ -42,7 +42,13 @@ COPY python/README*.md /tmp/
 RUN sed -ie 's/include-system-site-packages\s*=\s*false/include-system-site-packages = true/g' "$VIRTUAL_ENV/pyvenv.cfg"
 
 # Working around issue https://github.com/pypa/pip/issues/11153.
-RUN wget https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O - | tar -xz -C /usr/local/bin && \
+# Retry download to a file (not a pipe) to survive transient/truncated fetches.
+RUN for i in 1 2 3; do \
+        wget --tries=3 --retry-connrefused --waitretry=5 --timeout=30 \
+            https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O /tmp/tools.tar.gz \
+        && gzip -t /tmp/tools.tar.gz && tar -xzf /tmp/tools.tar.gz -C /usr/local/bin && break \
+        || { echo "gha-tools download attempt $i failed; retrying..."; sleep 5; }; \
+    done && rm -f /tmp/tools.tar.gz && \
     RAPIDS_PIP_EXE="python${python_version} -m pip" \
     /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \

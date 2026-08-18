@@ -9,32 +9,11 @@
 #ifndef CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES
 #define CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES
 
+// The passes in this file should appear in alphabetical order. This file
+// follows the LLVM coding conventions with a maximum line length of 80 columns.
+// Any PR that does not follow these rules should have a Request Changes review.
+
 include "mlir/Pass/PassBase.td"
-
-def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
-  let summary = "Lower Quake to CC.";
-  let description = [{
-    Converts Quake to CC. The `add-dealloc` pass should be run before this pass
-    in order to properly generate deallocations for allocated qubits.
-
-    This is the second of 2 passes to lower quake code to cc code. The
-    `quake-to-cc-prep` pass must be run first. After these passes the code will
-    be in the CC dialect, with calls back to the runtime, specifically the
-    execution manager.
-  }];
-
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
-}
-
-def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
-  let summary = "Prepare for lowering Quake to CC.";
-  let description = [{
-    Do the preparation work on the module. This pass must be run before the
-    `quake-to-cc` pass is run.
-  }];
-
-  let dependentDialects = ["cudaq::cc::CCDialect"];
-}
 
 def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
   let summary = "Convert CC dialect (and others) to LLVM-IR.";
@@ -69,6 +48,16 @@ def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   let description = [{
     Move measurements as late as possible. This is useful for a Base Profile
     QIR program.
+  }];
+}
+
+def EraseCompilerGeneratedLogOutput :
+    Pass<"erase-implicit-output", "mlir::func::FuncOp"> {
+  let summary = "Erase compiler-generated quake.log_output operations.";
+  let description = [{
+    Erases all `quake.log_output` operations that carry the `cc.cg_output`
+    attribute, indicating they were injected by the compiler (e.g. by the
+    `inject-implicit-output` pass) rather than written explicitly by the user.
   }];
 }
 
@@ -150,57 +139,29 @@ def QirInsertArrayRecord : Pass<"qir-insert-array-record", "mlir::ModuleOp"> {
   }];
 }
 
-def RemoveMeasurements : Pass<"remove-measurements"> {
-  let summary =
-    "Remove measurements and output recording calls from a QIR program";
+def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
+  let summary = "Lower Quake to CC.";
   let description = [{
-    Some backends perform implicit measurements on all qubits at the end of the
-    kernel, which is a distinct problem for compiler-generated qubits (as is
-    done in the multicontrol-decomposition pass) because the user cannot tell
-    the difference between measurement results for their qubits and measurement
-    results for compiler-generated qubits. This pass enables the compiler to
-    strip out the measurements and output recording calls from a QIR program to
-    prevent that problem. This pass MUST be run after normal measurements and
-    output recording calls have been generated because that metadata must be
-    extracted from the program to allow reconstruction of the outputs from the
-    backend.
+    Converts Quake to CC. The `add-dealloc` pass should be run before this pass
+    in order to properly generate deallocations for allocated qubits.
+
+    This is the second of 2 passes to lower quake code to cc code. The
+    `quake-to-cc-prep` pass must be run first. After these passes the code will
+    be in the CC dialect, with calls back to the runtime, specifically the
+    execution manager.
   }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 }
 
-def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
-  let summary = "Convert quake using wire sets to a profile of QIR";
+def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare for lowering Quake to CC.";
   let description = [{
-    This pass takes quake in "value semantics" form and after it has been
-    converted to use wire sets (qubit management, mapping, etc.) and converts
-    the code to CC dialect with QIR calls, etc.
+    Do the preparation work on the module. This pass must be run before the
+    `quake-to-cc` pass is run.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
-      "mlir::func::FuncDialect", "mlir::arith::ArithDialect"];
-  let options = [
-    Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
-           "Select the profile to convert wire sets to.">
-  ];
-}
-
-def WireSetToProfileQIRPost :
-    Pass<"wireset-to-profile-qir-post", "mlir::ModuleOp"> {
-  let summary = "Post processing for lowering wire sets to a profile of QIR";
-  let description = [{
-    This pass should be run immediately after wireset-to-profile-qir.
-  }];
-
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
-}
-
-def WireSetToProfileQIRPrep :
-    Pass<"wireset-to-profile-qir-prep", "mlir::ModuleOp"> {
-  let summary = "Prepare for lowering wire sets to a profile of QIR";
-  let description = [{
-    This pass should be run immediately before wireset-to-profile-qir.
-  }];
-
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
 def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
@@ -259,6 +220,23 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
   ];
 }
 
+def RemoveMeasurements : Pass<"remove-measurements"> {
+  let summary =
+    "Remove measurements and output recording calls from a QIR program";
+  let description = [{
+    Some backends perform implicit measurements on all qubits at the end of the
+    kernel, which is a distinct problem for compiler-generated qubits (as is
+    done in the multicontrol-decomposition pass) because the user cannot tell
+    the difference between measurement results for their qubits and measurement
+    results for compiler-generated qubits. This pass enables the compiler to
+    strip out the measurements and output recording calls from a QIR program to
+    prevent that problem. This pass MUST be run after normal measurements and
+    output recording calls have been generated because that metadata must be
+    extracted from the program to allow reconstruction of the outputs from the
+    backend.
+  }];
+}
+
 def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
   let summary = "Convert a kernel to be compatible with cudaq::run().";
   let description = [{
@@ -280,6 +258,42 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
            "that require statically-known output record counts (e.g., targets "
            "that don't support full QIR).">,
   ];
+}
+
+def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
+  let summary = "Convert quake using wire sets to a profile of QIR";
+  let description = [{
+    This pass takes quake in "value semantics" form and after it has been
+    converted to use wire sets (qubit management, mapping, etc.) and converts
+    the code to CC dialect with QIR calls, etc.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+      "mlir::func::FuncDialect", "mlir::arith::ArithDialect"];
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
+           "Select the profile to convert wire sets to.">
+  ];
+}
+
+def WireSetToProfileQIRPost :
+    Pass<"wireset-to-profile-qir-post", "mlir::ModuleOp"> {
+  let summary = "Post processing for lowering wire sets to a profile of QIR";
+  let description = [{
+    This pass should be run immediately after wireset-to-profile-qir.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
+def WireSetToProfileQIRPrep :
+    Pass<"wireset-to-profile-qir-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare for lowering wire sets to a profile of QIR";
+  let description = [{
+    This pass should be run immediately before wireset-to-profile-qir.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

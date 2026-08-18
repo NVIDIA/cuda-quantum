@@ -60,8 +60,11 @@ def cc_ScopeOp : CCOp<"scope",
     its region must be deallocated. It can also delimit automatically generated
     adjoint code.
 
-    A ScopeOp that contains no allocations has no semantics and can be inlined
-    into the parent Region. This transformation is done in canonicalization.
+    A ScopeOp that contains no allocations has no allocation-lifetime
+    semantics and can normally be inlined into the parent Region. This
+    transformation is done in canonicalization. A scope carrying the
+    `atomic_quantum_region` attribute is retained, however, so later
+    transformations can identify it as an atomic quantum region.
 
     A ScopeOp may contain a single-entry, multiple-exit CFG with multiple
     basic blocks in its region. A ContinueOp is the terminator that exits a
@@ -78,6 +81,7 @@ def cc_ScopeOp : CCOp<"scope",
     ```
   }];
 
+  let arguments = (ins OptionalAttr<UnitAttr>:$atomic_quantum_region);
   let results = (outs Variadic<AnyType>:$results);
   let regions = (region AnyRegion:$initRegion);
   
@@ -2036,18 +2040,6 @@ def cc_VarargCallOp : CCOp<"call_vararg",
   }];
 }
 
-def cc_LogOutputOp : CCOp<"log_output"> {
-  let summary = "Auto-generate calls to log the output of a runnable kernel.";
-  let description = [{
-    This operation is an abstraction for auto-generation of the necessary code
-    in the transport layer to log output results from a runnable kernel. The
-    assumption is that the transport layer supports something analogous to a
-    set of file output functions, something like `fprintf()`.
-  }];
-
-  let arguments = (ins Variadic<AnyType>:$args);
-  let assemblyFormat = "$args `:` type(operands) attr-dict";
-}
 
 //===----------------------------------------------------------------------===//
 // Argument synthesis support

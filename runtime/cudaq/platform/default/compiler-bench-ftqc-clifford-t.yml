@@ -20,6 +20,8 @@ config:
   # Preserve named Clifford operations while reducing rotations and
   # non-Clifford controlled gates before synthesis. Keep the circuit in value
   # semantics through post-synthesis simplification.
+  # Canonicalize exact and nearby Clifford+T angles before approximate
+  # synthesis, using the same operator-norm tolerance as synthesis.
   # Use the shared conversion pipeline with compiler-bench-ftqc-logical.yml
   # so both FTQC targets enter explicit linear value semantics consistently.
   #
@@ -28,4 +30,4 @@ config:
   #
   # TODO: Remove fail-on-controlled-rotation after controlled Clifford+T
   # synthesis preserves the synthesis global phase.
-  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1)},func.func(quake-simplify{threshold=%EPSILON:1e-10%},canonicalize,dqe),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=0 fail-on-controlled-rotation=true},inline,func.func(quake-simplify),optimize-1q-clifford-t,func.func(canonicalize,dqe,regtomem),symbol-dce"
+  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1)},func.func(quake-simplify{threshold=%EPSILON:1e-10% rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:1e-10%},normalize-phase-placement,lower-phase,canonicalize,dqe),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=0 fail-on-controlled-rotation=true},inline,func.func(quake-simplify),optimize-1q-clifford-t,func.func(canonicalize,dqe,regtomem),symbol-dce"

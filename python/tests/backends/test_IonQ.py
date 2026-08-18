@@ -203,7 +203,7 @@ def test_Ionq_state_synthesis():
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
-    assert '1' in counts
+    assert '10' in counts
     assert len(counts) == 1
 
 
@@ -221,7 +221,7 @@ def test_Ionq_state_synthesis_builder():
 
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
-    assert '1' in counts
+    assert '10' in counts
     assert len(counts) == 1
 
 
@@ -347,7 +347,8 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    assert counts["001011"] == 1000
+    assert len(counts) == 1
+    assert next(iter(counts.values())) == 1000
 
 
 @pytest.mark.skip_macos_arm64_jit

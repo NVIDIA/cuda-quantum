@@ -82,6 +82,46 @@ func.func @adjoint_reference(%theta: f64, %control: !quake.ref,
   return
 }
 
+// A statically sized vector is materialized locally so one extracted control
+// can become the R1 target instead of using the four-gate anchored fallback.
+// CHECK-LABEL: func.func @static_vector_reference(
+// CHECK-SAME: %[[STATIC_THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[STATIC_CONTROLS:.*]] = quake.alloca !quake.veq<2>
+// CHECK: %[[STATIC_C0:.*]] = quake.extract_ref %[[STATIC_CONTROLS]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT: %[[STATIC_C1:.*]] = quake.extract_ref %[[STATIC_CONTROLS]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT: quake.r1 (%[[STATIC_THETA]]) {{\[}}%[[STATIC_C0]]{{\]}} %[[STATIC_C1]]
+// CHECK-NOT: quake.rz
+// CHECK-NOT: quake.phase
+func.func @static_vector_reference(%theta: f64, %anchor: !quake.ref) {
+  %controls = quake.alloca !quake.veq<2>
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<2>, !quake.ref) -> ()
+  return
+}
+
+// A RelaxSizeOp with a known inner size is materialized from its sized input.
+// The vector's negative polarity is copied to every extracted control.
+// CHECK-LABEL: func.func @relaxed_negative_vector_reference(
+// CHECK-SAME: %[[RELAXED_THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[SIZED_CONTROLS:.*]] = quake.alloca !quake.veq<2>
+// CHECK: %[[RELAXED:.*]] = quake.relax_size %[[SIZED_CONTROLS]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK: %[[RELAXED_C0:.*]] = quake.extract_ref %[[SIZED_CONTROLS]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT: %[[RELAXED_C1:.*]] = quake.extract_ref %[[SIZED_CONTROLS]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT: quake.x %[[RELAXED_C1]] : (!quake.ref) -> ()
+// CHECK-NEXT: quake.r1 (%[[RELAXED_THETA]]) {{\[}}%[[RELAXED_C0]] neg [true]{{\]}} %[[RELAXED_C1]]
+// CHECK-NEXT: quake.x %[[RELAXED_C1]] : (!quake.ref) -> ()
+// CHECK-NOT: quake.rz
+// CHECK-NOT: quake.phase
+func.func @relaxed_negative_vector_reference(%theta: f64,
+                                             %anchor: !quake.ref) {
+  %controls = quake.alloca !quake.veq<2>
+  %relaxed = quake.relax_size %controls
+      : (!quake.veq<2>) -> !quake.veq<?>
+  quake.phase (%theta) [%relaxed neg [true]] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
 // An unresolved control vector uses the exact anchored R1/Rz fallback.
 // CHECK-LABEL: func.func @vector_fallback_reference(
 // CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref

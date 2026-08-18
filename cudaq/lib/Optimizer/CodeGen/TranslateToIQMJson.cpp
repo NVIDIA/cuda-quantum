@@ -186,6 +186,10 @@ static LogicalResult emitOperation(nlohmann::json &json,
           [&](auto op) { return emitOperation(json, emitter, op); })
       .Case<cudaq::quake::ExtractRefOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<cudaq::quake::PhaseOp>([&](auto phase) {
+        return phase.emitOpError(
+            "phase bookkeeping must be lowered before IQM JSON translation");
+      })
       .Case<cudaq::quake::OperatorInterface>(
           [&](auto op) { return emitOperation(json, emitter, op); })
       .Case<cudaq::quake::MzOp>(

@@ -1,0 +1,120 @@
+// ========================================================================== //
+// Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+
+// A NOT gate (uncontrolled x) inverts the phase of its wire. Two rz ops on
+// wires whose phases are equal (after the inversion algebra) are merged even
+// when separated by NOT gates and CNOTs.
+//
+// Phase trace for @not_inversion (A = initial phase of w0, B = initial phase
+// of w1):
+//   x(w0)          -> w0 carries NOT(A)
+//   cx(w0, w1)     -> w1 carries NOT(A) XOR B
+//   rz(1.0) w1     -> assigned phase NOT(A) XOR B
+//   cx(w0, w1)     -> w1 carries B
+//   x(w0)          -> w0 carries A
+//   rz(2.0) w1     -> assigned phase B
+//   cx(w0, w1)     -> w1 carries A XOR B
+//   rz(3.0) w1     -> assigned phase A XOR B
+//   x(w1)          -> w1 carries NOT(A XOR B)
+//   rz(4.0) w1     -> assigned phase NOT(A XOR B) = NOT(A) XOR B  <-- same as rz(1.0)
+//
+// So rz(1.0) and rz(4.0) merge into rz(1.0+4.0).
+
+func.func private @not_inversion() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %cst_1 = arith.constant 2.000000e+00 : f64
+  %cst_2 = arith.constant 3.000000e+00 : f64
+  %cst_3 = arith.constant 4.000000e+00 : f64
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.x %w0 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%0] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.rz (%cst) %1#1 : (f64, !quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.x %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.rz (%cst_1) %3#1 : (f64, !quake.wire) -> !quake.wire
+  %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %7 = quake.rz (%cst_2) %6#1 : (f64, !quake.wire) -> !quake.wire
+  %8 = quake.x %7 : (!quake.wire) -> !quake.wire
+  %9 = quake.rz (%cst_3) %8 : (f64, !quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func private @not_inversion() {
+// CHECK:         %[[CST_0:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:         %[[CST_1:.*]] = arith.constant 3.000000e+00 : f64
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[X0:.*]] = quake.x %[[W0]] :
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[X0]]{{\]}} %[[W1]] :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[CX0]]#1 :
+// CHECK:         %[[X1:.*]] = quake.x %[[CX1]]#0 :
+// CHECK:         %[[RZ0:.*]] = quake.rz (%[[CST_0]]) %[[CX1]]#1 :
+// CHECK:         %[[CX2:.*]]:2 = quake.x {{\[}}%[[X1]]{{\]}} %[[RZ0]] :
+// CHECK:         %[[RZ1:.*]] = quake.rz (%[[CST_1]]) %[[CX2]]#1 :
+// CHECK:         %[[X2:.*]] = quake.x %[[RZ1]] :
+// CHECK:         %[[SUM:.*]] = arith.addf %{{.*}}, %{{.*}} : f64
+// CHECK:         quake.rz (%[[SUM]]) %[[X2]] :
+// CHECK:         return
+// CHECK:       }
+
+// An `h` gate breaks the circuit. The two rz ops appear on different wires'
+// phase-chains (one before h, one after h via a swap), so they are not merged.
+
+func.func @h_circuit_breaker(%cst: f64) {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %w2 = quake.null_wire
+  %0:2 = quake.x [%w0] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %1 = quake.rz (%cst) %0#1 : (f64, !quake.wire) -> !quake.wire
+  %2 = quake.h %0#0 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.swap %2, %w2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5 = quake.rz (%cst) %4#1 : (f64, !quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @h_circuit_breaker(
+// CHECK-SAME:                               %[[CST:.*]]: f64) {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[W2:.*]] = quake.null_wire
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]] %[[W1]] :
+// CHECK:         %[[RZ0:.*]] = quake.rz (%[[CST]]) %[[CX0]]#1 :
+// CHECK:         %[[H:.*]] = quake.h %[[CX0]]#0 :
+// CHECK:         %[[SW:.*]]:2 = quake.swap %[[H]], %[[W2]] :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[SW]]#0] %[[RZ0]] :
+// CHECK:         %[[RZ1:.*]] = quake.rz (%[[CST]]) %[[CX1]]#1 :
+// CHECK:         return
+// CHECK:       }
+
+// A controlled swap is a termination point; Rz ops on either side must not
+// be merged even if they would otherwise share a phase.
+func.func @controlled_swap_terminates(%angle: f64) {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %w2 = quake.null_wire
+  %0:2 = quake.x [%w0] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %1 = quake.rz (%angle) %0#1 : (f64, !quake.wire) -> !quake.wire
+  %2:3 = quake.swap [%0#0] %1, %w2 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+  %3:2 = quake.x [%2#0] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.rz (%angle) %3#1 : (f64, !quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @controlled_swap_terminates(
+// CHECK-SAME:                                        %[[ARG:.*]]: f64) {
+// CHECK:         %[[CX0:.*]]:2 = quake.x
+// CHECK:         %[[RZ0:.*]] = quake.rz (%[[ARG]]) %[[CX0]]#1 :
+// CHECK:         %[[CSWAP:.*]]:3 = quake.swap {{\[}}%[[CX0]]#0{{\]}} %[[RZ0]],
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CSWAP]]#0{{\]}} %[[CSWAP]]#1 :
+// CHECK:         %[[RZ1:.*]] = quake.rz (%[[ARG]]) %[[CX1]]#1 :
+// CHECK:         return
+// CHECK:       }

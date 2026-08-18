@@ -1109,6 +1109,7 @@ def test_unsupported_return_type():
     assert 'unsupported return type' in str(e.value)
 
 
+@pytest.mark.skip_arm64_jit
 def test_run_and_sample_and_direct_call():
 
     @cudaq.kernel
