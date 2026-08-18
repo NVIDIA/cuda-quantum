@@ -15,8 +15,8 @@ from cudaq.util import trace
 @trace.traced
 def translate(kernel, *args, format="qir:0.1"):
     """
-    Return a `UTF-8` encoded string representing drawing of the execution path,
-    i.e., the trace, of the provided `kernel`.
+    Return a `UTF-8` encoded string containing the provided `kernel` translated
+    to the requested `format`.
 
     Args:
       format (`str`): format to translate to, <name[:version]>.
@@ -29,7 +29,8 @@ def translate(kernel, *args, format="qir:0.1"):
     Note: Translating functions with arguments to OpenQASM 2.0 is not supported.
 
     Returns:
-      The `UTF-8` encoded string of the circuit, without measurement operations.
+      The `UTF-8` encoded string of the circuit in the requested `format`,
+      including any measurement operations present in the `kernel`.
 
     # Example:
     import cudaq

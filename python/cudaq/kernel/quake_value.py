@@ -127,11 +127,11 @@ class QuakeValue(object):
             The underlying :class:`QuakeValue` must be a `list` or `veq`.
 
         Args:
-            start (int): The index to begin the slice from.
-            count (int): The number of elements to extract after the `start` index.
+            `startIdx` (int): The index to begin the slice from.
+            count (int): The number of elements to extract after the `startIdx` index.
         Returns:
             :class:`QuakeValue`: A new `QuakeValue` containing a slice of `self`
-            from the `start` element to the `start + count` element.
+            from the `startIdx` element to the `startIdx + count` element.
         """
         raise RuntimeError("QuakeValue.slice not implemented")
 
@@ -139,8 +139,8 @@ class QuakeValue(object):
         """
         Return the negation of `self` (:class:`QuakeValue`).
 
-        Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+            An integer :class:`QuakeValue` is promoted to floating point.
 
         .. code-block:: python
 
@@ -158,8 +158,8 @@ class QuakeValue(object):
         """
         Return the product of `self` (:class:`QuakeValue`) with `other` (float).
         
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
 
         .. code-block:: python
 
@@ -177,8 +177,8 @@ class QuakeValue(object):
         """
         Return the product of `other` (float) with `self` (:class:`QuakeValue`).
 
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
         
         .. code-block:: python
 
@@ -196,8 +196,8 @@ class QuakeValue(object):
         """
         Return the division of `self` (:class:`QuakeValue`) with `other` (float).
 
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
 
         .. code-block:: python
 
@@ -218,8 +218,8 @@ class QuakeValue(object):
         """
         Return the division of `other` (float) with `self` (:class:`QuakeValue`).
 
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
         
         .. code-block:: python
 
@@ -240,8 +240,8 @@ class QuakeValue(object):
         """
         Return the sum of `self` (:class:`QuakeValue`) and `other` (float).
 
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
         
         .. code-block:: python
 
@@ -259,8 +259,8 @@ class QuakeValue(object):
         """
         Return the sum of `other` (float) and `self` (:class:`QuakeValue`).
 
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
         
         .. code-block:: python
 
@@ -278,8 +278,8 @@ class QuakeValue(object):
         """
         Return the difference of `self` (:class:`QuakeValue`) and `other` (float).
 
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
         
         .. code-block:: python
 
@@ -297,8 +297,8 @@ class QuakeValue(object):
         """
         Return the difference of `other` (float) and `self` (:class:`QuakeValue`).
 
-        Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        Note:
+	        `other` may be an `int`, a `float`, or another :class:`QuakeValue`.
 
         .. code-block:: python
 
