@@ -124,8 +124,7 @@ typedef struct {
 
   // Version 3 field.
   cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
-                                       cudaq_function_entry_t *function_table,
-                                       size_t func_count);
+                                       const cudaq_function_table_t *table);
 
 } cudaq_realtime_bridge_interface_t;
 ```
@@ -138,17 +137,15 @@ provider built against an older header keeps working: fields after `disconnect`
 are read only from providers reporting version >= 2, and `set_function_table`
 only from providers reporting version >= 3. A provider that does not implement
 an optional capability sets that entry to `NULL`, and the corresponding
-`cudaq_bridge_*` call then returns `CUDAQ_ERR_UNSUPPORTED` instead of
+`cudaq_bridge_get_*` call then returns `CUDAQ_ERR_UNSUPPORTED` instead of
 dispatching into the provider.
 
-`set_function_table` (version 3) hands the provider the dispatcher's function
-table (`cudaq_function_entry_t` array + entry count). It is a registration
-hook only: the dispatcher still passes the same table to the launch function at
-`cudaq_dispatcher_start`, so a transport that does not need the table -- as
-none of the bundled providers do -- simply leaves the entry `NULL`. Callers
-should treat `CUDAQ_ERR_UNSUPPORTED` from
-`cudaq_bridge_set_function_table` as an expected result that can be safely
-ignored, not as a fatal error.
+`set_function_table` (version 3) hands the provider the same
+`cudaq_function_table_t` the dispatcher receives from
+`cudaq_dispatcher_set_function_table`. Some providers may need the table
+for pre-staging. A transport that does not need the table simply leaves
+the entry `NULL`, and the call then returns `CUDAQ_OK` instead of
+dispatching into the provider.  
 
 At runtime, when a `CUDAQ_PROVIDER_EXTERNAL` is requested in `cudaq_bridge_create`,
 CUDA-Q will retrieve the environment variable `CUDAQ_REALTIME_BRIDGE_LIB`

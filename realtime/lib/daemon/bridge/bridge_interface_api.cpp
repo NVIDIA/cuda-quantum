@@ -287,9 +287,8 @@ cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
 
 cudaq_status_t
 cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
-                                cudaq_function_entry_t *function_table,
-                                size_t func_count) {
-  if (!function_table || func_count == 0)
+                                const cudaq_function_table_t *table) {
+  if (!table || !table->entries || table->count == 0)
     return CUDAQ_ERR_INVALID_ARG;
   std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
   cudaq_status_t status;
@@ -298,7 +297,6 @@ cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
   if (!bridge_interface)
     return status;
   if (!bridge_interface->set_function_table)
-    return CUDAQ_ERR_UNSUPPORTED;
-  return bridge_interface->set_function_table(bridge, function_table,
-                                              func_count);
+    return CUDAQ_OK;
+  return bridge_interface->set_function_table(bridge, table);
 }

@@ -65,21 +65,24 @@ TEST(UdpBridgeProvider, LoadsAndCreatesPlainBridgeWithoutCudaRuntime) {
 
   // The v3 set_function_table slot is NULL for this provider (the dispatcher
   // owns dispatch, so the transport never reads the table): a well-formed
-  // registration must report the capability as unsupported rather than
-  // succeeding, so a caller can tell "registered" from "ignored".
+  // registration must report the capability as succeeding.
   cudaq_function_entry_t entries[1] = {};
-  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, entries, 1),
-            CUDAQ_ERR_UNSUPPORTED);
+  cudaq_function_table_t table = {entries, 1};
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, &table), CUDAQ_OK);
 
   // Argument validation happens ahead of the capability lookup.
-  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, nullptr, 1),
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, nullptr),
             CUDAQ_ERR_INVALID_ARG);
-  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, entries, 0),
+  const cudaq_function_table_t no_entries = {nullptr, 1};
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, &no_entries),
+            CUDAQ_ERR_INVALID_ARG);
+  const cudaq_function_table_t empty = {entries, 0};
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, &empty),
             CUDAQ_ERR_INVALID_ARG);
 
   EXPECT_EQ(cudaq_bridge_destroy(bridge), CUDAQ_OK);
 
   // An unknown handle (here: the destroyed one) is rejected.
-  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, entries, 1),
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, &table),
             CUDAQ_ERR_INVALID_ARG);
 }

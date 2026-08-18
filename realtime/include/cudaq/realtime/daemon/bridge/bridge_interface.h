@@ -193,15 +193,14 @@ cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
                                uint32_t *out_slot_size);
 
 /// @brief Hand the provider the same function table the dispatcher will run
-/// (`cudaq_function_entry_t` array + entry count, mirroring the
-/// `cudaq_unified_launch_fn_t` arguments).  Registration only: the provider
-/// records the pointer and count for its own use (e.g. pre-staging or schema
-/// validation) -- the dispatcher still passes the identical table to the
-/// launch function at `cudaq_dispatcher_start`.
+/// (the `cudaq_function_table_t` passed to
+/// `cudaq_dispatcher_set_function_table`). Some providers may need the table
+/// for pre-staging. A transport that does not need the table simply leaves
+/// the entry `NULL`, and the call then returns `CUDAQ_OK` instead of
+/// dispatching into the provider.
 cudaq_status_t
 cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
-                                cudaq_function_entry_t *function_table,
-                                size_t func_count);
+                                const cudaq_function_table_t *table);
 
 /// Version 2 adds the capability queries after `disconnect`:
 /// `get_cpu_dataplane`, `get_endpoint_info`, and `get_ring_geometry`.
@@ -262,8 +261,7 @@ typedef struct {
   /// Registers the dispatcher's function table with the transport; see
   /// cudaq_bridge_set_function_table.
   cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
-                                       cudaq_function_entry_t *function_table,
-                                       size_t func_count);
+                                       const cudaq_function_table_t *table);
 
 } cudaq_realtime_bridge_interface_t;
 
