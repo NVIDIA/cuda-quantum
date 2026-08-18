@@ -362,7 +362,6 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key['amd64-llvm'] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive['amd64-llvm'] }}
       enable_qdmi: true
-      test_scope: qdmi
 
   gen_code_coverage:
     name: Gen code coverage
