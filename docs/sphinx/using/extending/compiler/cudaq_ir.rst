@@ -115,11 +115,8 @@ The command produces:
 Mapped Quake IR
 ^^^^^^^^^^^^^^^
 
-The qubit-mapping pass produces Mapped Quake IR. It adds a topology-aware
-``quake.wire_set @mapped_wireset`` and mapped functions borrow CUDA-Q device
-qubits from that set. This structural form marks the mapped stage. Mapping
-metadata attributes support result reconstruction, but do not identify this
-stage.
+Mapped Quake IR is Quake after qubit mapping. Functions borrow device wires
+from ``@mapped_wireset``.
 
 CC
 --
