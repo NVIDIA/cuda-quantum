@@ -1,0 +1,98 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s | FileCheck %s --check-prefix=DECOMP
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+
+func.func @dynamic(%theta: f64, %target: !quake.ref) {
+  quake.r1 (%theta) %target : (f64, !quake.ref) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func @dynamic(
+// DECOMP-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.ref
+// DECOMP: %[[TWO:.*]] = arith.constant 2.000000e+00 : f64
+// DECOMP: quake.rz (%[[THETA]]) %[[TARGET]]
+// DECOMP: %[[HALF:.*]] = arith.divf %[[THETA]], %[[TWO]] : f64
+// DECOMP: quake.phase (%[[HALF]]) %[[TARGET]]
+
+// LOWER-LABEL: func.func @dynamic(
+// LOWER: quake.rz
+
+func.func @controlled_adjoint(%theta: f64, %control: !quake.ref,
+                              %target: !quake.ref) {
+  quake.r1<adj> (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func @controlled_adjoint(
+// DECOMP-SAME: %[[THETA:.*]]: f64, %[[CONTROL:.*]]: !quake.ref,
+// DECOMP-SAME: %[[TARGET:.*]]: !quake.ref
+// DECOMP: quake.rz<adj> (%[[THETA]]) {{\[}}%[[CONTROL]] neg [true]{{\]}} %[[TARGET]]
+// DECOMP: %[[HALF:.*]] = arith.divf
+// DECOMP: %[[NEG:.*]] = arith.negf %[[HALF]] : f64
+// DECOMP: quake.phase (%[[NEG]]) {{\[}}%[[CONTROL]] neg [true]{{\]}} %[[TARGET]]
+
+// LOWER-LABEL: func.func @controlled_adjoint(
+// LOWER: quake.rz<adj>
+// LOWER: quake.x %[[CONTROL:.*]]
+// LOWER: quake.r1
+// LOWER: quake.x %[[CONTROL]]
+
+func.func @wire(%theta: f64, %control: !quake.wire,
+                %target: !quake.wire) -> (!quake.wire, !quake.wire)
+    attributes {"cudaq-entrypoint"} {
+  %next:2 = quake.r1 (%theta) [%control] %target
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  return %next#0, %next#1 : !quake.wire, !quake.wire
+}
+
+// DECOMP-LABEL: func.func @wire(
+// DECOMP-SAME: %[[THETA:.*]]: f64, %[[CONTROL:.*]]: !quake.wire,
+// DECOMP-SAME: %[[TARGET:.*]]: !quake.wire
+// DECOMP: %[[RZ:.*]]:2 = quake.rz (%[[THETA]]) {{\[}}%[[CONTROL]]{{\]}} %[[TARGET]]
+// DECOMP: %[[HALF:.*]] = arith.divf
+// DECOMP: %[[PHASE:.*]]:2 = quake.phase (%[[HALF]]) {{\[}}%[[RZ]]#0{{\]}} %[[RZ]]#1
+// DECOMP: return %[[PHASE]]#0, %[[PHASE]]#1
+
+// LOWER-LABEL: func.func @wire(
+// LOWER: %[[RZ:.*]]:2 = quake.rz
+// LOWER: %[[R1:.*]] = quake.r1
+// LOWER: return %[[R1]], %[[RZ]]#1
+
+func.func @no_scalar_anchor(%theta: f64, %targets: !quake.veq<2>) {
+  quake.r1 (%theta) %targets : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func @no_scalar_anchor(
+// DECOMP: quake.r1 (%{{.*}}) %{{.*}} : (f64, !quake.veq<2>) -> ()
+// DECOMP-NOT: quake.phase
+// DECOMP: return
+
+// LOWER-LABEL: func.func @no_scalar_anchor(
+// LOWER: quake.r1
+
+func.func @zero_wire(%target: !quake.wire) -> !quake.wire
+    attributes {"cudaq-entrypoint"} {
+  %zero = arith.constant 0.000000e+00 : f64
+  %next = quake.r1 (%zero) %target
+      : (f64, !quake.wire) -> !quake.wire
+  return %next : !quake.wire
+}
+
+// DECOMP-LABEL: func.func @zero_wire(
+// DECOMP: %[[ZERO:.*]] = arith.constant 0.000000e+00 : f64
+// DECOMP: %[[RZ:.*]] = quake.rz (%[[ZERO]])
+// DECOMP-NOT: quake.phase
+// DECOMP: return %[[RZ]]
+
+// LOWER-LABEL: func.func @zero_wire(
+// LOWER: quake.rz

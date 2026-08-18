@@ -68,6 +68,22 @@ def test_parallel_cx_disjoint_qubits():
     assert resources.depth_for_arity(2) == 1
 
 
+def test_t_depth_tracks_dependencies_and_parallel_layers():
+    """T-depth propagates dependencies through non-T operations."""
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.t(q[0])
+    kernel.t(q[1])
+    kernel.cx(q[0], q[2])
+    kernel.cx(q[1], q[2])
+    kernel.tdg(q[2])
+
+    resources = cudaq.estimate_resources(kernel)
+    assert resources.t_depth == 2
+    resources.clear()
+    assert resources.t_depth == 0
+
+
 def test_ccx_arity():
     """CCX is arity-3, not arity-2."""
 

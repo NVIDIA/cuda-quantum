@@ -6,7 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: not cudaq-translate --convert-to=iqm %s 2>&1 | FileCheck %s
+// IQM phase bookkeeping must be lowered and remapped to native PRX operations
+// before JSON emission.
+// RUN: cudaq-translate --convert-to=iqm %s | FileCheck %s
 
 module {
   func.func @phase_iqm() attributes {"cudaq-entrypoint"} {
@@ -19,4 +21,5 @@ module {
   }
 }
 
-// CHECK: error: 'quake.phase' op phase bookkeeping must be lowered before code generation
+// CHECK-COUNT-3: "name": "prx"
+// CHECK: "name": "phase_iqm"
