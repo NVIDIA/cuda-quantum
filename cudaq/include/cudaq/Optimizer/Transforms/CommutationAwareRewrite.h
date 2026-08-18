@@ -9,31 +9,16 @@
 #pragma once
 
 #include "llvm/ADT/STLFunctionalExtras.h"
-#include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include <cstddef>
 #include <memory>
-#include <optional>
 
 namespace cudaq::opt {
 namespace detail {
 class CommutationAwareRewriteListener;
 }
-
-/// Direction in which an anchor operation searches its block.
-enum class CommutationSearchDirection { Forward, Backward };
-
-/// The nearest compatible endpoint and the operations crossed to reach it.
-struct CommutationAwareRewriteMatch {
-  mlir::Operation *endpoint;
-  /// Operations between the anchor and the endpoint that share at least one
-  /// virtual qubit with the anchor, in block order. Operations acting only on
-  /// other qubits are not listed: they commute by disjoint support and are
-  /// never examined.
-  llvm::SmallVector<mlir::Operation *> crossed;
-};
 
 /// Observable analysis-maintenance work performed by one rewrite driver.
 struct CommutationAwareRewriteStatistics {
@@ -44,10 +29,10 @@ struct CommutationAwareRewriteStatistics {
   std::size_t fallbackRebuilds = 0;
 };
 
-/// Directional block-local search owned by a rewrite driver.
+/// Forward block-local search owned by a rewrite driver.
 ///
-/// Starting at `anchor`, the search walks in the selected direction and returns
-/// the first endpoint accepted by the consumer. No operation is moved.
+/// Starting at `anchor`, the search follows scalar-wire results and returns the
+/// first endpoint accepted by the consumer. No operation is moved.
 ///
 /// The anchor is the operator supplied by the consumer pattern. The endpoint is
 /// the first operator accepted by that pattern's endpoint predicate after every
@@ -62,7 +47,7 @@ struct CommutationAwareRewriteStatistics {
 /// operations, reusable `!quake.control`, reference and aggregate quantum
 /// values, dataflow that leaves the block, and unresolved virtual qubits end
 /// the search. Pass pipelines can establish the supported operator form by
-/// running `linear-ctrl-form` after `memtoreg`.
+/// running `convert-to-linear-values`.
 ///
 /// Endpoints are found by following the anchor's own wire dataflow, not by
 /// scanning the block. An operation that uses none of the anchor's quantum
@@ -100,12 +85,12 @@ public:
   CommutationAwareRewriteMatcher &
   operator=(const CommutationAwareRewriteMatcher &) = delete;
 
-  /// Find the nearest consumer-compatible supported quantum endpoint in
-  /// `direction`. The predicate is called only for an `OperatorInterface`
-  /// candidate with supported scalar-wire flow, and before checking complete
-  /// frontier alignment or deciding whether it may be crossed.
-  std::optional<CommutationAwareRewriteMatch>
-  findNearest(mlir::Operation *anchor, CommutationSearchDirection direction,
+  /// Find the nearest consumer-compatible supported quantum endpoint. The
+  /// predicate is called only for an `OperatorInterface` candidate with
+  /// supported scalar-wire flow, and before checking complete frontier
+  /// alignment or deciding whether it may be crossed.
+  mlir::Operation *
+  findNearest(mlir::Operation *anchor,
               llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
 
   /// Return whether controls and targets carry the same ordered qubit

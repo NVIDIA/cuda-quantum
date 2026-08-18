@@ -13,10 +13,10 @@
 // RUN: cudaq-opt --quake-simplify %s > %t.second
 // RUN: diff %t.first %t.second
 
-// Every exact-inverse family in one fixture: the Hermitian gates X, Y and Z,
-// and the opposite-adjoint pairs S/S<adj> and T<adj>/T. Each pair straddles a
-// rotation about its own axis, which it commutes with, so each pair cancels and
-// leaves the rotation behind.
+// The scalar single-target families covered here are the Hermitian gates X, Y
+// and Z and the opposite-adjoint pairs S/S<adj> and T<adj>/T. Each pair
+// straddles a rotation about its own axis, which it commutes with, so each pair
+// cancels and leaves the rotation behind.
 func.func @cancel_scalar_families() {
   %x_angle = arith.constant 0.125 : f64
   %y_angle = arith.constant 0.25 : f64
@@ -378,14 +378,19 @@ func.func private @leave_reusable_control_chain(%control: !quake.control) {
   %control_target = quake.null_wire
   %wire_target = quake.null_wire
   %zero_target = quake.null_wire
+  %mixed_wire_control = quake.null_wire
+  %mixed_target = quake.null_wire
   %x0 = quake.x [%control] %control_target : (!quake.control, !quake.wire) -> !quake.wire
   %x1 = quake.x [%control] %x0 : (!quake.control, !quake.wire) -> !quake.wire
   %h0 = quake.h %wire_target : (!quake.wire) -> !quake.wire
   %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
   %rx = quake.rx (%zero) [%control neg [true]] %zero_target : (f64, !quake.control, !quake.wire) -> !quake.wire
+  %mixed:2 = quake.rx (%zero) [%mixed_wire_control, %control] %mixed_target : (f64, !quake.wire, !quake.control, !quake.wire) -> (!quake.wire, !quake.wire)
   quake.sink %x1 : !quake.wire
   quake.sink %h1 : !quake.wire
   quake.sink %rx : !quake.wire
+  quake.sink %mixed#0 : !quake.wire
+  quake.sink %mixed#1 : !quake.wire
   return
 }
 
@@ -394,6 +399,8 @@ func.func private @leave_reusable_control_chain(%control: !quake.control) {
 // CHECK:         %[[CONTROL_TARGET:.*]] = quake.null_wire
 // CHECK:         %[[WIRE_TARGET:.*]] = quake.null_wire
 // CHECK:         %[[ZERO_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[MIXED_WIRE_CONTROL:.*]] = quake.null_wire
+// CHECK:         %[[MIXED_TARGET:.*]] = quake.null_wire
 // CHECK:         %[[X0:.*]] = quake.x {{\[}}%[[CONTROL]]] %[[CONTROL_TARGET]]
 // CHECK:         %[[X1:.*]] = quake.x {{\[}}%[[CONTROL]]] %[[X0]]
 // CHECK-NOT:     quake.h
@@ -401,6 +408,8 @@ func.func private @leave_reusable_control_chain(%control: !quake.control) {
 // CHECK:         quake.sink %[[X1]] : !quake.wire
 // CHECK:         quake.sink %[[WIRE_TARGET]] : !quake.wire
 // CHECK:         quake.sink %[[ZERO_TARGET]] : !quake.wire
+// CHECK:         quake.sink %[[MIXED_WIRE_CONTROL]] : !quake.wire
+// CHECK:         quake.sink %[[MIXED_TARGET]] : !quake.wire
 // CHECK:         return
 
 // A controlled Swap pair cancels across a Z that shares only its control. The

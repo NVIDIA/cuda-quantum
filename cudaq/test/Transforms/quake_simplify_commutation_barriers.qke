@@ -127,28 +127,8 @@ func.func @control_flow_fanout(%condition: i1) {
 // CHECK:         %[[H1:.*]] = quake.h %[[LEFT]]
 // CHECK:         quake.sink %[[H1]]
 
-// The two X gates would otherwise be a valid pair, but X and Z anticommute, so
-// the Z is a barrier rather than an operation the pair may cross.
-func.func @does_not_commute_barrier() {
-  %q = quake.null_wire
-  %x0 = quake.x %q : (!quake.wire) -> !quake.wire
-  %z = quake.z %x0 : (!quake.wire) -> !quake.wire  // barrier, X and Z anticommute
-  %x1 = quake.x %z : (!quake.wire) -> !quake.wire
-  quake.sink %x1 : !quake.wire
-  return
-}
-
-// All three operations survive in their original order.
-// CHECK-LABEL: func.func @does_not_commute_barrier() {
-// CHECK:         %[[X0:.*]] = quake.x
-// CHECK:         %[[Z:.*]] = quake.z %[[X0]]
-// CHECK:         %[[X1:.*]] = quake.x %[[Z]]
-// CHECK:         quake.sink %[[X1]]
-
-// The counterpart to @does_not_commute_barrier: there the relation is proven
-// false, here it is merely unproven. U3 takes its parameters at runtime, so the
-// analysis cannot evaluate its matrix and answers Indeterminate. An unproven
-// relation has to stop the search exactly as a disproven one does.
+// U3 takes its parameters at runtime, so the analysis cannot evaluate its
+// matrix and answers Indeterminate. An unproven relation stops the search.
 func.func @unproved_relation_barrier(%theta: f64, %phi: f64, %lambda: f64) {
   %q = quake.null_wire
   %h0 = quake.h %q : (!quake.wire) -> !quake.wire

@@ -33,8 +33,9 @@ propagateKnownQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
   }
 }
 
-// Incremental maintenance is atomic: every result identity must be known before
-// the live analysis can accept an inserted operation.
+// Incremental maintenance requires every input identity because it cannot
+// revisit existing downstream users after a later lane becomes known. A full
+// block-order rebuild can propagate each independently known lane.
 static bool registerQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
                              const cudaq::quake::detail::ScalarWireFlow &flow) {
   llvm::SmallVector<QubitId> inputIds;

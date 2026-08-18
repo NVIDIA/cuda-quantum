@@ -15,11 +15,13 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/MathExtras.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <optional>
@@ -156,6 +158,29 @@ static QOP getCrossScopeAdjacentPredecessor(QOP endpoint) {
     return {};
   return predecessor;
 }
+
+// Reference-form operators have no results. Value-form operators forward each
+// scalar wire control and target to the result that carries the same qubit.
+// Reusable controls are not consumed and therefore have no forwarded result.
+static void eraseOrForward(cudaq::quake::OperatorInterface operation,
+                           PatternRewriter &rewriter) {
+  if (operation->getNumResults() == 0) {
+    rewriter.eraseOp(operation);
+    return;
+  }
+
+  llvm::SmallVector<Value> wires;
+  for (Value control : operation.getControls())
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      wires.push_back(control);
+  for (Value target : operation.getTargets())
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      wires.push_back(target);
+  assert(wires.size() == operation->getNumResults() &&
+         "operator results must correspond to scalar wire operands");
+  rewriter.replaceOp(operation, wires);
+}
+
 // Splice both endpoints out of their wires. Each result denotes the same qubit
 // as the operand it came from, so forwarding an operation's own wire operands
 // to its own results is right whichever order it names those qubits in. The
@@ -164,8 +189,8 @@ template <typename QOP>
 static void cancelPair(QOP anchor, QOP endpoint, PatternRewriter &rewriter) {
   LLVM_DEBUG(llvm::dbgs() << "eliminated: " << anchor << '\n'
                           << endpoint << '\n');
-  rewriter.replaceOp(endpoint, getWireOperands(endpoint));
-  rewriter.replaceOp(anchor, getWireOperands(anchor));
+  eraseOrForward(endpoint, rewriter);
+  eraseOrForward(anchor, rewriter);
 }
 
 // Cancel `anchor` against the nearest endpoint accepted by its gate family.
@@ -174,12 +199,11 @@ static LogicalResult
 cancelTransparentPair(QOP anchor,
                       cudaq::opt::CommutationAwareRewriteMatcher &matcher,
                       PatternRewriter &rewriter, IsEndpoint isEndpoint) {
-  auto match = matcher.findNearest(
-      anchor, cudaq::opt::CommutationSearchDirection::Forward, isEndpoint);
-  if (!match)
+  Operation *endpoint = matcher.findNearest(anchor, isEndpoint);
+  if (!endpoint)
     return failure();
 
-  cancelPair(anchor, cast<QOP>(match->endpoint), rewriter);
+  cancelPair(anchor, cast<QOP>(endpoint), rewriter);
   return success();
 }
 
@@ -228,8 +252,12 @@ private:
 // target positions transposed. Linear use means this is necessarily adjacent.
 static bool hasTransposedTargetsOnAnchorWires(cudaq::quake::SwapOp anchor,
                                               cudaq::quake::SwapOp endpoint) {
-  auto endpointWires = cudaq::quake::getWireOperands(endpoint);
-  ValueRange anchorWires = anchor.getWires();
+  auto anchorFlow = cudaq::quake::detail::getScalarWireFlow(anchor);
+  auto endpointFlow = cudaq::quake::detail::getScalarWireFlow(endpoint);
+  if (!anchorFlow || !endpointFlow)
+    return false;
+  const auto &endpointWires = endpointFlow->inputs;
+  const auto &anchorWires = anchorFlow->results;
   if (endpointWires.size() != anchorWires.size() || anchorWires.size() < 2)
     return false;
 
@@ -291,7 +319,6 @@ constexpr double exactIdentityPeriod() {
 }
 
 // `quake.ry (12 * pi) %1` is a special backdoor NOP that is never optimized.
-// TODO: Consider if it would be better to add an I (identity) gate to Quake.
 template <typename QOP>
 static bool isBackdoorNopGate(double theta) {
   return std::is_same_v<QOP, cudaq::quake::RyOp> && theta == 12.0 * M_PI;
@@ -373,23 +400,21 @@ public:
     if (isIdentityRotation(anchor, threshold)) {
       LLVM_DEBUG(llvm::dbgs()
                  << "zero rotation eliminated [" << anchor << "]\n");
-      rewriter.replaceOp(anchor, cudaq::quake::getWireOperands(anchor));
+      eraseOrForward(anchor, rewriter);
       ++zeroStat;
       return success();
     }
 
     // Stop at the first structurally matching action. Checking phi afterward
     // keeps a different axis as a barrier instead of searching past it.
-    auto match = matcher.findNearest(
-        anchor, cudaq::opt::CommutationSearchDirection::Forward,
-        [&](Operation *candidate) {
-          return static_cast<bool>(
-              getSameActionEndpoint(anchor, candidate, matcher));
-        });
+    Operation *match = matcher.findNearest(anchor, [&](Operation *candidate) {
+      return static_cast<bool>(
+          getSameActionEndpoint(anchor, candidate, matcher));
+    });
     if (!match)
       return failure();
 
-    auto endpoint = cast<cudaq::quake::PhasedRxOp>(match->endpoint);
+    auto endpoint = cast<cudaq::quake::PhasedRxOp>(match);
     auto endpointParameters = endpoint.getParameters();
     if (endpointParameters.size() != 2 ||
         !haveExactValue(anchorParameters[1], endpointParameters[1]) ||
@@ -423,7 +448,7 @@ public:
               endpoint.getNegatedQubitControlsAttr());
       LLVM_DEBUG(llvm::dbgs() << "into: " << combined << '\n');
     }
-    rewriter.replaceOp(anchor, cudaq::quake::getWireOperands(anchor));
+    eraseOrForward(anchor, rewriter);
     ++combineStat;
     return success();
   }
@@ -454,26 +479,24 @@ public:
     if (isIdentityRotation(anchor, threshold)) {
       LLVM_DEBUG(llvm::dbgs()
                  << "zero rotation eliminated [" << anchor << "]\n");
-      rewriter.replaceOp(anchor, cudaq::quake::getWireOperands(anchor));
+      eraseOrForward(anchor, rewriter);
       ++zeroStat;
       return success();
     }
 
     Value anchorAngle = parameters.front();
-    auto match = matcher.findNearest(
-        anchor, cudaq::opt::CommutationSearchDirection::Forward,
-        [&](Operation *candidate) {
-          auto endpoint = getSameActionEndpoint(anchor, candidate, matcher);
-          if (!endpoint)
-            return false;
-          auto endpointParameters = endpoint.getParameters();
-          return endpointParameters.size() == 1 &&
-                 endpointParameters.front().getType() == anchorAngle.getType();
-        });
+    Operation *match = matcher.findNearest(anchor, [&](Operation *candidate) {
+      auto endpoint = getSameActionEndpoint(anchor, candidate, matcher);
+      if (!endpoint)
+        return false;
+      auto endpointParameters = endpoint.getParameters();
+      return endpointParameters.size() == 1 &&
+             endpointParameters.front().getType() == anchorAngle.getType();
+    });
     if (!match)
       return failure();
 
-    auto endpoint = cast<QOP>(match->endpoint);
+    auto endpoint = cast<QOP>(match);
     Value endpointAngle = endpoint.getParameters().front();
     if (anchor.isAdj() != endpoint.isAdj() &&
         haveExactValue(anchorAngle, endpointAngle)) {
@@ -497,7 +520,7 @@ public:
           endpoint.getTargets(), endpoint.getNegatedQubitControlsAttr());
       LLVM_DEBUG(llvm::dbgs() << "into: " << combined << '\n');
     }
-    rewriter.replaceOp(anchor, cudaq::quake::getWireOperands(anchor));
+    eraseOrForward(anchor, rewriter);
     ++combineStat;
     return success();
   }
@@ -520,16 +543,14 @@ public:
 
   LogicalResult matchAndRewrite(SourceOp anchor,
                                 PatternRewriter &rewriter) const override {
-    auto match = matcher.findNearest(
-        anchor, cudaq::opt::CommutationSearchDirection::Forward,
-        [&](Operation *candidate) {
-          return static_cast<bool>(
-              getSameActionEndpoint(anchor, candidate, matcher));
-        });
+    Operation *match = matcher.findNearest(anchor, [&](Operation *candidate) {
+      return static_cast<bool>(
+          getSameActionEndpoint(anchor, candidate, matcher));
+    });
     if (!match)
       return failure();
 
-    auto endpoint = cast<SourceOp>(match->endpoint);
+    auto endpoint = cast<SourceOp>(match);
     // Let the inverse-elimination pattern own the opposite-adjoint pair.
     if (anchor.isAdj() != endpoint.isAdj())
       return failure();
@@ -545,7 +566,7 @@ public:
           endpoint.getControls(), endpoint.getTargets(),
           endpoint.getNegatedQubitControlsAttr());
     }
-    rewriter.replaceOp(anchor, getWireOperands(anchor));
+    eraseOrForward(anchor, rewriter);
     ++stat;
     return success();
   }

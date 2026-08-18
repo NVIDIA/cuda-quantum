@@ -752,36 +752,14 @@ bool CommutationAnalysis::prepareIdentityPreservingReplacement(
   if (!operation || operation->getBlock() != block ||
       !qubitIdentity->replacementPreservesIdentities(*operation, replacement))
     return false;
-  invalidateOperation(operation);
+  cache.clear();
   return true;
-}
-
-void CommutationAnalysis::invalidateOperation(Operation *operation) {
-  auto dependency = cacheDependencies.find(operation);
-  if (dependency == cacheDependencies.end())
-    return;
-
-  llvm::SmallVector<OperationPair> incidentPairs(dependency->second.begin(),
-                                                 dependency->second.end());
-  cacheDependencies.erase(dependency);
-  for (OperationPair pair : incidentPairs) {
-    cache.erase(pair);
-    Operation *other = pair.first == operation ? pair.second : pair.first;
-    if (other == operation)
-      continue;
-    auto otherDependency = cacheDependencies.find(other);
-    if (otherDependency == cacheDependencies.end())
-      continue;
-    otherDependency->second.erase(pair);
-    if (otherDependency->second.empty())
-      cacheDependencies.erase(otherDependency);
-  }
 }
 
 void CommutationAnalysis::eraseOperation(Operation *operation) {
   if (!operation || operation->getBlock() != block)
     return;
-  invalidateOperation(operation);
+  cache.clear();
   qubitIdentity->eraseOperation(*operation);
 }
 
@@ -797,12 +775,7 @@ CommutationResult CommutationAnalysis::getResult(Operation *lhs,
   if (cached != cache.end())
     return cached->second;
   auto result = evaluate(lhs, rhs, *qubitIdentity);
-  auto [entry, inserted] = cache.try_emplace(key, result);
-  if (inserted) {
-    cacheDependencies[key.first].insert(key);
-    cacheDependencies[key.second].insert(key);
-  }
-  return entry->second;
+  return cache.try_emplace(key, result).first->second;
 }
 
 bool CommutationAnalysis::canCommute(Operation *lhs, Operation *rhs) {

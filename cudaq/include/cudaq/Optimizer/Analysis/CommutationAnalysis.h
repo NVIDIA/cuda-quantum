@@ -9,7 +9,6 @@
 #pragma once
 
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/IR/ValueRange.h"
 #include <memory>
@@ -148,12 +147,9 @@ struct CommutationResult {
 /// incoming wires are distinct. Operations reached only from those arguments
 /// therefore remain indeterminate.
 ///
-/// A cached pair remains valid only while both operations retain their
-/// commutation-relevant semantics and ordered qubit identity and role
-/// placement. Identity-preserving rewrites invalidate pairs incident to
-/// changed or erased operations while retaining pairs between untouched
-/// operations. The commutation-aware rewrite driver discards and lazily
-/// rebuilds the analysis when those properties cannot be proven locally.
+/// The commutation-aware rewrite driver clears cached relations after an
+/// accepted replacement or erasure. It discards and lazily rebuilds the whole
+/// analysis when identity preservation cannot be proven locally.
 ///
 /// Direct mutation of the block invalidates the analysis instance. The
 /// commutation-aware rewrite driver observes `PatternRewriter` mutations and
@@ -184,20 +180,15 @@ private:
   /// analyzed block. Classical-only operations succeed without changing
   /// identity state. Return false for unsupported or ambiguous propagation.
   bool registerIdentityPreservingOperation(mlir::Operation *operation);
-  /// Validate an identity-preserving replacement and invalidate only cached
-  /// pairs incident to the replaced operation.
+  /// Validate an identity-preserving replacement and clear cached relations.
   bool prepareIdentityPreservingReplacement(mlir::Operation *operation,
                                             mlir::ValueRange replacement);
-  /// Remove cached pairs incident to an operation.
-  void invalidateOperation(mlir::Operation *operation);
-  /// Invalidate incident pairs, then remove an operation's result identities.
+  /// Clear cached relations, then remove an operation's result identities.
   void eraseOperation(mlir::Operation *operation);
 
   mlir::Block *block;
   std::unique_ptr<QubitIdentityAnalysis> qubitIdentity;
   llvm::DenseMap<OperationPair, CommutationResult> cache;
-  llvm::DenseMap<mlir::Operation *, llvm::DenseSet<OperationPair>>
-      cacheDependencies;
 
   friend class cudaq::opt::CommutationAwareRewriteMatcher;
   friend class cudaq::opt::detail::CommutationAwareRewriteListener;

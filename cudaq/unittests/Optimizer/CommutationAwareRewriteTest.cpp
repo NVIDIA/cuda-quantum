@@ -62,16 +62,15 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::quake::HOp anchor,
                                 PatternRewriter &rewriter) const override {
-    auto match = matcher.findNearest(
-        anchor, cudaq::opt::CommutationSearchDirection::Forward,
-        [&](Operation *candidate) {
+    Operation *endpoint =
+        matcher.findNearest(anchor, [&](Operation *candidate) {
           return isa<cudaq::quake::HOp>(candidate) &&
                  matcher.haveSameOrderedQuantumOperands(anchor, candidate);
         });
-    if (!match)
+    if (!endpoint)
       return failure();
 
-    rewriter.replaceOp(match->endpoint, anchor->getOperands());
+    rewriter.replaceOp(endpoint, anchor->getOperands());
     rewriter.eraseOp(anchor);
     return success();
   }
@@ -100,12 +99,7 @@ public:
     auto reachesEndpoint = [endpoint](Operation *candidate) {
       return candidate == endpoint;
     };
-    matchedBefore =
-        matcher
-            .findNearest(anchor,
-                         cudaq::opt::CommutationSearchDirection::Forward,
-                         reachesEndpoint)
-            .has_value();
+    matchedBefore = matcher.findNearest(anchor, reachesEndpoint);
 
     auto replacedConstant =
         operation.getParameters().front().getDefiningOp<arith::ConstantOp>();
@@ -115,12 +109,7 @@ public:
         llvm::APFloat(2.0));
     rewriter.replaceOp(replacedConstant, replacement.getResult());
 
-    matchedAfter =
-        matcher
-            .findNearest(anchor,
-                         cudaq::opt::CommutationSearchDirection::Forward,
-                         reachesEndpoint)
-            .has_value();
+    matchedAfter = matcher.findNearest(anchor, reachesEndpoint);
     return success();
   }
 
@@ -134,35 +123,6 @@ struct EraseListener : public RewriterBase::Listener {
   void notifyOperationErased(Operation *) override { ++eraseCount; }
   unsigned eraseCount = 0;
 };
-
-TEST_F(CommutationAwareRewriteTest,
-       ReportsBackwardCrossingsInDeterministicBlockOrder) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @same_axis(%a: f64, %b: f64, %c: f64, %d: f64) {
-        %q = quake.null_wire
-        %rz0 = quake.rz (%a) %q : (f64, !quake.wire) -> !quake.wire
-        %rz1 = quake.rz (%b) %rz0 : (f64, !quake.wire) -> !quake.wire
-        %rz2 = quake.rz (%c) %rz1 : (f64, !quake.wire) -> !quake.wire
-        %rz3 = quake.rz (%d) %rz2 : (f64, !quake.wire) -> !quake.wire
-        quake.sink %rz3 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto &matcher = driver.getMatcher();
-  auto sameAxis = getOperators(getFunction(*module, "same_axis"));
-  ASSERT_EQ(sameAxis.size(), 4u);
-  auto match = matcher.findNearest(
-      sameAxis[3], cudaq::opt::CommutationSearchDirection::Backward,
-      [&](Operation *candidate) { return candidate == sameAxis[0]; });
-  ASSERT_TRUE(match);
-  EXPECT_EQ(match->endpoint, sameAxis[0]);
-  EXPECT_EQ(match->crossed,
-            (llvm::SmallVector<Operation *>{sameAxis[1], sameAxis[2]}));
-}
 
 TEST_F(CommutationAwareRewriteTest,
        StopsBeforeEndpointWhenARequiredWirePathEnds) {
@@ -185,9 +145,8 @@ TEST_F(CommutationAwareRewriteTest,
   auto operators = getOperators(getFunction(*module, "ended_path"));
   ASSERT_EQ(operators.size(), 2u);
   unsigned predicateCalls = 0;
-  auto match = driver.getMatcher().findNearest(
-      operators[0], cudaq::opt::CommutationSearchDirection::Forward,
-      [&](Operation *candidate) {
+  Operation *match =
+      driver.getMatcher().findNearest(operators[0], [&](Operation *candidate) {
         ++predicateCalls;
         return candidate == operators[1];
       });
@@ -268,9 +227,10 @@ TEST_F(CommutationAwareRewriteTest, RejectsDirectRepeatedWireOperand) {
   cudaq::opt::CommutationAwareRewriteDriver driver(context);
   auto operators = getOperators(getFunction(*module, "repeated_wire"));
   ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(driver.getMatcher().findNearest(
-      operators[0], cudaq::opt::CommutationSearchDirection::Forward,
-      [&](Operation *candidate) { return candidate == operators[1]; }));
+  EXPECT_FALSE(
+      driver.getMatcher().findNearest(operators[0], [&](Operation *candidate) {
+        return candidate == operators[1];
+      }));
   EXPECT_FALSE(driver.getMatcher().haveSameOrderedQuantumOperands(
       operators[0], operators[1]));
   EXPECT_EQ(driver.getStatistics().analysisBuilds, 1u);
@@ -299,23 +259,26 @@ TEST_F(CommutationAwareRewriteTest, RejectsDirectAliasedWireOperands) {
   cudaq::opt::CommutationAwareRewriteDriver driver(context);
   auto operators = getOperators(getFunction(*module, "aliased_wires"));
   ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(driver.getMatcher().findNearest(
-      operators[0], cudaq::opt::CommutationSearchDirection::Forward,
-      [&](Operation *candidate) { return candidate == operators[1]; }));
+  EXPECT_FALSE(
+      driver.getMatcher().findNearest(operators[0], [&](Operation *candidate) {
+        return candidate == operators[1];
+      }));
   EXPECT_FALSE(driver.getMatcher().haveSameOrderedQuantumOperands(
       operators[0], operators[1]));
   EXPECT_EQ(driver.getStatistics().analysisBuilds, 1u);
 }
 
 TEST_F(CommutationAwareRewriteTest,
-       MaintainsPublicContractsAcrossObservedRewrites) {
+       ForwardsListenerRejectsReuseAndInvalidatesChangedRelations) {
   auto module = parseModule(R"mlir(
     module {
       func.func @cancel() {
-        %q = quake.null_wire
-        %h0 = quake.h %q : (!quake.wire) -> !quake.wire
-        %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
-        quake.sink %h1 : !quake.wire
+        %control = quake.null_wire
+        %target = quake.null_wire
+        %h0:2 = quake.h [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %h1:2 = quake.h [%h0#0] %h0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %h1#0 : !quake.wire
+        quake.sink %h1#1 : !quake.wire
         return
       }
       func.func @classical_replacement() {
