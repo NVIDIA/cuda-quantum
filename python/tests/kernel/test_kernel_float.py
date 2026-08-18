@@ -264,6 +264,39 @@ def test_integer_floor_division_matches_python():
         assert python_floor_div(left, right) == kernel_floor_div(left, right)
 
 
+def test_integer_modulo_matches_python():
+
+    def python_mod(left: int, right: int) -> int:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod(left: int, right: int) -> int:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_i32(left: np.int32, right: np.int32) -> np.int32:
+        return left % right
+
+    # The remainder takes the sign of the divisor, as it does in Python.
+    for left, right in [(-1, 3), (-5, 3), (5, -3), (7, 3), (9, 2), (-9, 2),
+                        (9, -2), (-9, -2), (4, 2), (-4, 2), (4, -2), (-4, -2)]:
+        expected = python_mod(left, right)
+        assert kernel_mod(left, right) == expected
+        assert kernel_mod_i32(np.int32(left), np.int32(right)) == expected
+
+
+def test_integer_floor_division_modulo_identity():
+
+    @cudaq.kernel
+    def kernel_identity(left: int, right: int) -> int:
+        return (left // right) * right + left % right
+
+    # `a == (a // b) * b + a % b` must hold for any non-zero divisor.
+    for left in range(-6, 7):
+        for right in [-6, -3, -2, -1, 1, 2, 3, 6]:
+            assert kernel_identity(left, right) == left
+
+
 def test_float_floor_division_error():
     error = ("floor division with floating-point operands is not supported; "
              "use integer operands or math.floor(...), numpy.floor(...), or "

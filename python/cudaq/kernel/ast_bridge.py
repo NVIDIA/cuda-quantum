@@ -5948,7 +5948,30 @@ class PyASTBridge(ast.NodeVisitor):
 
         if issubclass(nodeType, ast.Mod):
             if IntegerType.isinstance(left.type):
-                self.pushValue(arith.RemUIOp(left, right).result)
+                # Python's `%` yields a remainder that takes the sign of the
+                # divisor (floor modulo), whereas `arith.remsi` truncates the
+                # quotient towards zero and hence yields a remainder with the
+                # sign of the dividend. Correct the truncated remainder by
+                # adding the divisor whenever the remainder is non-zero and
+                # its sign differs from the divisor's. This matches the
+                # `arith.floordivsi` emitted for `//` above, such that the
+                # identity `a == (a // b) * b + a % b` holds.
+                intTy = IntegerType(left.type)
+                zero = self.getConstantInt(0, width=intTy.width)
+                nePred = self.getIntegerAttr(self.getIntegerType(), 1)
+                sltPred = self.getIntegerAttr(self.getIntegerType(), 2)
+                remainder = arith.RemSIOp(left, right).result
+                isNonZero = arith.CmpIOp(nePred, remainder, zero).result
+                # The sign bit of `remainder ^ right` is set exactly when the
+                # remainder and the divisor have opposite signs.
+                signsDiffer = arith.CmpIOp(
+                    sltPred,
+                    arith.XOrIOp(remainder, right).result, zero).result
+                needsCorrection = arith.AndIOp(isNonZero, signsDiffer).result
+                self.pushValue(
+                    arith.SelectOp(needsCorrection,
+                                   arith.AddIOp(remainder, right).result,
+                                   remainder).result)
                 return
             if (F64Type.isinstance(left.type) or F32Type.isinstance(left.type)):
                 self.pushValue(arith.RemFOp(left, right).result)
