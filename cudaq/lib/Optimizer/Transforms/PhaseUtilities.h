@@ -20,12 +20,6 @@
 
 namespace cudaq::opt {
 
-/// Return whether \p anchor is a scalar value accepted by quake.phase.
-inline bool isScalarPhaseAnchor(mlir::Value anchor) {
-  return mlir::isa<cudaq::quake::RefType, cudaq::quake::WireType>(
-      anchor.getType());
-}
-
 inline mlir::DenseBoolArrayAttr
 makeNegatedControlsAttr(mlir::OpBuilder &builder,
                         llvm::ArrayRef<bool> polarities) {
