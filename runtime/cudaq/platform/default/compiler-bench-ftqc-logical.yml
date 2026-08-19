@@ -22,4 +22,8 @@ config:
   # linear-value pipeline prepares exact-angle simplification. The final
   # decomposition removes unresolved R1 gates while preserving arbitrary axis
   # rotations for layer-one FTQC metrics.
-  jit-mid-level-pipeline: "decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)},apply-op-specialization,func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(quake-simplify{rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:0%},normalize-phase-placement,lower-phase),optimize-1q-clifford-t,func.func(canonicalize,dqe,regtomem),decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)}"
+  # Phase folding runs immediately after conversion to linear values and again
+  # after final canonicalization and dead quantum elimination. The early fold
+  # exposes phase interactions before simplification, while cleanup keeps the
+  # late fold focused on terms exposed by Clifford normalization.
+  jit-mid-level-pipeline: "decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)},apply-op-specialization,func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(phase-folding,canonicalize),func.func(quake-simplify{rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:0%},normalize-phase-placement,lower-phase),optimize-1q-clifford-t,func.func(canonicalize,dqe,phase-folding,regtomem),decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)}"

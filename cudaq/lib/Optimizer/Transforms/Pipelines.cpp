@@ -118,6 +118,11 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // Apply specialization must see the quantum operations it is going to
+  // control. Inlining here exposes quantum work hidden behind ordinary
+  // func.call operations (e.g., the UCCSD helper hierarchy) before creating
+  // a control variant.
+  cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
   cudaq::opt::addAggressiveInlining(pm);
@@ -297,6 +302,10 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // Apply specialization must see the quantum operations directly. Inlining
+  // first prevents quantum func.call operations from being left uncontrolled
+  // in generated control or adjoint variants.
+  cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::GenerateKernelExecutionOptions gkeOpts;
   gkeOpts.genRunStack = options.autoGenRunStack;

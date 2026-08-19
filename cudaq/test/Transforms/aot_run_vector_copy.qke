@@ -1,0 +1,55 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline)' %s | FileCheck %s
+
+// Regression test for the Python AOT pipeline's vector-return handling.
+// `__nvqpp_vectorCopyCtor` must remain a direct call until
+// RunSemanticsHackery creates the `.ruined` run clone and removes the
+// unnecessary heap copy; otherwise malloc/memcpy reaches remote targets.
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_copy = "__nvqpp__mlirgen__aot_run_vector_copy_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__aot_run_vector_copy() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %c1 = arith.constant 1 : i64
+    %c8 = arith.constant 8 : i64
+    %array = cc.alloca i8[%c1 : i64]
+    %source = cc.cast %array : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    %copy = func.call @__nvqpp_vectorCopyCtor(%source, %c1, %c8) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+    %result = cc.sequence_init %copy, %c1 : (!cc.ptr<i8>, i64) -> !cc.sequence<i1>
+    return %result : !cc.sequence<i1>
+  }
+
+  func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
+  func.func private @malloc(i64) -> !cc.ptr<i8>
+  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> attributes {no_inline} {
+    %size = arith.muli %arg1, %arg2 : i64
+    %heap = func.call @malloc(%size) : (i64) -> !cc.ptr<i8>
+    %false = arith.constant false
+    func.call @llvm.memcpy.p0.p0.i64(%heap, %arg0, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    return %heap : !cc.ptr<i8>
+  }
+}
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy()
+// CHECK: call @__nvqpp_vectorCopyCtor
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy.run()
+// CHECK-NOT: call @__nvqpp_vectorCopyCtor
+// CHECK-NOT: call @malloc
+// CHECK-NOT: call @llvm.memcpy
+// CHECK: quake.log_output
+// CHECK: return
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy.ruined()
+// CHECK-NOT: call @__nvqpp_vectorCopyCtor
+// CHECK-NOT: call @malloc
+// CHECK-NOT: call @llvm.memcpy
+// CHECK: cc.sequence_init
+// CHECK-NOT: call @__nvqpp_vectorCopyCtor
+// CHECK-NOT: call @malloc
+// CHECK-NOT: call @llvm.memcpy
+// CHECK: return
