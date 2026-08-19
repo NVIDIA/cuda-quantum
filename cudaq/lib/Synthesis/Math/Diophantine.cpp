@@ -220,7 +220,7 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 // Integer factoring  (Pollard-Brent rho)
 //===----------------------------------------------------------------------===//
 
-/// True once `deadline` has passed. Unset deadline never expires, which is
+/// True once `deadline` has passed. An unset deadline never expires, which is
 /// the default and the only reproducible configuration.
 bool past_deadline(
     const std::optional<std::chrono::steady_clock::time_point> &deadline) {
@@ -276,8 +276,8 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   size_t digits = num_decimal_digits(n);
   double pow_term = std::pow(10.0, static_cast<double>(digits) / 4.0);
   int64_t L = static_cast<int64_t>(pow_term * 1.1774 + 10.0);
-  // Keep the budget reachable, so the exit below is the budget's and not the
-  // optional clock's. Giving up on a hard composite early is cheap.
+  // Keep the budget reachable, so the exit below is the budget's rather than
+  // the optional clock's. Giving up early on a hard composite is cheap.
   L = std::min(L, static_cast<int64_t>(budget.maxFactoringIterations));
 
   GmpRng &rng = global_rng();
@@ -305,8 +305,8 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
     return out;
   };
 
-  // Rho iterations are the machine-independent measure of what this attempt
-  // spent, so record k however the loop below exits.
+  // Record k however the loop below exits: rho iterations are the
+  // machine-independent measure of what this attempt spent.
   struct IterationRecorder {
     GridsynthStats *stats;
     int64_t *iterations_out;
@@ -375,9 +375,9 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
         return make_result(g);
       }
 
-      // L is the real limit: derived from the input size and clamped by the
-      // caller's budget, so the same seed and input do the same work on every
-      // machine. The optional deadline only fires when a caller asked for one.
+      // L is the real limit -- derived from the input size and clamped by the
+      // caller's budget, so the same seed does the same work everywhere. The
+      // deadline only fires when a caller asked for one.
       const bool budget_spent = k >= L;
       const bool clock_spent = !budget_spent && past_deadline(budget.deadline);
       if (budget_spent || clock_spent) {
@@ -790,7 +790,7 @@ DiophantineResult adj_decompose(Integer n, const DiophantineBudget &budget,
   std::vector<Factor> factors = {{n, 1}};
   ZOmega t = ZOmega::from_int(1);
   // Restart budget for the composite on top of the stack, reset when the top
-  // changes so the bound is per composite rather than a running total.
+  // changes so the bound is per composite, not a running total.
   Integer retried_p;
   int retries = 0;
   int64_t iterations = 0;
@@ -807,18 +807,22 @@ DiophantineResult adj_decompose(Integer n, const DiophantineBudget &budget,
       llvm::FailureOr<Integer> factor =
           find_factor(p, budget, stats, &iterations);
       if (llvm::failed(factor)) {
-        // Push the unfactored term back and keep going only if this composite
-        // has attempts left and the candidate has budget left.
+        // Push the unfactored term back, and keep going only if both this
+        // composite and the candidate have budget left.
         factors.emplace_back(p, k);
         retries = (p == retried_p) ? retries + 1 : 0;
         retried_p = p;
         if (stats && retries > 0)
           stats->factoring_restarts++;
         if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
+          if (stats)
+            stats->candidates_budget_exhausted++;
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
         if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
+          if (stats)
+            stats->candidates_budget_exhausted++;
           CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
           return NoSolution{};
         }
@@ -1028,10 +1032,14 @@ DiophantineResult adj_decompose_selfcoprime(const ZSqrt2 &xi,
         if (stats && retries > 0)
           stats->factoring_restarts++;
         if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
+          if (stats)
+            stats->candidates_budget_exhausted++;
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
         if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
+          if (stats)
+            stats->candidates_budget_exhausted++;
           CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
           return NoSolution{};
         }

@@ -20,63 +20,57 @@ namespace cudaq::synth {
 ///
 /// `gridsynth` otherwise reports only success or `failure()`, which collapses
 /// "this tolerance is unreachable by construction" together with "the search
-/// ran out of room" -- distinctions a caller needs in order to decide whether
-/// retrying differently could possibly help.
+/// ran out of room" -- a distinction the caller needs to decide whether
+/// retrying differently could help.
 enum class GridsynthOutcome : uint8_t {
   /// A unitary meeting the tolerance was found by the grid search.
   Success,
 
-  /// The tolerance is loose enough that a Clifford (zero T gates) already
-  /// meets it, so no search ran.
+  /// A Clifford (zero T gates) already met the tolerance, so no search ran.
   ZeroTShortcut,
 
   /// theta was not finite, or epsilon was not finite and strictly positive.
   InvalidInput,
 
-  /// The epsilon region degenerated -- epsilon is too large or too small for
-  /// the region construction to produce a usable ellipse.
+  /// epsilon is too large or too small for the region construction to produce
+  /// a usable ellipse.
   DegenerateEpsilonRegion,
 
-  /// Upright `preprocessing` of the region failed, so the search never started.
-  /// Distinct from a degenerate region: the region was built, the grid
-  /// operator derived from it was not usable.
+  /// Upright `preprocessing` failed, so the search never started. Unlike a
+  /// degenerate region, the region was built; the grid operator was not usable.
   PreprocessingFailed,
 
-  /// The search scanned every denominator exponent up to `k_max` without a
-  /// solvable candidate. Retrying with a larger budget may help; a larger
-  /// epsilon certainly will.
+  /// Every denominator exponent up to `k_max` was scanned without a solvable
+  /// candidate. A larger budget may help; a larger epsilon certainly will.
   KExhausted,
 
-  /// `GridsynthOptions::timeout` expired before a solution was found. Only
-  /// reachable when the caller opted into a wall-clock limit, and unlike every
-  /// other outcome here it can differ between two machines running the same
-  /// inputs.
+  /// `GridsynthOptions::timeout` expired. Only reachable when the caller opted
+  /// into a wall-clock limit, and the only outcome here that can differ between
+  /// two machines running the same inputs.
   TimedOut,
 };
 
 /// Counters describing the work one `gridsynth` call performed.
 ///
-/// Passed in by non-owning pointer and left untouched when null, so an
+/// Passed by non-owning pointer and left untouched when null, so an
 /// `uninstrumented` call pays nothing. Plain (non-atomic) counters: one call is
 /// single-threaded, and the per-thread RNG makes concurrent calls independent.
 ///
-/// Counters are updated as the search runs rather than assembled at the end,
-/// so a caller watching from another thread can read progress out of a call
-/// that has not returned -- including one it is about to abandon for running
-/// too long. Only `outcome` is written once, at the end; treat it as valid
-/// only after the call returns.
+/// Counters are updated as the search runs, so a caller watching from another
+/// thread can read progress out of a call that has not returned -- including
+/// one it is about to abandon. Only `outcome` is written at the end; treat it
+/// as valid only after the call returns.
 ///
 /// These exist because wall-clock time cannot distinguish the two ways a run
-/// gets expensive -- grinding one hard candidate versus enumerating many
-/// candidates that never yield a solvable equation. Those want opposite fixes,
-/// so a default chosen without separating them is a guess.
+/// gets expensive: grinding one hard candidate versus enumerating many that
+/// never yield a solvable equation. Those want opposite fixes.
 struct GridsynthStats {
   /// How the call ended. Meaningful whether or not the call succeeded.
   GridsynthOutcome outcome = GridsynthOutcome::Success;
 
-  /// Denominator exponent the search reached, and the bound it was allowed.
-  /// `k_reached == k_max` on a failure is the signature of a search that ran
-  /// out of room rather than one that stalled on a single candidate.
+  /// Denominator exponent reached, and the bound allowed. `k_reached == k_max`
+  /// on a failure means the search ran out of room rather than stalling on a
+  /// single candidate.
   int64_t k_reached = 0;
   int64_t k_max = 0;
 
@@ -87,43 +81,42 @@ struct GridsynthStats {
   /// remainder is what the Diophantine solver was actually asked about.
   int64_t candidates_residue_rejected = 0;
 
-  /// Diophantine solves attempted, and how many returned a solution. A large
-  /// call count with few successes means the cost is candidate throughput,
-  /// not per-candidate effort.
+  /// Diophantine solves attempted, and how many returned a solution. Many
+  /// calls with few successes means the cost is candidate throughput, not
+  /// per-candidate effort.
   int64_t diophantine_calls = 0;
   int64_t diophantine_successes = 0;
 
-  /// Integer-factoring attempts made by the Diophantine solver, and how many
-  /// returned a factor. `factoring_restarts` counts re-rolls on a composite
-  /// that a previous attempt failed to split (the work the per-composite
-  /// restart cap bounds).
+  /// Integer-factoring attempts, and how many returned a factor.
+  /// `factoring_restarts` counts re-rolls on a composite a previous attempt
+  /// failed to split.
   int64_t factoring_calls = 0;
   int64_t factoring_successes = 0;
   int64_t factoring_restarts = 0;
 
-  /// Attempts `GridsynthOptions::timeout` ended before their iteration budget
-  /// ran out. Each one makes the result depend on host speed, so this must be
-  /// zero for a run to be reproducible across machines, which it is by
-  /// construction when no timeout was set.
-  int64_t factoring_wall_clock_exits = 0;
+  /// Solves abandoned because a work budget ran out -- the restart limit or
+  /// the per-candidate iteration budget -- rather than because the equation
+  /// has no solution. Without this the two are indistinguishable, and they say
+  /// opposite things about a budget: one that never exhausts is not buying
+  /// anything, one that exhausts constantly is costing T gates.
+  int64_t candidates_budget_exhausted = 0;
 
-  /// Candidate solves the timeout abandoned, one level up from
-  /// factoring_wall_clock_exits. Also must be zero to be reproducible.
+  /// Attempts `GridsynthOptions::timeout` ended before their iteration budget
+  /// ran out, and the same one level up. Both must be zero for a run to
+  /// reproduce across machines, which they are unless a timeout was set.
+  int64_t factoring_wall_clock_exits = 0;
   int64_t diophantine_wall_clock_exits = 0;
 
-  /// Pollard-rho iterations summed over every attempt. This is the
-  /// machine-independent measure of factoring effort, and what
-  /// `GridsynthOptions::maxFactoringIterations` bounds.
+  /// Pollard-rho iterations summed over every attempt: the machine-independent
+  /// measure of factoring effort, and what `maxFactoringIterations` bounds.
   int64_t factoring_iterations_total = 0;
 
-  /// MPFR working precision, in bits, the call ran at. Enumeration cost scales
-  /// with this, so it is the denominator for any comparison of per-k cost
-  /// across tolerances.
+  /// MPFR working precision the call ran at. Enumeration cost scales with it,
+  /// so it is the denominator for comparing per-k cost across tolerances.
   int64_t working_precision_bits = 0;
 
-  /// Wall-clock nanoseconds spent enumerating candidates and solving their
-  /// Diophantine equations. The budgets in `GridsynthOptions` only move the
-  /// second.
+  /// Nanoseconds spent enumerating candidates and solving their equations.
+  /// The budgets in `GridsynthOptions` only move the second.
   int64_t enumeration_ns = 0;
   int64_t diophantine_ns = 0;
 };

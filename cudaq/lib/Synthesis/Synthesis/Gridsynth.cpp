@@ -197,10 +197,10 @@ public:
     Real z_dot_v = z_x * v.real() + z_y * v.imag();
     Real rhs = dot_threshold - (z_x * u0.real() + z_y * u0.imag());
 
-    // Only an exactly-zero z.v counts as parallel: any threshold would be an
-    // absolute one on a quantity that scales with |v| = 1/sqrt(2)^k, and the
-    // parallel branch returns the whole disk chord instead of the sliver the
-    // half-plane cuts from it, flooding the TDGP with candidates to reject.
+    // Only an exactly-zero z.v counts as parallel. Any threshold would be an
+    // absolute one on a quantity that scales with 1/sqrt(2)^k, and the parallel
+    // branch returns the whole disk chord rather than the sliver the half-plane
+    // cuts from it, flooding the TDGP with candidates to reject.
     if (z_dot_v > 0) {
       // Positive slope: clip t from below by rhs / z_dot_v.
       Real t_min = std::max(t0, rhs / z_dot_v);
@@ -324,12 +324,10 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
                   const GridsynthOptions &options, GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("gridsynth_unitary");
 
-  // Counters are written straight into the caller's struct when one is
-  // supplied, so they stay readable while the search is still running -- a run
-  // that has to be killed for taking too long is exactly the one whose
-  // counters matter, and one published only on return would be lost. When no
-  // struct is supplied they land in a scratch object instead, which keeps the
-  // uninstrumented path free of per-candidate branches.
+  // Counters go straight into the caller's struct so they stay readable while
+  // the search runs -- a call killed for taking too long is the one whose
+  // counters matter, and it never reaches its return. Without a caller struct
+  // they land in a scratch one, keeping the hot path free of null checks.
   GridsynthStats scratch;
   GridsynthStats &local = stats ? *stats : scratch;
   auto publish = [&](GridsynthOutcome outcome) { local.outcome = outcome; };
@@ -348,18 +346,16 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
              << (options.seed ? std::to_string(*options.seed) : "unset")
              << "\n");
 
-  // Reseed once for the whole search rather than per candidate: the candidates
-  // share one random stream, so re-seeding inside the loop would make every
-  // candidate replay the same factoring attempts. The guard restores the
-  // previous state on the way out, so a seeded call leaves later unseeded ones
-  // drawing from entropy as they would have anyway.
+  // Reseed once for the whole search, not per candidate: they share one random
+  // stream, so re-seeding in the loop would make every candidate replay the
+  // same attempts. The guard restores the previous state on the way out.
   std::optional<ScopedFactoringRngSeed> seedGuard;
   if (options.seed)
     seedGuard.emplace(*options.seed);
 
-  // Resolve the optional timeout into one absolute deadline shared by every
-  // candidate. A per-candidate timeout would bound nothing overall, since the
-  // k-loop is free to start another candidate as soon as one gives up.
+  // Resolve the optional timeout into one deadline shared by every candidate.
+  // A per-candidate timeout would bound nothing overall, since the k-loop
+  // starts another candidate as soon as one gives up.
   using Clock = std::chrono::steady_clock;
   DiophantineBudget budget{options.maxFactoringIterations,
                            options.maxCandidateIterations,
@@ -480,9 +476,8 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
     local.k_reached = static_cast<int64_t>(k);
     local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
     for (const DOmega &z : stepper) {
-      // The deadline is the caller's escape hatch, so it has to be able to end
-      // the search itself. A solver that gives up on every candidate quickly
-      // would otherwise keep the k-loop running past it forever.
+      // The deadline has to end the search itself: a solver that gives up
+      // quickly on every candidate would keep the k-loop running past it.
       if (budget.deadline && Clock::now() >= *budget.deadline) {
         local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
         publish(GridsynthOutcome::TimedOut);
@@ -583,14 +578,14 @@ llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
 
   // The search runs at Real's global default precision, which belongs to the
   // caller. Too low for the requested epsilon it fails, hangs, or returns a
-  // circuit outside tolerance, so raise it here rather than trusting callers.
+  // circuit outside tolerance, so raise it here rather than trust callers.
   const mpfr_prec_t needed = details::required_precision(epsilon);
   std::optional<ScopedDefaultPrecision> raised;
   Real theta_hi(theta), epsilon_hi(epsilon);
   if (Real::get_default_precision() < needed) {
     raised.emplace(needed);
     // A Real keeps the precision it was built with, so the caller's copies
-    // would cap the search even inside the raised scope. Widening is exact.
+    // would cap the search inside the raised scope. Widening is exact.
     theta_hi = Real();
     epsilon_hi = Real();
     mpfr_set(theta_hi.get_mpfr(), theta.get_mpfr(), MPFR_RNDN);

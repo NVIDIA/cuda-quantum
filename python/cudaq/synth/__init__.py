@@ -134,29 +134,22 @@ def gridsynth(theta,
             (float, or `str`).
         `max_factoring_iterations`: Pollard-rho iterations one factoring
             attempt may spend before the solver gives up on that candidate.
-            Higher values improve `optimality` (fewer T gates) at the cost
-            of worst-case latency. Default 500000.
+            Higher improves `optimality` (fewer T gates) at the cost of
+            worst-case latency. Default 500000.
         `max_candidate_iterations`: Pollard-rho iterations one grid
-            candidate may spend in total, summed over its factoring
-            attempts. Default 2000000.
+            candidate may spend across its attempts. Default 2000000.
         `max_factoring_restarts`: Consecutive failed factoring attempts
-            allowed on one composite, each re-rolling the rho parameters.
-            Default 8.
-        `max_odgp_scan_steps`: Steps one candidate-enumeration line scan
-            may take without producing a candidate before it gives up on
-            that line. Bounds enumeration, which is a cost separate from
-            the factoring budgets above. Default 65536.
+            allowed on one composite. Default 8.
+        `max_odgp_scan_steps`: Steps one enumeration line scan may take
+            without producing a candidate. Default 65536.
         seed: Seed for the internal factoring RNG. Default ``None`` draws
-            from the system entropy source, so repeated calls on the same
-            input explore different factoring attempts and their runtimes
-            can differ by orders of magnitude. Pass an `int` to make a run
-            `replayable`.
-        `timeout_ms`: Optional wall-clock limit on the whole call, in
-            milliseconds. Default ``None``, which is the reproducible
-            configuration: the budgets above count work rather than time,
-            so the same inputs do the same work on any machine. Setting
-            this gives that up and is meant as an escape hatch, not a
-            tuning knob.
+            from system entropy, so repeated calls explore different
+            factoring attempts and their runtimes can differ by orders of
+            magnitude. Pass an `int` to make a run `replayable`.
+        `timeout_ms`: Optional wall-clock limit on the whole call. Default
+            ``None`` is the reproducible configuration: the budgets above
+            count work rather than time, so the same inputs do the same
+            work on any machine. An escape hatch, not a tuning knob.
 
     Returns:
         A :class:`CliffordTSequence`. ``str()`` of the result is the gate

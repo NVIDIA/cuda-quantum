@@ -61,10 +61,9 @@ namespace cudaq::synth {
 /// returned by `*it`) is valid only until the next call to `next()` / `++it`.
 /// Callers must consume or copy before advancing.
 ///
-/// `max_scan_steps` bounds how far the enumeration walks without yielding
-/// anything, see `GridsynthOptions::maxOdgpScanSteps`. It is a step count
-/// rather than a duration so that the same intervals enumerate identically on
-/// every machine. Every stepper below forwards it to the one it wraps.
+/// `max_scan_steps` bounds how far the enumeration walks without yielding; see
+/// `GridsynthOptions::maxOdgpScanSteps`. Every stepper below forwards it to
+/// the one it wraps.
 class OdgpStepper : public StepperBase<OdgpStepper, ZSqrt2> {
 public:
   OdgpStepper(Interval I, Interval J,
@@ -106,10 +105,10 @@ private:
   bool started_ = false;
   bool exhausted_ = false;
 
-  // Steps taken without producing a solution, and the bound on them. The
-  // count accumulates over this stepper's whole lifetime rather than resetting
-  // on a yield: the scan alternates between next() and setup_current_a(), each
-  // doing only a few steps per call, so a per-loop budget would never trip.
+  // Steps taken without producing a solution, and their bound. Accumulated
+  // over the stepper's lifetime rather than reset on a yield: the scan
+  // alternates between next() and setup_current_a(), each doing only a few
+  // steps per call, so a per-loop budget would never trip.
   uint64_t fruitless_steps_ = 0;
   uint64_t max_scan_steps_;
 

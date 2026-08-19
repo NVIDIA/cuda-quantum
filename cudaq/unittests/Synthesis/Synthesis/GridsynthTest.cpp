@@ -366,8 +366,8 @@ TEST(GridsynthStatsTest, CountsFactoringWork) {
 // not depend on host speed. With no timeout set there is no clock in the
 // search at all, and the rho-iteration total has to come out identical.
 TEST(GridsynthDeterminismTest, WallClockDoesNotDecideTheOutcome) {
-  // Deep enough that the solver does real factoring work. This is also where
-  // the wall clock used to fire, back when it was the terminating condition.
+  // Deep enough for real factoring work, and where the wall clock used to
+  // fire back when it was the terminating condition.
   const char *epsilon = "1e-25";
   ScopedPrecision precision(
       cudaq::synth::details::required_precision(Real(epsilon)));
@@ -398,8 +398,8 @@ TEST(GridsynthDeterminismTest, WallClockDoesNotDecideTheOutcome) {
   EXPECT_GT(first_stats.factoring_iterations_total, 0);
 }
 
-// The per-attempt budget has to actually bind, or it is not the thing keeping
-// the search bounded. Cutting it far enough must change what the search does.
+// The per-attempt budget has to actually bind, or it is not what keeps the
+// search bounded.
 TEST(GridsynthDeterminismTest, TheFactoringBudgetBindsTheSearch) {
   const char *epsilon = "1e-25";
   ScopedPrecision precision(
@@ -424,11 +424,9 @@ TEST(GridsynthDeterminismTest, TheFactoringBudgetBindsTheSearch) {
          "so something other than the budget is ending the attempts";
 }
 
-// The ODGP scan limit bounds candidate enumeration, which is a cost entirely
-// separate from the factoring budgets. It is what keeps a line scan with no
-// solution on it from walking a range that can be wider than 1e15. Abandoning
-// a scan has to stay safe so the only visible effect of tightening it is that
-// fewer candidates come out.
+// The scan limit bounds enumeration, a cost separate from the factoring
+// budgets. Abandoning a scan is safe -- the search moves on to the next k --
+// so the only visible effect of tightening it is fewer candidates.
 TEST(GridsynthScanLimitTest, BoundsEnumerationWithoutBreakingTheSearch) {
   const char *epsilon = "1e-20";
   ScopedPrecision precision(
@@ -454,9 +452,8 @@ TEST(GridsynthScanLimitTest, BoundsEnumerationWithoutBreakingTheSearch) {
       << "a four-step scan limit enumerated as much as the shipped one, so "
          "the limit is not reaching the enumerator";
 
-  // A scan cut short must not produce a candidate outside the epsilon region.
-  // Whether the search still finds a solution at all under an absurd limit is
-  // not promised; that it never returns a wrong one is.
+  // An absurd limit is not promised to find a solution at all, but it must
+  // never return one outside the epsilon region.
   if (llvm::succeeded(tight)) {
     Real err(cudaq::synth::rz_gate_sequence_error(kSeedSensitiveTheta, *tight));
     EXPECT_LE(err, Real(epsilon));
@@ -476,9 +473,9 @@ TEST(GridsynthStatsTest, ReportsInvalidInput) {
   EXPECT_EQ(stats_for("nan", "1e-10").outcome, GridsynthOutcome::InvalidInput);
 }
 
-// The counters have to be readable from another thread while the search is
-// still running -- a call that has to be killed for running too long is
-// precisely the one worth measuring, and it never reaches its return.
+// The counters have to be readable from another thread mid-search: a call
+// killed for running too long is the one worth measuring, and it never
+// reaches its return.
 TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
   GridsynthStats stats;
   std::atomic<bool> done{false};
@@ -490,9 +487,8 @@ TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
     done = true;
   });
 
-  // Sample until the search reports progress or finishes. Reading a counter
-  // mid-update can only yield a stale value, never a torn one, since these are
-  // word-sized and only ever increase.
+  // Reading a counter mid-update can only yield a stale value, never a torn
+  // one: they are word-sized and only ever increase.
   int64_t observed = 0;
   while (!done && observed == 0)
     observed = stats.candidates_enumerated;
@@ -522,13 +518,10 @@ TEST(GridsynthSeedTest, DifferentSeedsExploreDifferentStreams) {
   EXPECT_NE(synthesize_with(1234), synthesize_with(4321));
 }
 
-// A seeded call must leave the thread's random state where it found it.
-// Otherwise every later unseeded call continues the seeded stream instead of
-// the entropy-derived one, and an unseeded result silently depends on what ran
-// before it in the same process.
-//
-// Both halves run under an outer seed so the unseeded calls are comparable at
-// all; the only difference between them is the seeded call in the middle.
+// A seeded call must leave the thread's random state where it found it, or
+// every later unseeded call continues the seeded stream and silently depends
+// on what ran before it. Both halves run under an outer seed so the unseeded
+// calls are comparable; the only difference is the seeded call in the middle.
 TEST(GridsynthSeedTest, SeededCallRestoresThePreviousRandomState) {
   std::string without_intervening_call;
   {

@@ -43,13 +43,14 @@ cudaq::synth::Real toReal(const RealArg &arg, const char *name) {
   return *std::move(parsed);
 }
 
-std::string gridsynthBinding(RealArg theta, RealArg epsilon,
-                             uint64_t max_factoring_iterations,
-                             uint64_t max_candidate_iterations,
-                             uint32_t max_factoring_restarts,
-                             uint64_t max_odgp_scan_steps,
-                             std::optional<uint64_t> seed,
-                             std::optional<int64_t> timeout_ms) {
+/// Shared body of the two gridsynth entry points. Writes the counters into
+/// `stats` so the caller can decide whether to surface them.
+std::string
+gridsynthImpl(RealArg theta, RealArg epsilon, uint64_t max_factoring_iterations,
+              uint64_t max_candidate_iterations,
+              uint32_t max_factoring_restarts, uint64_t max_odgp_scan_steps,
+              std::optional<uint64_t> seed, std::optional<int64_t> timeout_ms,
+              cudaq::synth::GridsynthStats &stats) {
   // Parse epsilon once at the stock precision, which is ample to read off its
   // magnitude, and validate before deriving anything from it.
   cudaq::synth::Real epsilonProbe = toReal(epsilon, "epsilon");
@@ -80,16 +81,14 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
     options.timeout = std::chrono::milliseconds(*timeout_ms);
   }
 
-  cudaq::synth::GridsynthStats stats;
   llvm::FailureOr<cudaq::synth::Circuit> result = llvm::failure();
   {
     nanobind::gil_scoped_release nogil;
     result = cudaq::synth::gridsynth(thetaReal, epsilonReal, options, &stats);
   }
   if (llvm::failed(result)) {
-    // A timeout is the caller's own limit rather than a property of the
-    // inputs, so saying "search exhausted" would send them looking in the
-    // wrong place.
+    // A timeout is the caller's own limit, not a property of the inputs, so
+    // "search exhausted" would send them looking in the wrong place.
     if (stats.outcome == cudaq::synth::GridsynthOutcome::TimedOut)
       throw nanobind::value_error(
           "gridsynth: timeout_ms expired before a Clifford+T approximation "
@@ -99,6 +98,78 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
         "(degenerate epsilon region or search exhausted)");
   }
   return result->to_string();
+}
+
+std::string gridsynthBinding(RealArg theta, RealArg epsilon,
+                             uint64_t max_factoring_iterations,
+                             uint64_t max_candidate_iterations,
+                             uint32_t max_factoring_restarts,
+                             uint64_t max_odgp_scan_steps,
+                             std::optional<uint64_t> seed,
+                             std::optional<int64_t> timeout_ms) {
+  cudaq::synth::GridsynthStats stats;
+  return gridsynthImpl(theta, epsilon, max_factoring_iterations,
+                       max_candidate_iterations, max_factoring_restarts,
+                       max_odgp_scan_steps, seed, timeout_ms, stats);
+}
+
+/// Name of a GridsynthOutcome, for the stats dict below.
+const char *outcomeName(cudaq::synth::GridsynthOutcome outcome) {
+  switch (outcome) {
+  case cudaq::synth::GridsynthOutcome::Success:
+    return "success";
+  case cudaq::synth::GridsynthOutcome::ZeroTShortcut:
+    return "zero_t_shortcut";
+  case cudaq::synth::GridsynthOutcome::InvalidInput:
+    return "invalid_input";
+  case cudaq::synth::GridsynthOutcome::DegenerateEpsilonRegion:
+    return "degenerate_epsilon_region";
+  case cudaq::synth::GridsynthOutcome::PreprocessingFailed:
+    return "preprocessing_failed";
+  case cudaq::synth::GridsynthOutcome::KExhausted:
+    return "k_exhausted";
+  case cudaq::synth::GridsynthOutcome::TimedOut:
+    return "timed_out";
+  }
+  return "unknown";
+}
+
+/// gridsynth plus its counters, as (gates, stats dict).
+///
+/// Private on purpose: the shape of a public statistics API belongs to the
+/// pending synth API restructure. This exists so budget tuning can be
+/// measured rather than guessed at.
+nanobind::tuple gridsynthWithStatsBinding(RealArg theta, RealArg epsilon,
+                                          uint64_t max_factoring_iterations,
+                                          uint64_t max_candidate_iterations,
+                                          uint32_t max_factoring_restarts,
+                                          uint64_t max_odgp_scan_steps,
+                                          std::optional<uint64_t> seed,
+                                          std::optional<int64_t> timeout_ms) {
+  cudaq::synth::GridsynthStats stats;
+  std::string gates = gridsynthImpl(
+      theta, epsilon, max_factoring_iterations, max_candidate_iterations,
+      max_factoring_restarts, max_odgp_scan_steps, seed, timeout_ms, stats);
+
+  nanobind::dict out;
+  out["outcome"] = outcomeName(stats.outcome);
+  out["k_reached"] = stats.k_reached;
+  out["k_max"] = stats.k_max;
+  out["candidates_enumerated"] = stats.candidates_enumerated;
+  out["candidates_residue_rejected"] = stats.candidates_residue_rejected;
+  out["candidates_budget_exhausted"] = stats.candidates_budget_exhausted;
+  out["diophantine_calls"] = stats.diophantine_calls;
+  out["diophantine_successes"] = stats.diophantine_successes;
+  out["factoring_calls"] = stats.factoring_calls;
+  out["factoring_successes"] = stats.factoring_successes;
+  out["factoring_restarts"] = stats.factoring_restarts;
+  out["factoring_wall_clock_exits"] = stats.factoring_wall_clock_exits;
+  out["diophantine_wall_clock_exits"] = stats.diophantine_wall_clock_exits;
+  out["factoring_iterations_total"] = stats.factoring_iterations_total;
+  out["working_precision_bits"] = stats.working_precision_bits;
+  out["enumeration_ns"] = stats.enumeration_ns;
+  out["diophantine_ns"] = stats.diophantine_ns;
+  return nanobind::make_tuple(gates, out);
 }
 
 double rzErrorBinding(RealArg theta, const std::string &gates) {
@@ -143,6 +214,24 @@ NB_MODULE(_cudaq_synth, m) {
       "_normalized", &normalizedBinding, nanobind::arg("gates"),
       R"doc(Return the exact Matsumoto-Amano normal form of a gate string.)doc");
 
+  m.def("_gridsynth_with_stats", &gridsynthWithStatsBinding,
+        nanobind::arg("theta"), nanobind::arg("epsilon"),
+        nanobind::arg("max_factoring_iterations") =
+            cudaq::synth::details::DEFAULT_MAX_FACTORING_ITERATIONS,
+        nanobind::arg("max_candidate_iterations") =
+            cudaq::synth::details::DEFAULT_MAX_CANDIDATE_ITERATIONS,
+        nanobind::arg("max_factoring_restarts") =
+            cudaq::synth::details::DEFAULT_MAX_FACTORING_RESTARTS,
+        nanobind::arg("max_odgp_scan_steps") =
+            cudaq::synth::details::DEFAULT_MAX_ODGP_SCAN_STEPS,
+        nanobind::arg("seed") = nanobind::none(),
+        nanobind::arg("timeout_ms") = nanobind::none(),
+        R"doc(Private: gridsynth plus its work counters, as (gates, stats).
+
+Not part of the public API and not re-exported from cudaq.synth. The shape
+of a public statistics surface is part of the pending synth API restructure;
+this exists so budget tuning can be measured rather than guessed at.)doc");
+
   m.def(
       "gridsynth", &gridsynthBinding, nanobind::arg("theta"),
       nanobind::arg("epsilon"),
@@ -173,27 +262,22 @@ Args:
         (float, or str).
     max_factoring_iterations: Pollard-rho iterations one factoring
         attempt may spend before the solver gives up on that candidate.
-        Higher values improve optimality (fewer T gates) at the cost of
+        Higher improves optimality (fewer T gates) at the cost of
         worst-case latency. Default 500000.
     max_candidate_iterations: Pollard-rho iterations one grid candidate
-        may spend in total, summed over its factoring attempts. Default
-        2000000.
+        may spend across its attempts. Default 2000000.
     max_factoring_restarts: Consecutive failed factoring attempts allowed
-        on one composite, each re-rolling the rho parameters. Default 8.
-    max_odgp_scan_steps: Steps one candidate-enumeration line scan may
-        take without producing a candidate before it gives up on that
-        line. Bounds enumeration, which is a cost separate from the
-        factoring budgets above. Default 65536.
+        on one composite. Default 8.
+    max_odgp_scan_steps: Steps one enumeration line scan may take without
+        producing a candidate. Default 65536.
     seed: Seed for the internal factoring RNG. Default None draws from
-        the system entropy source, so repeated calls on the same input
-        explore different factoring attempts and their runtimes can
-        differ by orders of magnitude. Pass an integer to make a run
-        replayable.
-    timeout_ms: Optional wall-clock limit on the whole call, in
-        milliseconds. Default None, which is the reproducible
-        configuration: the budgets above count work rather than time, so
-        the same inputs do the same work on any machine. Setting this
-        gives that up and is meant as an escape hatch, not a tuning knob.
+        system entropy, so repeated calls explore different factoring
+        attempts and their runtimes can differ by orders of magnitude.
+        Pass an integer to make a run replayable.
+    timeout_ms: Optional wall-clock limit on the whole call. Default None
+        is the reproducible configuration: the budgets above count work
+        rather than time, so the same inputs do the same work on any
+        machine. An escape hatch, not a tuning knob.
 
 Returns:
     A string of gate characters from the alphabet {H, S, T, X, W}, where

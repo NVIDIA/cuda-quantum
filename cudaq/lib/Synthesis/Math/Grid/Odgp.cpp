@@ -258,12 +258,7 @@ OdgpStepper::~OdgpStepper() {
 }
 
 // True once this scan has taken max_scan_steps_ steps without yielding.
-//
-// The a-range is finite but can be astronomically wide (spans past 1e15 are
-// routine at k=100) which is harmless only because a solution normally turns
-// up within a few steps. On an instance with none, the scan walks the whole
-// span and never finishes. gridsynth(pi/4, 1e-15) hung on exactly that.
-// See GridsynthOptions::maxOdgpScanSteps for the bound itself.
+// See GridsynthOptions::maxOdgpScanSteps for why the bound has to exist.
 bool OdgpStepper::out_of_budget() {
   if (++fruitless_steps_ < max_scan_steps_)
     return false;

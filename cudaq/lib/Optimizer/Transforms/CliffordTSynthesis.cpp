@@ -127,10 +127,9 @@ static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
   return cur;
 }
 
-// Compute `base << shift` as a work budget, saturating at INT64_MAX instead of
-// overflowing. `base` and `shift` are validated non-negative by the pass before
-// this is called, so the only hazard is the retry loop scaling the budget past
-// what int64_t can hold.
+// Compute `base << shift` as a work budget, saturating at INT64_MAX rather
+// than overflowing. Both arguments are validated non-negative by the pass, so
+// the only hazard is the retry loop scaling the budget past int64_t.
 static uint64_t saturatingShl(int64_t base, int32_t shift) {
   assert(base >= 0 && shift >= 0 && "budgets and retry count must be >= 0");
   constexpr int64_t kMax = std::numeric_limits<int64_t>::max();
@@ -174,9 +173,8 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
   cudaq::synth::Real epsilonReal(opts.epsilon);
   llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
   for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
-    // Each retry doubles the work the solver may spend before giving up on a
-    // candidate. Doubling a work budget is reproducible in a way that doubling
-    // a timeout is not. Attempt N does the same work on every machine.
+    // Each retry doubles the work the solver may spend on a candidate. Unlike
+    // doubling a timeout, attempt N then does the same work on every machine.
     cudaq::synth::GridsynthOptions synthOpts;
     synthOpts.maxFactoringIterations =
         saturatingShl(opts.maxFactoringIterations, attempt);
