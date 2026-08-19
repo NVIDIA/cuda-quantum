@@ -227,7 +227,8 @@ public:
     if (!skipPipelineSubstitutions)
       pipelineSubstitutions =
           serverHelper->getPipelineSubstitutions(platformPath);
-    CompileTarget target(targetConfig, backendConfig, pipelineSubstitutions);
+    auto target = CompileTarget::createFromConfig(targetConfig, backendConfig,
+                                                  pipelineSubstitutions);
     target.pipelineConfig.replaceStateWithKernel = true;
     target.overrideAOTCompilation = true;
     target.supportExplicitMeasurements = false;

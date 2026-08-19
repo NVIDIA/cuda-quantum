@@ -131,7 +131,7 @@ createDefaultCompileTarget(quantum_platform *platform = nullptr) {
     targetConfig = rt->config;
     runtimeConfig = rt->runtimeConfig;
   }
-  cudaq::CompileTarget ct(targetConfig, runtimeConfig);
+  auto ct = cudaq::CompileTarget::createFromConfig(targetConfig, runtimeConfig);
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
 

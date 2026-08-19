@@ -63,7 +63,7 @@ struct CompileTarget {
   };
 
   /// Pipeline configuration, populated by the constructor.
-  PipelineConfig pipelineConfig;
+  PipelineConfig pipelineConfig{};
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
@@ -95,11 +95,10 @@ struct CompileTarget {
   bool argumentSynthChangeSemantics = true;
 
   /// Construct a CompileTarget from static and runtime backend configurations.
-  CompileTarget(config::TargetConfig targetConfig,
-                std::map<std::string, std::string> runtimeConfig,
-                std::map<std::string, std::string> pipelineSubstitutions = {});
-
-  CompileTarget() = default;
+  static CompileTarget createFromConfig(
+      config::TargetConfig targetConfig,
+      std::map<std::string, std::string> runtimeConfig,
+      std::map<std::string, std::string> pipelineSubstitutions = {});
 
   bool operator==(const CompileTarget &other) const = default;
 };

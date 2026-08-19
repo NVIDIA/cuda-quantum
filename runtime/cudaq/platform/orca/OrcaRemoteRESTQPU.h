@@ -10,6 +10,7 @@
 
 #include "OrcaExecutor.h"
 #include "common/CompiledModule.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "cudaq/utils/owning_ptr.h"
@@ -93,9 +94,9 @@ public:
 
   CompileTarget
   getCompileTarget(bool skipPipelineSubstitutions = false) override {
-    auto ct = QPU::getCompileTarget(skipPipelineSubstitutions);
-    ct.supportExplicitMeasurements = false;
-    return ct;
+    return {
+        .supportExplicitMeasurements = false,
+    };
   }
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
