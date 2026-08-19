@@ -129,9 +129,9 @@ struct CommutationResult {
 /// distinction between a proven failure to commute and the absence of a proof.
 ///
 /// A wrap through an unidentified reference, a call-like operation, a region
-/// owner, or another unsupported effectful operation invalidates active
-/// reference bindings because the analysis has no alias or captured-effect
-/// summary.
+/// owner, or another unsupported operation with memory effects invalidates
+/// active reference bindings because the analysis has no alias or
+/// captured-effect summary.
 /// Shared-support non-unitary rules cover only single-target matching-basis
 /// measurement instruments and reset-channel relations with unitary channels;
 /// sinks and pairs of non-unitary operations remain indeterminate. Reusable

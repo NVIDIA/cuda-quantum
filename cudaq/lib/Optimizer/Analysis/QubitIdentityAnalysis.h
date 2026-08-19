@@ -28,14 +28,14 @@ namespace cudaq::quake::detail {
 /// operations establish local identities. An allocation identity reaches wires
 /// through later unwraps in the same block and remains stable across a matching
 /// wrap and unwrap cycle. `quake.wrap_new` binds its reference only when its
-/// input wire already has a known identity. A wrap through an untracked
-/// reference invalidates active reference bindings because it may write through
-/// an alias. Call-like, region-owning, and otherwise unsupported effectful
-/// operations also invalidate active reference bindings because the analysis
-/// has no summary of captured reference effects. The analysis propagates
-/// identities through operators whose controls and targets are all scalar
-/// wires, and through scalar-wire results of measurement instruments and reset
-/// channels.
+/// input wire already has a known identity. A wrap through a reference without
+/// a known identity invalidates active reference bindings because it may write
+/// through an alias. Call-like, region-owning, and other unsupported operations
+/// with memory effects also invalidate active reference bindings because the
+/// analysis has no summary of captured reference effects. The analysis
+/// propagates identities through operators whose controls and targets are all
+/// scalar wires, and through scalar-wire results of measurement instruments and
+/// reset channels.
 ///
 /// Block arguments remain unidentified because valid IR does not guarantee
 /// that their incoming wires are distinct. The analysis also does not propagate

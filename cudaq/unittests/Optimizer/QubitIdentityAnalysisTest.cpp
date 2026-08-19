@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -21,9 +22,46 @@
 
 using namespace mlir;
 
-using cudaq::quake::detail::QubitIdentityAnalysis;
+using QubitIdentityAnalysis = cudaq::quake::detail::QubitIdentityAnalysis;
 
-TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
+TEST(QubitIdentityAnalysisTest, PropagatesAcrossIdentityMapGrowth) {
+  constexpr unsigned identityCount = 64;
+  std::string source;
+  llvm::raw_string_ostream os(source);
+  os << "module { func.func @growth() {\n";
+  for (unsigned i = 0; i < identityCount; ++i)
+    os << "  %wire" << i << " = quake.null_wire\n"
+       << "  %result" << i << " = quake.x %wire" << i
+       << " : (!quake.wire) -> !quake.wire\n"
+       << "  quake.sink %result" << i << " : !quake.wire\n";
+  os << "  return\n"
+        "} }\n";
+
+  MLIRContext context;
+  context.loadDialect<func::FuncDialect>();
+  context.loadDialect<cudaq::quake::QuakeDialect>();
+  auto module = parseSourceString<ModuleOp>(source, &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(succeeded(verify(*module)));
+  auto function = module->lookupSymbol<func::FuncOp>("growth");
+  ASSERT_TRUE(function);
+
+  auto nullWires = llvm::to_vector(function.getOps<cudaq::quake::NullWireOp>());
+  auto xOps = llvm::to_vector(function.getOps<cudaq::quake::XOp>());
+  ASSERT_EQ(nullWires.size(), identityCount);
+  ASSERT_EQ(xOps.size(), identityCount);
+
+  // Repeated source/result pairs grow the identity map several times while
+  // scalar-wire results inherit the source identity.
+  QubitIdentityAnalysis analysis(function.front());
+  for (auto [nullWire, x] : llvm::zip_equal(nullWires, xOps)) {
+    auto inputId = analysis.getQubitId(nullWire.getResult());
+    ASSERT_TRUE(inputId);
+    EXPECT_EQ(inputId, analysis.getQubitId(x.getWires().front()));
+  }
+}
+
+TEST(QubitIdentityAnalysisTest, DistinguishesKnownDisjointAndAliasedWires) {
   MLIRContext context;
   context.loadDialect<func::FuncDialect>();
   context.loadDialect<cudaq::cc::CCDialect>();
