@@ -131,14 +131,17 @@ typedef struct {
 
 ### Interface versioning
 
-Set `version` to `CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION`. The loader accepts
-any provider reporting a version in `[1, CURRENT]` and rejects newer ones, so a
-provider built against an older header keeps working: fields after `disconnect`
-are read only from providers reporting version >= 2, and `set_function_table`
-only from providers reporting version >= 3. A provider that does not implement
-an optional capability sets that entry to `NULL`, and the corresponding
-`cudaq_bridge_get_*` call then returns `CUDAQ_ERR_UNSUPPORTED` instead of
-dispatching into the provider.
+Set `version` to `CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION`. A provider must be
+built against the headers it runs against: the loader reads the whole struct
+and does not adapt to older layouts. A provider reporting a different value is
+rejected by `cudaq_bridge_create*`, which returns `CUDAQ_ERR_INTERNAL` after
+printing a message naming both versions, so a stale plug-in is identified
+rather than failing in obscure ways. Rebuild the provider whenever this value
+changes.
+
+A provider that does not implement an optional capability sets that entry to
+`NULL`, and the corresponding `cudaq_bridge_get_*` call then returns
+`CUDAQ_ERR_UNSUPPORTED` instead of dispatching into the provider.
 
 `set_function_table` (version 3) hands the provider the same
 `cudaq_function_table_t` the dispatcher receives from

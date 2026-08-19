@@ -166,8 +166,8 @@ cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge);
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 
 /// @brief Retrieve the CPU data-plane for the single-thread unified host
-/// dispatch loop.  Returns CUDAQ_ERR_UNSUPPORTED when the provider predates
-/// interface version 2 or does not implement the unified shape.
+/// dispatch loop.  Returns CUDAQ_ERR_UNSUPPORTED when the provider does not
+/// implement the unified shape.
 cudaq_status_t
 cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
                                cudaq_cpu_dataplane_t *out_dataplane);
@@ -177,16 +177,14 @@ cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
 /// `transport=cpu_roce port=9000 roce_ip=10.0.0.2 qp=0x1a rkey=1234`) into
 /// `buf`.  Valid as soon as create() returns, so a server can publish its
 /// rendezvous endpoint BEFORE connect() blocks waiting for the peer.  Returns
-/// CUDAQ_ERR_UNSUPPORTED when the provider predates interface version 2 or
-/// has nothing to report.
+/// CUDAQ_ERR_UNSUPPORTED when the provider has nothing to report.
 cudaq_status_t
 cudaq_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t bridge, char *buf,
                                size_t buf_len);
 
 /// @brief Retrieve the provider's ring geometry so dispatcher configuration
 /// can be derived from the transport instead of duplicated by the caller.
-/// Returns CUDAQ_ERR_UNSUPPORTED when the provider predates interface
-/// version 2.
+/// Returns CUDAQ_ERR_UNSUPPORTED when the provider does not report geometry.
 cudaq_status_t
 cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
                                uint32_t *out_num_slots,
@@ -202,15 +200,12 @@ cudaq_status_t
 cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
                                 const cudaq_function_table_t *table);
 
-/// Version 2 adds the capability queries after `disconnect`:
-/// `get_cpu_dataplane`, `get_endpoint_info`, and `get_ring_geometry`.
-/// Version 3 adds `set_function_table` after those.  The loader accepts
-/// providers reporting any version in [1, CURRENT]; fields
-/// beyond `disconnect` are only read from providers reporting version >= 2
-/// (a v1 provider's struct may simply end at `disconnect`), and the version-3
-/// field only from providers reporting version >= 3.  A v2+ provider
-/// sets entries it does not support to NULL; the corresponding API calls
-/// return CUDAQ_ERR_UNSUPPORTED.
+/// A provider must be built against this header: the loader reads the whole
+/// struct and does not adapt to older layouts.  A provider reporting a
+/// different value is rejected at load with a message naming both versions,
+/// so a stale plug-in is identified instead of failing in obscure ways.  A
+/// provider sets entries it does not implement to NULL; the corresponding API
+/// calls then return CUDAQ_ERR_UNSUPPORTED.
 #define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 3
 
 /// @brief Interface struct for transport layer providers.  Each provider must
@@ -230,9 +225,8 @@ typedef struct {
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
 
   //--------------------------------------------------------------------------
-  // Version 2 fields.  Read only when `version >= 2`; each may be NULL when
-  // the provider does not support the capability (the API wrappers then
-  // return CUDAQ_ERR_UNSUPPORTED).
+  // Added in version 2.  Each may be NULL when the provider does not support
+  // the capability (the API wrappers then return CUDAQ_ERR_UNSUPPORTED).
   //--------------------------------------------------------------------------
 
   /// Fills *out with the ring data-plane the library's single-thread
@@ -253,9 +247,8 @@ typedef struct {
                                       uint32_t *out_slot_size);
 
   //--------------------------------------------------------------------------
-  // Version 3 fields.  Read only when `version >= 3`; NULL when the provider
-  // does not consume the capability (the API wrapper then returns
-  // CUDAQ_ERR_UNSUPPORTED).
+  // Added in version 3.  NULL when the provider does not consume the table
+  // (the API wrapper then returns CUDAQ_OK).
   //--------------------------------------------------------------------------
 
   /// Registers the dispatcher's function table with the transport; see
