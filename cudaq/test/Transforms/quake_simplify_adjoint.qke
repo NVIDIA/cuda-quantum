@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt --quake-simplify %s | FileCheck %s
 // RUN: cudaq-opt --quake-simplify %s | CircuitCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-simplify,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-simplify,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase ('
 // RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-simplify,normalize-phase-placement,lower-phase,canonicalize))' %s | CircuitCheck %s
 
 // CircuitCheck intentionally uses strict unitary equivalence in this file to

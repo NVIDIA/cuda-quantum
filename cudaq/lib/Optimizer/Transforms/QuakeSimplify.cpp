@@ -588,16 +588,16 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
       return failure();
     }
+    Value trgt = targets.front();
 
     auto prev0 = targets.front().template getDefiningOp<cudaq::quake::SOp>();
-    if (!prev0 || !prev0.getControls().empty() ||
-        prev0.getTargets().size() != 1) {
+    if (!prev0 || prev0.getTargets().size() != 1) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be S\n");
       return failure();
     }
     auto prev =
         prev0.getTargets().front().template getDefiningOp<cudaq::quake::YOp>();
-    if (!prev || !prev.getControls().empty() || prev.getTargets().size() != 1) {
+    if (!prev || prev.getTargets().size() != 1) {
       LLVM_DEBUG(llvm::dbgs() << "previous previous operation must be Y\n");
       return failure();
     }
