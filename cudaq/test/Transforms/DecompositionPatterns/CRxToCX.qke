@@ -7,15 +7,19 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CRxToCX})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CRxToCX})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CRxToCX})' %s | CircuitCheck %s
 // RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(expand-control-veqs,memtoreg),decomposition{enable-patterns=CRxToCX})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(expand-control-veqs,memtoreg),decomposition{enable-patterns=CRxToCX})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(expand-control-veqs,memtoreg),decomposition{enable-patterns=CRxToCX})' %s | CircuitCheck %s
 
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CRxToCX},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CRxToCX},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 // Test the decomposition pattern with different control types. The FileCheck
 // part of this test only cares about the sequence of operations. Correcteness
 // is checked by CircuitCheck.
 
 // CHECK-LABEL: func.func @qref_control
+// LOWER-LABEL: func.func @qref_control
+// LOWER: quake.s
 func.func @qref_control(%c: !quake.ref, %t: !quake.ref) {
   %0 = arith.constant 1.57079632679489660 : f64
   // CHECK: quake.s
@@ -26,6 +30,7 @@ func.func @qref_control(%c: !quake.ref, %t: !quake.ref) {
   // CHECK-NEXT: quake.rz
   quake.rx (%0)[%c] %t : (f64, !quake.ref, !quake.ref) -> ()
   return
+  // CHECK: quake.phase
 }
 
 // CHECK-LABEL: func.func @qvec_control
@@ -37,6 +42,7 @@ func.func @qvec_control(%c: !quake.veq<1>, %t: !quake.ref) {
   // CHECK-NEXT: quake.x
   // CHECK-NEXT: quake.ry
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   quake.rx (%0)[%c] %t : (f64, !quake.veq<1>, !quake.ref) -> ()
   return
 }
@@ -50,6 +56,7 @@ func.func @adj(%c: !quake.ref, %t: !quake.ref) {
   // CHECK-NEXT: quake.x
   // CHECK-NEXT: quake.ry
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   quake.rx<adj> (%0)[%c] %t : (f64, !quake.ref, !quake.ref) -> ()
   return
 }
@@ -58,6 +65,7 @@ func.func @adj(%c: !quake.ref, %t: !quake.ref) {
 func.func @negated_controls(%c: !quake.ref, %t: !quake.ref) {
   %0 = arith.constant 2.57079632679489660 : f64
   quake.rx (%0)[%c neg [true]] %t : (f64, !quake.ref, !quake.ref) -> ()
+  // CHECK: quake.phase
   return
 }
 
@@ -65,6 +73,7 @@ func.func @negated_controls(%c: !quake.ref, %t: !quake.ref) {
 // This is testing control and target in a different order
 func.func @negated_controls_2(%t: !quake.ref, %c: !quake.ref) {
   %0 = arith.constant 2.57079632679489660 : f64
+  // CHECK: quake.phase
   quake.rx (%0)[%c neg [true]] %t : (f64, !quake.ref, !quake.ref) -> ()
   return
 }
