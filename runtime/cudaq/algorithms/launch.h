@@ -65,22 +65,7 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
 
   typename Policy::result_type result;
   auto &qpu = platform.getRuntimeEndpoint(qpu_id);
-  cudaq::CompileTarget target;
-  cudaq::CompileOptions options;
-  if constexpr (requires { policy.inner; }) {
-    options = cudaq::get_compile_options(policy.inner);
-    target = platform.getCompileTarget(policy.inner, qpu_id);
-  } else {
-    options = cudaq::get_compile_options(policy);
-    target = platform.getCompileTarget(policy, qpu_id);
-  }
-  const bool isEmulated = platform.is_emulated(qpu_id);
-  const bool isRemote = platform.is_remote(qpu_id);
-  options.emulate = isEmulated;
-  options.emitJit |= !isRemote;
-  options.boolVecBitPacked = !isRemote && !isEmulated;
-
-  ctx.executeKernelApi = [&qpu, &result, &policy, &target, &options](
+  ctx.executeKernelApi = [&qpu, &result, &policy, &platform, qpu_id](
                              const AnyModule &module, const KernelArgs &args) {
     CompiledModule compiled;
     if (const auto *source = std::get_if<SourceModule>(&module)) {
@@ -91,6 +76,20 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
+      cudaq::CompileTarget target;
+      cudaq::CompileOptions options;
+      if constexpr (requires { policy.inner; }) {
+        options = cudaq::get_compile_options(policy.inner);
+        target = platform.getCompileTarget(policy.inner, qpu_id);
+      } else {
+        options = cudaq::get_compile_options(policy);
+        target = platform.getCompileTarget(policy, qpu_id);
+      }
+      const bool isEmulated = platform.is_emulated(qpu_id);
+      const bool isRemote = platform.is_remote(qpu_id);
+      options.emulate = isEmulated;
+      options.emitJit |= !isRemote;
+      options.boolVecBitPacked = !isRemote && !isEmulated;
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
                                                          /*isEntryPoint=*/true);

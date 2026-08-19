@@ -273,6 +273,11 @@ public:
                             std::vector<cudaq::KernelExecution> &&codes) {
     auto executionContext = cudaq::getExecutionContext();
 
+    if (!executionContext)
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
+
     // Check to see if we are simply drawing the circuit. If so, perform the
     // trace here and then return.
     if (executionContext->name == "tracer" && codes.size() == 1) {

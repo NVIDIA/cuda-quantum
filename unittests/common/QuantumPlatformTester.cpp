@@ -40,6 +40,7 @@ public:
     ct.pipelineConfig.highLevelPipeline = "custom_pipeline";
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
+    ct.supportExplicitMeasurements = true;
     return ct;
   }
 
@@ -194,6 +195,17 @@ TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
   EXPECT_TRUE(ct.fullySpecialize);
   EXPECT_FALSE(ct.overrideAOTCompilation);
   EXPECT_TRUE(ct.supportDeviceCalls);
+}
+
+TEST(QuantumPlatformCompileTargetTester,
+     capabilityQueriesReportCompileTargetFlags) {
+  TestPlatform platform;
+  EXPECT_TRUE(platform.supports_explicit_measurements());
+
+  platform.setCompileTarget(
+      CompileTarget{.supportExplicitMeasurements = false});
+
+  EXPECT_FALSE(platform.supports_explicit_measurements());
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
@@ -475,6 +487,7 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   TestPlatform platform;
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
+  expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
   expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
                          "get_remote_capabilities");
 }
