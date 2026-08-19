@@ -33,13 +33,15 @@ int main(const int argc, char **argv) {
 
   if (std::string_view(argv[1]) == "submit") {
     auto future = cudaq::sample_async(16, 0, simple_x{});
-    std::ofstream(argv[2]) << future;
+    std::ofstream output(argv[2]);
+    output << future;
     return 0;
   }
 
   cudaq::async_sample_result future;
-  std::ifstream(argv[2]) >> future;
+  std::ifstream input(argv[2]);
+  input >> future;
   static_cast<void>(future.get());
 }
 
-// CHECK: Retrieving job: QDMI_ERROR_NOTSUPPORTED
+// CHECK: Retrieving job: Not supported.
