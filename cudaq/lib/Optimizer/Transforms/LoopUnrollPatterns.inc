@@ -12,6 +12,8 @@
 // This file must be included after a `using namespace mlir;` as it uses bare
 // identifiers from that namespace.
 
+#include <limits>
+
 inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
 }
@@ -151,8 +153,15 @@ namespace {
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
   explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf, bool ab,
                              unsigned &p, bool unrollOnlyWireBlocking = false)
-      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), allowBreak(ab),
-        progress(p), unrollOnlyWireBlockingLoops(unrollOnlyWireBlocking) {}
+      // In selective (wire-blocking only) mode the loops that are unrolled
+      // are exactly the ones that *must* be unrolled for wire conversion, so
+      // there is no iteration budget to enforce.
+      : OpRewritePattern(ctx),
+        threshold(unrollOnlyWireBlocking
+                      ? std::numeric_limits<std::size_t>::max()
+                      : t),
+        signalFailure(sf), allowBreak(ab), progress(p),
+        unrollOnlyWireBlockingLoops(unrollOnlyWireBlocking) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {

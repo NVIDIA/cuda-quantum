@@ -1,0 +1,54 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: cudaq-opt --cc-loop-unroll='unroll-only-wire-blocking-loops=true maximum-iterations=10' --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-unroll='maximum-iterations=10' --canonicalize %s | FileCheck --check-prefix=DEFAULT %s
+// clang-format on
+
+// The loop below runs 11 iterations, which exceeds the requested threshold of
+// 10, and indexes the qubits by the induction variable, so it blocks wire
+// conversion. In selective mode the threshold does not apply -- the loop must
+// be unrolled for value semantics to be reachable, so it is unrolled in full.
+// In default mode the threshold is honored and the loop stays rolled.
+
+func.func @over_threshold() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %c0_i32 = arith.constant 0 : i32
+  %c1_i32 = arith.constant 1 : i32
+  %c11_i32 = arith.constant 11 : i32
+  %0 = quake.alloca !quake.veq<11>
+  %1 = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+    %2 = arith.cmpi slt, %arg0, %c11_i32 : i32
+    cc.condition %2(%arg0 : i32)
+  } do {
+  ^bb0(%arg0: i32):
+    %2 = cc.cast signed %arg0 : (i32) -> i64
+    %3 = quake.extract_ref %0[%2] : (!quake.veq<11>, i64) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    cc.continue %arg0 : i32
+  } step {
+  ^bb0(%arg0: i32):
+    %2 = arith.addi %arg0, %c1_i32 : i32
+    cc.continue %2 : i32
+  }
+  return
+}
+
+// Selective mode: fully unrolled despite the trip count exceeding the
+// threshold. Each iteration becomes a constant-index extract plus an x.
+// CHECK-LABEL:   func.func @over_threshold()
+// CHECK-NOT:       cc.loop
+// CHECK-COUNT-11:  quake.x
+// CHECK-NOT:       quake.x
+// CHECK:           return
+
+// Default mode: the threshold is enforced, so the loop is left rolled.
+// DEFAULT-LABEL:   func.func @over_threshold()
+// DEFAULT:           cc.loop
+// DEFAULT:             quake.extract_ref
+// DEFAULT:             quake.x

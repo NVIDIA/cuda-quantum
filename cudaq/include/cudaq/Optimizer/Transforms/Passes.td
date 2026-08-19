@@ -1016,7 +1016,8 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
 
   let options = [
     Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
-      "Maximum iterations to unroll.">,
+      "Maximum iterations to unroll. Ignored when "
+      "unroll-only-wire-blocking-loops is set.">,
     Option<"signalFailure",
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
