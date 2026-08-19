@@ -10,7 +10,7 @@ permissions: {} # no permissions needed.
 
 jobs:
   DCO:
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     steps:
       - run: 
           echo "Enable merge_queue check to pass."

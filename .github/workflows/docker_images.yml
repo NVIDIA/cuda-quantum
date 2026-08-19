@@ -50,7 +50,7 @@ name: Docker images
 jobs:
   metadata:
     name: Metadata
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions: {}
 
     outputs:
@@ -1075,7 +1075,7 @@ jobs:
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && inputs.environment && needs.metadata.outputs.platform_tag == '' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions: 
       contents: read
 
@@ -1118,7 +1118,7 @@ jobs:
     needs: [metadata, cudaqdev_image, cudaq_image, ompi_image, documentation, validation]
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
 
     steps:
       - name: Save cache keys

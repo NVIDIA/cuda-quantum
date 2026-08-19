@@ -36,7 +36,7 @@ concurrency:
 jobs:
   changes:
     name: Check for stable CUDA-Q changes
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       contents: read
       pull-requests: read
@@ -64,7 +64,7 @@ jobs:
     name: Retrieve PR info
     needs: changes
     if: needs.changes.outputs.stable == 'true'
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       pull-requests: read
       contents: read
@@ -78,6 +78,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      # NVIDIA runners may not ship gh.
+      - name: Ensure gh
+        run: |
+          set -eu
+          command -v gh >/dev/null && exit 0
+          S=""; [ "$(id -u)" -eq 0 ] || S=sudo
+          v=2.63.2
+          curl -fsSL "https://github.com/cli/cli/releases/download/v$v/gh_${v}_linux_amd64.tar.gz" | tar -xz -C /tmp
+          $S install -m0755 "/tmp/gh_${v}_linux_amd64/bin/gh" /usr/local/bin/gh
 
       - id: pr_info
         run: |
