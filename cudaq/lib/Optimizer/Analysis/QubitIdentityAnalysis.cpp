@@ -9,6 +9,8 @@
 #include "QubitIdentityAnalysis.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Interfaces/CallInterfaces.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <utility>
 
 using namespace mlir;
@@ -16,9 +18,9 @@ using namespace mlir;
 using cudaq::quake::detail::QubitIdentityAnalysis;
 using QubitId = QubitIdentityAnalysis::QubitId;
 using BorrowKey = std::pair<Attribute, std::int32_t>;
+using QubitIdMap = llvm::DenseMap<Value, QubitId>;
 
-static void propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
-                              Operation *operation) {
+static void propagateQubitIds(QubitIdMap &qubitIds, Operation *operation) {
   auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
   if (!flow)
     return;
@@ -29,16 +31,54 @@ static void propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
   }
 }
 
+static void updateWrappedIdentity(QubitIdMap &qubitIds,
+                                  QubitIdMap &referenceQubitIds,
+                                  cudaq::quake::WrapOp wrap) {
+  auto referenceId = referenceQubitIds.find(wrap.getRefValue());
+  if (referenceId == referenceQubitIds.end()) {
+    // Without reference alias analysis, an untracked wrap target may alias any
+    // tracked binding.
+    referenceQubitIds.clear();
+    return;
+  }
+
+  auto wireId = qubitIds.find(wrap.getWireValue());
+  if (wireId == qubitIds.end() || wireId->second != referenceId->second)
+    referenceQubitIds.erase(referenceId);
+}
+
 // Build block-local qubit identities in program order. Null wires introduce
-// IDs, repeated borrows reuse their (wire set, identity) ID, and supported
-// scalar-wire operations propagate IDs. Block arguments remain unknown because
-// valid IR does not guarantee distinct incoming wires.
-static void buildQubitIdMap(Block &block,
-                            llvm::DenseMap<Value, QubitId> &qubitIds) {
+// IDs, scalar allocations identify their later unwraps, repeated borrows reuse
+// their (wire set, identity) ID, and supported scalar-wire operations propagate
+// IDs. Block arguments remain unknown because valid IR does not guarantee
+// distinct incoming wires.
+static void buildQubitIdMap(Block &block, QubitIdMap &qubitIds) {
   QubitId nextQubitId = 0;
   llvm::DenseMap<BorrowKey, QubitId> borrowedQubitIds;
+  QubitIdMap referenceQubitIds;
 
   for (Operation &operation : block) {
+    if (auto alloca = dyn_cast<cudaq::quake::AllocaOp>(operation)) {
+      if (isa<cudaq::quake::RefType>(alloca.getRefOrVec().getType()))
+        referenceQubitIds.try_emplace(alloca.getRefOrVec(), nextQubitId++);
+      continue;
+    }
+    if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(operation)) {
+      auto referenceId = referenceQubitIds.find(unwrap.getRefValue());
+      if (referenceId != referenceQubitIds.end())
+        qubitIds.try_emplace(unwrap.getResult(), referenceId->second);
+      continue;
+    }
+    if (auto wrap = dyn_cast<cudaq::quake::WrapOp>(operation)) {
+      updateWrappedIdentity(qubitIds, referenceQubitIds, wrap);
+      continue;
+    }
+    if (auto wrapNew = dyn_cast<cudaq::quake::WrapNewOp>(operation)) {
+      auto wireId = qubitIds.find(wrapNew.getWireValue());
+      if (wireId != qubitIds.end())
+        referenceQubitIds.try_emplace(wrapNew.getResult(), wireId->second);
+      continue;
+    }
     if (auto nullWire = dyn_cast<cudaq::quake::NullWireOp>(operation)) {
       qubitIds.try_emplace(nullWire.getResult(), nextQubitId++);
       continue;
@@ -49,6 +89,11 @@ static void buildQubitIdMap(Block &block,
       if (inserted)
         ++nextQubitId;
       qubitIds.try_emplace(borrowWire.getResult(), qubitId->second);
+      continue;
+    }
+    if (isa<CallOpInterface>(operation) || operation.getNumRegions() != 0 ||
+        !isMemoryEffectFree(&operation)) {
+      referenceQubitIds.clear();
       continue;
     }
     propagateQubitIds(qubitIds, &operation);

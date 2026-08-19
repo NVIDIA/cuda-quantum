@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -33,7 +34,8 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
       func.func private @wire_source() -> !quake.wire
       func.func @identity(%wireArg: !quake.wire,
                           %controlArg: !quake.control,
-                          %aggregate: !quake.veq<2>) {
+                          %aggregate: !quake.veq<2>,
+                          %referenceArg: !quake.ref) {
         %initial = quake.null_wire
         %x = quake.x %initial : (!quake.wire) -> !quake.wire
         %reset = quake.reset %x : (!quake.wire) -> !quake.wire
@@ -70,8 +72,7 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
         quake.return_wire %borrow1 : !quake.wire
 
         %call = func.call @wire_source() : () -> !quake.wire
-        %reference = quake.alloca !quake.ref
-        %unwrapped = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        %unwrapped = quake.unwrap %referenceArg : (!quake.ref) -> !quake.wire
         quake.sink %returned : !quake.wire
         quake.sink %reset : !quake.wire
         quake.sink %measuredInitial : !quake.wire
@@ -85,7 +86,7 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
         %controlArgumentWire = quake.from_ctrl %controlArg
             : (!quake.control) -> !quake.wire
         quake.sink %controlArgumentWire : !quake.wire
-        quake.wrap %unwrapped to %reference : !quake.wire, !quake.ref
+        quake.wrap %unwrapped to %referenceArg : !quake.wire, !quake.ref
         return
       }
     }
@@ -154,6 +155,7 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   // Block arguments have no identity without a verified no-alias guarantee.
   EXPECT_FALSE(analysis.getQubitId(function.getArgument(0)));
   EXPECT_FALSE(analysis.getQubitId(function.getArgument(1)));
+  EXPECT_FALSE(analysis.getQubitId(function.getArgument(3)));
   ASSERT_TRUE(analysis.getQubitId(distinct));
   EXPECT_NE(initialId, analysis.getQubitId(distinct));
 
@@ -216,4 +218,269 @@ TEST(QubitIdentityAnalysisTest, LeavesSuccessorArgumentsUnknown) {
   ASSERT_EQ(operators.size(), 2u);
   EXPECT_FALSE(analysis.getQubitId(operators[0].getTargets().front()));
   EXPECT_FALSE(analysis.getQubitId(operators[1].getTargets().front()));
+}
+
+TEST(QubitIdentityAnalysisTest, TracksProvenFreshReferenceProvenance) {
+  MLIRContext context;
+  context.loadDialect<arith::ArithDialect>();
+  context.loadDialect<func::FuncDialect>();
+  context.loadDialect<cudaq::cc::CCDialect>();
+  context.loadDialect<cudaq::quake::QuakeDialect>();
+  auto module = parseSourceString<ModuleOp>(R"mlir(
+    module {
+      func.func private @reference_source() -> !quake.ref
+      func.func @rebind(%destination: !quake.ref, %source: !quake.ref) {
+        %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
+        quake.wrap %wire to %destination : !quake.wire, !quake.ref
+        return
+      }
+      func.func @rebind_closure(%callable: !cc.callable<() -> ()>) {
+        %references:2 = cc.callable_closure %callable
+            : (!cc.callable<() -> ()>) -> (!quake.ref, !quake.ref)
+        %wire = quake.unwrap %references#1 : (!quake.ref) -> !quake.wire
+        quake.wrap %wire to %references#0 : !quake.wire, !quake.ref
+        return
+      }
+      func.func private @empty_action()
+
+      func.func @fresh_references(%unknownWire: !quake.wire) {
+        %first = quake.alloca !quake.ref
+        %firstInitial = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        quake.wrap %firstInitial to %first : !quake.wire, !quake.ref
+        %firstAfterWrap = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        %firstRepeated = quake.unwrap %first : (!quake.ref) -> !quake.wire
+
+        %second = quake.alloca !quake.ref
+        %secondInitial = quake.unwrap %second : (!quake.ref) -> !quake.wire
+
+        %knownWire = quake.null_wire
+        %knownReference = quake.wrap_new %knownWire
+            : (!quake.wire) -> !quake.ref
+        %knownUnwrapped = quake.unwrap %knownReference
+            : (!quake.ref) -> !quake.wire
+
+        %unknownReference = quake.wrap_new %unknownWire
+            : (!quake.wire) -> !quake.ref
+        %unknownUnwrapped = quake.unwrap %unknownReference
+            : (!quake.ref) -> !quake.wire
+        return
+      }
+
+      func.func @uncertain_references(%condition: i1,
+                                      %referenceArg: !quake.ref,
+                                      %vectorArg: !quake.veq<2>) {
+        %local = quake.alloca !quake.ref
+        %unrelated = cc.undef !quake.ref
+        %cast = builtin.unrealized_conversion_cast %local
+            : !quake.ref to !quake.ref
+        %selected = arith.select %condition, %local, %local : !quake.ref
+        %aggregate = quake.make_struq %local, %referenceArg
+            : (!quake.ref, !quake.ref)
+              -> !quake.struq<!quake.ref, !quake.ref>
+        %member = quake.get_member %aggregate[0]
+            : (!quake.struq<!quake.ref, !quake.ref>) -> !quake.ref
+        %concatenated = quake.concat %local, %referenceArg
+            : (!quake.ref, !quake.ref) -> !quake.veq<2>
+        %fromConcat = quake.extract_ref %concatenated[0]
+            : (!quake.veq<2>) -> !quake.ref
+        %fromVector = quake.extract_ref %vectorArg[0]
+            : (!quake.veq<2>) -> !quake.ref
+
+        %localAfterPureConstructions = quake.unwrap %local
+            : (!quake.ref) -> !quake.wire
+        %argWire = quake.unwrap %referenceArg
+            : (!quake.ref) -> !quake.wire
+        %unrelatedWire = quake.unwrap %unrelated
+            : (!quake.ref) -> !quake.wire
+        %castWire = quake.unwrap %cast : (!quake.ref) -> !quake.wire
+        %selectedWire = quake.unwrap %selected
+            : (!quake.ref) -> !quake.wire
+        %memberWire = quake.unwrap %member : (!quake.ref) -> !quake.wire
+        %concatWire = quake.unwrap %fromConcat
+            : (!quake.ref) -> !quake.wire
+        %vectorWire = quake.unwrap %fromVector
+            : (!quake.ref) -> !quake.wire
+        %call = func.call @reference_source() : () -> !quake.ref
+        %callWire = quake.unwrap %call : (!quake.ref) -> !quake.wire
+        return
+      }
+
+      func.func @different_direct_wrap() {
+        %reference = quake.alloca !quake.ref
+        %before = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        %different = quake.null_wire
+        quake.wrap %different to %reference : !quake.wire, !quake.ref
+        %after = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        return
+      }
+
+      func.func @unknown_direct_wrap(%unknownWire: !quake.wire) {
+        %reference = quake.alloca !quake.ref
+        %before = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        quake.wrap %unknownWire to %reference : !quake.wire, !quake.ref
+        %after = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        return
+      }
+
+      func.func @aliased_wrap() {
+        %first = quake.alloca !quake.ref
+        %firstBefore = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        %second = quake.alloca !quake.ref
+        %secondWire = quake.unwrap %second : (!quake.ref) -> !quake.wire
+        %aliases = quake.concat %first
+            : (!quake.ref) -> !quake.veq<1>
+        %alias = quake.extract_ref %aliases[0]
+            : (!quake.veq<1>) -> !quake.ref
+        %firstAfterAliasConstruction = quake.unwrap %first
+            : (!quake.ref) -> !quake.wire
+        quake.wrap %secondWire to %alias : !quake.wire, !quake.ref
+        %firstAfter = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        return
+      }
+
+      func.func @call_boundary() {
+        %destination = quake.alloca !quake.ref
+        %destinationBefore = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %source = quake.alloca !quake.ref
+        %sourceBefore = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        func.call @rebind(%destination, %source)
+            : (!quake.ref, !quake.ref) -> ()
+        %destinationAfter = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %sourceAfter = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        return
+      }
+
+      func.func @region_boundary() {
+        %destination = quake.alloca !quake.ref
+        %destinationBefore = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %source = quake.alloca !quake.ref
+        %sourceBefore = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        cc.scope {
+          %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
+          quake.wrap %wire to %destination : !quake.wire, !quake.ref
+          cc.continue
+        }
+        %destinationAfter = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %sourceAfter = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        return
+      }
+
+      func.func @compute_action_boundary() {
+        %destination = quake.alloca !quake.ref
+        %destinationBefore = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %source = quake.alloca !quake.ref
+        %sourceBefore = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        %compute = cc.instantiate_callable @rebind_closure(%destination, %source)
+            : (!quake.ref, !quake.ref) -> !cc.callable<() -> ()>
+        %action = cc.instantiate_callable @empty_action() nocapture
+            : () -> !cc.callable<() -> ()>
+        quake.compute_action %compute, %action
+            : !cc.callable<() -> ()>, !cc.callable<() -> ()>
+        %destinationAfter = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %sourceAfter = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        return
+      }
+    }
+  )mlir",
+                                            &context);
+
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(succeeded(verify(*module)));
+
+  auto fresh = module->lookupSymbol<func::FuncOp>("fresh_references");
+  ASSERT_TRUE(fresh);
+  auto freshUnwraps = llvm::to_vector(fresh.getOps<cudaq::quake::UnwrapOp>());
+  auto nullWires = llvm::to_vector(fresh.getOps<cudaq::quake::NullWireOp>());
+  ASSERT_EQ(freshUnwraps.size(), 6u);
+  ASSERT_EQ(nullWires.size(), 1u);
+
+  QubitIdentityAnalysis freshAnalysis(fresh.front());
+  auto firstId = freshAnalysis.getQubitId(freshUnwraps[0].getResult());
+  ASSERT_TRUE(firstId);
+  EXPECT_EQ(firstId, freshAnalysis.getQubitId(freshUnwraps[1].getResult()));
+  EXPECT_EQ(firstId, freshAnalysis.getQubitId(freshUnwraps[2].getResult()));
+  auto secondId = freshAnalysis.getQubitId(freshUnwraps[3].getResult());
+  ASSERT_TRUE(secondId);
+  EXPECT_NE(firstId, secondId);
+  EXPECT_EQ(freshAnalysis.getQubitId(nullWires[0].getResult()),
+            freshAnalysis.getQubitId(freshUnwraps[4].getResult()));
+  EXPECT_FALSE(freshAnalysis.getQubitId(fresh.getArgument(0)));
+  EXPECT_FALSE(freshAnalysis.getQubitId(freshUnwraps[5].getResult()));
+
+  auto uncertain = module->lookupSymbol<func::FuncOp>("uncertain_references");
+  ASSERT_TRUE(uncertain);
+  auto uncertainUnwraps =
+      llvm::to_vector(uncertain.getOps<cudaq::quake::UnwrapOp>());
+  ASSERT_EQ(uncertainUnwraps.size(), 9u);
+
+  QubitIdentityAnalysis uncertainAnalysis(uncertain.front());
+  EXPECT_FALSE(uncertainAnalysis.getQubitId(uncertain.getArgument(1)));
+  EXPECT_TRUE(
+      uncertainAnalysis.getQubitId(uncertainUnwraps.front().getResult()));
+  for (auto unwrap : llvm::drop_begin(uncertainUnwraps))
+    EXPECT_FALSE(uncertainAnalysis.getQubitId(unwrap.getResult()));
+
+  auto different = module->lookupSymbol<func::FuncOp>("different_direct_wrap");
+  ASSERT_TRUE(different);
+  auto differentUnwraps =
+      llvm::to_vector(different.getOps<cudaq::quake::UnwrapOp>());
+  ASSERT_EQ(differentUnwraps.size(), 2u);
+  QubitIdentityAnalysis differentAnalysis(different.front());
+  EXPECT_TRUE(differentAnalysis.getQubitId(differentUnwraps[0].getResult()));
+  EXPECT_FALSE(differentAnalysis.getQubitId(differentUnwraps[1].getResult()));
+
+  auto unknown = module->lookupSymbol<func::FuncOp>("unknown_direct_wrap");
+  ASSERT_TRUE(unknown);
+  auto unknownUnwraps =
+      llvm::to_vector(unknown.getOps<cudaq::quake::UnwrapOp>());
+  ASSERT_EQ(unknownUnwraps.size(), 2u);
+  QubitIdentityAnalysis unknownAnalysis(unknown.front());
+  EXPECT_TRUE(unknownAnalysis.getQubitId(unknownUnwraps[0].getResult()));
+  EXPECT_FALSE(unknownAnalysis.getQubitId(unknownUnwraps[1].getResult()));
+
+  auto aliased = module->lookupSymbol<func::FuncOp>("aliased_wrap");
+  ASSERT_TRUE(aliased);
+  auto aliasedUnwraps =
+      llvm::to_vector(aliased.getOps<cudaq::quake::UnwrapOp>());
+  ASSERT_EQ(aliasedUnwraps.size(), 4u);
+  QubitIdentityAnalysis aliasedAnalysis(aliased.front());
+  auto firstBefore = aliasedAnalysis.getQubitId(aliasedUnwraps[0].getResult());
+  auto second = aliasedAnalysis.getQubitId(aliasedUnwraps[1].getResult());
+  ASSERT_TRUE(firstBefore);
+  ASSERT_TRUE(second);
+  EXPECT_NE(firstBefore, second);
+  EXPECT_EQ(firstBefore,
+            aliasedAnalysis.getQubitId(aliasedUnwraps[2].getResult()));
+  EXPECT_FALSE(aliasedAnalysis.getQubitId(aliasedUnwraps[3].getResult()));
+
+  for (llvm::StringRef functionName :
+       {"call_boundary", "region_boundary", "compute_action_boundary"}) {
+    auto boundary = module->lookupSymbol<func::FuncOp>(functionName);
+    ASSERT_TRUE(boundary);
+    auto boundaryUnwraps =
+        llvm::to_vector(boundary.getOps<cudaq::quake::UnwrapOp>());
+    ASSERT_EQ(boundaryUnwraps.size(), 4u);
+    QubitIdentityAnalysis boundaryAnalysis(boundary.front());
+    auto destinationBefore =
+        boundaryAnalysis.getQubitId(boundaryUnwraps[0].getResult());
+    auto sourceBefore =
+        boundaryAnalysis.getQubitId(boundaryUnwraps[1].getResult());
+    ASSERT_TRUE(destinationBefore);
+    ASSERT_TRUE(sourceBefore);
+    EXPECT_NE(destinationBefore, sourceBefore);
+    EXPECT_FALSE(boundaryAnalysis.getQubitId(boundaryUnwraps[2].getResult()));
+    EXPECT_FALSE(boundaryAnalysis.getQubitId(boundaryUnwraps[3].getResult()));
+  }
 }

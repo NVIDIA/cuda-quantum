@@ -105,6 +105,115 @@ TEST_F(CommutationAnalysisTest, DisjointSupport) {
              CommutationReason::DisjointSupport);
 }
 
+TEST_F(CommutationAnalysisTest, FreshReferenceProvenanceBoundaries) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @rebind(%destination: !quake.ref, %source: !quake.ref) {
+        %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
+        quake.wrap %wire to %destination : !quake.wire, !quake.ref
+        return
+      }
+
+      func.func @fresh_allocations() {
+        %angle = arith.constant 5.0e-1 : f64
+        %first = quake.alloca !quake.ref
+        %firstWire = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        %x = quake.x %firstWire : (!quake.wire) -> !quake.wire
+        %rx = quake.rx (%angle) %x
+            : (f64, !quake.wire) -> !quake.wire
+        %second = quake.alloca !quake.ref
+        %secondWire = quake.unwrap %second : (!quake.ref) -> !quake.wire
+        %h = quake.h %secondWire : (!quake.wire) -> !quake.wire
+        quake.sink %rx : !quake.wire
+        quake.sink %h : !quake.wire
+        return
+      }
+
+      func.func @call_boundary() {
+        %destination = quake.alloca !quake.ref
+        %destinationWire = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %destinationBefore = quake.x %destinationWire
+            : (!quake.wire) -> !quake.wire
+        quake.wrap %destinationBefore to %destination
+            : !quake.wire, !quake.ref
+        %source = quake.alloca !quake.ref
+        %sourceWire = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        %sourceBefore = quake.h %sourceWire
+            : (!quake.wire) -> !quake.wire
+        quake.wrap %sourceBefore to %source : !quake.wire, !quake.ref
+        func.call @rebind(%destination, %source)
+            : (!quake.ref, !quake.ref) -> ()
+        %destinationAfterWire = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %destinationAfter = quake.x %destinationAfterWire
+            : (!quake.wire) -> !quake.wire
+        %sourceAfterWire = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        %sourceAfter = quake.h %sourceAfterWire
+            : (!quake.wire) -> !quake.wire
+        quake.sink %destinationAfter : !quake.wire
+        quake.sink %sourceAfter : !quake.wire
+        return
+      }
+
+      func.func @region_boundary() {
+        %destination = quake.alloca !quake.ref
+        %destinationWire = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %destinationBefore = quake.x %destinationWire
+            : (!quake.wire) -> !quake.wire
+        quake.wrap %destinationBefore to %destination
+            : !quake.wire, !quake.ref
+        %source = quake.alloca !quake.ref
+        %sourceWire = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        %sourceBefore = quake.h %sourceWire
+            : (!quake.wire) -> !quake.wire
+        quake.wrap %sourceBefore to %source : !quake.wire, !quake.ref
+        cc.scope {
+          %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
+          quake.wrap %wire to %destination : !quake.wire, !quake.ref
+          cc.continue
+        }
+        %destinationAfterWire = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %destinationAfter = quake.x %destinationAfterWire
+            : (!quake.wire) -> !quake.wire
+        %sourceAfterWire = quake.unwrap %source
+            : (!quake.ref) -> !quake.wire
+        %sourceAfter = quake.h %sourceAfterWire
+            : (!quake.wire) -> !quake.wire
+        quake.sink %destinationAfter : !quake.wire
+        quake.sink %sourceAfter : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  auto fresh = getFunction(*module, "fresh_allocations");
+  auto freshOperators = getOperators(fresh);
+  ASSERT_EQ(freshOperators.size(), 3u);
+  CommutationAnalysis freshAnalysis(fresh.front());
+  expectPair(freshAnalysis, freshOperators[0], freshOperators[1],
+             CommutationStatus::Commutes, CommutationReason::SameAxis);
+  expectPair(freshAnalysis, freshOperators[0], freshOperators[2],
+             CommutationStatus::Commutes, CommutationReason::DisjointSupport);
+
+  for (llvm::StringRef functionName : {"call_boundary", "region_boundary"}) {
+    auto boundary = getFunction(*module, functionName);
+    auto boundaryOperators = getOperators(boundary);
+    ASSERT_EQ(boundaryOperators.size(), 4u);
+    CommutationAnalysis boundaryAnalysis(boundary.front());
+    expectPair(boundaryAnalysis, boundaryOperators[0], boundaryOperators[1],
+               CommutationStatus::Commutes, CommutationReason::DisjointSupport);
+    expectPair(boundaryAnalysis, boundaryOperators[2], boundaryOperators[3],
+               CommutationStatus::Indeterminate,
+               CommutationReason::UnmappedQubitId);
+  }
+}
+
 TEST_F(CommutationAnalysisTest, UnknownSuccessorArgumentSupport) {
   auto module = parseModule(R"mlir(
     module {
