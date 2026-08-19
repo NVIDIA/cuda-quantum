@@ -445,25 +445,36 @@ void OdgpStepper::init_current_values(const Integer &b_adj) {
   mpfr_add(cur_conj_, conj_base_, scratch1_, MPFR_RNDN);
 }
 
+// Narrow [range_lo, range_hi] to the b with base + slope * b inside
+// [bound_lo, bound_hi]. Empty is reported as range_hi < range_lo.
+//
+// A filter next() re-checks each b exactly via b_in_bounds(). So a range that
+// comes out too wide only costs steps, while one that comes out too narrow
+// drops a real solution.
 void OdgpStepper::refine_range_against_bounds(
     const mpfr_t &bound_lo, const mpfr_t &bound_hi, const mpfr_t &slope,
     const mpfr_t &base, Integer &range_lo, Integer &range_hi) {
-  // Zero slope: no b changes the value, so either every b is in-bounds (no
-  // refinement) or none is (empty range). Only an exactly-zero slope qualifies
-  // (what a slope is worth depends on the b-range it runs over, and a slope
-  // of 7e-47 still moves the value by 0.2 once b reaches 1e45, as it does at
-  // deep epsilon).
+  // A flat line sits at `base` for every b, so the bound holds for all of
+  // them or none. Flat must mean exactly zero. What moves the value is
+  // slope * b, and b reaches ~1e45 at deep k, where a slope of 1e-46 still
+  // swings it by ~0.1. The old |slope| <= 1e-40 guard called that flat and
+  // emptied every range, leaving no candidate below epsilon 1e-32.
   if (mpfr_zero_p(slope)) {
     if (mpfr_cmp(base, bound_lo) < 0 || mpfr_cmp(base, bound_hi) > 0)
       range_hi = range_lo - Integer(1);
     return;
   }
 
-  // (bound - base) / slope, clamped before it becomes an integer. A small slope
-  // makes the exact quotient far wider than the range it is about to be
-  // intersected with. Clamping to one past the bound keeps a quotient that
-  // falls outside the range able to empty it below.
-  auto quotient_to_integer = [&](mpfr_rnd_t rnd) {
+  // The line crosses `bound` at (bound - base) / slope; `rnd` rounds that to
+  // the integer limit it implies.
+  //
+  // A shallow slope puts the crossing far outside the range, where converting
+  // exactly would build a huge mpz for the max/min below to discard. Saturate
+  // to one step past the range instead, so that a crossing beyond the range
+  // can still empty it.
+  auto limit_from_bound = [&](const mpfr_t &bound, mpfr_rnd_t rnd) {
+    mpfr_sub(scratch2_, bound, base, MPFR_RNDN);
+    mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
     if (mpfr_cmp_z(scratch2_, range_lo.get_mpz_t()) < 0)
       return range_lo - Integer(1);
     if (mpfr_cmp_z(scratch2_, range_hi.get_mpz_t()) > 0)
@@ -473,17 +484,18 @@ void OdgpStepper::refine_range_against_bounds(
     return out;
   };
 
-  mpfr_sub(scratch2_, bound_lo, base, MPFR_RNDN);
-  mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
-  Integer lo_new = quotient_to_integer(MPFR_RNDU);
-
-  mpfr_sub(scratch2_, bound_hi, base, MPFR_RNDN);
-  mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
-  Integer hi_new = quotient_to_integer(MPFR_RNDD);
-
-  // Negative slope inverts the [lo, hi] mapping computed above.
-  if (mpfr_sgn(slope) < 0)
-    std::swap(lo_new, hi_new);
+  // Ceil the crossing giving the smallest in-range b, floor the one giving
+  // the largest. Dividing by a negative slope flips the inequality, so which
+  // bound that is depends on the sign. Rounding first and swapping instead
+  // would round each the wrong way, widening the range by a step per side.
+  Integer lo_new, hi_new;
+  if (mpfr_sgn(slope) > 0) {
+    lo_new = limit_from_bound(bound_lo, MPFR_RNDU);
+    hi_new = limit_from_bound(bound_hi, MPFR_RNDD);
+  } else {
+    lo_new = limit_from_bound(bound_hi, MPFR_RNDU);
+    hi_new = limit_from_bound(bound_lo, MPFR_RNDD);
+  }
 
   range_lo = std::max(range_lo, lo_new);
   range_hi = std::min(range_hi, hi_new);
