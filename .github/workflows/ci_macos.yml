@@ -74,10 +74,29 @@ jobs:
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
       cudaq_version: ${{ steps.version.outputs.cudaq_version }}
+      skip_macos: ${{ steps.skip.outputs.skip_macos }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - id: skip
+        env:
+          # Repo variable. Unset/true keeps macOS out of PR and merge-queue
+          # builds while GitHub-hosted macOS runners are unavailable.
+          SKIP_MACOS_CI: ${{ vars.SKIP_MACOS_CI }}
+        run: |
+          # PR and merge queue only; schedule and dispatch keep macOS coverage.
+          skip=false
+          case "${{ github.event_name }}" in
+            push|merge_group)
+              case "$(echo "${SKIP_MACOS_CI:-true}" | tr '[:upper:]' '[:lower:]')" in
+                false|0|no|off) skip=false ;;
+                *) skip=true ;;
+              esac ;;
+          esac
+          echo "skip_macos=$skip" >> $GITHUB_OUTPUT
+          echo "Skip macOS CI: $skip (SKIP_MACOS_CI='${SKIP_MACOS_CI:-<unset>}')"
 
       # NVIDIA runners may not ship gh.
       - name: Ensure gh
@@ -130,6 +149,7 @@ jobs:
   devdeps:
     name: Load macOS dependencies
     needs: metadata
+    if: needs.metadata.outputs.skip_macos != 'true'
     uses: ./.github/workflows/dev_environment_macos.yml
     with:
       platforms: darwin/arm64
@@ -143,6 +163,7 @@ jobs:
   build_and_test:
     name: Build & Test (arm64)
     needs: [devdeps, metadata]
+    if: needs.metadata.outputs.skip_macos != 'true'
     runs-on: macos-26
     permissions:
       contents: read
@@ -234,6 +255,7 @@ jobs:
   wheel:
     name: Wheel (arm64, py${{ matrix.python_version }})
     needs: [devdeps, metadata]
+    if: needs.metadata.outputs.skip_macos != 'true'
     strategy:
       matrix:
         python_version: ['3.11', '3.12', '3.13', '3.14']
@@ -342,7 +364,8 @@ jobs:
   # ============================================================================
   validate_wheel:
     name: Validate (arm64, py${{ matrix.python_version }})
-    needs: wheel
+    needs: [wheel, metadata]
+    if: needs.metadata.outputs.skip_macos != 'true'
     strategy:
       matrix:
         python_version: ['3.11', '3.12', '3.13', '3.14']
@@ -395,6 +418,7 @@ jobs:
   installer:
     name: Installer (arm64)
     needs: [devdeps, metadata]
+    if: needs.metadata.outputs.skip_macos != 'true'
     runs-on: macos-26
     permissions:
       contents: read
@@ -499,7 +523,8 @@ jobs:
   # ============================================================================
   validate_installation:
     name: Validate Installation (arm64)
-    needs: [installer, wheel]
+    needs: [installer, wheel, metadata]
+    if: needs.metadata.outputs.skip_macos != 'true'
     runs-on: macos-26
 
     steps:
