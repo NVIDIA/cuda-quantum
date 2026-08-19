@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="http://www.example.com/blog/2026/05/21/ptsbe-million-fold-speedups/">
+        <link rel="canonical" href="http://www.example.com/blog/2026/08/18/cudaq-algorithms-0.1/">
       
       
-        <link rel="prev" href="../../../04/14/cudaq-qec-0.6/">
+        <link rel="prev" href="../../../05/21/ptsbe-million-fold-speedups/">
       
-      
-        <link rel="next" href="../../../08/18/cudaq-algorithms-0.1/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>More Quantum Data for Less: Million-Fold Data Collection Speedups with PTSBE - NVIDIA Quantum</title>
+        <title>Composable Building Blocks for Fault-Tolerant Quantum Programs with CUDA-Q Algorithms - NVIDIA Quantum</title>
       
     
     
@@ -84,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#more-quantum-data-for-less-million-fold-data-collection-speedups-with-ptsbe" class="md-skip">
+        <a href="#composable-building-blocks-for-fault-tolerant-quantum-programs-with-cuda-q-algorithms" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              More Quantum Data for Less: Million-Fold Data Collection Speedups with PTSBE
+              Composable Building Blocks for Fault-Tolerant Quantum Programs with CUDA-Q Algorithms
             
           </span>
         </div>
@@ -1553,58 +1551,35 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#statevector-ptsbe-lands-in-cuda-q-0140" class="md-nav__link">
+  <a href="#composable-by-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Statevector PTSBE Lands in CUDA-Q 0.14.0
+        Composable by design
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Statevector PTSBE Lands in CUDA-Q 0.14.0">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#performance-and-data-uniqueness" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance and Data Uniqueness
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-next-frontier-tensor-network-ptsbe" class="md-nav__link">
+  <a href="#a-first-program" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Next Frontier: Tensor Network PTSBE
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The Next Frontier: Tensor Network PTSBE">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#the-power-of-proportional-tensor-network-sampling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The Power of Proportional Tensor Network Sampling
+        A first program
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#from-molecular-data-to-a-ground-state-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From molecular data to a ground-state calculation
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1612,7 +1587,7 @@
   <a href="#get-started" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Get Started
+        Get started
       
     </span>
   </a>
@@ -1648,61 +1623,61 @@
                 
                   <div class="md-profile md-post__profile">
                     <span class="md-author md-author--long">
-                      <img src="../../../../../author-images/taylor_headshot.jpg" alt="Taylor Lee Patti">
+                      <img src="../../../../../author-images/scott_headshot.jpg" alt="Scott Thornton">
                     </span>
                     <span class="md-profile__description">
                       <strong>
                         
-                          <a href="../../../../author/taylor-patti/">Taylor Lee Patti</a>
+                          <a href="../../../../author/scott-thornton/">Scott Thornton</a>
                         
                       </strong>
                       <br>
-                      Research Manager, Quantum Simulation and AI
+                      Senior Software Engineer, CUDA-Q Libraries
                     </span>
                   </div>
                 
                   <div class="md-profile md-post__profile">
                     <span class="md-author md-author--long">
-                      <img src="../../../../../author-images/paavai_headshot.jpg" alt="Paavai Pari">
+                      <img src="../../../../../author-images/sammcardle_headshot.jpg" alt="Sam McArdle">
                     </span>
                     <span class="md-profile__description">
                       <strong>
                         
-                          <a href="../../../../author/paavai-pari/">Paavai Pari</a>
+                          <a href="../../../../author/sam-mcardle/">Sam McArdle</a>
                         
                       </strong>
                       <br>
-                      Software Engineer, Math Libraries
+                      Senior Quantum Algorithms Researcher
                     </span>
                   </div>
                 
                   <div class="md-profile md-post__profile">
                     <span class="md-author md-author--long">
-                      <img src="../../../../../author-images/thomas_headshot.jpg" alt="Thomas Alexander">
+                      <img src="../../../../../author-images/ben_headshot.jpg" alt="Ben Howe">
                     </span>
                     <span class="md-profile__description">
                       <strong>
                         
-                          <a href="../../../../author/thomas-alexander/">Thomas Alexander</a>
+                          <a href="../../../../author/ben-howe/">Ben Howe</a>
                         
                       </strong>
                       <br>
-                      Senior Software Engineer, CUDA-Q
+                      Senior Manager, CUDA-Q Libraries Engineering
                     </span>
                   </div>
                 
                   <div class="md-profile md-post__profile">
                     <span class="md-author md-author--long">
-                      <img src="../../../../../author-images/mitch_headshot.jpg" alt="Mitch Dzurick">
+                      <img src="../../../../../author-images/samstanwyck_headshot.jpg" alt="Sam Stanwyck">
                     </span>
                     <span class="md-profile__description">
                       <strong>
                         
-                          <a href="../../../../author/mitch-dzurick/">Mitch Dzurick</a>
+                          <a href="../../../../author/sam-stanwyck/">Sam Stanwyck</a>
                         
                       </strong>
                       <br>
-                      Software Engineer, CUDA-Q
+                      Director, Quantum Product
                     </span>
                   </div>
                 
@@ -1720,9 +1695,16 @@
                     <li class="md-nav__item">
                       <div class="md-nav__link">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
-                        <time datetime="2026-05-21 00:00:00+00:00" class="md-ellipsis">May 21, 2026</time>
+                        <time datetime="2026-08-18 00:00:00+00:00" class="md-ellipsis">August 18, 2026</time>
                       </div>
                     </li>
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69zm4-5H5v11h4.67c-.43-.91-.67-1.93-.67-3a7 7 0 0 1 7-7c1.07 0 2.09.24 3 .67zM5 21a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2v6.1c1.24 1.26 2 2.99 2 4.9a7 7 0 0 1-7 7c-1.91 0-3.64-.76-4.9-2zm11-9.85A4.85 4.85 0 0 0 11.15 16c0 2.68 2.17 4.85 4.85 4.85A4.85 4.85 0 0 0 20.85 16c0-2.68-2.17-4.85-4.85-4.85"/></svg>
+                          <time datetime="2026-08-18 00:00:00+00:00" class="md-ellipsis">August 18, 2026</time>
+                        </div>
+                      </li>
                     
                     
                       <li class="md-nav__item">
@@ -1731,7 +1713,8 @@
                           <span class="md-ellipsis">
                             in
                             
-                              <a href="../../../../category/cuda-q/">CUDA-Q</a></span>
+                              <a href="../../../../category/cuda-q/">CUDA-Q</a>, 
+                              <a href="../../../../category/releases/">Releases</a></span>
                         </div>
                       </li>
                     
@@ -1742,7 +1725,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
                           <span class="md-ellipsis">
                             
-                              8 min read
+                              5 min read
                             
                           </span>
                         </div>
@@ -1769,6 +1752,60 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Homepage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                      
+                        
+                        
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                      
+                        
+                        
+  
+  
+  
+  
     
     
     
@@ -1778,10 +1815,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__ref_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__ref_3" >
         
           
-          <label class="md-nav__link" for="__ref_1" id="__ref_1_label" tabindex="0">
+          <label class="md-nav__link" for="__ref_3" id="__ref_3_label" tabindex="0">
             
   
   
@@ -1799,8 +1836,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__ref_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__ref_1">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__ref_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__ref_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1817,14 +1854,14 @@
   
   
     <li class="md-nav__item">
-      <a href="https://github.com/NVIDIA/cuda-quantum" class="md-nav__link">
+      <a href="https://github.com/NVIDIA/cudaq-algorithms" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CUDA-Q GitHub
+    CUDA-Q Algorithms GitHub
   
 
     
@@ -1845,14 +1882,14 @@
   
   
     <li class="md-nav__item">
-      <a href="https://nvidia.github.io/cuda-quantum/0.14.0/using/examples/ptsbe.html" class="md-nav__link">
+      <a href="https://nvidia.github.io/cudaq-algorithms/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CUDA-Q PTSBE Documentation
+    CUDA-Q Algorithms Documentation
   
 
     
@@ -1895,6 +1932,13 @@
       
       
       
+        <a href="../../../../tags/#tag:algorithms" class="md-tag">Algorithms</a>
+      
+    
+      
+      
+      
+      
         <a href="../../../../tags/#tag:cuda-q" class="md-tag">CUDA-Q</a>
       
     
@@ -1902,14 +1946,14 @@
       
       
       
-        <a href="../../../../tags/#tag:ptsbe" class="md-tag">PTSBE</a>
+        <a href="../../../../tags/#tag:fault-tolerance" class="md-tag">Fault Tolerance</a>
       
     
       
       
       
       
-        <a href="../../../../tags/#tag:simulation" class="md-tag">Simulation</a>
+        <a href="../../../../tags/#tag:quantum-chemistry" class="md-tag">Quantum Chemistry</a>
       
     
   </nav>
@@ -1919,51 +1963,65 @@
   
 
 
-<h1 id="more-quantum-data-for-less-million-fold-data-collection-speedups-with-ptsbe">More Quantum Data for Less: Million-Fold Data Collection Speedups with PTSBE</h1>
-<p>There is a fundamental challenge in developing useful quantum computers. The quantum behavior that makes them so desirable to build also makes them difficult to simulate and design.</p>
-<p>This becomes especially challenging when trying to model the noise in quantum computing hardware. The exact simulation of <span class="arithmatex">\(n\)</span> ideal qubits requires tracking a number of parameters that grows like <span class="arithmatex">\( 2^n \)</span>, since an increasingly large vector must be tracked for larger quantum systems. But simulating <em>noisy</em> qubits requires not just tracking a Hilbert space <em>vector</em>, but a density <em>matrix</em>, described by <span class="arithmatex">\( 2^{2n} \)</span> values - adding yet another quadratic overhead. Including noise is key when simulating new quantum processor designs, but this extra computational cost can be severe.</p>
-<p>Thankfully, there is a solution. Quantum trajectory methods approximate noisy systems with an ensemble of stochastically sampled <span class="arithmatex">\( 2^n \)</span>-entry statevectors rather than exact density matrices - removing the additional quadratic overhead.</p>
+<h1 id="composable-building-blocks-for-fault-tolerant-quantum-programs-with-cuda-q-algorithms">Composable Building Blocks for Fault-Tolerant Quantum Programs with CUDA-Q Algorithms</h1>
+<p>As quantum computing enters the era of logical qubits, discovering, designing, and optimizing fault-tolerant algorithms that can deliver quantum advantage is becoming increasingly important. These algorithms will be a critical lever for translating quantum computing into meaningful scientific and societal impact.</p>
+<p>Fault-tolerant quantum algorithms are assembled from recurring components, including state preparation, Hamiltonian encoding, qubitization, polynomial transformations, and time evolution. CUDA-Q provides the programming model, logical architecture, and decoding layers needed for leveraging these components in fault-tolerant quantum-GPU supercomputing. Until now, however, research teams have often had to develop their own circuit-construction, integration, and validation code to turn components into working programs.</p>
 <!-- more -->
 
-<p><a href="https://doi.org/10.1145/3712285.3759871">Pre-Trajectory Sampling with Batched Execution (PTSBE)</a> has dramatically improved the data collection rate of these methods. Among other advantages, PTSBE optimizes noisy quantum simulation by pre-sampling unique error operators and computing their trajectories <em>before</em> executing the quantum state. Pre-calculating these values allows batch-processing, which avoids having to carry out error operator calculations redundantly later on.</p>
-<p>The most dramatic speedups from PTSBE come from <strong>non-proportional sampling</strong><sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>. In these modes, simulations are performed where the sampling deliberately deviates from the underlying quantum error probabilities in order to harvest as much data as possible from the evaluated states. While the datasets involved in these cases don't adhere to quantum error statistics, and so are not necessarily useful simulations for investigating quantum systems directly, they provide massive sets of data of huge value when raining AI models for quantum computing use-cases. A key example being the training of AI-based Quantum Error Correction (QEC) decoders.</p>
-<p>Conversely, for applications that require exact physical modeling, PTSBE can perform <strong>proportional sampling</strong><sup id="fnref2:1"><a class="footnote-ref" href="#fn:1">1</a></sup>. Even when maintaining the underlying quantum statistics, PTSBE still achieves more modest, yet still highly impactful speedups by employing a redesigned simulation architecture, refactored to avoid degenerate work.</p>
-<p>This blog will explore two distinct but closely related milestones in the evolution of this technique. First, we will examine how the original statevector PTSBE algorithm can be accessed in the <a href="https://nvidia.github.io/cuda-quantum/0.14.0/using/examples/ptsbe.html">NVIDIA CUDA-Q 0.14.0 release</a>, achieving speedups upwards of <span class="arithmatex">\( 10^7\times \)</span> for (proportional quantum, non-proportional error) data collection. Then, we will dive into <a href="https://arxiv.org/abs/2604.08467">new research</a> that extends these principles to tensor networks, pushing non-proportional tensor network PTSBE performance into the <span class="arithmatex">\( 10^8\times \)</span> data collection speedup regime, while still giving a <span class="arithmatex">\( 10^3\times \)</span> speedup for the statistically accurate proportional version.</p>
-<hr />
-<h2 id="statevector-ptsbe-lands-in-cuda-q-0140">Statevector PTSBE Lands in CUDA-Q 0.14.0</h2>
-<p>The <a href="https://doi.org/10.1145/3712285.3759871">original statevector PTSBE paper</a> demonstrated data collection speedups of many orders of magnitude, and these capabilities are available in the latest CUDA-Q 0.14.0 release through the new <code>cudaq.ptsbe</code> module in Python and <code>cudaq::ptsbe</code> namespace in C++. Developers can now use PTSBE to efficiently generate massive synthetic datasets of noisy quantum measurements.</p>
-<h3 id="performance-and-data-uniqueness">Performance and Data Uniqueness</h3>
-<p><img alt="Performance and Uniqueness (ngates=300)" src="../../../../../images/ptsbe-blog/perf_uniqueness_ngates300.png" /></p>
-<p><em>Fig 1: Performance and Uniqueness (ngates=300)</em></p>
-<p>The true power of this implementation can be seen when analyzing statevector performance data for non-proportional error, proportional population sampling of a 300-gate circuit. As the total number of shots scales up by several orders of magnitude, the wall clock speedup increases linearly with the number of shots sampled, reaching up to tens of millions of times faster. Crucially, despite reusing pre-sampled trajectories, the percentage of unique shots remains incredibly high, hovering near 100% across all scales, showing the vast amount of training data that PTSBE can harvest from a subset of the system error sampling.</p>
-<hr />
-<h2 id="the-next-frontier-tensor-network-ptsbe">The Next Frontier: Tensor Network PTSBE</h2>
-<p>While statevector PTSBE has enjoyed massive success and production integration, <a href="https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/overview.html">tensor network</a> implementations initially struggled due to poor path caching/reutilization strategies and inefficient sampling techniques. Unoptimized tensor network PTSBE only achieved a comparatively modest ~15x speedup against traditional trajectory simulations.</p>
-<p>In <a href="https://arxiv.org/abs/2604.08467">recent work</a>, we resolved the primary bottlenecks, pushing PTSBE's non-proportional tensor network data collection rate to more than <span class="arithmatex">\( 10^8\times \)</span> that of traditional trajectory methods.</p>
-<p>This was made possible through three key innovations:</p>
+<p><a href="https://github.com/NVIDIA/cudaq-algorithms">CUDA-Q Algorithms</a> is a modular Python library that makes these components available as reusable CUDA-Q primitives. The 0.1 release includes Pauli LCU block encodings, qubitization, quantum singular value transformation, Trotterization, state-preparation utilities, fermion-to-qubit transformations, and quantum chemistry utilities. The library is designed to support the flexible composition of fault-tolerant algorithms from modular primitives without prescribing a monolithic application or end-to-end solver workflow.</p>
+<p>CUDA-Q Algorithms is the successor to CUDA-Q Solvers, reflecting the industry's shift from proof-of-concept experiments on small, noisy QPUs toward early fault-tolerant algorithms running on error-corrected QPUs integrated into quantum-GPU supercomputers.</p>
+<h2 id="composable-by-design">Composable by design</h2>
+<p>CUDA-Q Algorithms separates classical problem data from executable quantum operations. Python objects store inputs such as Pauli coefficients, molecular integrals, and polynomial phases, then generate CUDA-Q kernels with that data captured.</p>
+<p>Developers can compose these kernels inside their own <code>@cudaq.kernel</code>, execute them on any supported CUDA-Q target, or use convenience workflows such as <code>Walk.moments()</code>. A common <code>BlockEncoding</code> interface also allows built-in and custom encodings to work with the same <code>Walk</code> and QSVT implementations. This makes it possible to explore new algorithm components without rebuilding the surrounding workflow.</p>
+<p>This approach is useful for a number of different use cases:</p>
 <ul>
-<li><strong>Unified Path Variations (UPV):</strong> An error-independent framework that merges error operands into deterministic gates, preserving network topology, so expensive path-finding subroutines are executed only once.</li>
-<li><strong>Non-Degenerate Batched Sampling (NBS):</strong> A suite of methods designed to eliminate repeated, degenerate operations during tensor network partial sampling. A key insight is that PTSBE's computational cost scales with the number of unique measurement prefixes, not the total shot count. This means more shots cost proportionally less compute which provides a great efficiency boost over per-shot trajectory methods that grow with scale.</li>
-<li><strong>Interface Flexibility:</strong> A dynamic interface exposing bespoke batch sizes, allowing fine-tuned hardware utilization to drastically increase the rate of contracted qubits per second.</li>
+<li><strong>Quantum algorithm researchers</strong> can prototype encodings, QSVT constructions, and simulation methods as executable programs.</li>
+<li><strong>Chemistry and materials researchers</strong> can start from molecular integrals or qubit Hamiltonians and assemble simulation and phase estimation workflows.</li>
+<li><strong>Framework, QPU, and logical-stack software builders</strong> can use the library as a CUDA-Q implementation layer while keeping their existing problem representations and research tools.</li>
 </ul>
-<h3 id="the-power-of-proportional-tensor-network-sampling">The Power of Proportional Tensor Network Sampling</h3>
-<p>While the <span class="arithmatex">\( 10^8\times \)</span> speedup for non-proportional sampling is ideal for AI workloads, our new tensor network optimizations also deliver massive gains for standard simulation tasks.</p>
-<p>By utilizing UPV and optimized batch sizing, our proportional (both error and population) PTSBE implementation achieves a data collection speedup of <span class="arithmatex">\( 10^3\times \)</span>. Because this sampling is completely proportional, it adheres to traditional quantum statistics, this represents a massive, extremely general acceleration for tensor network trajectory simulations, achieved completely through algorithmic innovations without introducing any new approximations or restrictions.</p>
-<p>With PTSBE fully integrated into CUDA-Q for statevectors and our newly optimized tensor network methodologies hitting unprecedented speeds, the generation of robust, large-scale noisy quantum data corpuses for training AI models is faster and more accessible than ever before.</p>
-<hr />
-<h2 id="get-started">Get Started</h2>
-<p>To start generating noisy quantum data with PTSBE, install <a href="https://github.com/NVIDIA/cuda-quantum">CUDA-Q 0.14</a> and try the <a href="https://nvidia.github.io/cuda-quantum/0.14.0/using/examples/ptsbe.html">PTSBE examples</a>.</p>
-<p><a class="md-button" href="https://twitter.com/intent/tweet?text=More%20Quantum%20Data%20for%20Less%3A%20Million-Fold%20Data%20Collection%20Speedups%20with%20PTSBE%0A&amp;url=http://www.example.com/blog/2026/05/21/ptsbe-million-fold-speedups/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg></span></a>
-<a class="md-button" href="https://www.facebook.com/sharer/sharer.php?u=http://www.example.com/blog/2026/05/21/ptsbe-million-fold-speedups/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a9 9 0 0 1 1.141.195v3.325a9 9 0 0 0-.653-.036 27 27 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.7 1.7 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647"/></svg></span></a>
-<a class="md-button" href="https://www.linkedin.com/sharing/share-offsite/?text=More%20Quantum%20Data%20for%20Less%3A%20Million-Fold%20Data%20Collection%20Speedups%20with%20PTSBE%0A&amp;url=http://www.example.com/blog/2026/05/21/ptsbe-million-fold-speedups/">Share on LinkedIn</a></p>
-<div class="footnote">
-<hr />
-<ol>
-<li id="fn:1">
-<p>Sampling algorithms can be proportional or non-proportional with respect to two unique sampling processes: 1) <strong>error sampling</strong> (i.e. whether the number of shots per state preparation is proportional to the probability of the corresponding error set) and 2) <strong>population sampling</strong> (whether the shots harvested from a state preparation are proportional to that state's populations). Proportional quantum error sampling is much easier to achieve in statevector simulations, as the entire population is, by definition, available.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a><a class="footnote-backref" href="#fnref2:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
-</li>
-</ol>
-</div>
+<p>The common goal is to move from an algorithm idea or scientific input to a runnable, testable CUDA-Q program with less project-specific code.</p>
+<h2 id="a-first-program">A first program</h2>
+<p>The core workflow takes only a few lines:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq_algorithms</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliLCU</span><span class="p">,</span> <span class="n">Walk</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Block-encode H / alpha.</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">hamiltonian</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="s2">"ZZ"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="s2">"XI"</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="s2">"IX"</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">}</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">encoding</span> <span class="o">=</span> <span class="n">PauliLCU</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Construct the qubitization walk.</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">walk</span> <span class="o">=</span> <span class="n">Walk</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># Measure Chebyshev moments of H / alpha.</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="n">moments</span> <span class="o">=</span> <span class="n">walk</span><span class="o">.</span><span class="n">moments</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="nb">print</span><span class="p">(</span><span class="n">moments</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>PauliLCU</code> converts the Hamiltonian into a block encoding, and <code>Walk</code> constructs its qubitization operator. The measured Chebyshev moments, <span class="arithmatex">\(\langle T_k(H/\alpha)\rangle\)</span>, can then be used by spectral methods such as Krylov eigensolvers. The quickstart verifies the results against dense linear algebra.</p>
+<p>State preparation can also be supplied as a CUDA-Q kernel. This allows <code>Walk</code>, QSVT, and Trotter to generate a single kernel that prepares the state and applies the algorithm. The included example demonstrates this workflow with both a Hartree–Fock state and a Givens-rotation-generated Slater determinant.</p>
+<h2 id="from-molecular-data-to-a-ground-state-calculation">From molecular data to a ground-state calculation</h2>
+<p>An included quantum chemistry example demonstrates how to use CUDA-Q Algorithms to connect PySCF and CUDA-Q in an end-to-end workflow:</p>
+<p><strong>PySCF mean field → molecular integrals → Jordan–Wigner Hamiltonian → Pauli LCU block encoding → qubitization moments → classical Krylov solve → ground-state energy</strong></p>
+<p>The result can be verified against a full configuration interaction calculation. A second example replaces the Pauli LCU encoding with a double-factorized encoding while leaving the downstream <code>Walk</code> and QSVT code unchanged, making it easier to compare Hamiltonian representations within the same workflow.</p>
+<p>The release includes six runnable examples covering block encoding, QSVT, Trotter simulation, quantum chemistry, double factorization, state preparation, and custom encodings. Each checks its output against an independent reference, such as dense matrix calculations or full configuration interaction.</p>
+<p>Quantum computing is entering the era of fault tolerance. Discovering and testing fault-tolerant applications requires an ability to rapidly test and optimize candidate algorithms. CUDA-Q Algorithms provides researchers with the open-source tools they need to do so.</p>
+<h2 id="get-started">Get started</h2>
+<p>Install CUDA-Q Algorithms with:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cudaq-algorithms
+</span></code></pre></div>
+<p><a href="https://github.com/NVIDIA/cudaq-algorithms">Download the source from GitHub</a> and explore the <a href="https://nvidia.github.io/cudaq-algorithms/">documentation</a>.</p>
+<p><a class="md-button" href="https://twitter.com/intent/tweet?text=Composable%20Building%20Blocks%20for%20Fault-Tolerant%20Quantum%20Programs%20with%20CUDA-Q%20Algorithms%0A&amp;url=http://www.example.com/blog/2026/08/18/cudaq-algorithms-0.1/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg></span></a>
+<a class="md-button" href="https://www.facebook.com/sharer/sharer.php?u=http://www.example.com/blog/2026/08/18/cudaq-algorithms-0.1/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a9 9 0 0 1 1.141.195v3.325a9 9 0 0 0-.653-.036 27 27 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.7 1.7 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647"/></svg></span></a>
+<a class="md-button" href="https://www.linkedin.com/sharing/share-offsite/?text=Composable%20Building%20Blocks%20for%20Fault-Tolerant%20Quantum%20Programs%20with%20CUDA-Q%20Algorithms%0A&amp;url=http://www.example.com/blog/2026/08/18/cudaq-algorithms-0.1/">Share on LinkedIn</a></p>
 
 
 
