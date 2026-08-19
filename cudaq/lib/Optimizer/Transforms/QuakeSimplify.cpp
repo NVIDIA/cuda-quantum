@@ -614,12 +614,13 @@ public:
     }
     Value prev0Trgt = prev0Trgs[0];
     Value prevTrgt = prevTrgs[0];
-    auto last0 = prev0.getNumResults() - 1;
-    auto last = prev.getNumResults() - 1;
+    auto prev0Wires = prev0.getWires();
+    auto prevWires = prev.getWires();
     if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
         !isa<cudaq::quake::WireType>(prev0Trgt.getType()) ||
         !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
-        trgt != prev0.getResult(last0) || prev0Trgt != prev.getResult(last)) {
+        prev0Wires.empty() || prevWires.empty() || trgt != prev0Wires.back() ||
+        prev0Trgt != prevWires.back()) {
       LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n");
       return failure();
     }
@@ -640,10 +641,9 @@ public:
       return failure();
     }
 
-    for (auto iter :
-         llvm::enumerate(llvm::zip(controls, prev0Ctls, prevCtls))) {
-      auto n = iter.index();
-      auto [c, p0c, pc] = iter.value();
+    std::size_t prev0WireIndex = 0;
+    std::size_t prevWireIndex = 0;
+    for (auto [c, p0c, pc] : llvm::zip(controls, prev0Ctls, prevCtls)) {
       if (isa<cudaq::quake::ControlType>(c.getType())) {
         if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc ||
             p0c != pc) {
@@ -655,11 +655,17 @@ public:
       if (!isa<cudaq::quake::WireType>(c.getType()) ||
           !isa<cudaq::quake::WireType>(p0c.getType()) ||
           !isa<cudaq::quake::WireType>(pc.getType()) ||
-          c != prev0.getResult(n) || p0c != prev.getResult(n)) {
+          prev0WireIndex + 1 >= prev0Wires.size() ||
+          prevWireIndex + 1 >= prevWires.size() ||
+          c != prev0Wires[prev0WireIndex++] ||
+          p0c != prevWires[prevWireIndex++]) {
         LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
         return failure();
       }
     }
+    if (prev0WireIndex + 1 != prev0Wires.size() ||
+        prevWireIndex + 1 != prevWires.size())
+      return failure();
 
     // X S Y = -S, while X S^dagger Y = S^dagger exactly.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n'
