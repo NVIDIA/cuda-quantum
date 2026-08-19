@@ -19,6 +19,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
+#include <string>
 
 using namespace mlir;
 

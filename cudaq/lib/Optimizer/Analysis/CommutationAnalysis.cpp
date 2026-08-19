@@ -23,9 +23,9 @@ using namespace mlir;
 using Pauli = cudaq::quake::Pauli;
 using PauliWord = cudaq::quake::PauliWord;
 using CommutationAnalysis = cudaq::quake::detail::CommutationAnalysis;
-using CommutationReason = cudaq::quake::detail::CommutationReason;
+using commutation_reason = cudaq::quake::detail::commutation_reason;
 using CommutationResult = cudaq::quake::detail::CommutationResult;
-using CommutationStatus = cudaq::quake::detail::CommutationStatus;
+using commutation_status = cudaq::quake::detail::commutation_status;
 using QubitIdentityAnalysis = cudaq::quake::detail::QubitIdentityAnalysis;
 
 namespace {
@@ -39,7 +39,7 @@ struct ControlUse {
   bool operator==(const ControlUse &) const = default;
 };
 
-enum class QubitRole { Target, PositiveControl, NegativeControl };
+enum class qubit_role { target, positive_control, negative_control };
 
 // Query-local view of a supported Quake operation's controls, targets, and
 // support, expressed using analysis-local qubit identifiers.
@@ -59,7 +59,7 @@ struct OperationView {
   // Targets in operand order, preserving positional gate semantics.
   llvm::SmallVector<QubitId> targets;
   // Unique role and control polarity for each supported qubit.
-  llvm::DenseMap<QubitId, QubitRole> roles;
+  llvm::DenseMap<QubitId, qubit_role> roles;
 };
 
 // Analysis-local Pauli product keyed by qubit rather than IR target order.
@@ -69,16 +69,16 @@ struct PauliAction {
 };
 } // namespace
 
-static CommutationResult commutes(CommutationReason reason) {
-  return {CommutationStatus::Commutes, reason};
+static CommutationResult commutes(commutation_reason reason) {
+  return {commutation_status::commutes, reason};
 }
 
-static CommutationResult doesNotCommute(CommutationReason reason) {
-  return {CommutationStatus::DoesNotCommute, reason};
+static CommutationResult doesNotCommute(commutation_reason reason) {
+  return {commutation_status::does_not_commute, reason};
 }
 
-static CommutationResult indeterminate(CommutationReason reason) {
-  return {CommutationStatus::Indeterminate, reason};
+static CommutationResult indeterminate(commutation_reason reason) {
+  return {commutation_status::indeterminate, reason};
 }
 
 static OperationPair getCanonicalCacheKey(Operation *lhs, Operation *rhs) {
@@ -318,7 +318,7 @@ static bool hasTargetControlCrossover(const OperationView &lhs,
                                       const OperationView &rhs) {
   auto isControl = [](const OperationView &view, QubitId qubitId) {
     auto role = view.roles.find(qubitId);
-    return role != view.roles.end() && role->second != QubitRole::Target;
+    return role != view.roles.end() && role->second != qubit_role::target;
   };
   return llvm::any_of(
              lhs.targets,
@@ -341,7 +341,7 @@ static bool diagonalOverlapsOnlyControls(const OperationView &diagonal,
     if (role == controlled.roles.end())
       return true;
     hasOverlap = true;
-    return role->second != QubitRole::Target;
+    return role->second != qubit_role::target;
   };
 
   for (ControlUse control : diagonal.controls)
@@ -363,7 +363,7 @@ static bool haveDisjointTargetSupport(const OperationView &lhs,
     std::swap(smaller, larger);
   return llvm::none_of(smaller->targets, [&](QubitId qubitId) {
     auto role = larger->roles.find(qubitId);
-    return role != larger->roles.end() && role->second == QubitRole::Target;
+    return role != larger->roles.end() && role->second == qubit_role::target;
   });
 }
 
@@ -401,8 +401,8 @@ static bool haveMutuallyExclusiveControls(const OperationView &lhs,
     std::swap(smaller, larger);
   for (ControlUse control : smaller->controls) {
     auto other = larger->roles.find(control.qubitId);
-    if (other != larger->roles.end() && other->second != QubitRole::Target &&
-        control.negated != (other->second == QubitRole::NegativeControl))
+    if (other != larger->roles.end() && other->second != qubit_role::target &&
+        control.negated != (other->second == qubit_role::negative_control))
       return true;
   }
   return false;
@@ -412,7 +412,7 @@ static bool haveMutuallyExclusiveControls(const OperationView &lhs,
 static std::optional<CommutationResult>
 tryDisjointSupport(const OperationView &lhs, const OperationView &rhs) {
   if (haveDisjointQuantumSupport(lhs, rhs))
-    return commutes(CommutationReason::DisjointSupport);
+    return commutes(commutation_reason::disjoint_support);
   return std::nullopt;
 }
 
@@ -420,7 +420,7 @@ tryDisjointSupport(const OperationView &lhs, const OperationView &rhs) {
 static std::optional<CommutationResult>
 trySameOperation(const OperationView &lhs, const OperationView &rhs) {
   if (haveSameOperation(lhs, rhs))
-    return commutes(CommutationReason::SameOperation);
+    return commutes(commutation_reason::same_operation);
   return std::nullopt;
 }
 
@@ -444,21 +444,19 @@ tryInstrumentOrReset(const OperationView &lhs, const OperationView &rhs) {
   if (nonUnitaryOperation.targets.front() != unitaryChannel.targets.front())
     return std::nullopt;
 
-  // For each outcome m, M_m(rho) = Pi_m rho Pi_m. If [U, Pi_m] = 0, then
-  // M_m(U rho U^dagger) = U M_m(rho) U^dagger, preserving outcome m.
-  if ((isa<cudaq::quake::MxOp>(nonUnitaryOperation.operation) &&
-       isXAxis(unitaryChannel.operation)) ||
-      (isa<cudaq::quake::MyOp>(nonUnitaryOperation.operation) &&
-       isYAxis(unitaryChannel.operation)) ||
-      (isa<cudaq::quake::MzOp>(nonUnitaryOperation.operation) &&
-       isZAxis(unitaryChannel.operation)))
-    return commutes(CommutationReason::MeasurementInstrumentBasis);
+  // Mz returns a computational-basis wire. A Z-axis unitary preserves both
+  // its outcome projectors and each conditional output state. Mx and My also
+  // return computational-basis wires, so matching their observed axis alone
+  // does not prove instrument commutation.
+  if (isa<cudaq::quake::MzOp>(nonUnitaryOperation.operation) &&
+      isZAxis(unitaryChannel.operation))
+    return commutes(commutation_reason::measurement_instrument_basis);
 
   // Reset is R(rho) = |0><0| Tr(rho). A Z-axis unitary preserves |0> up to
   // phase, so R(U rho U^dagger) = U R(rho) U^dagger = R(rho).
   if (isa<cudaq::quake::ResetOp>(nonUnitaryOperation.operation) &&
       isZAxis(unitaryChannel.operation))
-    return commutes(CommutationReason::PreservedResetState);
+    return commutes(commutation_reason::preserved_reset_state);
   return std::nullopt;
 }
 
@@ -468,7 +466,7 @@ static std::optional<CommutationResult>
 tryComputationalDiagonal(const OperationView &lhs, const OperationView &rhs) {
   if (isComputationalDiagonal(lhs.operation) &&
       isComputationalDiagonal(rhs.operation))
-    return commutes(CommutationReason::ComputationalDiagonal);
+    return commutes(commutation_reason::computational_diagonal);
   return std::nullopt;
 }
 
@@ -479,7 +477,7 @@ static std::optional<CommutationResult> trySameAxis(const OperationView &lhs,
                                                     const OperationView &rhs) {
   if (lhs.controls.empty() && rhs.controls.empty() &&
       haveSameAxisTargetAction(lhs, rhs))
-    return commutes(CommutationReason::SameAxis);
+    return commutes(commutation_reason::same_axis);
   return std::nullopt;
 }
 
@@ -495,9 +493,9 @@ tryPauliParity(const OperationView &lhs, const OperationView &rhs) {
   if (!lhsPauli || !rhsPauli)
     return std::nullopt;
   if (!hasOddPauliAnticommutationParity(*lhsPauli, *rhsPauli))
-    return commutes(CommutationReason::EvenPauliParity);
+    return commutes(commutation_reason::even_pauli_parity);
   if (isPauliOperator(lhs.operation) && isPauliOperator(rhs.operation))
-    return doesNotCommute(CommutationReason::OddPauliParity);
+    return doesNotCommute(commutation_reason::odd_pauli_parity);
   return std::nullopt;
 }
 
@@ -513,7 +511,7 @@ static std::optional<CommutationResult>
 tryDiagonalOnControls(const OperationView &lhs, const OperationView &rhs) {
   if (diagonalOverlapsOnlyControls(lhs, rhs) ||
       diagonalOverlapsOnlyControls(rhs, lhs))
-    return commutes(CommutationReason::DiagonalOnControls);
+    return commutes(commutation_reason::diagonal_on_controls);
   return std::nullopt;
 }
 
@@ -524,7 +522,7 @@ tryCompatibleControlledTargets(const OperationView &lhs,
                                const OperationView &rhs) {
   if ((!lhs.controls.empty() || !rhs.controls.empty()) &&
       !hasTargetControlCrossover(lhs, rhs) && targetActionsCommute(lhs, rhs))
-    return commutes(CommutationReason::CompatibleControlledTargets);
+    return commutes(commutation_reason::compatible_controlled_targets);
   return std::nullopt;
 }
 
@@ -536,7 +534,7 @@ tryMutuallyExclusiveControls(const OperationView &lhs,
   if (!lhs.controls.empty() && !rhs.controls.empty() &&
       !hasTargetControlCrossover(lhs, rhs) &&
       haveMutuallyExclusiveControls(lhs, rhs))
-    return commutes(CommutationReason::MutuallyExclusiveControls);
+    return commutes(commutation_reason::mutually_exclusive_controls);
   return std::nullopt;
 }
 
@@ -551,21 +549,21 @@ static CommutationResult dispatchRules(const OperationView &lhs,
        lhs.targets.size() != 1) ||
       (isa<cudaq::quake::MeasurementInterface>(rhs.operation) &&
        rhs.targets.size() != 1))
-    return indeterminate(CommutationReason::NoApplicableRule);
+    return indeterminate(commutation_reason::no_applicable_rule);
   if (auto result = tryDisjointSupport(lhs, rhs))
     return *result;
   if (!lhs.operatorInterface || !rhs.operatorInterface) {
     if (auto result = tryInstrumentOrReset(lhs, rhs))
       return *result;
-    return indeterminate(CommutationReason::NoApplicableRule);
+    return indeterminate(commutation_reason::no_applicable_rule);
   }
   if (auto result = trySameOperation(lhs, rhs))
     return *result;
   if (!isSupportedSharedOperation(lhs.operation) ||
       !isSupportedSharedOperation(rhs.operation))
-    return indeterminate(CommutationReason::NoApplicableRule);
+    return indeterminate(commutation_reason::no_applicable_rule);
   if (!hasSupportedPauliWord(lhs) || !hasSupportedPauliWord(rhs))
-    return indeterminate(CommutationReason::UnsupportedPauliWord);
+    return indeterminate(commutation_reason::unsupported_pauli_word);
 
   // Rule order determines which successful proof reason is reported.
   static constexpr CommutationRule orderedRules[] = {
@@ -579,13 +577,13 @@ static CommutationResult dispatchRules(const OperationView &lhs,
   for (CommutationRule rule : orderedRules)
     if (auto result = rule(lhs, rhs))
       return *result;
-  return indeterminate(CommutationReason::NoApplicableRule);
+  return indeterminate(commutation_reason::no_applicable_rule);
 }
 
 // Populate the normalized view used by commutation rules. Resolve scalar wire
 // controls and targets to analysis-local qubit IDs, record their roles and
 // control polarities, and reject unmapped or duplicate qubit uses.
-static std::optional<CommutationReason>
+static std::optional<commutation_reason>
 populateOperationView(OperationView &view,
                       const QubitIdentityAnalysis &qubitIdentity) {
   // A supported operation view may use a qubit in only one control or target
@@ -605,16 +603,16 @@ populateOperationView(OperationView &view,
     view.controls.reserve(controls.size());
     for (auto [index, control] : llvm::enumerate(controls)) {
       if (!isa<cudaq::quake::WireType>(control.getType()))
-        return CommutationReason::UnsupportedQuantumOperandType;
+        return commutation_reason::unsupported_quantum_operand_type;
       auto qubitId = qubitIdentity.getQubitId(control);
       if (!qubitId)
-        return CommutationReason::UnmappedQubitId;
+        return commutation_reason::unmapped_qubit_id;
       bool negated = negatedControls && (*negatedControls)[index];
       if (!view.roles
-               .try_emplace(*qubitId, negated ? QubitRole::NegativeControl
-                                              : QubitRole::PositiveControl)
+               .try_emplace(*qubitId, negated ? qubit_role::negative_control
+                                              : qubit_role::positive_control)
                .second)
-        return CommutationReason::DuplicateQubitOperand;
+        return commutation_reason::duplicate_qubit_operand;
       view.controls.push_back({*qubitId, negated});
     }
     llvm::append_range(targets, quantumOperator.getTargets());
@@ -640,12 +638,12 @@ populateOperationView(OperationView &view,
   view.targets.reserve(targets.size());
   for (Value target : targets) {
     if (!isa<cudaq::quake::WireType>(target.getType()))
-      return CommutationReason::UnsupportedQuantumOperandType;
+      return commutation_reason::unsupported_quantum_operand_type;
     auto qubitId = qubitIdentity.getQubitId(target);
     if (!qubitId)
-      return CommutationReason::UnmappedQubitId;
-    if (!view.roles.try_emplace(*qubitId, QubitRole::Target).second)
-      return CommutationReason::DuplicateQubitOperand;
+      return commutation_reason::unmapped_qubit_id;
+    if (!view.roles.try_emplace(*qubitId, qubit_role::target).second)
+      return commutation_reason::duplicate_qubit_operand;
     view.targets.push_back(*qubitId);
   }
   return std::nullopt;
@@ -655,7 +653,7 @@ populateOperationView(OperationView &view,
 static CommutationResult evaluate(Operation *lhs, Operation *rhs,
                                   const QubitIdentityAnalysis &qubitIdentity) {
   if (!isSupportedViewOperation(lhs) || !isSupportedViewOperation(rhs))
-    return indeterminate(CommutationReason::UnsupportedOperationKind);
+    return indeterminate(commutation_reason::unsupported_operation_kind);
 
   OperationView lhsView{lhs};
   OperationView rhsView{rhs};
@@ -668,45 +666,45 @@ static CommutationResult evaluate(Operation *lhs, Operation *rhs,
 }
 
 llvm::StringRef
-cudaq::quake::detail::getCommutationReasonId(CommutationReason reason) {
+cudaq::quake::detail::getCommutationReasonId(commutation_reason reason) {
   switch (reason) {
-  case CommutationReason::DisjointSupport:
+  case commutation_reason::disjoint_support:
     return "disjoint-support";
-  case CommutationReason::SameOperation:
+  case commutation_reason::same_operation:
     return "same-operation";
-  case CommutationReason::ComputationalDiagonal:
+  case commutation_reason::computational_diagonal:
     return "computational-diagonal";
-  case CommutationReason::SameAxis:
+  case commutation_reason::same_axis:
     return "same-axis";
-  case CommutationReason::MeasurementInstrumentBasis:
+  case commutation_reason::measurement_instrument_basis:
     return "measurement-instrument-basis";
-  case CommutationReason::PreservedResetState:
+  case commutation_reason::preserved_reset_state:
     return "preserved-reset-state";
-  case CommutationReason::EvenPauliParity:
+  case commutation_reason::even_pauli_parity:
     return "even-pauli-parity";
-  case CommutationReason::OddPauliParity:
+  case commutation_reason::odd_pauli_parity:
     return "odd-pauli-parity";
-  case CommutationReason::DiagonalOnControls:
+  case commutation_reason::diagonal_on_controls:
     return "diagonal-on-controls";
-  case CommutationReason::CompatibleControlledTargets:
+  case commutation_reason::compatible_controlled_targets:
     return "compatible-controlled-targets";
-  case CommutationReason::MutuallyExclusiveControls:
+  case commutation_reason::mutually_exclusive_controls:
     return "mutually-exclusive-controls";
-  case CommutationReason::NullOperation:
+  case commutation_reason::null_operation:
     return "null-operation";
-  case CommutationReason::DifferentBlocks:
+  case commutation_reason::different_blocks:
     return "different-blocks";
-  case CommutationReason::UnsupportedOperationKind:
+  case commutation_reason::unsupported_operation_kind:
     return "unsupported-operation-kind";
-  case CommutationReason::UnsupportedQuantumOperandType:
+  case commutation_reason::unsupported_quantum_operand_type:
     return "unsupported-quantum-operand-type";
-  case CommutationReason::UnmappedQubitId:
+  case commutation_reason::unmapped_qubit_id:
     return "unmapped-qubit-id";
-  case CommutationReason::DuplicateQubitOperand:
+  case commutation_reason::duplicate_qubit_operand:
     return "duplicate-qubit-operand";
-  case CommutationReason::UnsupportedPauliWord:
+  case commutation_reason::unsupported_pauli_word:
     return "unsupported-pauli-word";
-  case CommutationReason::NoApplicableRule:
+  case commutation_reason::no_applicable_rule:
     return "no-applicable-rule";
   }
   llvm_unreachable("unhandled commutation reason");
@@ -721,9 +719,9 @@ CommutationAnalysis::~CommutationAnalysis() = default;
 CommutationResult CommutationAnalysis::getResult(Operation *lhs,
                                                  Operation *rhs) {
   if (!lhs || !rhs)
-    return indeterminate(CommutationReason::NullOperation);
+    return indeterminate(commutation_reason::null_operation);
   if (lhs->getBlock() != block || rhs->getBlock() != block)
-    return indeterminate(CommutationReason::DifferentBlocks);
+    return indeterminate(commutation_reason::different_blocks);
 
   OperationPair key = getCanonicalCacheKey(lhs, rhs);
   auto cached = cache.find(key);
@@ -735,5 +733,5 @@ CommutationResult CommutationAnalysis::getResult(Operation *lhs,
 }
 
 bool CommutationAnalysis::canCommute(Operation *lhs, Operation *rhs) {
-  return static_cast<bool>(getResult(lhs, rhs));
+  return getResult(lhs, rhs).status == commutation_status::commutes;
 }

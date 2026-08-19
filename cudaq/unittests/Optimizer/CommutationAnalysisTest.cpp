@@ -23,8 +23,8 @@
 using namespace mlir;
 
 using CommutationAnalysis = cudaq::quake::detail::CommutationAnalysis;
-using CommutationReason = cudaq::quake::detail::CommutationReason;
-using CommutationStatus = cudaq::quake::detail::CommutationStatus;
+using commutation_reason = cudaq::quake::detail::commutation_reason;
+using commutation_status = cudaq::quake::detail::commutation_status;
 
 namespace {
 class CommutationAnalysisTest : public ::testing::Test {
@@ -62,8 +62,8 @@ protected:
 
   // Check that both operand orders produce the expected detailed result.
   static void expectPair(CommutationAnalysis &analysis, Operation *lhs,
-                         Operation *rhs, CommutationStatus status,
-                         CommutationReason reason) {
+                         Operation *rhs, commutation_status status,
+                         commutation_reason reason) {
     auto forward = analysis.getResult(lhs, rhs);
     auto reverse = analysis.getResult(rhs, lhs);
     EXPECT_EQ(forward.status, status);
@@ -95,8 +95,8 @@ TEST_F(CommutationAnalysisTest, CommutesOperationsOnDifferentQubits) {
   ASSERT_EQ(operators.size(), 2u);
   CommutationAnalysis analysis(function.front());
   // X and H act on different virtual qubits.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::DisjointSupport);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::disjoint_support);
 }
 
 TEST_F(CommutationAnalysisTest, CanCommuteIsTrueOnlyForProvenCommutation) {
@@ -126,13 +126,13 @@ TEST_F(CommutationAnalysisTest, CanCommuteIsTrueOnlyForProvenCommutation) {
   struct Query {
     Operation *lhs;
     Operation *rhs;
-    CommutationStatus status;
+    commutation_status status;
     bool canCommute;
   };
   const Query queries[] = {
-      {operators[0], operators[2], CommutationStatus::Commutes, true},
-      {operators[0], operators[1], CommutationStatus::DoesNotCommute, false},
-      {operators[3], operators[4], CommutationStatus::Indeterminate, false},
+      {operators[0], operators[2], commutation_status::commutes, true},
+      {operators[0], operators[1], commutation_status::does_not_commute, false},
+      {operators[3], operators[4], commutation_status::indeterminate, false},
   };
   for (const auto &query : queries) {
     EXPECT_EQ(analysis.getResult(query.lhs, query.rhs).status, query.status);
@@ -232,9 +232,10 @@ TEST_F(CommutationAnalysisTest, FreshReferenceProvenanceBoundaries) {
   ASSERT_EQ(freshOperators.size(), 3u);
   CommutationAnalysis freshAnalysis(fresh.front());
   expectPair(freshAnalysis, freshOperators[0], freshOperators[1],
-             CommutationStatus::Commutes, CommutationReason::SameAxis);
+             commutation_status::commutes, commutation_reason::same_axis);
   expectPair(freshAnalysis, freshOperators[0], freshOperators[2],
-             CommutationStatus::Commutes, CommutationReason::DisjointSupport);
+             commutation_status::commutes,
+             commutation_reason::disjoint_support);
 
   for (llvm::StringRef functionName : {"call_boundary", "region_boundary"}) {
     auto boundary = getFunction(*module, functionName);
@@ -242,10 +243,11 @@ TEST_F(CommutationAnalysisTest, FreshReferenceProvenanceBoundaries) {
     ASSERT_EQ(boundaryOperators.size(), 4u);
     CommutationAnalysis boundaryAnalysis(boundary.front());
     expectPair(boundaryAnalysis, boundaryOperators[0], boundaryOperators[1],
-               CommutationStatus::Commutes, CommutationReason::DisjointSupport);
+               commutation_status::commutes,
+               commutation_reason::disjoint_support);
     expectPair(boundaryAnalysis, boundaryOperators[2], boundaryOperators[3],
-               CommutationStatus::Indeterminate,
-               CommutationReason::UnmappedQubitId);
+               commutation_status::indeterminate,
+               commutation_reason::unmapped_qubit_id);
   }
 }
 
@@ -273,8 +275,8 @@ TEST_F(CommutationAnalysisTest, UnknownSuccessorArgumentSupport) {
 
   CommutationAnalysis analysis(successor);
   expectPair(analysis, operators[0], operators[1],
-             CommutationStatus::Indeterminate,
-             CommutationReason::UnmappedQubitId);
+             commutation_status::indeterminate,
+             commutation_reason::unmapped_qubit_id);
 }
 
 TEST_F(CommutationAnalysisTest, CommutesMatchingOperationsAndAdjoints) {
@@ -310,17 +312,17 @@ TEST_F(CommutationAnalysisTest, CommutesMatchingOperationsAndAdjoints) {
   ASSERT_EQ(operators.size(), 8u);
   CommutationAnalysis analysis(function.front());
   // Rx and its adjoint have the same parameter and target.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::SameOperation);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::same_operation);
   // Reversing Swap's target order represents the same operation.
-  expectPair(analysis, operators[2], operators[3], CommutationStatus::Commutes,
-             CommutationReason::SameOperation);
+  expectPair(analysis, operators[2], operators[3], commutation_status::commutes,
+             commutation_reason::same_operation);
   // Equal constant attributes make the two U2 parameter lists exact matches.
-  expectPair(analysis, operators[4], operators[5], CommutationStatus::Commutes,
-             CommutationReason::SameOperation);
+  expectPair(analysis, operators[4], operators[5], commutation_status::commutes,
+             commutation_reason::same_operation);
   // The two U3 operations reuse the same SSA parameters and target.
-  expectPair(analysis, operators[6], operators[7], CommutationStatus::Commutes,
-             CommutationReason::SameOperation);
+  expectPair(analysis, operators[6], operators[7], commutation_status::commutes,
+             commutation_reason::same_operation);
 }
 
 TEST_F(CommutationAnalysisTest, CommutesComputationalBasisDiagonalOperations) {
@@ -344,14 +346,14 @@ TEST_F(CommutationAnalysisTest, CommutesComputationalBasisDiagonalOperations) {
   ASSERT_EQ(operators.size(), 5u);
   CommutationAnalysis analysis(function.front());
   // Z and S are diagonal in the computational basis.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::ComputationalDiagonal);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::computational_diagonal);
   // S and T are diagonal in the computational basis.
-  expectPair(analysis, operators[1], operators[2], CommutationStatus::Commutes,
-             CommutationReason::ComputationalDiagonal);
+  expectPair(analysis, operators[1], operators[2], commutation_status::commutes,
+             commutation_reason::computational_diagonal);
   // R1 and Rz are diagonal for any rotation angle.
-  expectPair(analysis, operators[3], operators[4], CommutationStatus::Commutes,
-             CommutationReason::ComputationalDiagonal);
+  expectPair(analysis, operators[3], operators[4], commutation_status::commutes,
+             commutation_reason::computational_diagonal);
 }
 
 TEST_F(CommutationAnalysisTest,
@@ -385,18 +387,18 @@ TEST_F(CommutationAnalysisTest,
   ASSERT_EQ(operators.size(), 7u);
   CommutationAnalysis analysis(function.front());
   // X and Rx share the X axis on the same target.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::SameAxis);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::same_axis);
   // PhasedRx rotations share an axis when their phase parameters match.
-  expectPair(analysis, operators[2], operators[3], CommutationStatus::Commutes,
-             CommutationReason::SameAxis);
+  expectPair(analysis, operators[2], operators[3], commutation_status::commutes,
+             commutation_reason::same_axis);
   // Different PhasedRx phase parameters do not establish a shared axis.
   expectPair(analysis, operators[3], operators[4],
-             CommutationStatus::Indeterminate,
-             CommutationReason::NoApplicableRule);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
   // Y and Ry share the Y axis on the same target.
-  expectPair(analysis, operators[5], operators[6], CommutationStatus::Commutes,
-             CommutationReason::SameAxis);
+  expectPair(analysis, operators[5], operators[6], commutation_status::commutes,
+             commutation_reason::same_axis);
 }
 
 TEST_F(CommutationAnalysisTest,
@@ -432,21 +434,21 @@ TEST_F(CommutationAnalysisTest,
   ASSERT_EQ(operators.size(), 8u);
   CommutationAnalysis analysis(function.front());
   // XX and ZZ have two anti-commuting factors, giving even parity.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::EvenPauliParity);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::even_pauli_parity);
   // X and Z have one anti-commuting factor and therefore do not commute.
   expectPair(analysis, operators[2], operators[3],
-             CommutationStatus::DoesNotCommute,
-             CommutationReason::OddPauliParity);
+             commutation_status::does_not_commute,
+             commutation_reason::odd_pauli_parity);
   // Odd parity does not prove that a parameterized ExpPauli rotation fails to
   // commute with Z for every angle.
   expectPair(analysis, operators[4], operators[5],
-             CommutationStatus::Indeterminate,
-             CommutationReason::NoApplicableRule);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
   // A dynamic Pauli word cannot be normalized for comparison with Z.
   expectPair(analysis, operators[6], operators[7],
-             CommutationStatus::Indeterminate,
-             CommutationReason::UnsupportedPauliWord);
+             commutation_status::indeterminate,
+             commutation_reason::unsupported_pauli_word);
 }
 
 TEST_F(CommutationAnalysisTest, DiagonalOnControls) {
@@ -468,8 +470,8 @@ TEST_F(CommutationAnalysisTest, DiagonalOnControls) {
   ASSERT_EQ(operators.size(), 2u);
   CommutationAnalysis analysis(function.front());
   // Z overlaps the controlled X only on its control qubit.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::DiagonalOnControls);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::diagonal_on_controls);
 }
 
 TEST_F(CommutationAnalysisTest, CompatibleControlledTargets) {
@@ -498,12 +500,12 @@ TEST_F(CommutationAnalysisTest, CompatibleControlledTargets) {
   ASSERT_EQ(operators.size(), 4u);
   CommutationAnalysis analysis(function.front());
   // Controlled X and Rx share a control and have compatible X-axis targets.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::CompatibleControlledTargets);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::compatible_controlled_targets);
   // Exchanging target and control roles prevents a controlled-target proof.
   expectPair(analysis, operators[2], operators[3],
-             CommutationStatus::Indeterminate,
-             CommutationReason::NoApplicableRule);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
 }
 
 TEST_F(CommutationAnalysisTest, MutuallyExclusiveControls) {
@@ -525,8 +527,8 @@ TEST_F(CommutationAnalysisTest, MutuallyExclusiveControls) {
   ASSERT_EQ(operators.size(), 2u);
   CommutationAnalysis analysis(function.front());
   // Opposite polarity on the shared control makes the predicates exclusive.
-  expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
-             CommutationReason::MutuallyExclusiveControls);
+  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
+             commutation_reason::mutually_exclusive_controls);
 }
 
 TEST_F(CommutationAnalysisTest, MeasurementInstrumentRelations) {
@@ -534,13 +536,28 @@ TEST_F(CommutationAnalysisTest, MeasurementInstrumentRelations) {
     module {
       func.func @measurement() {
         %angle = arith.constant 5.0e-1 : f64
-        %q = quake.null_wire
-        %x = quake.x %q : (!quake.wire) -> !quake.wire
+        %qx = quake.null_wire
+        %x = quake.x %qx : (!quake.wire) -> !quake.wire
         %measurement, %measured = quake.mx %x
             : (!quake.wire) -> (!quake.measure, !quake.wire)
         %rx = quake.rx (%angle) %measured
             : (f64, !quake.wire) -> !quake.wire
         quake.sink %rx : !quake.wire
+        %qy = quake.null_wire
+        %y = quake.y %qy : (!quake.wire) -> !quake.wire
+        %myMeasurement, %myMeasured = quake.my %y
+            : (!quake.wire) -> (!quake.measure, !quake.wire)
+        quake.sink %myMeasured : !quake.wire
+        %qz = quake.null_wire
+        %z = quake.z %qz : (!quake.wire) -> !quake.wire
+        %mzMeasurement, %mzMeasured = quake.mz %z
+            : (!quake.wire) -> (!quake.measure, !quake.wire)
+        quake.sink %mzMeasured : !quake.wire
+        %qxMz = quake.null_wire
+        %xMz = quake.x %qxMz : (!quake.wire) -> !quake.wire
+        %mzAfterX, %mzMeasuredAfterX = quake.mz %xMz
+            : (!quake.wire) -> (!quake.measure, !quake.wire)
+        quake.sink %mzMeasuredAfterX : !quake.wire
         return
       }
     })mlir");
@@ -550,27 +567,49 @@ TEST_F(CommutationAnalysisTest, MeasurementInstrumentRelations) {
   auto xOps = llvm::to_vector(measurement.front().getOps<cudaq::quake::XOp>());
   auto mxOps =
       llvm::to_vector(measurement.front().getOps<cudaq::quake::MxOp>());
+  auto yOps = llvm::to_vector(measurement.front().getOps<cudaq::quake::YOp>());
+  auto myOps =
+      llvm::to_vector(measurement.front().getOps<cudaq::quake::MyOp>());
+  auto zOps = llvm::to_vector(measurement.front().getOps<cudaq::quake::ZOp>());
+  auto mzOps =
+      llvm::to_vector(measurement.front().getOps<cudaq::quake::MzOp>());
   auto rxOps =
       llvm::to_vector(measurement.front().getOps<cudaq::quake::RxOp>());
   auto sinks =
       llvm::to_vector(measurement.front().getOps<cudaq::quake::SinkOp>());
-  ASSERT_EQ(xOps.size(), 1u);
+  ASSERT_EQ(xOps.size(), 2u);
   ASSERT_EQ(mxOps.size(), 1u);
+  ASSERT_EQ(yOps.size(), 1u);
+  ASSERT_EQ(myOps.size(), 1u);
+  ASSERT_EQ(zOps.size(), 1u);
+  ASSERT_EQ(mzOps.size(), 2u);
   ASSERT_EQ(rxOps.size(), 1u);
-  ASSERT_EQ(sinks.size(), 1u);
+  ASSERT_EQ(sinks.size(), 4u);
 
   CommutationAnalysis measurementAnalysis(measurement.front());
-  // X is diagonal in the basis observed by Mx.
+  // Mx and My return computational-basis wires, so moving the named-axis
+  // operator after measurement would change the conditional output state.
   expectPair(measurementAnalysis, xOps[0], mxOps[0],
-             CommutationStatus::Commutes,
-             CommutationReason::MeasurementInstrumentBasis);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
+  expectPair(measurementAnalysis, yOps[0], myOps[0],
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
+  // Mz already returns its wire in the basis measured by a Z-axis operator.
+  expectPair(measurementAnalysis, zOps[0], mzOps[0],
+             commutation_status::commutes,
+             commutation_reason::measurement_instrument_basis);
+  // X changes Mz's labelled conditional output state.
+  expectPair(measurementAnalysis, xOps[1], mzOps[1],
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
   // The later Rx retains the measured wire's block-local identity.
   expectPair(measurementAnalysis, xOps[0], rxOps[0],
-             CommutationStatus::Commutes, CommutationReason::SameAxis);
+             commutation_status::commutes, commutation_reason::same_axis);
   // A shared sink remains a conservative boundary.
   expectPair(measurementAnalysis, rxOps[0], sinks[0],
-             CommutationStatus::Indeterminate,
-             CommutationReason::NoApplicableRule);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
 }
 
 TEST_F(CommutationAnalysisTest, ResetChannelRelations) {
@@ -582,27 +621,37 @@ TEST_F(CommutationAnalysisTest, ResetChannelRelations) {
         %reset = quake.reset %z : (!quake.wire) -> !quake.wire
         %s = quake.s %reset : (!quake.wire) -> !quake.wire
         quake.sink %s : !quake.wire
+        %qx = quake.null_wire
+        %x = quake.x %qx : (!quake.wire) -> !quake.wire
+        %resetAfterX = quake.reset %x : (!quake.wire) -> !quake.wire
+        quake.sink %resetAfterX : !quake.wire
         return
       }
     })mlir");
   ASSERT_TRUE(module);
   auto reset = getFunction(*module, "reset");
   auto resetZOps = llvm::to_vector(reset.front().getOps<cudaq::quake::ZOp>());
+  auto resetXOps = llvm::to_vector(reset.front().getOps<cudaq::quake::XOp>());
   auto resetOps =
       llvm::to_vector(reset.front().getOps<cudaq::quake::ResetOp>());
   auto sOps = llvm::to_vector(reset.front().getOps<cudaq::quake::SOp>());
   ASSERT_EQ(resetZOps.size(), 1u);
-  ASSERT_EQ(resetOps.size(), 1u);
+  ASSERT_EQ(resetXOps.size(), 1u);
+  ASSERT_EQ(resetOps.size(), 2u);
   ASSERT_EQ(sOps.size(), 1u);
 
   CommutationAnalysis resetAnalysis(reset.front());
   // Reset commutes with operations that preserve the |0><0| state.
   expectPair(resetAnalysis, resetZOps[0], resetOps[0],
-             CommutationStatus::Commutes,
-             CommutationReason::PreservedResetState);
+             commutation_status::commutes,
+             commutation_reason::preserved_reset_state);
+  // X does not preserve reset's |0><0| output state.
+  expectPair(resetAnalysis, resetXOps[0], resetOps[1],
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
   // The later S retains the reset wire's block-local identity.
-  expectPair(resetAnalysis, resetZOps[0], sOps[0], CommutationStatus::Commutes,
-             CommutationReason::ComputationalDiagonal);
+  expectPair(resetAnalysis, resetZOps[0], sOps[0], commutation_status::commutes,
+             commutation_reason::computational_diagonal);
 }
 
 TEST_F(CommutationAnalysisTest, UnsupportedMeasurementInstrumentBoundary) {
@@ -635,8 +684,8 @@ TEST_F(CommutationAnalysisTest, UnsupportedMeasurementInstrumentBoundary) {
   // Multi-target measurement instruments remain unsupported even on disjoint
   // support.
   expectPair(multiTargetAnalysis, multiMeasurements[0], disjointXOps[0],
-             CommutationStatus::Indeterminate,
-             CommutationReason::NoApplicableRule);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
 }
 
 TEST_F(CommutationAnalysisTest,
@@ -678,18 +727,19 @@ TEST_F(CommutationAnalysisTest,
   CommutationAnalysis opaqueAnalysis(opaque.front());
   // Opaque custom unitaries still commute when their supports are disjoint.
   expectPair(opaqueAnalysis, opaqueOperators[0], opaqueOperators[1],
-             CommutationStatus::Commutes, CommutationReason::DisjointSupport);
+             commutation_status::commutes,
+             commutation_reason::disjoint_support);
   // A custom unitary commutes with its adjoint when the definition matches.
   expectPair(opaqueAnalysis, opaqueOperators[0], opaqueOperators[2],
-             CommutationStatus::Commutes, CommutationReason::SameOperation);
+             commutation_status::commutes, commutation_reason::same_operation);
   // Different custom-unitary definitions remain opaque on shared support.
   expectPair(opaqueAnalysis, opaqueOperators[0], opaqueOperators[3],
-             CommutationStatus::Indeterminate,
-             CommutationReason::NoApplicableRule);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
   // Unequal parameters prevent a same-operation proof for one definition.
   expectPair(opaqueAnalysis, opaqueOperators[4], opaqueOperators[5],
-             CommutationStatus::Indeterminate,
-             CommutationReason::NoApplicableRule);
+             commutation_status::indeterminate,
+             commutation_reason::no_applicable_rule);
 
   auto constant = getFunction(*module, "constant_unitaries");
   auto constantOperators = getOperators(constant);
@@ -697,7 +747,7 @@ TEST_F(CommutationAnalysisTest,
   CommutationAnalysis constantAnalysis(constant.front());
   // Constant custom unitaries share the same matrix symbol and target.
   expectPair(constantAnalysis, constantOperators[0], constantOperators[1],
-             CommutationStatus::Commutes, CommutationReason::SameOperation);
+             commutation_status::commutes, commutation_reason::same_operation);
 }
 
 TEST_F(CommutationAnalysisTest,
@@ -757,11 +807,12 @@ TEST_F(CommutationAnalysisTest,
   auto *returnOp = function.front().getTerminator();
   CommutationAnalysis analysis(function.front());
   // A null query operand cannot be analyzed.
-  expectPair(analysis, nullptr, operators[0], CommutationStatus::Indeterminate,
-             CommutationReason::NullOperation);
+  expectPair(analysis, nullptr, operators[0], commutation_status::indeterminate,
+             commutation_reason::null_operation);
   // func.return does not implement Quake OperatorInterface.
-  expectPair(analysis, operators[0], returnOp, CommutationStatus::Indeterminate,
-             CommutationReason::UnsupportedOperationKind);
+  expectPair(analysis, operators[0], returnOp,
+             commutation_status::indeterminate,
+             commutation_reason::unsupported_operation_kind);
 
   auto aggregate = getFunction(*module, "aggregate");
   auto aggregateOperators = getOperators(aggregate);
@@ -769,8 +820,8 @@ TEST_F(CommutationAnalysisTest,
   CommutationAnalysis aggregateAnalysis(aggregate.front());
   // Aggregate targets are outside the supported scalar value form.
   expectPair(aggregateAnalysis, aggregateOperators[0], aggregateOperators[0],
-             CommutationStatus::Indeterminate,
-             CommutationReason::UnsupportedQuantumOperandType);
+             commutation_status::indeterminate,
+             commutation_reason::unsupported_quantum_operand_type);
 
   auto reusableControl = getFunction(*module, "reusable_control");
   auto reusableControlOperators = getOperators(reusableControl);
@@ -778,8 +829,8 @@ TEST_F(CommutationAnalysisTest,
   CommutationAnalysis reusableControlAnalysis(reusableControl.front());
   // Reusable controls are valid Quake but outside the scalar wire contract.
   expectPair(reusableControlAnalysis, reusableControlOperators[0],
-             reusableControlOperators[1], CommutationStatus::Indeterminate,
-             CommutationReason::UnsupportedQuantumOperandType);
+             reusableControlOperators[1], commutation_status::indeterminate,
+             commutation_reason::unsupported_quantum_operand_type);
 
   auto callResult = getFunction(*module, "call_result");
   auto callOperators = getOperators(callResult);
@@ -787,8 +838,8 @@ TEST_F(CommutationAnalysisTest,
   CommutationAnalysis callAnalysis(callResult.front());
   // Qubit identity is not propagated through a function call result.
   expectPair(callAnalysis, callOperators[0], callOperators[1],
-             CommutationStatus::Indeterminate,
-             CommutationReason::UnmappedQubitId);
+             commutation_status::indeterminate,
+             commutation_reason::unmapped_qubit_id);
 
   auto differentFailures = getFunction(*module, "different_failures");
   auto failureOperators = getOperators(differentFailures);
@@ -809,40 +860,40 @@ TEST_F(CommutationAnalysisTest,
   ASSERT_EQ(otherOperators.size(), 1u);
   // Operations outside the block owned by the analysis cannot be compared.
   expectPair(analysis, operators[0], otherOperators[0],
-             CommutationStatus::Indeterminate,
-             CommutationReason::DifferentBlocks);
+             commutation_status::indeterminate,
+             commutation_reason::different_blocks);
 }
 
 TEST(CommutationReasonTest, ReturnsStableIdentifierForEveryReason) {
   struct ReasonCase {
-    CommutationReason reason;
+    commutation_reason reason;
     llvm::StringLiteral identifier;
   };
   static constexpr ReasonCase cases[] = {
-      {CommutationReason::DisjointSupport, "disjoint-support"},
-      {CommutationReason::SameOperation, "same-operation"},
-      {CommutationReason::ComputationalDiagonal, "computational-diagonal"},
-      {CommutationReason::SameAxis, "same-axis"},
-      {CommutationReason::MeasurementInstrumentBasis,
+      {commutation_reason::disjoint_support, "disjoint-support"},
+      {commutation_reason::same_operation, "same-operation"},
+      {commutation_reason::computational_diagonal, "computational-diagonal"},
+      {commutation_reason::same_axis, "same-axis"},
+      {commutation_reason::measurement_instrument_basis,
        "measurement-instrument-basis"},
-      {CommutationReason::PreservedResetState, "preserved-reset-state"},
-      {CommutationReason::EvenPauliParity, "even-pauli-parity"},
-      {CommutationReason::DiagonalOnControls, "diagonal-on-controls"},
-      {CommutationReason::CompatibleControlledTargets,
+      {commutation_reason::preserved_reset_state, "preserved-reset-state"},
+      {commutation_reason::even_pauli_parity, "even-pauli-parity"},
+      {commutation_reason::diagonal_on_controls, "diagonal-on-controls"},
+      {commutation_reason::compatible_controlled_targets,
        "compatible-controlled-targets"},
-      {CommutationReason::MutuallyExclusiveControls,
+      {commutation_reason::mutually_exclusive_controls,
        "mutually-exclusive-controls"},
-      {CommutationReason::OddPauliParity, "odd-pauli-parity"},
-      {CommutationReason::NullOperation, "null-operation"},
-      {CommutationReason::DifferentBlocks, "different-blocks"},
-      {CommutationReason::UnsupportedOperationKind,
+      {commutation_reason::odd_pauli_parity, "odd-pauli-parity"},
+      {commutation_reason::null_operation, "null-operation"},
+      {commutation_reason::different_blocks, "different-blocks"},
+      {commutation_reason::unsupported_operation_kind,
        "unsupported-operation-kind"},
-      {CommutationReason::UnsupportedQuantumOperandType,
+      {commutation_reason::unsupported_quantum_operand_type,
        "unsupported-quantum-operand-type"},
-      {CommutationReason::UnmappedQubitId, "unmapped-qubit-id"},
-      {CommutationReason::DuplicateQubitOperand, "duplicate-qubit-operand"},
-      {CommutationReason::UnsupportedPauliWord, "unsupported-pauli-word"},
-      {CommutationReason::NoApplicableRule, "no-applicable-rule"},
+      {commutation_reason::unmapped_qubit_id, "unmapped-qubit-id"},
+      {commutation_reason::duplicate_qubit_operand, "duplicate-qubit-operand"},
+      {commutation_reason::unsupported_pauli_word, "unsupported-pauli-word"},
+      {commutation_reason::no_applicable_rule, "no-applicable-rule"},
   };
 
   for (const auto &testCase : cases)

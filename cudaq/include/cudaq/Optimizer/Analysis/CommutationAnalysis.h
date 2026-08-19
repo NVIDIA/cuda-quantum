@@ -23,72 +23,67 @@ namespace cudaq::quake::detail {
 class QubitIdentityAnalysis;
 
 /// The outcome of a commutation query.
-enum class CommutationStatus { Commutes, DoesNotCommute, Indeterminate };
+enum class commutation_status { commutes, does_not_commute, indeterminate };
 
 /// The rule or limitation that produced a commutation status.
-enum class CommutationReason {
-  // Reasons paired with CommutationStatus::Commutes.
+enum class commutation_reason {
+  // Reasons paired with commutation_status::commutes.
   /// The operations have disjoint block-local quantum support.
-  DisjointSupport,
+  disjoint_support,
   /// The recognized operations have the same structural action and placement,
   /// optionally with opposite adjoint states.
-  SameOperation,
+  same_operation,
   /// Both operations are diagonal in the computational basis.
-  ComputationalDiagonal,
+  computational_diagonal,
   /// Both operations rotate about the same axis.
-  SameAxis,
+  same_axis,
   /// The unitary channel is diagonal in the recognized measurement
   /// instrument's basis.
-  MeasurementInstrumentBasis,
+  measurement_instrument_basis,
   /// The unitary channel preserves the reset channel's output state.
-  PreservedResetState,
+  preserved_reset_state,
   /// Pauli products have even anti-commutation parity on shared targets.
-  EvenPauliParity,
+  even_pauli_parity,
   /// A diagonal operation overlaps the other operation only on controls.
-  DiagonalOnControls,
+  diagonal_on_controls,
   /// Controlled operations have commuting target actions and no target-control
   /// crossover.
-  CompatibleControlledTargets,
+  compatible_controlled_targets,
   /// Opposite polarity on a shared control makes the control predicates
   /// mutually exclusive.
-  MutuallyExclusiveControls,
+  mutually_exclusive_controls,
 
-  // Reasons paired with CommutationStatus::DoesNotCommute.
+  // Reasons paired with commutation_status::does_not_commute.
   /// Exact Pauli operators have odd anti-commutation parity on shared targets.
-  OddPauliParity,
+  odd_pauli_parity,
 
-  // Reasons paired with CommutationStatus::Indeterminate.
+  // Reasons paired with commutation_status::indeterminate.
   /// At least one query operation is null.
-  NullOperation,
+  null_operation,
   /// At least one operation is outside the analyzed block.
-  DifferentBlocks,
+  different_blocks,
   /// At least one operation has no supported analysis operation view.
-  UnsupportedOperationKind,
+  unsupported_operation_kind,
   /// A quantum operand is not a supported scalar wire value.
-  UnsupportedQuantumOperandType,
+  unsupported_quantum_operand_type,
   /// A quantum operand has no analysis-local qubit identifier.
-  UnmappedQubitId,
+  unmapped_qubit_id,
   /// An operation uses the same virtual qubit in more than one control or
   /// target position.
-  DuplicateQubitOperand,
+  duplicate_qubit_operand,
   /// An `ExpPauli` word is dynamic.
-  UnsupportedPauliWord,
+  unsupported_pauli_word,
   /// Supported operations did not satisfy an available structural rule.
-  NoApplicableRule
+  no_applicable_rule
 };
 
 /// Return the stable textual identifier for a commutation reason.
-llvm::StringRef getCommutationReasonId(CommutationReason reason);
+llvm::StringRef getCommutationReasonId(commutation_reason reason);
 
 /// A structural commutation outcome and its classification.
 struct CommutationResult {
-  CommutationStatus status;
-  CommutationReason reason;
-
-  /// True only when structural analysis proved exact commutation.
-  explicit operator bool() const {
-    return status == CommutationStatus::Commutes;
-  }
+  commutation_status status;
+  commutation_reason reason;
 };
 
 /// Exact block-local commutation analysis for supported Quake quantum
@@ -111,29 +106,30 @@ struct CommutationResult {
 ///
 /// Operations on disjoint qubits commute regardless of their supported
 /// operation kind. For overlapping qubits, the analysis applies structural
-/// rules for recognized built-in Quake operators, matching-basis measurement
-/// instruments, and unitary channels that preserve the reset output state.
+/// rules for recognized built-in Quake operators, computational-basis
+/// measurement instruments, and unitary channels that preserve the reset
+/// output state.
 /// Custom unitaries with the same defining symbol, exact parameters, controls,
 /// and targets are also recognized as the same operation. The analysis does not
 /// inspect custom-unitary matrices, analyze arbitrary quantum-channel or
 /// measurement-instrument representations, or infer overlapping-support
 /// semantics from different custom definitions or dynamic Pauli words.
 ///
-/// `DoesNotCommute` is returned only for the limited cases where an available
-/// rule proves that the operations do not commute. `Indeterminate` means that
+/// `does_not_commute` is returned only for the limited cases where an available
+/// rule proves that the operations do not commute. `indeterminate` means that
 /// the available rules established neither result. It does not imply either
 /// commutation or a failure to commute.
 ///
-/// Compiler transformations must treat both `DoesNotCommute` and
-/// `Indeterminate` as not safe to reorder. The separate statuses preserve the
+/// Compiler transformations must treat both `does_not_commute` and
+/// `indeterminate` as not safe to reorder. The separate statuses preserve the
 /// distinction between a proven failure to commute and the absence of a proof.
 ///
 /// A wrap through an unidentified reference, a call-like operation, a region
 /// owner, or another unsupported operation with memory effects invalidates
 /// active reference bindings because the analysis has no alias or
 /// captured-effect summary.
-/// Shared-support non-unitary rules cover only single-target matching-basis
-/// measurement instruments and reset-channel relations with unitary channels;
+/// Shared-support non-unitary rules cover only single-target Mz instruments
+/// with computational-basis-diagonal unitaries and reset-channel relations;
 /// sinks and pairs of non-unitary operations remain indeterminate. Reusable
 /// `!quake.control` values, conversions, call results, reference arguments,
 /// reference selections, aggregates, unsupported non-unitary operations, and
