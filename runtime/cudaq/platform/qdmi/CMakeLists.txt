@@ -14,6 +14,8 @@ set(CUDAQ_QDMI_MQT_CORE_REV
     CACHE STRING "MQT Core revision used by the QDMI backend")
 
 block(SCOPE_FOR VARIABLES)
+  set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
+  set(ENABLE_IPO OFF)
   set(MQT_CORE_INSTALL OFF)
   set(BUILD_MQT_CORE_BINDINGS OFF)
   set(BUILD_MQT_CORE_TESTS OFF)
@@ -62,10 +64,15 @@ target_link_libraries(${LIBRARY_NAME}
     CUDAQTargetConfigYaml
     MQT::CoreQDMI
     LLVMBitReader
+    LLVMBitWriter
     LLVMCore
     LLVMSupport
     nvqir
 )
+
+if (UNIX AND NOT APPLE)
+  target_link_options(${LIBRARY_NAME} PRIVATE "LINKER:--exclude-libs,ALL")
+endif()
 
 set(QDMI_QPU_LIBRARY
     "${CMAKE_SHARED_LIBRARY_PREFIX}${LIBRARY_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
