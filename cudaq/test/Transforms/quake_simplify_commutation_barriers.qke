@@ -151,7 +151,7 @@ func.func @mismatched_polarity(%angle: f64) {
   %target = quake.null_wire
   %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %rx = quake.rx (%angle) %x0#1 : (f64, !quake.wire) -> !quake.wire
-  %x1:2 = quake.x [%x0#0 neg [true]] %rx : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)  // not an inverse of %x0
+  %x1:2 = quake.x [%x0#0 neg [true]] %rx : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   quake.sink %x1#0 : !quake.wire
   quake.sink %x1#1 : !quake.wire
   return

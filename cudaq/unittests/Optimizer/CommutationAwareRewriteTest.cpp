@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -232,6 +233,43 @@ private:
   bool &inserted;
   bool &matchedBefore;
   bool &matchedAfter;
+};
+
+class MoveClassicalOperationAfterAnalysis
+    : public OpRewritePattern<cudaq::quake::XOp> {
+public:
+  MoveClassicalOperationAfterAnalysis(
+      MLIRContext *context, cudaq::opt::CommutationAwareRewriteMatcher &matcher,
+      Operation *sourceProbe, Operation *destinationProbe, Operation *toMove,
+      bool &moved, bool &sourceValidAfter, bool &destinationValidAfter)
+      : OpRewritePattern(context), matcher(matcher), sourceProbe(sourceProbe),
+        destinationProbe(destinationProbe), toMove(toMove), moved(moved),
+        sourceValidAfter(sourceValidAfter),
+        destinationValidAfter(destinationValidAfter) {}
+
+  LogicalResult matchAndRewrite(cudaq::quake::XOp operation,
+                                PatternRewriter &rewriter) const override {
+    if (moved || operation != destinationProbe ||
+        !matcher.hasDistinctQuantumOperands(sourceProbe) ||
+        !matcher.hasDistinctQuantumOperands(destinationProbe))
+      return failure();
+
+    rewriter.moveOpBefore(toMove, operation);
+    moved = true;
+    sourceValidAfter = matcher.hasDistinctQuantumOperands(sourceProbe);
+    destinationValidAfter =
+        matcher.hasDistinctQuantumOperands(destinationProbe);
+    return success();
+  }
+
+private:
+  cudaq::opt::CommutationAwareRewriteMatcher &matcher;
+  Operation *sourceProbe;
+  Operation *destinationProbe;
+  Operation *toMove;
+  bool &moved;
+  bool &sourceValidAfter;
+  bool &destinationValidAfter;
 };
 
 struct EraseListener : public RewriterBase::Listener {
@@ -703,6 +741,61 @@ TEST_F(CommutationAwareRewriteTest,
   auto statistics = driver.getStatistics();
   EXPECT_EQ(statistics.analysisBuilds, 2u);
   EXPECT_EQ(statistics.fallbackRebuilds, 1u);
+  EXPECT_TRUE(succeeded(verify(*module)));
+}
+
+TEST_F(CommutationAwareRewriteTest, RebuildsBothBlocksAfterOperationMove) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @move_between_blocks() {
+        %unused = arith.constant 0 : i64
+        %outerControl = quake.null_wire
+        %outerTarget = quake.null_wire
+        %outer:2 = quake.x [%outerControl] %outerTarget
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %outer#0 : !quake.wire
+        quake.sink %outer#1 : !quake.wire
+        cc.scope {
+          %innerControl = quake.null_wire
+          %innerTarget = quake.null_wire
+          %inner:2 = quake.x [%innerControl] %innerTarget
+              : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+          quake.sink %inner#0 : !quake.wire
+          quake.sink %inner#1 : !quake.wire
+          cc.continue
+        }
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  auto function = getFunction(*module, "move_between_blocks");
+  auto sourceOperators = getOperators(function);
+  ASSERT_EQ(sourceOperators.size(), 1u);
+  auto scope = *function.getBody().front().getOps<cudaq::cc::ScopeOp>().begin();
+  auto destinationOperators = llvm::to_vector(
+      scope.getInitRegion().front().getOps<cudaq::quake::XOp>());
+  ASSERT_EQ(destinationOperators.size(), 1u);
+  auto constants =
+      llvm::to_vector(function.getBody().front().getOps<arith::ConstantOp>());
+  ASSERT_EQ(constants.size(), 1u);
+
+  cudaq::opt::CommutationAwareRewriteDriver driver(context);
+  bool moved = false;
+  bool sourceValidAfter = false;
+  bool destinationValidAfter = false;
+  driver.getPatterns().add<MoveClassicalOperationAfterAnalysis>(
+      &context, driver.getMatcher(), sourceOperators[0],
+      destinationOperators[0], constants[0], moved, sourceValidAfter,
+      destinationValidAfter);
+
+  EXPECT_TRUE(succeeded(driver.run(function.getBody())));
+  EXPECT_TRUE(moved);
+  EXPECT_TRUE(sourceValidAfter);
+  EXPECT_TRUE(destinationValidAfter);
+  auto statistics = driver.getStatistics();
+  EXPECT_EQ(statistics.analysisBuilds, 4u);
+  EXPECT_EQ(statistics.fallbackRebuilds, 2u);
   EXPECT_TRUE(succeeded(verify(*module)));
 }
 
