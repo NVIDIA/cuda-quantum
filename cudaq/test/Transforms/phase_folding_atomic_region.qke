@@ -135,10 +135,10 @@ func.func @fold_dynamic_phases_across_ordinary_scope(%first: f64,
 // CHECK:           return
 // CHECK:         }
 
-// An ordinary scope is transparent to phase analysis, but the inner angle does
-// not dominate the later rotation outside the scope. The pass must decline the
-// fold rather than make the angle escape or create invalid SSA.
-func.func @inner_angle_does_not_escape_ordinary_scope(%outer: f64) {
+// The inner angle cannot escape the scope, but the later angle is a function
+// argument that already dominates the earlier rotation. Combine at the earlier
+// rotation.
+func.func @later_dynamic_angle_folds_at_earlier_rotation(%later: f64) {
   %control = quake.null_wire
   %target = quake.null_wire
   %scope = cc.scope -> (!quake.wire) {
@@ -148,12 +148,75 @@ func.func @inner_angle_does_not_escape_ordinary_scope(%outer: f64) {
     %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
     cc.continue %cx1#1 : !quake.wire
   }
-  %after = quake.rz (%outer) %scope : (f64, !quake.wire) -> !quake.wire
+  %after = quake.rz (%later) %scope : (f64, !quake.wire) -> !quake.wire
   return
 }
 
-// CHECK-LABEL:   func.func @inner_angle_does_not_escape_ordinary_scope(
+// CHECK-LABEL:   func.func @later_dynamic_angle_folds_at_earlier_rotation(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[CONSTANT_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:             %[[ADDF_0:.*]] = arith.addf %[[CONSTANT_0]], %[[ARG0]] : f64
+// CHECK:             %[[RZ_0:.*]] = quake.rz (%[[ADDF_0]]) %[[NULL_WIRE_1]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[RZ_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           }
+// CHECK-NEXT:      return
+// CHECK:         }
+
+// A named gate has no SSA angle dependency, so it can always be combined at
+// the earlier dynamic rotation when that is the legal insertion point.
+func.func @later_named_angle_folds_at_earlier_rotation() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inner = arith.constant 1.000000e+00 : f64
+    %before = quake.rz (%inner) %target : (f64, !quake.wire) -> !quake.wire
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  }
+  %after = quake.s %scope : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @later_named_angle_folds_at_earlier_rotation() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[CONSTANT_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:             %[[CONSTANT_1:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:             %[[ADDF_0:.*]] = arith.addf %[[CONSTANT_0]], %[[CONSTANT_1]] : f64
+// CHECK:             %[[RZ_0:.*]] = quake.rz (%[[ADDF_0]]) %[[NULL_WIRE_1]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[RZ_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           }
+// CHECK-NEXT:      return
+// CHECK:         }
+
+// If each dynamic angle is defined on its own side of the scope boundary,
+// neither rotation is a legal insertion point for their sum. Leave both
+// rotations unchanged.
+func.func @angles_without_a_common_insertion_point_do_not_fold() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inner = arith.constant 1.000000e+00 : f64
+    %before = quake.rz (%inner) %target : (f64, !quake.wire) -> !quake.wire
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  }
+  %later = arith.constant 2.000000e+00 : f64
+  %after = quake.rz (%later) %scope : (f64, !quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @angles_without_a_common_insertion_point_do_not_fold() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
@@ -163,8 +226,9 @@ func.func @inner_angle_does_not_escape_ordinary_scope(%outer: f64) {
 // CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
 // CHECK:           }
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK-NOT:       arith.addf
-// CHECK:           %[[RZ_1:.*]] = quake.rz (%[[ARG0]]) %[[SCOPE_0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[RZ_1:.*]] = quake.rz (%[[CONSTANT_1]]) %[[SCOPE_0]] : (f64, !quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
 
