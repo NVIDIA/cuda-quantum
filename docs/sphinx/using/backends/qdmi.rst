@@ -99,6 +99,18 @@ The build gets a pinned MQT Core revision with CMake ``FetchContent``. A normal
 build includes the QDMI C++ library and Driver. A test build also includes the
 MQT Core DDSIM and superconducting (SC) QDMI devices.
 
+.. tip::
+
+    For local development without QPU credentials, add
+    ``-DCUDAQ_BUILD_TESTS=ON`` to the configuration command above. The test
+    build includes DDSIM, which you can select from Python with:
+
+    .. code:: python
+
+        import cudaq
+
+        cudaq.set_target("qdmi", device="mqt.ddsim.default")
+
 Install and register a device
 ````````````````````````````
 
