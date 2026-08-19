@@ -153,22 +153,23 @@ nanobind::tuple gridsynthWithStatsBinding(RealArg theta, RealArg epsilon,
 
   nanobind::dict out;
   out["outcome"] = outcomeName(stats.outcome);
-  out["k_reached"] = stats.k_reached;
-  out["k_max"] = stats.k_max;
-  out["candidates_enumerated"] = stats.candidates_enumerated;
-  out["candidates_residue_rejected"] = stats.candidates_residue_rejected;
-  out["candidates_budget_exhausted"] = stats.candidates_budget_exhausted;
-  out["diophantine_calls"] = stats.diophantine_calls;
-  out["diophantine_successes"] = stats.diophantine_successes;
-  out["factoring_calls"] = stats.factoring_calls;
-  out["factoring_successes"] = stats.factoring_successes;
-  out["factoring_restarts"] = stats.factoring_restarts;
-  out["factoring_wall_clock_exits"] = stats.factoring_wall_clock_exits;
-  out["diophantine_wall_clock_exits"] = stats.diophantine_wall_clock_exits;
-  out["factoring_iterations_total"] = stats.factoring_iterations_total;
-  out["working_precision_bits"] = stats.working_precision_bits;
-  out["enumeration_ns"] = stats.enumeration_ns;
-  out["diophantine_ns"] = stats.diophantine_ns;
+  out["k_reached"] = stats.k_reached.load();
+  out["k_max"] = stats.k_max.load();
+  out["candidates_enumerated"] = stats.candidates_enumerated.load();
+  out["candidates_residue_rejected"] = stats.candidates_residue_rejected.load();
+  out["candidates_budget_exhausted"] = stats.candidates_budget_exhausted.load();
+  out["diophantine_calls"] = stats.diophantine_calls.load();
+  out["diophantine_successes"] = stats.diophantine_successes.load();
+  out["factoring_calls"] = stats.factoring_calls.load();
+  out["factoring_successes"] = stats.factoring_successes.load();
+  out["factoring_restarts"] = stats.factoring_restarts.load();
+  out["factoring_wall_clock_exits"] = stats.factoring_wall_clock_exits.load();
+  out["diophantine_wall_clock_exits"] =
+      stats.diophantine_wall_clock_exits.load();
+  out["factoring_iterations_total"] = stats.factoring_iterations_total.load();
+  out["working_precision_bits"] = stats.working_precision_bits.load();
+  out["enumeration_ns"] = stats.enumeration_ns.load();
+  out["diophantine_ns"] = stats.diophantine_ns.load();
   return nanobind::make_tuple(gates, out);
 }
 
