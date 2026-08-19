@@ -29,53 +29,45 @@ struct CommutationAwareRewriteStatistics {
   std::size_t fallbackRebuilds = 0;
 };
 
-/// Forward block-local search owned by a rewrite driver.
+/// Backward block-local search owned by a rewrite driver.
 ///
-/// Starting at `anchor`, the search follows scalar-wire results and returns the
-/// first endpoint accepted by the consumer. No operation is moved.
+/// Starting at the later `anchor`, the search follows defining operations from
+/// its scalar-wire inputs and returns the nearest earlier endpoint accepted by
+/// the consumer. This direction aligns consumers with MLIR's bottom-up greedy
+/// schedule. No operation is moved.
 ///
-/// The anchor is the operator supplied by the consumer pattern. The endpoint is
-/// the first operator accepted by that pattern's endpoint predicate after every
-/// anchor wire path reaches it at the same frontier. Both roles require
-/// `OperatorInterface`; every control and target is a scalar `!quake.wire`, and
-/// the operation threads those wires to its results.
+/// Both endpoints require `OperatorInterface`; every control and target is a
+/// scalar `!quake.wire`, and the operation threads those wires to its results.
+/// A multi-wire endpoint matches only when every anchor wire reaches it at the
+/// same frontier. Each result traversed backward must have exactly one use, and
+/// that use must be the downstream operation expected on its lane. This guards
+/// against treating a unique defining operation as linear when its result has
+/// branched.
 ///
-/// The search expects block-local linear-wire Quake. Measurement instruments
-/// and reset channels may be crossed, but cannot be anchors or endpoints. The
-/// analysis must prove that a crossed operation commutes with the anchor, and
-/// its scalar target wires must thread one-to-one. Other non-unitary quantum
-/// operations, reusable `!quake.control`, reference and aggregate quantum
-/// values, dataflow that leaves the block, and unresolved virtual qubits end
-/// the search. Pass pipelines can establish the supported operator form by
-/// running `convert-to-linear-values`.
+/// The search expects block-local linear-wire Quake. Candidate endpoints are
+/// use-def frontier heads on the anchor's own wires. Physical block order
+/// audits every intervening operation and selects the latest head when the
+/// frontier is split. A frontier head that the consumer declines must have a
+/// pairwise commutation proof with the anchor before the frontier advances.
+/// Every other intervening scalar-wire operation requires either that pairwise
+/// proof or a disjoint-support proof. Fresh local identity sources may be
+/// crossed structurally because they cannot alias an existing logical qubit.
+/// Other identity boundaries require a disjoint-support proof.
 ///
-/// Endpoints are found by following the anchor's own wire dataflow, not by
-/// scanning the block. An operation that uses none of the anchor's quantum
-/// values cannot act on its qubits, so the search neither examines it nor
-/// treats it as a barrier. That is why an unrelated call or region-owning
-/// operation passes unnoticed. When such an operation does touch one of the
-/// anchor's qubits the walk still finds it, because a use nested in a region is
-/// a use like any other, and the search then ends there for leaving the block.
+/// An ordinary single-block scope may be crossed when its captured scalar wires
+/// have disjoint logical support. Marked atomic scopes, calls, unsupported
+/// region owners, unsupported reference or aggregate quantum flow, unresolved
+/// identity, multiple use, and incomplete frontiers end the search. Pass
+/// pipelines can establish the supported operator form by running
+/// `convert-to-linear-values`.
 ///
-/// A direct endpoint whose ordered scalar-wire operands are exactly the
-/// anchor's ordered scalar-wire results has an empty crossing slice. For
-/// identities such as A A^-1 = I or R(a) R(b) = R(a+b), that exact def-use
-/// threading plus distinct logical operands and the consumer's endpoint
-/// algebra is sufficient. Single-wire endpoints establish distinctness
-/// structurally; multi-wire endpoints use lazy block analysis to reject
-/// duplicate logical qubit roles. When any operation lies in the anchor's
-/// crossed slice, the block-local `CommutationAnalysis` must prove that the
-/// anchor commutes with that operation before the search advances past it.
-///
-/// Two things are worth knowing before writing a consumer. Wire-set reuse
-/// relies on Quake's borrow and return discipline, so the search will not
-/// follow a qubit across a return, and a wire held concurrently elsewhere is
-/// beyond what it can reason about. And while the anchor is proven to commute
-/// with everything it crosses, the endpoint carries no such proof. It is
-/// simply where the anchor stops, so it may even be known not to commute; the
-/// consumer owns the endpoint pair's algebraic identity. A `DoesNotCommute` or
-/// `Indeterminate` result therefore ends the search only for a candidate the
-/// consumer declined.
+/// The consumer owns the accepted endpoint's algebraic identity, so the
+/// endpoint needs no commutation proof. The matcher instead proves complete
+/// frontier alignment, linear use-def threading, and distinct logical operand
+/// roles. Single-wire endpoints establish distinctness structurally;
+/// multi-wire endpoints require a known identity for every role. Traversable
+/// measurement and reset frontier heads are never endpoints and require the
+/// same pairwise commutation proof as any other declined frontier head.
 class CommutationAwareRewriteMatcher {
 public:
   ~CommutationAwareRewriteMatcher();
@@ -85,13 +77,20 @@ public:
   CommutationAwareRewriteMatcher &
   operator=(const CommutationAwareRewriteMatcher &) = delete;
 
-  /// Find the nearest consumer-compatible supported quantum endpoint. The
-  /// predicate is called only for an `OperatorInterface` candidate with
+  /// Find the nearest compatible earlier quantum endpoint. The later anchor
+  /// aligns the query with bottom-up greedy rewriting. The predicate is called
+  /// only for an `OperatorInterface` candidate with
   /// supported scalar-wire flow, and before checking complete frontier
   /// alignment or deciding whether it may be crossed.
   mlir::Operation *
   findNearest(mlir::Operation *anchor,
               llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
+
+  /// Return whether a supported scalar-wire operator uses a distinct logical
+  /// qubit in every control and target role. Unary operators establish this
+  /// structurally. Multi-wire operators require a known identity for every
+  /// role and reject duplicate identities.
+  bool hasDistinctQuantumOperands(mlir::Operation *operation);
 
   /// Return whether controls and targets carry the same ordered qubit
   /// identities and occupy the same roles. Direct scalar-wire consumers are
@@ -129,6 +128,9 @@ private:
 /// block state.
 class CommutationAwareRewriteDriver {
 public:
+  /// Construct a single-session driver. Region simplification is always
+  /// disabled because block-local analysis maintenance cannot support its
+  /// implicit block and operation changes.
   explicit CommutationAwareRewriteDriver(
       mlir::MLIRContext &context,
       mlir::GreedyRewriteConfig config = mlir::GreedyRewriteConfig());

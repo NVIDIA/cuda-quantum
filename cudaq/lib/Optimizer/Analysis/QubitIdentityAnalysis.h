@@ -47,9 +47,8 @@ namespace cudaq::quake::detail {
 /// references derived through `quake.extract_ref` or `quake.concat` remain
 /// unidentified. Values that cannot be identified unambiguously remain
 /// unidentified. The commutation-aware rewrite driver selectively maintains
-/// identities for
-/// verified identity-preserving insertions, replacements, and erasures.
-/// Unsupported mutations invalidate the owning analysis.
+/// identities for verified identity-preserving insertions, replacements, and
+/// erasures. Unsupported mutations invalidate the owning analysis.
 class QubitIdentityAnalysis {
 public:
   using QubitId = std::uint32_t;

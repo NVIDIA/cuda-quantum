@@ -28,8 +28,10 @@ propagateKnownQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
                        const cudaq::quake::detail::ScalarWireFlow &flow) {
   for (auto [input, result] : llvm::zip(flow.inputs, flow.results)) {
     auto qubitId = qubitIds.find(input);
-    if (qubitId != qubitIds.end())
-      qubitIds.try_emplace(result, qubitId->second);
+    if (qubitId != qubitIds.end()) {
+      QubitId propagatedId = qubitId->second;
+      qubitIds.try_emplace(result, propagatedId);
+    }
   }
 }
 

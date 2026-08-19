@@ -21,10 +21,10 @@ func.func @non_unitary_relation_barriers() {
   %measured_qubit = quake.null_wire
   %reset_qubit = quake.null_wire
   %h0 = quake.h %measured_qubit : (!quake.wire) -> !quake.wire
-  %bit, %measured = quake.mz %h0 : (!quake.wire) -> (!quake.measure, !quake.wire)  // barrier
+  %bit, %measured = quake.mz %h0 : (!quake.wire) -> (!quake.measure, !quake.wire)
   %h1 = quake.h %measured : (!quake.wire) -> !quake.wire
   %x0 = quake.x %reset_qubit : (!quake.wire) -> !quake.wire
-  %reset = quake.reset %x0 : (!quake.wire) -> !quake.wire  // barrier
+  %reset = quake.reset %x0 : (!quake.wire) -> !quake.wire
   %x1 = quake.x %reset : (!quake.wire) -> !quake.wire
   quake.sink %h1 : !quake.wire
   quake.sink %x1 : !quake.wire
@@ -68,7 +68,7 @@ func.func @measurement_instrument_commuting_path() {
 func.func @call_barrier() {
   %q = quake.null_wire
   %h0 = quake.h %q : (!quake.wire) -> !quake.wire
-  %called = func.call @opaque_wire(%h0) : (!quake.wire) -> !quake.wire  // barrier
+  %called = func.call @opaque_wire(%h0) : (!quake.wire) -> !quake.wire
   %h1 = quake.h %called : (!quake.wire) -> !quake.wire
   quake.sink %h1 : !quake.wire
   return
@@ -87,7 +87,6 @@ func.func @region_barrier() {
   %condition = cc.undef i1
   %q = quake.null_wire
   %h0 = quake.h %q : (!quake.wire) -> !quake.wire
-  // barrier: the region could act on %h0 in code the search does not read
   %region:1 = cc.if (%condition) ((%arg = %h0)) -> (!quake.wire) {
     cc.continue %arg : !quake.wire
   } else {
@@ -132,7 +131,7 @@ func.func @control_flow_fanout(%condition: i1) {
 func.func @unproved_relation_barrier(%theta: f64, %phi: f64, %lambda: f64) {
   %q = quake.null_wire
   %h0 = quake.h %q : (!quake.wire) -> !quake.wire
-  %u3 = quake.u3 (%theta, %phi, %lambda) %h0 : (f64, f64, f64, !quake.wire) -> !quake.wire  // barrier, relation unproved
+  %u3 = quake.u3 (%theta, %phi, %lambda) %h0 : (f64, f64, f64, !quake.wire) -> !quake.wire
   %h1 = quake.h %u3 : (!quake.wire) -> !quake.wire
   quake.sink %h1 : !quake.wire
   return

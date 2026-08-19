@@ -728,6 +728,34 @@ CommutationAnalysis::CommutationAnalysis(Block &block)
 
 CommutationAnalysis::~CommutationAnalysis() = default;
 
+bool CommutationAnalysis::hasDistinctQuantumOperands(
+    Operation *operation) const {
+  if (!operation || operation->getBlock() != block ||
+      !isa<cudaq::quake::OperatorInterface>(operation))
+    return false;
+
+  OperationView view{operation};
+  return !populateOperationView(view, *qubitIdentity);
+}
+
+bool CommutationAnalysis::hasDisjointQuantumSupport(Operation *operation,
+                                                    ValueRange values) const {
+  if (!operation || operation->getBlock() != block)
+    return false;
+
+  OperationView view{operation};
+  if (populateOperationView(view, *qubitIdentity))
+    return false;
+  for (Value value : values) {
+    if (!isa<cudaq::quake::WireType>(value.getType()))
+      return false;
+    auto qubitId = qubitIdentity->getQubitId(value);
+    if (!qubitId || view.roles.contains(*qubitId))
+      return false;
+  }
+  return true;
+}
+
 bool CommutationAnalysis::haveSameOrderedQuantumOperands(Operation *lhs,
                                                          Operation *rhs) const {
   auto lhsInterface = dyn_cast_if_present<cudaq::quake::OperatorInterface>(lhs);

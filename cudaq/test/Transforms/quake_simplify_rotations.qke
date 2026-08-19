@@ -82,16 +82,18 @@ func.func @two_full_turns(%q: !quake.ref) {
 // CHECK-NOT:     quake.rz
 // CHECK-NOT:     quake.r1
 
-// Twelve pi is a reserved Ry marker used as a backdoor identity operation.
-// It must survive even though it is also three exact Ry identity periods.
-func.func @backdoor_nop(%q: !quake.ref) {
+// The reserved twelve-pi Ry marker must survive even though it is also three
+// exact Ry identity periods.
+func.func @reserved_ry_marker(%q: !quake.ref) {
   %a = arith.constant 37.69911184307752 : f64
   quake.ry (%a) %q : (f64, !quake.ref) -> ()
   return
 }
 
-// CHECK-LABEL: func.func @backdoor_nop
-// CHECK:         quake.ry
+// CHECK-LABEL: func.func @reserved_ry_marker(
+// CHECK-SAME:    %[[Q:.*]]: !quake.ref) {
+// CHECK:         %[[ANGLE:.*]] = arith.constant 37.699111843077517 : f64
+// CHECK-NEXT:    quake.ry (%[[ANGLE]]) %[[Q]] : (f64, !quake.ref) -> ()
 
 // phased_rx(theta, phi) rotates by theta about the cos(phi)x + sin(phi)y axis,
 // so a zero angle is the identity whatever the axis parameter says.
@@ -143,7 +145,7 @@ func.func @dynamic(%q: !quake.ref, %a: f64) {
 // CHECK:         quake.rz
 
 // A small but nonzero angle is below the default threshold, so it is erased.
-// At a threshold of 0 only bit-exact identities go.
+// A zero threshold preserves it.
 func.func @tiny(%q: !quake.ref) {
   %a = arith.constant 1.0e-15 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()

@@ -8,12 +8,15 @@
 
 #include "cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"
 #include "cudaq/Optimizer/Analysis/CommutationAnalysis.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "mlir/Interfaces/CallInterfaces.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cassert>
 #include <utility>
 
@@ -21,73 +24,132 @@ using namespace mlir;
 
 namespace {
 
-/// One cursor per virtual qubit in the anchor's support, each walking that
-/// qubit's chain of operations. `value` is the wire standing for the qubit
-/// where the cursor sits, and `next` is the operation it would reach next.
+/// One cursor per frontier lane in the anchor's ordered scalar-wire support.
+/// `value` is the result consumed by `downstream`, and `previous` is its
+/// defining operation.
 ///
-/// Each cursor follows one wire's def-use chain, which is already in program
-/// order, so the search is a k-way merge over the frontier rather than a graph
-/// traversal: take the earliest head, then advance past it. The frontier never
-/// grows, because only the anchor's own qubits matter and a multi-qubit
-/// operation joins chains instead of branching into new ones.
+/// Each cursor follows one scalar-wire use-def chain. The frontier never grows
+/// because only the anchor's input lanes participate.
 struct WireCursor {
   Value value;
-  Operation *next = nullptr;
+  Operation *previous = nullptr;
+  Operation *downstream = nullptr;
 };
 
 } // namespace
 
-// Map one lane through a validated scalar-wire flow.
-static Value mapWireAcross(const cudaq::quake::detail::ScalarWireFlow &flow,
-                           Value value) {
+static Value mapWireBackward(const cudaq::quake::detail::ScalarWireFlow &flow,
+                             Value value) {
   for (auto [input, result] : llvm::zip(flow.inputs, flow.results))
-    if (input == value)
-      return result;
+    if (result == value)
+      return input;
   return {};
 }
 
-// One use identifies the next operation on the virtual qubit. No use ends the
-// chain. Multiple uses can occur at valid control-flow boundaries, where the
-// block-local search cannot choose one path.
-static Operation *getSoleWireUser(Value wire) {
-  if (!wire.hasOneUse())
-    return nullptr;
-  return *wire.getUsers().begin();
-}
-
-// Open one cursor per virtual qubit in the anchor's ordered support.
+// Open one cursor per frontier lane in the anchor's ordered support.
 static llvm::SmallVector<WireCursor>
-openFrontier(const cudaq::quake::detail::ScalarWireFlow &flow) {
+openFrontier(Operation *anchor,
+             const cudaq::quake::detail::ScalarWireFlow &flow) {
   llvm::SmallVector<WireCursor> frontier;
-  for (Value wire : flow.results)
-    frontier.push_back({wire, getSoleWireUser(wire)});
+  for (Value wire : flow.inputs)
+    frontier.push_back({wire, wire.getDefiningOp(), anchor});
   return frontier;
 }
 
-// Take the next operation off the frontier: the head closest to the anchor in
-// block order. Every anchor wire must retain an unambiguous path in the block.
-// Otherwise the frontier no longer represents the anchor's complete support,
-// so the block-local search ends.
-static Operation *takeNext(llvm::ArrayRef<WireCursor> frontier, Block *block) {
-  Operation *nearest = nullptr;
+// Validate the backward frontier and collect its defining operations. The
+// unique-use check ties every producer result to the downstream operation
+// expected by its cursor; a unique defining operation alone would not reject
+// branched flow.
+static bool collectFrontierHeads(llvm::ArrayRef<WireCursor> frontier,
+                                 Block *block,
+                                 llvm::DenseSet<Operation *> &heads) {
+  heads.clear();
+  if (frontier.empty())
+    return false;
   for (const WireCursor &cursor : frontier) {
-    if (!cursor.next || cursor.next->getBlock() != block)
-      return nullptr;
-    if (!nearest || cursor.next->isBeforeInBlock(nearest))
-      nearest = cursor.next;
+    if (!cursor.previous || cursor.previous->getBlock() != block ||
+        !cursor.value.hasOneUse() ||
+        cursor.value.use_begin()->getOwner() != cursor.downstream)
+      return false;
+    heads.insert(cursor.previous);
   }
-  return nearest;
+  return true;
+}
+
+// Operations without quantum values can be ignored only when their structure
+// and effects cannot hide access to an anchor qubit. Calls, region owners, and
+// effectful operations remain conservative barriers.
+static bool isKnownNonQuantumOperation(Operation *operation) {
+  return !isa<CallOpInterface>(operation) && operation->getNumRegions() == 0 &&
+         operation->getNumSuccessors() == 0 && isMemoryEffectFree(operation) &&
+         llvm::none_of(operation->getOperandTypes(),
+                       cudaq::quake::isQuantumType) &&
+         llvm::none_of(operation->getResultTypes(),
+                       cudaq::quake::isQuantumType);
+}
+
+// Collect scalar wires captured by an ordinary single-block scope. Marked
+// atomic scopes remain barriers even when their captures are disjoint. Every
+// quantum operation inside must expose supported scalar-wire flow or be a local
+// wire source, sink, or scope terminator.
+static bool collectScopeWireCaptures(Operation *operation,
+                                     llvm::SmallVectorImpl<Value> &captures) {
+  auto scope = dyn_cast<cudaq::cc::ScopeOp>(operation);
+  if (!scope || scope.getAtomicQuantumRegionAttr() ||
+      !scope.getInitRegion().hasOneBlock())
+    return false;
+
+  for (Value operand : operation->getOperands()) {
+    if (!cudaq::quake::isQuantumType(operand.getType()))
+      continue;
+    if (!isa<cudaq::quake::WireType>(operand.getType()))
+      return false;
+    captures.push_back(operand);
+  }
+
+  WalkResult result = operation->walk([&](Operation *nested) -> WalkResult {
+    if (nested == operation)
+      return WalkResult::advance();
+    if (isa<CallOpInterface>(nested) || nested->getNumRegions() != 0)
+      return WalkResult::interrupt();
+    if (isKnownNonQuantumOperation(nested))
+      return WalkResult::advance();
+
+    auto isScalarWire = [](Type type) {
+      return !cudaq::quake::isQuantumType(type) ||
+             isa<cudaq::quake::WireType>(type);
+    };
+    if (!llvm::all_of(nested->getOperandTypes(), isScalarWire) ||
+        !llvm::all_of(nested->getResultTypes(), isScalarWire))
+      return WalkResult::interrupt();
+
+    for (Value operand : nested->getOperands()) {
+      if (!cudaq::quake::isQuantumType(operand.getType()))
+        continue;
+      Operation *definition = operand.getDefiningOp();
+      if (!definition || !operation->isAncestor(definition))
+        captures.push_back(operand);
+    }
+
+    if (cudaq::quake::detail::getScalarWireFlow(nested) ||
+        isa<cudaq::quake::NullWireOp, cudaq::quake::SinkOp,
+            cudaq::cc::ContinueOp>(nested))
+      return WalkResult::advance();
+    return WalkResult::interrupt();
+  });
+  return !result.wasInterrupted();
 }
 
 // `QubitIdentityAnalysis` identifies logical qubits, not SSA paths. For
 // example, an endpoint can consume a second `borrow_wire` for the same wire-set
-// slot while the cursor from the anchor's result reaches another operation.
+// slot while the frontier lane from the anchor reaches another defining
+// operation.
 // The identities match, but the complete frontier reaches the endpoint only
-// when every cursor points to it.
+// when every lane points to it.
 static bool doesCompleteFrontierReach(llvm::ArrayRef<WireCursor> frontier,
                                       Operation *candidate) {
   return llvm::all_of(frontier, [candidate](const WireCursor &cursor) {
-    return cursor.next == candidate;
+    return cursor.previous == candidate;
   });
 }
 
@@ -113,7 +175,8 @@ requiresDistinctQubitProof(const cudaq::quake::detail::ScalarWireFlow &flow) {
 // With no crossed operation, exact result-to-operand threading proves the
 // endpoint pair's ordered SSA correspondence. The caller still owns the
 // endpoint algebra, and identity analysis still validates operand uniqueness
-// for multi-wire operations.
+// for multi-wire operations. Direct def-use determines producer orientation
+// without consulting mutable block-order metadata.
 //
 // A direct pair that permutes values or changes control and target roles is a
 // definitive mismatch. Falling back to logical identity matching could hide
@@ -127,19 +190,22 @@ static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
   if (!lhsInterface || !rhsInterface || !lhsFlow || !rhsFlow)
     return DirectWireThreading::NotDirect;
 
-  bool lhsIsProducer = lhs->isBeforeInBlock(rhs);
+  auto feeds = [](const cudaq::quake::detail::ScalarWireFlow &producerFlow,
+                  const cudaq::quake::detail::ScalarWireFlow &consumerFlow,
+                  Operation *consumer) {
+    return hasSameOrderedWireTypes(producerFlow.results, consumerFlow.inputs) &&
+           llvm::all_of(producerFlow.results, [consumer](Value result) {
+             return result.hasOneUse() &&
+                    result.use_begin()->getOwner() == consumer;
+           });
+  };
+  bool lhsIsProducer = feeds(*lhsFlow, *rhsFlow, rhs);
+  if (!lhsIsProducer && !feeds(*rhsFlow, *lhsFlow, lhs))
+    return DirectWireThreading::NotDirect;
   const auto &producerResults =
       lhsIsProducer ? lhsFlow->results : rhsFlow->results;
   const auto &consumerOperands =
       lhsIsProducer ? rhsFlow->inputs : lhsFlow->inputs;
-  Operation *consumer = lhsIsProducer ? rhs : lhs;
-  if (!hasSameOrderedWireTypes(producerResults, consumerOperands))
-    return DirectWireThreading::NotDirect;
-
-  if (!llvm::all_of(producerResults, [consumer](Value result) {
-        return result.hasOneUse() && result.use_begin()->getOwner() == consumer;
-      }))
-    return DirectWireThreading::NotDirect;
 
   bool hasSameRoles = hasSameOrderedWireTypes(lhsInterface.getControls(),
                                               rhsInterface.getControls()) &&
@@ -163,21 +229,19 @@ static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
   return DirectWireThreading::NotDirect;
 }
 
-// Step past `candidate`. An operation on several of the anchor's qubits is the
-// head of several chains at once, so every cursor pointing at it moves on
-// together and the operation is visited once rather than once per qubit. A
-// cursor whose qubit does not continue past `candidate`, such as one reaching a
-// sink, a returned wire, or a block argument, simply ends.
+// An operation shared by several frontier lanes advances those lanes together
+// and is visited once.
 static void
-advanceFrontierPast(llvm::SmallVectorImpl<WireCursor> &frontier,
-                    Operation *candidate,
-                    const cudaq::quake::detail::ScalarWireFlow &flow) {
+stepFrontierBackward(llvm::SmallVectorImpl<WireCursor> &frontier,
+                     Operation *candidate,
+                     const cudaq::quake::detail::ScalarWireFlow &flow) {
   for (WireCursor &cursor : frontier) {
-    if (cursor.next != candidate)
+    if (cursor.previous != candidate)
       continue;
-    Value stepped = mapWireAcross(flow, cursor.value);
+    Value stepped = mapWireBackward(flow, cursor.value);
     cursor.value = stepped;
-    cursor.next = stepped ? getSoleWireUser(stepped) : nullptr;
+    cursor.downstream = candidate;
+    cursor.previous = stepped ? stepped.getDefiningOp() : nullptr;
   }
 }
 
@@ -384,11 +448,10 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
     return nullptr;
 
   Block *block = anchor->getBlock();
-  // Follow Quake's own wire dataflow rather than block order. Only
-  // operations sharing a virtual qubit with the anchor are reachable this way.
-  // Every operation skipped is disjoint from the anchor's support and therefore
-  // commutes with it, so it needs neither a probe nor a cache entry.
-  auto frontier = openFrontier(*anchorFlow);
+  // A later anchor aligns the search with the greedy driver's bottom-up
+  // schedule. The physical scan audits the interval while selecting use-def
+  // frontier heads, including the latest head when the frontier is split.
+  auto frontier = openFrontier(anchor, *anchorFlow);
 
   cudaq::quake::detail::CommutationAnalysis *analysis = nullptr;
   auto requireAnalysis = [&]() -> cudaq::quake::detail::CommutationAnalysis & {
@@ -396,53 +459,97 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
       analysis = &impl->getAnalysis(block);
     return *analysis;
   };
-  // A self-query builds the normalized operation view and rejects a logical
-  // qubit used in more than one role. Unary operations cannot violate that
-  // constraint and retain the analysis-free adjacent path.
-  auto hasDistinctQubits =
-      [&](Operation *operation,
-          const cudaq::quake::detail::ScalarWireFlow &flow) {
-        return !requiresDistinctQubitProof(flow) ||
-               requireAnalysis().canCommute(operation, operation);
-      };
-  while (Operation *candidate = takeNext(frontier, block)) {
+  auto canCrossRegion = [&](Operation *operation) {
+    llvm::SmallVector<Value> captures;
+    return collectScopeWireCaptures(operation, captures) &&
+           requireAnalysis().hasDisjointQuantumSupport(anchor, captures);
+  };
+  auto canCrossIdentityBoundary = [&](Operation *operation) {
+    if (isa<cudaq::quake::AllocaOp, cudaq::quake::NullWireOp>(operation))
+      return true;
+
+    llvm::SmallVector<Value, 1> wires;
+    if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(operation))
+      wires.push_back(unwrap.getResult());
+    else if (auto borrow = dyn_cast<cudaq::quake::BorrowWireOp>(operation))
+      wires.push_back(borrow.getResult());
+    else if (auto wrapNew = dyn_cast<cudaq::quake::WrapNewOp>(operation))
+      wires.push_back(wrapNew.getWireValue());
+    else
+      return false;
+    return requireAnalysis().hasDisjointQuantumSupport(anchor, wires);
+  };
+  llvm::DenseSet<Operation *> frontierHeads;
+  if (!collectFrontierHeads(frontier, block, frontierHeads))
+    return nullptr;
+
+  // Audit physical block order while selecting use-def frontier heads. This
+  // catches operations on aliases that are absent from the anchor's SSA
+  // chains. The monotone scan visits each intervening operation at most once
+  // per search without consulting MLIR's mutable operation-order cache.
+  for (Operation *candidate = anchor->getPrevNode(); candidate;
+       candidate = candidate->getPrevNode()) {
+    bool isFrontierHead = frontierHeads.contains(candidate);
+    if (!isFrontierHead && isKnownNonQuantumOperation(candidate))
+      continue;
+    if (!isFrontierHead && candidate->getNumRegions() != 0) {
+      if (canCrossRegion(candidate))
+        continue;
+      return nullptr;
+    }
+
     auto candidateFlow = cudaq::quake::detail::getScalarWireFlow(candidate);
+    if (!isFrontierHead && !candidateFlow) {
+      if (canCrossIdentityBoundary(candidate) ||
+          requireAnalysis().canCommute(anchor, candidate))
+        continue;
+      return nullptr;
+    }
     if (!candidateFlow)
       return nullptr;
-    bool isTraversableMeasurementOrReset =
-        isa<cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp>(
-            candidate);
     auto candidateInterface =
         dyn_cast<cudaq::quake::OperatorInterface>(candidate);
 
-    // Consumer policy decides endpoint compatibility. Every operation crossed
-    // before an accepted endpoint requires the commutation proof below.
-    if (candidateInterface && (!hasDistinctQubits(anchor, *anchorFlow) ||
-                               !hasDistinctQubits(candidate, *candidateFlow)))
+    // Consumer policy owns the endpoint algebra.
+    if (isFrontierHead && candidateInterface &&
+        (!hasDistinctQuantumOperands(anchor) ||
+         !hasDistinctQuantumOperands(candidate)))
       return nullptr;
-    if (candidateInterface && isEndpoint(candidate)) {
+    if (isFrontierHead && candidateInterface && isEndpoint(candidate)) {
       if (!doesCompleteFrontierReach(frontier, candidate))
         return nullptr;
       return candidate;
     }
 
-    // A candidate that is crossed rather than accepted must be proven to
-    // commute with the anchor.
+    // Every frontier head the consumer declines and every other crossed
+    // scalar-wire operation requires a commutation proof.
     auto &blockAnalysis = requireAnalysis();
-    // The anchor and candidate must be resolvable before any pair result
-    // involving them means anything. Measurement instruments and reset
-    // channels are traversable through their scalar-wire flow, but other
-    // candidates keep the conservative self-query barrier.
-    if (!blockAnalysis.canCommute(anchor, anchor) ||
-        (!isTraversableMeasurementOrReset &&
-         !blockAnalysis.canCommute(candidate, candidate)))
-      return nullptr;
+    if (!isFrontierHead &&
+        blockAnalysis.hasDisjointQuantumSupport(anchor, candidateFlow->inputs))
+      continue;
     if (!blockAnalysis.canCommute(anchor, candidate))
       return nullptr;
 
-    advanceFrontierPast(frontier, candidate, *candidateFlow);
+    if (isFrontierHead) {
+      stepFrontierBackward(frontier, candidate, *candidateFlow);
+      if (!collectFrontierHeads(frontier, block, frontierHeads))
+        return nullptr;
+    }
   }
   return nullptr;
+}
+
+bool cudaq::opt::CommutationAwareRewriteMatcher::hasDistinctQuantumOperands(
+    Operation *operation) {
+  if (!operation || !operation->getBlock() ||
+      !isa<cudaq::quake::OperatorInterface>(operation))
+    return false;
+  auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
+  if (!flow)
+    return false;
+  return !requiresDistinctQubitProof(*flow) ||
+         impl->getAnalysis(operation->getBlock())
+             .hasDistinctQuantumOperands(operation);
 }
 
 bool cudaq::opt::CommutationAwareRewriteMatcher::haveSameOrderedQuantumOperands(
@@ -451,16 +558,9 @@ bool cudaq::opt::CommutationAwareRewriteMatcher::haveSameOrderedQuantumOperands(
     return false;
   auto directThreading = classifyDirectWireThreading(lhs, rhs);
   if (directThreading == DirectWireThreading::Exact) {
-    // Exact threading proves ordered operands for unary endpoints. Multi-wire
-    // endpoints still need normalized views that reject duplicate qubit roles.
-    auto lhsFlow = cudaq::quake::detail::getScalarWireFlow(lhs);
-    auto rhsFlow = cudaq::quake::detail::getScalarWireFlow(rhs);
-    assert(lhsFlow && rhsFlow && "exact threading requires scalar-wire flow");
-    if (!requiresDistinctQubitProof(*lhsFlow) &&
-        !requiresDistinctQubitProof(*rhsFlow))
-      return true;
-    auto &analysis = impl->getAnalysis(lhs->getBlock());
-    return analysis.canCommute(lhs, lhs) && analysis.canCommute(rhs, rhs);
+    // Exact threading proves ordered roles; distinct logical operands remain a
+    // separate precondition of the pair algebra.
+    return hasDistinctQuantumOperands(lhs) && hasDistinctQuantumOperands(rhs);
   }
   if (directThreading == DirectWireThreading::Mismatch)
     return false;

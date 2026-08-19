@@ -171,14 +171,22 @@ public:
 private:
   using OperationPair = std::pair<mlir::Operation *, mlir::Operation *>;
 
+  /// Return true when every control and target role has a distinct known
+  /// analysis-local identity.
+  bool hasDistinctQuantumOperands(mlir::Operation *operation) const;
+  /// Return true when every value is a known scalar wire outside the
+  /// operation's quantum support.
+  bool hasDisjointQuantumSupport(mlir::Operation *operation,
+                                 mlir::ValueRange values) const;
   /// Return true when both operations implement Quake OperatorInterface and
   /// their ordered controls and targets have the same known analysis-local
   /// identities.
   bool haveSameOrderedQuantumOperands(mlir::Operation *lhs,
                                       mlir::Operation *rhs) const;
-  /// Register wire result identities for a newly inserted operation in the
-  /// analyzed block. Classical-only operations succeed without changing
-  /// identity state. Return false for unsupported or ambiguous propagation.
+  /// Register a newly inserted scalar-wire operation only when every input
+  /// identity is known. A classical-only insertion succeeds without changing
+  /// identity state only when it is not call-like, owns no regions, and is
+  /// memory-effect-free. Return false for every other insertion.
   bool registerIdentityPreservingOperation(mlir::Operation *operation);
   /// Validate an identity-preserving replacement and clear cached relations.
   bool prepareIdentityPreservingReplacement(mlir::Operation *operation,
