@@ -127,10 +127,12 @@ const LambdaPowers &get_lambda_powers(const Integer &n) {
 // OdgpStepper
 //===----------------------------------------------------------------------===//
 
-OdgpStepper::OdgpStepper(Interval I, Interval J) {
+OdgpStepper::OdgpStepper(Interval I, Interval J, uint64_t max_scan_steps)
+    : max_scan_steps_(max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "I_width=" << I.width() << ", J_width=" << J.width() << '\n');
+             << "I_width=" << I.width() << ", J_width=" << J.width()
+             << ", max_scan_steps=" << max_scan_steps_ << '\n');
 
   // mpfr_t buffers must be initialized before any path that the destructor
   // could subsequently follow -- the destructor always clears them, even on
@@ -255,16 +257,15 @@ OdgpStepper::~OdgpStepper() {
   }
 }
 
-// Steps allowed before the stepper declares its range exhausted.
+// True once this scan has taken max_scan_steps_ steps without yielding.
 //
 // The a-range is finite but can be astronomically wide (spans past 1e15 are
 // routine at k=100) which is harmless only because a solution normally turns
 // up within a few steps. On an instance with none, the scan walks the whole
 // span and never finishes. gridsynth(pi/4, 1e-15) hung on exactly that.
-static constexpr int64_t kMaxFruitlessSteps = 1 << 16;
-
+// See GridsynthOptions::maxOdgpScanSteps for the bound itself.
 bool OdgpStepper::out_of_budget() {
-  if (++fruitless_steps_ < kMaxFruitlessSteps)
+  if (++fruitless_steps_ < max_scan_steps_)
     return false;
   close_reason_ = "scan limit reached without a solution";
   return true;
@@ -512,9 +513,10 @@ Interval scaled_parity_J(const Interval &J, int p) {
 } // namespace
 
 OdgpWithParityStepper::OdgpWithParityStepper(Interval I, Interval J,
-                                             ZSqrt2 parity_hint)
+                                             ZSqrt2 parity_hint,
+                                             uint64_t max_scan_steps)
     : inner_(scaled_parity_I(I, parity_hint.parity()),
-             scaled_parity_J(J, parity_hint.parity())),
+             scaled_parity_J(J, parity_hint.parity()), max_scan_steps),
       parity_p_(parity_hint.parity()) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs() << "parity=" << parity_p_ << '\n');
@@ -548,7 +550,8 @@ const ZSqrt2 *OdgpWithParityStepper::next() {
 // OdgpScaledStepper
 //===----------------------------------------------------------------------===//
 
-OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
+OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp,
+                                     uint64_t max_scan_steps)
     : denom_exp_(std::move(denom_exp)) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpScaledStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
@@ -559,7 +562,7 @@ OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
   Real scale = pow_sqrt2(denom_exp_);
   Interval scaled_I = I * scale;
   Interval scaled_J = (denom_exp_ & 1) ? J * (-scale) : J * scale;
-  inner_.emplace(scaled_I, scaled_J);
+  inner_.emplace(scaled_I, scaled_J, max_scan_steps);
 }
 
 OdgpScaledStepper::~OdgpScaledStepper() {
@@ -582,9 +585,9 @@ const DSqrt2 *OdgpScaledStepper::next() {
 // OdgpScaledWithParityStepper
 //===----------------------------------------------------------------------===//
 
-OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
-                                                         Integer denom_exp,
-                                                         DSqrt2 parity_hint) {
+OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(
+    Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint,
+    uint64_t max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpScaledWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(denom_exp)
@@ -595,7 +598,7 @@ OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
   // constraint at the next level down.
   if (denom_exp == 0) {
     ZSqrt2 beta_z = with_denom_exp(parity_hint, 0).alpha();
-    direct_.emplace(I, J, beta_z);
+    direct_.emplace(I, J, beta_z, max_scan_steps);
     return;
   }
 
@@ -603,7 +606,7 @@ OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
   offset_ = (p == 0) ? DSqrt2{0} : DSqrt2::power_of_inv_sqrt2(denom_exp);
   Interval shifted_I = I + (-to_real(offset_));
   Interval shifted_J = J + (-to_real(offset_.conj_sq2()));
-  recursive_.emplace(shifted_I, shifted_J, denom_exp - 1);
+  recursive_.emplace(shifted_I, shifted_J, denom_exp - 1, max_scan_steps);
 }
 
 OdgpScaledWithParityStepper::~OdgpScaledWithParityStepper() {

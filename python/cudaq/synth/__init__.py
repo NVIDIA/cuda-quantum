@@ -116,6 +116,7 @@ def gridsynth(theta,
               max_factoring_iterations: int = 500000,
               max_candidate_iterations: int = 2000000,
               max_factoring_restarts: int = 8,
+              max_odgp_scan_steps: int = 65536,
               seed: Optional[int] = None,
               timeout_ms: Optional[int] = None) -> CliffordTSequence:
     """Synthesize a Clifford+T sequence approximating R_z(theta).
@@ -141,6 +142,10 @@ def gridsynth(theta,
         `max_factoring_restarts`: Consecutive failed factoring attempts
             allowed on one composite, each re-rolling the rho parameters.
             Default 8.
+        `max_odgp_scan_steps`: Steps one candidate-enumeration line scan
+            may take without producing a candidate before it gives up on
+            that line. Bounds enumeration, which is a cost separate from
+            the factoring budgets above. Default 65536.
         seed: Seed for the internal factoring RNG. Default ``None`` draws
             from the system entropy source, so repeated calls on the same
             input explore different factoring attempts and their runtimes
@@ -167,8 +172,8 @@ def gridsynth(theta,
     """
     return CliffordTSequence(
         _gridsynth(theta, epsilon, max_factoring_iterations,
-                   max_candidate_iterations, max_factoring_restarts, seed,
-                   timeout_ms))
+                   max_candidate_iterations, max_factoring_restarts,
+                   max_odgp_scan_steps, seed, timeout_ms))
 
 
 def rz_error(theta, sequence) -> float:

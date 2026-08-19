@@ -47,6 +47,16 @@ inline constexpr uint64_t DEFAULT_MAX_CANDIDATE_ITERATIONS =
 /// exceeded depth 3.
 inline constexpr uint32_t DEFAULT_MAX_FACTORING_RESTARTS = 8;
 
+/// Steps one ODGP line scan may take without yielding a solution.
+///
+/// The scan's `a`-range is finite but can be astronomically wide (spans past
+/// 1e15 are routine at k=100) which is harmless only because a solution
+/// normally turns up within a few steps. On an instance that has none, the
+/// scan walks the whole span and never finishes. `gridsynth(pi/4, 1e-15)` hung
+/// on exactly that. Abandoning the scan costs nothing, since the enclosing
+/// search moves on to the next k and finds its solution there.
+inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
+
 } // namespace details
 
 /// Controls on the work one `gridsynth` call may do.
@@ -81,6 +91,11 @@ struct GridsynthOptions {
   /// Consecutive failed factoring attempts allowed on one composite, each
   /// re-rolling the rho parameters.
   uint32_t maxFactoringRestarts = details::DEFAULT_MAX_FACTORING_RESTARTS;
+
+  /// Steps one ODGP line scan may take without yielding a solution before it
+  /// declares its range exhausted. This bounds candidate enumeration, which
+  /// is a separate cost from the factoring budgets above.
+  uint64_t maxOdgpScanSteps = details::DEFAULT_MAX_ODGP_SCAN_STEPS;
 
   /// Optional wall-clock limit on the whole call, checked between candidates
   /// and inside the factoring loop. Unset means the budgets above are the only

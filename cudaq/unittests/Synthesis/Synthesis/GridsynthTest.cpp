@@ -424,6 +424,45 @@ TEST(GridsynthDeterminismTest, TheFactoringBudgetBindsTheSearch) {
          "so something other than the budget is ending the attempts";
 }
 
+// The ODGP scan limit bounds candidate enumeration, which is a cost entirely
+// separate from the factoring budgets. It is what keeps a line scan with no
+// solution on it from walking a range that can be wider than 1e15. Abandoning
+// a scan has to stay safe so the only visible effect of tightening it is that
+// fewer candidates come out.
+TEST(GridsynthScanLimitTest, BoundsEnumerationWithoutBreakingTheSearch) {
+  const char *epsilon = "1e-20";
+  ScopedPrecision precision(
+      cudaq::synth::details::required_precision(Real(epsilon)));
+
+  auto run = [&](uint64_t max_odgp_scan_steps, GridsynthStats &stats) {
+    cudaq::synth::GridsynthOptions options;
+    options.seed = uint64_t{4242};
+    options.maxOdgpScanSteps = max_odgp_scan_steps;
+    llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
+    return result;
+  };
+
+  GridsynthStats tight_stats, default_stats;
+  llvm::FailureOr<Circuit> tight = run(4, tight_stats);
+  llvm::FailureOr<Circuit> loose =
+      run(cudaq::synth::details::DEFAULT_MAX_ODGP_SCAN_STEPS, default_stats);
+
+  ASSERT_TRUE(llvm::succeeded(loose));
+  EXPECT_LT(tight_stats.candidates_enumerated,
+            default_stats.candidates_enumerated)
+      << "a four-step scan limit enumerated as much as the shipped one, so "
+         "the limit is not reaching the enumerator";
+
+  // A scan cut short must not produce a candidate outside the epsilon region.
+  // Whether the search still finds a solution at all under an absurd limit is
+  // not promised; that it never returns a wrong one is.
+  if (llvm::succeeded(tight)) {
+    Real err(cudaq::synth::rz_gate_sequence_error(kSeedSensitiveTheta, *tight));
+    EXPECT_LE(err, Real(epsilon));
+  }
+}
+
 TEST(GridsynthStatsTest, ReportsTheZeroTShortcutRatherThanASearch) {
   GridsynthStats stats = stats_for("0.5", "0.3");
 

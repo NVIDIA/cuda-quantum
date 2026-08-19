@@ -342,6 +342,8 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
              cudaq::synth::dbgs() << "max_factoring_restarts="
                                   << options.maxFactoringRestarts << "\n";
              cudaq::synth::dbgs()
+             << "max_odgp_scan_steps=" << options.maxOdgpScanSteps << "\n";
+             cudaq::synth::dbgs()
              << "seed="
              << (options.seed ? std::to_string(*options.seed) : "unset")
              << "\n");
@@ -473,7 +475,8 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
     CUDAQ_SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
 
     TdgpStepper stepper(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
-                        transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened);
+                        transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened,
+                        options.maxOdgpScanSteps);
     local.k_reached = static_cast<int64_t>(k);
     local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
     for (const DOmega &z : stepper) {

@@ -210,6 +210,10 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     Option<"maxFactoringRestarts", "max-factoring-restarts", "int32_t",
       /*default=*/"8",
       "Consecutive failed factoring attempts allowed on one composite.">,
+    Option<"maxOdgpScanSteps", "max-odgp-scan-steps", "int64_t",
+      /*default=*/"65536",
+      "Steps one candidate-enumeration line scan may take without "
+      "producing a candidate.">,
     Option<"retryCount", "retry-count", "int32_t", /*default=*/"3",
       "Retry attempts with doubled work budgets on gridsynth failure.">,
     Option<"onDynamicAngle", "on-dynamic-angle", "std::string",

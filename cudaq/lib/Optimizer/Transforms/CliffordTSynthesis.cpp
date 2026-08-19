@@ -41,6 +41,7 @@ struct RotationOptions {
   int64_t maxFactoringIterations;
   int64_t maxCandidateIterations;
   int32_t maxFactoringRestarts;
+  int64_t maxOdgpScanSteps;
   int32_t retryCount;
   std::string onDynamicAngle;
   bool failOnControlledRotation;
@@ -183,6 +184,7 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
         saturatingShl(opts.maxCandidateIterations, attempt);
     synthOpts.maxFactoringRestarts =
         static_cast<uint32_t>(opts.maxFactoringRestarts);
+    synthOpts.maxOdgpScanSteps = saturatingShl(opts.maxOdgpScanSteps, attempt);
     circuit = cudaq::synth::gridsynth(thetaReal, epsilonReal, synthOpts);
     if (llvm::succeeded(circuit))
       break;
@@ -361,8 +363,9 @@ public:
                << " max-factoring-iterations=" << maxFactoringIterations
                << " max-candidate-iterations=" << maxCandidateIterations
                << " max-factoring-restarts=" << maxFactoringRestarts
-               << " retry-count=" << retryCount << " on-dynamic-angle="
-               << onDynamicAngle << " skip-below=" << skipBelow << '\n');
+               << " max-odgp-scan-steps=" << maxOdgpScanSteps << " retry-count="
+               << retryCount << " on-dynamic-angle=" << onDynamicAngle
+               << " skip-below=" << skipBelow << '\n');
 
     // Validate the numeric options. gridsynth needs a positive epsilon
     // (-log2(epsilon) feeds the precision heuristic), and the budgets/retry
@@ -370,11 +373,12 @@ public:
     // budgets by `attempt`.
     if (!(epsilon > 0.0) || maxFactoringIterations < 0 ||
         maxCandidateIterations < 0 || maxFactoringRestarts < 0 ||
-        retryCount < 0 || skipBelow < 0.0) {
+        maxOdgpScanSteps < 0 || retryCount < 0 || skipBelow < 0.0) {
       getOperation().emitError(
           "clifford-t-synthesis: invalid options; require epsilon > 0 and "
           "non-negative max-factoring-iterations, max-candidate-iterations, "
-          "max-factoring-restarts, retry-count, and skip-below.");
+          "max-factoring-restarts, max-odgp-scan-steps, retry-count, and "
+          "skip-below.");
       signalPassFailure();
       return;
     }
@@ -390,6 +394,7 @@ public:
                          maxFactoringIterations,
                          maxCandidateIterations,
                          maxFactoringRestarts,
+                         maxOdgpScanSteps,
                          retryCount,
                          onDynamicAngle.getValue(),
                          failOnControlledRotation,

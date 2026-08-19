@@ -47,6 +47,7 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
                              uint64_t max_factoring_iterations,
                              uint64_t max_candidate_iterations,
                              uint32_t max_factoring_restarts,
+                             uint64_t max_odgp_scan_steps,
                              std::optional<uint64_t> seed,
                              std::optional<int64_t> timeout_ms) {
   // Parse epsilon once at the stock precision, which is ample to read off its
@@ -72,6 +73,7 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
   options.maxFactoringIterations = max_factoring_iterations;
   options.maxCandidateIterations = max_candidate_iterations;
   options.maxFactoringRestarts = max_factoring_restarts;
+  options.maxOdgpScanSteps = max_odgp_scan_steps;
   if (timeout_ms) {
     if (*timeout_ms <= 0)
       throw nanobind::value_error("timeout_ms must be positive");
@@ -150,6 +152,8 @@ NB_MODULE(_cudaq_synth, m) {
           cudaq::synth::details::DEFAULT_MAX_CANDIDATE_ITERATIONS,
       nanobind::arg("max_factoring_restarts") =
           cudaq::synth::details::DEFAULT_MAX_FACTORING_RESTARTS,
+      nanobind::arg("max_odgp_scan_steps") =
+          cudaq::synth::details::DEFAULT_MAX_ODGP_SCAN_STEPS,
       nanobind::arg("seed") = nanobind::none(),
       nanobind::arg("timeout_ms") = nanobind::none(),
       R"doc(Synthesize a Clifford+T circuit approximating R_z(theta) to precision epsilon.
@@ -176,6 +180,10 @@ Args:
         2000000.
     max_factoring_restarts: Consecutive failed factoring attempts allowed
         on one composite, each re-rolling the rho parameters. Default 8.
+    max_odgp_scan_steps: Steps one candidate-enumeration line scan may
+        take without producing a candidate before it gives up on that
+        line. Bounds enumeration, which is a cost separate from the
+        factoring budgets above. Default 65536.
     seed: Seed for the internal factoring RNG. Default None draws from
         the system entropy source, so repeated calls on the same input
         explore different factoring attempts and their runtimes can
