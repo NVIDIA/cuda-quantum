@@ -17,30 +17,28 @@ namespace cudaq::orca {
 
 cudaq::sample_result runSampling(TBIParameters &parameters,
                                  std::size_t qpu_id = 0) {
-  sample_policy policy;
-  ExecutionContext ctx(sample_policy::name, parameters.n_samples, qpu_id);
+  orca::sample_policy policy;
+  ExecutionContext ctx(orca::sample_policy::name, parameters.n_samples, qpu_id);
   auto &platform = cudaq::get_platform();
   return detail::launch(policy, qpu_id, ctx, platform, [&]() {
     [[maybe_unused]] auto dynamicResult =
-        cudaq::altLaunchKernel(sample_policy::kernelName, nullptr, &parameters,
-                               sizeof(TBIParameters), 0);
+        cudaq::altLaunchKernel(orca::sample_policy::kernelName, nullptr,
+                               &parameters, sizeof(TBIParameters), 0);
   });
 }
 
 async_sample_result runAsyncSampling(TBIParameters &parameters,
                                      std::size_t qpu_id = 0) {
   // Indicate that this is an async exec
-  async_sample_policy policy{sample_policy{}};
+  orca::async_sample_policy policy{orca::sample_policy{}};
   async_sample_result futureResult;
-  ExecutionContext ctx(sample_policy::name, parameters.n_samples, qpu_id);
+  ExecutionContext ctx(orca::sample_policy::name, parameters.n_samples, qpu_id);
   auto &platform = cudaq::get_platform();
-  // If we have a non-null future, set it
-  futureResult = detail::launch(policy, qpu_id, ctx, platform, [&]() {
+  return detail::launch(policy, qpu_id, ctx, platform, [&]() {
     [[maybe_unused]] auto dynamicResult =
-        cudaq::altLaunchKernel(sample_policy::kernelName, nullptr, &parameters,
-                               sizeof(TBIParameters), 0);
+        cudaq::altLaunchKernel(orca::sample_policy::kernelName, nullptr,
+                               &parameters, sizeof(TBIParameters), 0);
   });
-  return futureResult;
 }
 
 cudaq::sample_result sample(std::vector<std::size_t> &input_state,
