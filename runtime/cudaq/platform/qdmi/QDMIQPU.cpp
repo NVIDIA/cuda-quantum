@@ -18,9 +18,14 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Error.h"
@@ -121,14 +126,31 @@ std::optional<std::string> getValue(const BackendConfig &config,
   return std::nullopt;
 }
 
+std::pair<std::string, BackendConfig> parseBackend(const std::string &backend) {
+  auto fields = cudaq::split(backend, ';');
+  if (fields.empty() || fields.size() % 2 == 0)
+    throw std::runtime_error(
+        "QDMI backend config must contain a target and key-value pairs.");
+
+  BackendConfig config;
+  for (std::size_t index = 1; index < fields.size(); index += 2) {
+    auto value = fields[index + 1];
+    if (value.starts_with("base64_"))
+      value = cudaq::detail::decodeBase64(value.substr(7));
+    config.insert_or_assign(fields[index], std::move(value));
+  }
+  config.erase("__yml_path");
+  return {std::move(fields.front()), std::move(config)};
+}
+
 qdmi::DeviceSessionConfig
 makeSessionConfig(const BackendConfig &backendConfig) {
   qdmi::DeviceSessionConfig config;
-  config.custom1 = getValue(backendConfig, "qdmi_session_custom1");
-  config.custom2 = getValue(backendConfig, "qdmi_session_custom2");
-  config.custom3 = getValue(backendConfig, "qdmi_session_custom3");
-  config.custom4 = getValue(backendConfig, "qdmi_session_custom4");
-  config.custom5 = getValue(backendConfig, "qdmi_session_custom5");
+  config.custom1 = getValue(backendConfig, "session_custom1");
+  config.custom2 = getValue(backendConfig, "session_custom2");
+  config.custom3 = getValue(backendConfig, "session_custom3");
+  config.custom4 = getValue(backendConfig, "session_custom4");
+  config.custom5 = getValue(backendConfig, "session_custom5");
   return config;
 }
 
@@ -136,7 +158,7 @@ JobParameters getJobParameters(const BackendConfig &config) {
   JobParameters parameters;
   for (std::size_t index = 0; index < parameters.size(); ++index) {
     if (const auto value =
-            getValue(config, "qdmi_job_custom" + std::to_string(index + 1)))
+            getValue(config, "job_custom" + std::to_string(index + 1)))
       parameters[index] = qdmi::CustomJobParameter{*value};
   }
   return parameters;
@@ -327,27 +349,67 @@ std::string decodeQirBitcode(const std::string &encodedBitcode) {
   }
 }
 
-std::string qirBitcodeToText(const std::string &encodedBitcode) {
+std::unique_ptr<llvm::Module> parseQirBitcode(const std::string &encodedBitcode,
+                                              llvm::LLVMContext &context) {
   const auto bitcode = decodeQirBitcode(encodedBitcode);
-  llvm::LLVMContext context;
   const auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
       llvm::StringRef(bitcode.data(), bitcode.size()));
   auto module = llvm::parseBitcodeFile(buffer->getMemBufferRef(), context);
   if (!module)
     throw std::runtime_error("Could not parse CUDA-Q QIR bitcode: " +
                              llvm::toString(module.takeError()));
-
-  std::string text;
-  llvm::raw_string_ostream output(text);
-  (*module)->print(output, nullptr);
-  output.flush();
-  return text;
+  return std::move(*module);
 }
 
-std::string materializeTextProgram(const std::string &code,
-                                   const ProgramFormat &format) {
-  return format.encoding == ProgramEncoding::qirText ? qirBitcodeToText(code)
-                                                     : code;
+void adaptQirEntryPoint(llvm::Module &module) {
+  llvm::Function *entryPoint = nullptr;
+  for (auto &function : module) {
+    if (function.isDeclaration() || (!function.hasFnAttribute("entry_point") &&
+                                     !function.hasFnAttribute("EntryPoint")))
+      continue;
+    if (entryPoint)
+      return;
+    entryPoint = &function;
+  }
+
+  if (!entryPoint || entryPoint->arg_size() != 0 ||
+      !entryPoint->getReturnType()->isVoidTy())
+    return;
+
+  // MQT invokes QIR entry points as int64_t(), while CUDA-Q emits void().
+  const auto entryPointName = entryPoint->getName().str();
+  entryPoint->setName(entryPointName + ".cudaq");
+  auto *adapter = llvm::Function::Create(
+      llvm::FunctionType::get(llvm::Type::getInt64Ty(module.getContext()),
+                              /*isVarArg=*/false),
+      entryPoint->getLinkage(), entryPointName, module);
+  adapter->setCallingConv(entryPoint->getCallingConv());
+  for (const auto attribute : entryPoint->getAttributes().getFnAttrs())
+    adapter->addFnAttr(attribute);
+  entryPoint->removeFnAttr("entry_point");
+  entryPoint->removeFnAttr("EntryPoint");
+
+  auto *block = llvm::BasicBlock::Create(module.getContext(), "entry", adapter);
+  llvm::IRBuilder<> builder(block);
+  builder.CreateCall(entryPoint);
+  builder.CreateRet(
+      llvm::ConstantInt::get(llvm::Type::getInt64Ty(module.getContext()), 0));
+}
+
+std::string materializeQirProgram(const std::string &encodedBitcode,
+                                  const ProgramEncoding encoding) {
+  llvm::LLVMContext context;
+  auto module = parseQirBitcode(encodedBitcode, context);
+  adaptQirEntryPoint(*module);
+
+  std::string program;
+  llvm::raw_string_ostream output(program);
+  if (encoding == ProgramEncoding::qirText)
+    module->print(output, nullptr);
+  else
+    llvm::WriteBitcodeToFile(*module, output);
+  output.flush();
+  return program;
 }
 
 cudaq::CountsDictionary
@@ -556,12 +618,16 @@ qdmi::Job submitJob(const QDMIState &state, const KernelExecution &code,
   };
 
   if (state.format.encoding == ProgramEncoding::qirModule) {
-    const auto bitcode = decodeQirBitcode(code.code);
+    const auto bitcode =
+        materializeQirProgram(code.code, state.format.encoding);
     const auto bytes = std::as_bytes(std::span(bitcode));
     return submit(bytes);
   }
 
-  const auto program = materializeTextProgram(code.code, state.format);
+  const auto program =
+      state.format.encoding == ProgramEncoding::qirText
+          ? materializeQirProgram(code.code, state.format.encoding)
+          : code.code;
   return submit(program);
 }
 
@@ -659,8 +725,7 @@ public:
     if (!runtimeTarget || runtimeTarget->name != "qdmi")
       throw std::runtime_error(
           "Select the CUDA-Q QDMI target before reopening a QDMI future.");
-    const auto activeDevice =
-        getValue(runtimeTarget->runtimeConfig, "qdmi_device");
+    const auto activeDevice = getValue(runtimeTarget->runtimeConfig, "device");
     if (!activeDevice || *activeDevice != *persistedDevice)
       throw std::runtime_error(
           "The active QDMI device does not match the persisted future.");
@@ -735,20 +800,23 @@ void QDMIQPU::endExecution() {
     context->executionManager->endExecution();
 }
 
-void QDMIQPU::setTargetBackend(const std::string &) {
-  const auto *runtimeTarget = get_platform().get_runtime_target();
-  if (!runtimeTarget)
-    throw std::runtime_error("QDMI target configuration is unavailable.");
-  if (!runtimeTarget->config.BackendConfig)
+void QDMIQPU::setTargetBackend(const std::string &backend) {
+  auto [targetName, config] = parseBackend(backend);
+  backendConfig = std::move(config);
+
+  const std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+  const auto configFilePath = cudaq::detail::getTargetConfigPath(
+      backend, cudaqLibPath.parent_path().parent_path() / "targets" /
+                   (targetName + ".yml"));
+  targetConfig = cudaq::config::loadTargetConfig(configFilePath);
+  if (!targetConfig.BackendConfig)
     throw std::runtime_error("QDMI backend configuration is unavailable.");
 
-  auto targetBackend = *runtimeTarget->config.BackendConfig;
-  targetConfig = runtimeTarget->config;
-  backendConfig = runtimeTarget->runtimeConfig;
+  auto targetBackend = *targetConfig.BackendConfig;
   if (getValue(backendConfig, "emulate") == "true")
     throw std::runtime_error("QDMI does not support CUDA-Q emulation mode.");
 
-  const auto deviceId = getValue(backendConfig, "qdmi_device");
+  const auto deviceId = getValue(backendConfig, "device");
   if (!deviceId)
     throw std::runtime_error("A stable QDMI device ID is required.");
 
@@ -756,7 +824,7 @@ void QDMIQPU::setTargetBackend(const std::string &) {
       qdmi::Session::openDevice(*deviceId, makeSessionConfig(backendConfig));
   const auto format =
       selectProgramFormat(device.getSupportedProgramFormats(),
-                          getValue(backendConfig, "qdmi_program_format"));
+                          getValue(backendConfig, "program_format"));
   const auto qubitCount = device.getQubitsNum();
   auto connectivity = queryConnectivity(device);
   auto parameters = getJobParameters(backendConfig);

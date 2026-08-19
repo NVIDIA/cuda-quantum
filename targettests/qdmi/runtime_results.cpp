@@ -8,7 +8,7 @@
 
 // REQUIRES: qdmi
 // clang-format off
-// RUN: nvq++ --target qdmi --qdmi-device mqt.ddsim.default %s -o %t
+// RUN: nvq++ --target qdmi --qdmi-device mqt.ddsim.default --qdmi-program-format qasm2 %s -o %t
 // RUN: %t | FileCheck %s
 // clang-format on
 
