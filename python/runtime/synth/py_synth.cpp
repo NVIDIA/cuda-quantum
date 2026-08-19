@@ -17,6 +17,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/variant.h>
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -43,9 +44,11 @@ cudaq::synth::Real toReal(const RealArg &arg, const char *name) {
 }
 
 std::string gridsynthBinding(RealArg theta, RealArg epsilon,
-                             int diophantine_timeout_ms,
-                             int factoring_timeout_ms,
-                             std::optional<uint64_t> seed) {
+                             uint64_t max_factoring_iterations,
+                             uint64_t max_candidate_iterations,
+                             uint32_t max_factoring_restarts,
+                             std::optional<uint64_t> seed,
+                             std::optional<int64_t> timeout_ms) {
   // Parse epsilon once at the stock precision, which is ample to read off its
   // magnitude, and validate before deriving anything from it.
   cudaq::synth::Real epsilonProbe = toReal(epsilon, "epsilon");
@@ -64,17 +67,35 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
   if (!thetaReal.is_finite())
     throw nanobind::value_error("theta must be finite");
 
+  cudaq::synth::GridsynthOptions options;
+  options.seed = seed;
+  options.maxFactoringIterations = max_factoring_iterations;
+  options.maxCandidateIterations = max_candidate_iterations;
+  options.maxFactoringRestarts = max_factoring_restarts;
+  if (timeout_ms) {
+    if (*timeout_ms <= 0)
+      throw nanobind::value_error("timeout_ms must be positive");
+    options.timeout = std::chrono::milliseconds(*timeout_ms);
+  }
+
+  cudaq::synth::GridsynthStats stats;
   llvm::FailureOr<cudaq::synth::Circuit> result = llvm::failure();
   {
     nanobind::gil_scoped_release nogil;
-    result =
-        cudaq::synth::gridsynth(thetaReal, epsilonReal, diophantine_timeout_ms,
-                                factoring_timeout_ms, seed);
+    result = cudaq::synth::gridsynth(thetaReal, epsilonReal, options, &stats);
   }
-  if (llvm::failed(result))
+  if (llvm::failed(result)) {
+    // A timeout is the caller's own limit rather than a property of the
+    // inputs, so saying "search exhausted" would send them looking in the
+    // wrong place.
+    if (stats.outcome == cudaq::synth::GridsynthOutcome::TimedOut)
+      throw nanobind::value_error(
+          "gridsynth: timeout_ms expired before a Clifford+T approximation "
+          "was found");
     throw nanobind::value_error(
         "gridsynth: failed to synthesize a Clifford+T approximation "
         "(degenerate epsilon region or search exhausted)");
+  }
   return result->to_string();
 }
 
@@ -122,14 +143,20 @@ NB_MODULE(_cudaq_synth, m) {
 
   m.def(
       "gridsynth", &gridsynthBinding, nanobind::arg("theta"),
-      nanobind::arg("epsilon"), nanobind::arg("diophantine_timeout_ms") = 200,
-      nanobind::arg("factoring_timeout_ms") = 50,
+      nanobind::arg("epsilon"),
+      nanobind::arg("max_factoring_iterations") =
+          cudaq::synth::details::DEFAULT_MAX_FACTORING_ITERATIONS,
+      nanobind::arg("max_candidate_iterations") =
+          cudaq::synth::details::DEFAULT_MAX_CANDIDATE_ITERATIONS,
+      nanobind::arg("max_factoring_restarts") =
+          cudaq::synth::details::DEFAULT_MAX_FACTORING_RESTARTS,
       nanobind::arg("seed") = nanobind::none(),
+      nanobind::arg("timeout_ms") = nanobind::none(),
       R"doc(Synthesize a Clifford+T circuit approximating R_z(theta) to precision epsilon.
 
 Implements the grid-synthesis algorithm of Ross & Selinger (arXiv:1403.2975,
 Algorithm 7.6). The returned gate string is in Matsumoto-Amano normal form
-with minimum T-count up to search timeouts. 
+with minimum T-count up to the search budgets below.
 
 Precision is measured in the operator norm (a.k.a. spectral norm, the
 induced 2-norm ||A|| = sigma_max(A)). The synthesized unitary U satisfies
@@ -140,17 +167,25 @@ Args:
     theta: Target rotation angle (float, or decimal str for arbitrary precision).
     epsilon: Approximation precision in operator norm, must be > 0
         (float, or str).
-    diophantine_timeout_ms: Per-candidate timeout for the Diophantine
-        solver. Higher values improve optimality at the cost of
-        worst-case latency. Default 200.
-    factoring_timeout_ms: Per-candidate timeout for integer factoring
-        inside the Diophantine solver. Default 50.
+    max_factoring_iterations: Pollard-rho iterations one factoring
+        attempt may spend before the solver gives up on that candidate.
+        Higher values improve optimality (fewer T gates) at the cost of
+        worst-case latency. Default 500000.
+    max_candidate_iterations: Pollard-rho iterations one grid candidate
+        may spend in total, summed over its factoring attempts. Default
+        2000000.
+    max_factoring_restarts: Consecutive failed factoring attempts allowed
+        on one composite, each re-rolling the rho parameters. Default 8.
     seed: Seed for the internal factoring RNG. Default None draws from
         the system entropy source, so repeated calls on the same input
         explore different factoring attempts and their runtimes can
         differ by orders of magnitude. Pass an integer to make a run
-        replayable. Reproducibility also requires that neither timeout
-        fire, since those are wall-clock and machine-dependent.
+        replayable.
+    timeout_ms: Optional wall-clock limit on the whole call, in
+        milliseconds. Default None, which is the reproducible
+        configuration: the budgets above count work rather than time, so
+        the same inputs do the same work on any machine. Setting this
+        gives that up and is meant as an escape hatch, not a tuning knob.
 
 Returns:
     A string of gate characters from the alphabet {H, S, T, X, W}, where

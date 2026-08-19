@@ -113,15 +113,17 @@ class CliffordTSequence:
 
 def gridsynth(theta,
               epsilon,
-              diophantine_timeout_ms: int = 200,
-              factoring_timeout_ms: int = 50,
-              seed: Optional[int] = None) -> CliffordTSequence:
+              max_factoring_iterations: int = 500000,
+              max_candidate_iterations: int = 2000000,
+              max_factoring_restarts: int = 8,
+              seed: Optional[int] = None,
+              timeout_ms: Optional[int] = None) -> CliffordTSequence:
     """Synthesize a Clifford+T sequence approximating R_z(theta).
 
     Implements the grid-synthesis algorithm of Ross & Selinger
     `(arXiv:1403.2975, Algorithm 7.6)`. The returned sequence is in
-    `Matsumoto-Amano` normal form with minimum T-count up to search
-    timeouts. The synthesized unitary U satisfies
+    `Matsumoto-Amano` normal form with minimum T-count up to the search
+    budgets below. The synthesized unitary U satisfies
     ``||R_z(theta) - U|| <= epsilon`` in the operator norm.
 
     Args:
@@ -129,17 +131,27 @@ def gridsynth(theta,
             arbitrary precision).
         epsilon: Approximation precision in operator norm, must be > 0
             (float, or `str`).
-        `diophantine_timeout_ms`: Per-candidate timeout for the Diophantine
-            solver. Higher values improve `optimality` at the cost of
-            worst-case latency. Default 200.
-        factoring_timeout_ms: Per-candidate timeout for integer factoring
-            inside the Diophantine solver. Default 50.
+        `max_factoring_iterations`: Pollard-rho iterations one factoring
+            attempt may spend before the solver gives up on that candidate.
+            Higher values improve `optimality` (fewer T gates) at the cost
+            of worst-case latency. Default 500000.
+        `max_candidate_iterations`: Pollard-rho iterations one grid
+            candidate may spend in total, summed over its factoring
+            attempts. Default 2000000.
+        `max_factoring_restarts`: Consecutive failed factoring attempts
+            allowed on one composite, each re-rolling the rho parameters.
+            Default 8.
         seed: Seed for the internal factoring RNG. Default ``None`` draws
             from the system entropy source, so repeated calls on the same
             input explore different factoring attempts and their runtimes
             can differ by orders of magnitude. Pass an `int` to make a run
-            `replayable`. Reproducibility also requires that neither timeout
-            fire, since those are wall-clock and machine-dependent.
+            `replayable`.
+        `timeout_ms`: Optional wall-clock limit on the whole call, in
+            milliseconds. Default ``None``, which is the reproducible
+            configuration: the budgets above count work rather than time,
+            so the same inputs do the same work on any machine. Setting
+            this gives that up and is meant as an escape hatch, not a
+            tuning knob.
 
     Returns:
         A :class:`CliffordTSequence`. ``str()`` of the result is the gate
@@ -154,8 +166,9 @@ def gridsynth(theta,
             epsilon region or search space exhausted).
     """
     return CliffordTSequence(
-        _gridsynth(theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms,
-                   seed))
+        _gridsynth(theta, epsilon, max_factoring_iterations,
+                   max_candidate_iterations, max_factoring_restarts, seed,
+                   timeout_ms))
 
 
 def rz_error(theta, sequence) -> float:

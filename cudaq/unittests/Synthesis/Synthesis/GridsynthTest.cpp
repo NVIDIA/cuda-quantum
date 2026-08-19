@@ -319,11 +319,8 @@ using cudaq::synth::GridsynthStats;
 
 static GridsynthStats stats_for(const char *theta, const char *epsilon) {
   GridsynthStats stats;
-  llvm::FailureOr<Circuit> ignored = cudaq::synth::gridsynth(
-      Real(theta), Real(epsilon),
-      cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-      cudaq::synth::details::DEFAULT_FACTORING_TIMEOUT_MS, std::nullopt,
-      &stats);
+  llvm::FailureOr<Circuit> ignored =
+      cudaq::synth::gridsynth(Real(theta), Real(epsilon), {}, &stats);
   (void)ignored;
   return stats;
 }
@@ -365,37 +362,66 @@ TEST(GridsynthStatsTest, CountsFactoringWork) {
   EXPECT_GT(stats.factoring_iterations_total, 0);
 }
 
-// The factoring budget is an iteration count, not a duration, so a completed
-// run must not depend on host speed. The counter catches a regression even
-// where the circuit happens to come out the same either way.
+// The factoring budget is an iteration count, not a duration, so a run must
+// not depend on host speed. With no timeout set there is no clock in the
+// search at all, and the rho-iteration total has to come out identical.
 TEST(GridsynthDeterminismTest, WallClockDoesNotDecideTheOutcome) {
-  // Deep enough that the solver does real factoring work.
+  // Deep enough that the solver does real factoring work. This is also where
+  // the wall clock used to fire, back when it was the terminating condition.
   const char *epsilon = "1e-25";
   ScopedPrecision precision(
       cudaq::synth::details::required_precision(Real(epsilon)));
 
-  auto synthesize = [&](int32_t factoring_timeout_ms, GridsynthStats &stats) {
+  auto synthesize = [&](GridsynthStats &stats) {
+    cudaq::synth::GridsynthOptions options;
+    options.seed = uint64_t{4242};
     llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
-        Real(kSeedSensitiveTheta), Real(epsilon),
-        cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-        factoring_timeout_ms, uint64_t{4242}, &stats);
+        Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
     EXPECT_TRUE(llvm::succeeded(result));
     return llvm::succeeded(result) ? result->to_string() : std::string();
   };
 
-  GridsynthStats tight_stats, loose_stats;
-  std::string tight = synthesize(20, tight_stats);
-  std::string loose = synthesize(5000, loose_stats);
+  GridsynthStats first_stats, second_stats;
+  std::string first = synthesize(first_stats);
+  std::string second = synthesize(second_stats);
 
-  EXPECT_EQ(tight, loose) << "same seed produced different circuits under "
-                             "different wall-clock budgets";
-  EXPECT_EQ(tight_stats.factoring_wall_clock_exits, 0);
-  EXPECT_EQ(loose_stats.factoring_wall_clock_exits, 0);
-  // The enclosing per-candidate clock must not decide anything either.
-  EXPECT_EQ(tight_stats.diophantine_wall_clock_exits, 0);
-  EXPECT_EQ(loose_stats.diophantine_wall_clock_exits, 0);
+  EXPECT_EQ(first, second);
+  EXPECT_EQ(first_stats.factoring_iterations_total,
+            second_stats.factoring_iterations_total)
+      << "the same seed and budgets did a different amount of factoring work";
+  // Nothing set a timeout, so neither clock can have ended anything.
+  EXPECT_EQ(first_stats.factoring_wall_clock_exits, 0);
+  EXPECT_EQ(second_stats.factoring_wall_clock_exits, 0);
+  EXPECT_EQ(first_stats.diophantine_wall_clock_exits, 0);
+  EXPECT_EQ(second_stats.diophantine_wall_clock_exits, 0);
   // Not vacuous: this input really does factor.
-  EXPECT_GT(tight_stats.factoring_iterations_total, 0);
+  EXPECT_GT(first_stats.factoring_iterations_total, 0);
+}
+
+// The per-attempt budget has to actually bind, or it is not the thing keeping
+// the search bounded. Cutting it far enough must change what the search does.
+TEST(GridsynthDeterminismTest, TheFactoringBudgetBindsTheSearch) {
+  const char *epsilon = "1e-25";
+  ScopedPrecision precision(
+      cudaq::synth::details::required_precision(Real(epsilon)));
+
+  auto work_done = [&](uint64_t max_factoring_iterations) {
+    cudaq::synth::GridsynthOptions options;
+    options.seed = uint64_t{4242};
+    options.maxFactoringIterations = max_factoring_iterations;
+    GridsynthStats stats;
+    llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
+    EXPECT_TRUE(llvm::succeeded(result))
+        << "the search must still succeed on a tight budget, just by "
+           "abandoning more candidates";
+    return stats.factoring_iterations_total;
+  };
+
+  EXPECT_LT(work_done(1000),
+            work_done(cudaq::synth::details::DEFAULT_MAX_FACTORING_ITERATIONS))
+      << "lowering the per-attempt budget did not reduce the factoring work, "
+         "so something other than the budget is ending the attempts";
 }
 
 TEST(GridsynthStatsTest, ReportsTheZeroTShortcutRatherThanASearch) {
@@ -420,10 +446,7 @@ TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
 
   std::thread worker([&] {
     llvm::FailureOr<Circuit> ignored = cudaq::synth::gridsynth(
-        Real(kSeedSensitiveTheta), Real("1e-30"),
-        cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-        cudaq::synth::details::DEFAULT_FACTORING_TIMEOUT_MS, std::nullopt,
-        &stats);
+        Real(kSeedSensitiveTheta), Real("1e-30"), {}, &stats);
     (void)ignored;
     done = true;
   });
@@ -444,10 +467,10 @@ TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
 // ============================================================
 
 static std::string synthesize_with(std::optional<uint64_t> seed) {
+  cudaq::synth::GridsynthOptions options;
+  options.seed = seed;
   llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
-      Real(kSeedSensitiveTheta), Real(kSeedSensitiveEpsilon),
-      cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-      cudaq::synth::details::DEFAULT_FACTORING_TIMEOUT_MS, seed);
+      Real(kSeedSensitiveTheta), Real(kSeedSensitiveEpsilon), options);
   EXPECT_TRUE(llvm::succeeded(result));
   return llvm::succeeded(result) ? result->to_string() : std::string();
 }

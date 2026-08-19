@@ -46,6 +46,12 @@ enum class GridsynthOutcome : uint8_t {
   /// solvable candidate. Retrying with a larger budget may help; a larger
   /// epsilon certainly will.
   KExhausted,
+
+  /// `GridsynthOptions::timeout` expired before a solution was found. Only
+  /// reachable when the caller opted into a wall-clock limit, and unlike every
+  /// other outcome here it can differ between two machines running the same
+  /// inputs.
+  TimedOut,
 };
 
 /// Counters describing the work one `gridsynth` call performed.
@@ -95,18 +101,19 @@ struct GridsynthStats {
   int64_t factoring_successes = 0;
   int64_t factoring_restarts = 0;
 
-  /// Attempts the wall clock ended before their iteration budget ran out.
-  /// Each one makes the result depend on host speed, so this must be zero for
-  /// a run to be reproducible across machines.
+  /// Attempts `GridsynthOptions::timeout` ended before their iteration budget
+  /// ran out. Each one makes the result depend on host speed, so this must be
+  /// zero for a run to be reproducible across machines, which it is by
+  /// construction when no timeout was set.
   int64_t factoring_wall_clock_exits = 0;
 
-  /// Candidate solves the wall clock abandoned, one level up from
+  /// Candidate solves the timeout abandoned, one level up from
   /// factoring_wall_clock_exits. Also must be zero to be reproducible.
   int64_t diophantine_wall_clock_exits = 0;
 
   /// Pollard-rho iterations summed over every attempt. This is the
-  /// machine-independent measure of factoring effort, unlike the wall-clock
-  /// budget that currently ends an attempt.
+  /// machine-independent measure of factoring effort, and what
+  /// `GridsynthOptions::maxFactoringIterations` bounds.
   int64_t factoring_iterations_total = 0;
 
   /// MPFR working precision, in bits, the call ran at. Enumeration cost scales
@@ -115,7 +122,8 @@ struct GridsynthStats {
   int64_t working_precision_bits = 0;
 
   /// Wall-clock nanoseconds spent enumerating candidates and solving their
-  /// Diophantine equations. The shipped budget controls only move the second.
+  /// Diophantine equations. The budgets in `GridsynthOptions` only move the
+  /// second.
   int64_t enumeration_ns = 0;
   int64_t diophantine_ns = 0;
 };

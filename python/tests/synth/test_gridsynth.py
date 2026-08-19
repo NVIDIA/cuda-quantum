@@ -91,12 +91,13 @@ def test_gridsynth_rejects_nonfinite_theta():
             synth.gridsynth(bad, 1e-4)
 
 
-def test_gridsynth_keyword_timeouts():
+def test_gridsynth_keyword_budgets():
     seq = synth.gridsynth(
         math.pi / 4,
         1e-6,
-        diophantine_timeout_ms=500,
-        factoring_timeout_ms=100,
+        max_factoring_iterations=1000000,
+        max_candidate_iterations=4000000,
+        max_factoring_restarts=4,
     )
     assert _is_valid_gate_string(str(seq))
 
@@ -108,19 +109,25 @@ def test_gridsynth_same_seed_reproduces_the_sequence():
     assert str(first) == str(second)
 
 
-def test_gridsynth_seed_is_independent_of_the_timeouts():
-    theta, epsilon = math.pi / 53, 1e-20
-    tight = synth.gridsynth(theta,
-                            epsilon,
-                            diophantine_timeout_ms=200,
-                            factoring_timeout_ms=50,
-                            seed=99)
-    loose = synth.gridsynth(theta,
-                            epsilon,
-                            diophantine_timeout_ms=2000,
-                            factoring_timeout_ms=500,
-                            seed=99)
-    assert str(tight) == str(loose)
+def test_gridsynth_rejects_nonpositive_timeout():
+    with pytest.raises(ValueError, match="timeout_ms"):
+        synth.gridsynth(math.pi / 4, 1e-6, timeout_ms=0)
+
+
+def test_gridsynth_timeout_reports_itself():
+    # A timeout is the caller's own limit, not a property of the inputs, so it
+    # must not be reported as an exhausted search.
+    theta = "0.0592753330865998724238234600618774129093805547051906758674517847"
+    with pytest.raises(ValueError, match="timeout_ms expired"):
+        synth.gridsynth(theta, "1e-60", seed=7, timeout_ms=1)
+
+
+def test_gridsynth_accepts_a_generous_timeout():
+    # The escape hatch must not change a run it never fires on.
+    theta, epsilon = math.pi / 53, 1e-15
+    untimed = synth.gridsynth(theta, epsilon, seed=99)
+    timed = synth.gridsynth(theta, epsilon, seed=99, timeout_ms=600000)
+    assert str(untimed) == str(timed)
 
 
 def test_gridsynth_unseeded_stays_valid():

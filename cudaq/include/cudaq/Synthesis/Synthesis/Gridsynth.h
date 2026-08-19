@@ -11,6 +11,7 @@
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
+#include "cudaq/Synthesis/Synthesis/GridsynthOptions.h"
 #include "cudaq/Synthesis/Synthesis/GridsynthStats.h"
 #include "llvm/Support/LogicalResult.h"
 
@@ -28,17 +29,6 @@ namespace cudaq::synth {
 
 namespace details {
 
-/// Per-candidate budget for the Diophantine solver. Larger values let the
-/// algorithm push through harder `factorizations` and find smaller-T-count
-/// solutions; the trade-off is worst-case latency per candidate. On timeout
-/// the candidate is dropped and the search moves on.
-inline constexpr int32_t DEFAULT_DIOPHANTINE_TIMEOUT_MS = 200;
-
-/// Per-attempt budget for Pollard-rho integer factoring inside the
-/// Diophantine solver. Hard composites that exceed this budget cause the
-/// enclosing candidate to be skipped.
-inline constexpr int32_t DEFAULT_FACTORING_TIMEOUT_MS = 50;
-
 /// Largest denominator exponent k that `gridsynth_unitary` will scan before
 /// giving up, as a function of the requested precision.
 ///
@@ -46,7 +36,7 @@ inline constexpr int32_t DEFAULT_FACTORING_TIMEOUT_MS = 50;
 /// and Lemma 7.3 ties the T-count to the denominator exponent as 2k-2 or 2k,
 /// so a solution is expected by k ~ 2*log2(1/epsilon). Scanning well past that
 /// means the search is not converging -- the grid only gets denser as k grows,
-/// so the cause is the Diophantine solver starving on its timeouts, not a
+/// so the cause is the Diophantine solver starving on its budgets, not a
 /// shortage of candidates. Bounding k turns that into a reported failure the
 /// caller can retry with larger budgets, instead of an unbounded loop.
 ///
@@ -75,34 +65,28 @@ mpfr_prec_t required_precision(const Real &epsilon);
 /// if the epsilon region is degenerate, or if the search exhausts its budgets
 /// without finding a valid solution.
 ///
-/// @param theta                  Target rotation angle.
-/// @param epsilon                Approximation precision, must be finite > 0.
-/// @param diophantine_timeout_ms Per-candidate Diophantine budget.
-/// @param factoring_timeout_ms   Per-attempt integer-factoring budget.
-/// @param seed                   Seed for the factoring RNG. Unset draws from
-///                               `std::random_device`, as before.
+/// @param theta    Target rotation angle.
+/// @param epsilon  Approximation precision, must be finite > 0.
+/// @param options  Work budgets, RNG seed, and the optional wall-clock escape
+///                 hatch. See `GridsynthOptions`; the defaults are tuned.
+/// @param stats    Optional out-parameter; when non-null it is overwritten
+///                 with the work this call performed.
 ///
-/// Passing `seed` makes the search `replayable`. The same seed and the same
-/// options yield the same result, provided neither timeout fires. Because the
-/// timeouts are wall-clock, a run that hits one stays machine-dependent.
-/// @param stats                  Optional out-parameter; when non-null it is
-///                               overwritten with the work this call performed.
-llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(
-    const Real &theta, const Real &epsilon,
-    int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-    int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS,
-    std::optional<uint64_t> seed = std::nullopt,
-    GridsynthStats *stats = nullptr);
+/// With `options.seed` set and `options.timeout` unset (default) the
+/// search is deterministic. The same inputs and options give the same result
+/// on any machine. Setting a timeout gives that up, since a run cut short by
+/// the clock depends on how fast the host is.
+llvm::FailureOr<DOmegaUnitary>
+gridsynth_unitary(const Real &theta, const Real &epsilon,
+                  const GridsynthOptions &options = {},
+                  GridsynthStats *stats = nullptr);
 
 /// End-to-end `gridsynth` entry point: search for a DOmegaUnitary via
 /// `gridsynth_unitary`, then realize it as an explicit Clifford+T circuit
 /// in Matsumoto-`Amano` normal form with minimum T-count via
 /// `kmm_synthesize`.
-llvm::FailureOr<Circuit> gridsynth(
-    const Real &theta, const Real &epsilon,
-    int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-    int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS,
-    std::optional<uint64_t> seed = std::nullopt,
-    GridsynthStats *stats = nullptr);
+llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
+                                   const GridsynthOptions &options = {},
+                                   GridsynthStats *stats = nullptr);
 
 } // namespace cudaq::synth

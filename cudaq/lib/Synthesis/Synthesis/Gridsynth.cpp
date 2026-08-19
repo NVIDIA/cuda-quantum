@@ -321,8 +321,7 @@ mpfr_prec_t details::required_precision(const Real &epsilon) {
 
 llvm::FailureOr<DOmegaUnitary>
 gridsynth_unitary(const Real &theta, const Real &epsilon,
-                  int32_t diophantine_timeout_ms, int32_t factoring_timeout_ms,
-                  std::optional<uint64_t> seed, GridsynthStats *stats) {
+                  const GridsynthOptions &options, GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("gridsynth_unitary");
 
   // Counters are written straight into the caller's struct when one is
@@ -336,12 +335,16 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
   auto publish = [&](GridsynthOutcome outcome) { local.outcome = outcome; };
   LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << "\n";
              cudaq::synth::dbgs() << "eps=" << epsilon << "\n";
-             cudaq::synth::dbgs() << "diophantine_timeout="
-                                  << diophantine_timeout_ms << "ms" << "\n";
+             cudaq::synth::dbgs() << "max_factoring_iterations="
+                                  << options.maxFactoringIterations << "\n";
+             cudaq::synth::dbgs() << "max_candidate_iterations="
+                                  << options.maxCandidateIterations << "\n";
+             cudaq::synth::dbgs() << "max_factoring_restarts="
+                                  << options.maxFactoringRestarts << "\n";
              cudaq::synth::dbgs()
-             << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n";
-             cudaq::synth::dbgs()
-             << "seed=" << (seed ? std::to_string(*seed) : "unset") << "\n");
+             << "seed="
+             << (options.seed ? std::to_string(*options.seed) : "unset")
+             << "\n");
 
   // Reseed once for the whole search rather than per candidate: the candidates
   // share one random stream, so re-seeding inside the loop would make every
@@ -349,8 +352,18 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
   // previous state on the way out, so a seeded call leaves later unseeded ones
   // drawing from entropy as they would have anyway.
   std::optional<ScopedFactoringRngSeed> seedGuard;
-  if (seed)
-    seedGuard.emplace(*seed);
+  if (options.seed)
+    seedGuard.emplace(*options.seed);
+
+  // Resolve the optional timeout into one absolute deadline shared by every
+  // candidate. A per-candidate timeout would bound nothing overall, since the
+  // k-loop is free to start another candidate as soon as one gives up.
+  using Clock = std::chrono::steady_clock;
+  DiophantineBudget budget{options.maxFactoringIterations,
+                           options.maxCandidateIterations,
+                           options.maxFactoringRestarts, std::nullopt};
+  if (options.timeout)
+    budget.deadline = Clock::now() + *options.timeout;
 
   // Reject NaN / infinity / non-positive inputs here.
   if (!theta.is_finite()) {
@@ -446,7 +459,6 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
 
   // Enumeration time is a residual: k-loop time minus solve time. The stepper
   // cannot be timed directly, as it advances inside the range-for.
-  using Clock = std::chrono::steady_clock;
   const Clock::time_point loop_start = Clock::now();
   auto elapsed_ns = [&] {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() -
@@ -465,6 +477,15 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
     local.k_reached = static_cast<int64_t>(k);
     local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
     for (const DOmega &z : stepper) {
+      // The deadline is the caller's escape hatch, so it has to be able to end
+      // the search itself. A solver that gives up on every candidate quickly
+      // would otherwise keep the k-loop running past it forever.
+      if (budget.deadline && Clock::now() >= *budget.deadline) {
+        local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
+        publish(GridsynthOutcome::TimedOut);
+        CUDAQ_SYNTH_CLOSE_FAILURE("timeout before a solution was found");
+        return llvm::failure();
+      }
       local.candidates_enumerated++;
       // Step 2(a): residue gate.
       //
@@ -489,8 +510,7 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
       DSqrt2 xi = DSqrt2(1) - DSqrt2::from_domega(z_conj_z);
       local.diophantine_calls++;
       const Clock::time_point solve_start = Clock::now();
-      llvm::FailureOr<DOmega> w_or = diophantine_dyadic(
-          xi, diophantine_timeout_ms, factoring_timeout_ms, &local);
+      llvm::FailureOr<DOmega> w_or = diophantine_dyadic(xi, budget, &local);
       local.diophantine_ns +=
           std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() -
                                                                solve_start)
@@ -539,7 +559,7 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
 
   // Past k_max the answer would exceed the Ross & Selinger T-count bound by a
   // wide margin, so the search is not converging: the Diophantine solver is
-  // starving on its timeouts rather than closing in. Report that instead of
+  // starving on its budgets rather than closing in. Report that instead of
   // scanning k forever..
   local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
   publish(GridsynthOutcome::KExhausted);
@@ -552,9 +572,7 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
 //===----------------------------------------------------------------------===//
 
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
-                                   int32_t diophantine_timeout_ms,
-                                   int32_t factoring_timeout_ms,
-                                   std::optional<uint64_t> seed,
+                                   const GridsynthOptions &options,
                                    GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN("gridsynth");
   LLVM_DEBUG(cudaq::synth::dbgs()
@@ -577,8 +595,7 @@ llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
   }
 
   llvm::FailureOr<DOmegaUnitary> u_or =
-      gridsynth_unitary(theta_hi, epsilon_hi, diophantine_timeout_ms,
-                        factoring_timeout_ms, seed, stats);
+      gridsynth_unitary(theta_hi, epsilon_hi, options, stats);
   if (llvm::failed(u_or)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("synthesis failed");
     return llvm::failure();
