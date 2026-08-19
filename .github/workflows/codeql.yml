@@ -25,7 +25,7 @@ on:
 jobs:
   changes:
     name: Check for stable CUDA-Q changes
-    runs-on: linux-amd64-cpu4
+    runs-on: ${{ (github.event_name == 'pull_request' && 'ubuntu-latest') || 'linux-amd64-cpu4' }}
     permissions:
       contents: read
       pull-requests: read
@@ -59,7 +59,7 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
-    runs-on: linux-amd64-cpu4
+    runs-on: ${{ (github.event_name == 'pull_request' && 'ubuntu-latest') || 'linux-amd64-cpu4' }}
     permissions:
       packages: read # required to fetch internal or private CodeQL packs
       security-events: write
@@ -123,20 +123,11 @@ jobs:
           contents: read
           checks: read
           pull-requests: read
-      runs-on: linux-amd64-cpu4
+      runs-on: ${{ (github.event_name == 'pull_request' && 'ubuntu-latest') || 'linux-amd64-cpu4' }}
       if: >-
         ${{ github.event_name == 'pull_request' &&
             needs.changes.outputs.stable == 'true' }}
       steps:
-          # NVIDIA runners may not ship gh.
-          - name: Ensure gh
-            run: |
-                set -eu
-                command -v gh >/dev/null && exit 0
-                S=""; [ "$(id -u)" -eq 0 ] || S=sudo
-                v=2.63.2
-                curl -fsSL "https://github.com/cli/cli/releases/download/v$v/gh_${v}_linux_amd64.tar.gz" | tar -xz -C /tmp
-                $S install -m0755 "/tmp/gh_${v}_linux_amd64/bin/gh" /usr/local/bin/gh
           - name: Authenticate gh CLI
             run: |
                 gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"

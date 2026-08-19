@@ -16,7 +16,7 @@ permissions:
 jobs:
   label-prs:
     name: Apply labels based on changed files
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
