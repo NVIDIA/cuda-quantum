@@ -1,0 +1,566 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --quake-simplify %s | FileCheck %s --check-prefix=OFF
+// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' %s | \
+// RUN:   FileCheck %s --check-prefix=EXACT
+// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --check-prefix=THRESH
+
+// `--symbol-privatize` makes every kernel not listed in `exclude` private, so
+// `--symbol-dce` can remove unrelated kernels and `CircuitCheck` compares only
+// the selected test group.
+// RUN: cudaq-opt \
+// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
+// RUN:   --symbol-dce %s -o %t.exact.qke
+// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' \
+// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
+// RUN:   --symbol-dce %s | \
+// RUN:   CircuitCheck %t.exact.qke
+
+// All eight R1 residues are strict equalities and map directly to the named
+// Clifford+T gates.
+func.func @r1_residues() {
+  %c0 = arith.constant 0.0 : f64
+  %c1 = arith.constant 0.7853981633974483 : f64
+  %c2 = arith.constant 1.5707963267948966 : f64
+  %c3 = arith.constant 2.356194490192345 : f64
+  %c4 = arith.constant 3.141592653589793 : f64
+  %c5 = arith.constant 3.9269908169872414 : f64
+  %c6 = arith.constant 4.71238898038469 : f64
+  %c7 = arith.constant 5.497787143782138 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.r1 (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.r1 (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.r1 (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.r1 (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.r1 (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.r1 (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.r1 (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// OFF-LABEL: func.func @r1_residues
+// OFF: quake.r1
+// EXACT-LABEL: func.func @r1_residues
+// EXACT-NOT: quake.r1
+// EXACT: quake.t %
+// EXACT: quake.s %
+// EXACT: quake.s %
+// EXACT: quake.t %
+// EXACT: quake.z %
+// EXACT: quake.s<adj>
+// EXACT: quake.t<adj>
+// EXACT: quake.s<adj>
+// EXACT: quake.t<adj>
+
+// Values outside the canonical range exercise modulo-eight reduction. In
+// residue order, the quarter-turn counts are -8, 9, 130, 1027, 1028, -1027,
+// -130, and -17.
+func.func @r1_modulo() {
+  %c0 = arith.constant -6.2831853071795862 : f64
+  %c1 = arith.constant 7.0685834705770345 : f64
+  %c2 = arith.constant 102.10176124166829 : f64
+  %c3 = arith.constant 806.6039138091794 : f64
+  %c4 = arith.constant 807.38931197257682 : f64
+  %c5 = arith.constant -806.6039138091794 : f64
+  %c6 = arith.constant -102.10176124166829 : f64
+  %c7 = arith.constant -13.351768777756622 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.r1 (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.r1 (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.r1 (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.r1 (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.r1 (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.r1 (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.r1 (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @r1_modulo
+// EXACT-NOT: quake.r1
+
+// Axis rotations map directly to named gates, with basis changes for X and Y.
+func.func @rx_residues() {
+  %c0 = arith.constant 0.0 : f64
+  %c1 = arith.constant 0.7853981633974483 : f64
+  %c2 = arith.constant 1.5707963267948966 : f64
+  %c3 = arith.constant 2.356194490192345 : f64
+  %c4 = arith.constant 3.141592653589793 : f64
+  %c5 = arith.constant 3.9269908169872414 : f64
+  %c6 = arith.constant 4.71238898038469 : f64
+  %c7 = arith.constant 5.497787143782138 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.rx (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.rx (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rx (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rx (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.rx (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.rx (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.rx (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.rx (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @rx_residues
+// EXACT: %[[RX_PHASE_ANGLE:.*]] = arith.constant -0.39269908169872414 : f64
+// EXACT: %[[RX_PHASE:.*]] = quake.phase (%[[RX_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[RX_H:.*]] = quake.h %[[RX_PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-COUNT-6: quake.phase
+// EXACT-NOT: quake.rx
+
+func.func @ry_residues() {
+  %c0 = arith.constant 0.0 : f64
+  %c1 = arith.constant 0.7853981633974483 : f64
+  %c2 = arith.constant 1.5707963267948966 : f64
+  %c3 = arith.constant 2.356194490192345 : f64
+  %c4 = arith.constant 3.141592653589793 : f64
+  %c5 = arith.constant 3.9269908169872414 : f64
+  %c6 = arith.constant 4.71238898038469 : f64
+  %c7 = arith.constant 5.497787143782138 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.ry (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.ry (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.ry (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.ry (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.ry (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.ry (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.ry (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.ry (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @ry_residues
+// EXACT: %[[RY_PHASE_ANGLE:.*]] = arith.constant -0.39269908169872414 : f64
+// EXACT: %[[RY_PHASE:.*]] = quake.phase (%[[RY_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[RY_S:.*]] = quake.s<adj> %[[RY_PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-COUNT-6: quake.phase
+// EXACT-NOT: quake.ry
+
+func.func @rz_residues() {
+  %c0 = arith.constant 0.0 : f64
+  %c1 = arith.constant 0.7853981633974483 : f64
+  %c2 = arith.constant 1.5707963267948966 : f64
+  %c3 = arith.constant 2.356194490192345 : f64
+  %c4 = arith.constant 3.141592653589793 : f64
+  %c5 = arith.constant 3.9269908169872414 : f64
+  %c6 = arith.constant 4.71238898038469 : f64
+  %c7 = arith.constant 5.497787143782138 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.rz (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.rz (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rz (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rz (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.rz (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.rz (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.rz (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.rz (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @rz_residues
+// EXACT: %[[RZ_PHASE_ANGLE:.*]] = arith.constant -0.39269908169872414 : f64
+// EXACT: %[[RZ_PHASE:.*]] = quake.phase (%[[RZ_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[RZ_T:.*]] = quake.t %[[RZ_PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-COUNT-6: quake.phase
+// EXACT-NOT: quake.rz
+
+// The same out-of-range quarter-turn counts must reduce modulo eight.
+func.func @rx_modulo() {
+  %c0 = arith.constant -6.2831853071795862 : f64
+  %c1 = arith.constant 7.0685834705770345 : f64
+  %c2 = arith.constant 102.10176124166829 : f64
+  %c3 = arith.constant 806.6039138091794 : f64
+  %c4 = arith.constant 807.38931197257682 : f64
+  %c5 = arith.constant -806.6039138091794 : f64
+  %c6 = arith.constant -102.10176124166829 : f64
+  %c7 = arith.constant -13.351768777756622 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.rx (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.rx (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rx (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rx (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.rx (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.rx (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.rx (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.rx (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @rx_modulo
+// EXACT: %[[RX_MOD_PHASE_ANGLE:.*]] = arith.constant 3.1415926535897931 : f64
+// EXACT: %[[RX_MOD_PHASE:.*]] = quake.phase (%[[RX_MOD_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-COUNT-7: quake.phase
+// EXACT: quake.sink %[[RX_MOD_PHASE]] : !quake.wire
+// EXACT-NOT: quake.rx
+
+func.func @ry_modulo() {
+  %c0 = arith.constant -6.2831853071795862 : f64
+  %c1 = arith.constant 7.0685834705770345 : f64
+  %c2 = arith.constant 102.10176124166829 : f64
+  %c3 = arith.constant 806.6039138091794 : f64
+  %c4 = arith.constant 807.38931197257682 : f64
+  %c5 = arith.constant -806.6039138091794 : f64
+  %c6 = arith.constant -102.10176124166829 : f64
+  %c7 = arith.constant -13.351768777756622 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.ry (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.ry (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.ry (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.ry (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.ry (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.ry (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.ry (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.ry (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @ry_modulo
+// EXACT-COUNT-8: quake.phase
+// EXACT-NOT: quake.ry
+
+func.func @rz_modulo() {
+  %c0 = arith.constant -6.2831853071795862 : f64
+  %c1 = arith.constant 7.0685834705770345 : f64
+  %c2 = arith.constant 102.10176124166829 : f64
+  %c3 = arith.constant 806.6039138091794 : f64
+  %c4 = arith.constant 807.38931197257682 : f64
+  %c5 = arith.constant -806.6039138091794 : f64
+  %c6 = arith.constant -102.10176124166829 : f64
+  %c7 = arith.constant -13.351768777756622 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r0 = quake.rz (%c0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.rz (%c1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rz (%c2) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rz (%c3) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.rz (%c4) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.rz (%c5) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.rz (%c6) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.rz (%c7) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @rz_modulo
+// EXACT-COUNT-8: quake.phase
+// EXACT-NOT: quake.rz
+
+// Test the accuracy of the phase correction for a rotation angle sensitive to
+// one-ULP rounding.
+func.func @phase_source_rounding() {
+  // Eleven quarter turns (`11*pi/4`) rounded to `f64` makes the phase
+  // correction sensitive to one-ULP rounding.
+  %angle = arith.constant 8.639379797371932 : f64
+  %q = quake.null_wire
+  %r = quake.rz (%angle) %q : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @phase_source_rounding
+// EXACT: %[[ROUNDING_PHASE_ANGLE:.*]] = arith.constant -4.319689898685966 : f64
+// EXACT: %[[ROUNDING_PHASE:.*]] = quake.phase (%[[ROUNDING_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NOT: quake.rz
+
+// Adjoint is folded into the sign, and a negative source literal reaches the
+// same inverse residue.
+func.func @adjoint_and_negative() {
+  %a = arith.constant 0.7853981633974483 : f64
+  %n = arith.constant -0.7853981633974483 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %r0 = quake.r1<adj> (%a) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%n) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rz<adj> (%a) %q2 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @adjoint_and_negative
+// EXACT: %[[ADJ_PHASE_ANGLE:.*]] = arith.constant 0.39269908169872414 : f64
+// EXACT-COUNT-2: quake.t<adj>
+// EXACT: %[[ADJ_PHASE:.*]] = quake.phase (%[[ADJ_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: quake.t<adj> %[[ADJ_PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-NOT: quake.r
+
+// A directly controlled rotation is never matched.
+func.func @direct_control(%c: !quake.wire, %q: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %a = arith.constant 0.7853981633974483 : f64
+  %r:2 = quake.rz (%a) [%c] %q : (f64, !quake.wire, !quake.wire)
+      -> (!quake.wire, !quake.wire)
+  return %r#0, %r#1 : !quake.wire, !quake.wire
+}
+
+// EXACT-LABEL: func.func @direct_control
+// EXACT: quake.rz
+// EXACT-NOT: quake.t
+
+// Canonical matching rounds pi/4 to the source constant float semantics. The
+// adjacent `f32` value is rejected in exact mode but accepted by the configured
+// threshold.
+func.func @source_float_semantics() {
+  %exact = arith.constant 0x3F490FDB : f32
+  %near = arith.constant 0x3F490FDC : f32
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %r0 = quake.r1 (%exact) %q0 : (f32, !quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%near) %q1 : (f32, !quake.wire) -> !quake.wire
+  %r2 = quake.rz (%exact) %q2 : (f32, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @source_float_semantics
+// EXACT: %[[F32_PHASE_ANGLE:.*]] = arith.constant -0.392699093 : f32
+// EXACT: quake.t
+// EXACT: quake.r1
+// EXACT: %[[F32_PHASE:.*]] = quake.phase (%[[F32_PHASE_ANGLE]]) %{{.*}} : (f32, !quake.wire) -> !quake.wire
+// EXACT-NEXT: quake.t %[[F32_PHASE]] : (!quake.wire) -> !quake.wire
+// THRESH-LABEL: func.func @source_float_semantics
+// THRESH: %[[F32_PHASE_ANGLE:.*]] = arith.constant -0.392699093 : f32
+// THRESH-COUNT-2: quake.t
+// THRESH: %[[F32_PHASE:.*]] = quake.phase (%[[F32_PHASE_ANGLE]]) %{{.*}} : (f32, !quake.wire) -> !quake.wire
+// THRESH-NEXT: quake.t %[[F32_PHASE]] : (!quake.wire) -> !quake.wire
+
+// Dynamic, nonfinite, and merely nearby constants are rejected in exact mode.
+
+func.func @rejections(%a: f64) {
+  %near = arith.constant 0.7853981633974484 : f64
+  %inf = arith.constant 0x7FF0000000000000 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %r0 = quake.r1 (%a) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%near) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.r1 (%inf) %q2 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @rejections
+// EXACT-COUNT-3: quake.r1
+
+// phased_rx has no existing semantic lowering to the supported axis family.
+// Keep it explicit as unsupported instead of pretending the Rz-only synthesis
+// boundary has handled it.
+func.func @unsupported_phased_rx() {
+  %theta = arith.constant 0.7853981633974483 : f64
+  %phase = arith.constant 0.0 : f64
+  %q = quake.null_wire
+  %r = quake.phased_rx (%theta, %phase) %q
+      : (f64, f64, !quake.wire) -> !quake.wire
+  quake.sink %r : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @unsupported_phased_rx
+// EXACT: quake.phased_rx
+// Constant folding and rotation merging participate in the same greedy
+// fixpoint, so both ways of producing pi/4 reach the exact family.
+func.func @fold_and_merge() {
+  %eighth = arith.constant 0.39269908169872414 : f64
+  %sum = arith.addf %eighth, %eighth : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %r0 = quake.r1 (%sum) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%eighth) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.r1 (%eighth) %r1 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @fold_and_merge
+// EXACT-COUNT-2: quake.t
+// EXACT-NOT: quake.r1
+
+// epsilon=1e-3 accepts each operation just inside its operator-norm bound and
+// rejects the corresponding value just outside. R1 uses delta ~= epsilon;
+// axis rotations use delta ~= 2*epsilon.
+func.func @threshold_boundaries() {
+  %r1in = arith.constant 0.7862981633974483 : f64
+  %r1out = arith.constant 0.7864981633974483 : f64
+  %axisin = arith.constant 0.7872981633974483 : f64
+  %axisout = arith.constant 0.7874981633974483 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %r0 = quake.r1 (%r1in) %q0 : (f64, !quake.wire) -> !quake.wire
+  %q4 = quake.null_wire
+  %q5 = quake.null_wire
+  %q6 = quake.null_wire
+  %q7 = quake.null_wire
+  %r1 = quake.r1 (%r1out) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rz (%axisin) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rz (%axisout) %q3 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.rx (%axisin) %q4 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.rx (%axisout) %q5 : (f64, !quake.wire) -> !quake.wire
+  %r6 = quake.ry (%axisin) %q6 : (f64, !quake.wire) -> !quake.wire
+  %r7 = quake.ry (%axisout) %q7 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r4 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  quake.sink %r6 : !quake.wire
+  quake.sink %r7 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @threshold_boundaries
+// EXACT-COUNT-2: quake.r1
+// EXACT-COUNT-2: quake.rz
+// EXACT-COUNT-2: quake.rx
+// EXACT-COUNT-2: quake.ry
+// THRESH-LABEL: func.func @threshold_boundaries
+// THRESH: quake.t
+// THRESH: quake.r1
+// THRESH: quake.t
+// THRESH: quake.rz
+// THRESH: quake.h
+// THRESH: quake.t
+// THRESH: quake.h
+// THRESH: quake.rx
+// THRESH: quake.s<adj>
+// THRESH: quake.h
+// THRESH: quake.t
+// THRESH: quake.h
+// THRESH: quake.s
+// THRESH: quake.ry

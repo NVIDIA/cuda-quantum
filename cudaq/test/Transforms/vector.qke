@@ -13,24 +13,24 @@
 // Blindly assume that %vecvec and %retval are ragged matrices with identical
 // structure and lengths. Convert ints from %vecvec to doubles and copy the
 // values into %retval. Does not create any new std::vectors.
-func.func @vector_vector(%vecvec : !cc.stdvec<!cc.stdvec<i32>>, %retval : !cc.stdvec<!cc.stdvec<f64>>) {
+func.func @vector_vector(%vecvec : !cc.sequence<!cc.sequence<i32>>, %retval : !cc.sequence<!cc.sequence<f64>>) {
   %0 = arith.constant 0 : i64
   %one = arith.constant 1 : i64
-  %vecvecsz = cc.stdvec_size %vecvec : (!cc.stdvec<!cc.stdvec<i32>>) -> i64
-  %resvecs = cc.stdvec_data %retval : (!cc.stdvec<!cc.stdvec<f64>>) -> !cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>
+  %vecvecsz = cc.sequence_size %vecvec : (!cc.sequence<!cc.sequence<i32>>) -> i64
+  %resvecs = cc.sequence_data %retval : (!cc.sequence<!cc.sequence<f64>>) -> !cc.ptr<!cc.array<!cc.sequence<f64> x ?>>
   cc.loop while ((%arg0 = %0) -> i64) {
     %c = arith.cmpi ult, %arg0, %vecvecsz : i64
     cc.condition %c (%arg0 : i64)
   } do {
    ^bb0(%arg0 : i64):
-    %vec = cc.stdvec_data %vecvec : (!cc.stdvec<!cc.stdvec<i32>>) -> !cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>
-    %vecpt = cc.compute_ptr %vec[%arg0] : (!cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>, i64) -> !cc.ptr<!cc.stdvec<i32>>
-    %inner = cc.load %vecpt : !cc.ptr<!cc.stdvec<i32>>
-    %ints = cc.stdvec_data %inner : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
-    %vecsz = cc.stdvec_size %inner : (!cc.stdvec<i32>) -> i64
-    %resultvec = cc.compute_ptr %resvecs[%arg0] : (!cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>, i64) -> !cc.ptr<!cc.stdvec<f64>>
-    %resuvec = cc.load %resultvec : !cc.ptr<!cc.stdvec<f64>>
-    %dubs = cc.stdvec_data %resuvec : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+    %vec = cc.sequence_data %vecvec : (!cc.sequence<!cc.sequence<i32>>) -> !cc.ptr<!cc.array<!cc.sequence<i32> x ?>>
+    %vecpt = cc.compute_ptr %vec[%arg0] : (!cc.ptr<!cc.array<!cc.sequence<i32> x ?>>, i64) -> !cc.ptr<!cc.sequence<i32>>
+    %inner = cc.load %vecpt : !cc.ptr<!cc.sequence<i32>>
+    %ints = cc.sequence_data %inner : (!cc.sequence<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+    %vecsz = cc.sequence_size %inner : (!cc.sequence<i32>) -> i64
+    %resultvec = cc.compute_ptr %resvecs[%arg0] : (!cc.ptr<!cc.array<!cc.sequence<f64> x ?>>, i64) -> !cc.ptr<!cc.sequence<f64>>
+    %resuvec = cc.load %resultvec : !cc.ptr<!cc.sequence<f64>>
+    %dubs = cc.sequence_data %resuvec : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
     cc.loop while ((%arg1 = %0) -> i64) {
       %c = arith.cmpi ult, %arg1, %vecsz : i64
       cc.condition %c (%arg1 : i64)
@@ -57,24 +57,24 @@ func.func @vector_vector(%vecvec : !cc.stdvec<!cc.stdvec<i32>>, %retval : !cc.st
 }
 
 // CHECK-LABEL:   func.func @vector_vector(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<!cc.stdvec<i32>>, %[[VAL_1:.*]]: !cc.stdvec<!cc.stdvec<f64>>) {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<!cc.sequence<i32>>, %[[VAL_1:.*]]: !cc.sequence<!cc.sequence<f64>>) {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<!cc.stdvec<i32>>) -> i64
-// CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<!cc.stdvec<f64>>) -> !cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>
+// CHECK:           %[[VAL_4:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<!cc.sequence<i32>>) -> i64
+// CHECK:           %[[VAL_5:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<!cc.sequence<f64>>) -> !cc.ptr<!cc.array<!cc.sequence<f64> x ?>>
 // CHECK:           cf.br ^bb1(%[[VAL_2]] : i64)
 // CHECK:         ^bb1(%[[VAL_6:.*]]: i64):
 // CHECK:           %[[VAL_7:.*]] = arith.cmpi ult, %[[VAL_6]], %[[VAL_4]] : i64
 // CHECK:           cf.cond_br %[[VAL_7]], ^bb2(%[[VAL_6]] : i64), ^bb6
 // CHECK:         ^bb2(%[[VAL_8:.*]]: i64):
-// CHECK:           %[[VAL_9:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.stdvec<i32>>) -> !cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>
-// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_9]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>, i64) -> !cc.ptr<!cc.stdvec<i32>>
-// CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<!cc.stdvec<i32>>
-// CHECK:           %[[VAL_12:.*]] = cc.stdvec_data %[[VAL_11]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
-// CHECK:           %[[VAL_13:.*]] = cc.stdvec_size %[[VAL_11]] : (!cc.stdvec<i32>) -> i64
-// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_5]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>, i64) -> !cc.ptr<!cc.stdvec<f64>>
-// CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!cc.stdvec<f64>>
-// CHECK:           %[[VAL_16:.*]] = cc.stdvec_data %[[VAL_15]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_9:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<!cc.sequence<i32>>) -> !cc.ptr<!cc.array<!cc.sequence<i32> x ?>>
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_9]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!cc.sequence<i32> x ?>>, i64) -> !cc.ptr<!cc.sequence<i32>>
+// CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<!cc.sequence<i32>>
+// CHECK:           %[[VAL_12:.*]] = cc.sequence_data %[[VAL_11]] : (!cc.sequence<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK:           %[[VAL_13:.*]] = cc.sequence_size %[[VAL_11]] : (!cc.sequence<i32>) -> i64
+// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_5]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!cc.sequence<f64> x ?>>, i64) -> !cc.ptr<!cc.sequence<f64>>
+// CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!cc.sequence<f64>>
+// CHECK:           %[[VAL_16:.*]] = cc.sequence_data %[[VAL_15]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           cf.br ^bb3(%[[VAL_2]] : i64)
 // CHECK:         ^bb3(%[[VAL_17:.*]]: i64):
 // CHECK:           %[[VAL_18:.*]] = arith.cmpi ult, %[[VAL_17]], %[[VAL_13]] : i64

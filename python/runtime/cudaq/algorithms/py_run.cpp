@@ -84,9 +84,9 @@ static detail::RunResultSpan pyRunTheKernel(
   auto returnTy = recoverReturnType(mod, name);
   // Disallow returning nested vectors/vectors of structs from entry-point
   // kernels.
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(returnTy)) {
+  if (auto vecTy = dyn_cast<cudaq::cc::SequenceType>(returnTy)) {
     auto elemTy = vecTy.getElementType();
-    if (mlir::isa<cudaq::cc::StdvecType>(elemTy))
+    if (mlir::isa<cudaq::cc::SequenceType>(elemTy))
       throw std::runtime_error(
           "`cudaq.run` does not yet support returning nested `list` from "
           "entry-point kernels.");

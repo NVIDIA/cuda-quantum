@@ -10,10 +10,10 @@
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/algorithms/draw.h"
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policies.h"
-#include "cudaq/algorithms/resource_estimation.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/qpu.h"
@@ -36,7 +36,7 @@ public:
 
   CompileTarget getCompileTarget(const sample_policy &) override {
     CompileTarget ct;
-    ct.emitJit = true;
+    ct.pipelineConfig.highLevelPipeline = "custom_sample";
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
     return ct;
@@ -45,8 +45,7 @@ public:
   CompileTarget getCompileTarget(const other_policies &,
                                  ExecutionContext *) override {
     CompileTarget ct;
-    ct.emitResourceCounts = true;
-    ct.emitJit = false;
+    ct.pipelineConfig.highLevelPipeline = "custom_other";
     ct.fullySpecialize = false;
     return ct;
   }
@@ -86,7 +85,7 @@ public:
 
 CompileTarget makePlatformCompileTarget() {
   CompileTarget ct;
-  ct.emitJit = false;
+  ct.pipelineConfig.highLevelPipeline = "custom_platform";
   ct.fullySpecialize = true;
   ct.overrideAOTCompilation = false;
   ct.supportDeviceCalls = true;
@@ -187,7 +186,7 @@ TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
   sample_policy policy{.kernelName = "test_kernel"};
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_TRUE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_sample");
   EXPECT_FALSE(ct.fullySpecialize);
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
@@ -198,7 +197,7 @@ TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
   sample_policy policy{.kernelName = "test_kernel"};
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_FALSE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
   EXPECT_FALSE(ct.overrideAOTCompilation);
   EXPECT_TRUE(ct.supportDeviceCalls);
@@ -209,8 +208,7 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
   other_policies policy;
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_TRUE(ct.emitResourceCounts);
-  EXPECT_FALSE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_other");
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
@@ -219,9 +217,8 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
   other_policies policy;
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_FALSE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
-  EXPECT_FALSE(ct.emitResourceCounts);
 }
 
 TEST(QuantumPlatformCompileTargetTester, rejectsInvalidQpuId) {
@@ -241,7 +238,7 @@ TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
   platform.setCompileTarget(std::nullopt);
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_TRUE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_sample");
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
 
@@ -345,6 +342,25 @@ TEST(QuantumPlatformRuntimeEndpointTester, recreatingQpusResetsEndpoints) {
             taggedSampleFn);
 }
 
+// Installing an endpoint discards the backing QPU, so the platform installs a
+// default compile target to keep compilation working. Replacing the QPUs must
+// drop that override again, otherwise it would silently outlive the endpoint
+// that caused it and shadow every later target's own compile target.
+TEST(QuantumPlatformRuntimeEndpointTester, recreatingQpusResetsCompileTarget) {
+  TestPlatform platform;
+  sample_policy policy{.kernelName = "test_kernel"};
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 42});
+  // The installed default describes a local simulator, unlike the test QPU's.
+  ASSERT_TRUE(platform.getCompileTarget(policy).isLocalSimulator);
+
+  platform.resetQpus();
+
+  // Back to the QPU's own compile target.
+  auto ct = platform.getCompileTarget(policy);
+  EXPECT_FALSE(ct.isLocalSimulator);
+  EXPECT_TRUE(ct.overrideAOTCompilation);
+}
+
 // Appending a QPU takes the next free ID, so the endpoints keyed by the
 // existing IDs keep describing the same QPUs and must survive.
 TEST(QuantumPlatformRuntimeEndpointTester, addingAQpuPreservesEndpoints) {
@@ -445,6 +461,10 @@ TEST(RuntimeEndpointLaunchKernelTester, dispatchesPtsbeSamplePolicy) {
   testPolicyDispatch(ptsbe::sample_policy{});
 }
 
+TEST(RuntimeEndpointLaunchKernelTester, dispatchesEstimatePolicy) {
+  testPolicyDispatch(estimate_policy{});
+}
+
 TEST(QuantumPlatformDisableEndpointOverrideTester,
      noiseModelOpsThrowWhenEndpointSet) {
   TestPlatform platform;
@@ -480,19 +500,14 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   EXPECT_EQ(platform.get_noise(), nullptr);
 }
 
-TEST(QuantumPlatformDisableEndpointOverrideTester,
-     resourceCountLaunchThrowsWhenEndpointSet) {
+TEST(QuantumPlatformDisableEndpointOverrideTester, drawThrowsWhenEndpointSet) {
   TestPlatform platform;
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
   auto kernel = [] {};
-  auto choice = [] { return false; };
   expectOverrideDisabled(
-      [&] {
-        (void)cudaq::detail::run_estimate_resources(kernel, platform,
-                                                    "test_kernel", choice);
-      },
-      "Policy 'resource-count'");
+      [&] { (void)cudaq::contrib::traceFromKernel(kernel, platform); },
+      "is_simulator");
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,
@@ -505,9 +520,7 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   EXPECT_EQ(platform.get_num_qubits(), 30u);
 
   auto kernel = [] {};
-  auto choice = [] { return false; };
-  EXPECT_NO_THROW((void)cudaq::detail::run_estimate_resources(
-      kernel, platform, "test_kernel", choice));
+  EXPECT_NO_THROW((void)cudaq::contrib::traceFromKernel(kernel, platform));
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {

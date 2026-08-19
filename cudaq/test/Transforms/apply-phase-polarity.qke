@@ -1,0 +1,43 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining %s | FileCheck %s --check-prefix=INLINE
+
+// Verify that `@phase_helper` will contain the correct number of entries in the "negated_qubit_controls" vector after specialization with outer applied controls.
+
+func.func @phase_helper(%theta: f64, %inner: !quake.ref,
+                        %anchor: !quake.ref) {
+  quake.phase (%theta) [%inner neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @caller(%theta: f64, %outer: !quake.ref, %inner: !quake.ref,
+                  %anchor: !quake.ref) {
+  quake.apply @phase_helper [%outer] %theta, %inner, %anchor
+      : (!quake.ref, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func private @phase_helper.ctrl(
+// CHECK-SAME:      %[[OUTER:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[THETA:.*]]: f64,
+// CHECK-SAME:      %[[INNER:.*]]: !quake.ref,
+// CHECK-SAME:      %[[ANCHOR:.*]]: !quake.ref) {
+// CHECK: quake.phase (%[[THETA]]) {{\[}}%[[OUTER]], %[[INNER]] neg [false, true]{{\]}} %[[ANCHOR]]
+
+// INLINE-LABEL: func.func @caller(
+// INLINE-SAME: %[[ARG0:[a-zA-Z0-9_]+]]: f64,
+// INLINE-SAME: %[[ARG1:[a-zA-Z0-9_]+]]: !quake.ref,
+// INLINE-SAME: %[[ARG2:[a-zA-Z0-9_]+]]: !quake.ref,
+// INLINE-SAME: %[[ARG3:[a-zA-Z0-9_]+]]: !quake.ref) {
+// INLINE: %[[CONCAT:[a-zA-Z0-9_]+]] = quake.concat %[[ARG1]] : (!quake.ref) -> !quake.veq<1>
+// INLINE: quake.phase (%[[ARG0]]) {{\[}}%[[CONCAT]], %[[ARG2]] neg [false, true]] %[[ARG3]]
+// INLINE: return
+// INLINE: }

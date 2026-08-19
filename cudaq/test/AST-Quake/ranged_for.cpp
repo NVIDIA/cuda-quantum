@@ -33,15 +33,15 @@ struct Colonel {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Colonel(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<f64>) attributes
 // CHECK-DAG:        %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.ref
 // CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_6:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
-// CHECK:           %[[VAL_7:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_6:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<f64>) -> i64
+// CHECK:           %[[VAL_7:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
 // CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i64
 // CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
@@ -86,15 +86,15 @@ struct Lt_Colonel {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Lt_Colonel(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<f64>) attributes
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.ref
 // CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_6:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
-// CHECK:           %[[VAL_7:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_6:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<f64>) -> i64
+// CHECK:           %[[VAL_7:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
 // CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i64
 // CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
@@ -152,7 +152,7 @@ struct Qernel {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<f64>) attributes
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.000000e+03 : f64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
@@ -160,8 +160,8 @@ struct Qernel {
 // CHECK-DAG:       %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK-DAG:       %[[VAL_6:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_6]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_7:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
-// CHECK:           %[[VAL_8:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_7:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<f64>) -> i64
+// CHECK:           %[[VAL_8:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_10:.*]] = cc.loop while ((%[[VAL_11:.*]] = %[[VAL_3]]) -> (i64)) {
 // CHECK:             %[[VAL_12:.*]] = arith.cmpi slt, %[[VAL_11]], %[[VAL_7]] : i64
 // CHECK:             cc.condition %[[VAL_12]](%[[VAL_11]] : i64)
@@ -177,8 +177,8 @@ struct Qernel {
 // CHECK:             %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_2]] : i64
 // CHECK:             cc.continue %[[VAL_19]] : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_20:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
-// CHECK:           %[[VAL_21:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_20:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<f64>) -> i64
+// CHECK:           %[[VAL_21:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_23:.*]] = cc.loop while ((%[[VAL_24:.*]] = %[[VAL_3]]) -> (i64)) {
 // CHECK:             %[[VAL_25:.*]] = arith.cmpi slt, %[[VAL_24]], %[[VAL_20]] : i64
 // CHECK:             cc.condition %[[VAL_25]](%[[VAL_24]] : i64)
@@ -227,23 +227,23 @@ struct Nesting {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Nesting(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.stdvec<f64>, %[[VAL_1:.*]]: !cc.stdvec<f32>) attributes
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.sequence<f64>, %[[VAL_1:.*]]: !cc.sequence<f32>) attributes
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK-DAG:       %[[VAL_6:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_6]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_7:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
-// CHECK:           %[[VAL_8:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_7:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<f64>) -> i64
+// CHECK:           %[[VAL_8:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_10:.*]] = cc.loop while ((%[[VAL_11:.*]] = %[[VAL_3]]) -> (i64)) {
 // CHECK:             %[[VAL_12:.*]] = arith.cmpi slt, %[[VAL_11]], %[[VAL_7]] : i64
 // CHECK:             cc.condition %[[VAL_12]](%[[VAL_11]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_13:.*]]: i64):
 // CHECK:             %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_13]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
-// CHECK:             %[[VAL_16:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<f32>) -> i64
-// CHECK:             %[[VAL_17:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<f32>) -> !cc.ptr<!cc.array<f32 x ?>>
+// CHECK:             %[[VAL_16:.*]] = cc.sequence_size %[[VAL_1]] : (!cc.sequence<f32>) -> i64
+// CHECK:             %[[VAL_17:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<f32>) -> !cc.ptr<!cc.array<f32 x ?>>
 // CHECK:             %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_3]]) -> (i64)) {
 // CHECK:               %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_16]] : i64
 // CHECK:               cc.condition %[[VAL_21]](%[[VAL_20]] : i64)

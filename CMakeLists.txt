@@ -47,6 +47,9 @@ endif()
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
 
+# By default, install everything to the "Runtime" component.
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
+
 # Prevent In-source builds
 # ==============================================================================
 # Using the undocumented `CMAKE_DISABLE_IN_SOURCE_BUILDS` and
@@ -350,6 +353,7 @@ if(CUDAQ_ENABLE_STATIC_LINKING)
 endif()
 option(CUDAQ_STATIC_CXX_RUNTIME "Statically link libstdc++ and libgcc into CUDA-Q libraries." OFF)
 option(CUDAQ_STATIC_DEPS "Prefer static archives for external dependencies (zlib, OpenSSL, curl, BLAS)." OFF)
+option(CUDAQ_BUNDLE_MLIR_INSTALL "Bundle upstream LLVM/MLIR (headers, libs etc.) in installation" OFF)
 option (CUDAQ_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${CUDAQ_FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
@@ -389,6 +393,12 @@ endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
+if(NOT GMP_ROOT)
+  SET(GMP_ROOT "$ENV{GMP_INSTALL_PREFIX}" CACHE PATH "Path to GMP installation")
+endif()
+if(NOT MPFR_ROOT)
+  SET(MPFR_ROOT "$ENV{MPFR_INSTALL_PREFIX}" CACHE PATH "Path to MPFR installation")
+endif()
 if(NOT OPENSSL_ROOT_DIR)
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}" CACHE PATH "Path to OpenSSL installation")
 endif()
@@ -423,13 +433,17 @@ else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
+if(NOT SKBUILD)
+  install(DIRECTORY LICENSES DESTINATION .)
+endif()
+
 # Platform-specific linker flags
 # --no-as-needed forces linking of all specified libraries (GNU ld only, not available on Apple)
 if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
-  # Find path to the compiler-rt library
+  # Find path to the compiler-rt library.
   set(_cudaq_builtins "")
   execute_process(
     COMMAND ${CMAKE_CXX_COMPILER} --rtlib=compiler-rt --print-libgcc-file-name
@@ -437,7 +451,7 @@ else()
     OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(EXISTS "${_cudaq_builtins}")
     message(STATUS "Found compiler-rt builtins: ${_cudaq_builtins}")
-    link_libraries("${_cudaq_builtins}")
+    add_link_options("${_cudaq_builtins}")
   else()
     message(WARNING "compiler-rt builtins not found, symbol resolution may fail at runtime")
     add_link_options("LINKER:-undefined,dynamic_lookup")

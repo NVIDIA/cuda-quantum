@@ -23,5 +23,5 @@ config:
   # semantics. `quake-to-cc-prep` rewrites mx/my to quake gates plus mz before
   # final decomposition so resource counting sees the normalized CZ/rotation
   # basis. With no device argument, routing is bypassed.
-  jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe,memtoreg,quake-simplify,canonicalize,dqe),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(quake-simplify,canonicalize,dqe,regtomem),quake-to-cc-prep,decomposition{basis=h,rx,ry,rz,x,z(1)}"
+  jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(quake-simplify,canonicalize,dqe,phase-folding,canonicalize),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(quake-simplify,canonicalize,dqe,regtomem),quake-to-cc-prep,decomposition{basis=h,rx,ry,rz,x,z(1)}"
   

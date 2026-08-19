@@ -1,0 +1,494 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
+// RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
+// RUN: cudaq-opt --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
+
+func.func @independent_wires(%arg0: !quake.wire, %arg1: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.t %arg1 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %4 = quake.t %2 : (!quake.wire) -> !quake.wire
+  %5 = quake.t %3 : (!quake.wire) -> !quake.wire
+  return %4, %5 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @independent_wires
+// CHECK-COUNT-4: quake.s
+// CHECK-NOT: quake.t
+
+func.func @unchanged(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  return %1 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @unchanged
+// CHECK-NEXT:    %[[H:.*]] = quake.h %arg0
+// CHECK-NEXT:    %[[T:.*]] = quake.t %[[H]]
+// CHECK-NEXT:    return %[[T]]
+
+// `S X S` normalizes exactly to `X W W`. Each `W` is retained as an anchored
+// `quake.phase(pi/4)`, so the rewrite remains exact when this callable is
+// later specialized under control.
+func.func @preserves_w(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.s %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  return %2 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @preserves_w
+// CHECK-NEXT:    %[[PI_4:.*]] = arith.constant {{0\.7853981633974482[0-9]}} : f64
+// CHECK-NEXT:    %[[W0:.*]] = quake.phase (%[[PI_4]]) %arg0 : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[PI_4_1:.*]] = arith.constant {{0\.7853981633974482[0-9]}} : f64
+// CHECK-NEXT:    %[[W1:.*]] = quake.phase (%[[PI_4_1]]) %[[W0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[X:.*]] = quake.x %[[W1]]
+// CHECK-NEXT:    return %[[X]]
+
+// A controlled apply elsewhere in the module does not prevent optimizing this
+// callable. Specialization owns the later controlled-call lifecycle.
+func.func @phase_sensitive(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.s %2 : (!quake.wire) -> !quake.wire
+  quake.wrap %3 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+func.func @controlled_phase_sensitive(%control: !quake.ref,
+                                      %target: !quake.ref) {
+  quake.apply @phase_sensitive [%control] %target
+      : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @phase_sensitive
+// CHECK:         %[[PHASE_WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:    %[[PHASE_PI_4:.*]] = arith.constant {{0\.7853981633974482[0-9]}} : f64
+// CHECK-NEXT:    %[[PHASE_W0:.*]] = quake.phase (%[[PHASE_PI_4]]) %[[PHASE_WIRE]] : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[PHASE_PI_4_1:.*]] = arith.constant {{0\.7853981633974482[0-9]}} : f64
+// CHECK-NEXT:    %[[PHASE_W1:.*]] = quake.phase (%[[PHASE_PI_4_1]]) %[[PHASE_W0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[PHASE_X:.*]] = quake.x %[[PHASE_W1]]
+// CHECK-NEXT:    quake.wrap %[[PHASE_X]]
+
+// CHECK-LABEL: func.func @controlled_phase_sensitive
+// CHECK:         quake.apply @phase_sensitive [
+
+// A linear wire may enter and leave a lexical scope. The normal form is
+// emitted at the outer chain head, so the scope remains a pure value-flow
+// boundary and its continue still receives the replacement wire.
+func.func @ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+    cc.continue %2 : !quake.wire
+  }
+  %3 = quake.t %1 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @ordinary_scope
+// CHECK:         %[[S0:.*]] = quake.s %arg0
+// CHECK:         %[[S1:.*]] = quake.s %[[S0]]
+// CHECK:         %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      cc.continue %[[S1]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[SCOPE]]
+
+// Atomic scopes block only wires that cross their boundary. This fixture
+// covers a chain contained in an atomic scope, an unrelated outer wire that
+// crosses its lexical position, and an ordinary nested scope within it.
+func.func @atomic_scope_permitted(%inside: !quake.wire, %outer: !quake.wire,
+                                  %nested: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %0 = quake.t %outer : (!quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = quake.t %inside : (!quake.wire) -> !quake.wire
+    %3 = quake.s %2 : (!quake.wire) -> !quake.wire
+    %4 = quake.t %3 : (!quake.wire) -> !quake.wire
+    cc.continue %4 : !quake.wire
+  } {atomic_quantum_region}
+  %5 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %6 = quake.t %5 : (!quake.wire) -> !quake.wire
+  %7 = cc.scope -> (!quake.wire) {
+    %8 = quake.t %nested : (!quake.wire) -> !quake.wire
+    %9 = cc.scope -> (!quake.wire) {
+      %10 = quake.s %8 : (!quake.wire) -> !quake.wire
+      cc.continue %10 : !quake.wire
+    }
+    %11 = quake.t %9 : (!quake.wire) -> !quake.wire
+    cc.continue %11 : !quake.wire
+  } {atomic_quantum_region}
+  return %1, %6, %7 : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @atomic_scope_permitted
+// CHECK:         %[[OUTER_S0:.*]] = quake.s %arg1
+// CHECK-NEXT:    %[[OUTER_S1:.*]] = quake.s %[[OUTER_S0]]
+// CHECK-NEXT:    %[[INSIDE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[INSIDE_S0:.*]] = quake.s %arg0
+// CHECK-NEXT:      %[[INSIDE_S1:.*]] = quake.s %[[INSIDE_S0]]
+// CHECK-NEXT:      cc.continue %[[INSIDE_S1]] : !quake.wire
+// CHECK-NEXT:    } {atomic_quantum_region}
+// CHECK-NEXT:    %[[NESTED:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[NESTED_S0:.*]] = quake.s %arg2
+// CHECK-NEXT:      %[[NESTED_S1:.*]] = quake.s %[[NESTED_S0]]
+// CHECK-NEXT:      %[[ORDINARY:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:        cc.continue %[[NESTED_S1]] : !quake.wire
+// CHECK-NEXT:      }
+// CHECK-NEXT:      cc.continue %[[ORDINARY]] : !quake.wire
+// CHECK-NEXT:    } {atomic_quantum_region}
+// CHECK-NEXT:    return %[[INSIDE]], %[[OUTER_S1]], %[[NESTED]]
+
+// The entry and exit cases are independent: neither an outer wire entering
+// an atomic scope nor a `cc.continue` result leaving one may form a chain.
+func.func @atomic_scope_boundaries(%entry: !quake.wire, %exit: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %entry : (!quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+    %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  } {atomic_quantum_region}
+  %4 = cc.scope -> (!quake.wire) {
+    %5 = quake.t %exit : (!quake.wire) -> !quake.wire
+    %6 = quake.s %5 : (!quake.wire) -> !quake.wire
+    cc.continue %6 : !quake.wire
+  } {atomic_quantum_region}
+  %7 = quake.t %4 : (!quake.wire) -> !quake.wire
+  return %1, %7 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @atomic_scope_boundaries
+// CHECK-NEXT:    %[[ENTRY_T:.*]] = quake.t %arg0 : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[ENTRY_SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[ENTRY_S:.*]] = quake.s %[[ENTRY_T]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[ENTRY_INNER_T:.*]] = quake.t %[[ENTRY_S]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      cc.continue %[[ENTRY_INNER_T]] : !quake.wire
+// CHECK-NEXT:    } {atomic_quantum_region}
+// CHECK-NEXT:    %[[EXIT_SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[EXIT_T:.*]] = quake.t %arg1 : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[EXIT_S:.*]] = quake.s %[[EXIT_T]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      cc.continue %[[EXIT_S]] : !quake.wire
+// CHECK-NEXT:    } {atomic_quantum_region}
+// CHECK-NEXT:    %[[EXIT_OUTER_T:.*]] = quake.t %[[EXIT_SCOPE]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    return %[[ENTRY_SCOPE]], %[[EXIT_OUTER_T]]
+
+func.func @nested_ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = cc.scope -> (!quake.wire) {
+      %3 = quake.s %0 : (!quake.wire) -> !quake.wire
+      cc.continue %3 : !quake.wire
+    }
+    cc.continue %2 : !quake.wire
+  }
+  %4 = quake.t %1 : (!quake.wire) -> !quake.wire
+  return %4 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @nested_ordinary_scope
+// CHECK:         %[[S0:.*]] = quake.s %arg0
+// CHECK:         %[[S1:.*]] = quake.s %[[S0]]
+// CHECK:         %[[OUTER:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[INNER:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:        cc.continue %[[S1]]
+// CHECK-NEXT:      }
+// CHECK-NEXT:      cc.continue %[[INNER]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[OUTER]]
+
+// Scope traversal follows only the threaded scalar wire. An unrelated local
+// reference allocation does not affect that def-use chain.
+func.func @scope_with_unrelated_allocation(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %local = quake.alloca !quake.ref
+    %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+    quake.dealloc %local : !quake.ref
+    cc.continue %2 : !quake.wire
+  }
+  %3 = quake.t %1 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @scope_with_unrelated_allocation
+// CHECK:         %[[S0:.*]] = quake.s %arg0
+// CHECK:         %[[S1:.*]] = quake.s %[[S0]]
+// CHECK:         %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[LOCAL:.*]] = quake.alloca !quake.ref
+// CHECK-NEXT:      quake.dealloc %[[LOCAL]] : !quake.ref
+// CHECK-NEXT:      cc.continue %[[S1]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[SCOPE]]
+
+// A chain discovered inside a lexical scope can continue into the enclosing
+// block. The replacement is emitted in the scope and forwarded to its result.
+func.func @scope_exit(%arg0: !quake.wire) -> !quake.wire {
+  %0 = cc.scope -> (!quake.wire) {
+    %1 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+    cc.continue %1 : !quake.wire
+  }
+  %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @scope_exit
+// CHECK:         %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[S0:.*]] = quake.s %arg0
+// CHECK-NEXT:      %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:      cc.continue %[[S1]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[SCOPE]]
+
+// Scope forwarding matches `cc.continue` operands to scope results by index.
+// The optimized chain exits through the second result, leaving the first
+// forwarded value unchanged.
+func.func @scope_second_result(%arg0: !quake.wire, %arg1: !quake.wire) -> !quake.wire {
+  %0:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %1 = quake.t %arg1 : (!quake.wire) -> !quake.wire
+    cc.continue %arg0, %1 : !quake.wire, !quake.wire
+  }
+  %2 = quake.s %0#1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @scope_second_result
+// CHECK:         %[[SCOPE:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT:      %[[S0:.*]] = quake.s %arg1
+// CHECK-NEXT:      %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:      cc.continue %arg0, %[[S1]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[SCOPE]]#1
+
+// An `if` is not a lexical-scope boundary, so each side remains an
+// independent chain even though the wire result follows its matching index.
+func.func @if_boundary(%arg0: !quake.wire, %cond: i1) -> !quake.wire {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1:1 = cc.if (%cond) ((%arg = %0)) -> (!quake.wire) {
+    %2 = quake.s %arg : (!quake.wire) -> !quake.wire
+    cc.continue %2 : !quake.wire
+  } else {
+    cc.continue %arg : !quake.wire
+  }
+  %3 = quake.t %1#0 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @if_boundary
+// CHECK:         %[[T0:.*]] = quake.t %arg0
+// CHECK:         %[[IF:.*]] = cc.if
+// CHECK:           %[[S:.*]] = quake.s %{{.*}}
+// CHECK:         %[[T1:.*]] = quake.t %[[IF]]
+
+// These ref-semantics wrappers let CircuitCheck compare the unitaries while
+// the pass still operates only on the scalar wire chains between unwrap/wrap.
+// SEMANTIC-BEGIN
+
+func.func @semantic_order(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_order
+// CHECK:         %[[WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:    %[[S0:.*]] = quake.s %[[WIRE]]
+// CHECK-NEXT:    %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:    %[[H:.*]] = quake.h %[[S1]]
+// CHECK-NEXT:    quake.wrap %[[H]]
+
+func.func @semantic_adjoints(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.s<adj> %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t<adj> %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.t %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_adjoints
+// CHECK:         %[[ADJ_WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:    quake.wrap %[[ADJ_WIRE]]
+
+// Exercise the X/Y/Z encodings used to build the exact normalization input.
+// `Y Z` reduces to `X` with scalar W phases, all of which must be retained.
+func.func @semantic_xyz(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.y %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.z %1 : (!quake.wire) -> !quake.wire
+  quake.wrap %2 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_xyz
+// CHECK:         %[[XYZ_WIRE:.*]] = quake.unwrap
+// CHECK:         quake.phase
+// CHECK:         %[[XYZ_X:.*]] = quake.x
+// CHECK-NEXT:    quake.wrap %[[XYZ_X]]
+
+// SEMANTIC-END
+
+// This exact-gate chain crosses a single-block scope and normalizes to S S.
+func.func @semantic_scope_exact(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  %2 = cc.scope -> (!quake.wire) {
+    %3 = quake.s %1 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  }
+  %4 = quake.t %2 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_scope_exact
+// CHECK:         %[[WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:    %[[S0:.*]] = quake.s %[[WIRE]]
+// CHECK-NEXT:    %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:    %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      cc.continue %[[S1]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    quake.wrap %[[SCOPE]]
+
+func.func @controlled_boundary(%control: !quake.wire,
+                               %target: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %target : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%control] %2
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.t %3#1 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.t %5 : (!quake.wire) -> !quake.wire
+  return %3#0, %6 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @controlled_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[CX:.*]]:2 = quake.x [
+// CHECK-NEXT:    quake.s %[[CX]]#1
+// CHECK-NEXT:    quake.s
+
+func.func @rotation_boundary(%arg0: !quake.wire, %angle: f64)
+    -> !quake.wire {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.rz (%angle) %2 : (f64, !quake.wire) -> !quake.wire
+  %4 = quake.t %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.t %5 : (!quake.wire) -> !quake.wire
+  return %6 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @rotation_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[RZ:.*]] = quake.rz
+// CHECK-NEXT:    quake.s %[[RZ]]
+// CHECK-NEXT:    quake.s
+
+func.func @multi_qubit_boundary(%arg0: !quake.wire, %arg1: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.swap %2, %arg1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.t %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.t %5 : (!quake.wire) -> !quake.wire
+  return %6, %3#1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @multi_qubit_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[SWAP:.*]]:2 = quake.swap
+// CHECK-NEXT:    quake.s %[[SWAP]]#0
+// CHECK-NEXT:    quake.s
+
+func.func @measurement_boundary(%arg0: !quake.wire)
+    -> (!quake.measure, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3, %4 = quake.mz %2
+      : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %5 = quake.t %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.s %5 : (!quake.wire) -> !quake.wire
+  %7 = quake.t %6 : (!quake.wire) -> !quake.wire
+  return %3, %7 : !quake.measure, !quake.wire
+}
+
+// CHECK-LABEL: func.func @measurement_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[M:.*]], %[[MWIRE:.*]] = quake.mz
+// CHECK-NEXT:    quake.s %[[MWIRE]]
+// CHECK-NEXT:    quake.s
+
+func.func @non_linear_boundary(%arg0: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %4 = quake.s %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.t %4 : (!quake.wire) -> !quake.wire
+  return %2, %5 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @non_linear_boundary
+// CHECK-NEXT:    %[[LEFT_T0:.*]] = quake.t %arg0
+// CHECK-NEXT:    %[[LEFT_S:.*]] = quake.s %[[LEFT_T0]]
+// CHECK-NEXT:    %[[LEFT_T1:.*]] = quake.t %[[LEFT_S]]
+// CHECK-NEXT:    %[[RIGHT_T0:.*]] = quake.t %arg0
+// CHECK-NEXT:    %[[RIGHT_S:.*]] = quake.s %[[RIGHT_T0]]
+// CHECK-NEXT:    %[[RIGHT_T1:.*]] = quake.t %[[RIGHT_S]]
+// CHECK-NEXT:    return %[[LEFT_T1]], %[[RIGHT_T1]]
+
+func.func @sibling_atomic_scopes(%arg0: !quake.wire) -> !quake.wire {
+  %0 = cc.scope -> (!quake.wire) {
+    %1 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+    cc.continue %1 : !quake.wire
+  } {atomic_quantum_region}
+  %2 = cc.scope -> (!quake.wire) {
+    %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  } {atomic_quantum_region}
+  return %2 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @sibling_atomic_scopes(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[H_0:.*]] = quake.h %[[ARG0]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[H_0]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[H_1:.*]] = quake.h %[[SCOPE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[H_1]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           return %[[SCOPE_1]] : !quake.wire
+// CHECK:         }

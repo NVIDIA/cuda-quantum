@@ -8,10 +8,10 @@
 
 // RUN: cudaq-opt %s -split-input-file -verify-diagnostics
 
-func.func @bad_detectors_elem(%bad : !cc.stdvec<i32>,
-                              %good : !cc.stdvec<!cc.measure_handle>) {
-  // expected-error @+1 {{must be stdvec of}}
-  qec.pair_detectors %bad, %good : !cc.stdvec<i32>, !cc.stdvec<!cc.measure_handle>
+func.func @bad_detectors_elem(%bad : !cc.sequence<i32>,
+                              %good : !cc.sequence<!cc.measure_handle>) {
+  // expected-error @+1 {{must be sequence of}}
+  qec.pair_detectors %bad, %good : !cc.sequence<i32>, !cc.sequence<!cc.measure_handle>
   return
 }
 
@@ -25,8 +25,8 @@ func.func @bad_detector_elem(%bad : i32) {
 
 // -----
 
-func.func @bad_observable_elem(%bad : !cc.stdvec<i32>) {
+func.func @bad_observable_elem(%bad : !cc.sequence<i32>) {
   // expected-error @+1 {{must be variadic of}}
-  qec.observable %bad : !cc.stdvec<i32>
+  qec.observable %bad : !cc.sequence<i32>
   return
 }

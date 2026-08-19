@@ -459,15 +459,10 @@ def test_kernel_error_invalid_list_size():
         e)
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_kernel_qvector_init_from_param_int():
     cudaq.reset_target()
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel(n: int):
         q = cudaq.qvector(n)
 
@@ -479,13 +474,12 @@ def test_kernel_qvector_init_from_param_int():
     assert '00' in counts
 
 
-@skipIfValueSemantics
 def test_kernel_qvector_init_from_capture_int():
     cudaq.reset_target()
 
     n = 2
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(n)
 
@@ -504,11 +498,10 @@ def test_kernel_qvector_init_from_capture_int():
     assert '0' in counts
 
 
-@skipIfValueSemantics
 def test_kernel_qvector_init_from_int():
     cudaq.reset_target()
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(2)
 

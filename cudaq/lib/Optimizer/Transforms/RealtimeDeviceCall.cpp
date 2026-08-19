@@ -55,40 +55,40 @@ getSupportedRealtimePrimitiveArrayElement(Type elemTy) {
   return std::nullopt;
 }
 
-static std::optional<Type> getSupportedRealtimeStdvecElement(Type ty) {
-  auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(ty);
-  if (!stdvecTy)
+static std::optional<Type> getSupportedRealtimeSequenceElement(Type ty) {
+  auto sequenceTy = dyn_cast<cudaq::cc::SequenceType>(ty);
+  if (!sequenceTy)
     return std::nullopt;
-  Type elemTy = stdvecTy.getElementType();
+  Type elemTy = sequenceTy.getElementType();
   if (isa<cudaq::cc::MeasureHandleType>(elemTy))
     return IntegerType::get(elemTy.getContext(), 1);
   return getSupportedRealtimePrimitiveArrayElement(elemTy);
 }
 
-static std::optional<Type> getSupportedRealtimeStdvecResultElement(Type ty) {
-  auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(ty);
-  if (!stdvecTy)
+static std::optional<Type> getSupportedRealtimeSequenceResultElement(Type ty) {
+  auto sequenceTy = dyn_cast<cudaq::cc::SequenceType>(ty);
+  if (!sequenceTy)
     return std::nullopt;
-  Type elemTy = stdvecTy.getElementType();
+  Type elemTy = sequenceTy.getElementType();
   if (isa<cudaq::cc::MeasureHandleType>(elemTy))
     return std::nullopt;
   return getSupportedRealtimePrimitiveArrayElement(elemTy);
 }
 
-static bool isRealtimeStdvecArg(Value arg) {
-  return getSupportedRealtimeStdvecElement(arg.getType()).has_value();
+static bool isRealtimeSequenceArg(Value arg) {
+  return getSupportedRealtimeSequenceElement(arg.getType()).has_value();
 }
 
 static ArrayRef<std::int64_t>
-getRealtimeResponseStdvecIndices(cudaq::cc::DeviceCallOp op) {
+getRealtimeResponseSequenceIndices(cudaq::cc::DeviceCallOp op) {
   if (auto attr = op.getByRefVecArgIndicesAttr())
     return attr.asArrayRef();
   return {};
 }
 
 static std::optional<unsigned>
-getRealtimeResponseStdvecIndex(cudaq::cc::DeviceCallOp op) {
-  auto indices = getRealtimeResponseStdvecIndices(op);
+getRealtimeResponseSequenceIndex(cudaq::cc::DeviceCallOp op) {
+  auto indices = getRealtimeResponseSequenceIndices(op);
   if (indices.empty())
     return std::nullopt;
   return static_cast<unsigned>(indices.front());
@@ -110,29 +110,29 @@ static LogicalResult validateRealtimeDeviceCall(cudaq::cc::DeviceCallOp op) {
         "realtime device_call lowering supports at most one result");
 
   auto args = op.getArgs();
-  auto responseStdvecIndices = getRealtimeResponseStdvecIndices(op);
-  if (responseStdvecIndices.size() > 1)
+  auto responseSequenceIndices = getRealtimeResponseSequenceIndices(op);
+  if (responseSequenceIndices.size() > 1)
     return op.emitOpError(
-        "realtime device_call lowering supports at most one by-ref stdvec "
+        "realtime device_call lowering supports at most one by-ref sequence "
         "result argument");
-  if (!responseStdvecIndices.empty()) {
+  if (!responseSequenceIndices.empty()) {
     if (op.getNumResults() != 0)
       return op.emitOpError(
           "realtime device_call lowering does not support both scalar and "
-          "by-ref stdvec results");
+          "by-ref sequence results");
 
-    std::int64_t index = responseStdvecIndices.front();
+    std::int64_t index = responseSequenceIndices.front();
     assert(index >= 0 && static_cast<std::size_t>(index) < args.size() &&
            "DeviceCallOp verifier should have validated by-ref vec indices");
-    if (!getSupportedRealtimeStdvecResultElement(args[index].getType()))
+    if (!getSupportedRealtimeSequenceResultElement(args[index].getType()))
       return op.emitOpError("realtime device_call lowering does not support "
-                            "by-ref stdvec result type ")
+                            "by-ref sequence result type ")
              << args[index].getType();
   }
 
   for (unsigned i = 0, e = args.size(); i < e; ++i) {
     auto arg = args[i];
-    if (isRealtimeStdvecArg(arg))
+    if (isRealtimeSequenceArg(arg))
       continue;
     if (isa<cudaq::cc::PointerType>(arg.getType()))
       return op.emitOpError(
@@ -249,7 +249,7 @@ static Value computeArrayPayloadSize(OpBuilder &builder, Location loc,
 /// device_call with the given `args`.
 static Value
 computeRealtimePayloadSize(OpBuilder &builder, Location loc, ValueRange args,
-                           std::optional<unsigned> responseStdvec) {
+                           std::optional<unsigned> responseSequence) {
   auto i64Ty = builder.getI64Type();
   Value lenSize = i64Constant(builder, loc, sizeof(std::uint64_t));
   Value size = i64Constant(builder, loc, 0);
@@ -261,11 +261,11 @@ computeRealtimePayloadSize(OpBuilder &builder, Location loc, ValueRange args,
   };
   for (unsigned i = 0, e = args.size(); i < e; ++i) {
     Value arg = args[i];
-    if (auto elementTy = getSupportedRealtimeStdvecElement(arg.getType())) {
+    if (auto elementTy = getSupportedRealtimeSequenceElement(arg.getType())) {
       Value arrayLength =
-          cudaq::cc::StdvecSizeOp::create(builder, loc, i64Ty, arg);
+          cudaq::cc::SequenceSizeOp::create(builder, loc, i64Ty, arg);
       addAlignedLength();
-      if (responseStdvec && *responseStdvec == i)
+      if (responseSequence && *responseSequence == i)
         continue;
       Value arrayBytes =
           computeArrayPayloadSize(builder, loc, arrayLength, *elementTy);
@@ -282,19 +282,20 @@ computeRealtimePayloadSize(OpBuilder &builder, Location loc, ValueRange args,
   return size;
 }
 
-static Type getStdvecSourceElementType(Value stdvec) {
-  return cast<cudaq::cc::StdvecType>(stdvec.getType()).getElementType();
+static Type getSequenceSourceElementType(Value sequence) {
+  return cast<cudaq::cc::SequenceType>(sequence.getType()).getElementType();
 }
 
-static Value getStdvecLength(OpBuilder &builder, Location loc, Value stdvec) {
-  return cudaq::cc::StdvecSizeOp::create(builder, loc, builder.getI64Type(),
-                                         stdvec);
+static Value getSequenceLength(OpBuilder &builder, Location loc,
+                               Value sequence) {
+  return cudaq::cc::SequenceSizeOp::create(builder, loc, builder.getI64Type(),
+                                           sequence);
 }
 
-static Value getStdvecData(OpBuilder &builder, Location loc, Value stdvec) {
+static Value getSequenceData(OpBuilder &builder, Location loc, Value sequence) {
   auto arrayPtrTy = cudaq::cc::PointerType::get(
-      cudaq::cc::ArrayType::get(getStdvecSourceElementType(stdvec)));
-  return cudaq::cc::StdvecDataOp::create(builder, loc, arrayPtrTy, stdvec);
+      cudaq::cc::ArrayType::get(getSequenceSourceElementType(sequence)));
+  return cudaq::cc::SequenceDataOp::create(builder, loc, arrayPtrTy, sequence);
 }
 
 static Value marshalArrayArgument(OpBuilder &builder, Location loc,
@@ -348,11 +349,11 @@ static Value marshalArrayArgument(OpBuilder &builder, Location loc,
 /// Copy the raw response payload into the output vector's storage. This uses
 /// the same compatible-native-layout assumption as request marshalling, so the
 /// response bytes can be copied directly into the vector's element storage.
-static void copyResponseToStdvec(OpBuilder &builder, Location loc,
-                                 Value responseBuffer, Value responseLen,
-                                 Value stdvec) {
+static void copyResponseToSequence(OpBuilder &builder, Location loc,
+                                   Value responseBuffer, Value responseLen,
+                                   Value sequence) {
   auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
-  Value data = getStdvecData(builder, loc, stdvec);
+  Value data = getSequenceData(builder, loc, sequence);
   Value dstPtr = cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, data);
   Value srcPtr =
       cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, responseBuffer);
@@ -361,13 +362,13 @@ static void copyResponseToStdvec(OpBuilder &builder, Location loc,
                        ValueRange{dstPtr, srcPtr, responseLen, notVolatile});
 }
 
-static void unpackResponseToBoolStdvec(OpBuilder &builder, Location loc,
-                                       Value responseBuffer,
-                                       Value logicalLength, Value stdvec) {
-  assert(getStdvecSourceElementType(stdvec).isInteger(1));
+static void unpackResponseToBoolSequence(OpBuilder &builder, Location loc,
+                                         Value responseBuffer,
+                                         Value logicalLength, Value sequence) {
+  assert(getSequenceSourceElementType(sequence).isInteger(1));
   // Boolean responses use the least-significant-bit first bit-packed
   // encoding. Use `__nvqpp_RealtimeUnpackBits` intrinsic to unpack.
-  Value data = getStdvecData(builder, loc, stdvec);
+  Value data = getSequenceData(builder, loc, sequence);
   func::CallOp::create(builder, loc, TypeRange{}, cudaq::realtimeUnpackBits,
                        ValueRange{data, responseBuffer, logicalLength});
 }
@@ -442,11 +443,11 @@ public:
     auto ptrI8Ty = cudaq::cc::PointerType::get(i8Ty);
 
     auto args = devcall.getArgs();
-    std::optional<unsigned> responseStdvec =
-        getRealtimeResponseStdvecIndex(devcall);
+    std::optional<unsigned> responseSequence =
+        getRealtimeResponseSequenceIndex(devcall);
     // Size the request payload
     Value requestSize =
-        computeRealtimePayloadSize(rewriter, loc, args, responseStdvec);
+        computeRealtimePayloadSize(rewriter, loc, args, responseSequence);
 
     const auto [resultTy, responseCapacity] = [&]() -> std::pair<Type, Value> {
       if (devcall.getNumResults() == 1) {
@@ -455,11 +456,11 @@ public:
             i64Constant(rewriter, loc, realtimePrimitiveSize(resultTy));
         return {resultTy, responseCapacity};
       }
-      if (responseStdvec) {
-        const Value outVector = args[*responseStdvec];
+      if (responseSequence) {
+        const Value outVector = args[*responseSequence];
         const Type elementTy =
-            *getSupportedRealtimeStdvecResultElement(outVector.getType());
-        const Value outLength = getStdvecLength(rewriter, loc, outVector);
+            *getSupportedRealtimeSequenceResultElement(outVector.getType());
+        const Value outLength = getSequenceLength(rewriter, loc, outVector);
         return {Type{},
                 computeArrayPayloadSize(rewriter, loc, outLength, elementTy)};
       }
@@ -512,7 +513,7 @@ public:
     Value requestBuffer = cudaq::cc::CastOp::create(
         rewriter, loc, payloadArrayPtrTy, requestPayload);
     const Value responseBuffer = [&] {
-      if (!resultTy && !responseStdvec)
+      if (!resultTy && !responseSequence)
         return Value{};
       const Value responsePayload =
           cudaq::cc::LoadOp::create(rewriter, loc, responsePayloadSlot);
@@ -522,22 +523,22 @@ public:
     }();
 
     // Marshal operands into the request payload. Scalars are aligned and stored
-    // directly. Supported stdvec arguments use a length prefix followed by
-    // element bytes; a response stdvec carries its extent in the request and
+    // directly. Supported sequence arguments use a length prefix followed by
+    // element bytes; a response sequence carries its extent in the request and
     // receives its elements through the response payload.
     Value cursor = i64Constant(rewriter, loc, 0);
     for (unsigned i = 0, e = args.size(); i < e; ++i) {
       auto arg = args[i];
-      if (auto elementTy = getSupportedRealtimeStdvecElement(arg.getType())) {
-        Value arrayLength = getStdvecLength(rewriter, loc, arg);
-        if (responseStdvec && *responseStdvec == i) {
+      if (auto elementTy = getSupportedRealtimeSequenceElement(arg.getType())) {
+        Value arrayLength = getSequenceLength(rewriter, loc, arg);
+        if (responseSequence && *responseSequence == i) {
           cursor = writeLengthPrefix(rewriter, loc, cursor, requestBuffer,
                                      arrayLength);
           continue;
         }
 
-        Type sourceElementTy = getStdvecSourceElementType(arg);
-        Value data = getStdvecData(rewriter, loc, arg);
+        Type sourceElementTy = getSequenceSourceElementType(arg);
+        Value data = getSequenceData(rewriter, loc, arg);
         cursor =
             marshalArrayArgument(rewriter, loc, cursor, requestBuffer, data,
                                  arrayLength, sourceElementTy, *elementTy);
@@ -563,8 +564,8 @@ public:
     emitTrapOnFailure(rewriter, loc, status.getResult(0), frameHandle);
 
     if (!resultTy) {
-      if (responseStdvec) {
-        // This is a by-ref stdvec result case.
+      if (responseSequence) {
+        // This is a by-ref sequence result case.
         Value returnedLen =
             cudaq::cc::LoadOp::create(rewriter, loc, responseLen);
         auto unexpectedResponseLen =
@@ -574,16 +575,16 @@ public:
             rewriter, loc, RealtimeRemoteErrorStatus, 32);
         emitTrapOnCondition(rewriter, loc, unexpectedResponseLen, remoteError,
                             frameHandle);
-        Value outVector = args[*responseStdvec];
+        Value outVector = args[*responseSequence];
         Type elementTy =
-            *getSupportedRealtimeStdvecResultElement(outVector.getType());
+            *getSupportedRealtimeSequenceResultElement(outVector.getType());
         if (elementTy.isInteger(1)) {
-          Value outLength = getStdvecLength(rewriter, loc, outVector);
-          unpackResponseToBoolStdvec(rewriter, loc, responseBuffer, outLength,
-                                     outVector);
+          Value outLength = getSequenceLength(rewriter, loc, outVector);
+          unpackResponseToBoolSequence(rewriter, loc, responseBuffer, outLength,
+                                       outVector);
         } else {
-          copyResponseToStdvec(rewriter, loc, responseBuffer, responseCapacity,
-                               outVector);
+          copyResponseToSequence(rewriter, loc, responseBuffer,
+                                 responseCapacity, outVector);
         }
       }
       emitReleaseFrame(rewriter, loc, frameHandle);

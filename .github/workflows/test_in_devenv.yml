@@ -305,7 +305,11 @@ jobs:
             fi
 
             retry python -m pip install pytest pytest-xdist
-            python -m pytest -v --durations=0 -n auto python/tests/ \
+            # Uncapped, 16 workers x 16 OMP threads on a cpu16 runner starve 
+            # memory and surface as `std::bad_alloc`. See PR#4530.
+            export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+            pytest_workers="${PYTEST_WORKERS:-$(( ($(nproc) + 1) / 2 ))}"
+            python -m pytest -v --durations=0 -n "$pytest_workers" python/tests/ \
               --ignore python/tests/backends \
               --ignore python/tests/contrib
             pytest_status=$?

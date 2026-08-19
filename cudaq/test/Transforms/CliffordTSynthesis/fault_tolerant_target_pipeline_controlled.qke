@@ -1,0 +1,47 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.unwrap' \
+// RUN:     --implicit-check-not='quake.wrap' \
+// RUN:     --implicit-check-not='quake.phase'
+
+// Apply specialization creates a `.ctrl` clone with a dynamic `veq` control.
+// Its exact rotation must remain controlled through linear-value conversion and
+// `RegToMem`, while the original uncontrolled callee simplifies to `T`.
+func.func @callee(%target: !quake.ref) attributes {"cudaq-kernel"} {
+  %angle = arith.constant 0.7853981633974483 : f64
+  quake.rz (%angle) %target : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @controlled_entry(%controls: !quake.veq<?>,
+                            %target: !quake.ref)
+    attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  quake.apply @callee [%controls] %target
+      : (!quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func private @callee.ctrl(
+// CHECK-SAME:      %[[CONTROLS:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[TARGET:.*]]: !quake.ref) {
+// CHECK:           %[[ANGLE:.*]] = arith.constant
+// CHECK-NEXT:      quake.rz (%[[ANGLE]]) [%[[CONTROLS]]] %[[TARGET]]
+// CHECK-SAME:        : (f64, !quake.veq<?>, !quake.ref) -> ()
+// CHECK-NEXT:      return
+
+// CHECK-LABEL:   func.func @callee(
+// CHECK-SAME:      %[[TARGET:.*]]: !quake.ref)
+// CHECK:           quake.t %[[TARGET]]
+// CHECK-NEXT:      return
+
+// CHECK-LABEL:   func.func @controlled_entry(
+// CHECK:           call @callee.ctrl(
+// CHECK-SAME:        : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK-NEXT:      return

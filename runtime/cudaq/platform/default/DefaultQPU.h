@@ -64,6 +64,10 @@ public:
                           const CompiledModule &module,
                           KernelArgs args) override;
 
+  estimate_result launchKernel(const estimate_policy &policy,
+                               const CompiledModule &module,
+                               KernelArgs args) override;
+
   ptsbe::sample_policy::result_type
   launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
                KernelArgs args) override;
@@ -76,6 +80,8 @@ public:
   CompileTarget getCompileTarget(const run_policy &policy) override;
 
   CompileTarget getCompileTarget(const dem_policy &policy) override;
+
+  CompileTarget getCompileTarget(const estimate_policy &policy) override;
 
   CompileTarget getCompileTarget(const other_policies &policy,
                                  ExecutionContext *context) override;

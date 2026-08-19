@@ -42,11 +42,6 @@ def test_exp_pauli_param():
     assert not '10' in counts
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_exp_pauli_individual_qubits():
 
     @cudaq.kernel
@@ -59,10 +54,9 @@ def test_exp_pauli_individual_qubits():
     assert "101" in counts
 
 
-@skipIfValueSemantics
 def test_exp_pauli_single_individual_qubit():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def test(theta: float):
         q = cudaq.qvector(3)
         exp_pauli(theta, "X", q[1])

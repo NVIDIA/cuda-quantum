@@ -9,7 +9,7 @@
 // RUN: cudaq-opt --run-semantics-hackery %s | FileCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b482e030 = "__nvqpp__mlirgen__kernel..0x7de5b482e030_PyKernelEntryPointRewrite", __nvqpp__mlirgen__kernel..0x7de5b482e030.run = "__nvqpp__mlirgen__kernel..0x7de5b482e030.run.entry"}} {
-  func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030(%arg0: i64 {quake.pylifted}) -> !cc.stdvec<i64> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030(%arg0: i64 {quake.pylifted}) -> !cc.sequence<i64> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %c8_i64 = arith.constant 8 : i64
     %cst = arith.constant 1.5707963267948966 : f64
     %c1_i64 = arith.constant 1 : i64
@@ -34,10 +34,10 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
     quake.s %4 : (!quake.ref) -> ()
     %5 = quake.extract_ref %1[1] : (!quake.veq<?>) -> !quake.ref
     quake.r1 (%cst) %5 : (f64, !quake.ref) -> ()
-    %measOut = quake.mz %1 name "a" : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-    %6 = quake.discriminate %measOut : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-    %7 = cc.stdvec_data %6 : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
-    %8 = cc.stdvec_size %6 : (!cc.stdvec<i1>) -> i64
+    %measOut = quake.mz %1 name "a" : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
+    %6 = quake.discriminate %measOut : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
+    %7 = cc.sequence_data %6 : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+    %8 = cc.sequence_size %6 : (!cc.sequence<i1>) -> i64
     %9 = cc.alloca i64[%8 : i64]
     %10 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
       %14 = arith.cmpi slt, %arg1, %8 : i64
@@ -57,9 +57,9 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
     } {invariant}
     %11 = cc.cast %9 : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i8>
     %12 = call @__nvqpp_vectorCopyCtor(%11, %8, %c8_i64) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-    %13 = cc.stdvec_init %12, %8 : (!cc.ptr<i8>, i64) -> !cc.stdvec<i64>
+    %13 = cc.sequence_init %12, %8 : (!cc.ptr<i8>, i64) -> !cc.sequence<i64>
     quake.dealloc %1 : !quake.veq<?>
-    return %13 : !cc.stdvec<i64>
+    return %13 : !cc.sequence<i64>
   }
   func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
   func.func private @malloc(i64) -> !cc.ptr<i8>
@@ -114,9 +114,9 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
   func.func private @__nvqpp_getStringSize(!cc.ptr<i8>) -> i64
   func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(!cc.ptr<i8>) -> i64
   func.func private @__nvqpp_cleanup_arrays()
-  func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run(%arg0: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.stdvec<i64>]} {
-    %0 = call @__nvqpp__mlirgen__kernel..0x7de5b482e030(%arg0) : (i64) -> !cc.stdvec<i64>
-    cc.log_output %0 : !cc.stdvec<i64>
+  func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run(%arg0: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.sequence<i64>]} {
+    %0 = call @__nvqpp__mlirgen__kernel..0x7de5b482e030(%arg0) : (i64) -> !cc.sequence<i64>
+    quake.log_output %0 : (!cc.sequence<i64>) -> ()
     return
   }
   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run.entry(%arg0: i64) attributes {no_this} {
@@ -125,13 +125,13 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run(
-// CHECK-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.stdvec<i64>]} {
-// CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__kernel..0x7de5b482e030.ruined(%[[ARG0]]) : (i64) -> !cc.stdvec<i64>
-// CHECK:           cc.log_output %[[VAL_0]] : !cc.stdvec<i64>
+// CHECK-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.sequence<i64>]} {
+// CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__kernel..0x7de5b482e030.ruined(%[[ARG0]]) : (i64) -> !cc.sequence<i64>
+// CHECK:           quake.log_output %[[VAL_0]] : (!cc.sequence<i64>) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.ruined(
-// CHECK-SAME:      %[[ARG0:.*]]: i64 {quake.pylifted}) -> !cc.stdvec<i64> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-SAME:      %[[ARG0:.*]]: i64 {quake.pylifted}) -> !cc.sequence<i64> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-NOT:       __nvqpp_vectorCopyCtor
-// CHECK:           return {{.*}}: !cc.stdvec<i64>
+// CHECK:           return {{.*}}: !cc.sequence<i64>

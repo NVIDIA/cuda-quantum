@@ -117,6 +117,8 @@ Common
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
 
+.. doxygenclass:: cudaq::cudaq_json
+
 .. doxygenclass:: cudaq::sample_result
     :members:
 

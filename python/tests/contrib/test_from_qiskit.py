@@ -44,10 +44,6 @@ def _from_qasm_file(qasm):
         os.unlink(temp_path)
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
 class TestFromQiskit:
     """Tests for cudaq.contrib.from_qiskit()."""
 
@@ -301,7 +297,6 @@ class TestFromQiskit:
 
         assert resources.to_dict().get("cr1", 0) == 1
 
-    @skipIfValueSemantics
     def test_direct_gate_resource_counts(self):
         """Test direct Qiskit gate mappings to native CUDA-Q builder ops."""
         qc = QuantumCircuit(6)
@@ -375,7 +370,6 @@ class TestFromQiskit:
 
         assert counts["01011"] == 1000
 
-    @skipIfValueSemantics
     def test_csdg_cancels_cs(self):
         """Test CSDG emits the adjoint of CS."""
         qc = QuantumCircuit(2)
@@ -390,7 +384,6 @@ class TestFromQiskit:
 
         assert counts["10"] == 1000
 
-    @skipIfValueSemantics
     def test_ctdg_cancels_ct(self):
         """Test CTDG emits the adjoint of CT."""
         qc = QuantumCircuit(2)
@@ -440,7 +433,6 @@ class TestFromQiskit:
         # SX^2 = X, result should be |1>
         assert counts["1"] == 1000
 
-    @skipIfValueSemantics
     def test_identity_gate(self):
         """Test conversion of identity gate."""
         qc = QuantumCircuit(1)
@@ -451,7 +443,6 @@ class TestFromQiskit:
 
         assert counts["0"] == 1000
 
-    @skipIfValueSemantics
     def test_barrier_ignored(self):
         """Test that barrier is properly ignored."""
         qc = QuantumCircuit(2)
@@ -465,7 +456,6 @@ class TestFromQiskit:
         # Bell state
         assert "00" in counts and "11" in counts
 
-    @skipIfValueSemantics
     def test_measurement(self):
         """Test that measurements are converted."""
         qc = QuantumCircuit(1, 1)
@@ -477,7 +467,6 @@ class TestFromQiskit:
 
         assert counts["1"] == 1000
 
-    @skipIfValueSemantics
     def test_bell_state(self):
         """Test conversion of Bell state circuit."""
         qc = QuantumCircuit(2)
@@ -493,7 +482,6 @@ class TestFromQiskit:
         assert "01" not in counts
         assert "10" not in counts
 
-    @skipIfValueSemantics
     def test_ghz_state(self):
         """Test conversion of 3-qubit GHZ state circuit."""
         qc = QuantumCircuit(3)
@@ -508,7 +496,6 @@ class TestFromQiskit:
         assert "000" in counts
         assert "111" in counts
 
-    @skipIfValueSemantics
     def test_ccx_toffoli_gate(self):
         """Test conversion of CCX (Toffoli) gate."""
         qc = QuantumCircuit(3)
@@ -522,7 +509,6 @@ class TestFromQiskit:
         # Both controls are 1, so target flips: |110> -> |111>
         assert counts["111"] == 1000
 
-    @skipIfValueSemantics
     def test_rxx_gate(self):
         """Test conversion of RXX gate."""
         qc = QuantumCircuit(2)
@@ -536,7 +522,6 @@ class TestFromQiskit:
         # RXX creates entanglement
         assert len(counts) > 0
 
-    @skipIfValueSemantics
     def test_rzz_gate(self):
         """Test conversion of RZZ gate."""
         qc = QuantumCircuit(2)
@@ -550,7 +535,6 @@ class TestFromQiskit:
         # RZZ creates entanglement
         assert len(counts) > 0
 
-    @skipIfValueSemantics
     def test_rzz_pi_behavior(self):
         """Test RZZ(pi) lowers with the rotation on the target qubit."""
         qc = QuantumCircuit(2)
@@ -565,7 +549,6 @@ class TestFromQiskit:
 
         assert counts["11"] == 1000
 
-    @skipIfValueSemantics
     def test_sxdg_gate(self):
         """Test conversion of SXdg (sqrt-X dagger) gate."""
         qc = QuantumCircuit(1)
@@ -578,7 +561,6 @@ class TestFromQiskit:
         # SX followed by SXdg should return to |0>
         assert counts["0"] == 1000
 
-    @skipIfValueSemantics
     def test_unsupported_gate_raises_error(self):
         """Test that unsupported gates raise ValueError."""
         qc = QuantumCircuit(2)
@@ -587,7 +569,6 @@ class TestFromQiskit:
         with pytest.raises(ValueError, match="Gate 'cu' is not supported"):
             cudaq.contrib.from_qiskit(qc)
 
-    @skipIfValueSemantics
     def test_custom_gate_definition_expands_inline(self):
         """Test custom Qiskit gate definitions expand inline."""
         custom = QuantumCircuit(1, name="mygate")
@@ -602,7 +583,6 @@ class TestFromQiskit:
         assert resources.get("h", 0) == 1
         assert "mygate" not in resources
 
-    @skipIfValueSemantics
     def test_custom_gate_name_collision_expands_inline(self):
         """Test custom gates expand before direct name matching."""
         custom = QuantumCircuit(1, name="x")
@@ -617,7 +597,6 @@ class TestFromQiskit:
         assert resources.get("h", 0) == 1
         assert "x" not in resources
 
-    @skipIfValueSemantics
     @pytest.mark.parametrize(
         "gate,qargs",
         [
@@ -635,7 +614,6 @@ class TestFromQiskit:
         with pytest.raises(ValueError, match=f"Gate '{gate.name.lower()}'"):
             cudaq.contrib.from_qiskit(qc)
 
-    @skipIfValueSemantics
     def test_symbolic_parameter_raises_value_error(self):
         """Test symbolic parameters are rejected with a clear error."""
         theta = Parameter("theta")
@@ -645,7 +623,6 @@ class TestFromQiskit:
         with pytest.raises(ValueError, match="Gate 'rx'"):
             cudaq.contrib.from_qiskit(qc)
 
-    @skipIfValueSemantics
     def test_control_flow_raises_unsupported_input_error(self):
         """Test Qiskit control flow fails before parameter conversion."""
         qasm = """
@@ -660,7 +637,6 @@ class TestFromQiskit:
         with pytest.raises(ValueError, match="classical control flow"):
             cudaq.contrib.from_qiskit(qc)
 
-    @skipIfValueSemantics
     def test_empty_circuit(self):
         """Test conversion of empty circuit."""
         qc = QuantumCircuit(2)
@@ -674,7 +650,6 @@ class TestFromQiskit:
 class TestFromQasm:
     """Tests for cudaq.contrib.from_qasm()."""
 
-    @skipIfValueSemantics
     def test_simple_qasm_file(self):
         """Test loading a simple QASM file."""
         qasm_content = """
@@ -699,7 +674,6 @@ class TestFromQasm:
         finally:
             os.unlink(temp_path)
 
-    @skipIfValueSemantics
     def test_qasm_with_rotations(self):
         """Test QASM file with parametric rotations."""
         qasm_content = """
@@ -722,7 +696,6 @@ class TestFromQasm:
         finally:
             os.unlink(temp_path)
 
-    @skipIfValueSemantics
     def test_qasm_direct_gate_aliases(self):
         """Test OpenQASM aliases imported through Qiskit map directly."""
         kernel = _from_qasm_file("""
@@ -744,7 +717,6 @@ class TestFromQasm:
         assert resources.get("cswap", 0) == 1
         assert resources.get("cccx", 0) == 1
 
-    @skipIfValueSemantics
     def test_qasm_c4x_imports_as_mcx(self):
         """Test c4x is normalized by Qiskit and emitted as controlled X."""
         kernel = _from_qasm_str("""
@@ -758,7 +730,6 @@ class TestFromQasm:
 
         assert resources.get("ccccx", 0) == 1
 
-    @skipIfValueSemantics
     def test_custom_qasm_gate_definition_expands_inline(self):
         """Test custom OpenQASM gate definitions expand inline."""
         kernel = _from_qasm_str("""
@@ -774,7 +745,6 @@ class TestFromQasm:
         assert resources.get("h", 0) == 1
         assert "mygate" not in resources
 
-    @skipIfValueSemantics
     def test_custom_qasm_macro_expands_inline(self):
         """Test a multi-instruction OpenQASM macro expands inline."""
         kernel = _from_qasm_str("""
@@ -795,7 +765,6 @@ class TestFromQasm:
         assert resources.get("ccx", 0) == 1
         assert "majority" not in resources
 
-    @skipIfValueSemantics
     def test_qasm_control_flow_raises_value_error(self):
         """Test OpenQASM if statements report unsupported control flow."""
         qasm = """
@@ -809,7 +778,6 @@ class TestFromQasm:
         with pytest.raises(ValueError, match="classical control flow"):
             _from_qasm_str(qasm)
 
-    @skipIfValueSemantics
     def test_qasm_u0_global_phase_is_unsupported(self):
         """Test u0 remains unsupported because it is a global phase."""
         qasm = """
@@ -822,13 +790,11 @@ class TestFromQasm:
         with pytest.raises(ValueError, match="Gate 'u0' is not supported"):
             _from_qasm_str(qasm)
 
-    @skipIfValueSemantics
     def test_nonexistent_file_raises_error(self):
         """Test that nonexistent file raises FileNotFoundError."""
         with pytest.raises(FileNotFoundError):
             cudaq.contrib.from_qasm("/nonexistent/path/to/file.qasm")
 
-    @skipIfValueSemantics
     def test_invalid_qasm_raises_error(self):
         """Test that invalid QASM content raises RuntimeError."""
         qasm_content = "this is not valid qasm"

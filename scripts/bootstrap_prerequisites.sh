@@ -14,7 +14,7 @@
 #
 # Usage:
 # bash bootstrap_prerequisites.sh
-#   -e <name>     Exclude a prerequisite (e.g. zlib, llvm, blas, ssl, curl, aws, cuquantum, cutensor, toolchain)
+#   -e <name>     Exclude a prerequisite (e.g. zlib, gmp, mpfr, llvm, blas, ssl, curl, aws, cuquantum, cutensor, toolchain)
 #   -t <name>     Select toolchain (e.g. gcc12, llvm)
 #   -m            Only install libraries for which an *_INSTALL_PREFIX is defined
 #   -l            Generate a prerequisites lock file and exit (no installation)
@@ -25,7 +25,7 @@
 # for the current configuration. This can be used to pre-download sources in
 # controlled build environments.
 #
-# For the libraries LLVM, BLAS, ZLIB, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if the
+# For the libraries LLVM, BLAS, ZLIB, GMP, MPFR, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if the
 # library is not found in the location defined by the corresponding environment variable
 # *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
@@ -54,6 +54,17 @@ ZLIB_TARBALL_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSI
 
 BLAS_VERSION=3.11.0
 BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
+
+# GMP and MPFR back the Clifford+T rotation synthesis library (cudaq-synth).
+# Both are LGPL v3 (see https://gmplib.org/ and https://www.mpfr.org/). They
+# are built as shared libraries only and linked dynamically.
+GMP_VERSION=6.3.0
+GMP_TARBALL_URLS="https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
+https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz"
+
+MPFR_VERSION=4.2.2
+MPFR_TARBALL_URLS="https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz \
+https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz"
 
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
@@ -161,6 +172,16 @@ if $lock_mode; then
     "url=${BLAS_TARBALL_URL}" \
     "version=${BLAS_VERSION}"
 
+  # [GMP / MPFR]
+  add_lock_line "gmp" \
+    "type=tar" \
+    "url=${GMP_TARBALL_URLS%% *}" \
+    "version=${GMP_VERSION}"
+  add_lock_line "mpfr" \
+    "type=tar" \
+    "url=${MPFR_TARBALL_URLS%% *}" \
+    "version=${MPFR_VERSION}"
+
   # [OpenSSL] (and its private Perl used only for the build)
   add_lock_line "perl" \
     "type=tar" \
@@ -221,6 +242,20 @@ function retry {
     elif [ -x "$(command -v apt-get)" ]; then apt-get clean || true; fi
     sleep "$delay"
   done
+}
+
+function download_first {
+  local filename="$1"; shift
+  for url in "$@"; do
+    echo "Downloading ${url}..."
+    if retry wget --tries=1 -O "${filename}" "${url}"; then
+      return 0
+    fi
+    echo "Failed to download from ${url}; trying next mirror..." >&2
+  done
+  rm -f "${filename}"
+  echo "Failed to download from all mirrors: $*" >&2
+  return 1
 }
 
 function temp_install_if_command_unknown {
@@ -439,6 +474,93 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     remove_temp_installs
   else
     echo "BLAS already installed in $BLAS_INSTALL_PREFIX."
+  fi
+fi
+
+# [GMP] Needed for the Clifford+T rotation synthesis library (cudaq-synth).
+if [ "$(uname)" = "Darwin" ]; then shared_lib_ext=dylib; else shared_lib_ext=so; fi
+if [ -n "$GMP_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep gmp)" ]; then
+  if [ ! -f "$GMP_INSTALL_PREFIX/lib/libgmp.$shared_lib_ext" ]; then
+    echo "Installing GMP..."
+    temp_install_if_command_unknown wget wget
+    temp_install_if_command_unknown make make
+    temp_install_if_command_unknown m4 m4
+    if [ -x "$(command -v apt-get)" ]; then
+      temp_install_if_command_unknown xz xz-utils
+    else
+      temp_install_if_command_unknown xz xz
+    fi
+
+    pushd "$PREREQS_BUILD_DIR"
+
+    download_first "gmp-${GMP_VERSION}.tar.xz" ${GMP_TARBALL_URLS}
+    tar -xf "gmp-${GMP_VERSION}.tar.xz" && cd "gmp-${GMP_VERSION}"
+    gmp_host_flags=""
+    if [ "$(uname -m)" = "x86_64" ]; then
+      gmp_host_flags="--enable-fat"
+    elif [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then
+      if [ "$(uname)" = "Darwin" ]; then gmp_host_flags="--host=aarch64-apple-darwin"
+      else gmp_host_flags="--host=aarch64-unknown-linux-gnu"; fi
+    fi
+    CC="$CC" CXX="$CXX" \
+    ./configure --prefix="$GMP_INSTALL_PREFIX" \
+      --enable-shared --disable-static $gmp_host_flags
+    make -j$(getconf _NPROCESSORS_ONLN) && make install
+
+    popd
+    remove_temp_installs
+  else
+    echo "GMP already installed in $GMP_INSTALL_PREFIX."
+  fi
+fi
+
+# [MPFR] Needed for the Clifford+T rotation synthesis library (cudaq-synth).
+if [ -n "$MPFR_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep mpfr)" ]; then
+  if [ ! -f "$MPFR_INSTALL_PREFIX/lib/libmpfr.$shared_lib_ext" ]; then
+    echo "Installing MPFR..."
+    temp_install_if_command_unknown wget wget
+    temp_install_if_command_unknown make make
+    if [ -x "$(command -v apt-get)" ]; then
+      temp_install_if_command_unknown xz xz-utils
+    else
+      temp_install_if_command_unknown xz xz
+    fi
+
+    pushd "$PREREQS_BUILD_DIR"
+
+    download_first "mpfr-${MPFR_VERSION}.tar.xz" ${MPFR_TARBALL_URLS}
+    tar -xf "mpfr-${MPFR_VERSION}.tar.xz" && cd "mpfr-${MPFR_VERSION}"
+    if [ "$(uname)" = "Darwin" ]; then
+      mpfr_ldflags="-Wl,-rpath,$GMP_INSTALL_PREFIX/lib"
+    else
+      mpfr_ldflags=""
+    fi
+    CC="$CC" LDFLAGS="$mpfr_ldflags" \
+    ./configure --prefix="$MPFR_INSTALL_PREFIX" \
+      --with-gmp="$GMP_INSTALL_PREFIX" --enable-shared --disable-static
+    make -j$(getconf _NPROCESSORS_ONLN) && make install
+
+    if [ "$(uname)" = "Darwin" ]; then
+      for lib in "$GMP_INSTALL_PREFIX"/lib/libgmp.*.dylib \
+                 "$MPFR_INSTALL_PREFIX"/lib/libmpfr.*.dylib; do
+        [ -f "$lib" ] || continue
+        install_name_tool -id "@rpath/$(basename "$lib")" "$lib"
+      done
+      gmp_dylib="$(basename "$(find "$GMP_INSTALL_PREFIX/lib" -name 'libgmp.*.dylib' | head -1)")"
+      mpfr_dylib="$(find "$MPFR_INSTALL_PREFIX/lib" -name 'libmpfr.*.dylib' | head -1)"
+      old_gmp_ref="$(otool -L "$mpfr_dylib" | awk '/libgmp/ {print $1}')"
+      if [ -n "$old_gmp_ref" ] && [ "$old_gmp_ref" != "@rpath/$gmp_dylib" ]; then
+        install_name_tool -change "$old_gmp_ref" "@rpath/$gmp_dylib" "$mpfr_dylib"
+      fi
+      if [ -x "$(command -v codesign)" ]; then
+        codesign -f -s - "$GMP_INSTALL_PREFIX"/lib/libgmp.*.dylib "$mpfr_dylib" || true
+      fi
+    fi
+
+    popd
+    remove_temp_installs
+  else
+    echo "MPFR already installed in $MPFR_INSTALL_PREFIX."
   fi
 fi
 

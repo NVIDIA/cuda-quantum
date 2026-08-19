@@ -26,7 +26,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-class ReturnRewrite : public OpRewritePattern<cudaq::cc::LogOutputOp> {
+class ReturnRewrite : public OpRewritePattern<cudaq::quake::LogOutputOp> {
 public:
   ReturnRewrite(MLIRContext *ctx, bool allowDynamic)
       : OpRewritePattern(ctx), allowDynamic(allowDynamic) {}
@@ -34,7 +34,7 @@ public:
   // This is where the heavy lifting is done. We take the return op's operand(s)
   // and convert them to calls to the QIR output logging functions with the
   // appropriate label information.
-  LogicalResult matchAndRewrite(cudaq::cc::LogOutputOp log,
+  LogicalResult matchAndRewrite(cudaq::quake::LogOutputOp log,
                                 PatternRewriter &rewriter) const override {
     auto loc = log.getLoc();
     // For each operand, generate a QIR logging call.
@@ -128,10 +128,10 @@ public:
             genOutputLog(loc, rewriter, w, offset, allowDynamic);
           }
         })
-        .Case([&](cudaq::cc::StdvecType vecTy) {
-          // For this type, we expect a cc.stdvec_init operation as the input.
+        .Case([&](cudaq::cc::SequenceType vecTy) {
+          // For this type, we expect a cc.sequence_init operation as the input.
           // The data will be in a variable.
-          if (auto vecInit = val.getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+          if (auto vecInit = val.getDefiningOp<cudaq::cc::SequenceInitOp>()) {
             auto maybeLen = [&]() -> std::optional<std::uint64_t> {
               if (Value len = vecInit.getLength())
                 return cudaq::opt::factory::maybeValueOfIntConstant(len);
@@ -193,10 +193,10 @@ public:
             return;
           auto eleTy = vecTy.getElementType();
           auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-          Value size = cudaq::cc::StdvecSizeOp::create(
+          Value size = cudaq::cc::SequenceSizeOp::create(
               rewriter, loc, rewriter.getI64Type(), val);
           Value rawData =
-              cudaq::cc::StdvecDataOp::create(rewriter, loc, i8PtrTy, val);
+              cudaq::cc::SequenceDataOp::create(rewriter, loc, i8PtrTy, val);
           if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
             if (eleTy == rewriter.getI1Type()) {
               func::CallOp::create(rewriter, loc, TypeRange{},
@@ -261,7 +261,7 @@ public:
       return {std::string("array<") + translateType(arrTy.getElementType()) +
               std::string(" x ") + std::to_string(size) + std::string(">")};
     }
-    if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+    if (auto arrTy = dyn_cast<cudaq::cc::SequenceType>(ty)) {
       if (!vecSz)
         return {"error"};
       return {std::string("array<") + translateType(arrTy.getElementType()) +

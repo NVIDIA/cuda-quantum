@@ -32,7 +32,7 @@ def test_reuses_repeated_fixed_qrefs_by_vector_identity():
 
     assert count_extract_refs(kernel) == 2
     counts = cudaq.sample(kernel)
-    assert not len(counts)
+    assert len(counts) == 1
 
 
 def test_fixed_qref_reuse_respects_structured_dominance():
@@ -113,7 +113,7 @@ def test_dynamic_and_negative_qrefs_are_not_reused():
     counts = cudaq.sample(dynamic_index, 1)
     assert "00" in counts
     counts = cudaq.sample(negative_index)
-    assert not len(counts)
+    assert len(counts) == 1
 
 
 def test_repeated_out_of_bounds_fixed_qrefs_still_diagnose(capfd):

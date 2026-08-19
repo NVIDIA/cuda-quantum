@@ -124,6 +124,8 @@ ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ADD ./scripts/configure_build.sh /scripts/configure_build.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
+ENV GMP_INSTALL_PREFIX=/usr/local/gmp
+ENV MPFR_INSTALL_PREFIX=/usr/local/mpfr
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 ENV AWS_INSTALL_PREFIX=/usr/local/aws

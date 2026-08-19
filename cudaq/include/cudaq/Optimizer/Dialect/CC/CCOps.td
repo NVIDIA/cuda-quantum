@@ -60,8 +60,11 @@ def cc_ScopeOp : CCOp<"scope",
     its region must be deallocated. It can also delimit automatically generated
     adjoint code.
 
-    A ScopeOp that contains no allocations has no semantics and can be inlined
-    into the parent Region. This transformation is done in canonicalization.
+    A ScopeOp that contains no allocations has no allocation-lifetime
+    semantics and can normally be inlined into the parent Region. This
+    transformation is done in canonicalization. A scope carrying the
+    `atomic_quantum_region` attribute is retained, however, so later
+    transformations can identify it as an atomic quantum region.
 
     A ScopeOp may contain a single-entry, multiple-exit CFG with multiple
     basic blocks in its region. A ContinueOp is the terminator that exits a
@@ -78,6 +81,7 @@ def cc_ScopeOp : CCOp<"scope",
     ```
   }];
 
+  let arguments = (ins OptionalAttr<UnitAttr>:$atomic_quantum_region);
   let results = (outs Variadic<AnyType>:$results);
   let regions = (region AnyRegion:$initRegion);
   
@@ -1225,7 +1229,7 @@ def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Span/Stdvec operations.
+// Span/Sequence operations.
 //===----------------------------------------------------------------------===//
 
 def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
@@ -1243,19 +1247,19 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
       %1 = cc.const_array [ "XZ", "YI" ] : !cc.array<!cc.charspan x 2>
       %2 = cc.extract_value %1[1] : (!cc.array<!cc.charspan>) -> !cc.charspan
       %3 = cc.reify_span %1 : (!cc.array<!cc.charspan x 2>) ->
-                               !cc.stdvec<!cc.charspan>
+                               !cc.sequence<!cc.charspan>
     ```
 
     Expanding the reify_span op will generate the following code
     ```mlir
       %1 = cc.alloca !cc.array<!cc.charspan x 2>
       %2 = cc.string_literal "XZ" : !cc.ptr<!cc.array<i8 x 3>>
-      %4 = cc.stdvec_init %2 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
+      %4 = cc.sequence_init %2 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
       %5 = cc.cast %1 : (!cc.ptr<!cc.array<!cc.charspan x 2>>) ->
                          !cc.ptr<!cc.charspan>
       cc.store %4, %5 : !cc.ptr<!cc.charspan>
       %6 = cc.string_literal "YI" : !cc.ptr<!cc.array<i8 x 3>>
-      %8 = cc.stdvec_init %6 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
+      %8 = cc.sequence_init %6 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
       %9 = cc.compute_ptr %1[1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) ->
                                    !cc.ptr<!cc.charspan>
       cc.store %8, %9 : !cc.ptr<!cc.charspan>
@@ -1263,7 +1267,7 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   }];
 
   let arguments = (ins cc_ArrayType:$elements);
-  let results = (outs cc_StdVectorType:$spanType);
+  let results = (outs cc_SequenceType:$spanType);
   let assemblyFormat = [{
     $elements `:` functional-type(operands, results) attr-dict
   }];
@@ -1288,7 +1292,7 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
     std::size_t vectorDimension() {
       std::size_t depth = 0;
       mlir::Type ty = getType();
-      while (auto vecTy = llvm::dyn_cast<cudaq::cc::StdvecType>(ty)) {
+      while (auto vecTy = llvm::dyn_cast<cudaq::cc::SequenceType>(ty)) {
         ty = vecTy.getElementType();
         ++depth;
       }
@@ -1297,10 +1301,10 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   }];
 }
 
-def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
-  let summary = "Initialize a stdvec object from a pointer and length.";
+def cc_SequenceInitOp : CCOp<"sequence_init", [Pure]> {
+  let summary = "Initialize a sequence object from a pointer and length.";
   let description = [{
-    A StdvecInitOp can be used to create a "high-level" `std::vector` object in
+    A SequenceInitOp can be used to create a "high-level" `std::vector` object in
     cc. The construction is similar to the `std::vector` initializer list
     constructor. It takes two arguments: a pointer to a memory buffer and the
     length of the buffer in terms of the number of elements.
@@ -1313,13 +1317,13 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     ```mlir
       %buff = ... : !cc.ptr<f64>
       %len = ... : i64
-      %vec1 = cc.stdvec_init %buff, %len : (!cc.ptr<f64>, i64) ->
-                                            !cc.stdvec<f64>
+      %vec1 = cc.sequence_init %buff, %len : (!cc.ptr<f64>, i64) ->
+                                            !cc.sequence<f64>
       func.call @kernel(%vec1) ...
 
       %arr = ... : !cc.ptr<!cc.array<i64 x 12>>
-      %vec2 = cc.stdvec_init %arr : (!cc.ptr<!cc.array<i64 x 12>>) ->
-                                     !cc.stdvec<i64>  // span length is 12
+      %vec2 = cc.sequence_init %arr : (!cc.ptr<!cc.array<i64 x 12>>) ->
+                                     !cc.sequence<i64>  // span length is 12
     ```
   }];
 
@@ -1327,7 +1331,7 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     AnyPointerType:$buffer,
     Optional<AnyInteger>:$length
   );
-  let results = (outs SpanningType:$stdvec);
+  let results = (outs SpanningType:$sequence);
 
   let hasVerifier = 1;
   let hasCanonicalizer = 1;
@@ -1337,45 +1341,45 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
   }];
 }
 
-def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
-  let summary = "Retrieve the data pointer from a stdvec object.";
+def cc_SequenceDataOp : CCOp<"sequence_data", [Pure]> {
+  let summary = "Retrieve the data pointer from a sequence object.";
   let description = [{
-    A StdvecDataOp can be used to retrieve the data pointer from a stdvec
-    object. (See StdvecInitOp.) This operation is analogous to a call to
+    A SequenceDataOp can be used to retrieve the data pointer from a sequence
+    object. (See SequenceInitOp.) This operation is analogous to a call to
     `std::vector<T>::data()`.
 
     Note that this operation has value semantics. It does not touch memory as
     the data pointer is part of the aggregate value and nothing is dereferenced.
   }];
 
-  let arguments = (ins SpanningType:$stdvec);
+  let arguments = (ins SpanningType:$sequence);
   let results = (outs AnyPointerType:$data);
 
   let hasCanonicalizer = 1;
 
   let assemblyFormat = [{
-    $stdvec `:` functional-type(operands, results) attr-dict
+    $sequence `:` functional-type(operands, results) attr-dict
   }];
 }
 
-def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
-  let summary = "Retrieve the size from a stdvec object.";
+def cc_SequenceSizeOp : CCOp<"sequence_size", [Pure]> {
+  let summary = "Retrieve the size from a sequence object.";
   let description = [{
-    A StdvecSizeOp can be used to retrieve the size from a stdvec object.
+    A SequenceSizeOp can be used to retrieve the size from a sequence object.
     This is analogous to a call to `std::vector<T>::size()`.
 
     Note that this operation is pure and has value semantics. It does not
-    modify memory as the size is part of a stdvec's aggregate value and nothing
+    modify memory as the size is part of a sequence's aggregate value and nothing
     is dereferenced.
   }];
 
-  let arguments = (ins SpanningType:$stdvec);
+  let arguments = (ins SpanningType:$sequence);
   let results = (outs AnyInteger:$size);
 
   let hasCanonicalizer = 1;
 
   let assemblyFormat = [{
-    $stdvec `:` functional-type(operands, results) attr-dict
+    $sequence `:` functional-type(operands, results) attr-dict
   }];
 }
 
@@ -1890,7 +1894,7 @@ def cc_DeviceCallOp : CCOp<"device_call",
     OptionalAttr<DictArrayAttr>:$res_attrs,
     // Indices into `args` whose original C++ callee parameters were
     // non-const `std::vector<T>&`. The attribute preserves by-reference
-    // vector intent that is otherwise lost after lowering to `!cc.stdvec<T>`.
+    // vector intent that is otherwise lost after lowering to `!cc.sequence<T>`.
     OptionalAttr<DenseI64ArrayAttr>:$by_ref_vec_arg_indices
   );
   let results = (outs Variadic<AnyType>);
@@ -2036,18 +2040,6 @@ def cc_VarargCallOp : CCOp<"call_vararg",
   }];
 }
 
-def cc_LogOutputOp : CCOp<"log_output"> {
-  let summary = "Auto-generate calls to log the output of a runnable kernel.";
-  let description = [{
-    This operation is an abstraction for auto-generation of the necessary code
-    in the transport layer to log output results from a runnable kernel. The
-    assumption is that the transport layer supports something analogous to a
-    set of file output functions, something like `fprintf()`.
-  }];
-
-  let arguments = (ins Variadic<AnyType>:$args);
-  let assemblyFormat = "$args `:` type(operands) attr-dict";
-}
 
 //===----------------------------------------------------------------------===//
 // Argument synthesis support

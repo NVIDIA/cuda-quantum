@@ -409,10 +409,10 @@ class PyKernelDecorator(object):
 
         # Support passing `list[int]` to a `list[float]` argument and
         # passing `list[int]` or `list[float]` to a `list[complex]` argument.
-        if cc.StdvecType.isinstance(fromTy):
-            if cc.StdvecType.isinstance(toTy):
-                fromEleTy = cc.StdvecType.getElementType(fromTy)
-                toEleTy = cc.StdvecType.getElementType(toTy)
+        if cc.SequenceType.isinstance(fromTy):
+            if cc.SequenceType.isinstance(toTy):
+                fromEleTy = cc.SequenceType.getElementType(fromTy)
+                toEleTy = cc.SequenceType.getElementType(toTy)
 
                 return self.isCastablePyType(fromEleTy, toEleTy)
 
@@ -449,10 +449,10 @@ class PyKernelDecorator(object):
 
             # Support passing `list[int]` to a `list[float]` argument and
             # passing `list[int]` or `list[float]` to a `list[complex]` argument
-            if cc.StdvecType.isinstance(fromTy):
-                if cc.StdvecType.isinstance(toTy):
-                    fromEleTy = cc.StdvecType.getElementType(fromTy)
-                    toEleTy = cc.StdvecType.getElementType(toTy)
+            if cc.SequenceType.isinstance(fromTy):
+                if cc.SequenceType.isinstance(toTy):
+                    fromEleTy = cc.SequenceType.getElementType(fromTy)
+                    toEleTy = cc.SequenceType.getElementType(toTy)
 
                     if self.isCastablePyType(fromEleTy, toEleTy):
                         return [
@@ -718,8 +718,8 @@ class PyKernelDecorator(object):
 
         # Validate size limit for list[complex] arguments used for `qvector`
         # state initialization.
-        if cc.StdvecType.isinstance(arg_type):
-            eleTy = cc.StdvecType.getElementType(arg_type)
+        if cc.SequenceType.isinstance(arg_type):
+            eleTy = cc.SequenceType.getElementType(arg_type)
             if ComplexType.isinstance(eleTy) and hasattr(
                     arg, '__len__') and len(arg) > 2**10:
                 num_qubits = int(np.log2(len(arg)))
@@ -736,7 +736,7 @@ class PyKernelDecorator(object):
                            f"{mlirTypeToPyType(arg_type)} was expected.")
 
         # Convert `numpy` arrays to lists
-        if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
+        if cc.SequenceType.isinstance(mlirType) and hasattr(arg, "tolist"):
             if arg.ndim != 1:
                 emitFatalError(
                     f"CUDA-Q kernels only support array arguments from NumPy "
