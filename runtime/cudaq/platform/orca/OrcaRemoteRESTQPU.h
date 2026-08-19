@@ -50,6 +50,9 @@ protected:
   /// configuration.
   std::map<std::string, std::string> backendConfig;
 
+  [[nodiscard]] detail::future launchKernelCommon(const CompiledModule &module,
+                                                  KernelArgs args);
+
 public:
   /// @brief The constructor
   OrcaRemoteRESTQPU() : QPU() {
@@ -93,9 +96,6 @@ public:
 
   using QPU::getCompileTarget;
   using QPU::launchKernel;
-
-  [[nodiscard]] detail::future launchKernelCommon(const CompiledModule &module,
-                                                  KernelArgs args);
 
   [[nodiscard]] CompileTarget
   getCompileTarget(const orca::sample_policy &policy) override;
