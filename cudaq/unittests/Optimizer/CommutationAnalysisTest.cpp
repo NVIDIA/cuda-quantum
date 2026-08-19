@@ -754,6 +754,7 @@ TEST_F(CommutationAnalysisTest,
        ReturnsIndeterminateForUnsupportedOrUnresolvedQueries) {
   auto module = parseModule(R"mlir(
     module {
+      quake.wire_set @wires[1]
       func.func private @wire_source() -> !quake.wire
       func.func @unsupported_query() {
         %q = quake.null_wire
@@ -790,6 +791,18 @@ TEST_F(CommutationAnalysisTest,
         quake.x %aggregate : (!quake.veq<2>) -> ()
         %x = quake.x %q : (!quake.wire) -> !quake.wire
         quake.sink %x : !quake.wire
+        return
+      }
+      func.func @duplicate_qubit_operand() {
+        %unknown = call @wire_source() : () -> !quake.wire
+        %unmapped = quake.z %unknown : (!quake.wire) -> !quake.wire
+        %control = quake.borrow_wire @wires[0] : !quake.wire
+        %target = quake.borrow_wire @wires[0] : !quake.wire
+        %result:2 = quake.x [%control] %target
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.return_wire %result#0 : !quake.wire
+        quake.return_wire %result#1 : !quake.wire
+        quake.sink %unmapped : !quake.wire
         return
       }
       func.func @other() {
@@ -846,14 +859,41 @@ TEST_F(CommutationAnalysisTest,
   ASSERT_EQ(failureOperators.size(), 2u);
   CommutationAnalysis forwardAnalysis(differentFailures.front());
   CommutationAnalysis reverseAnalysis(differentFailures.front());
-  // Canonical evaluation produces one detailed result independent of which
-  // query order first populates an analysis instance.
+  // Separate analysis instances evaluate opposite caller orders and produce
+  // the same semantic failure precedence.
   auto forward =
       forwardAnalysis.getResult(failureOperators[0], failureOperators[1]);
   auto reverse =
       reverseAnalysis.getResult(failureOperators[1], failureOperators[0]);
-  EXPECT_EQ(forward.status, reverse.status);
-  EXPECT_EQ(forward.reason, reverse.reason);
+  EXPECT_EQ(forward.status, commutation_status::indeterminate);
+  EXPECT_EQ(forward.reason,
+            commutation_reason::unsupported_quantum_operand_type);
+  EXPECT_EQ(reverse.status, commutation_status::indeterminate);
+  EXPECT_EQ(reverse.reason,
+            commutation_reason::unsupported_quantum_operand_type);
+
+  auto duplicate = getFunction(*module, "duplicate_qubit_operand");
+  auto duplicateOperators = getOperators(duplicate);
+  ASSERT_EQ(duplicateOperators.size(), 2u);
+  CommutationAnalysis duplicateAnalysis(duplicate.front());
+  // Distinct SSA values that borrow the same wire-set slot identify one qubit,
+  // which cannot serve as both the control and target of one operation.
+  expectPair(duplicateAnalysis, duplicateOperators[1], duplicateOperators[1],
+             commutation_status::indeterminate,
+             commutation_reason::duplicate_qubit_operand);
+
+  CommutationAnalysis unmappedFirstAnalysis(duplicate.front());
+  CommutationAnalysis duplicateFirstAnalysis(duplicate.front());
+  // Identity resolution precedes duplicate-role validation regardless of the
+  // caller's operand order on a cache miss.
+  auto unmappedFirst = unmappedFirstAnalysis.getResult(duplicateOperators[0],
+                                                       duplicateOperators[1]);
+  auto duplicateFirst = duplicateFirstAnalysis.getResult(duplicateOperators[1],
+                                                         duplicateOperators[0]);
+  EXPECT_EQ(unmappedFirst.status, commutation_status::indeterminate);
+  EXPECT_EQ(unmappedFirst.reason, commutation_reason::unmapped_qubit_id);
+  EXPECT_EQ(duplicateFirst.status, commutation_status::indeterminate);
+  EXPECT_EQ(duplicateFirst.reason, commutation_reason::unmapped_qubit_id);
 
   auto other = getFunction(*module, "other");
   auto otherOperators = getOperators(other);

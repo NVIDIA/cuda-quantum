@@ -657,10 +657,22 @@ static CommutationResult evaluate(Operation *lhs, Operation *rhs,
 
   OperationView lhsView{lhs};
   OperationView rhsView{rhs};
-  if (auto reason = populateOperationView(lhsView, qubitIdentity))
-    return indeterminate(*reason);
-  if (auto reason = populateOperationView(rhsView, qubitIdentity))
-    return indeterminate(*reason);
+  auto lhsFailure = populateOperationView(lhsView, qubitIdentity);
+  auto rhsFailure = populateOperationView(rhsView, qubitIdentity);
+  if (lhsFailure || rhsFailure) {
+    // Operand representation is a prerequisite for identity resolution, which
+    // is a prerequisite for checking whether one identity has multiple roles.
+    // This semantic order keeps the reason independent of query operand order.
+    static constexpr commutation_reason normalizationFailurePrecedence[] = {
+        commutation_reason::unsupported_quantum_operand_type,
+        commutation_reason::unmapped_qubit_id,
+        commutation_reason::duplicate_qubit_operand,
+    };
+    for (commutation_reason reason : normalizationFailurePrecedence)
+      if (lhsFailure == reason || rhsFailure == reason)
+        return indeterminate(reason);
+    llvm_unreachable("unhandled operation-view normalization failure");
+  }
 
   return dispatchRules(lhsView, rhsView);
 }
@@ -727,7 +739,7 @@ CommutationResult CommutationAnalysis::getResult(Operation *lhs,
   auto cached = cache.find(key);
   if (cached != cache.end())
     return cached->second;
-  auto result = evaluate(key.first, key.second, *qubitIdentity);
+  auto result = evaluate(lhs, rhs, *qubitIdentity);
   cache.try_emplace(key, result);
   return result;
 }
