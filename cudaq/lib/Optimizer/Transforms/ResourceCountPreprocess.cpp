@@ -48,17 +48,67 @@ struct ResourceCountPreprocessPass
     return base;
   }
 
+  /// A wire carried into a loop body arrives as a block argument. The wire at
+  /// index `i` of the body is the wire at index `i` of the loop's initial
+  /// arguments, but only if it stays at that index on every edge of the loop.
+  /// A body that hands its wires back permuted would otherwise attribute gates
+  /// to the wrong qubit. Returns a null Value when that cannot be established.
+  Value getLoopInitOperand(BlockArgument arg) {
+    auto loop = dyn_cast_or_null<cudaq::cc::LoopOp>(
+        arg.getOwner()->getParentOp());
+    if (!loop || arg.getOwner() != loop.getDoEntryBlock())
+      return {};
+    auto i = arg.getArgNumber();
+    if (i >= loop.getInitialArgs().size() ||
+        i >= loop.getWhileArguments().size())
+      return {};
+
+    // The while region forwards its own arguments to the body unpermuted.
+    auto cond = dyn_cast<cudaq::cc::ConditionOp>(
+        loop.getWhileBlock()->getTerminator());
+    if (!cond || i >= cond.getResults().size() ||
+        cond.getResults()[i] != loop.getWhileArguments()[i])
+      return {};
+
+    // The body and the step region hand the wire back at the same index.
+    for (Region *region : {&loop.getBodyRegion(), &loop.getStepRegion()}) {
+      if (region->empty())
+        continue;
+      if (!region->hasOneBlock())
+        return {};
+      Block &block = region->front();
+      auto *term = block.getTerminator();
+      if (i >= block.getNumArguments() || i >= term->getNumOperands())
+        return {};
+      // Stop at block arguments here; following them would come straight back
+      // to this loop.
+      if (getWireOrigin(term->getOperand(i), /*throughLoops=*/false) !=
+          block.getArgument(i))
+        return {};
+    }
+    return loop.getInitialArgs()[i];
+  }
+
   /// Walk a wire back to the value that introduced it. Quantum operations in
   /// value (linear) form thread wires through, so a wire result denotes the
   /// same qubit as the incoming wire in the matching position. `unwrap` bridges
   /// from reference form, so continue the search on the reference it wraps.
-  /// Returns the original value unchanged for anything else, including
-  /// reference form values.
-  Value getWireOrigin(Value v) {
+  /// A wire entering an invariant loop body continues at the loop's matching
+  /// initial argument. Returns the original value unchanged for anything else,
+  /// including reference form values.
+  Value getWireOrigin(Value v, bool throughLoops = true) {
     while (true) {
       auto *def = v.getDefiningOp();
-      if (!def)
-        return v;
+      if (!def) {
+        auto arg = cast<BlockArgument>(v);
+        Value init;
+        if (throughLoops)
+          init = getLoopInitOperand(arg);
+        if (!init)
+          return v;
+        v = init;
+        continue;
+      }
       if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(def)) {
         v = unwrap.getRefValue();
         continue;
@@ -140,11 +190,17 @@ struct ResourceCountPreprocessPass
 
     if (auto measurement = dyn_cast<cudaq::quake::MeasurementInterface>(op);
         isa<cudaq::quake::MxOp, cudaq::quake::MyOp>(op)) {
-      // An unused measurement cannot affect resource-count control flow. Count
+      // An unread measurement cannot affect resource-count control flow. Count
       // it from Quake IR before code generation lowers its axis to an execution
       // manager Z measurement, then remove it with the other pre-counted ops.
+      // The wires it threads are forwarded to its users, as for any other op.
+      auto measWires = measurement.getWires();
+      auto incomingWires =
+          getIncomingWires(ValueRange{}, measurement.getTargets());
+      if (incomingWires.size() != measWires.size())
+        return false;
       for (Value result : op->getResults())
-        if (!result.use_empty())
+        if (!llvm::is_contained(measWires, result) && !result.use_empty())
           return false;
 
       std::vector<std::size_t> targetIndices;
@@ -163,6 +219,7 @@ struct ResourceCountPreprocessPass
         llvm::outs() << "Preprocessing " << name << "(0) for " << to_add
                      << " counts\n";
       countGate(name.str(), {}, targetIndices, to_add);
+      forwardWires(incomingWires, measWires);
       to_erase.insert(op);
       return true;
     }

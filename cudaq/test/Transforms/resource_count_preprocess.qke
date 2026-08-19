@@ -238,16 +238,20 @@ func.func @kernel_used_axis_measurement() {
 
 // CHECK-LABEL: func.func @kernel_used_axis_wire(
 // CHECK:   quake.my
+// CHECK:   quake.discriminate
 // CHECK:   quake.sink
 // CHECK:   return
 // CHECK: }
 
-// The linear-value result is also a live measurement result and must retain
-// the operation for subsequent lowering.
-func.func @kernel_used_axis_wire(%q: !quake.wire) {
+// Only a live measurement result retains the operation. The wire result is the
+// qubit thread rather than the measurement outcome, and it is forwarded to the
+// uses of the erased operation, so a use of it does not keep the operation
+// alive. See `kernel_wire_mx` for the converse.
+func.func @kernel_used_axis_wire(%q: !quake.wire) -> i1 {
   %0:2 = quake.my %q : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %1 = quake.discriminate %0#0 : (!quake.measure) -> i1
   quake.sink %0#1 : !quake.wire
-  return
+  return %1 : i1
 }
 
 // -----
@@ -390,5 +394,25 @@ func.func @kernel_wire_loop() {
       cc.continue %n, %w : i64, !quake.wire
   }
   quake.sink %r#1 : !quake.wire
+  return
+}
+
+// -----
+
+// CHECK: Preprocessing mx(0) for 1 counts
+// CHECK-LABEL:   func.func @kernel_wire_mx() {
+// CHECK:       %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NOT:   quake.mx
+// CHECK:       quake.sink %[[VAL_0]]
+// CHECK:       return
+// CHECK:   }
+
+// An `mx` whose classical result is unread is pre-counted in value form too,
+// so it is reported as `mx` rather than the `mz` that code generation lowers
+// it to. Its wire is forwarded like any other pre-counted operation's.
+func.func @kernel_wire_mx() {
+  %w0 = quake.null_wire
+  %m0, %w0m = quake.mx %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %w0m : !quake.wire
   return
 }
