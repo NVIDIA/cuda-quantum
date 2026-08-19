@@ -50,17 +50,36 @@ RUN apt update && apt-get install -y --no-install-recommends ca-certificates wge
 # When cuda packages are installed below, the keyring will be reinstalled.
 RUN rm -f /etc/apt/sources.list.d/cuda.list
 
-# Install Mellanox OFED runtime and development dependencies.
+# Install DOCA-OFED 3.1.0 userspace runtime dependencies.
+# Install only the RDMA/IB libraries needed by UCX/UCC/OpenMPI, plus SHARP,
+# not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
+# Note: the sharp package Depends on DOCA's ucx; our UCX build is preferred via
+# ld.so.conf.d / LD_LIBRARY_PATH.
 
-RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
-    && wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | apt-key add - \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" \
-    && apt-get update -y && apt-get install -y --no-install-recommends \
-        ibverbs-providers ibverbs-utils \
-        libibmad5 libibumad3 libibverbs-dev libibverbs1 librdmacm1 \
-    && rm /etc/apt/trusted.gpg && rm /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
-    && apt-get remove -y gnupg \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+ARG TARGETARCH
+ARG DOCA_VERSION=3.1.0-091000-25.07
+ENV SHARP_INSTALL_PREFIX=/opt/mellanox/sharp
+RUN arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
+    && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
+    && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
+    && dpkg -i "/var/tmp/${doca_deb}" \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        libibverbs1 libibverbs-dev ibverbs-providers \
+        librdmacm1 librdmacm-dev \
+        libibumad3 libibumad-dev \
+        libibmad5 libibmad-dev \
+        libxpmem0 libxpmem-dev xpmem knem \
+        sharp \
+    && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+    && rm -f "/var/tmp/${doca_deb}" \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Optional runtime diagnostics (ibv_devinfo, rdma_*, ib_write_bw, ofed_info):
+# RUN apt-get update -y \
+#     && apt-get install -y --no-install-recommends \
+#         rdma-core ibverbs-utils rdmacm-utils perftest ofed-scripts \
+#     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy over SLURM PMI2.
 
@@ -86,8 +105,23 @@ RUN echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldco
 
 ARG UCX_INSTALL_PREFIX=/usr/local/ucx
 ENV UCX_INSTALL_PREFIX="$UCX_INSTALL_PREFIX"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$UCX_INSTALL_PREFIX/lib"
+ENV LD_LIBRARY_PATH="$UCX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV PATH="$UCX_INSTALL_PREFIX/bin:$PATH"
 COPY --from=ompibuild "$UCX_INSTALL_PREFIX" "$UCX_INSTALL_PREFIX"
+
+# DOCA's sharp package pulls DOCA's ucx into /usr/lib; listing our prefix in
+# ld.so.conf.d makes the loader prefer this build (those entries precede the
+# default system directories).
+RUN echo "$UCX_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
+
+# Copy over UCC.
+
+ARG UCC_INSTALL_PREFIX=/usr/local/ucc
+ENV UCC_INSTALL_PREFIX="$UCC_INSTALL_PREFIX"
+ENV LD_LIBRARY_PATH="$UCC_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV PATH="$UCC_INSTALL_PREFIX/bin:$PATH"
+COPY --from=ompibuild "$UCC_INSTALL_PREFIX" "$UCC_INSTALL_PREFIX"
+RUN echo "$UCC_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
 
 # Copy over MUNGE.
 
@@ -116,8 +150,7 @@ ENV MPI_HOME="$OPENMPI_INSTALL_PREFIX"
 ENV MPI_ROOT="$OPENMPI_INSTALL_PREFIX"
 ENV MPI_PATH="$OPENMPI_INSTALL_PREFIX"
 ENV PATH="$OPENMPI_INSTALL_PREFIX/bin:$PATH"
-ENV CPATH="$OPENMPI_INSTALL_PREFIX/include:/usr/local/ofed/5.0-0/include:$CPATH"
-ENV LIBRARY_PATH="/usr/local/ofed/5.0-0/lib:$LIBRARY_PATH"
+ENV CPATH="$OPENMPI_INSTALL_PREFIX/include:$CPATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENMPI_INSTALL_PREFIX/lib"
 COPY --from=ompibuild "$OPENMPI_INSTALL_PREFIX" "$OPENMPI_INSTALL_PREFIX"
 
@@ -128,12 +161,13 @@ RUN echo "$OPENMPI_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconf
 
 # Set some configurations in the form of environment variables.
 
-ENV OMPI_MCA_btl=^smcuda,vader,tcp,uct,openib
 ENV OMPI_MCA_pml=ucx
-ENV UCX_IB_PCI_RELAXED_ORDERING=on
-ENV UCX_MAX_RNDV_RAILS=1
-ENV UCX_MEMTYPE_CACHE=n
-ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
+# Default shared-memory single-copy to CMA (avoids xpmem/knem device warnings
+# when those nodes are not mounted). Open MPI 4 uses btl_vader; Open MPI 5
+# uses the smsc framework (btl_sm is a 5.0.x alias for vader).
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=cma
+ENV OMPI_MCA_btl_sm_single_copy_mechanism=cma
+ENV OMPI_MCA_smsc=cma
 
 # Install CUDA
 
