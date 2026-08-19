@@ -255,5 +255,10 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
+  // The first IQM mapping can create new phase bookkeeping from lowered
+  // R1/Rz operations, so repeat the lifecycle before enforcing the invariant.
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
   pm.addPass(createVerifyNoPhase());
 }

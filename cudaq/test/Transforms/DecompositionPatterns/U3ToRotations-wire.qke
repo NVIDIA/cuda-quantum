@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | \
+// RUN:   FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+
+func.func @wire(%control: !quake.wire, %target: !quake.wire)
+    -> (!quake.wire, !quake.wire) attributes {"cudaq-entrypoint"} {
+  %theta = arith.constant 3.330000e-01 : f64
+  %phi = arith.constant 4.440000e-01 : f64
+  %lambda = arith.constant 5.550000e-01 : f64
+  %next:2 = quake.u3 (%theta, %phi, %lambda) [%control] %target
+      : (f64, f64, f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  return %next#0, %next#1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire
+// CHECK-SAME: %[[CONTROL:.*]]: !quake.wire, %[[TARGET:.*]]: !quake.wire
+// CHECK: %[[RZ0:.*]]:2 = quake.rz {{.*}} {{\[}}%[[CONTROL]]{{\]}} %[[TARGET]]
+// CHECK: %[[RX0:.*]]:2 = quake.rx {{.*}} {{\[}}%[[RZ0]]#0{{\]}} %[[RZ0]]#1
+// CHECK: %[[RZ1:.*]]:2 = quake.rz {{.*}} {{\[}}%[[RX0]]#0{{\]}} %[[RX0]]#1
+// CHECK: %[[RX1:.*]]:2 = quake.rx {{.*}} {{\[}}%[[RZ1]]#0{{\]}} %[[RZ1]]#1
+// CHECK: %[[RZ2:.*]]:2 = quake.rz {{.*}} {{\[}}%[[RX1]]#0{{\]}} %[[RX1]]#1
+// CHECK: %[[PHASE:.*]]:2 = quake.phase {{.*}} {{\[}}%[[RZ2]]#0{{\]}} %[[RZ2]]#1
+// CHECK: return %[[PHASE]]#0, %[[PHASE]]#1
+
+// LOWER-LABEL: func.func @wire
+// LOWER: %[[LOWER_RZ0:.*]]:2 = quake.rz
+// LOWER: %[[LOWER_RX0:.*]]:2 = quake.rx
+// LOWER: %[[LOWER_RZ1:.*]]:2 = quake.rz
+// LOWER: %[[LOWER_RX1:.*]]:2 = quake.rx
+// LOWER: %[[LAST_ROTATION:.*]]:2 = quake.rz
+// LOWER: %[[PHASE_GATE:.*]] = quake.r1 {{.*}} %[[LAST_ROTATION]]#0
+// LOWER: return %[[PHASE_GATE]], %[[LAST_ROTATION]]#1
