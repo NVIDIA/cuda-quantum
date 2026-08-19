@@ -369,3 +369,49 @@ func.func @simp12() {
 // CHECK:           quake.sink %[[Z_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+// A reference-form operation can change the state between two resets, so the
+// later reset remains observable by the measurement.
+func.func @preserve_double_reset_across_alias(%reference: !quake.ref) -> i1 {
+  %wire = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+  %reset0 = quake.reset %wire : (!quake.wire) -> !quake.wire
+  quake.x %reference : (!quake.ref) -> ()
+  %reset1 = quake.reset %reset0 : (!quake.wire) -> !quake.wire
+  %measurement, %measured = quake.mz %reset1
+      : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %value = quake.discriminate %measurement : (!quake.measure) -> i1
+  quake.wrap %measured to %reference : !quake.wire, !quake.ref
+  return %value : i1
+}
+
+// CHECK-LABEL:   func.func @preserve_double_reset_across_alias(
+// CHECK-SAME:      %[[REFERENCE:.*]]: !quake.ref) -> i1 {
+// CHECK-NEXT:      %[[WIRE:.*]] = quake.unwrap %[[REFERENCE]]
+// CHECK-NEXT:      %[[RESET0:.*]] = quake.reset %[[WIRE]]
+// CHECK-NEXT:      quake.x %[[REFERENCE]]
+// CHECK-NEXT:      %[[RESET1:.*]] = quake.reset %[[RESET0]]
+// CHECK-NEXT:      %[[MEASUREMENT:.*]], %[[MEASURED:.*]] = quake.mz %[[RESET1]]
+// CHECK-NEXT:      %[[VALUE:.*]] = quake.discriminate %[[MEASUREMENT]]
+// CHECK-NEXT:      quake.wrap %[[MEASURED]] to %[[REFERENCE]]
+// CHECK-NEXT:      return %[[VALUE]] : i1
+// CHECK-NEXT:    }
+
+// The reset affects a reference-form measurement before its wire is discarded.
+func.func @preserve_reset_before_alias_measure_and_sink(%reference: !quake.ref) -> i1 {
+  %wire = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+  %reset = quake.reset %wire : (!quake.wire) -> !quake.wire
+  %measurement = quake.mz %reference : (!quake.ref) -> !cc.measure_handle
+  %value = quake.discriminate %measurement : (!cc.measure_handle) -> i1
+  quake.sink %reset : !quake.wire
+  return %value : i1
+}
+
+// CHECK-LABEL:   func.func @preserve_reset_before_alias_measure_and_sink(
+// CHECK-SAME:      %[[REFERENCE:.*]]: !quake.ref) -> i1 {
+// CHECK-NEXT:      %[[WIRE:.*]] = quake.unwrap %[[REFERENCE]]
+// CHECK-NEXT:      %[[RESET:.*]] = quake.reset %[[WIRE]]
+// CHECK-NEXT:      %[[MEASUREMENT:.*]] = quake.mz %[[REFERENCE]]
+// CHECK-NEXT:      %[[VALUE:.*]] = quake.discriminate %[[MEASUREMENT]]
+// CHECK-NEXT:      quake.sink %[[RESET]]
+// CHECK-NEXT:      return %[[VALUE]] : i1
+// CHECK-NEXT:    }

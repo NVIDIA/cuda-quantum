@@ -11,9 +11,8 @@
 // RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-simplify,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase ('
 // RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-simplify,normalize-phase-placement,lower-phase,canonicalize))' %s | CircuitCheck %s
 
-// CircuitCheck intentionally uses strict unitary equivalence in this file to
-// detect both global and relative phase changes. Global-phase-only rewrites
-// accepted by current CUDA-Q semantics remain in quake_simplify.qke.
+// CircuitCheck uses strict unitary equivalence in this file to detect both
+// global and relative phase changes.
 
 func.func @cancel_t_tdg() {
   %0 = quake.null_wire
@@ -153,6 +152,46 @@ func.func @controlled_ysx_interference() {
 // CHECK:           quake.phase
 // CHECK:           quake.h
 // CHECK-NEXT:      quake.sink
+
+// Reference-form rotations on the threaded qubits block both intervals in the
+// Y/S/X fold.
+func.func @preserve_ysx_across_reference_aliases() {
+  %angle = arith.constant 3.750000e-01 : f64
+  %reference0 = quake.alloca !quake.ref
+  %reference1 = quake.alloca !quake.ref
+  %wire0 = quake.unwrap %reference0 : (!quake.ref) -> !quake.wire
+  %wire1 = quake.unwrap %reference1 : (!quake.ref) -> !quake.wire
+  %y0 = quake.y %wire0 : (!quake.wire) -> !quake.wire
+  quake.rx (%angle) %reference0 : (f64, !quake.ref) -> ()
+  %s0 = quake.s %y0 : (!quake.wire) -> !quake.wire
+  %x0 = quake.x %s0 : (!quake.wire) -> !quake.wire
+  %y1 = quake.y %wire1 : (!quake.wire) -> !quake.wire
+  %s1 = quake.s %y1 : (!quake.wire) -> !quake.wire
+  quake.rx (%angle) %reference1 : (f64, !quake.ref) -> ()
+  %x1 = quake.x %s1 : (!quake.wire) -> !quake.wire
+  quake.wrap %x0 to %reference0 : !quake.wire, !quake.ref
+  quake.wrap %x1 to %reference1 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @preserve_ysx_across_reference_aliases() {
+// CHECK:           %[[ANGLE:.*]] = arith.constant 3.750000e-01 : f64
+// CHECK-NEXT:      %[[REFERENCE0:.*]] = quake.alloca !quake.ref
+// CHECK-NEXT:      %[[REFERENCE1:.*]] = quake.alloca !quake.ref
+// CHECK-NEXT:      %[[WIRE0:.*]] = quake.unwrap %[[REFERENCE0]]
+// CHECK-NEXT:      %[[WIRE1:.*]] = quake.unwrap %[[REFERENCE1]]
+// CHECK-NEXT:      %[[Y0:.*]] = quake.y %[[WIRE0]]
+// CHECK-NEXT:      quake.rx (%[[ANGLE]]) %[[REFERENCE0]]
+// CHECK-NEXT:      %[[S0:.*]] = quake.s %[[Y0]]
+// CHECK-NEXT:      %[[X0:.*]] = quake.x %[[S0]]
+// CHECK-NEXT:      %[[Y1:.*]] = quake.y %[[WIRE1]]
+// CHECK-NEXT:      %[[S1:.*]] = quake.s %[[Y1]]
+// CHECK-NEXT:      quake.rx (%[[ANGLE]]) %[[REFERENCE1]]
+// CHECK-NEXT:      %[[X1:.*]] = quake.x %[[S1]]
+// CHECK-NEXT:      quake.wrap %[[X0]] to %[[REFERENCE0]]
+// CHECK-NEXT:      quake.wrap %[[X1]] to %[[REFERENCE1]]
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
 
 func.func @cancel_controlled_t_tdg() {
   %0 = quake.null_wire

@@ -602,6 +602,13 @@ public:
       return failure();
     }
 
+    // Scalar def-use cannot exclude effects through another SSA or reference
+    // alias. Accept only empty Y/S/X intervals, conservatively missing safe
+    // nonempty intervals.
+    if (prev->getNextNode() != prev0.getOperation() ||
+        prev0->getNextNode() != qop.getOperation())
+      return failure();
+
     if (shouldSkipRewrite(qop, prev0) || shouldSkipRewrite(qop, prev))
       return failure();
 
@@ -717,6 +724,11 @@ public:
       return failure();
     auto reset0 = target.template getDefiningOp<cudaq::quake::ResetOp>();
     if (reset0) {
+      // Scalar def-use cannot exclude state changes through another SSA or
+      // reference alias. Accept only an empty interval, conservatively missing
+      // safe nonempty intervals.
+      if (reset0->getNextNode() != reset.getOperation())
+        return failure();
       if (shouldSkipRewrite(reset, reset0))
         return failure();
       LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
@@ -760,6 +772,11 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be reset\n");
       return failure();
     }
+    // Scalar def-use cannot exclude uses through another SSA or reference
+    // alias. Accept only an empty interval, conservatively missing safe
+    // nonempty intervals.
+    if (reset0->getNextNode() != sink.getOperation())
+      return failure();
     if (shouldSkipRewrite(sink, reset0))
       return failure();
 
