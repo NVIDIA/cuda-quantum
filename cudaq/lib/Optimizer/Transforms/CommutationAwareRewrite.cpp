@@ -438,7 +438,7 @@ cudaq::opt::CommutationAwareRewriteMatcher::CommutationAwareRewriteMatcher(
 cudaq::opt::CommutationAwareRewriteMatcher::~CommutationAwareRewriteMatcher() =
     default;
 
-Operation *cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
+Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
     Operation *anchor, llvm::function_ref<bool(Operation *)> isEndpoint) {
   if (!anchor || !anchor->getBlock())
     return nullptr;
@@ -512,8 +512,8 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
 
     // Consumer policy owns the endpoint algebra.
     if (isFrontierHead && candidateInterface &&
-        (!hasDistinctQuantumOperands(anchor) ||
-         !hasDistinctQuantumOperands(candidate)))
+        (!has_distinct_quantum_operands(anchor) ||
+         !has_distinct_quantum_operands(candidate)))
       return nullptr;
     if (isFrontierHead && candidateInterface && isEndpoint(candidate)) {
       if (!doesCompleteFrontierReach(frontier, candidate))
@@ -539,7 +539,7 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
   return nullptr;
 }
 
-bool cudaq::opt::CommutationAwareRewriteMatcher::hasDistinctQuantumOperands(
+bool cudaq::opt::CommutationAwareRewriteMatcher::has_distinct_quantum_operands(
     Operation *operation) {
   if (!operation || !operation->getBlock() ||
       !isa<cudaq::quake::OperatorInterface>(operation))
@@ -552,15 +552,16 @@ bool cudaq::opt::CommutationAwareRewriteMatcher::hasDistinctQuantumOperands(
              .hasDistinctQuantumOperands(operation);
 }
 
-bool cudaq::opt::CommutationAwareRewriteMatcher::haveSameOrderedQuantumOperands(
-    Operation *lhs, Operation *rhs) {
+bool cudaq::opt::CommutationAwareRewriteMatcher::
+    have_same_ordered_quantum_operands(Operation *lhs, Operation *rhs) {
   if (!lhs || !rhs || !lhs->getBlock() || lhs->getBlock() != rhs->getBlock())
     return false;
   auto directThreading = classifyDirectWireThreading(lhs, rhs);
   if (directThreading == DirectWireThreading::Exact) {
     // Exact threading proves ordered roles; distinct logical operands remain a
     // separate precondition of the pair algebra.
-    return hasDistinctQuantumOperands(lhs) && hasDistinctQuantumOperands(rhs);
+    return has_distinct_quantum_operands(lhs) &&
+           has_distinct_quantum_operands(rhs);
   }
   if (directThreading == DirectWireThreading::Mismatch)
     return false;
@@ -580,17 +581,17 @@ cudaq::opt::CommutationAwareRewriteDriver::CommutationAwareRewriteDriver(
 cudaq::opt::CommutationAwareRewriteDriver::~CommutationAwareRewriteDriver() =
     default;
 
-RewritePatternSet &cudaq::opt::CommutationAwareRewriteDriver::getPatterns() {
+RewritePatternSet &cudaq::opt::CommutationAwareRewriteDriver::get_patterns() {
   return impl->patterns;
 }
 
 cudaq::opt::CommutationAwareRewriteMatcher &
-cudaq::opt::CommutationAwareRewriteDriver::getMatcher() {
+cudaq::opt::CommutationAwareRewriteDriver::get_matcher() {
   return *impl->matcher;
 }
 
 cudaq::opt::CommutationAwareRewriteStatistics
-cudaq::opt::CommutationAwareRewriteDriver::getStatistics() const {
+cudaq::opt::CommutationAwareRewriteDriver::get_statistics() const {
   return impl->matcher->impl->statistics;
 }
 

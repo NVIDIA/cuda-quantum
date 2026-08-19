@@ -41,7 +41,7 @@ public:
     auto ctx = circuit.getContext();
 
     cudaq::opt::CommutationAwareRewriteDriver driver(*ctx);
-    driver.getPatterns().add<ReplaceH>(ctx);
+    driver.get_patterns().add<ReplaceH>(ctx);
     if (failed(driver.run(circuit.getBody()))) {
       circuit.emitOpError("simple pass failed");
       signalPassFailure();

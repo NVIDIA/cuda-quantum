@@ -111,7 +111,7 @@ getSameActionEndpoint(QOP later, Operation *candidate,
                       cudaq::opt::CommutationAwareRewriteMatcher &matcher) {
   auto earlier = dyn_cast<QOP>(candidate);
   if (!earlier || !haveSameControlArityAndPolarity(later, earlier) ||
-      !matcher.haveSameOrderedQuantumOperands(later, earlier))
+      !matcher.have_same_ordered_quantum_operands(later, earlier))
     return {};
   return earlier;
 }
@@ -139,7 +139,7 @@ getCrossScopePredecessor(QOP later,
       predecessor->getNextNode() != scope.getOperation() ||
       later->getPrevNode() || shouldSkipRewrite(later, predecessor) ||
       !haveSameControlArityAndPolarity(predecessor, later) ||
-      !matcher.hasDistinctQuantumOperands(predecessor))
+      !matcher.has_distinct_quantum_operands(predecessor))
     return {};
 
   return predecessor;
@@ -191,7 +191,7 @@ static LogicalResult
 cancelTransparentPair(QOP later,
                       cudaq::opt::CommutationAwareRewriteMatcher &matcher,
                       PatternRewriter &rewriter, IsEndpoint isEndpoint) {
-  Operation *earlier = matcher.findNearest(later, isEndpoint);
+  Operation *earlier = matcher.find_nearest(later, isEndpoint);
   if (!earlier)
     return failure();
 
@@ -277,7 +277,7 @@ public:
         later, matcher, rewriter, [&](Operation *candidate) {
           auto earlier = dyn_cast<cudaq::quake::SwapOp>(candidate);
           return earlier && haveSameControlArityAndPolarity(later, earlier) &&
-                 (matcher.haveSameOrderedQuantumOperands(later, earlier) ||
+                 (matcher.have_same_ordered_quantum_operands(later, earlier) ||
                   hasTransposedTargetsOnEarlierWires(earlier, later));
         });
     if (succeeded(result)) {
@@ -405,7 +405,7 @@ public:
 
     // Stop at the first structurally matching action. Checking phi afterward
     // keeps a different axis as a barrier instead of searching past it.
-    Operation *match = matcher.findNearest(later, [&](Operation *candidate) {
+    Operation *match = matcher.find_nearest(later, [&](Operation *candidate) {
       return static_cast<bool>(
           getSameActionEndpoint(later, candidate, matcher));
     });
@@ -483,7 +483,7 @@ public:
     }
 
     Value laterAngle = parameters.front();
-    Operation *match = matcher.findNearest(later, [&](Operation *candidate) {
+    Operation *match = matcher.find_nearest(later, [&](Operation *candidate) {
       auto earlier = getSameActionEndpoint(later, candidate, matcher);
       if (!earlier)
         return false;
@@ -541,7 +541,7 @@ public:
 
   LogicalResult matchAndRewrite(SourceOp later,
                                 PatternRewriter &rewriter) const override {
-    Operation *match = matcher.findNearest(later, [&](Operation *candidate) {
+    Operation *match = matcher.find_nearest(later, [&](Operation *candidate) {
       return static_cast<bool>(
           getSameActionEndpoint(later, candidate, matcher));
     });
@@ -814,10 +814,10 @@ public:
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
     auto *ctx = &getContext();
     cudaq::opt::CommutationAwareRewriteDriver driver(*ctx, config);
-    auto &patterns = driver.getPatterns();
+    auto &patterns = driver.get_patterns();
     patterns.add<EraseDoubleReset, EraseResetSink>(ctx, numResetsErased);
     patterns.add<ReduceYSX>(ctx, numReduceYSXRewrites);
-    auto &matcher = driver.getMatcher();
+    auto &matcher = driver.get_matcher();
 
     patterns.add<PhasedRxCombine, RotationCombine<cudaq::quake::R1Op>,
                  RotationCombine<cudaq::quake::RxOp>,
@@ -845,7 +845,7 @@ public:
                                            numCliffordTRotations);
 
     LogicalResult result = driver.run(getOperation()->getRegion(0));
-    auto rewriteStatistics = driver.getStatistics();
+    auto rewriteStatistics = driver.get_statistics();
     numAnalysisBuilds += rewriteStatistics.analysisBuilds;
     numFallbackRebuilds += rewriteStatistics.fallbackRebuilds;
     if (failed(result))

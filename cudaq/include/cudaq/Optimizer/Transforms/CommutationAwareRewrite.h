@@ -83,21 +83,21 @@ public:
   /// supported scalar-wire flow, and before checking complete frontier
   /// alignment or deciding whether it may be crossed.
   mlir::Operation *
-  findNearest(mlir::Operation *anchor,
-              llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
+  find_nearest(mlir::Operation *anchor,
+               llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
 
   /// Return whether a supported scalar-wire operator uses a distinct logical
   /// qubit in every control and target role. Unary operators establish this
   /// structurally. Multi-wire operators require a known identity for every
   /// role and reject duplicate identities.
-  bool hasDistinctQuantumOperands(mlir::Operation *operation);
+  bool has_distinct_quantum_operands(mlir::Operation *operation);
 
   /// Return whether controls and targets carry the same ordered qubit
   /// identities and occupy the same roles. Direct scalar-wire consumers are
   /// decided from exact ordered def-use threading; non-direct queries fall back
   /// to the block-local commutation analysis.
-  bool haveSameOrderedQuantumOperands(mlir::Operation *lhs,
-                                      mlir::Operation *rhs);
+  bool have_same_ordered_quantum_operands(mlir::Operation *lhs,
+                                          mlir::Operation *rhs);
 
 private:
   class Impl;
@@ -112,10 +112,10 @@ private:
 /// Runs one commutation-aware greedy rewrite session.
 ///
 /// The driver is intended for use inside a pass; it does not register a pass
-/// itself. Consumers add patterns through `getPatterns()` and pass
-/// `getMatcher()` to patterns that need block-local endpoint searches. Consumer
-/// patterns own endpoint compatibility, replacement placement and semantics,
-/// `PatternBenefit`, convergence, and SSA rewiring.
+/// itself. Consumers add patterns through `get_patterns()` and pass
+/// `get_matcher()` to patterns that need block-local endpoint searches.
+/// Consumer patterns own endpoint compatibility, replacement placement and
+/// semantics, `PatternBenefit`, convergence, and SSA rewiring.
 ///
 /// A driver accepts exactly one `run()` call on a `Region` isolated from above.
 /// It owns the search state, pattern set, listener, and analysis state for that
@@ -141,15 +141,15 @@ public:
   operator=(const CommutationAwareRewriteDriver &) = delete;
 
   /// Return the mutable pattern set to populate before `run()`.
-  mlir::RewritePatternSet &getPatterns();
+  mlir::RewritePatternSet &get_patterns();
 
   /// Return the driver-owned endpoint search for use by consumer patterns.
-  CommutationAwareRewriteMatcher &getMatcher();
+  CommutationAwareRewriteMatcher &get_matcher();
 
   /// Return stable event counts for incremental-maintenance verification.
   /// Counts cover this driver's single rewrite invocation and any endpoint
   /// search queries made before it.
-  CommutationAwareRewriteStatistics getStatistics() const;
+  CommutationAwareRewriteStatistics get_statistics() const;
 
   /// Apply the owned pattern set to one region whose parent is isolated from
   /// above. Return failure on reuse or if the greedy driver does not converge.

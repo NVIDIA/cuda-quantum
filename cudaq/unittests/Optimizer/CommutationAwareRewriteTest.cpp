@@ -68,9 +68,9 @@ public:
 
   LogicalResult matchAndRewrite(QOP later,
                                 PatternRewriter &rewriter) const override {
-    Operation *earlier = matcher.findNearest(later, [&](Operation *candidate) {
+    Operation *earlier = matcher.find_nearest(later, [&](Operation *candidate) {
       return isa<QOP>(candidate) &&
-             matcher.haveSameOrderedQuantumOperands(later, candidate);
+             matcher.have_same_ordered_quantum_operands(later, candidate);
     });
     if (!earlier)
       return failure();
@@ -116,11 +116,11 @@ public:
       return failure();
     if (primedLater) {
       *primedMatched =
-          matcher.findNearest(primedLater, [this](Operation *candidate) {
+          matcher.find_nearest(primedLater, [this](Operation *candidate) {
             return candidate == primedEarlier;
           });
     }
-    matchedBefore = matcher.findNearest(later, reachesEarlier);
+    matchedBefore = matcher.find_nearest(later, reachesEarlier);
 
     auto replacedConstant =
         operation.getParameters().front().getDefiningOp<arith::ConstantOp>();
@@ -130,7 +130,7 @@ public:
         llvm::APFloat(2.0));
     rewriter.replaceOp(replacedConstant, replacement.getResult());
 
-    matchedAfter = matcher.findNearest(later, reachesEarlier);
+    matchedAfter = matcher.find_nearest(later, reachesEarlier);
     return success();
   }
 
@@ -156,9 +156,9 @@ public:
                                 PatternRewriter &rewriter) const override {
     if (later->getNumResults() != 2)
       return failure();
-    Operation *earlier = matcher.findNearest(later, [&](Operation *candidate) {
+    Operation *earlier = matcher.find_nearest(later, [&](Operation *candidate) {
       return isa<cudaq::quake::HOp>(candidate) &&
-             matcher.haveSameOrderedQuantumOperands(later, candidate);
+             matcher.have_same_ordered_quantum_operands(later, candidate);
     });
     if (!earlier || !later->getResult(0).hasOneUse() ||
         !later->getResult(1).hasOneUse())
@@ -178,7 +178,7 @@ public:
     rewriter.modifyOpInPlace(user, [&] {
       user->setAttr("unsupported_mutation", rewriter.getUnitAttr());
     });
-    matchedAfter = matcher.findNearest(
+    matchedAfter = matcher.find_nearest(
         next, [user](Operation *candidate) { return candidate == user; });
     return success();
   }
@@ -216,7 +216,7 @@ public:
     auto reachesEarlier = [earlier](Operation *candidate) {
       return candidate == earlier;
     };
-    matchedBefore = matcher.findNearest(later, reachesEarlier);
+    matchedBefore = matcher.find_nearest(later, reachesEarlier);
     if (!matchedBefore)
       return failure();
 
@@ -224,7 +224,7 @@ public:
     rewriter.setInsertionPointAfter(allocation);
     func::CallOp::create(rewriter, later.getLoc(), "opaque_classical",
                          TypeRange{}, ValueRange{});
-    matchedAfter = matcher.findNearest(later, reachesEarlier);
+    matchedAfter = matcher.find_nearest(later, reachesEarlier);
     return success();
   }
 
@@ -250,15 +250,15 @@ public:
   LogicalResult matchAndRewrite(cudaq::quake::XOp operation,
                                 PatternRewriter &rewriter) const override {
     if (moved || operation != destinationProbe ||
-        !matcher.hasDistinctQuantumOperands(sourceProbe) ||
-        !matcher.hasDistinctQuantumOperands(destinationProbe))
+        !matcher.has_distinct_quantum_operands(sourceProbe) ||
+        !matcher.has_distinct_quantum_operands(destinationProbe))
       return failure();
 
     rewriter.moveOpBefore(toMove, operation);
     moved = true;
-    sourceValidAfter = matcher.hasDistinctQuantumOperands(sourceProbe);
+    sourceValidAfter = matcher.has_distinct_quantum_operands(sourceProbe);
     destinationValidAfter =
-        matcher.hasDistinctQuantumOperands(destinationProbe);
+        matcher.has_distinct_quantum_operands(destinationProbe);
     return success();
   }
 
@@ -298,17 +298,17 @@ TEST_F(CommutationAwareRewriteTest, FindsNearestEarlierEndpoint) {
   Block &block = function.getBody().front();
   block.invalidateOpOrder();
   ASSERT_FALSE(block.isOpOrderValid());
-  Operation *match =
-      driver.getMatcher().findNearest(operators[2], [&](Operation *candidate) {
+  Operation *match = driver.get_matcher().find_nearest(
+      operators[2], [&](Operation *candidate) {
         return isa<cudaq::quake::HOp>(candidate) &&
-               driver.getMatcher().haveSameOrderedQuantumOperands(operators[2],
-                                                                  candidate);
+               driver.get_matcher().have_same_ordered_quantum_operands(
+                   operators[2], candidate);
       });
 
   EXPECT_EQ(match, operators[1]);
   EXPECT_FALSE(block.isOpOrderValid());
-  EXPECT_TRUE(driver.getMatcher().hasDistinctQuantumOperands(operators[2]));
-  EXPECT_EQ(driver.getStatistics().analysisBuilds, 0u);
+  EXPECT_TRUE(driver.get_matcher().has_distinct_quantum_operands(operators[2]));
+  EXPECT_EQ(driver.get_statistics().analysisBuilds, 0u);
 }
 
 TEST_F(CommutationAwareRewriteTest,
@@ -334,13 +334,14 @@ TEST_F(CommutationAwareRewriteTest,
   cudaq::opt::CommutationAwareRewriteDriver driver(context);
   auto operators = getOperators(getFunction(*module, "dynamic_pauli"));
   ASSERT_EQ(operators.size(), 2u);
-  EXPECT_TRUE(driver.getMatcher().hasDistinctQuantumOperands(operators[0]));
-  EXPECT_EQ(driver.getMatcher().findNearest(operators[1],
-                                            [&](Operation *candidate) {
-                                              return candidate == operators[0];
-                                            }),
+  EXPECT_TRUE(driver.get_matcher().has_distinct_quantum_operands(operators[0]));
+  EXPECT_EQ(driver.get_matcher().find_nearest(operators[1],
+                                              [&](Operation *candidate) {
+                                                return candidate ==
+                                                       operators[0];
+                                              }),
             operators[0]);
-  EXPECT_EQ(driver.getStatistics().analysisBuilds, 1u);
+  EXPECT_EQ(driver.get_statistics().analysisBuilds, 1u);
 }
 
 TEST_F(CommutationAwareRewriteTest, RequiresCompleteMultiWireFrontier) {
@@ -371,10 +372,9 @@ TEST_F(CommutationAwareRewriteTest, RequiresCompleteMultiWireFrontier) {
   Block &block = function.getBody().front();
   block.invalidateOpOrder();
   ASSERT_FALSE(block.isOpOrderValid());
-  Operation *match =
-      driver.getMatcher().findNearest(operators[2], [&](Operation *candidate) {
-        return candidate == operators[0];
-      });
+  Operation *match = driver.get_matcher().find_nearest(
+      operators[2],
+      [&](Operation *candidate) { return candidate == operators[0]; });
 
   EXPECT_EQ(match, operators[0]);
   EXPECT_FALSE(block.isOpOrderValid());
@@ -400,8 +400,8 @@ TEST_F(CommutationAwareRewriteTest, StopsAtIncompleteMultiWireFrontier) {
   auto operators = getOperators(getFunction(*module, "incomplete_frontier"));
   ASSERT_EQ(operators.size(), 2u);
   unsigned predicateCalls = 0;
-  Operation *match =
-      driver.getMatcher().findNearest(operators[1], [&](Operation *candidate) {
+  Operation *match = driver.get_matcher().find_nearest(
+      operators[1], [&](Operation *candidate) {
         ++predicateCalls;
         return candidate == operators[0];
       });
@@ -435,10 +435,9 @@ TEST_F(CommutationAwareRewriteTest, RejectsBranchedProducerResult) {
   ASSERT_EQ(std::distance(operators[0]->getResult(0).use_begin(),
                           operators[0]->getResult(0).use_end()),
             2);
-  EXPECT_FALSE(
-      driver.getMatcher().findNearest(operators[1], [&](Operation *candidate) {
-        return candidate == operators[0];
-      }));
+  EXPECT_FALSE(driver.get_matcher().find_nearest(
+      operators[1],
+      [&](Operation *candidate) { return candidate == operators[0]; }));
 }
 
 TEST_F(CommutationAwareRewriteTest, RejectsUnsupportedCallBoundary) {
@@ -460,8 +459,8 @@ TEST_F(CommutationAwareRewriteTest, RejectsUnsupportedCallBoundary) {
   auto operators = getOperators(getFunction(*module, "call_boundary"));
   ASSERT_EQ(operators.size(), 2u);
   unsigned predicateCalls = 0;
-  EXPECT_FALSE(
-      driver.getMatcher().findNearest(operators[1], [&](Operation *candidate) {
+  EXPECT_FALSE(driver.get_matcher().find_nearest(
+      operators[1], [&](Operation *candidate) {
         ++predicateCalls;
         return candidate == operators[0];
       }));
@@ -512,11 +511,11 @@ TEST_F(CommutationAwareRewriteTest,
 
   auto cancelFunction = getFunction(*module, "adjacent_cancel");
   cudaq::opt::CommutationAwareRewriteDriver cancelDriver(context);
-  cancelDriver.getPatterns().add<CancelHadamard>(&context,
-                                                 cancelDriver.getMatcher());
+  cancelDriver.get_patterns().add<CancelHadamard>(&context,
+                                                  cancelDriver.get_matcher());
   EXPECT_TRUE(succeeded(cancelDriver.run(cancelFunction.getBody())));
   EXPECT_TRUE(cancelFunction.getOps<cudaq::quake::HOp>().empty());
-  EXPECT_EQ(cancelDriver.getStatistics().analysisBuilds, 0u);
+  EXPECT_EQ(cancelDriver.get_statistics().analysisBuilds, 0u);
 
   EXPECT_TRUE(succeeded(verify(*module)));
 }
@@ -542,9 +541,9 @@ TEST_F(CommutationAwareRewriteTest,
   cudaq::opt::CommutationAwareRewriteDriver driver(context);
   auto operators = getOperators(getFunction(*module, "role_mismatch"));
   ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(driver.getMatcher().haveSameOrderedQuantumOperands(
+  EXPECT_FALSE(driver.get_matcher().have_same_ordered_quantum_operands(
       operators[0], operators[1]));
-  EXPECT_EQ(driver.getStatistics().analysisBuilds, 0u);
+  EXPECT_EQ(driver.get_statistics().analysisBuilds, 0u);
 }
 
 TEST_F(CommutationAwareRewriteTest, RejectsDirectRepeatedWireOperand) {
@@ -568,15 +567,16 @@ TEST_F(CommutationAwareRewriteTest, RejectsDirectRepeatedWireOperand) {
   cudaq::opt::CommutationAwareRewriteDriver driver(context);
   auto operators = getOperators(getFunction(*module, "repeated_wire"));
   ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(
-      driver.getMatcher().findNearest(operators[1], [&](Operation *candidate) {
-        return candidate == operators[0];
-      }));
-  EXPECT_FALSE(driver.getMatcher().haveSameOrderedQuantumOperands(
+  EXPECT_FALSE(driver.get_matcher().find_nearest(
+      operators[1],
+      [&](Operation *candidate) { return candidate == operators[0]; }));
+  EXPECT_FALSE(driver.get_matcher().have_same_ordered_quantum_operands(
       operators[0], operators[1]));
-  EXPECT_FALSE(driver.getMatcher().hasDistinctQuantumOperands(operators[0]));
-  EXPECT_FALSE(driver.getMatcher().hasDistinctQuantumOperands(operators[1]));
-  EXPECT_EQ(driver.getStatistics().analysisBuilds, 1u);
+  EXPECT_FALSE(
+      driver.get_matcher().has_distinct_quantum_operands(operators[0]));
+  EXPECT_FALSE(
+      driver.get_matcher().has_distinct_quantum_operands(operators[1]));
+  EXPECT_EQ(driver.get_statistics().analysisBuilds, 1u);
 }
 
 TEST_F(CommutationAwareRewriteTest, RejectsDirectAliasedWireOperands) {
@@ -602,15 +602,16 @@ TEST_F(CommutationAwareRewriteTest, RejectsDirectAliasedWireOperands) {
   cudaq::opt::CommutationAwareRewriteDriver driver(context);
   auto operators = getOperators(getFunction(*module, "aliased_wires"));
   ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(
-      driver.getMatcher().findNearest(operators[1], [&](Operation *candidate) {
-        return candidate == operators[0];
-      }));
-  EXPECT_FALSE(driver.getMatcher().haveSameOrderedQuantumOperands(
+  EXPECT_FALSE(driver.get_matcher().find_nearest(
+      operators[1],
+      [&](Operation *candidate) { return candidate == operators[0]; }));
+  EXPECT_FALSE(driver.get_matcher().have_same_ordered_quantum_operands(
       operators[0], operators[1]));
-  EXPECT_FALSE(driver.getMatcher().hasDistinctQuantumOperands(operators[0]));
-  EXPECT_FALSE(driver.getMatcher().hasDistinctQuantumOperands(operators[1]));
-  EXPECT_EQ(driver.getStatistics().analysisBuilds, 1u);
+  EXPECT_FALSE(
+      driver.get_matcher().has_distinct_quantum_operands(operators[0]));
+  EXPECT_FALSE(
+      driver.get_matcher().has_distinct_quantum_operands(operators[1]));
+  EXPECT_EQ(driver.get_statistics().analysisBuilds, 1u);
 }
 
 TEST_F(CommutationAwareRewriteTest,
@@ -657,12 +658,12 @@ TEST_F(CommutationAwareRewriteTest,
   GreedyRewriteConfig config;
   config.setListener(&listener);
   cudaq::opt::CommutationAwareRewriteDriver driver(context, config);
-  driver.getPatterns().add<CancelHadamard>(&context, driver.getMatcher());
+  driver.get_patterns().add<CancelHadamard>(&context, driver.get_matcher());
 
   EXPECT_TRUE(succeeded(driver.run(function.getBody())));
   EXPECT_TRUE(function.getOps<cudaq::quake::HOp>().empty());
   EXPECT_GT(listener.eraseCount, 0u);
-  auto statistics = driver.getStatistics();
+  auto statistics = driver.get_statistics();
   EXPECT_EQ(statistics.analysisBuilds, 1u);
   EXPECT_EQ(statistics.fallbackRebuilds, 0u);
   EXPECT_TRUE(succeeded(verify(*module)));
@@ -678,12 +679,12 @@ TEST_F(CommutationAwareRewriteTest,
                                                             parameterConfig);
   bool matchedBefore = false;
   bool matchedAfter = true;
-  parameterDriver.getPatterns().add<ReplaceOperatorParameter>(
-      &context, parameterDriver.getMatcher(), matchedBefore, matchedAfter);
+  parameterDriver.get_patterns().add<ReplaceOperatorParameter>(
+      &context, parameterDriver.get_matcher(), matchedBefore, matchedAfter);
   EXPECT_TRUE(succeeded(parameterDriver.run(parameterFunction.getBody())));
   EXPECT_TRUE(matchedBefore);
   EXPECT_FALSE(matchedAfter);
-  auto parameterStatistics = parameterDriver.getStatistics();
+  auto parameterStatistics = parameterDriver.get_statistics();
   EXPECT_EQ(parameterStatistics.analysisBuilds, 1u);
   EXPECT_EQ(parameterStatistics.fallbackRebuilds, 0u);
 
@@ -694,12 +695,12 @@ TEST_F(CommutationAwareRewriteTest,
       getFunction(*module, "same_owner_then_unsupported_mutation");
   cudaq::opt::CommutationAwareRewriteDriver mutationDriver(context);
   bool matchedAfterMutation = false;
-  mutationDriver.getPatterns().add<CancelHadamardThenModifyUser>(
-      &context, mutationDriver.getMatcher(), matchedAfterMutation);
+  mutationDriver.get_patterns().add<CancelHadamardThenModifyUser>(
+      &context, mutationDriver.get_matcher(), matchedAfterMutation);
   EXPECT_TRUE(succeeded(mutationDriver.run(mutationFunction.getBody())));
   EXPECT_TRUE(matchedAfterMutation);
   EXPECT_TRUE(mutationFunction.getOps<cudaq::quake::HOp>().empty());
-  auto mutationStatistics = mutationDriver.getStatistics();
+  auto mutationStatistics = mutationDriver.get_statistics();
   EXPECT_EQ(mutationStatistics.analysisBuilds, 2u);
   EXPECT_EQ(mutationStatistics.fallbackRebuilds, 1u);
   EXPECT_TRUE(succeeded(verify(*module)));
@@ -731,14 +732,14 @@ TEST_F(CommutationAwareRewriteTest,
   bool inserted = false;
   bool matchedBefore = false;
   bool matchedAfter = true;
-  driver.getPatterns().add<InsertOpaqueClassicalCallAfterAnalysis>(
-      &context, driver.getMatcher(), inserted, matchedBefore, matchedAfter);
+  driver.get_patterns().add<InsertOpaqueClassicalCallAfterAnalysis>(
+      &context, driver.get_matcher(), inserted, matchedBefore, matchedAfter);
 
   EXPECT_TRUE(succeeded(driver.run(function.getBody())));
   EXPECT_TRUE(inserted);
   EXPECT_TRUE(matchedBefore);
   EXPECT_FALSE(matchedAfter);
-  auto statistics = driver.getStatistics();
+  auto statistics = driver.get_statistics();
   EXPECT_EQ(statistics.analysisBuilds, 2u);
   EXPECT_EQ(statistics.fallbackRebuilds, 1u);
   EXPECT_TRUE(succeeded(verify(*module)));
@@ -784,8 +785,8 @@ TEST_F(CommutationAwareRewriteTest, RebuildsBothBlocksAfterOperationMove) {
   bool moved = false;
   bool sourceValidAfter = false;
   bool destinationValidAfter = false;
-  driver.getPatterns().add<MoveClassicalOperationAfterAnalysis>(
-      &context, driver.getMatcher(), sourceOperators[0],
+  driver.get_patterns().add<MoveClassicalOperationAfterAnalysis>(
+      &context, driver.get_matcher(), sourceOperators[0],
       destinationOperators[0], constants[0], moved, sourceValidAfter,
       destinationValidAfter);
 
@@ -793,7 +794,7 @@ TEST_F(CommutationAwareRewriteTest, RebuildsBothBlocksAfterOperationMove) {
   EXPECT_TRUE(moved);
   EXPECT_TRUE(sourceValidAfter);
   EXPECT_TRUE(destinationValidAfter);
-  auto statistics = driver.getStatistics();
+  auto statistics = driver.get_statistics();
   EXPECT_EQ(statistics.analysisBuilds, 4u);
   EXPECT_EQ(statistics.fallbackRebuilds, 2u);
   EXPECT_TRUE(succeeded(verify(*module)));
@@ -836,15 +837,15 @@ TEST_F(CommutationAwareRewriteTest,
   bool outerMatched = false;
   bool matchedBefore = false;
   bool matchedAfter = true;
-  driver.getPatterns().add<ReplaceOperatorParameter>(
-      &context, driver.getMatcher(), matchedBefore, matchedAfter,
+  driver.get_patterns().add<ReplaceOperatorParameter>(
+      &context, driver.get_matcher(), matchedBefore, matchedAfter,
       outerOperators[1], outerOperators[0], &outerMatched);
 
   EXPECT_TRUE(succeeded(driver.run(function.getBody())));
   EXPECT_TRUE(outerMatched);
   EXPECT_TRUE(matchedBefore);
   EXPECT_FALSE(matchedAfter);
-  auto statistics = driver.getStatistics();
+  auto statistics = driver.get_statistics();
   EXPECT_EQ(statistics.analysisBuilds, 2u);
   EXPECT_EQ(statistics.fallbackRebuilds, 0u);
   EXPECT_TRUE(succeeded(verify(*module)));
