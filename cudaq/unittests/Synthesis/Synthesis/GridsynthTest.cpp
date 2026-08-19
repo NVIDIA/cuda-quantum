@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "Math/Diophantine.h"
 #include "cudaq/Synthesis/Math/Real.h"
@@ -495,6 +496,59 @@ TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
 
   worker.join();
   EXPECT_GT(stats.candidates_enumerated, 0);
+}
+
+// ============================================================
+// Concurrency
+// ============================================================
+
+// gridsynth raises the default precision to what its epsilon needs, and every
+// Real reads that on construction. Held process-wide, two calls at different
+// tolerances would each build Reals at whichever precision the other set last,
+// and the tighter one would silently return a circuit outside its tolerance.
+TEST(GridsynthConcurrencyTest, ConcurrentCallsAtDifferentEpsilonsStayInBounds) {
+  struct Job {
+    const char *theta;
+    const char *epsilon;
+  };
+  // Spread far enough apart that borrowing another thread's precision cannot
+  // still satisfy the tighter tolerance.
+  const Job jobs[] = {
+      {kSeedSensitiveTheta, "1e-4"},  {kSeedSensitiveTheta, "1e-30"},
+      {kSeedSensitiveTheta, "1e-8"},  {kSeedSensitiveTheta, "1e-25"},
+      {kSeedSensitiveTheta, "1e-12"}, {kSeedSensitiveTheta, "1e-35"},
+  };
+
+  std::vector<std::thread> workers;
+  std::atomic<int> failures{0};
+  std::atomic<int> out_of_tolerance{0};
+
+  for (const Job &job : jobs) {
+    workers.emplace_back([&job, &failures, &out_of_tolerance] {
+      for (int i = 0; i < 8; ++i) {
+        llvm::FailureOr<Circuit> result =
+            cudaq::synth::gridsynth(Real(job.theta), Real(job.epsilon));
+        if (llvm::failed(result)) {
+          failures++;
+          continue;
+        }
+        // Compare at a precision that can represent the tolerance, whatever
+        // the worker threads left behind.
+        ScopedPrecision precision(
+            cudaq::synth::details::required_precision(Real(job.epsilon)));
+        Real err(cudaq::synth::rz_gate_sequence_error(job.theta, *result));
+        if (!(err <= Real(job.epsilon)))
+          out_of_tolerance++;
+      }
+    });
+  }
+  for (std::thread &worker : workers)
+    worker.join();
+
+  EXPECT_EQ(failures, 0);
+  EXPECT_EQ(out_of_tolerance, 0)
+      << "a concurrent call returned a circuit outside its own epsilon, so the "
+         "default precision is being shared across threads";
 }
 
 // ============================================================

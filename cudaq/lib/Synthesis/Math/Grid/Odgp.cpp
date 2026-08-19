@@ -181,7 +181,7 @@ OdgpStepper::OdgpStepper(Interval I, Interval J, uint64_t max_scan_steps)
   // Repeatedly multiply cur_I by lambda^n and cur_J by (lambda*)^n until
   // cur_J is narrow enough for direct enumeration. Each iteration shrinks
   // cur_J by lambda^(2n) so the loop terminates quickly.
-  static PrecisionCachedReal lambda_real_cache;
+  static thread_local PrecisionCachedReal lambda_real_cache;
   const Real &lambda_real =
       lambda_real_cache.get([] { return to_real(ZSqrt2::lambda()); });
   while (cur_J.width() > 0) {
