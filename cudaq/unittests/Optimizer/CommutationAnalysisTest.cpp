@@ -22,10 +22,9 @@
 
 using namespace mlir;
 
-using cudaq::quake::detail::CommutationAnalysis;
-using cudaq::quake::detail::CommutationReason;
-using cudaq::quake::detail::CommutationStatus;
-using cudaq::quake::detail::getCommutationReasonId;
+using CommutationAnalysis = cudaq::quake::detail::CommutationAnalysis;
+using CommutationReason = cudaq::quake::detail::CommutationReason;
+using CommutationStatus = cudaq::quake::detail::CommutationStatus;
 
 namespace {
 class CommutationAnalysisTest : public ::testing::Test {
@@ -61,8 +60,7 @@ protected:
     return operators;
   }
 
-  // Check that both operand orders produce the expected detailed result and
-  // that the boolean convenience query agrees with the commutation status.
+  // Check that both operand orders produce the expected detailed result.
   static void expectPair(CommutationAnalysis &analysis, Operation *lhs,
                          Operation *rhs, CommutationStatus status,
                          CommutationReason reason) {
@@ -72,17 +70,13 @@ protected:
     EXPECT_EQ(forward.reason, reason);
     EXPECT_EQ(reverse.status, status);
     EXPECT_EQ(reverse.reason, reason);
-    EXPECT_EQ(analysis.canCommute(lhs, rhs),
-              status == CommutationStatus::Commutes);
-    EXPECT_EQ(analysis.canCommute(rhs, lhs),
-              status == CommutationStatus::Commutes);
   }
 
   MLIRContext context;
 };
 } // namespace
 
-TEST_F(CommutationAnalysisTest, DisjointSupport) {
+TEST_F(CommutationAnalysisTest, CommutesOperationsOnDifferentQubits) {
   auto module = parseModule(R"mlir(
     module {
       func.func @disjoint() {
@@ -103,6 +97,47 @@ TEST_F(CommutationAnalysisTest, DisjointSupport) {
   // X and H act on different virtual qubits.
   expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
              CommutationReason::DisjointSupport);
+}
+
+TEST_F(CommutationAnalysisTest, CanCommuteIsTrueOnlyForProvenCommutation) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @boolean_contract() {
+        %q0 = quake.null_wire
+        %q1 = quake.null_wire
+        %q2 = quake.null_wire
+        %x = quake.x %q0 : (!quake.wire) -> !quake.wire
+        %z = quake.z %x : (!quake.wire) -> !quake.wire
+        %disjoint = quake.h %q1 : (!quake.wire) -> !quake.wire
+        %h = quake.h %q2 : (!quake.wire) -> !quake.wire
+        %s = quake.s %h : (!quake.wire) -> !quake.wire
+        quake.sink %z : !quake.wire
+        quake.sink %disjoint : !quake.wire
+        quake.sink %s : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+  auto function = getFunction(*module, "boolean_contract");
+  auto operators = getOperators(function);
+  ASSERT_EQ(operators.size(), 5u);
+  CommutationAnalysis analysis(function.front());
+
+  struct Query {
+    Operation *lhs;
+    Operation *rhs;
+    CommutationStatus status;
+    bool canCommute;
+  };
+  const Query queries[] = {
+      {operators[0], operators[2], CommutationStatus::Commutes, true},
+      {operators[0], operators[1], CommutationStatus::DoesNotCommute, false},
+      {operators[3], operators[4], CommutationStatus::Indeterminate, false},
+  };
+  for (const auto &query : queries) {
+    EXPECT_EQ(analysis.getResult(query.lhs, query.rhs).status, query.status);
+    EXPECT_EQ(analysis.canCommute(query.lhs, query.rhs), query.canCommute);
+  }
 }
 
 TEST_F(CommutationAnalysisTest, FreshReferenceProvenanceBoundaries) {
@@ -242,7 +277,7 @@ TEST_F(CommutationAnalysisTest, UnknownSuccessorArgumentSupport) {
              CommutationReason::UnmappedQubitId);
 }
 
-TEST_F(CommutationAnalysisTest, SameOperation) {
+TEST_F(CommutationAnalysisTest, CommutesMatchingOperationsAndAdjoints) {
   auto module = parseModule(R"mlir(
     module {
       func.func @same_operation(%theta: f64) {
@@ -288,7 +323,7 @@ TEST_F(CommutationAnalysisTest, SameOperation) {
              CommutationReason::SameOperation);
 }
 
-TEST_F(CommutationAnalysisTest, ComputationalDiagonal) {
+TEST_F(CommutationAnalysisTest, CommutesComputationalBasisDiagonalOperations) {
   auto module = parseModule(R"mlir(
     module {
       func.func @diagonal() {
@@ -319,7 +354,8 @@ TEST_F(CommutationAnalysisTest, ComputationalDiagonal) {
              CommutationReason::ComputationalDiagonal);
 }
 
-TEST_F(CommutationAnalysisTest, SameAxis) {
+TEST_F(CommutationAnalysisTest,
+       CommutesMatchingAxesAndRejectsDifferentPhasedAxes) {
   auto module = parseModule(R"mlir(
     module {
       func.func @same_axis() {
@@ -363,7 +399,8 @@ TEST_F(CommutationAnalysisTest, SameAxis) {
              CommutationReason::SameAxis);
 }
 
-TEST_F(CommutationAnalysisTest, PauliParity) {
+TEST_F(CommutationAnalysisTest,
+       ClassifiesPauliProductsByAnticommutationParity) {
   auto module = parseModule(R"mlir(
     module {
       func.func @pauli_parity(%word: !cc.charspan) {
@@ -527,9 +564,6 @@ TEST_F(CommutationAnalysisTest, MeasurementInstrumentRelations) {
   expectPair(measurementAnalysis, xOps[0], mxOps[0],
              CommutationStatus::Commutes,
              CommutationReason::MeasurementInstrumentBasis);
-  EXPECT_EQ(
-      getCommutationReasonId(CommutationReason::MeasurementInstrumentBasis),
-      "measurement-instrument-basis");
   // The later Rx retains the measured wire's block-local identity.
   expectPair(measurementAnalysis, xOps[0], rxOps[0],
              CommutationStatus::Commutes, CommutationReason::SameAxis);
@@ -566,8 +600,6 @@ TEST_F(CommutationAnalysisTest, ResetChannelRelations) {
   expectPair(resetAnalysis, resetZOps[0], resetOps[0],
              CommutationStatus::Commutes,
              CommutationReason::PreservedResetState);
-  EXPECT_EQ(getCommutationReasonId(CommutationReason::PreservedResetState),
-            "preserved-reset-state");
   // The later S retains the reset wire's block-local identity.
   expectPair(resetAnalysis, resetZOps[0], sOps[0], CommutationStatus::Commutes,
              CommutationReason::ComputationalDiagonal);
@@ -607,7 +639,8 @@ TEST_F(CommutationAnalysisTest, UnsupportedMeasurementInstrumentBoundary) {
              CommutationReason::NoApplicableRule);
 }
 
-TEST_F(CommutationAnalysisTest, CustomUnitaryRules) {
+TEST_F(CommutationAnalysisTest,
+       CommutesMatchingCustomUnitariesAndRejectsOpaqueDifferences) {
   auto module = parseModule(R"mlir(
     module {
       func.func private @unitary_generator()
@@ -667,7 +700,8 @@ TEST_F(CommutationAnalysisTest, CustomUnitaryRules) {
              CommutationStatus::Commutes, CommutationReason::SameOperation);
 }
 
-TEST_F(CommutationAnalysisTest, UnsupportedQueries) {
+TEST_F(CommutationAnalysisTest,
+       ReturnsIndeterminateForUnsupportedOrUnresolvedQueries) {
   auto module = parseModule(R"mlir(
     module {
       func.func private @wire_source() -> !quake.wire
@@ -777,4 +811,41 @@ TEST_F(CommutationAnalysisTest, UnsupportedQueries) {
   expectPair(analysis, operators[0], otherOperators[0],
              CommutationStatus::Indeterminate,
              CommutationReason::DifferentBlocks);
+}
+
+TEST(CommutationReasonTest, ReturnsStableIdentifierForEveryReason) {
+  struct ReasonCase {
+    CommutationReason reason;
+    llvm::StringLiteral identifier;
+  };
+  static constexpr ReasonCase cases[] = {
+      {CommutationReason::DisjointSupport, "disjoint-support"},
+      {CommutationReason::SameOperation, "same-operation"},
+      {CommutationReason::ComputationalDiagonal, "computational-diagonal"},
+      {CommutationReason::SameAxis, "same-axis"},
+      {CommutationReason::MeasurementInstrumentBasis,
+       "measurement-instrument-basis"},
+      {CommutationReason::PreservedResetState, "preserved-reset-state"},
+      {CommutationReason::EvenPauliParity, "even-pauli-parity"},
+      {CommutationReason::DiagonalOnControls, "diagonal-on-controls"},
+      {CommutationReason::CompatibleControlledTargets,
+       "compatible-controlled-targets"},
+      {CommutationReason::MutuallyExclusiveControls,
+       "mutually-exclusive-controls"},
+      {CommutationReason::OddPauliParity, "odd-pauli-parity"},
+      {CommutationReason::NullOperation, "null-operation"},
+      {CommutationReason::DifferentBlocks, "different-blocks"},
+      {CommutationReason::UnsupportedOperationKind,
+       "unsupported-operation-kind"},
+      {CommutationReason::UnsupportedQuantumOperandType,
+       "unsupported-quantum-operand-type"},
+      {CommutationReason::UnmappedQubitId, "unmapped-qubit-id"},
+      {CommutationReason::DuplicateQubitOperand, "duplicate-qubit-operand"},
+      {CommutationReason::UnsupportedPauliWord, "unsupported-pauli-word"},
+      {CommutationReason::NoApplicableRule, "no-applicable-rule"},
+  };
+
+  for (const auto &testCase : cases)
+    EXPECT_EQ(cudaq::quake::detail::getCommutationReasonId(testCase.reason),
+              testCase.identifier);
 }

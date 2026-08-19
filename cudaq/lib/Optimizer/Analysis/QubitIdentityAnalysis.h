@@ -20,10 +20,9 @@ class Block;
 namespace cudaq::quake::detail {
 
 /// Assigns analysis-local identifiers to virtual qubits represented by scalar
-/// `!quake.wire` values within one block of valid Quake IR. The supported mixed
-/// subset contains scalar wire operators and the reference boundaries described
-/// below. `CommutationAnalysis` uses these identifiers to determine whether
-/// operations act on the same or disjoint virtual qubits.
+/// `!quake.wire` values and supported reference boundaries within one block of
+/// valid Quake IR. `CommutationAnalysis` uses these identifiers to determine
+/// whether operations act on the same or disjoint virtual qubits.
 ///
 /// `quake.null_wire`, `quake.borrow_wire`, and direct scalar `quake.alloca`
 /// operations establish local identities. An allocation identity reaches wires
@@ -44,7 +43,6 @@ namespace cudaq::quake::detail {
 /// reference arguments, reference selections, aggregates, unsupported
 /// non-unitary quantum operations, or block edges. Vector allocations and
 /// references derived through `quake.extract_ref` or `quake.concat` remain
-/// unidentified. Values that cannot be identified unambiguously remain
 /// unidentified. Any mutation of the block invalidates the analysis.
 class QubitIdentityAnalysis {
 public:

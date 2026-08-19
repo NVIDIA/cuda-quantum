@@ -15,7 +15,7 @@
 
 using namespace mlir;
 
-using cudaq::quake::detail::QubitIdentityAnalysis;
+using QubitIdentityAnalysis = cudaq::quake::detail::QubitIdentityAnalysis;
 using QubitId = QubitIdentityAnalysis::QubitId;
 using BorrowKey = std::pair<Attribute, std::int32_t>;
 using QubitIdMap = llvm::DenseMap<Value, QubitId>;
@@ -47,11 +47,9 @@ static void updateWrappedIdentity(QubitIdMap &qubitIds,
     referenceQubitIds.erase(referenceId);
 }
 
-// Build block-local qubit identities in program order. Null wires introduce
-// IDs, scalar allocations identify their later unwraps, repeated borrows reuse
-// their (wire set, identity) ID, and supported scalar-wire operations propagate
-// IDs. Block arguments remain unknown because valid IR does not guarantee
-// distinct incoming wires.
+// Scan in program order because opaque effects and untracked wraps invalidate
+// only the reference bindings active at that point. Block arguments remain
+// unknown because valid IR does not guarantee distinct incoming wires.
 static void buildQubitIdMap(Block &block, QubitIdMap &qubitIds) {
   QubitId nextQubitId = 0;
   llvm::DenseMap<BorrowKey, QubitId> borrowedQubitIds;

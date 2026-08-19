@@ -20,13 +20,13 @@
 
 using namespace mlir;
 
-using cudaq::quake::Pauli;
-using cudaq::quake::PauliWord;
-using cudaq::quake::detail::CommutationAnalysis;
-using cudaq::quake::detail::CommutationReason;
-using cudaq::quake::detail::CommutationResult;
-using cudaq::quake::detail::CommutationStatus;
-using cudaq::quake::detail::QubitIdentityAnalysis;
+using Pauli = cudaq::quake::Pauli;
+using PauliWord = cudaq::quake::PauliWord;
+using CommutationAnalysis = cudaq::quake::detail::CommutationAnalysis;
+using CommutationReason = cudaq::quake::detail::CommutationReason;
+using CommutationResult = cudaq::quake::detail::CommutationResult;
+using CommutationStatus = cudaq::quake::detail::CommutationStatus;
+using QubitIdentityAnalysis = cudaq::quake::detail::QubitIdentityAnalysis;
 
 namespace {
 using QubitId = QubitIdentityAnalysis::QubitId;
@@ -112,17 +112,14 @@ static bool isPauliOperator(Operation *operation) {
       operation);
 }
 
-// Identify operations whose target action is on the Pauli-X axis.
 static bool isXAxis(Operation *operation) {
   return isa<cudaq::quake::XOp, cudaq::quake::RxOp>(operation);
 }
 
-// Identify operations whose target action is on the Pauli-Y axis.
 static bool isYAxis(Operation *operation) {
   return isa<cudaq::quake::YOp, cudaq::quake::RyOp>(operation);
 }
 
-// Identify operations whose target action is on the Pauli-Z axis.
 static bool isZAxis(Operation *operation) {
   return isa<cudaq::quake::ZOp, cudaq::quake::SOp, cudaq::quake::TOp,
              cudaq::quake::R1Op, cudaq::quake::RzOp>(operation);
