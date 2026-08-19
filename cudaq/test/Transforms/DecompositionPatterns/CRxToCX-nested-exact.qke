@@ -1,0 +1,49 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Preserve the scalar CRx residue when an outer control is introduced later.
+// The inner Rx predicate is deliberately separate: the phase must depend on
+// the outer control only, including when the inner control is inactive.
+// CRxToCX.qke validates the decomposition itself. This test covers its phase
+// correction through controlled-apply specialization and late lowering.
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
+// RUN:   %s | FileCheck %s --check-prefix=PHASE
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
+// RUN:   --expand-control-veqs --cse --normalize-phase-placement --lower-phase \
+// RUN:   --canonicalize %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+
+func.func private @crx_exact(%inner: !quake.ref, %target: !quake.ref) {
+  %half = arith.constant 6.170000e-01 : f64
+  %neg_half = arith.constant -6.170000e-01 : f64
+  %pi_2 = arith.constant -1.5707963267948966 : f64
+  %phase = arith.constant -0.78539816339744828 : f64
+  quake.s %target : (!quake.ref) -> ()
+  quake.x [%inner] %target : (!quake.ref, !quake.ref) -> ()
+  quake.ry (%neg_half) %target : (f64, !quake.ref) -> ()
+  quake.x [%inner] %target : (!quake.ref, !quake.ref) -> ()
+  quake.ry (%half) %target : (f64, !quake.ref) -> ()
+  quake.rz (%pi_2) %target : (f64, !quake.ref) -> ()
+  quake.phase (%phase) %target : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @nested_crx(%outer: !quake.ref, %inner: !quake.ref,
+                      %target: !quake.ref) {
+  quake.h %outer : (!quake.ref) -> ()
+  quake.apply @crx_exact [%outer] %inner, %target
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.h %outer : (!quake.ref) -> ()
+  return
+}
+
+// PHASE-LABEL: func.func @nested_crx
+// PHASE: %[[OUTER:.*]] = quake.concat
+// PHASE: quake.x [%[[OUTER]], %{{.*}}]
+// PHASE: quake.phase {{.*}}[%[[OUTER]]]
+// LOWER-LABEL: func.func @nested_crx
+// LOWER: quake.r1
