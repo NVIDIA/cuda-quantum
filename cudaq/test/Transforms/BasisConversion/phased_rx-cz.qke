@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --basis-conversion="basis=z(1),phased_rx" %s | FileCheck %s
-// RUN: cudaq-opt --basis-conversion="basis=z(1),phased_rx" %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt --basis-conversion="basis=z(1),phased_rx" %s | CircuitCheck %s
 
 
 // CHECK-LABEL: func.func @cx

@@ -28,6 +28,85 @@ struct ExpandedControlVeqs {
   bool didExpand = false;
 };
 
+/// A statically selectable scalar qubit represented by a top-level Quake
+/// target. A vector target records the element that must be extracted; a
+/// scalar reference or wire has no element index.
+struct StaticQubitTarget {
+  mlir::Value source;
+  std::size_t sourceIndex;
+  std::optional<std::size_t> elementIndex;
+};
+
+/// Return whether \p target is a single quantum value rather than an
+/// aggregate vector. This is deliberately not phase-specific: it is useful to
+/// any transform that must select one qubit from a list of Quake targets.
+inline bool isScalarQubitTarget(mlir::Value target) {
+  return mlir::isa<cudaq::quake::RefType, cudaq::quake::WireType>(
+      target.getType());
+}
+
+/// Plan a statically selectable scalar target without creating IR.
+inline std::optional<StaticQubitTarget>
+planStaticQubitTarget(mlir::Value target, std::size_t sourceIndex) {
+  if (isScalarQubitTarget(target))
+    return StaticQubitTarget{target, sourceIndex, std::nullopt};
+  if (auto size = cudaq::quake::getVeqSize(target); size && *size != 0)
+    return StaticQubitTarget{target, sourceIndex, *size - 1};
+  return std::nullopt;
+}
+
+/// Plan the last scalar target accepted by \p predicate without creating IR.
+template <typename Predicate>
+inline std::optional<StaticQubitTarget>
+findLastStaticQubitTarget(mlir::ValueRange targets, Predicate predicate) {
+  for (std::size_t i = targets.size(); i != 0; --i) {
+    auto finalTarget = planStaticQubitTarget(targets[i - 1], i - 1);
+    if (!finalTarget)
+      continue;
+    if (!finalTarget->elementIndex) {
+      if (predicate(*finalTarget))
+        return finalTarget;
+      continue;
+    }
+
+    for (std::size_t element = *finalTarget->elementIndex + 1; element != 0;
+         --element) {
+      StaticQubitTarget candidate{finalTarget->source, finalTarget->sourceIndex,
+                                  element - 1};
+      if (predicate(candidate))
+        return candidate;
+    }
+  }
+  return std::nullopt;
+}
+
+/// Plan a deterministic final scalar target without creating IR.
+///
+/// Scan source targets from right to left. A scalar reference or wire is
+/// already selectable; a nonempty vector with a statically known size is
+/// represented by its final element. Returning a plan rather than immediately
+/// creating an ExtractRefOp lets callers finish validation before mutating the
+/// IR.
+inline std::optional<StaticQubitTarget>
+findLastStaticQubitTarget(mlir::ValueRange targets) {
+  return findLastStaticQubitTarget(
+      targets, [](const StaticQubitTarget &) { return true; });
+}
+
+/// Materialize a target selected by findLastStaticQubitTarget.
+///
+/// Callers must perform every failure-prone validation before invoking this
+/// helper, because the vector case creates an ExtractRefOp.
+inline mlir::Value
+materializeStaticQubitTarget(mlir::OpBuilder &builder, mlir::Location location,
+                             const StaticQubitTarget &target) {
+  if (!target.elementIndex)
+    return target.source;
+  return cudaq::quake::ExtractRefOp::create(builder, location, target.source,
+                                            *target.elementIndex)
+      .getResult();
+}
+
 inline llvm::SmallVector<bool>
 getControlPolarities(mlir::ValueRange controls,
                      std::optional<llvm::ArrayRef<bool>> negatedControls = {}) {
