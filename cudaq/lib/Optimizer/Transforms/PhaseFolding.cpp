@@ -12,8 +12,10 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -112,6 +114,7 @@ public:
 class PhaseStorage {
   DenseMap<PhaseKey, cudaq::quake::OperatorInterface, PhaseKeyInfo> phaseToRot;
   size_t numCombined = 0;
+  DominanceInfo &domInfo;
 
   // Returns the angle of a named Z-axis gate as a multiple of pi/4 (mod 8),
   // or nullopt for quake.rz (angle not statically known as a named gate).
@@ -144,35 +147,48 @@ class PhaseStorage {
     return cudaq::opt::factory::createF64Constant(op->getLoc(), builder, angle);
   }
 
-  // Combine rot1 (stored) and rot2 (new, the surviving position).
-  // rot2's wire input (= rot1's output) is used for the new op.
-  // rot1 is bypassed (its output replaced by its own input), then erased.
+  // Keep chronological order separate from the insertion position so the
+  // combined angle can be materialized wherever both operands are available.
   // Returns the new combined op, or nullptr if they cancel to identity.
-  Operation *combineRotations(cudaq::quake::OperatorInterface rot1,
-                              cudaq::quake::OperatorInterface rot2) {
-    auto *op1 = rot1.getOperation();
-    auto *op2 = rot2.getOperation();
-    OpBuilder builder(op2);
-    auto loc = op2->getLoc();
-    auto *ctx = op2->getContext();
+  Operation *
+  combineRotations(cudaq::quake::OperatorInterface earlier,
+                   cudaq::quake::OperatorInterface later,
+                   cudaq::quake::OperatorInterface insertionRotation) {
+    auto *earlierOp = earlier.getOperation();
+    auto *laterOp = later.getOperation();
+    auto *insertionOp = insertionRotation.getOperation();
+    bool combineAtEarlier = insertionOp == earlierOp;
+    OpBuilder builder(insertionOp);
+    auto loc = insertionOp->getLoc();
+    auto *ctx = insertionOp->getContext();
     auto wireTy = cudaq::quake::WireType::get(ctx);
-    Value wireIn = rot2.getTarget(0); // rot1's result (B)
-    Value prevIn = rot1.getTarget(0); // rot1's input (A)
+    Value wireIn = insertionRotation.getTarget(0);
+    Value earlierIn = earlier.getTarget(0);
+    Value laterIn = later.getTarget(0);
     numCombined++;
 
     auto finalize = [&](Operation *newOp) -> Operation * {
-      op2->getResult(0).replaceAllUsesWith(newOp ? newOp->getResult(0)
-                                                 : wireIn);
-      op2->erase();
-      op1->getResult(0).replaceAllUsesWith(prevIn);
-      op1->erase();
+      Value combinedResult = newOp ? newOp->getResult(0) : wireIn;
+      if (combineAtEarlier) {
+        // Bypass the later rotation before erasing the earlier one. Its input
+        // may still be the earlier result when the rotations are adjacent.
+        laterOp->getResult(0).replaceAllUsesWith(laterIn);
+        laterOp->erase();
+        earlierOp->getResult(0).replaceAllUsesWith(combinedResult);
+        earlierOp->erase();
+      } else {
+        laterOp->getResult(0).replaceAllUsesWith(combinedResult);
+        laterOp->erase();
+        earlierOp->getResult(0).replaceAllUsesWith(earlierIn);
+        earlierOp->erase();
+      }
       return newOp;
     };
 
     // If both are named gates (S/T/Z), combine via exact integer arithmetic
     // on quarter-pi units (0..7 mod 8) — no floating-point comparison.
-    auto u1 = getQuarterPiUnits(rot1);
-    auto u2 = getQuarterPiUnits(rot2);
+    auto u1 = getQuarterPiUnits(earlier);
+    auto u2 = getQuarterPiUnits(later);
     if (u1 && u2) {
       int combined = (*u1 + *u2) & 7;
       switch (combined) {
@@ -220,8 +236,8 @@ class PhaseStorage {
     }
 
     // Rz + anything, or named-gate combo not landing on a named gate: addf
-    Value angle1 = getRotAngleValue(builder, rot1);
-    Value angle2 = getRotAngleValue(builder, rot2);
+    Value angle1 = getRotAngleValue(builder, earlier);
+    Value angle2 = getRotAngleValue(builder, later);
     auto sumAngle = arith::AddFOp::create(builder, loc, angle1, angle2);
     return finalize(
         cudaq::quake::RzOp::create(builder, loc, TypeRange{wireTy}, false,
@@ -229,14 +245,40 @@ class PhaseStorage {
                                    ValueRange{}, ValueRange{wireIn}, {}));
   }
 
+  bool canUseAngleAt(cudaq::quake::OperatorInterface rotation,
+                     Operation *insertionPoint) {
+    auto *rotationOp = rotation.getOperation();
+    if (isa<cudaq::quake::SOp>(rotationOp) ||
+        isa<cudaq::quake::TOp>(rotationOp) ||
+        isa<cudaq::quake::ZOp>(rotationOp)) {
+      return true;
+    }
+    if (auto rzOp = dyn_cast<cudaq::quake::RzOp>(rotationOp)) {
+      Value angleValue = rzOp.getOperand(0);
+      return domInfo.dominates(angleValue, insertionPoint);
+    }
+    return false;
+  }
+
 public:
+  PhaseStorage(DominanceInfo &domInfo) : domInfo(domInfo) {}
+
   // Returns the stored or combined op (nullptr if identity cancellation).
   Operation *addOrCombineRotationForPhase(cudaq::quake::OperatorInterface rot,
                                           Phase phase) {
     auto key = phase.toKey();
     auto it = phaseToRot.find(key);
     if (it != phaseToRot.end()) {
-      auto *newOp = combineRotations(it->second, rot);
+      bool combineAtEarlier = false;
+      if (!canUseAngleAt(it->second, rot.getOperation())) {
+        if (!canUseAngleAt(rot, it->second.getOperation())) {
+          it->second = rot;
+          return rot.getOperation();
+        }
+        combineAtEarlier = true;
+      }
+      auto insertionRotation = combineAtEarlier ? it->second : rot;
+      auto *newOp = combineRotations(it->second, rot, insertionRotation);
       if (newOp)
         it->second = cast<cudaq::quake::OperatorInterface>(newOp);
       else
@@ -295,7 +337,22 @@ static bool isControlledOp(Operation *op) {
   return true;
 }
 
-static bool isTerminationPoint(Operation *op) {
+static Block *getPhaseFoldingBlock(Operation *op) {
+  auto *block = op->getBlock();
+  auto *parent = block->getParentOp();
+  // A wire captured by an ordinary scope reaches nested operations without
+  // passing through the ScopeOp, so compare the enclosing folding domains
+  // rather than relying on the wire walk to encounter the boundary itself.
+  while (auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(parent)) {
+    if (scope.getAtomicQuantumRegionAttr() || !scope.getRegion().hasOneBlock())
+      break;
+    block = scope->getBlock();
+    parent = block->getParentOp();
+  }
+  return block;
+}
+
+static bool isSubCircuitTerminationPoint(Operation *op) {
   if (!op)
     return true;
   if (!isQuakeOperation(op))
@@ -325,12 +382,23 @@ protected:
   SetVector<Operation *> ops;
   SetVector<Value> initial_wires;
   SetVector<Value> terminal_wires;
-  Operation *start;
+  Block *start;
   // TODO: these three are really intermediate state for constructing the
   // subcircuit; would be nice to turn them into local arguments instead
   SetVector<Value> termination_points;
   SetVector<Value> anchor_points;
   SetVector<Value> seen;
+  // Keep the operand slot, not its current value: combining rotations rewires
+  // the slot before erasing the old value that it used to reference.
+  DenseMap<Value, OpOperand *> scope_result_to_continue_operand;
+
+  bool isTerminationPoint(Operation *op) {
+    if (!op)
+      return true;
+    if (isSubCircuitTerminationPoint(op))
+      return true;
+    return getPhaseFoldingBlock(op) != start;
+  }
 
   bool isAfterTerminationPoint(Value wire) {
     return isTerminationPoint(wire.getDefiningOp());
@@ -347,7 +415,30 @@ protected:
       addTerminationPoint(v);
       return;
     }
-    Operation *op = v.getUses().begin().getUser();
+    OpOperand *use = &*v.getUses().begin();
+    Operation *op = use->getOwner();
+    if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
+      // Ordinary single-block scopes preserve wire identity, so their yielded
+      // wire can remain in this subcircuit. Marked or CFG-bearing scopes do not
+      // have that transparent-boundary contract.
+      auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
+      if (!scope || scope.getAtomicQuantumRegionAttr() ||
+          !scope.getInitRegion().hasOneBlock() ||
+          scope.getInitRegion().front().getTerminator() != op ||
+          cont.getNumOperands() != scope->getNumResults() ||
+          use->getOperandNumber() >= scope->getNumResults()) {
+        addTerminationPoint(v);
+        return;
+      }
+      auto nextResult = scope->getResult(use->getOperandNumber());
+      if (!isa<cudaq::quake::WireType>(nextResult.getType())) {
+        addTerminationPoint(v);
+        return;
+      }
+      scope_result_to_continue_operand[nextResult] = use;
+      calculateSubcircuitForQubitForward(nextResult);
+      return;
+    }
     if (isTerminationPoint(op)) {
       addTerminationPoint(v);
       return;
@@ -371,6 +462,27 @@ protected:
       return;
     seen.insert(v);
     Operation *op = v.getDefiningOp();
+    if (auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(op)) {
+      // The ScopeOp result hides the quantum operation that produced the
+      // yielded wire. Recover that wire so the backward walk follows the same
+      // path as the forward walk.
+      if (scope.getAtomicQuantumRegionAttr() ||
+          !scope.getRegion().hasOneBlock()) {
+        addTerminationPoint(v);
+        return;
+      }
+      auto resultIndex = cast<OpResult>(v).getResultNumber();
+      auto continueOp = dyn_cast_or_null<cudaq::cc::ContinueOp>(
+          scope.getInitRegion().front().getTerminator());
+      if (!continueOp || continueOp.getNumOperands() <= resultIndex) {
+        addTerminationPoint(v);
+        return;
+      }
+      OpOperand *continueOperand = &continueOp->getOpOperand(resultIndex);
+      scope_result_to_continue_operand[v] = continueOperand;
+      calculateSubcircuitForQubitBackward(continueOperand->get());
+      return;
+    }
     if (isTerminationPoint(op)) {
       addTerminationPoint(v);
       return;
@@ -412,6 +524,9 @@ protected:
 
 public:
   Subcircuit(Operation *cnot, DenseSet<Operation *> &processedOps) {
+    // The anchor's folding domain does not change while building the
+    // subcircuit, so cache it.
+    start = getPhaseFoldingBlock(cnot);
     calculateInitialSubcircuit(cnot);
     // TODO: there is a performance issue that the current pruning definition
     // will always preference earlier operations, so a large interconnected
@@ -423,7 +538,7 @@ public:
     // `processedOps`. This is likely also an issue in the ref semantics form.
     for (auto *op : ops)
       processedOps.insert(op);
-    start = cnot;
+
     for (auto w : termination_points)
       if (isAfterTerminationPoint(w))
         initial_wires.insert(w);
@@ -432,7 +547,6 @@ public:
   }
 
   SetVector<Value> getInitialWires() { return initial_wires; }
-  bool isInSubcircuit(Operation *op) { return ops.contains(op); }
   size_t getNumOps() { return ops.size(); }
 
   float getRotationWeight() {
@@ -446,10 +560,19 @@ public:
   }
 
   SmallVector<Operation *> getOrderedOps() {
-    SmallVector<Operation *> ordered(ops.begin(), ops.end());
-    sort(ordered,
-         [](Operation *a, Operation *b) { return a->isBeforeInBlock(b); });
-    return ordered;
+    // Transparent scopes place subcircuit operations in different blocks;
+    // region-aware ordering preserves producer-before-consumer phase updates.
+    auto ordered = topologicalSort(ops);
+    return {ordered.begin(), ordered.end()};
+  }
+
+  Value resolveScopeResult(Value v) {
+    auto it = scope_result_to_continue_operand.find(v);
+    while (it != scope_result_to_continue_operand.end()) {
+      v = it->second->get();
+      it = scope_result_to_continue_operand.find(v);
+    }
+    return v;
   }
 };
 
@@ -490,10 +613,16 @@ class PhaseFoldingPass
     : public cudaq::opt::impl::PhaseFoldingBase<PhaseFoldingPass> {
   using PhaseFoldingBase::PhaseFoldingBase;
 
-  void doWirePhaseFolding(wire::Subcircuit *subcircuit) {
+  void doWirePhaseFolding(wire::Subcircuit *subcircuit,
+                          DominanceInfo &domInfo) {
     DenseMap<Value, Phase> wirePhase;
+    auto getWirePhase = [&](Value v) -> Phase {
+      // A scope result and its continue operand name the same wire but are
+      // distinct SSA keys. Normalize them before consulting the phase map.
+      return wirePhase[subcircuit->resolveScopeResult(v)];
+    };
     SmallVector<std::unique_ptr<PhaseVariable>> vars;
-    PhaseStorage store;
+    PhaseStorage store(domInfo);
     size_t i = 0;
 
     for (auto w : subcircuit->getInitialWires()) {
@@ -504,24 +633,24 @@ class PhaseFoldingPass
     for (auto *op : subcircuit->getOrderedOps()) {
       if (wire::isControlledOp(op)) {
         auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
-        Phase ctrlPhase = wirePhase[opi.getControls().front()];
-        Phase tgtPhase = wirePhase[opi.getTarget(0)];
+        Phase ctrlPhase = getWirePhase(opi.getControls().front());
+        Phase tgtPhase = getWirePhase(opi.getTarget(0));
         wirePhase[op->getResult(0)] = ctrlPhase;
         wirePhase[op->getResult(1)] = Phase::sum(ctrlPhase, tgtPhase);
       } else if (isa<cudaq::quake::XOp>(op)) {
         // AXIS-SPECIFIC: Would want to handle y and z gates here too
         auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
         wirePhase[op->getResult(0)] =
-            Phase::invert(wirePhase[opi.getTarget(0)]);
+            Phase::invert(getWirePhase(opi.getTarget(0)));
       } else if (isa<RAW_Z_AXIS_ROTATIONS>(op)) {
         auto opi = cast<cudaq::quake::OperatorInterface>(op);
-        Phase p = wirePhase[opi.getTarget(0)];
+        Phase p = getWirePhase(opi.getTarget(0));
         auto *newOp = store.addOrCombineRotationForPhase(opi, p);
         if (newOp)
           wirePhase[newOp->getResult(0)] = p;
       } else if (auto swap = dyn_cast<cudaq::quake::SwapOp>(op)) {
-        Phase p0 = wirePhase[swap.getTarget(0)];
-        Phase p1 = wirePhase[swap.getTarget(1)];
+        Phase p0 = getWirePhase(swap.getTarget(0));
+        Phase p1 = getWirePhase(swap.getTarget(1));
         wirePhase[op->getResult(0)] = p1;
         wirePhase[op->getResult(1)] = p0;
       }
@@ -535,6 +664,8 @@ public:
       return;
     if (func->hasAttr(cudaq::runtime::disableQuantumOpts))
       return;
+
+    DominanceInfo domInfo(func);
 
     // Collect CNOTs first to avoid iterator invalidation: combineRotations
     // erases Rz ops which may be the stored next-pointer in the walk iterator.
@@ -558,7 +689,7 @@ public:
         LLVM_DEBUG(llvm::dbgs() << "Subcircuit below threshold, skipping!\n");
         continue;
       }
-      doWirePhaseFolding(&subcircuit);
+      doWirePhaseFolding(&subcircuit, domInfo);
     }
   }
 };

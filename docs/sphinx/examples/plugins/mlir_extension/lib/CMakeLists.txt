@@ -26,8 +26,11 @@ add_dependencies(trivial-mlir
 # Compile with the same flags as LLVM to ensure ABI compatibility.
 llvm_update_compile_flags(trivial-mlir)
 
-# Resolve MLIR/LLVM dynamically from the single libcudaqMLIR instance.
-target_link_libraries(trivial-mlir PUBLIC cudaq::MLIR)
+# Define the dependencies of `trivial-mlir` using the usual static MLIR components.
+# When `trivial-mlir` is pulled into the shared Python extension, the MLIR/LLVM symbols
+# will be resolved from the single cudaq::MLIR DSO instead.
+target_link_libraries(trivial-mlir PUBLIC
+  MLIRIR MLIRPass MLIRSupport MLIRFuncDialect MLIRTransformUtils)
 
 # Make sure this static library can be embedded into the shared Python extension.
 set_target_properties(trivial-mlir PROPERTIES POSITION_INDEPENDENT_CODE ON)
