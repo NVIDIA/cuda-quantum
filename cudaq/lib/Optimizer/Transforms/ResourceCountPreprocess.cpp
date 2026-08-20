@@ -54,8 +54,8 @@ struct ResourceCountPreprocessPass
   /// A body that hands its wires back permuted would otherwise attribute gates
   /// to the wrong qubit. Returns a null Value when that cannot be established.
   Value getLoopInitOperand(BlockArgument arg) {
-    auto loop = dyn_cast_or_null<cudaq::cc::LoopOp>(
-        arg.getOwner()->getParentOp());
+    auto loop =
+        dyn_cast_or_null<cudaq::cc::LoopOp>(arg.getOwner()->getParentOp());
     if (!loop || arg.getOwner() != loop.getDoEntryBlock())
       return {};
     auto i = arg.getArgNumber();
@@ -64,8 +64,8 @@ struct ResourceCountPreprocessPass
       return {};
 
     // The while region forwards its own arguments to the body unpermuted.
-    auto cond = dyn_cast<cudaq::cc::ConditionOp>(
-        loop.getWhileBlock()->getTerminator());
+    auto cond =
+        dyn_cast<cudaq::cc::ConditionOp>(loop.getWhileBlock()->getTerminator());
     if (!cond || i >= cond.getResults().size() ||
         cond.getResults()[i] != loop.getWhileArguments()[i])
       return {};

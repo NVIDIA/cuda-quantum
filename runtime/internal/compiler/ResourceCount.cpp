@@ -9,8 +9,8 @@
 #include "cudaq_internal/compiler/ResourceCount.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Transforms/Passes.h"
 #include "llvm/ADT/DenseSet.h"
+#include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
 
