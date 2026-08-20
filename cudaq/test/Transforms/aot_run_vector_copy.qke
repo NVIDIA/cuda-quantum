@@ -6,6 +6,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline)' %s | FileCheck %s
+// RUN: cudaq-opt -cc-to-llvm %s | FileCheck %s --check-prefix=LLVM
 
 // Regression test for the Python AOT pipeline's vector-return handling.
 // `__nvqpp_vectorCopyCtor` must remain a direct call until
@@ -25,7 +26,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_co
 
   func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
   func.func private @malloc(i64) -> !cc.ptr<i8>
-  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> attributes {no_inline} {
+  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> attributes {no_inline, llvm.linkage = #llvm.linkage<internal>} {
     %size = arith.muli %arg1, %arg2 : i64
     %heap = func.call @malloc(%size) : (i64) -> !cc.ptr<i8>
     %false = arith.constant false
@@ -36,6 +37,9 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_co
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy()
 // CHECK: call @__nvqpp_vectorCopyCtor
+
+// CHECK-LABEL: func.func private @__nvqpp_vectorCopyCtor(
+// CHECK-SAME: attributes {llvm.linkage = #llvm.linkage<internal>, no_inline} {
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy.run()
 // CHECK-NOT: call @__nvqpp_vectorCopyCtor
@@ -53,3 +57,6 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_co
 // CHECK-NOT: call @malloc
 // CHECK-NOT: call @llvm.memcpy
 // CHECK: return
+
+// LLVM-LABEL: llvm.func internal @__nvqpp_vectorCopyCtor(
+// LLVM-SAME: attributes {sym_visibility = "private"} {

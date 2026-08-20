@@ -579,8 +579,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // Keep this function no_inline until RunSemanticsHackery removes the copy
     // from generated `.run` clones; otherwise malloc/memcpy reaches remote
     // targets.
+    // If it survives lowering, keep the compiler-generated definition local to
+    // its translation unit.
     {"__nvqpp_vectorCopyCtor", {cudaq::llvmMemCopyIntrinsic, "malloc"}, R"#(
-  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> attributes {no_inline} {
+  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> attributes {no_inline, llvm.linkage = #llvm.linkage<internal>} {
     %size = arith.muli %arg1, %arg2 : i64
     %0 = call @malloc(%size) : (i64) -> !cc.ptr<i8>
     %false = arith.constant false
