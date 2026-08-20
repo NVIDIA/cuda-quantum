@@ -308,9 +308,24 @@ public:
     patterns.insert<RewriteLoop, RewriteIf, RewriteReturn>(ctx);
     patterns.insert<RewriteScope>(ctx, unsafeQuantumAlloc);
     ConversionTarget target(*ctx);
-    target.addIllegalOp<cudaq::cc::ScopeOp, cudaq::cc::LoopOp, cudaq::cc::IfOp,
-                        cudaq::cc::ConditionOp, cudaq::cc::ContinueOp,
-                        cudaq::cc::BreakOp, cudaq::cc::ReturnOp>();
+    target.addIllegalOp<cudaq::cc::LoopOp, cudaq::cc::IfOp,
+                        cudaq::cc::ConditionOp, cudaq::cc::BreakOp,
+                        cudaq::cc::ReturnOp>();
+    // An atomic quantum region is carried by a `cc.scope` holding the
+    // `atomic_quantum_region` attribute. In preservation mode such scopes
+    // stay behind as the boundary for later quantum optimization, which
+    // means their `cc.continue` exits must stay behind with them. Every
+    // other scope (and every continue owned by a lowered parent) converts.
+    const bool keepMarkedScopes = preserveAtomicQuantumRegions;
+    auto keptScope = [keepMarkedScopes](cudaq::cc::ScopeOp scope) {
+      return keepMarkedScopes && scope.getAtomicQuantumRegionAttr();
+    };
+    target.addDynamicallyLegalOp<cudaq::cc::ScopeOp>(keptScope);
+    target.addDynamicallyLegalOp<cudaq::cc::ContinueOp>(
+        [keptScope](cudaq::cc::ContinueOp exit) {
+          auto owner = dyn_cast<cudaq::cc::ScopeOp>(exit->getParentOp());
+          return owner && keptScope(owner);
+        });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
       emitError(op->getLoc(), "error converting to CFG\n");
@@ -335,9 +350,12 @@ public:
 };
 } // namespace
 
-void cudaq::opt::addLowerToCFG(OpPassManager &pm) {
+void cudaq::opt::addLowerToCFG(OpPassManager &pm,
+                               bool preserveAtomicQuantumRegions) {
   pm.addPass(cudaq::opt::createConvertToCFGPrep());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConvertToCFG());
+  ConvertToCFGOptions options;
+  options.preserveAtomicQuantumRegions = preserveAtomicQuantumRegions;
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConvertToCFG(options));
 }
 
 namespace {
@@ -347,6 +365,11 @@ struct LowerToCFGOptions : public PassPipelineOptions<LowerToCFGOptions> {
       llvm::cl::desc(
           "Suppress adding cc.no_qubit_combine when lowering a cc.scope "
           "with quantum allocations.  Useful for certain special pipelines."),
+      llvm::cl::init(false)};
+  PassOptions::Option<bool> preserveAtomicQuantumRegions{
+      *this, "preserve-atomic-quantum-regions",
+      llvm::cl::desc("Keep cc.scope operations annotated as atomic quantum "
+                     "regions; lower all other structured control flow."),
       llvm::cl::init(false)};
 };
 } // namespace
@@ -358,6 +381,8 @@ void cudaq::opt::registerToCFGPipeline() {
         pm.addPass(cudaq::opt::createConvertToCFGPrep());
         cudaq::opt::ConvertToCFGOptions passOpts;
         passOpts.unsafeQuantumAlloc = opts.unsafeQuantumAlloc;
+        passOpts.preserveAtomicQuantumRegions =
+            opts.preserveAtomicQuantumRegions;
         pm.addNestedPass<func::FuncOp>(
             cudaq::opt::createConvertToCFG(passOpts));
       });

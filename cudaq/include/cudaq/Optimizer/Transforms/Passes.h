@@ -105,7 +105,15 @@ void createClassicalOptimizationPipeline(
     std::optional<bool> disableLoopUnrolling = std::nullopt);
 
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
-void addLowerToCFG(mlir::OpPassManager &pm);
+/// Append the CFG-lowering pass group to \p pm. With
+/// \p preserveAtomicQuantumRegions set, a `cc.scope` annotated as an atomic
+/// quantum region survives the lowering so that boundary-sensitive quantum
+/// optimizations further down the pipeline can still see it; any ordinary
+/// control flow nested inside it is lowered as usual. The last call without
+/// the flag lowers the surviving marked scopes and thereby ends the
+/// atomic-region lifecycle for the pipeline.
+void addLowerToCFG(mlir::OpPassManager &pm,
+                   bool preserveAtomicQuantumRegions = false);
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();

@@ -2054,6 +2054,28 @@ bool cudaq::cc::ScopeOp::hasQuantumAllocation() {
       getRegion());
 }
 
+bool cudaq::cc::ScopeOp::isEmptyAtomicQuantumRegion() {
+  if (!getAtomicQuantumRegionAttr() || !getInitRegion().hasOneBlock())
+    return false;
+  auto &body = getInitRegion().front();
+  return body.without_terminator().empty() &&
+         isa<cudaq::cc::ContinueOp>(body.getTerminator());
+}
+
+// An atomic quantum region whose contents all optimized away no longer
+// separates anything; replace the scope's results with the values it
+// forwards. Marked scopes without results are left for the CFG-lowering
+// endpoint. (Ordinary scopes are handled by canonicalization instead.)
+LogicalResult cudaq::cc::ScopeOp::fold(FoldAdaptor,
+                                       SmallVectorImpl<OpFoldResult> &results) {
+  if (getNumResults() == 0 || !isEmptyAtomicQuantumRegion())
+    return failure();
+  auto exit =
+      cast<cudaq::cc::ContinueOp>(getInitRegion().front().getTerminator());
+  results.assign(exit.getOperands().begin(), exit.getOperands().end());
+  return success();
+}
+
 namespace {
 // If there are no allocations in the scope, then the scope is not needed as
 // there is nothing to deallocate. This transformation does the following
