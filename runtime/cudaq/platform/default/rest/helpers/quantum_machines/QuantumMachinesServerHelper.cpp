@@ -13,20 +13,35 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "llvm/Support/Base64.h"
 #include <bitset>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <regex>
 #include <sstream>
+#include <stdexcept>
 #include <thread>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 using json = nlohmann::json;
 
 namespace {
 constexpr const char *decoderConfigPayloadType = "gpu_decoder_config";
 constexpr const char *decoderConfigJobJsonPath = "/decoder_config";
+
+/// Rewrite the IR to match the legacy spellings used by the remote server.
+std::string rewriteLegacySpellings(std::string ir) {
+  // Renamed the legacy `!cc.stdvec` type to `!cc.sequence`.
+  ir = std::regex_replace(ir, std::regex(R"(cc\.sequence)"), "cc.stdvec");
+  // Moved output logging from `cc.log_output` to `quake.log_output`.
+  ir = std::regex_replace(
+      ir, std::regex(R"(quake\.log_output ([^\n]+) : \(([^\n]*)\) -> \(\))"),
+      "cc.log_output $1 : $2");
+  return ir;
+}
 } // namespace
 
 namespace cudaq {
@@ -149,7 +164,12 @@ public:
         executionContext ? executionContext->name : "unknown";
     const bool isRunRequest = requestType == "run";
     ServerMessage job;
-    job["content"] = circuitCodes[0].code;
+    std::vector<char> decodedContent;
+    if (auto error = llvm::decodeBase64(circuitCodes[0].code, decodedContent))
+      throw std::runtime_error("Failed to decode QM Quake payload.");
+    std::string content(decodedContent.begin(), decodedContent.end());
+    content = rewriteLegacySpellings(std::move(content));
+    job["content"] = llvm::encodeBase64(content);
     job["source"] = "quake";
     job["shots"] = shots;
     job["executor"] = backendConfig["executor"];

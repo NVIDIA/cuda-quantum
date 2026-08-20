@@ -10,6 +10,7 @@ add_backend_unittest_executable(test_quantum_machines
   SOURCES QuantumMachinesTester.cpp
   BACKEND quantum_machines
   BACKEND_CONFIG "quantum_machines url=http://localhost:62448"
+  LINK_LIBS ${default_backend_unittest_libs} cudaqMLIR
 )
 
 configure_file(QuantumMachinesStartServerAndTest.sh.in QuantumMachinesStartServerAndTest.sh @ONLY)
