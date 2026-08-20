@@ -5756,9 +5756,13 @@ class PyASTBridge(ast.NodeVisitor):
                     "qubit", node)
 
         if isinstance(node.op, ast.USub):
-            # Make our lives easier for -1 used in variable subscript extraction
-            if isinstance(node.operand,
-                          ast.Constant) and node.operand.value == 1:
+            # Make our lives easier for -1 used in variable subscript
+            # extraction. The literal must be an integer: `1.0 == 1` holds in
+            # Python, so a bare value comparison would also fold the float
+            # literal `-1.0` to an integer constant and silently turn e.g.
+            # `2 ** -1.0` into an integer power yielding `0.0`.
+            if isinstance(node.operand, ast.Constant) and isinstance(
+                    node.operand.value, int) and node.operand.value == 1:
                 self.pushValue(self.getConstantInt(-1))
                 return
 
