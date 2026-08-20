@@ -9,11 +9,14 @@
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include <cassert>
 #include <optional>
 
 namespace cudaq::opt {
@@ -194,7 +197,8 @@ static void replaceLiveWireUses(ValueRange inputs,
 /// Sink a phase to the end of the safe section that follows it. This routine
 /// recreates the operation at its destination, forwards the old identity wire
 /// results, and threads the new result through every live wire position.
-static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
+static cudaq::quake::PhaseOp sinkPhase(IRRewriter &rewriter,
+                                       cudaq::quake::PhaseOp phase) {
   SmallVector<Value> controls;
   unsigned result = 0;
   for (Value control : phase.getControls()) {
@@ -208,7 +212,7 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
   if (isa<cudaq::quake::WireType>(anchor.getType()))
     anchor = phase.getWires()[result++];
   if (result != phase.getWires().size())
-    return;
+    return phase;
 
   Operation *destination = phase->getNextNode();
   bool foundNewPlacement = false;
@@ -230,12 +234,12 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
   }
 
   if (!foundNewPlacement)
-    return;
+    return phase;
   for (Value control : controls)
     if (!hasUnambiguousWireUse(control))
-      return;
+      return phase;
   if (!hasUnambiguousWireUse(anchor))
-    return;
+    return phase;
 
   if (destination)
     rewriter.setInsertionPoint(destination);
@@ -256,6 +260,8 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
   SmallVector<Value> oldInputs = cudaq::opt::getPhaseReplacements(
       phase, phase.getControls(), phase.getTarget());
   rewriter.replaceOp(phase, oldInputs);
+
+  return moved;
 }
 
 static Value mapThroughPhase(cudaq::quake::PhaseOp phase, Value value);
@@ -268,6 +274,117 @@ static bool isTransparentBetweenPhases(Operation *operation) {
          (!hasQuantumValue(operation) && isSafeToCross(operation));
 }
 
+/// Create a function that merges one group of same-type uncontrolled phases
+/// Note that these phases ops can be merged _because_ they are uncontrolled
+/// and are thus global phase shifts
+static cudaq::quake::PhaseOp
+mergeUncontrolledGroup(IRRewriter &rewriter,
+                       ArrayRef<cudaq::quake::PhaseOp> uncontrolledPhases) {
+
+  // input checks
+  assert(!uncontrolledPhases.empty() &&
+         "mergeUncontrolledGroup requires at least one phase");
+  auto firstPhaseOp = uncontrolledPhases.front();
+  auto angleType = firstPhaseOp.getParameter().getType();
+  assert(llvm::all_of(uncontrolledPhases,
+                      [&](auto phase) {
+                        return phase.getControls().empty() &&
+                               phase.getParameter().getType() == angleType;
+                      }) &&
+         "expected same-type uncontrolled phases");
+
+  // this is the `quake.phase` that will accumulate all of the other phase
+  // angles from `uncontrolledPhases`
+  auto survivingPhase = uncontrolledPhases.back();
+
+  rewriter.setInsertionPoint(survivingPhase);
+
+  // add all of the phase angles together
+  Value accumulatedAngle =
+      cudaq::opt::getSignedAngle(rewriter, uncontrolledPhases.front());
+  for (auto phaseOp : llvm::drop_begin(uncontrolledPhases, 1)) {
+    accumulatedAngle =
+        arith::AddFOp::create(rewriter, phaseOp.getLoc(), accumulatedAngle,
+                              cudaq::opt::getSignedAngle(rewriter, phaseOp));
+  }
+
+  // remove all of the other uncontrolledPhases except for `survivingPhase`
+  for (auto phaseOp : llvm::drop_end(uncontrolledPhases, 1)) {
+    rewriter.replaceOp(
+        phaseOp, cudaq::opt::getPhaseReplacements(
+                     phaseOp, phaseOp.getControls(), phaseOp.getTarget()));
+  }
+
+  // create new `quake.phase` with accumulated angle and anchor
+  // read this _after_ bypassing earlier phase ops; it might have been rewired
+  auto survivingAnchor = survivingPhase.getTarget();
+
+  auto resultTypes =
+      cudaq::opt::getWireResultTypes(rewriter, {}, {survivingAnchor});
+
+  auto mergedPhaseOp = cudaq::quake::PhaseOp::create(
+      rewriter, survivingPhase.getLoc(), resultTypes,
+      /*is_adj=*/false, ValueRange{accumulatedAngle}, ValueRange{},
+      ValueRange{survivingAnchor}, DenseBoolArrayAttr{});
+
+  rewriter.replaceOp(survivingPhase, mergedPhaseOp.getWires());
+
+  return mergedPhaseOp;
+}
+
+/// iterate through the block to find batches of uncontrolled phases and then
+/// merge those groups together.
+static void batchUncontrolledPhases(IRRewriter &rewriter, Block &block) {
+  using UncontrolledPhaseGroups =
+      llvm::MapVector<Type, SmallVector<cudaq::quake::PhaseOp>>;
+
+  Operation *cursor = block.empty() ? nullptr : &block.front();
+
+  while (cursor) {
+    // unsafe operations mark the boundary of a section and are not a
+    // part of an uncontrolled phase group
+    if (!isSafeToCross(cursor)) {
+      cursor = cursor->getNextNode();
+      continue;
+    }
+
+    // group all uncontrolled phases together between boundary of ops
+    // that cannot be commuted with
+    UncontrolledPhaseGroups groups;
+    while (cursor && isSafeToCross(cursor)) {
+      // if we find a phase op, add it to the appropriate group
+      if (auto phaseOp = dyn_cast<cudaq::quake::PhaseOp>(cursor);
+          phaseOp && phaseOp.getControls().empty()) {
+        Type parameterType = phaseOp.getParameter().getType();
+        groups[parameterType].push_back(phaseOp);
+      }
+
+      cursor = cursor->getNextNode();
+    }
+
+    // merge each group of uncontrolled phases together
+    // 1. sink the last phase of the group initially
+    // 2. then merge the rest of the phases of the group into the last phase
+    for (auto &group : groups) {
+      auto &groupPhases = group.second;
+      auto representative = sinkPhase(rewriter, groupPhases.back());
+
+      if (groupPhases.size() == 1)
+        continue;
+
+      // update last phase to newly sunken phase op
+      groupPhases.back() = representative;
+
+      // now merge all of 0..n-1 phases into the representative phase
+      mergeUncontrolledGroup(rewriter, groupPhases);
+    }
+
+    if (cursor)
+      cursor = cursor->getNextNode();
+  }
+}
+
+/// check to see if two phase ops have the same controls
 static bool haveSamePredicate(cudaq::quake::PhaseOp first,
                               cudaq::quake::PhaseOp second) {
   if (first.getControls().size() != second.getControls().size() ||
@@ -305,6 +422,7 @@ static bool haveSamePredicate(cudaq::quake::PhaseOp first,
   return true;
 }
 
+/// Return the input that corresponds to a given output of a phase
 static Value mapThroughPhase(cudaq::quake::PhaseOp phase, Value value) {
   unsigned result = 0;
   for (Value input : phase.getControls()) {
@@ -401,19 +519,33 @@ struct NormalizePhasePlacementPass
   using NormalizePhasePlacementBase::NormalizePhasePlacementBase;
 
   void runOnOperation() override {
-    SmallVector<cudaq::quake::PhaseOp> phases;
+    // Find every block that initially contains at least one phase.
     SmallVector<Block *> phaseBlocks;
     SmallPtrSet<Block *, 8> seenBlocks;
     getOperation().walk([&](cudaq::quake::PhaseOp phase) {
-      phases.push_back(phase);
       if (seenBlocks.insert(phase->getBlock()).second)
         phaseBlocks.push_back(phase->getBlock());
     });
 
     IRRewriter rewriter(&getContext());
-    for (cudaq::quake::PhaseOp phase : phases)
+
+    // Batch and sink all _uncontrolled_ phases first.
+    for (Block *block : phaseBlocks)
+      batchUncontrolledPhases(rewriter, *block);
+
+    // Batching may erase/recreate PhaseOps, so take a fresh snapshot and sink
+    // only the controlled phases with the existing algorithm.
+    SmallVector<cudaq::quake::PhaseOp> controlledPhases;
+    getOperation().walk([&](cudaq::quake::PhaseOp phase) {
+      if (!phase.getControls().empty())
+        controlledPhases.push_back(phase);
+    });
+
+    for (cudaq::quake::PhaseOp phase : controlledPhases)
       sinkPhase(rewriter, phase);
 
+    // Keep the existing merger for now. It sees the merged uncontrolled
+    // representatives and the normalized controlled phases.
     for (Block *block : phaseBlocks)
       mergeCompatiblePhases(rewriter, *block);
   }
