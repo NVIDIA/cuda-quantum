@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --cc-loop-unroll=unroll-only-index-use-loops=true --verify-diagnostics %s
+// RUN: cudaq-opt --cc-loop-unroll="unroll-only-index-use-loops=true signal-failure-if-any-loop-cannot-be-completely-unrolled=true" --verify-diagnostics %s
 
 // A loop that reads its induction variable but has a runtime trip count
 // (%arg0, a kernel argument) cannot be unrolled, and leaving it rolled loses

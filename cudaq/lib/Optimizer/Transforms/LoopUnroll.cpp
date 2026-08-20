@@ -60,6 +60,9 @@ public:
       } while (progress);
     }
 
+    if (!signalFailure)
+      return;
+
     if (unrollOnlyWireBlockingLoops) {
       // In the value-semantics opt-in mode, a loop that still accesses quantum
       // data by a dynamic index or slice (blocking wire conversion) but
@@ -78,7 +81,6 @@ public:
         }
       });
     } else if (unrollOnlyIndexUseLoops) {
-      // TODO: Should this check only be done when `signalFailure` is true?
       // In this mode a loop that never reads its induction variable is meant
       // to stay rolled. An index use loop that survived the unrolling above
       // (e.g. a non-constant trip count) did not: its iterations are not
@@ -94,7 +96,7 @@ public:
           signalPassFailure();
         }
       });
-    } else if (signalFailure) {
+    } else {
       numLoops = countLoopOps(op);
       if (numLoops) {
         op->emitOpError("did not unroll loops");
