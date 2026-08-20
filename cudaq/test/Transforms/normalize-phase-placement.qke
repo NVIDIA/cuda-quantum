@@ -292,3 +292,33 @@ func.func @stop_at_may_alias_ref_args(%theta: f64,
   quake.h %other : (!quake.ref) -> ()
   return
 }
+
+// Uncontrolled phases with distinct anchors merge at the safe-section end.
+// CHECK-LABEL: func.func @merge_uncontrolled_phases(
+// CHECK-SAME: %[[THETA0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME: %[[THETA1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME: %[[THETA2:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK-NOT: quake.phase
+// CHECK: %[[H:.*]] = quake.h
+// CHECK-NOT: quake.phase
+// CHECK: %[[SUM01:.*]] = arith.addf %[[THETA0]], %[[THETA1]] : f64
+// CHECK-NEXT: %[[SUM012:.*]] = arith.addf %[[SUM01]], %[[THETA2]] : f64
+// CHECK-NEXT: %[[PHASE:.*]] = quake.phase (%[[SUM012]]) %{{.*}}
+// CHECK-NOT: quake.phase
+func.func @merge_uncontrolled_phases(%theta0: f64, %theta1: f64, %theta2: f64) {
+  %anchor0 = quake.null_wire
+  %anchor1 = quake.null_wire
+  %anchor2 = quake.null_wire
+  %anchor0_0 = quake.phase (%theta0) %anchor0
+      : (f64, !quake.wire) -> (!quake.wire)
+  %anchor1_0 = quake.phase (%theta1) %anchor1
+      : (f64, !quake.wire) -> (!quake.wire)
+  %anchor2_0 = quake.phase (%theta2) %anchor2
+      : (f64, !quake.wire) -> (!quake.wire)
+
+  %result = quake.h %anchor0_0 : (!quake.wire) -> !quake.wire
+  quake.sink %result : !quake.wire
+  quake.sink %anchor1_0 : !quake.wire
+  quake.sink %anchor2_0 : !quake.wire
+  return
+}
