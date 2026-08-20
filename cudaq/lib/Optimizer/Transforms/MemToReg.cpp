@@ -1326,7 +1326,8 @@ public:
             // Parent is not a function.
             if (!isDescendantOf(parent, memuse)) {
               // `block` is using a value from another scope.
-              if (aliasForBlock) {
+              if (aliasForBlock &&
+                  cudaq::quake::isQuantumReferenceType(memuse.getType())) {
                 // A dynamic veq-aliasing event already occurred in this block:
                 // a non-constant extract_ref from a veq defined outside this
                 // scope acts as a barrier — all wire chains must be wrapped
