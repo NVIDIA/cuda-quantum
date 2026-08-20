@@ -493,6 +493,11 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       if (failed(cudaq_internal::compiler::runPassManager(
               pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
+
+      if (!target.pipelineConfig.postObservePasses.empty())
+        applyPipeline(target.pipelineConfig.postObservePasses, tmpModuleOp,
+                      kernelName);
+
       // The full pass pipeline was run above, but the ansatz pass can
       // introduce gates that aren't supported by the backend, so we need to
       // re-run the gate set mapping if that existed in the original pass

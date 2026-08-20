@@ -122,8 +122,9 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
 
 std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
     const cudaq::CompileTarget::PipelineConfig &pc) const noexcept {
-  return cudaq::detail::hashVal(
-      pc.overridePassPipeline, pc.highLevelPipeline, pc.midLevelPipeline,
-      pc.lowLevelPipeline, pc.codegenTranslation, pc.postCodeGenPasses,
-      pc.disableQubitMapping, pc.replaceStateWithKernel, pc.addMeasurements);
+  return cudaq::detail::hashVal(pc.overridePassPipeline, pc.highLevelPipeline,
+                                pc.midLevelPipeline, pc.lowLevelPipeline,
+                                pc.codegenTranslation, pc.postCodeGenPasses,
+                                pc.postObservePasses, pc.disableQubitMapping,
+                                pc.replaceStateWithKernel, pc.addMeasurements);
 }

@@ -44,6 +44,10 @@ struct CompileTarget {
     /// Optional pass pipeline to run after code generation.
     std::string postCodeGenPasses;
 
+    /// Optional pass pipeline to run after observable-basis rotations have
+    /// been inserted into each split observe kernel.
+    std::string postObservePasses;
+
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
 

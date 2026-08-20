@@ -1,0 +1,80 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: qdmi
+description: "CUDA-Q target for registered QDMI devices."
+config:
+  platform-qpu: qdmi
+  plugin-libraries: ["@QDMI_QPU_LIBRARY@"]
+  gen-target-backend: true
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  jit-high-level-pipeline: "expand-measurements"
+  jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),basis-conversion{basis=%qdmi_basis%},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%qdmi_connectivity%},func.func(delay-measurements,regtomem),basis-conversion{basis=%qdmi_basis%},func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
+  codegen-emission: qir-adaptive
+
+target-arguments:
+  - key: device
+    required: true
+    type: string
+    platform-arg: device
+    help-string: "Stable QDMI registry identifier (for example mqt.ddsim.default)."
+  - key: program-format
+    required: false
+    type: string
+    platform-arg: program_format
+    help-string: "Program transport: auto, qir-adaptive-module, qir-adaptive-string, qir-base-module, qir-base-string, qasm3, qasm2, or iqm-json."
+  - key: session-custom1
+    required: false
+    type: string
+    platform-arg: session_custom1
+    help-string: "QDMI device-session custom parameter 1."
+  - key: session-custom2
+    required: false
+    type: string
+    platform-arg: session_custom2
+    help-string: "QDMI device-session custom parameter 2."
+  - key: session-custom3
+    required: false
+    type: string
+    platform-arg: session_custom3
+    help-string: "QDMI device-session custom parameter 3."
+  - key: session-custom4
+    required: false
+    type: string
+    platform-arg: session_custom4
+    help-string: "QDMI device-session custom parameter 4."
+  - key: session-custom5
+    required: false
+    type: string
+    platform-arg: session_custom5
+    help-string: "QDMI device-session custom parameter 5."
+  - key: job-custom1
+    required: false
+    type: string
+    platform-arg: job_custom1
+    help-string: "QDMI job custom parameter 1."
+  - key: job-custom2
+    required: false
+    type: string
+    platform-arg: job_custom2
+    help-string: "QDMI job custom parameter 2."
+  - key: job-custom3
+    required: false
+    type: string
+    platform-arg: job_custom3
+    help-string: "QDMI job custom parameter 3."
+  - key: job-custom4
+    required: false
+    type: string
+    platform-arg: job_custom4
+    help-string: "QDMI job custom parameter 4."
+  - key: job-custom5
+    required: false
+    type: string
+    platform-arg: job_custom5
+    help-string: "QDMI job custom parameter 5."
