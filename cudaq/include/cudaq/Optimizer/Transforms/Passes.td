@@ -215,7 +215,17 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       "Steps one candidate-enumeration line scan may take without "
       "producing a candidate.">,
     Option<"retryCount", "retry-count", "int32_t", /*default=*/"3",
-      "Retry attempts with doubled work budgets on gridsynth failure.">,
+      "Extra synthesis attempts for an angle gridsynth failed to synthesize. "
+      "Geometric backoff: the budget options above are the baseline, and "
+      "retry N re-runs the whole synthesis with them scaled by 2^N, so the "
+      "last retry runs at 2^retry-count times the baseline and the "
+      "worst-case total work for one angle is (2^(retry-count+1) - 1) times "
+      "it. Scales max-factoring-iterations, max-candidate-iterations and "
+      "max-odgp-scan-steps. max-factoring-restarts is deliberately left "
+      "unscaled as it caps consecutive failures on a single composite, where "
+      "the measured need is a depth of 3, so raising it does not make a "
+      "failed angle any more likely to succeed. Set to 0 to attempt each "
+      "angle once.">,
     Option<"onDynamicAngle", "on-dynamic-angle", "std::string",
       /*default=*/"\"error\"",
       "Behavior on non-constant rotation angles: 'error' or 'skip'.">,

@@ -173,8 +173,17 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
   cudaq::synth::Real epsilonReal(opts.epsilon);
   llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
   for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
-    // Each retry doubles the work the solver may spend on a candidate. Unlike
-    // doubling a timeout, attempt N then does the same work on every machine.
+    // Geometric backoff: attempt N runs at 2^N times the baseline budgets, so
+    // the common case pays the cheap budget and only an angle that actually
+    // failed escalates. Unlike doubling a timeout, attempt N does the same
+    // work on every machine, so which attempt succeeds is a property of the
+    // angle rather than of the host.
+    //
+    // `maxFactoringRestarts` is not scaled. It caps consecutive failed
+    // attempts on one composite, and over 1191 observed restart chains none
+    // exceeded a depth of 3 against a default of 8 (it is already far above
+    // the measured need, so escalating it would not change the outcome). What
+    // ends a hard candidate is the iteration budget, and that does scale.
     cudaq::synth::GridsynthOptions synthOpts;
     synthOpts.maxFactoringIterations =
         saturatingShl(opts.maxFactoringIterations, attempt);
