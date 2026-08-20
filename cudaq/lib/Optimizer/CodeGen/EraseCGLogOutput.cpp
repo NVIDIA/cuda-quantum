@@ -29,18 +29,16 @@ public:
 
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();
-    for (Block &block : funcOp.getBody())
-      for (Operation &op : llvm::make_early_inc_range(block)) {
-        auto logOut = dyn_cast<cudaq::quake::LogOutputOp>(op);
-        if (!logOut || !logOut.getCompilerGenerated())
-          continue;
-        // For each wire/cable result, replace uses with the corresponding arg.
-        unsigned resultIdx = 0;
-        for (Value arg : logOut.getArgs())
-          if (cudaq::quake::isLinearType(arg.getType()))
-            logOut.getOuts()[resultIdx++].replaceAllUsesWith(arg);
-        logOut->erase();
-      }
+    funcOp.walk([&](cudaq::quake::LogOutputOp logOut) {
+      if (!logOut.getCompilerGenerated())
+        return;
+      // For each wire/cable result, replace uses with the corresponding arg.
+      unsigned resultIdx = 0;
+      for (Value arg : logOut.getArgs())
+        if (cudaq::quake::isLinearType(arg.getType()))
+          logOut.getOuts()[resultIdx++].replaceAllUsesWith(arg);
+      logOut->erase();
+    });
   }
 };
 } // namespace

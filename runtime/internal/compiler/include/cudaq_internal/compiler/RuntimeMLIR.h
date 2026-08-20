@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "llvm/ADT/ArrayRef.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
@@ -17,6 +18,7 @@
 #include <string>
 
 namespace mlir {
+class Dialect;
 class MLIRContext;
 class ModuleOp;
 class Operation;
@@ -47,7 +49,8 @@ mlir::MLIRContext *getMLIRContext();
 
 /// @brief Create a new context and transfer the ownership. To be used to avoid
 /// overcrowding the current MLIR context with temporary modules.
-std::unique_ptr<mlir::MLIRContext> getOwningMLIRContext();
+std::unique_ptr<mlir::MLIRContext>
+getOwningMLIRContext(llvm::ArrayRef<mlir::Dialect *> dialectsToLoad = {});
 
 class Translation {
 public:

@@ -34,6 +34,6 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__k1 = "__nvqpp__ml
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__k1() attributes {"cudaq-entrypoint"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.apply @__nvqpp__mlirgen__custom_x_generator_1.kernel %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.apply @__nvqpp__mlirgen__custom_x_generator_1.kernel (%[[VAL_0]]) : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }

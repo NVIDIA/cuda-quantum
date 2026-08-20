@@ -112,9 +112,9 @@ func.func @quantum_ops() {
   %41 = quake.alloca !quake.veq<2>
   %42 = arith.constant 0 : i32
   %43 = quake.alloca !quake.ref
-  quake.apply @apply_kernel %42, %43 : (i32, !quake.ref) -> ()
-  quake.apply @apply_kernel [%40, %41] %42, %43 : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
-  quake.apply<adj> @apply_kernel [%40, %41] %42, %43 : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+  quake.apply @apply_kernel (%42, %43) : (i32, !quake.ref) -> ()
+  quake.apply @apply_kernel [%40, %41] (%42, %43) : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+  quake.apply<adj> @apply_kernel [%40, %41] (%42, %43) : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
 
   %44 = cc.undef !cc.callable<() -> ()> { compute_action = true }
   %45 = cc.undef !cc.callable<() -> ()>
@@ -251,9 +251,9 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 // CHECK:           %[[VAL_48:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_49:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_50:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.apply @apply_kernel %[[VAL_49]], %[[VAL_50]] : (i32, !quake.ref) -> ()
-// CHECK:           quake.apply @apply_kernel [%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
-// CHECK:           quake.apply<adj> @apply_kernel [%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+// CHECK:           quake.apply @apply_kernel (%[[VAL_49]], %[[VAL_50]]) : (i32, !quake.ref) -> ()
+// CHECK:           quake.apply @apply_kernel [%[[VAL_47]], %[[VAL_48]]] (%[[VAL_49]], %[[VAL_50]]) : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+// CHECK:           quake.apply<adj> @apply_kernel [%[[VAL_47]], %[[VAL_48]]] (%[[VAL_49]], %[[VAL_50]]) : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
 // CHECK:           %[[VAL_51:.*]] = cc.undef !cc.callable<() -> ()> {compute_action = true}
 // CHECK:           %[[VAL_52:.*]] = cc.undef !cc.callable<() -> ()>
 // CHECK:           quake.compute_action %[[VAL_51]], %[[VAL_52]] : !cc.callable<() -> ()>, !cc.callable<() -> ()>
@@ -402,11 +402,12 @@ func.func @cc_op4() {
 
 // See loop.qke for cc.loop, cc.if, cc.condition, cc.continue, cc.break, ...
 
-func.func private @do_nothing() -> ()
+func.func private @do_nothing(!cc.callable<() -> ()>) -> ()
+func.func private @do_nothing1() -> ()
 
 // CHECK-LABEL:   func.func @cc_op5() -> !cc.callable<() -> i32> {
 // CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
-// CHECK:             func.call @do_nothing() : () -> ()
+// CHECK:             func.call @do_nothing1() : () -> ()
 // CHECK:             %[[VAL_1:.*]] = arith.constant 1 : i32
 // CHECK:             cc.return %[[VAL_1]] : i32
 // CHECK:           } : !cc.callable<() -> i32>
@@ -422,7 +423,7 @@ func.func private @do_nothing() -> ()
 
 func.func @cc_op5() -> !cc.callable<() -> i32> {
   %1 = cc.create_lambda {
-    func.call @do_nothing() : () -> ()
+    func.call @do_nothing1() : () -> ()
     %1 = arith.constant 1 : i32
     cc.return %1 : i32
   } : !cc.callable<() -> i32>
@@ -1080,4 +1081,65 @@ func.func @measure_handle_mx_vec(%v : !quake.veq<?>) -> !cc.sequence<i1> {
 // CHECK:         %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:         %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
 // CHECK:         return %[[VAL_2]] : !cc.sequence<i1>
+// CHECK:       }
+
+// ---------------------------------------------------------------------------
+// quake.apply with wire and cable linear-type actuals.
+//
+// A wire actual maps to a ref formal; a cable<N> actual maps to a veq<N> (or
+// unsized veq) formal.  Because wire/cable are linear types the apply op
+// appends them to its result list after the callee's formal results, in
+// left-to-right order.  The four combinations tested are:
+//   1. normal (no adj, no controls)
+//   2. with controls
+//   3. adjoint
+//   4. adjoint + controls
+// ---------------------------------------------------------------------------
+
+// Callee kernels defined in terms of reference types.
+func.func private @wire_kernel(%q : !quake.ref)
+func.func private @cable_kernel(%qv : !quake.veq<2>)
+
+// Wire actuals — all four variants chained through a single wire value.
+func.func @apply_wire(%w : !quake.wire, %ctrl : !quake.ref) -> !quake.wire {
+  // 1. Normal: no adj, no controls.
+  %w1 = quake.apply @wire_kernel (%w) : (!quake.wire) -> (!quake.wire)
+  // 2. With controls (ref control, wire actual).
+  %w2 = quake.apply @wire_kernel [%ctrl] (%w1) : (!quake.ref, !quake.wire) -> (!quake.wire)
+  // 3. Adjoint, no controls.
+  %w3 = quake.apply <adj> @wire_kernel (%w2) : (!quake.wire) -> (!quake.wire)
+  // 4. Adjoint + controls.
+  %w4 = quake.apply <adj> @wire_kernel [%ctrl] (%w3) : (!quake.ref, !quake.wire) -> (!quake.wire)
+  return %w4 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @apply_wire(
+// CHECK-SAME:    %[[W:.*]]: !quake.wire, %[[CTRL:.*]]: !quake.ref) -> !quake.wire {
+// CHECK:         %[[W1:.*]] = quake.apply @wire_kernel (%[[W]]) : (!quake.wire) -> !quake.wire
+// CHECK:         %[[W2:.*]] = quake.apply @wire_kernel [%[[CTRL]]] (%[[W1]]) : (!quake.ref, !quake.wire) -> !quake.wire
+// CHECK:         %[[W3:.*]] = quake.apply<adj> @wire_kernel (%[[W2]]) : (!quake.wire) -> !quake.wire
+// CHECK:         %[[W4:.*]] = quake.apply<adj> @wire_kernel [%[[CTRL]]] (%[[W3]]) : (!quake.ref, !quake.wire) -> !quake.wire
+// CHECK:         return %[[W4]] : !quake.wire
+// CHECK:       }
+
+// Cable actuals — all four variants chained through a single cable<2> value.
+func.func @apply_cable(%c : !quake.cable<2>, %ctrl : !quake.ref) -> !quake.cable<2> {
+  // 1. Normal: no adj, no controls.
+  %c1 = quake.apply @cable_kernel (%c) : (!quake.cable<2>) -> (!quake.cable<2>)
+  // 2. With controls (ref control, cable actual).
+  %c2 = quake.apply @cable_kernel [%ctrl] (%c1) : (!quake.ref, !quake.cable<2>) -> (!quake.cable<2>)
+  // 3. Adjoint, no controls.
+  %c3 = quake.apply<adj> @cable_kernel (%c2) : (!quake.cable<2>) -> (!quake.cable<2>)
+  // 4. Adjoint + controls.
+  %c4 = quake.apply<adj> @cable_kernel [%ctrl] (%c3) : (!quake.ref, !quake.cable<2>) -> (!quake.cable<2>)
+  return %c4 : !quake.cable<2>
+}
+
+// CHECK-LABEL: func.func @apply_cable(
+// CHECK-SAME:    %[[C:.*]]: !quake.cable<2>, %[[CTRL:.*]]: !quake.ref) -> !quake.cable<2> {
+// CHECK:         %[[C1:.*]] = quake.apply @cable_kernel (%[[C]]) : (!quake.cable<2>) -> !quake.cable<2>
+// CHECK:         %[[C2:.*]] = quake.apply @cable_kernel [%[[CTRL]]] (%[[C1]]) : (!quake.ref, !quake.cable<2>) -> !quake.cable<2>
+// CHECK:         %[[C3:.*]] = quake.apply<adj> @cable_kernel (%[[C2]]) : (!quake.cable<2>) -> !quake.cable<2>
+// CHECK:         %[[C4:.*]] = quake.apply<adj> @cable_kernel [%[[CTRL]]] (%[[C3]]) : (!quake.ref, !quake.cable<2>) -> !quake.cable<2>
+// CHECK:         return %[[C4]] : !quake.cable<2>
 // CHECK:       }

@@ -31,6 +31,15 @@ def QuantumMeasure : NativeOpTrait<"QuantumMeasure"> {
   let cppNamespace = "::cudaq";
 }
 
+// Marks an op that is not itself a QuantumGate or QuantumMeasure but that
+// implicitly dereferences a `!quake.ref`/`!quake.veq` operand and modifies
+// the wire(s) it refers to (typically by macro-expanding to, or invoking,
+// one or more quantum operators), e.g. quake.apply, quake.compute_action,
+// quake.apply_noise, quake.call_by_ref, quake.log_output.
+def QuantumSideEffects : NativeOpTrait<"QuantumSideEffects"> {
+  let cppNamespace = "::cudaq";
+}
+
 //===----------------------------------------------------------------------===//
 // Classical compute operation traits
 //===----------------------------------------------------------------------===//

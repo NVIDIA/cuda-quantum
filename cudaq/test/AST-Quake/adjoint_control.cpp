@@ -37,7 +37,7 @@ struct k_adj {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__k_adj(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>
-// CHECK:           quake.apply<adj> @__nvqpp__mlirgen__k %[[VAL_0]]
+// CHECK:           quake.apply<adj> @__nvqpp__mlirgen__k (%[[VAL_0]]
 // CHECK:           return
 // clang-format on
 
@@ -53,7 +53,7 @@ struct ep {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ep()
 // CHECK:           %[[CTRL:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[Q:.*]] = quake.relax_size %{{.*}} : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           quake.apply @__nvqpp__mlirgen__k_adj {{\[}}%[[CTRL]]] %[[Q]]
+// CHECK:           quake.apply @__nvqpp__mlirgen__k_adj {{\[}}%[[CTRL]]] (%[[Q]]
 // CHECK:           return
 // clang-format on
 
@@ -69,7 +69,7 @@ struct k_ctrl {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__k_ctrl(
 // CHECK-SAME:      %[[CTRL:.*]]: !quake.ref
 // CHECK-SAME:      %[[Q:.*]]: !quake.veq<?>
-// CHECK:           quake.apply @__nvqpp__mlirgen__k {{\[}}%[[CTRL]]] %[[Q]]
+// CHECK:           quake.apply @__nvqpp__mlirgen__k {{\[}}%[[CTRL]]] (%[[Q]]
 // CHECK:           return
 // clang-format on
 
@@ -85,6 +85,6 @@ struct ep2 {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ep2()
 // CHECK:           %[[CTRL2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[Q2:.*]] = quake.relax_size %{{.*}} : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           quake.apply<adj> @__nvqpp__mlirgen__k_ctrl %[[CTRL2]], %[[Q2]]
+// CHECK:           quake.apply<adj> @__nvqpp__mlirgen__k_ctrl (%[[CTRL2]], %[[Q2]]
 // CHECK:           return
 // clang-format on

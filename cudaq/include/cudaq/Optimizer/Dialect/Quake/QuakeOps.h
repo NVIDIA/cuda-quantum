@@ -86,6 +86,21 @@ inline bool isQuakeOperation(mlir::Operation *op) {
 }
 
 namespace cudaq::quake {
+namespace detail {
+/// Scalar-wire inputs and the results that carry the same qubits by position.
+struct ScalarWireFlow {
+  mlir::SmallVector<mlir::Value> inputs;
+  mlir::SmallVector<mlir::Value> results;
+};
+
+/// Return the one-to-one scalar-wire flow for a memory-effect-free operator,
+/// measurement, or reset that owns no regions and has no successors.
+/// Operator inputs contain controls followed by targets in interface order.
+/// Measurement and reset inputs contain targets in interface order.
+/// Unsupported forms and mismatched input and result shapes return no value.
+std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
+} // namespace detail
+
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
 /// `!quake.veq`.
 inline bool hasReference(mlir::Operation *op) {

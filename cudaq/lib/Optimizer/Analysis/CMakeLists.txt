@@ -10,6 +10,8 @@ add_cudaq_library(OptAnalysis
   PARTIAL_SOURCES_INTENDED
   CircuitValidation.cpp
   UnitaryBuilder.cpp
+  CommutationAnalysis.cpp
+  QubitIdentityAnalysis.cpp
   UnitaryOpGrouping.cpp
 
   DEPENDS

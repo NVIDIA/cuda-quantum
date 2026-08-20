@@ -71,6 +71,7 @@ Kernel Execution
 .. autofunction:: cudaq::vqe
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
+.. autofunction:: cudaq::estimate
 .. autofunction:: cudaq::estimate_resources
 .. autofunction:: cudaq::dem_from_kernel
 
@@ -319,6 +320,9 @@ Data Types
     :members:
 
 .. autoclass:: cudaq::Resources
+    :members:
+
+.. autoclass:: cudaq::EstimateResult
     :members:
 
 Optimizers

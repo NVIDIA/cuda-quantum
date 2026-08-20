@@ -32,16 +32,17 @@ def assert_logical_basis_only(ops):
         f"Unexpected logical operations after FTQC normalization: {ops}")
 
 
-def test_preserves_native_logical_resource_classes():
+def test_reports_folded_and_native_logical_resource_classes():
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
     kernel = cudaq.make_kernel()
-    q = kernel.qalloc(3)
+    q = kernel.qalloc(4)
     kernel.h(q[0])
     kernel.t(q[1])
     kernel.s(q[1])
     kernel.t(q[1])
     kernel.tdg(q[2])
+    kernel.s(q[3])
     kernel.rx(0.125, q[0])
     kernel.ry(0.25, q[1])
     kernel.rz(0.5, q[2])
@@ -49,14 +50,16 @@ def test_preserves_native_logical_resource_classes():
 
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
-    assert ops.get('h', 0) == 1
-    assert ops.get('s', 0) == 2
-    # The current resource-count path reports T and Tdg as the T family.
-    assert ops.get('t', 0) + ops.get('tdg', 0) == 1
-    assert ops.get('rx', 0) == 1
-    assert ops.get('ry', 0) == 1
-    assert ops.get('rz', 0) == 1
-    assert ops.get('mz', 0) == 1
+    assert ops == {
+        'h': 1,
+        'z': 1,
+        't': 1,
+        's': 1,
+        'rx': 1,
+        'ry': 1,
+        'rz': 1,
+        'mz': 1
+    }
 
 
 def test_preserves_structured_logical_operations():
