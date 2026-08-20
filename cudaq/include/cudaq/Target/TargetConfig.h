@@ -192,7 +192,7 @@ struct TargetVersionCompatibilityResult {
 };
 
 /// Validate an external plugin target against the current CUDA-Q version.
-/// Numeric MAJOR.MINOR.PATCH prefixes are compared; any suffix is ignored.
+/// Exact matches are compatible; any version difference produces a warning.
 TargetVersionCompatibilityResult
 checkExternalTargetVersion(const TargetConfig &config,
                            std::string_view currentVersion,
