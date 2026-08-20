@@ -33,10 +33,10 @@ func.func @test0(%arg0: i32) {
 // CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%{{.*}} : (!quake.veq<5>, i64) -> !quake.ref
 // CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
-// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
-// CHECK:           %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[X_1]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK-DAG:       %[[UNWRAP_2:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       quake.wrap %[[X_1]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK-DAG:       quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
 
 func.func @test1(%arg0: i32) {
   %c1_i32 = arith.constant 1 : i32
@@ -114,8 +114,8 @@ func.func @test2(%arg0: i32) {
 // CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%{{.*}} : (!quake.veq<5>, i64) -> !quake.ref
 // CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
-// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
-// CHECK:           %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[Y_0:.*]] = quake.y %[[X_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[Y_0]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK-DAG:       %[[UNWRAP_2:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[Y_0:.*]] = quake.y %[[X_1]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       quake.wrap %[[Y_0]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK-DAG:       quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref

@@ -54,7 +54,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::sample_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = emitCodegen(module, getCompileTarget(policy));
+  auto codes = emitCodegen(module, getCompileTarget());
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
@@ -69,7 +69,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::async_sample_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = emitCodegen(module, getCompileTarget(policy.inner));
+  auto codes = emitCodegen(module, getCompileTarget());
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
@@ -84,7 +84,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::observe_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = emitCodegen(module, getCompileTarget(policy));
+  auto codes = emitCodegen(module, getCompileTarget());
   attachFermioniqObservable(codes[0], policy.spin);
   auto result =
       completeLaunchKernel(policy, module.getName(), std::move(codes));
@@ -104,7 +104,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::async_observe_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = emitCodegen(module, getCompileTarget(policy.inner));
+  auto codes = emitCodegen(module, getCompileTarget());
   attachFermioniqObservable(codes[0], policy.inner.spin);
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }

@@ -756,6 +756,29 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
   }
 };
 
+// A wrap_new mints a fresh ref that stands in for a wire's identity. If that
+// wire is itself the direct result of unwrapping some ref (with nothing in
+// between to modify it), the fresh ref is redundant: the unwrapped ref
+// already denotes that same identity. Forward it directly and drop the
+// round trip through wrap_new (and the unwrap too, once it has no other
+// uses).
+struct ForwardUnwrappedRefPattern
+    : public OpRewritePattern<cudaq::quake::WrapNewOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::WrapNewOp wrapNew,
+                                PatternRewriter &rewriter) const override {
+    auto unwrap =
+        wrapNew.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>();
+    if (!unwrap)
+      return failure();
+    rewriter.replaceOp(wrapNew, unwrap.getRefValue());
+    if (unwrap->use_empty())
+      rewriter.eraseOp(unwrap);
+    return success();
+  }
+};
+
 /// Return true when the two phase operations describe the same ordered
 /// control predicate. An omitted polarity attribute is equivalent to an
 /// all-positive control list.

@@ -1,0 +1,120 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-normalize %s | FileCheck %s
+
+// Regression test: cc-loop-normalize's iteration-count arithmetic combines
+// artifacts pulled from the original function (the loop's bound, step, and
+// initial value), which are not guaranteed to share an integer width. If a
+// loop's induction, step, and initial value are all the same type, none of
+// that arithmetic should be promoted to a wider type.
+
+func.func @all_i32_countdown(%bound: i32) -> i32 {
+  %c1_i32 = arith.constant 1 : i32
+  %c10_i32 = arith.constant 10 : i32
+  %0 = cc.loop while ((%arg0 = %c10_i32) -> (i32)) {
+    %1 = arith.cmpi sge, %arg0, %bound : i32
+    cc.condition %1(%arg0 : i32)
+  } do {
+  ^bb0(%arg0: i32):
+    %1 = arith.subi %arg0, %c1_i32 : i32
+    cc.continue %1 : i32
+  } step {
+  ^bb0(%arg0: i32):
+    cc.continue %arg0 : i32
+  }
+  return %0 : i32
+}
+
+// CHECK-LABEL:   func.func @all_i32_countdown(
+// CHECK-SAME:                                 %[[ARG0:.*]]: i32) -> i32 {
+// CHECK-NOT:       cc.cast
+// CHECK:           %[[ITERS:.*]] = arith.divsi %{{.*}}, %{{.*}} : i32
+// CHECK-NOT:       cc.cast
+// CHECK:           %[[SEL:.*]] = arith.select %{{.*}}, %[[ITERS]], %{{.*}} : i32
+// CHECK-NOT:       cc.cast
+// CHECK:           cc.loop while ((%[[IV:.*]] = %{{.*}}) -> (i32)) {
+// CHECK:             %{{.*}} = arith.cmpi ne, %[[IV]], %[[SEL]] : i32
+// CHECK-NOT:       cc.cast
+// CHECK:           return
+
+// If the loop's bound is a wider type than the induction was declared with
+// -- as happens when the bound is compared against a widened (cast) copy of
+// the induction, e.g. an i64 derived from an i32 index -- the
+// iteration-count arithmetic must be promoted to that wider type
+// throughout, not truncated (which would silently produce the wrong trip
+// count or fail to verify). A semi-open (`ult`) predicate is used here
+// because it forces the closed/semi-open interval adjustment, which is the
+// step that most directly mixes the i32 step/one/zero constants with the
+// i64 bound.
+
+func.func @mixed_i32_i64_semiopen(%bound: i64) -> i32 {
+  %c1_i32 = arith.constant 1 : i32
+  %0 = cc.loop while ((%arg0 = %c1_i32) -> (i32)) {
+    %1 = cc.cast signed %arg0 : (i32) -> i64
+    %2 = arith.cmpi ult, %1, %bound : i64
+    cc.condition %2(%arg0 : i32)
+  } do {
+  ^bb0(%arg0: i32):
+    cc.continue %arg0 : i32
+  } step {
+  ^bb0(%arg0: i32):
+    %1 = arith.addi %arg0, %c1_i32 : i32
+    cc.continue %1 : i32
+  }
+  return %0 : i32
+}
+
+// CHECK-LABEL:   func.func @mixed_i32_i64_semiopen(
+// CHECK-SAME:                                       %[[ARG0:.*]]: i64) -> i32 {
+// CHECK:           %[[ONE64_0:.*]] = cc.cast signed %{{.*}} : (i32) -> i64
+// CHECK:           %[[ONE64_1:.*]] = cc.cast signed %{{.*}} : (i32) -> i64
+// CHECK:           %[[ZERO64:.*]] = cc.cast signed %{{.*}} : (i32) -> i64
+// CHECK:           %[[ONE64_2:.*]] = cc.cast signed %{{.*}} : (i32) -> i64
+// CHECK:           %[[NEGCOND:.*]] = arith.cmpi slt, %[[ONE64_0]], %[[ZERO64]] : i64
+// CHECK:           %[[ADJ:.*]] = arith.select %[[NEGCOND]], %{{.*}}, %[[ONE64_2]] : i64
+// CHECK:           %[[UPPER:.*]] = arith.subi %[[ARG0]], %[[ADJ]] : i64
+// CHECK:           %[[DIFF:.*]] = arith.subi %[[UPPER]], %[[ONE64_1]] : i64
+// CHECK:           %[[DISP:.*]] = arith.addi %[[DIFF]], %[[ONE64_0]] : i64
+// CHECK:           %[[ITERS:.*]] = arith.divsi %[[DISP]], %[[ONE64_0]] : i64
+// CHECK:           cc.loop while ((%[[IV:.*]] = %{{.*}}) -> (i32)) {
+// CHECK:             %[[IV64:.*]] = cc.cast signed %[[IV]] : (i32) -> i64
+// CHECK:             %{{.*}} = arith.cmpi ne, %[[IV64]], %[[ITERS]] : i64
+// CHECK:           return
+
+// Regression test: a fully constant-folded version of the mixed-type loop
+// above must still compute the correct trip count once cc-loop-unroll
+// unrolls it -- i.e. the wide-type promotion above must be numerically
+// correct, not just well-typed. `for (i = 1; i < 10; ++i)` (semi-open, so 9
+// iterations) run against an i32 induction compared as i64 must land on
+// i = 10.
+
+// RUN: cudaq-opt --cc-loop-normalize --canonicalize --cc-loop-unroll --canonicalize %s | FileCheck --check-prefix=UNROLL %s
+
+func.func @mixed_i32_i64_semiopen_const() -> i32 {
+  %c10_i64 = arith.constant 10 : i64
+  %c1_i32 = arith.constant 1 : i32
+  %0 = cc.loop while ((%arg0 = %c1_i32) -> (i32)) {
+    %1 = cc.cast signed %arg0 : (i32) -> i64
+    %2 = arith.cmpi ult, %1, %c10_i64 : i64
+    cc.condition %2(%arg0 : i32)
+  } do {
+  ^bb0(%arg0: i32):
+    cc.continue %arg0 : i32
+  } step {
+  ^bb0(%arg0: i32):
+    %1 = arith.addi %arg0, %c1_i32 : i32
+    cc.continue %1 : i32
+  }
+  return %0 : i32
+}
+
+// UNROLL-LABEL:   func.func @mixed_i32_i64_semiopen_const() -> i32 {
+// UNROLL:           %[[VAL_0:.*]] = arith.constant 10 : i32
+// UNROLL:           return %[[VAL_0]] : i32
+// UNROLL:         }

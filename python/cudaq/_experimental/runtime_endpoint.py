@@ -17,9 +17,10 @@ protocols below. Register it with :func:`set_runtime_endpoint`:
 .. code-block:: python
 
     import cudaq
-    from cudaq._experimental import SampleResult, set_runtime_endpoint
+    from cudaq import SampleResult
+    from cudaq._experimental import RuntimeEndpoint, set_runtime_endpoint
 
-    class MyEndpoint:
+    class MyEndpoint(RuntimeEndpoint):
 
         def sample(self, module, arguments, *, shots_count, **options):
             submit_somewhere(module, list(arguments))
@@ -54,6 +55,7 @@ from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     ObserveResult,
     SampleResult,
     SpinOperator,
+    set_runtime_endpoint,
 )
 import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime as _cudaq_runtime
 
@@ -75,7 +77,35 @@ __all__ = [
 
 
 @runtime_checkable
-class SupportsSample(Protocol):
+class RuntimeEndpoint(Protocol):
+    """A runtime endpoint is a Python object that can serve kernel launches.
+    
+    Implement one or several of the children protocols for each supported
+    launch policy.
+    
+    Although not required, it is recommended for user-defined endpoints to
+    inherit explicitly from this base class. This ensures all default
+    attributes values are inherited:
+
+    ```python
+    class MyEndpoint(RuntimeEndpoint):
+        def sample(self, module, args, **kwargs):
+            pass
+    
+    ep = MyEndpoint()
+    print(ep.is_simulator)  # True
+    print(ep.is_remote)    # False
+    print(ep.is_emulated)  # False
+    ```
+    """
+
+    is_simulator: bool = True
+    is_remote: bool = False
+    is_emulated: bool = False
+
+
+@runtime_checkable
+class SupportsSample(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.sample``."""
 
     def sample(self, module: CompiledModule, args: KernelArgs,
@@ -89,7 +119,7 @@ class SupportsSample(Protocol):
 
 
 @runtime_checkable
-class SupportsObserve(Protocol):
+class SupportsObserve(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.observe``."""
 
     def observe(self, module: CompiledModule, args: KernelArgs,
@@ -103,7 +133,7 @@ class SupportsObserve(Protocol):
 
 
 @runtime_checkable
-class SupportsDem(Protocol):
+class SupportsDem(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.dem_from_kernel``."""
 
     def dem_from_kernel(self, module: CompiledModule, args: KernelArgs,
@@ -123,7 +153,7 @@ class SupportsDem(Protocol):
 
 
 @runtime_checkable
-class SupportsEstimate(Protocol):
+class SupportsEstimate(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.estimate``."""
 
     def estimate(self, module: CompiledModule, args: KernelArgs,
@@ -138,26 +168,3 @@ class SupportsEstimate(Protocol):
 
 
 _PROTOCOLS = (SupportsSample, SupportsObserve, SupportsDem, SupportsEstimate)
-
-
-def set_runtime_endpoint(endpoint) -> None:
-    """Route kernel launches to `endpoint` instead of the active target's QPU.
-
-    Args:
-      endpoint: An object implementing at least one of :class:`SupportsSample`,
-        :class:`SupportsObserve`, :class:`SupportsDem` or
-        :class:`SupportsEstimate`. Launches under a policy the object does not
-        implement raise a `RuntimeError`.
-
-    Raises:
-      TypeError: If `endpoint` implements none of the protocols.
-    """
-    # Here we can do Python-level validation of the endpoint object. For now,
-    # just check that it implements at least one of the protocols.
-
-    if not any(isinstance(endpoint, protocol) for protocol in _PROTOCOLS):
-        raise TypeError(
-            f"{type(endpoint).__name__} is not a runtime endpoint: it must "
-            f"define at least one of "
-            f"{', '.join(p.__name__ for p in _PROTOCOLS)}.")
-    _cudaq_runtime.set_runtime_endpoint(endpoint)

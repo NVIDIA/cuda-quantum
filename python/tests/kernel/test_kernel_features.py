@@ -152,7 +152,12 @@ def test_adjoint():
     counts = cudaq.sample(kernel, False, shots_count=1000)
     assert len(counts) == 6
 
-    # FIXME: This current fails due to a bug in ApplySpecialization
+    # FIXME: double_excitation_opt's excitation loops thread a running
+    # classical offset from one loop into the next, then back out into a
+    # later loop's bound. Reversing loop order for the adjoint has no valid
+    # placement for that classical glue (it would need to sit both after and
+    # before loops that swap relative order), so autogeneration of the
+    # adjoint is correctly rejected as irreversible.
     #counts = cudaq.sample(kernel, True, shots_count=1000)
     #assert len(counts) == 1 and '00000000' in counts
 

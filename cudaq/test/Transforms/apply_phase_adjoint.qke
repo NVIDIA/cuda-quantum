@@ -20,7 +20,7 @@ func.func private @phase_helper(%theta: f64, %anchor: !quake.ref) {
 
 func.func @caller(%theta: f64, %outer: !quake.ref,
                   %anchor: !quake.ref) {
-  quake.apply<adj> @phase_helper [%outer] %theta, %anchor
+  quake.apply<adj> @phase_helper [%outer] (%theta, %anchor)
       : (!quake.ref, f64, !quake.ref) -> ()
   return
 }

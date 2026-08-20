@@ -80,8 +80,15 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     Option<"computeActionOptimization", "compute-action", "bool",
       /*default=*/"true", "Enable the compute-action control optimization.">,
     Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
-      "Enable specialization and constant propagation from apply call sites.">
+      "Enable specialization and constant propagation from apply call sites.">,
+    Option<"legacyClassical", "legacy-classical", "bool", /*default=*/"false",
+      "Enable legacy auto-generation of classical code in kernels. "
+      "Classical code is run as it appears in the kernel modulo expressions "
+      "derived from loop control variables as loops are reversed. Legacy mode "
+      "may produce unexpected results.">
   ];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
 def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::ModuleOp"> {
@@ -163,7 +170,8 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
 }
 
 def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
-  let summary = "Approximate constant-angle Rz rotations as Clifford+T sequences.";
+  let summary =
+    "Approximate constant-angle Rz rotations as Clifford+T sequences.";
   let description = [{
     Rewrites `quake.rz` operations with constant angles into sequences of
     `quake.h`, `quake.s`, `quake.t`, and `quake.x` (Clifford+T) gates. The
@@ -228,7 +236,8 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
 
 def OptimizeSingleQubitCliffordT
     : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
-  let summary = "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
+  let summary =
+    "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
   let description = [{
     Consumes and produces the scalar linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
@@ -319,7 +328,8 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
       /*default=*/"true", "Allow loop iterations on a closed interval.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
       "Allow unrolling of loop with early exit (i.e. break statement).">,
-    Option<"disableLoopUnrolling", "no-loop-unroll", "bool", /*default=*/"false",
+    Option<"disableLoopUnrolling", "no-loop-unroll", "bool",
+      /*default=*/"false",
       "Disable loop unrolling and preserve cc.loop operations.">
   ];
 }
@@ -579,11 +589,11 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
 def EraseQEC : Pass<"erase-qec"> {
   let summary = "Erase QEC detector and observable operations.";
   let description = [{
-    Removes `qec.detector`, `qec.observable`, and `qec.pair_detectors` operations
-    from the IR. These are side-effecting declaration ops: they record a
-    parity-check or logical-observable relationship over prior measurement
-    results so a detector error model can be built from the kernel. This pass
-    strips them.
+    Removes `qec.detector`, `qec.observable`, and `qec.pair_detectors`
+    operations from the IR. These are side-effecting declaration ops: they
+    record a parity-check or logical-observable relationship over prior
+    measurement results so a detector error model can be built from the kernel.
+    This pass strips them.
   }];
 }
 
@@ -659,7 +669,8 @@ def FactorQuantumAllocations :
     If the function contains deallocations of quantum vectors (`veq`), these
     will be replaced with a series of deallocations.
   }];
-  let dependentDialects = ["cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
+  let dependentDialects = ["cudaq::quake::QuakeDialect",
+    "cudaq::cc::CCDialect"];
 
   let options = [
     Option<"enableFailures", "enable-failures", "bool", /*default=*/"false",
@@ -861,7 +872,7 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = ["mlir::cf::ControlFlowDialect",
-                           "mlir::func::FuncDialect"];
+    "mlir::func::FuncDialect", "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
@@ -1027,6 +1038,40 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "Unroll only loops that prevent quantum references, slices, or "
       "exp_pauli operands from being resolved for wire-set lowering.">
   ];
+}
+
+def LoopInductionFusion : Pass<"cc-loop-induction-fusion"> {
+  let summary = "Fuse secondary loop inductions into the primary induction.";
+  let description = [{
+    For a normalized cc.loop (one that has already been through
+    cc-loop-normalize so the primary control induction starts at 0 and steps by
+    1), any additional loop-carried integer values that step by a loop-invariant
+    amount on every iteration are *secondary inductions*.  They are linear
+    functions of the primary induction variable `i`:
+
+    ```
+      j(i) = j_initial ± i * step_j
+    ```
+
+    This pass replaces every use of a secondary induction's block argument in
+    the loop body with the closed-form expression above, then removes the
+    secondary from the loop's carried-value set.  The final value of each
+    secondary after the loop is replaced in the parent block by substituting
+    the loop's primary result:
+
+    ```
+      j_final = j_initial ± loop_result_i * step_j
+    ```
+
+    The loop must be in invariant form: primary starts at 0 and steps by 1.
+    Loops stamped with the `normalized` attribute by `cc-loop-normalize`
+    satisfy this, but the pass also accepts any loop already in that form
+    without the attribute.  If the loop is not in invariant form, or has no
+    secondary inductions, the pass is a no-op for that loop.
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::cc::CCDialect"];
 }
 
 def LowerPhase : Pass<"lower-phase", "mlir::func::FuncOp"> {
@@ -1433,8 +1478,15 @@ def QuakePropagateMetadata :
 def QuakeSimplify : Pass<"quake-simplify"> {
   let summary = "Perform simplifications on the quake ops.";
   let description = [{
-    This pass performs several simplifications on quake operations. The
+    This pass performs several simplifications on Quake operations. The
     IR is expected to be in value-semantics form.
+
+    Commutation-aware rewrites are block local and support participating
+    operations whose controls and targets are scalar `!quake.wire` values.
+    Other valid control representations conservatively do not match. Direct
+    rewrites require exactly threaded, distinct wire operands. A rewrite that
+    crosses another operation requires the block-local analysis to prove
+    commutation.
 
     Among these, a constant-angle rotation that is the identity is erased. The
     angle is first folded into the period after which the rotation is exactly
@@ -1470,9 +1522,9 @@ def QuakeSimplify : Pass<"quake-simplify"> {
   ];
   let statistics = [
     Statistic<"numHermitianEliminations", "hermitian-eliminations",
-              "Number of back-to-back Hermitian gate pairs eliminated">,
+              "Number of commutation-compatible Hermitian gate pairs eliminated">,
     Statistic<"numAdjointEliminations", "adjoint-eliminations",
-              "Number of back-to-back adjoint gate pairs eliminated">,
+              "Number of commutation-compatible adjoint gate pairs eliminated">,
     Statistic<"numZeroRotationsEliminated", "zero-rotations-eliminated",
               "Number of identity rotations eliminated">,
     Statistic<"numRotationsCombined", "rotations-combined",

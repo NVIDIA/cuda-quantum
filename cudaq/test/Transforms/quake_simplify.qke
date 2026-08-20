@@ -8,6 +8,9 @@
 
 // RUN: cudaq-opt --quake-simplify %s | FileCheck %s
 
+func.func private @opaque_wire(!quake.wire) -> !quake.wire
+func.func private @wire_source() -> !quake.wire
+
 func.func @simp1() -> (i1, i1) {
   %0 = quake.null_wire
   %1 = quake.null_wire
@@ -48,11 +51,14 @@ func.func @simp5() -> (i1, i1) {
   func.return %6, %7 : i1, i1
 }
 
+// The second Swap names the two qubits in the opposite order, so its first
+// result is the qubit that entered on %[[VAL_1]]. Each measurement must follow
+// its own qubit back to the wire that qubit entered on.
 // CHECK-LABEL:   func.func @simp5() -> (i1, i1) {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
-// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_4:.*]], %[[VAL_5:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_4:.*]], %[[VAL_5:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
 // CHECK:           quake.sink %[[VAL_3]] : !quake.wire
@@ -366,3 +372,266 @@ func.func @simp12() {
 // CHECK:           quake.sink %[[Z_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+// Reference-form effects that may alias an active wire prevent reset
+// elimination. The measured lane also keeps an otherwise unused wire path.
+func.func @preserve_resets_across_aliases(%updated: !quake.ref, %measured: !quake.ref) -> i1 {
+  %updated_wire = quake.unwrap %updated : (!quake.ref) -> !quake.wire
+  %reset0 = quake.reset %updated_wire : (!quake.wire) -> !quake.wire
+  quake.x %updated : (!quake.ref) -> ()
+  %reset1 = quake.reset %reset0 : (!quake.wire) -> !quake.wire
+  %bit, %updated_result = quake.mz %reset1
+      : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.wrap %updated_result to %updated : !quake.wire, !quake.ref
+  %measured_wire = quake.unwrap %measured : (!quake.ref) -> !quake.wire
+  %reset2 = quake.reset %measured_wire : (!quake.wire) -> !quake.wire
+  %measurement = quake.mz %measured : (!quake.ref) -> !cc.measure_handle
+  %value = quake.discriminate %measurement : (!cc.measure_handle) -> i1
+  quake.sink %reset2 : !quake.wire
+  return %value : i1
+}
+
+// CHECK-LABEL:   func.func @preserve_resets_across_aliases(
+// CHECK-SAME:      %[[UPDATED:.*]]: !quake.ref, %[[MEASURED:.*]]: !quake.ref) -> i1 {
+// CHECK-NEXT:      %[[UPDATED_WIRE:.*]] = quake.unwrap %[[UPDATED]]
+// CHECK-NEXT:      %[[RESET0:.*]] = quake.reset %[[UPDATED_WIRE]]
+// CHECK-NEXT:      quake.x %[[UPDATED]]
+// CHECK-NEXT:      %[[RESET1:.*]] = quake.reset %[[RESET0]]
+// CHECK-NEXT:      %[[BIT:.*]], %[[UPDATED_RESULT:.*]] = quake.mz %[[RESET1]]
+// CHECK-NEXT:      quake.wrap %[[UPDATED_RESULT]] to %[[UPDATED]]
+// CHECK-NEXT:      %[[MEASURED_WIRE:.*]] = quake.unwrap %[[MEASURED]]
+// CHECK-NEXT:      %[[RESET2:.*]] = quake.reset %[[MEASURED_WIRE]]
+// CHECK-NEXT:      %[[MEASUREMENT:.*]] = quake.mz %[[MEASURED]]
+// CHECK-NEXT:      %[[VALUE:.*]] = quake.discriminate %[[MEASUREMENT]]
+// CHECK-NEXT:      quake.sink %[[RESET2]]
+// CHECK-NEXT:      return %[[VALUE]] : i1
+// CHECK-NEXT:    }
+
+func.func @preserve_reset_sink_alias_measurements(
+    %direct: !quake.ref, %duplicate: !quake.ref) -> (i1, i1) {
+  %direct_wire = quake.unwrap %direct : (!quake.ref) -> !quake.wire
+  %direct_reset = quake.reset %direct_wire : (!quake.wire) -> !quake.wire
+  quake.sink %direct_reset : !quake.wire
+  %direct_measurement = quake.mz %direct : (!quake.ref) -> !cc.measure_handle
+  %direct_result = quake.discriminate %direct_measurement
+      : (!cc.measure_handle) -> i1
+
+  %duplicate_wire0 = quake.unwrap %duplicate : (!quake.ref) -> !quake.wire
+  %duplicate_wire1 = quake.unwrap %duplicate : (!quake.ref) -> !quake.wire
+  %duplicate_reset = quake.reset %duplicate_wire0
+      : (!quake.wire) -> !quake.wire
+  quake.sink %duplicate_reset : !quake.wire
+  %duplicate_measurement, %duplicate_result_wire = quake.mz %duplicate_wire1
+      : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %duplicate_result = quake.discriminate %duplicate_measurement
+      : (!quake.measure) -> i1
+  quake.sink %duplicate_result_wire : !quake.wire
+  return %direct_result, %duplicate_result : i1, i1
+}
+
+// CHECK-LABEL: func.func @preserve_reset_sink_alias_measurements(
+// CHECK:         %[[DIRECT_RESET:.*]] = quake.reset
+// CHECK-NEXT:    quake.sink %[[DIRECT_RESET]]
+// CHECK-NEXT:    %[[DIRECT_MZ:.*]] = quake.mz
+// CHECK:         %[[DUP_RESET:.*]] = quake.reset
+// CHECK-NEXT:    quake.sink %[[DUP_RESET]]
+// CHECK-NEXT:    %[[DUP_MZ:.*]], %[[DUP_WIRE:.*]] = quake.mz
+// CHECK:         %[[DUP_RESULT:.*]] = quake.discriminate %[[DUP_MZ]]
+// CHECK-NEXT:    quake.sink %[[DUP_WIRE]]
+
+func.func @preserve_reset_sink_with_branched_input() -> i1 {
+  %wire = quake.null_wire
+  %prepared = quake.x %wire : (!quake.wire) -> !quake.wire
+  %reset = quake.reset %prepared : (!quake.wire) -> !quake.wire
+  quake.sink %reset : !quake.wire
+  cf.br ^measure
+^measure:
+  %measurement, %result_wire = quake.mz %prepared
+      : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %result = quake.discriminate %measurement : (!quake.measure) -> i1
+  quake.sink %result_wire : !quake.wire
+  return %result : i1
+}
+
+// CHECK-LABEL: func.func @preserve_reset_sink_with_branched_input() -> i1 {
+// CHECK:         %[[WIRE:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[PREPARED:.*]] = quake.x %[[WIRE]]
+// CHECK-NEXT:    %[[RESET:.*]] = quake.reset %[[PREPARED]]
+// CHECK-NEXT:    quake.sink %[[RESET]]
+// CHECK-NEXT:    cf.br ^bb1
+// CHECK:       ^bb1:
+// CHECK-NEXT:    %[[MEASUREMENT:.*]], %[[RESULT_WIRE:.*]] = quake.mz %[[PREPARED]]
+// CHECK:         %[[RESULT:.*]] = quake.discriminate %[[MEASUREMENT]]
+// CHECK-NEXT:    quake.sink %[[RESULT_WIRE]]
+// CHECK-NEXT:    return %[[RESULT]] : i1
+
+// Non-unitary operations and opaque control flow require observable pass
+// coverage because they are outside CircuitCheck's unitary contract.
+func.func @commutation_boundaries(%condition: i1,
+    %word: !cc.charspan) -> i1 {
+  %angle = arith.constant 2.500000e-01 : f64
+
+  %measured_positive = quake.null_wire
+  %mz_z0 = quake.z %measured_positive : (!quake.wire) -> !quake.wire
+  %mz_bit, %mz_wire = quake.mz %mz_z0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %mz_result = quake.discriminate %mz_bit : (!quake.measure) -> i1
+  %mz_z1 = quake.z %mz_wire : (!quake.wire) -> !quake.wire
+  %measured_negative = quake.null_wire
+  %mz_h0 = quake.h %measured_negative : (!quake.wire) -> !quake.wire
+  %negative_bit, %negative_wire = quake.mz %mz_h0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %mz_h1 = quake.h %negative_wire : (!quake.wire) -> !quake.wire
+
+  %reset_positive = quake.null_wire
+  %reset_z0 = quake.z %reset_positive : (!quake.wire) -> !quake.wire
+  %reset_z = quake.reset %reset_z0 : (!quake.wire) -> !quake.wire
+  %reset_z1 = quake.z %reset_z : (!quake.wire) -> !quake.wire
+  %reset_negative = quake.null_wire
+  %reset_x0 = quake.x %reset_negative : (!quake.wire) -> !quake.wire
+  %reset_x = quake.reset %reset_x0 : (!quake.wire) -> !quake.wire
+  %reset_x1 = quake.x %reset_x : (!quake.wire) -> !quake.wire
+
+  %multi0 = quake.null_wire
+  %multi1 = quake.null_wire
+  %multi_h0 = quake.h %multi0 : (!quake.wire) -> !quake.wire
+  %multi_bit, %multi_wire:2 = quake.mz %multi_h0, %multi1 : (!quake.wire, !quake.wire) -> (!cc.sequence<!cc.measure_handle>, !quake.wire, !quake.wire)
+  %multi_h1 = quake.h %multi_wire#0 : (!quake.wire) -> !quake.wire
+
+  %call_input = quake.null_wire
+  %call_h0 = quake.h %call_input : (!quake.wire) -> !quake.wire
+  %called = func.call @opaque_wire(%call_h0) : (!quake.wire) -> !quake.wire
+  %call_h1 = quake.h %called : (!quake.wire) -> !quake.wire
+  %unknown_control = quake.null_wire
+  %unknown_target = func.call @wire_source() : () -> !quake.wire
+  %unknown_z0 = quake.z %unknown_control : (!quake.wire) -> !quake.wire
+  %unknown_x:2 = quake.x [%unknown_z0] %unknown_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %unknown_z1 = quake.z %unknown_x#0 : (!quake.wire) -> !quake.wire
+
+  %region_input = quake.null_wire
+  %region_h0 = quake.h %region_input : (!quake.wire) -> !quake.wire
+  %region:1 = cc.if (%condition) ((%arg = %region_h0)) -> (!quake.wire) {
+    cc.continue %arg : !quake.wire
+  } else {
+    cc.continue %arg : !quake.wire
+  }
+  %region_h1 = quake.h %region#0 : (!quake.wire) -> !quake.wire
+
+  %frontier_control = quake.null_wire
+  %frontier_target = quake.null_wire
+  %frontier_x0:2 = quake.x [%frontier_control] %frontier_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %frontier_h = quake.h %frontier_x0#0 : (!quake.wire) -> !quake.wire
+  %frontier_x1:2 = quake.x [%frontier_h] %frontier_x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  %dynamic = quake.null_wire
+  %dynamic_z0 = quake.z %dynamic : (!quake.wire) -> !quake.wire
+  %dynamic_pauli = quake.exp_pauli (%angle) %dynamic_z0 to %word : (f64, !quake.wire, !cc.charspan) -> !quake.wire
+  %dynamic_z1 = quake.z %dynamic_pauli : (!quake.wire) -> !quake.wire
+
+  %reusable_source = quake.null_wire
+  %reusable = quake.to_ctrl %reusable_source : (!quake.wire) -> !quake.control
+  %reusable_target = quake.null_wire
+  %reusable_other = quake.null_wire
+  %reusable_h0 = quake.h %reusable_target : (!quake.wire) -> !quake.wire
+  %reusable_x = quake.x [%reusable] %reusable_other
+      : (!quake.control, !quake.wire) -> !quake.wire
+  %reusable_h1 = quake.h %reusable_h0 : (!quake.wire) -> !quake.wire
+  %reusable_returned = quake.from_ctrl %reusable
+      : (!quake.control) -> !quake.wire
+
+  %wrapped_control = quake.null_wire
+  %control_ref = quake.wrap_new %wrapped_control : (!quake.wire) -> !quake.ref
+  %control_wire = quake.unwrap %control_ref : (!quake.ref) -> !quake.wire
+  %wrapped_target = quake.null_wire
+  %target_ref = quake.wrap_new %wrapped_target : (!quake.wire) -> !quake.ref
+  %target_wire = quake.unwrap %target_ref : (!quake.ref) -> !quake.wire
+  %wrapped_x0:2 = quake.x [%control_wire] %target_wire : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %wrapped_rx:2 = quake.rx (%angle) [%wrapped_x0#0] %wrapped_x0#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %wrapped_x1:2 = quake.x [%wrapped_rx#0] %wrapped_rx#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  quake.sink %mz_z1 : !quake.wire
+  quake.sink %mz_h1 : !quake.wire
+  quake.sink %reset_z1 : !quake.wire
+  quake.sink %reset_x1 : !quake.wire
+  quake.sink %multi_h1 : !quake.wire
+  quake.sink %multi_wire#1 : !quake.wire
+  quake.sink %call_h1 : !quake.wire
+  quake.sink %unknown_z1 : !quake.wire
+  quake.sink %unknown_x#1 : !quake.wire
+  quake.sink %region_h1 : !quake.wire
+  quake.sink %frontier_x1#0 : !quake.wire
+  quake.sink %frontier_x1#1 : !quake.wire
+  quake.sink %dynamic_z1 : !quake.wire
+  quake.sink %reusable_returned : !quake.wire
+  quake.sink %reusable_x : !quake.wire
+  quake.sink %reusable_h1 : !quake.wire
+  quake.wrap %wrapped_x1#0 to %control_ref : !quake.wire, !quake.ref
+  quake.wrap %wrapped_x1#1 to %target_ref : !quake.wire, !quake.ref
+  return %mz_result : i1
+}
+
+// CHECK-LABEL: func.func @commutation_boundaries
+// CHECK:         %[[MZ_Q:.*]] = quake.null_wire
+// CHECK-NOT:     quake.z
+// CHECK:         quake.mz %[[MZ_Q]]
+// CHECK:         %[[MZ_RESULT:.*]] = quake.discriminate
+// CHECK-NOT:     quake.z
+// CHECK:         %[[MZ_H0:.*]] = quake.h
+// CHECK:         %[[MZ_BIT:.*]], %[[MZ_WIRE:.*]] = quake.mz %[[MZ_H0]]
+// CHECK:         quake.h %[[MZ_WIRE]]
+// CHECK:         %[[RESET_Z_Q:.*]] = quake.null_wire
+// CHECK-NOT:     quake.z
+// CHECK-NOT:     quake.reset
+// CHECK:         %[[RESET_X_Q:.*]] = quake.null_wire
+// CHECK:         %[[RESET_X0:.*]] = quake.x
+// CHECK:         %[[RESET_X:.*]] = quake.reset %[[RESET_X0]]
+// CHECK:         quake.x %[[RESET_X]]
+// CHECK:         %[[MULTI_H0:.*]] = quake.h
+// CHECK:         %[[MULTI_BIT:.*]], %[[MULTI_WIRE:.*]]:2 = quake.mz %[[MULTI_H0]],
+// CHECK:         quake.h %[[MULTI_WIRE]]#0
+// CHECK:         %[[CALL_H0:.*]] = quake.h
+// CHECK:         %[[CALLED:.*]] = call @opaque_wire(%[[CALL_H0]])
+// CHECK:         quake.h %[[CALLED]]
+// CHECK:         %[[UNKNOWN_TARGET:.*]] = call @wire_source()
+// CHECK:         %[[UNKNOWN_Z0:.*]] = quake.z
+// CHECK:         %[[UNKNOWN_X:.*]]:2 = quake.x {{\[}}%[[UNKNOWN_Z0]]] %[[UNKNOWN_TARGET]]
+// CHECK:         quake.z %[[UNKNOWN_X]]#0
+// CHECK:         %[[REGION_H0:.*]] = quake.h
+// CHECK:         %[[REGION:.*]] = cc.if{{.*}}%[[REGION_H0]]
+// CHECK:         quake.h %[[REGION]]
+// CHECK:         %[[FRONTIER_X0:.*]]:2 = quake.x
+// CHECK-NEXT:    %[[FRONTIER_H:.*]] = quake.h %[[FRONTIER_X0]]#0
+// CHECK-NEXT:    %[[FRONTIER_X1:.*]]:2 = quake.x {{\[}}%[[FRONTIER_H]]] %[[FRONTIER_X0]]#1
+// CHECK:         %[[DYNAMIC_Z0:.*]] = quake.z
+// CHECK:         %[[DYNAMIC_PAULI:.*]] = quake.exp_pauli {{.*}} %[[DYNAMIC_Z0]] to
+// CHECK:         quake.z %[[DYNAMIC_PAULI]]
+// CHECK:         %[[REUSABLE_SOURCE:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[REUSABLE:.*]] = quake.to_ctrl %[[REUSABLE_SOURCE]]
+// CHECK-NEXT:    %[[REUSABLE_TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[REUSABLE_OTHER:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[REUSABLE_H0:.*]] = quake.h %[[REUSABLE_TARGET]]
+// CHECK-NEXT:    %[[REUSABLE_X:.*]] = quake.x {{\[}}%[[REUSABLE]]] %[[REUSABLE_OTHER]]
+// CHECK-NEXT:    %[[REUSABLE_H1:.*]] = quake.h %[[REUSABLE_H0]]
+// CHECK-NEXT:    %[[REUSABLE_RETURNED:.*]] = quake.from_ctrl %[[REUSABLE]]
+// CHECK-COUNT-2: quake.wrap_new
+// CHECK-NOT:     quake.x
+// CHECK:         quake.rx
+// CHECK-NOT:     quake.x
+// CHECK:         quake.wrap
+// CHECK:         return %[[MZ_RESULT]] : i1
+
+func.func @successor_alias_roles(%condition: i1) {
+  %wire = quake.null_wire
+  cf.cond_br %condition, ^left(%wire, %wire : !quake.wire, !quake.wire), ^right
+^left(%control: !quake.wire, %target: !quake.wire):
+  %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%x0#0] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+^right:
+  return
+}
+
+// CHECK-LABEL: func.func @successor_alias_roles
+// CHECK:       ^bb1(%[[CONTROL:.*]]: !quake.wire, %[[TARGET:.*]]: !quake.wire):
+// CHECK:         quake.x {{\[}}%[[CONTROL]]] %[[TARGET]]
+// CHECK:         quake.x
