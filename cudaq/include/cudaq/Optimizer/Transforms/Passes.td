@@ -371,6 +371,35 @@ def CombineQuantumAllocations :
     "cudaq::quake::QuakeDialect"];
 }
 
+def ConsolidateBroadcasts :
+    Pass<"consolidate-broadcasts", "mlir::func::FuncOp"> {
+  let summary = "Roll loops over a veq back into broadcast form.";
+  let description = [{
+    A counted loop that applies one-target operators to every element of a
+    `veq` in order is replaced by those operators applied to the `veq` itself.
+    ```mlir
+    %0 = quake.alloca !quake.veq<2>
+    cc.loop while ((%i = %c0) -> (i64)) {
+      ...
+    } do {
+    ^bb0(%i: i64):
+      %r = quake.extract_ref %0[%i] : (!quake.veq<2>, i64) -> !quake.ref
+      quake.h %r : (!quake.ref) -> ()
+      ...
+    }
+    ────────────────────────────────────────────────────────────────────────
+    %0 = quake.alloca !quake.veq<2>
+    quake.h %0 : (!quake.veq<2>) -> ()
+    ```
+    The loop is only rolled if it covers the entire vector and its body does
+    nothing but extract the element and operate on it. Only an uncontrolled
+    operator broadcasts: given a control, the last qubit is the sole target of
+    a single operation.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
 def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
   let summary = "Propagate constants to their uses.";
   let description = [{
@@ -595,6 +624,31 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
     the calling function copying the heap data to a new vector on the stack.
     Since the callee is inlined, none of this is really required. The callee and
     caller share a common stack frame, so one copy is plenty.
+  }];
+}
+
+def ExpandBroadcasts : Pass<"expand-broadcasts", "mlir::func::FuncOp"> {
+  let summary = "Expands veqs used as targets into individual qubits.";
+  let description = [{
+    A one-target operator applied to a `veq` broadcasts that operator over
+    every element of the vector. Given a vector of constant size `n`, this
+    pass rewrites
+    ```mlir
+    quake.* %veq : (!quake.veq<n>) -> ()
+    ```
+    into the `n` operations it stands for:
+    ```mlir
+    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+    quake.* %arg0 : (!quake.ref) -> ()
+    ...
+    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
+    quake.* %argn : (!quake.ref) -> ()
+    ```
+    Parameters and attributes are replicated on each operation. Multi-qubit
+    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
+    a `veq` target is the operand list of a single N-qubit gate rather than a
+    broadcast. Controlled operators are left alone as well: only an
+    uncontrolled operator broadcasts.
   }];
 }
 

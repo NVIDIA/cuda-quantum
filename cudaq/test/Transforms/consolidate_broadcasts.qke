@@ -1,0 +1,346 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --consolidate-broadcasts --canonicalize %s | FileCheck %s
+
+// A counted loop covering the whole vector rolls into one operation.
+func.func @loop() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @loop() {
+// CHECK:           %[[VEC:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           quake.h %[[VEC]] : (!quake.veq<4>) -> ()
+// CHECK-NOT:       cc.loop
+// CHECK:           return
+
+// A parameter defined outside the loop is preserved.
+func.func @parameters(%angle: f64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.rx<adj> (%angle) %e : (f64, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @parameters(
+// CHECK-SAME:      %[[ANGLE:.*]]: f64) {
+// CHECK:           %[[VEC:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           quake.rx<adj> (%[[ANGLE]]) %[[VEC]] : (f64, !quake.veq<4>) -> ()
+// CHECK-NOT:       cc.loop
+// CHECK:           return
+
+// Several operators on the same element all roll, in order.
+func.func @several(%angle: f64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    quake.rx (%angle) %e : (f64, !quake.ref) -> ()
+    quake.x %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @several(
+// CHECK-SAME:      %[[ANGLE:.*]]: f64) {
+// CHECK:           %[[VEC:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           quake.h %[[VEC]] : (!quake.veq<4>) -> ()
+// CHECK:           quake.rx (%[[ANGLE]]) %[[VEC]] : (f64, !quake.veq<4>) -> ()
+// CHECK:           quake.x %[[VEC]] : (!quake.veq<4>) -> ()
+// CHECK-NOT:       cc.loop
+// CHECK:           return
+
+// An operator on some other qubit blocks the rewrite.
+func.func @foreign_op(%q: !quake.ref) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    quake.x %q : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @foreign_op(
+// CHECK:           cc.loop
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+
+// A loop that does not cover the whole vector is left alone.
+func.func @short_loop() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c2 = arith.constant 2 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c2 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @short_loop() {
+// CHECK:           cc.loop
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+
+// A loop over a vector of unknown size is left alone.
+func.func @dynamic(%vec: !quake.veq<?>, %size: i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %size : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %vec[%i] : (!quake.veq<?>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic(
+// CHECK:           cc.loop
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+
+// A rotation whose angle depends on the induction variable is left alone.
+func.func @varying_angle() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %f = arith.sitofp %i : i64 to f64
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.rx (%f) %e : (f64, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @varying_angle() {
+// CHECK:           cc.loop
+// CHECK:           quake.rx (%{{.*}}) %{{.*}} : (f64, !quake.ref) -> ()
+
+// Only an uncontrolled operator broadcasts.
+func.func @controlled(%ctrl: !quake.ref) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.z [%ctrl] %e : (!quake.ref, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @controlled(
+// CHECK:           cc.loop
+// CHECK:           quake.z [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
+
+func.func private @side_effect() -> i64
+
+// The while region is dropped, so it must hold nothing but the loop control.
+func.func @sneaky_while() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %n = func.call @side_effect() : () -> i64
+    %b = arith.cmpi slt, %i, %n : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @sneaky_while() {
+// CHECK:           cc.loop
+// CHECK:           func.call @side_effect
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+
+// The step region is dropped as well.
+func.func @sneaky_step(%q: !quake.ref) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    quake.x %q : (!quake.ref) -> ()
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @sneaky_step(
+// CHECK:           cc.loop
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+
+// An else region must not be dropped either.
+func.func @with_else(%q: !quake.ref) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  } else {
+  ^bb0(%i: i64):
+    quake.x %q : (!quake.ref) -> ()
+    cc.continue %i : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @with_else(
+// CHECK:           cc.loop
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           } else {
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+
+// A body that exits early does not visit every element.
+func.func @early_exit() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %0[%i] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.break %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @early_exit() {
+// CHECK:           cc.loop
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           cc.break
