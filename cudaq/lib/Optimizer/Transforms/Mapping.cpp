@@ -2328,6 +2328,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         for (Value res : loopOp->getResults())
           if (isa<cudaq::quake::WireType>(res.getType()))
             finalQubitWire[wireToVirtualQ[res].index] = res;
+      } else if (isa<cudaq::quake::LogOutputOp>(op) &&
+                 cudaq::quake::getQuantumOperands(&op).empty()) {
+        // Scalar output values do not participate in qubit mapping.
+        continue;
       } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
         if (!cudaq::quake::isLinearValueForm(&op)) {
           if (nonComposable) {
@@ -2511,11 +2515,15 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Sanity checks and create a wire to virtual qubit mapping. For a `run`
-    // entry point, descend into the `cc.scope` that wraps the body.
+    // entry point, descend into the `cc.scope` that wraps the body when that
+    // scope has survived canonicalization.
     Block *bodyBlock = &blocks.front();
     if (isRunEntry) {
-      auto scope = *bodyBlock->getOps<cudaq::cc::ScopeOp>().begin();
-      bodyBlock = &scope.getInitRegion().front();
+      const auto scopes = bodyBlock->getOps<cudaq::cc::ScopeOp>();
+      if (!scopes.empty()) {
+        auto scope = *scopes.begin();
+        bodyBlock = &scope.getInitRegion().front();
+      }
     }
     Block &block = *bodyBlock;
 
