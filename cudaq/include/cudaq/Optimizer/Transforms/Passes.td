@@ -194,26 +194,53 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       kernel remain correct (the phase becomes an observable relative phase
       under `cudaq::control`).
 
-    Gridsynth is probabilistic and slow (seconds per rotation). This pass
-    is opt-in via the `cudaq-fault-tolerant-target` pipeline only; it is
-    NOT added to the default target-prep pipeline.
+    Gridsynth is probabilistic, and its cost grows sharply as `epsilon`
+    tightens: roughly 2 ms per distinct rotation at the default 1e-10, but
+    orders of magnitude more below 1e-30. Repeated angles are cached, so the
+    cost is per distinct angle rather than per operation. This pass is opt-in
+    via the `cudaq-fault-tolerant-target` pipeline only. It is not added to
+    the default target-prep pipeline.
+
+    The work-budget options below bound the search rather than timing it, so
+    the pass produces the same circuits on every machine. They all trade
+    compile time against T-count in the same direction. See
+    `GridsynthOptions.h` for what each one bounds in the algorithm and for
+    the measurements behind the defaults.
   }];
   let options = [
     Option<"epsilon", "epsilon", "double", /*default=*/"1e-10",
       "Approximation tolerance epsilon for Clifford+T synthesis.">,
     Option<"maxFactoringIterations", "max-factoring-iterations", "int64_t",
       /*default=*/"500000",
-      "Pollard-rho iterations one factoring attempt may spend.">,
+      "Pollard-rho iterations one factoring attempt may spend before giving "
+      "up on its composite. Gridsynth tests a candidate circuit by factoring "
+      "an integer, so this is where nearly all synthesis time goes, and it is "
+      "the budget that decides when a candidate is abandoned. Lower is faster "
+      "everywhere and costs T gates. Raise this one, not the others, to trade "
+      "compile time for shorter circuits.">,
     Option<"maxCandidateIterations", "max-candidate-iterations", "int64_t",
       /*default=*/"2000000",
-      "Pollard-rho iterations one grid candidate may spend in total.">,
+      "The same iterations, summed over every factoring attempt made for one "
+      "candidate circuit. Bounds worst-case time per rotation, which the "
+      "per-attempt cap and max-factoring-restarts do not, because those are "
+      "per factoring attempt and per composite respectively. Doubling it "
+      "costs ~1.8x compile time and buys no T gates, so it is a tail control "
+      "rather than a quality one.">,
     Option<"maxFactoringRestarts", "max-factoring-restarts", "int32_t",
       /*default=*/"8",
-      "Consecutive failed factoring attempts allowed on one composite.">,
+      "Consecutive failed factoring attempts allowed on one composite before "
+      "the candidate is abandoned. Each attempt re-rolls a random parameter, "
+      "so a retry searches differently rather than repeating. Returns "
+      "diminish steeply, and the default is already well above the measured "
+      "need.">,
     Option<"maxOdgpScanSteps", "max-odgp-scan-steps", "int64_t",
       /*default=*/"65536",
-      "Steps one candidate-enumeration line scan may take without "
-      "producing a candidate.">,
+      "Steps one candidate-enumeration line scan may take without producing a "
+      "candidate. Gridsynth finds candidate circuits by scanning along grid "
+      "lines, and a line carrying no candidate can otherwise be scanned "
+      "indefinitely. This governs the supply of candidates rather than the "
+      "effort spent on each, so starving it makes synthesis fail outright "
+      "rather than return a longer circuit.">,
     Option<"retryCount", "retry-count", "int32_t", /*default=*/"3",
       "Extra synthesis attempts for an angle gridsynth failed to synthesize. "
       "Geometric backoff: the budget options above are the baseline, and "

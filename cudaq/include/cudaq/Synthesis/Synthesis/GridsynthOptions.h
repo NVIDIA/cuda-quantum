@@ -62,25 +62,73 @@ inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
 /// inputs do the same work on every machine, so a default measured on one host
 /// holds on another and a seeded run replays exactly. `timeout` is an escape
 /// hatch, not a tuning knob -- setting it puts host speed back into the result.
+///
+/// What they all trade. The search (Ross & Selinger, arXiv:1403.2975,
+/// Algorithm 7.6) walks the denominator exponent k = 0, 1, 2, ... upward. At
+/// each k it enumerates grid candidates u, and for each candidate asks whether
+/// the Diophantine equation conj(t) * t = 1 - conj(u) * u is solvable. The
+/// first solvable candidate ends the search. The T-count of the circuit is
+/// 2k - 2 or 2k (Lemma 7.3), so a solution found at a smaller k is a strictly
+/// shorter circuit.
+///
+/// Every budget below therefore has the same shape. It bounds work spent
+/// looking at one candidate, and spending less risks abandoning a candidate
+/// that was solvable, pushing the answer out to a larger k. So the axis is
+/// runtime against T-count, and the direction is always the same (a cheaper
+/// setting is never shorter). Which stage each one bounds:
+///
+///   `maxOdgpScanSteps`       enumerating candidates u  (sec. 4-5)
+///   `maxFactoringIterations` one factoring attempt     (sec. 6, App. C)
+///   `maxCandidateIterations` all attempts for one u    (sec. 6, App. C)
+///   `maxFactoringRestarts`   re-rolls on one composite (sec. 6, App. C)
+///
+/// The two factoring budgets are not interchangeable, though, and the
+/// difference decides which one to reach for. On 38 angles at 1e-30..1e-40:
+/// doubling `maxCandidateIterations` alone costs 1.83x runtime and moves the
+/// summed T-count by +4 in ~65000, i.e. nothing (it bounds the tail, it does
+/// not buy quality). `maxFactoringIterations` is the cap that actually decides
+/// when a candidate is abandoned, so it is the one that trades T gates for
+/// time. Raise that one, not the other, if a caller wants shorter circuits.
 struct GridsynthOptions {
-  /// Seed for the Pollard-rho RNG. Unset draws from `std::random_device`, so
-  /// repeated calls explore different factoring attempts and their runtimes
-  /// can differ by orders of magnitude.
+  /// Seed for the random parameter Pollard-rho draws at the start of each
+  /// factoring attempt (sec. 6, and Rabin's primality test draws from the same
+  /// stream). Unset draws from `std::random_device`, so two calls on identical
+  /// inputs try different attempts and their runtimes can differ by orders of
+  /// magnitude. Set it when a run has to replay exactly.
   std::optional<uint64_t> seed = std::nullopt;
 
-  /// Rho iterations one factoring attempt may spend. Lower gives up on hard
-  /// composites sooner: cheaper everywhere, at the cost of T gates on the
-  /// candidates it abandons.
+  /// Pollard-rho iterations one factoring attempt may spend before giving up
+  /// on its composite.
+  ///
+  /// Solving conj(t) * t = xi for a candidate needs the prime factorization of
+  /// xi's norm (Theorem 6.2, Proposition C.24), and factoring is where
+  /// essentially all per-candidate time goes. Lower abandons hard composites
+  /// sooner (cheaper on every call, at the cost of T gates on the candidates it
+  /// gives up on).
   uint64_t maxFactoringIterations = details::DEFAULT_MAX_FACTORING_ITERATIONS;
 
-  /// Rho iterations one candidate may spend across its attempts.
+  /// The same iterations, summed over every factoring attempt made for one
+  /// grid candidate. Bounds the candidate as a whole, which neither the
+  /// per-attempt cap nor `maxFactoringRestarts` does (see
+  /// `DEFAULT_MAX_CANDIDATE_ITERATIONS` for why, and for the measurement).
   uint64_t maxCandidateIterations = details::DEFAULT_MAX_CANDIDATE_ITERATIONS;
 
-  /// Consecutive failed factoring attempts allowed on one composite.
+  /// Consecutive failed attempts allowed on one composite before the candidate
+  /// is abandoned. Each attempt re-rolls the random parameter, so a retry is a
+  /// genuinely different search rather than a repeat (but with steep
+  /// diminishing returns, hence a default far above the observed need).
   uint32_t maxFactoringRestarts = details::DEFAULT_MAX_FACTORING_RESTARTS;
 
-  /// Steps one ODGP line scan may take without yielding. Bounds candidate
-  /// enumeration, a separate cost from the factoring budgets above.
+  /// Steps one one-dimensional grid-problem scan may take without yielding a
+  /// solution.
+  ///
+  /// This bounds the other stage. The two-dimensional problem of finding
+  /// candidates u is solved as a family of one-dimensional problems along grid
+  /// lines (Lemma 5.6, sec. 4), and a line carrying no solution can be scanned
+  /// essentially forever. So this governs the supply of candidates rather
+  /// than the effort spent on each, and trades against the factoring budgets
+  /// rather than with them. A call starved here fails with `KExhausted` having
+  /// solved nothing, instead of returning a longer circuit.
   uint64_t maxOdgpScanSteps = details::DEFAULT_MAX_ODGP_SCAN_STEPS;
 
   /// Optional wall-clock limit on the whole call. Unset -- the reproducible

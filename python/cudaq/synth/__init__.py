@@ -127,21 +127,42 @@ def gridsynth(theta,
     budgets below. The synthesized unitary U satisfies
     ``||R_z(theta) - U|| <= epsilon`` in the operator norm.
 
+    How the budgets trade. The search walks a denominator exponent k
+    upward, and at each k enumerates candidate circuits and tests each by
+    factoring an integer. The first candidate that works ends the search.
+    The T-count is ``2k-2`` or ``2k``, so a candidate solved at a smaller
+    k is a strictly shorter circuit. Every budget below bounds work spent
+    on one candidate, so lowering any of them is faster and never produces
+    a shorter circuit.
+
     Args:
         theta: Target rotation angle (float, or decimal `str` for
             arbitrary precision).
         epsilon: Approximation precision in operator norm, must be > 0
             (float, or `str`).
         `max_factoring_iterations`: Pollard-rho iterations one factoring
-            attempt may spend before the solver gives up on that candidate.
-            Higher improves `optimality` (fewer T gates) at the cost of
-            worst-case latency. Default 500000.
-        `max_candidate_iterations`: Pollard-rho iterations one grid
-            candidate may spend across its attempts. Default 2000000.
+            attempt may spend before giving up on its composite. Nearly
+            all synthesis time goes here, and this is the budget that
+            decides when a candidate is abandoned, so it is the one to
+            raise to trade runtime for fewer T gates. Default 500000.
+        `max_candidate_iterations`: The same iterations, summed over every
+            factoring attempt made for one candidate. Bounds worst-case
+            time per call, which the two options around it do not. They
+            are per attempt and per composite. Doubling it costs ~1.8x
+            runtime and buys no T gates, so it is a tail control, not a
+            quality one. Default 2000000.
         `max_factoring_restarts`: Consecutive failed factoring attempts
-            allowed on one composite. Default 8.
+            allowed on one composite before the candidate is abandoned.
+            Each attempt re-rolls a random parameter, so a retry searches
+            differently rather than repeating. Default 8, already well
+            above the measured need.
         `max_odgp_scan_steps`: Steps one enumeration line scan may take
-            without producing a candidate. Default 65536.
+            without producing a candidate. Candidates are found by
+            scanning along grid lines, and a line carrying none can be
+            scanned indefinitely. This governs the supply of candidates
+            rather than effort per candidate, so starving it makes
+            synthesis fail rather than return a longer circuit.
+            Default 65536.
         seed: Seed for the internal factoring RNG. Default ``None`` draws
             from system entropy, so repeated calls explore different
             factoring attempts and their runtimes can differ by orders of
