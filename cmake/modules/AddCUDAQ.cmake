@@ -97,11 +97,14 @@ if(EXISTS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")
 endif()
 
 # --------------------------------------------------------------------------- #
-# ``cudaq_check_mlir_symbol_closure(<target>)``
+# ``cudaq_check_mlir_symbol_closure(<target> [PROVIDERS <target>...])``
 #
-# Fail the build if ``<target>`` references MLIR/LLVM symbols that libcudaqMLIR
-# does not export. Everything in CUDA-Q must resolve MLIR/LLVM dynamically from the
-# single libcudaqMLIR instance. See scripts/check_mlir_symbols.sh.
+# Fail the build if
+#  - ``<target>`` references MLIR/LLVM symbols that neither `libcudaqMLIR` nor
+#    any of the additional `PROVIDERS` export, or
+#  - re-defines duplicate (strong) symbols already defined in `libcudaqMLIR`.
+#
+# This wraps `scripts/check_mlir_symbols.sh`. See the script for more details.
 # --------------------------------------------------------------------------- #
 
 option(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE
@@ -119,13 +122,36 @@ foreach(_candidate
   endif()
 endforeach()
 
+if(CMAKE_NM AND NOT CUDAQ_NM)
+  set(CUDAQ_NM "${CMAKE_NM}" CACHE FILEPATH
+    "nm used to verify the MLIR/LLVM symbol closure")
+endif()
+find_program(CUDAQ_NM
+  NAMES nm llvm-nm
+  HINTS "${LLVM_TOOLS_BINARY_DIR}" "$ENV{LLVM_INSTALL_PREFIX}/bin"
+  DOC "nm used to verify the MLIR/LLVM symbol closure")
+
+if(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE AND NOT CUDAQ_NM)
+  message(STATUS
+    "Neither nm nor llvm-nm found: skipping the MLIR/LLVM symbol closure check.")
+endif()
+
 function(cudaq_check_mlir_symbol_closure name)
-  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT)
+  cmake_parse_arguments(ARG "" "" "PROVIDERS" ${ARGN})
+  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT
+      OR NOT CUDAQ_NM)
     return()
   endif()
+  set(_providers)
+  foreach(_provider IN LISTS ARG_PROVIDERS)
+    if(TARGET ${_provider})
+      list(APPEND _providers "$<TARGET_FILE:${_provider}>")
+    endif()
+  endforeach()
   add_custom_command(TARGET ${name} POST_BUILD
-    COMMAND bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
-    "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>"
+    COMMAND ${CMAKE_COMMAND} -E env "NM=${CUDAQ_NM}"
+    bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
+    "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>" ${_providers}
     COMMENT "Checking MLIR/LLVM symbol closure of ${name}"
     VERBATIM)
 endfunction()
@@ -244,9 +270,9 @@ endfunction()
 # Drop-in wrapper around MLIR's ``add_mlir_python_modules``.  After the
 # real assembly creates the ``<name>.extension.<module>.dso`` targets,
 # this function:
-#   - links ``cudaq::cudaqMLIR`` first (via ``target_link_options BEFORE``)
-#     so MLIR/LLVM symbols resolve from the wheel dylib rather than from
-#     static component archives embedded in the common CAPI lib.
+#   - links ``cudaq::cudaqMLIR`` so MLIR/LLVM symbols resolve from the wheel
+#     dylib rather than from static component archives (link order comes from
+#     ``cudaq::cudaqMLIR``'s ``INTERFACE_LINK_OPTIONS``).
 #   - appends ``CUDAQ_LIBRARY_DIR`` to ``INSTALL_RPATH`` / ``BUILD_RPATH``
 #     so the wheel's ``libcudaqMLIR.dylib`` resolves at load time.
 # --------------------------------------------------------------------------- #
@@ -274,6 +300,7 @@ function(add_cudaq_python_modules name)
   get_property(_all_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
   list(FILTER _all_targets INCLUDE REGEX "^${name}\\.extension\\.")
 
+  cmake_parse_arguments(ARG "" "" "COMMON_CAPI_LINK_LIBS" ${ARGN})
   foreach(_dso IN LISTS _all_targets)
     # Put cudaqMLIR BEFORE all other deps on the link line so its MLIR/LLVM
     # symbols shadow any static component archives in the common CAPI lib.
@@ -289,7 +316,7 @@ function(add_cudaq_python_modules name)
       set_property(TARGET ${_dso} APPEND PROPERTY BUILD_RPATH "${CUDAQ_LIBRARY_DIR}")
     endif()
 
-    cudaq_check_mlir_symbol_closure(${_dso})
+    cudaq_check_mlir_symbol_closure(${_dso} PROVIDERS ${ARG_COMMON_CAPI_LINK_LIBS})
   endforeach()
 endfunction()
 

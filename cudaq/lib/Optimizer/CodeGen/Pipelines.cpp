@@ -155,6 +155,39 @@ void cudaq::opt::registerCodegenForQIRPipeline() {
       });
 }
 
+void cudaq::opt::addKernelBuilderJITPrepPipeline(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createUnwindLowering());
+  addAggressiveInlining(pm);
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createApplySpecialization());
+  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(createQuakeAddMetadata());
+  pm.addPass(createQuakePropagateMetadata());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addPass(createGenerateDeviceCodeLoader({.jitTime = true}));
+  pm.addPass(createGenerateKernelExecution());
+  pm.addPass(createSymbolDCEPass());
+}
+
+void cudaq::opt::addKernelBuilderJITLoweringPipeline(
+    OpPassManager &pm, bool combineQuantumAllocations) {
+  addLowerToCFG(pm);
+  if (combineQuantumAllocations)
+    pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  addConvertToQIRAPIPipeline(pm, "full");
+  pm.addPass(createCCToLLVM());
+  pm.addPass(createCanonicalizerPass());
+}
+
 void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
     OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(
@@ -215,7 +248,10 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
-  // Generic phase lowering can introduce R1/Rz after IQM native-gate
-  // decomposition, so reject residual bookkeeping instead of lowering it.
+  // Lower phase bookkeeping, then map the resulting R1/Rz operations back to
+  // IQM's native gate set.
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
   pm.addPass(createVerifyNoPhase());
 }

@@ -1,4 +1,5 @@
 # ============================================================================ #
+
 # Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
@@ -22,6 +23,8 @@ from cudaq._experimental.runtime_endpoint import (
     RuntimeEndpoint,
     SupportsSample,
     SupportsObserve,
+    SupportsDem,
+    SupportsEstimate,
 )
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -63,11 +66,28 @@ class DemoEndpoint(RuntimeEndpoint):
         return cudaq.ObserveResult(0.25, kwargs["spin_operator"],
                                    cudaq.SampleResult())
 
+    def dem_from_kernel(self, module, args, **kwargs):
+        self.calls.append(("dem_from_kernel", repr(args), kwargs))
+        self.mlir_module = module.mlir_module
+        return cudaq.DEMResult(dem="error(0.125) D0 L0",
+                               m2d=[[0]],
+                               m2o=[[0]],
+                               num_detectors=1,
+                               num_observables=1,
+                               num_measurements=1)
+
+    def estimate(self, module, args, **kwargs):
+        self.calls.append(("estimate", repr(args), kwargs))
+        self.mlir_module = module.mlir_module
+        return cudaq.EstimateResult(annotations={"estimated_by": "demo"})
+
 
 def test_protocol_conformance():
     endpoint = DemoEndpoint()
     assert isinstance(endpoint, SupportsSample)
     assert isinstance(endpoint, SupportsObserve)
+    assert isinstance(endpoint, SupportsDem)
+    assert isinstance(endpoint, SupportsEstimate)
 
 
 def test_rejects_non_endpoint():
@@ -131,6 +151,103 @@ def test_observe_launch():
 
     assert result.expectation() == pytest.approx(0.25)
     assert isinstance(endpoint.mlir_module, mlir.Module)
+
+
+def test_dem_launch():
+    endpoint = DemoEndpoint()
+    set_runtime_endpoint(endpoint)
+
+    noise = cudaq.NoiseModel()
+    result = cudaq.dem_from_kernel(kernel,
+                                   1, [1, 2, 3],
+                                   noise_model=noise,
+                                   decompose_errors=True)
+
+    assert len(endpoint.calls) == 1
+    name, args, kwargs = endpoint.calls[0]
+    assert name == "dem_from_kernel"
+    assert args == "KernelArgs([1, <instance of !cc.sequence<i64>>])"
+    # The noise model arrives as the very object that was passed in.
+    assert kwargs["noise_model"] is noise
+    assert kwargs["decompose_errors"] is True
+    assert kwargs["fold_loops"] is False
+    # `dem_from_kernel` defaults this one on.
+    assert kwargs["return_measurement_matrices"] is True
+    assert kwargs["approximate_disjoint_errors_threshold"] == 0.0
+
+    # The DEM produced by the endpoint reaches the caller.
+    assert result.dem == "error(0.125) D0 L0"
+    assert result.num_detectors == 1
+    assert isinstance(endpoint.mlir_module, mlir.Module)
+
+
+def test_dem_launch_without_noise_model():
+    endpoint = DemoEndpoint()
+    set_runtime_endpoint(endpoint)
+
+    cudaq.dem_from_kernel(kernel, 1, [1, 2, 3])
+
+    _, _, kwargs = endpoint.calls[0]
+    assert kwargs["noise_model"] is None
+
+
+def test_estimate_launch():
+    endpoint = DemoEndpoint()
+    set_runtime_endpoint(endpoint)
+
+    result = cudaq.estimate(kernel, 1, [1, 2, 3])
+
+    assert len(endpoint.calls) == 1
+    name, args, kwargs = endpoint.calls[0]
+    assert name == "estimate"
+    assert args == "KernelArgs([1, <instance of !cc.sequence<i64>>])"
+    # A default choice function is supplied even when the caller omits one.
+    assert isinstance(kwargs["choice"](), bool)
+
+    assert isinstance(result, cudaq.EstimateResult)
+    assert result.resources.count() == 0
+    assert result.annotations == {"estimated_by": "demo"}
+    assert isinstance(endpoint.mlir_module, mlir.Module)
+
+
+def test_estimate_forwards_the_choice_function():
+    endpoint = DemoEndpoint()
+    set_runtime_endpoint(endpoint)
+
+    cudaq.estimate(kernel, 1, [1, 2, 3], choice=lambda: True)
+
+    _, _, kwargs = endpoint.calls[0]
+    assert kwargs["choice"]() is True
+
+
+def test_estimate_resources_launch():
+    endpoint = DemoEndpoint()
+    set_runtime_endpoint(endpoint)
+
+    result = cudaq.estimate_resources(kernel, 1, [1, 2, 3])
+
+    assert len(endpoint.calls) == 1
+    name, args, kwargs = endpoint.calls[0]
+    assert name == "estimate"
+    assert args == "KernelArgs([1, <instance of !cc.sequence<i64>>])"
+    # A default choice function is supplied even when the caller omits one.
+    assert isinstance(kwargs["choice"](), bool)
+
+    # `estimate_resources` unwraps the endpoint's EstimateResult, so the caller
+    # sees the Resources it carried and not the annotations.
+    assert isinstance(result, cudaq.Resources)
+    assert result.count() == 0
+    assert isinstance(endpoint.mlir_module, mlir.Module)
+
+
+def test_estimate_resources_forwards_the_choice_function():
+    endpoint = DemoEndpoint()
+    set_runtime_endpoint(endpoint)
+
+    cudaq.estimate_resources(kernel, 1, [1, 2, 3], choice=lambda: True)
+
+    _, _, kwargs = endpoint.calls[0]
+    assert kwargs["choice"]() is True
 
 
 def test_sample_twice_reuses_the_endpoint():

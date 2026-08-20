@@ -48,7 +48,10 @@ from typing import Protocol, runtime_checkable
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     CompiledModule,
+    DEMResult,
+    EstimateResult,
     KernelArgs,
+    NoiseModel,
     ObserveResult,
     SampleResult,
     SpinOperator,
@@ -58,10 +61,15 @@ import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime as _cudaq_runtime
 
 __all__ = [
     "CompiledModule",
+    "DEMResult",
+    "EstimateResult",
     "KernelArgs",
+    "NoiseModel",
     "ObserveResult",
     "SampleResult",
     "SpinOperator",
+    "SupportsDem",
+    "SupportsEstimate",
     "SupportsObserve",
     "SupportsSample",
     "set_runtime_endpoint",
@@ -124,4 +132,39 @@ class SupportsObserve(RuntimeEndpoint, Protocol):
         ...
 
 
-_PROTOCOLS = (SupportsSample, SupportsObserve)
+@runtime_checkable
+class SupportsDem(RuntimeEndpoint, Protocol):
+    """An endpoint that can serve ``cudaq.dem_from_kernel``."""
+
+    def dem_from_kernel(self, module: CompiledModule, args: KernelArgs,
+                        **kwargs) -> DEMResult:
+        """Analyze a compiled kernel and return its detector error model.
+
+        Keyword arguments: ``noise_model`` (:class:`NoiseModel` or ``None``)
+        and the DEM options accepted by ``dem_from_kernel`` --
+        ``decompose_errors`` (bool), ``fold_loops`` (bool),
+        ``allow_gauge_detectors`` (bool),
+        ``approximate_disjoint_errors_threshold`` (float),
+        ``ignore_decomposition_failures`` (bool),
+        ``block_decomposition_from_introducing_remnant_edges`` (bool) and
+        ``return_measurement_matrices`` (bool).
+        """
+        ...
+
+
+@runtime_checkable
+class SupportsEstimate(RuntimeEndpoint, Protocol):
+    """An endpoint that can serve ``cudaq.estimate``."""
+
+    def estimate(self, module: CompiledModule, args: KernelArgs,
+                 **kwargs) -> EstimateResult:
+        """Estimate the resources a compiled kernel would use.
+
+        Keyword arguments: ``choice``, a callable returning a `bool` that
+        resolves each measurement so that kernels branching on measurement
+        results take a definite path.
+        """
+        ...
+
+
+_PROTOCOLS = (SupportsSample, SupportsObserve, SupportsDem, SupportsEstimate)
