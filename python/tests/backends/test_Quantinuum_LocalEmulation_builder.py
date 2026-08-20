@@ -13,8 +13,6 @@ import numpy as np
 from typing import List
 
 pytestmark = pytest.mark.xdist_group("quantinuum_emulation")
-pytestmark = pytest.mark.skip(
-    reason="pre-existing failures: disabled pending fix")
 
 
 def assert_close(got) -> bool:
