@@ -31,7 +31,7 @@ inline constexpr uint64_t DEFAULT_MAX_FACTORING_ITERATIONS = 500000;
 /// This is not implied by the per-attempt cap and the restart cap, because the
 /// restart cap is per composite, not per candidate: the counter resets
 /// whenever the top of the factor stack changes. A candidate that keeps making
-/// partial progress (splitting off a factor, pushing the two cofactors,
+/// partial progress (splitting off a factor, pushing the two `cofactors`,
 /// failing on those) resets it every time and can spend without bound.
 ///
 /// Measured over 38 tuning angles x 1e-30..1e-40. Lifting this cap costs 1.97x
@@ -91,10 +91,10 @@ inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
 /// time. Raise that one, not the other, if a caller wants shorter circuits.
 struct GridsynthOptions {
   /// Seed for the random parameter Pollard-rho draws at the start of each
-  /// factoring attempt (sec. 6, and Rabin's primality test draws from the same
-  /// stream). Unset draws from `std::random_device`, so two calls on identical
-  /// inputs try different attempts and their runtimes can differ by orders of
-  /// magnitude. Set it when a run has to replay exactly.
+  /// factoring attempt (sec. 6, and Rabin's `primality` test draws from the
+  /// same stream). Unset draws from `std::random_device`, so two calls on
+  /// identical inputs try different attempts and their runtimes can differ by
+  /// orders of magnitude. Set it when a run has to replay exactly.
   std::optional<uint64_t> seed = std::nullopt;
 
   /// Pollard-rho iterations one factoring attempt may spend before giving up
