@@ -68,7 +68,7 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
 void cudaq::bindCountResources(nanobind::module_ &mod) {
   nanobind::class_<estimate_result>(
       mod, "EstimateResult",
-      "A data-type containing the results of a call to :func:`estimate`.")
+      "A data-type containing the results of a call to :func:`cudaq.estimate`.")
       .def(
           "__init__",
           [](estimate_result *self, const Resources &resources,
