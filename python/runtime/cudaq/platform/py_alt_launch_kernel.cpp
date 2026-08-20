@@ -1321,7 +1321,9 @@ static MlirModule clonePythonOwnedModule(mlir::ModuleOp mod) {
   std::string ir;
   llvm::raw_string_ostream os(ir);
   mod.print(os);
-  auto context = cudaq_internal::compiler::getOwningMLIRContext();
+  auto *sourceContext = mod.getContext();
+  auto loadedDialects = sourceContext->getLoadedDialects();
+  auto context = cudaq_internal::compiler::getOwningMLIRContext(loadedDialects);
   auto copy = mlir::parseSourceString<mlir::ModuleOp>(ir, context.get());
   if (!copy)
     throw std::runtime_error("failed to clone the compiled MLIR module");

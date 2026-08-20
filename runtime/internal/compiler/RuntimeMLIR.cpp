@@ -743,10 +743,22 @@ MLIRContext *cudaq_internal::compiler::getMLIRContext() {
   return mlirContext;
 }
 
-std::unique_ptr<MLIRContext> cudaq_internal::compiler::getOwningMLIRContext() {
+std::unique_ptr<MLIRContext> cudaq_internal::compiler::getOwningMLIRContext(
+    llvm::ArrayRef<Dialect *> dialectsToLoad) {
   // One-time initialization of LLVM/MLIR components
   initializeMLIR();
-  return createMLIRContext();
+  auto context = createMLIRContext();
+  if (dialectsToLoad.empty())
+    return context;
+
+  // Merge in any dialect registrations from the source context
+  context->appendDialectRegistry(
+      dialectsToLoad.front()->getContext()->getDialectRegistry());
+
+  for (Dialect *dialect : dialectsToLoad)
+    context->getOrLoadDialect(dialect->getNamespace());
+
+  return context;
 }
 
 std::optional<std::string>

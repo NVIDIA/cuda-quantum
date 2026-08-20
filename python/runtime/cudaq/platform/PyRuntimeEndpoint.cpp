@@ -8,9 +8,12 @@
 
 #include "PyRuntimeEndpoint.h"
 #include "common/KernelArgs.h"
+#include "common/NoiseModel.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/algorithms/estimate/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/algorithms/sample/policy.h"
@@ -19,6 +22,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include <memory>
+#include <nanobind/stl/function.h>
 #include <nanobind/stl/string.h>
 #include <optional>
 #include <span>
@@ -167,6 +171,44 @@ struct PyProtocol<observe_policy> {
       kw["shots_count"] = policy.options.shots;
     kw["spin_operator"] =
         nanobind::cast(policy.spin, nanobind::rv_policy::copy);
+    return kw;
+  }
+};
+
+template <>
+struct PyProtocol<dem_policy> {
+  static constexpr const char *Method = "dem_from_kernel";
+
+  static nanobind::dict kwargs(const dem_policy &policy) {
+    const auto &opts = policy.options;
+    nanobind::dict kw;
+    if (policy.noiseModel)
+      kw["noise_model"] = policy.noiseModel;
+    else
+      kw["noise_model"] = nanobind::none();
+    kw["decompose_errors"] = opts.decompose_errors;
+    kw["fold_loops"] = opts.fold_loops;
+    kw["allow_gauge_detectors"] = opts.allow_gauge_detectors;
+    kw["approximate_disjoint_errors_threshold"] =
+        opts.approximate_disjoint_errors_threshold;
+    kw["ignore_decomposition_failures"] = opts.ignore_decomposition_failures;
+    kw["block_decomposition_from_introducing_remnant_edges"] =
+        opts.block_decomposition_from_introducing_remnant_edges;
+    kw["return_measurement_matrices"] = opts.return_measurement_matrices;
+    return kw;
+  }
+};
+
+template <>
+struct PyProtocol<estimate_policy> {
+  static constexpr const char *Method = "estimate";
+
+  static nanobind::dict kwargs(const estimate_policy &policy) {
+    nanobind::dict kw;
+    if (policy.choice)
+      kw["choice"] = nanobind::cast(policy.choice);
+    else
+      kw["choice"] = nanobind::none();
     return kw;
   }
 };

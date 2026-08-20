@@ -11,9 +11,6 @@ import cudaq.kernels
 from cudaq import spin
 import pytest
 import os
-
-pytestmark = pytest.mark.skip(
-    reason="pre-existing failures: disabled pending fix")
 from typing import List
 import numpy as np
 

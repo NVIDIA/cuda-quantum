@@ -29,6 +29,16 @@ module {
     return
   }
 
+  func.func @nested_output() {
+    %q = quake.alloca !quake.ref
+    cc.scope {
+      quake.log_output %q : (!quake.ref) -> () {compilerGenerated}
+      cc.continue
+    }
+    quake.log_output %q : (!quake.ref) -> ()
+    return
+  }
+
   cc.global constant private @__nvqpp__rodata_init_0 (dense<[1.0, 0.0, 0.5, 0.5]> : tensor<4xf64>) : !cc.array<f64 x 4>
 }
 
@@ -38,4 +48,12 @@ module {
 // CHECK:         cf.br ^[[EXIT:.*]]
 // CHECK:       ^[[EXIT]]:
 // CHECK-NOT:     quake.log_output
+// CHECK:         return
+
+// CHECK-LABEL: func.func @nested_output()
+// CHECK:         %[[Q:.*]] = quake.alloca !quake.ref
+// CHECK:         cc.scope {
+// CHECK-NOT:       quake.log_output
+// CHECK:         }
+// CHECK:         quake.log_output %[[Q]] : (!quake.ref) -> ()
 // CHECK:         return
