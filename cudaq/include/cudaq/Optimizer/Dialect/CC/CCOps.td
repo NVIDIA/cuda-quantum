@@ -67,9 +67,9 @@ def cc_ScopeOp : CCOp<"scope",
     transformations can identify it as an atomic quantum region.
 
     A ScopeOp is a lexical region. Values that dominate the ScopeOp may be used
-    in its region without becoming ScopeOp operands. Values needed after the
-    ScopeOp are returned as its results by the exiting ContinueOp, in result
-    order.
+    in its region without becoming ScopeOp operands. Values produced inside the
+    ScopeOp and needed after it are returned as results by the exiting
+    ContinueOp, in result order.
 
     A ScopeOp may contain a single-entry, multiple-exit CFG with multiple
     basic blocks in its region. A ContinueOp is the terminator that exits a
