@@ -866,11 +866,7 @@ public:
       populateRotationsToCliffordTPatterns(patterns, cliffordTEpsilon,
                                            numCliffordTRotations);
 
-    LogicalResult result = driver.run(getOperation()->getRegion(0));
-    auto rewriteStatistics = driver.get_statistics();
-    numAnalysisBuilds += rewriteStatistics.analysisBuilds;
-    numFallbackRebuilds += rewriteStatistics.fallbackRebuilds;
-    if (failed(result))
+    if (failed(driver.run(getOperation()->getRegion(0))))
       signalPassFailure();
   }
 };

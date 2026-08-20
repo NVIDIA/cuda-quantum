@@ -344,10 +344,46 @@ func.func private @preserve_borrowed_roles() {
   return
 }
 
+// The endpoints act on the same physical qubits in the same roles, but only
+// the control lane reaches the earlier operation.
+func.func private @preserve_incomplete_frontier() {
+  %control = quake.alloca !quake.ref
+  %target = quake.alloca !quake.ref
+  %controlWire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %targetWire0 = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %targetWire1 = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %x0:2 = quake.x [%controlWire] %targetWire0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%x0#0] %targetWire1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x0#1 : !quake.wire
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// The earlier result branches, so the pair does not form a linear wire path.
+func.func private @preserve_branched_producer_result(%condition: i1) {
+  %q = quake.null_wire
+  %h0 = quake.h %q : (!quake.wire) -> !quake.wire
+  %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+  cf.cond_br %condition, ^left(%h1 : !quake.wire),
+      ^right(%h1 : !quake.wire)
+^left(%left: !quake.wire):
+  quake.sink %h0 : !quake.wire
+  quake.sink %left : !quake.wire
+  return
+^right(%right: !quake.wire):
+  quake.sink %right : !quake.wire
+  return
+}
+
 // CHECK-LABEL: func.func private @preserve_repeated_ssa_roles() {
 // CHECK-COUNT-2: quake.x
 // CHECK-LABEL: func.func private @preserve_borrowed_roles() {
 // CHECK-COUNT-2: quake.x
+// CHECK-LABEL: func.func private @preserve_incomplete_frontier() {
+// CHECK-COUNT-2: quake.x
+// CHECK-LABEL: func.func private @preserve_branched_producer_result
+// CHECK-COUNT-2: quake.h
 
 // `CircuitCheck` cannot materialize ExpPauli matrices, so these remain focused
 // FileCheck owners. Even parity removes both X endpoints; odd parity retains Z.

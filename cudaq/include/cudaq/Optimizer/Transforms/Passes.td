@@ -1495,10 +1495,6 @@ def QuakeSimplify : Pass<"quake-simplify"> {
               "Number of redundant resets erased (double-reset or reset-before-sink)">,
     Statistic<"numCliffordTRotations", "clifford-t-rotations",
               "Number of rotations canonicalized to Clifford+T gates">,
-    Statistic<"numAnalysisBuilds", "analysis-builds",
-              "Number of block-local commutation analyses built">,
-    Statistic<"numFallbackRebuilds", "fallback-rebuilds",
-              "Number of commutation analyses rebuilt after unsupported mutation">,
   ];
 }
 

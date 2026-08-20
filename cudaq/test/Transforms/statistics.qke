@@ -113,13 +113,9 @@ func.func @clifford_t_rotation() {
 
 // SIMPLE-LABEL: QuakeSimplify
 // SIMPLE: 1 adjoint-eliminations
-// The redundant-reset and noncommuting T-X-reset chains each construct one
-// block-local analysis.
-// SIMPLE: 2 analysis-builds
 // SIMPLE: 1 clifford-t-rotations
 // SIMPLE: 1 double-s-rewrites
 // SIMPLE: 1 double-t-rewrites
-// SIMPLE: 0 fallback-rebuilds
 // SIMPLE: 1 hermitian-eliminations
 // SIMPLE: 1 reduce-ysx-rewrites
 // SIMPLE: 2 resets-erased
