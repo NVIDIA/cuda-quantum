@@ -249,7 +249,9 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
           cudaq::opt::createLambdaLifting({.constantPropagation = true}));
       // We must inline these lambda calls before apply specialization as it
       // does not perform control/adjoint specialization across function call
-      // boundary.
+      // boundaries. The first round's cleanup can expose another callable
+      // thunk, so run the inliner again before specializing controls.
+      cudaq::opt::addAggressiveInlining(pm);
       cudaq::opt::addAggressiveInlining(pm);
       pm.addPass(
           cudaq::opt::createApplySpecialization({.constantPropagation = true}));
