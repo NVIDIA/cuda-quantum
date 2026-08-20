@@ -1,4 +1,5 @@
 # ============================================================================ #
+
 # Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
@@ -18,9 +19,14 @@ import cudaq.mlir.ir as mlir
 import pytest
 
 from cudaq._experimental import set_runtime_endpoint
-from cudaq._experimental.runtime_endpoint import (SupportsDem, SupportsEstimate,
-                                                  SupportsObserve,
-                                                  SupportsSample)
+from cudaq._experimental.runtime_endpoint import (
+    RuntimeEndpoint,
+    SupportsSample,
+    SupportsObserve,
+    SupportsDem,
+    SupportsEstimate,
+)
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -42,7 +48,7 @@ def returning_kernel() -> int:
     return 1
 
 
-class DemoEndpoint:
+class DemoEndpoint(RuntimeEndpoint):
     """Records every launch and returns a canned result."""
 
     def __init__(self):
@@ -89,7 +95,7 @@ def test_rejects_non_endpoint():
     class NotAnEndpoint:
         pass
 
-    with pytest.raises(TypeError, match="not a runtime endpoint"):
+    with pytest.raises(TypeError, match="not a valid runtime endpoint"):
         set_runtime_endpoint(NotAnEndpoint())
 
 
@@ -281,6 +287,110 @@ def test_endpoint_errors_propagate():
     # out, so only the message is guaranteed to survive verbatim.
     with pytest.raises((ValueError, RuntimeError), match="backend is down"):
         cudaq.sample(kernel, 1, [1, 2, 3])
+
+
+def test_endpoint_wrong_sample_return_type():
+
+    class BadSampleEndpoint:
+
+        def sample(self, module, args, **kwargs):
+            return 42
+
+    set_runtime_endpoint(BadSampleEndpoint())
+    with pytest.raises(
+            TypeError,
+            match=
+            "Expected runtime endpoint method 'sample' to return a SampleResult, but got 'int'"
+    ):
+        cudaq.sample(kernel, 1, [1, 2, 3], shots_count=1)
+
+
+def test_endpoint_wrong_observe_return_type():
+
+    class BadObserveEndpoint:
+
+        def observe(self, module, args, **kwargs):
+            return cudaq.SampleResult()
+
+    set_runtime_endpoint(BadObserveEndpoint())
+    with pytest.raises(
+            TypeError,
+            match=
+            "Expected runtime endpoint method 'observe' to return a ObserveResult, but got 'SampleResult'"
+    ):
+        cudaq.observe(kernel, cudaq.spin.x(0), 2, [])
+
+
+@cudaq.kernel
+def _state_kernel():
+    q = cudaq.qubit()
+    h(q)
+
+
+def test_endpoint_capability_defaults():
+
+    class SampleEndpointNoDefaults:
+        """Minimal endpoint that does not explicit inherit from RuntimeEndpoint."""
+
+        def sample(self, module, args, **kwargs):
+            ...
+
+    set_runtime_endpoint(SampleEndpointNoDefaults())
+
+    target = cudaq.get_target()
+    # default values were still set despite not existing on the endpoint
+    assert target.is_remote() is False
+    assert target.is_emulated() is False
+    assert cudaq_runtime.isQuantumDevice() is False
+
+
+def test_endpoint_capability_overrides():
+
+    class RemoteEndpoint(RuntimeEndpoint):
+        is_simulator = False
+        is_remote = True
+        is_emulated = True
+
+        def sample(self, module, args, **kwargs):
+            ...
+
+    set_runtime_endpoint(RemoteEndpoint())
+
+    target = cudaq.get_target()
+    assert target.is_remote() is True
+    assert target.is_emulated() is True
+    assert cudaq_runtime.isQuantumDevice() is True
+
+
+def test_endpoint_inherits_runtime_endpoint_defaults():
+
+    class DefaultEndpoint(RuntimeEndpoint):
+
+        def sample(self, module, args, **kwargs):
+            return cudaq.SampleResult()
+
+    endpoint = DefaultEndpoint()
+    assert endpoint.is_simulator is True
+    assert endpoint.is_remote is False
+    assert endpoint.is_emulated is False
+
+    set_runtime_endpoint(endpoint)
+    target = cudaq.get_target()
+    assert target.is_remote() is False
+    assert target.is_emulated() is False
+
+
+def test_endpoint_is_simulator_flag():
+
+    class PhysicalEndpoint:
+        is_simulator = False
+
+        def sample(self, module, args, **kwargs):
+            ...
+
+    set_runtime_endpoint(PhysicalEndpoint())
+    with pytest.raises(RuntimeError, match="physical QPU"):
+        cudaq.get_state(_state_kernel)
 
 
 def test_reset_target_restores_the_simulator():

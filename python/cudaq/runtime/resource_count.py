@@ -42,7 +42,7 @@ def estimate(kernel, *args, **kwargs):
           function at. Leave empty if the kernel doesn't accept any arguments.
 
     Returns:
-      :class:`EstimateResult`: A data-type containing the resource count
+      :class:`cudaq.EstimateResult`: A data-type containing the resource count
           results for the :class:`Kernel`.
     """
     if isa_kernel_decorator(kernel):
@@ -74,9 +74,10 @@ def estimate_resources(kernel, *args, **kwargs):
 
     Returns:
       :class:`Resources`:  A dictionary containing the resource count results
-          for the :class:`Kernel`. Any annotation stored on the :class:`EstimateResult`
-          instance is discarded. Use :func:`cudaq.estimate` to get the full result.
-          The returned instance corresponds to the `resources` attribute of the
-          return value of :func:`cudaq.estimate`. 
+          for the :class:`Kernel`. Any annotation stored on the
+          :class:`cudaq.EstimateResult` instance is discarded. Use
+          :func:`cudaq.estimate` to get the full result. The returned instance
+          corresponds to the `resources` attribute of the return value of
+          :func:`cudaq.estimate`.
     """
     return estimate(kernel, *args, **kwargs).resources

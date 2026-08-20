@@ -24,6 +24,7 @@ from cudaq._experimental import (
     set_compile_target,
     set_runtime_endpoint,
 )
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import WalkResult
 
 # Decompose swaps into CNOTs instead of running the default pipeline.
@@ -174,6 +175,17 @@ def test_compile_target_does_not_leak_after_switch():
     set_compile_target(swap_pipeline_target())
     cudaq.reset_target()
     assert "quake.swap" in op_names(make_swap_kernel())
+
+
+def test_support_explicit_measurements():
+    ct = CompileTarget()
+    ct.support_explicit_measurements = False
+    set_compile_target(ct)
+    assert cudaq_runtime.supportsExplicitMeasurements() is False
+
+    ct.support_explicit_measurements = True
+    set_compile_target(ct)
+    assert cudaq_runtime.supportsExplicitMeasurements() is True
 
 
 def test_support_conditionals_on_measure_results():

@@ -723,8 +723,12 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
     });
   }
 
-  // TODO: remove this call by moving flags out of the target
-  cudaq::propagateTargetOptionsToCompileOptions(*target, options);
+  const bool isEmulated = cudaq::is_emulated_platform();
+  const bool isRemote = cudaq::is_remote_platform();
+  options.emulate = isEmulated;
+  options.emitJit |= !isRemote;
+  options.boolVecBitPacked = !isRemote && !isEmulated;
+
   return {*std::move(target), std::move(options)};
 }
 
@@ -780,7 +784,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   mlir::OwningOpRef<ModuleOp> resolvedModule;
   if (cacheable && hasCompileTimeDependencies) {
     if (auto digest = cudaq::detail::createProgramFingerprint(
-            name, mod, rawArgs, target, resolvedModule))
+            name, mod, rawArgs, resolvedModule))
       programDigest = *digest;
     else
       cacheable = false;
