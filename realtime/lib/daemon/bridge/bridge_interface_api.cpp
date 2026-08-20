@@ -215,7 +215,8 @@ cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge) {
 
 //==============================================================================
 // Optional capabilities.  A provider leaves the entries it does not implement
-// NULL; missing capability => CUDAQ_ERR_UNSUPPORTED.
+// NULL; missing capability => CUDAQ_ERR_UNSUPPORTED, except for
+// set_function_table, where nothing to register is not an error.
 //==============================================================================
 
 cudaq_status_t
