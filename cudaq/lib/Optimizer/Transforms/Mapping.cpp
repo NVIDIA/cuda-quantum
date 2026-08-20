@@ -763,10 +763,10 @@ struct RoutingProblem {
 };
 
 /// A single routing decision: a gate mapped onto physical qubits, a swap
-/// inserted between them, an if-op, a loop-op, or an ordinary scope. The router
-/// records Gate and Swap events; the enrichment step adds structured
-/// control-flow events. The emitter replays the full trace to rewrite the IR.
-/// Body results for If/Loop events live in the block map, not here.
+/// inserted between them, an if-op, a loop-op, or a scope. The router
+/// records Gate and Swap events; the recursive router adds structured events.
+/// The emitter replays the full trace to rewrite the IR. Results for nested
+/// structured regions live in the block map, not here.
 struct RoutingEvent {
   enum class Kind { Gate, Swap, If, Loop, Scope };
 
@@ -798,7 +798,7 @@ struct RoutingEvent {
         Kind::Loop, op,
         SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
   }
-  /// An ordinary scope. Its body has one normal exit, whose layout becomes the
+  /// A scope. Its body has one normal exit, whose layout becomes the
   /// entry layout of the following parent-block routing segment.
   static RoutingEvent makeScope(mlir::Operation *op) {
     return RoutingEvent{Kind::Scope, op, {}};
@@ -809,14 +809,14 @@ struct RoutingEvent {
   SmallVector<cudaq::Placement::DeviceQ, 2> phys;
 };
 
-/// The outcome of routing one block. Gate and Swap events come from SABRE; If
-/// events are added by the enrichment step and carry per-branch results.
-/// `swapCount` is the metric used to compare top-level layouts.
+/// The outcome of routing one block. Gate and Swap events come from SABRE;
+/// structured events are added by the recursive router. `swapCount` is the
+/// metric used to compare top-level layouts.
 struct RoutingResult {
   /// Virtual-to-physical layout at the start of the walk, before any swap.
   SmallVector<unsigned> initialLayout;
   /// Virtual-to-physical layout at the end of the walk, after all swaps.
-  /// Computed by enrichTrace; not set on raw SABRE output.
+  /// Computed by the recursive block router; not set on raw SABRE output.
   SmallVector<unsigned> exitLayout;
   SmallVector<RoutingEvent> trace;
   /// Restoration SWAPs to emit before the block terminator (if branches and
@@ -846,9 +846,10 @@ struct RestoreToEntryStrategy : JoinPointStrategy {
   void reconcile(MutableArrayRef<RoutingResult *> predecessors) override {
     for (RoutingResult *r : predecessors) {
       r->cleanUpTrace.clear();
-      for (const RoutingEvent &swapEv : llvm::reverse(r->trace))
-        if (swapEv.kind == RoutingEvent::Kind::Swap)
-          r->cleanUpTrace.push_back(swapEv);
+      for (const RoutingEvent &event : llvm::reverse(r->trace))
+        if (event.kind == RoutingEvent::Kind::Swap)
+          r->cleanUpTrace.push_back(event);
+      r->swapCount += r->cleanUpTrace.size();
       r->exitLayout = r->initialLayout;
     }
   }
@@ -874,26 +875,21 @@ cudaq::Placement::VirtualQ requireVirtualQ(
       "mapper invariant violated: quantum wire has no virtual qubit");
 }
 
-/// An ordinary scope may only route caller wires. A borrow introduced in the
-/// body starts a separate device-wire lifetime, which this recursive router
-/// cannot seed or reconstruct at the lexical boundary.
-static bool hasScopeLocalBorrow(cudaq::cc::ScopeOp scope) {
-  bool found = false;
-  scope.getInitRegion().walk([&](cudaq::quake::BorrowWireOp) { found = true; });
+/// Find the first matching operation owned by `scope`. Nested scopes are
+/// visited separately by the enclosing validation traversal.
+template <typename... OpTypes>
+static Operation *findScopeOwnedOperation(cudaq::cc::ScopeOp scope) {
+  Operation *found = nullptr;
+  scope.getInitRegion().walk<WalkOrder::PreOrder>([&](Operation *op) {
+    if (isa<cudaq::cc::ScopeOp>(op))
+      return WalkResult::skip();
+    if (isa<OpTypes...>(op)) {
+      found = op;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
   return found;
-}
-
-/// A terminal wire operation ends a virtual wire's lifetime in the scope. The
-/// mapper does not yet track the resulting unavailable physical lane across a
-/// scope boundary.
-static bool hasScopeTerminalWire(cudaq::cc::ScopeOp scope) {
-  return scope.getInitRegion()
-      .walk([](Operation *op) {
-        return isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(op)
-                   ? WalkResult::interrupt()
-                   : WalkResult::advance();
-      })
-      .wasInterrupted();
 }
 
 /// Return whether `op` is routed recursively instead of as a physical gate.
@@ -930,6 +926,22 @@ static bool isRoutingNode(Operation &op) {
          cudaq::quake::isSupportedMappingOperation(&op);
 }
 
+/// Build one routing node from an operation accepted by `isRoutingNode`.
+static RoutingProblem::Node makeRoutingNode(
+    Operation &op,
+    const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
+  RoutingProblem::Node node;
+  node.op = &op;
+  for (Value wire : getRoutingInputWires(op))
+    node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
+  if (!isStructuredRoutingOperation(&op)) {
+    node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
+    node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
+    node.isTwoQ = node.isUnitary && node.qubits.size() == 2;
+  }
+  return node;
+}
+
 /// Build the routing problem from `block`. The nodes are the routable
 /// operations that `isSupportedMappingOperation` accepts, other than the source
 /// borrows. Edges and source successors are captured in MLIR use-list order so
@@ -944,17 +956,8 @@ RoutingProblem buildRoutingProblem(
     Operation &op = *it;
     if (!isRoutingNode(op))
       continue;
-    RoutingProblem::Node node;
-    node.op = &op;
-    for (Value wire : getRoutingInputWires(op))
-      node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
-    if (!isStructuredRoutingOperation(&op)) {
-      node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
-      node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
-      node.isTwoQ = node.isUnitary && node.qubits.size() == 2;
-    }
     nodeIndex[&op] = RoutingProblem::NodeRef(problem.nodes.size());
-    problem.nodes.push_back(std::move(node));
+    problem.nodes.push_back(makeRoutingNode(op, wireToVirtualQ));
   }
 
   // Record successor edges by walking the uses of each quantum result wire. A
@@ -991,10 +994,40 @@ RoutingProblem buildRoutingProblem(
   return problem;
 }
 
-static RoutingProblem buildRoutingProblem(
+/// Build the initial-layout search problem with lexical scopes inlined. Scope
+/// bodies execute once in program order, so virtual-qubit dependencies preserve
+/// their ordering across the lexical boundary. Other structured control flow
+/// remains opaque because its regions do not have one unconditional order.
+RoutingProblem buildScopeTransparentRoutingProblem(
     Block &block,
     const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
-  return buildRoutingProblem(block, block.begin(), block.end(), wireToVirtualQ);
+  RoutingProblem problem;
+  DenseMap<unsigned, RoutingProblem::NodeRef> lastNode;
+
+  auto visitBlock = [&](auto &&self, Block &currentBlock) -> void {
+    for (Operation &op : currentBlock) {
+      if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
+        self(self, scope.getInitRegion().front());
+        continue;
+      }
+      if (!isRoutingNode(op))
+        continue;
+
+      RoutingProblem::NodeRef current(problem.nodes.size());
+      problem.nodes.push_back(makeRoutingNode(op, wireToVirtualQ));
+      for (cudaq::Placement::VirtualQ virtualQ : problem[current].qubits) {
+        auto predecessor = lastNode.find(virtualQ.index);
+        if (predecessor == lastNode.end())
+          problem.sourceUsers.push_back(current);
+        else
+          problem.nodes[predecessor->second.index].successors.push_back(
+              current);
+        lastNode[virtualQ.index] = current;
+      }
+    }
+  };
+  visitBlock(visitBlock, block);
+  return problem;
 }
 
 /// Only unitary gates take part in the reverse-traversal pass. See
@@ -1543,12 +1576,9 @@ std::optional<SearchStrategy> parseSearchStrategy(llvm::StringRef name) {
       .Default(std::nullopt);
 }
 
-/// Owns the layout search. For each seed it routes forward and, under `sabre`,
-/// applies the paper's forward-backward-forward reverse-traversal refinement,
-/// keeping both the unrefined and refined results as candidates so refinement
-/// can never select a worse layout than the seed alone. The candidate with the
-/// fewest routed swaps wins, compared through `isBetter`. No IR is touched
-/// here.
+/// Owns layout routing and SABRE reverse-traversal refinement. The recursive
+/// router scores each unrefined and refined candidate against the complete
+/// structured circuit. No IR is touched here.
 class RoutingSearchStrategy {
 public:
   RoutingSearchStrategy(const cudaq::Device &device,
@@ -1558,64 +1588,35 @@ public:
         reverseProblem(refine ? buildReverseProblem(problem)
                               : RoutingProblem{}) {}
 
-  /// The selected routing result and the final placement it produced (used for
-  /// the mapping_v2p attributes).
-  struct Selection {
-    RoutingResult result;
-    cudaq::Placement finalLayout;
-  };
+  /// Route one fixed entry layout.
+  RoutingResult route(ArrayRef<unsigned> seed, unsigned numV, unsigned numPhy) {
+    cudaq::Placement finalPlace(numV, numPhy);
+    return routeSeed(seed, numV, numPhy, finalPlace);
+  }
 
-  /// Route every seed and return the candidate with the fewest swaps.
-  Selection run(ArrayRef<SmallVector<unsigned>> seeds, unsigned numV,
-                unsigned numPhy) {
-    Selection best{RoutingResult{}, cudaq::Placement(numV, numPhy)};
-    bool haveBest = false;
-    auto consider = [&](RoutingResult result,
-                        const cudaq::Placement &finalPlace) {
-      if (!haveBest || isBetter(result, best.result)) {
-        best.result = std::move(result);
-        best.finalLayout = finalPlace;
-        haveBest = true;
-      }
-    };
+  /// Return every unrefined and SABRE-refined initial layout in deterministic
+  /// order. The recursive router evaluates these candidates against the full
+  /// structured circuit rather than selecting from a partial top-level block.
+  SmallVector<SmallVector<unsigned>>
+  getCandidateLayouts(ArrayRef<SmallVector<unsigned>> seeds, unsigned numV,
+                      unsigned numPhy) {
+    SmallVector<SmallVector<unsigned>> candidates;
+    for (ArrayRef<unsigned> seed : seeds) {
+      pushSeedIfNew(candidates, SmallVector<unsigned>(seed));
+      if (!refine)
+        continue;
 
-    for (ArrayRef<unsigned> seed : seeds)
-      routeAndRefineSeed(seed, numV, numPhy, consider);
-    return best;
+      // SABRE's first forward traversal supplies the starting layout for the
+      // reverse traversal. The recursive router performs the final forward
+      // traversal when it scores the refined candidate.
+      cudaq::Placement finalPlace(numV, numPhy);
+      routeSeed(seed, numV, numPhy, finalPlace);
+      pushSeedIfNew(candidates, reverseRefine(finalPlace, numV));
+    }
+    return candidates;
   }
 
 private:
-  /// Fewer routed swaps wins. Ties keep the earlier candidate.
-  static bool isBetter(const RoutingResult &a, const RoutingResult &b) {
-    return a.swapCount < b.swapCount;
-  }
-
-  /// Route one seed and, when refining, run the SABRE reverse-traversal passes
-  /// over it. Every forward route is offered to `consider` as a candidate.
-  /// Reverse routes only refine the layout into the next seed and are never
-  /// candidates themselves.
-  void routeAndRefineSeed(
-      ArrayRef<unsigned> seed, unsigned numV, unsigned numPhy,
-      llvm::function_ref<void(RoutingResult, const cudaq::Placement &)>
-          consider) {
-    // SABRE's forward-reverse-forward reverse-traversal refinement (Li et al.
-    // 2019, Sec. IV-C2).
-
-    // Traversal 1 (forward): route the seed as given. A candidate.
-    cudaq::Placement finalPlace(numV, numPhy);
-    consider(routeSeed(seed, numV, numPhy, finalPlace), finalPlace);
-    if (!refine)
-      return;
-
-    // Traversal 2 (reverse): route the reverse circuit from that layout to
-    // refine it into the next seed. Not a candidate.
-    SmallVector<unsigned> refined = reverseRefine(finalPlace, numV);
-
-    // Traversal 3 (forward): route the refined seed. A candidate.
-    cudaq::Placement refinedFinal(numV, numPhy);
-    consider(routeSeed(refined, numV, numPhy, refinedFinal), refinedFinal);
-  }
-
   /// Forward-route a seed layout. Returns its result and final placement.
   RoutingResult routeSeed(ArrayRef<unsigned> seed, unsigned numV,
                           unsigned numPhy, cudaq::Placement &finalOut) {
@@ -1677,33 +1678,43 @@ public:
                unsigned numVIn, unsigned numPhyIn) {
     numV = numVIn;
     numPhy = numPhyIn;
-    blockResults.clear();
-    cudaq::Placement bestLayout =
-        routeBlock(topBlock, seeds, /*selectInitialLayout=*/true);
-    return {std::move(blockResults), std::move(bestLayout)};
+    RoutingProblem topProblem =
+        buildScopeTransparentRoutingProblem(topBlock, wireToVirtualQ);
+    RoutingSearchStrategy search(
+        device, topProblem, searchStrategy == SearchStrategy::Sabre, options);
+    auto candidates = search.getCandidateLayouts(seeds, numV, numPhy);
+
+    DenseMap<Block *, RoutingResult> bestResults;
+    cudaq::Placement bestLayout(numV, numPhy);
+    unsigned bestSwapCount = 0;
+    bool haveBest = false;
+    for (ArrayRef<unsigned> candidate : candidates) {
+      blockResults.clear();
+      routeBlock(topBlock, candidate);
+      unsigned swapCount = blockResults.at(&topBlock).swapCount;
+      if (!haveBest || swapCount < bestSwapCount) {
+        bestSwapCount = swapCount;
+        bestLayout = cudaq::Placement(numV, numPhy);
+        for (auto [virtualQ, physicalQ] :
+             llvm::enumerate(blockResults.at(&topBlock).exitLayout))
+          bestLayout.map(cudaq::Placement::VirtualQ(virtualQ),
+                         cudaq::Placement::DeviceQ(physicalQ));
+        bestResults = std::move(blockResults);
+        haveBest = true;
+      }
+    }
+    assert(haveBest && "placement must provide a routing candidate");
+    return {std::move(bestResults), std::move(bestLayout)};
   }
 
 private:
   /// Route `block` in ordered segments. A scope is a placement boundary: its
   /// body receives the enclosing layout and its exit layout seeds the following
-  /// segment. `selectInitialLayout` is used only for the top block; nested
-  /// blocks must honor the layout established at their control-flow entry.
-  cudaq::Placement routeBlock(Block &block,
-                              ArrayRef<SmallVector<unsigned>> seeds,
-                              bool selectInitialLayout = false) {
-    SmallVector<unsigned> initialLayout;
-    if (selectInitialLayout) {
-      RoutingProblem problem = buildRoutingProblem(block, wireToVirtualQ);
-      RoutingSearchStrategy search(
-          device, problem, searchStrategy == SearchStrategy::Sabre, options);
-      initialLayout = search.run(seeds, numV, numPhy).result.initialLayout;
-    } else {
-      assert(seeds.size() == 1 && "nested block has one entering layout");
-      initialLayout = seeds.front();
-    }
+  /// segment. Every block must honor the layout established at its entry.
+  void routeBlock(Block &block, ArrayRef<unsigned> initialLayout) {
 
     RoutingResult result;
-    result.initialLayout = initialLayout;
+    llvm::append_range(result.initialLayout, initialLayout);
 
     SmallVector<unsigned> replayVqToPhy(numV);
     SmallVector<unsigned> replayPhyToVQ(numPhy, UINT_MAX);
@@ -1711,14 +1722,6 @@ private:
       replayVqToPhy[v] = initialLayout[v];
       replayPhyToVQ[initialLayout[v]] = v;
     }
-
-    // Route one nested block using the current replay layout as its entry
-    // seed, then recurse to fill its block result. If branches and loop
-    // back-edges still reconcile to their entry layout; an ordinary scope has
-    // one normal exit and deliberately carries its routed layout onward.
-    auto routeNested = [&](Block &nested) {
-      routeBlock(nested, {SmallVector<unsigned>(replayVqToPhy)});
-    };
 
     auto routeSegment = [&](Block::iterator first, Block::iterator last) {
       if (first == last)
@@ -1729,9 +1732,7 @@ private:
       // it here would silently disconnect this segment from its
       // predecessor.
       RoutingSearchStrategy search(device, problem, /*refine=*/false, options);
-      RoutingResult flat =
-          search.run({SmallVector<unsigned>(replayVqToPhy)}, numV, numPhy)
-              .result;
+      RoutingResult flat = search.route(replayVqToPhy, numV, numPhy);
       result.swapCount += flat.swapCount;
       for (RoutingEvent &ev : flat.trace) {
         if (ev.kind == RoutingEvent::Kind::Swap) {
@@ -1751,7 +1752,7 @@ private:
           for (Region *region : ifOp.getRegions()) {
             if (region->empty())
               continue;
-            routeNested(region->front());
+            routeBlock(region->front(), replayVqToPhy);
             branchBlocks.push_back(&region->front());
           }
           // Reconcile the branches at the if-join so they exit at a common
@@ -1761,6 +1762,8 @@ private:
           for (Block *b : branchBlocks)
             branchResults.push_back(&blockResults[b]);
           joinStrategy.reconcile(branchResults);
+          for (RoutingResult *branchResult : branchResults)
+            result.swapCount += branchResult->swapCount;
           assert(!ifOp.hasElse() ||
                  blockResults[&ifOp.getThenRegion().front()].exitLayout ==
                      blockResults[&ifOp.getElseRegion().front()].exitLayout);
@@ -1768,17 +1771,21 @@ private:
         } else if (ev.kind == RoutingEvent::Kind::Loop) {
           auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
           auto *bodyBlock = loopOp.getDoEntryBlock();
-          routeNested(*bodyBlock);
+          routeBlock(*bodyBlock, replayVqToPhy);
           // Reconcile the loop back-edge: the loop invariant is the entry
           // layout, restored before the body terminator each iteration.
           RoutingResult *bodyResult = &blockResults[bodyBlock];
           joinStrategy.reconcile(bodyResult);
+          result.swapCount += bodyResult->swapCount;
           // Route the step block if present (for-loop style). It carries
           // wires straight through (quantum gates in a step are rejected),
           // so it never inserts swaps and needs no back-edge
           // reconciliation.
-          if (loopOp.hasStep())
-            routeNested(*loopOp.getStepBlock());
+          if (loopOp.hasStep()) {
+            routeBlock(*loopOp.getStepBlock(), replayVqToPhy);
+            result.swapCount +=
+                blockResults.at(loopOp.getStepBlock()).swapCount;
+          }
           result.trace.push_back(std::move(ev));
         } else if (ev.kind == RoutingEvent::Kind::Scope) {
           llvm_unreachable("scopes delimit routing segments");
@@ -1795,8 +1802,9 @@ private:
         continue;
       routeSegment(segmentFirst, it);
       Block &scopeBlock = scope.getInitRegion().front();
-      routeBlock(scopeBlock, {SmallVector<unsigned>(replayVqToPhy)});
+      routeBlock(scopeBlock, replayVqToPhy);
       const RoutingResult &scopeResult = blockResults.at(&scopeBlock);
+      result.swapCount += scopeResult.swapCount;
       replayVqToPhy = scopeResult.exitLayout;
       std::fill(replayPhyToVQ.begin(), replayPhyToVQ.end(), UINT_MAX);
       for (unsigned v = 0; v < numV; ++v)
@@ -1808,12 +1816,6 @@ private:
     result.exitLayout =
         SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
     blockResults[&block] = std::move(result);
-
-    cudaq::Placement finalLayout(numV, numPhy);
-    for (unsigned v = 0; v < numV; ++v)
-      finalLayout.map(cudaq::Placement::VirtualQ(v),
-                      cudaq::Placement::DeviceQ(replayVqToPhy[v]));
-    return finalLayout;
   };
 
   const cudaq::Device &device;
@@ -1837,7 +1839,7 @@ private:
 /// threading the current wire on each physical qubit.
 class RoutingEmitter {
 public:
-  RoutingEmitter(const DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
+  RoutingEmitter(DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
                  unsigned numPhysical,
                  const DenseMap<Block *, RoutingResult> &blockMap)
       : wireToVirtualQ(wireMap), phyToWire(numPhysical),
@@ -1867,8 +1869,62 @@ public:
   }
 
 private:
-  /// Emit the swaps and rewire the operations for a single block, recursing
-  /// into the regions of any `if` operations encountered along the way.
+  /// Extend `scope` with results for mapper-introduced wires that must cross
+  /// its lexical boundary. Moving the existing region keeps routed operation
+  /// and block identities stable for the recorded routing events.
+  cudaq::cc::ScopeOp addScopePassthroughs(cudaq::cc::ScopeOp scope,
+                                          const RoutingResult &scopeResult) {
+    SmallVector<bool> returned(scopeResult.exitLayout.size(), false);
+    for (Value result : scope->getResults())
+      if (isa<cudaq::quake::WireType>(result.getType()))
+        returned[requireVirtualQ(wireToVirtualQ, result).index] = true;
+
+    SmallVector<Value> passthroughWires;
+    SmallVector<cudaq::Placement::VirtualQ> passthroughVQs;
+    for (unsigned v = 0; v < scopeResult.exitLayout.size(); ++v) {
+      if (returned[v])
+        continue;
+      Value wire = phyToWire[scopeResult.exitLayout[v]];
+      if (!scope.getInitRegion().isAncestor(wire.getParentRegion()))
+        continue;
+      passthroughWires.push_back(wire);
+      passthroughVQs.emplace_back(v);
+    }
+    if (passthroughWires.empty())
+      return scope;
+
+    SmallVector<Type> resultTypes(scope.getResultTypes());
+    for (Value wire : passthroughWires)
+      resultTypes.push_back(wire.getType());
+    OpBuilder builder(scope);
+    OperationState state(scope.getLoc(),
+                         cudaq::cc::ScopeOp::getOperationName());
+    state.addTypes(resultTypes);
+    state.addAttributes(scope->getAttrs());
+    state.addRegion();
+    auto replacement = cast<cudaq::cc::ScopeOp>(builder.create(state));
+    replacement.getInitRegion().takeBody(scope.getInitRegion());
+
+    for (auto [oldResult, newResult] : llvm::zip_equal(
+             scope->getResults(),
+             replacement->getResults().take_front(scope->getNumResults()))) {
+      if (auto vq = lookupVirtualQ(wireToVirtualQ, oldResult))
+        wireToVirtualQ.insert({newResult, *vq});
+      oldResult.replaceAllUsesWith(newResult);
+    }
+
+    auto cont = cast<cudaq::cc::ContinueOp>(
+        replacement.getInitRegion().front().getTerminator());
+    cont->insertOperands(cont->getNumOperands(), passthroughWires);
+    for (auto [result, vq] : llvm::zip_equal(
+             replacement->getResults().take_back(passthroughVQs.size()),
+             passthroughVQs))
+      wireToVirtualQ.insert({result, vq});
+    scope.erase();
+    return replacement;
+  }
+
+  /// Emit the swaps and rewire one block, recursing into supported regions.
   void emitBlock(Block &blk) {
     const RoutingResult &blkResult = blockResults.at(&blk);
     OpBuilder blkBuilder(&blk, blk.begin());
@@ -1913,8 +1969,8 @@ private:
             phyToWire[ev.phys[phyIdx++].index] = region.front().getArgument(i);
           }
           emitBlock(region.front());
-          // Rewire the branch's cc.continue to the wires left on each
-          // physical qubit after in-branch routing and cleanup restoration.
+          // Rewire the branch's cc.continue to the wires left on each physical
+          // qubit after in-branch routing and cleanup restoration.
           auto *contOp = region.front().getTerminator();
           for (auto [k, operand] : llvm::enumerate(contOp->getOperands())) {
             if (!isa<cudaq::quake::WireType>(operand.getType()))
@@ -1982,7 +2038,6 @@ private:
             stepContOp->setOperand(j, phyToWire[ev.phys[phyIdx++].index]);
           }
         }
-        // Update phyToWire with the loop results.
         phyIdx = 0;
         for (Value res : loopOp->getResults()) {
           if (!isa<cudaq::quake::WireType>(res.getType()))
@@ -1994,6 +2049,7 @@ private:
         Block &scopeBlock = scope.getInitRegion().front();
         const RoutingResult &scopeResult = blockResults.at(&scopeBlock);
         emitBlock(scopeBlock);
+        scope = addScopePassthroughs(scope, scopeResult);
         auto contOp = cast<cudaq::cc::ContinueOp>(scopeBlock.getTerminator());
         for (auto [index, result] : llvm::enumerate(scope->getResults())) {
           if (!isa<cudaq::quake::WireType>(result.getType()))
@@ -2024,7 +2080,7 @@ private:
     sortTopologically(&blk);
   }
 
-  const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
+  DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
   SmallVector<Value> phyToWire;
   const DenseMap<Block *, RoutingResult> &blockResults;
 };
@@ -2073,9 +2129,9 @@ llvm::Error deviceFromString(llvm::StringRef deviceString, bool &deviceBypass,
       return llvm::Error::success();
     }
 
-    // Shortest paths retain views into Device-owned storage, so parse
-    // directly into the pass member instead of moving a temporary through the
-    // error path.
+    // Shortest paths retain views into Device-owned storage, so parse directly
+    // into the pass member instead of moving a temporary through the error
+    // path.
     deviceInstance.emplace();
     if (llvm::Error error =
             cudaq::Device::tryFile(deviceFilename, *deviceInstance)) {
@@ -2206,8 +2262,8 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
 
     // A composable run tolerates an unset device (the default "-" or an
     // unparsable device option) as a no-op; `initialize` already fails a
-    // non-composable run before it reaches here. Guard the deref regardless
-    // so a bad device string cannot crash the pass.
+    // non-composable run before it reaches here. Guard the deref regardless so
+    // a bad device string cannot crash the pass.
     if (!deviceInstance)
       return;
 
@@ -2219,12 +2275,12 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
 // Measurement preconditions
 //===----------------------------------------------------------------------===//
 
-/// The first measurement in `func` whose measured wire flows to a
-/// non-terminal user, or null. Because the mapper defers measurements to the
-/// end of the circuit, a measured wire may only flow to a terminal consumer
-/// (`return_wire` or `sink`). Any other use is a mid-circuit measurement the
-/// deferral cannot preserve. Classical measurement feedback is detected
-/// separately, via `QuakeFunctionAnalysis`.
+/// The first measurement in `func` whose measured wire flows to a non-terminal
+/// user, or null. Because the mapper defers measurements to the end of the
+/// circuit, a measured wire may only flow to a terminal consumer (`return_wire`
+/// or `sink`). Any other use is a mid-circuit measurement the deferral cannot
+/// preserve. Classical measurement feedback is detected separately, via
+/// `QuakeFunctionAnalysis`.
 Operation *findNonTerminalMeasuredWireUse(func::FuncOp func) {
   Operation *found = nullptr;
   func.walk([&](cudaq::quake::MeasurementInterface meas) {
@@ -2319,12 +2375,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     return success();
   }
 
-  /// Recursively analyze `b` and all IfOp branch regions, populating
-  /// wireToVirtualQ, finalQubitWire, sources, and interaction data.
-  /// `parentOp` is the enclosing cc::IfOp when recursing into a branch; null
-  /// at the top level. cc.continue uses it to set (first branch) or verify
-  /// (else branch) the parent's wire result VQs directly in wireToVirtualQ.
-  /// Clears `analysisOk` on the first unsupported construct.
+  /// Recursively analyze `b` and supported structured regions, populating
+  /// wireToVirtualQ, finalQubitWire, sources, and interaction data. `parentOp`
+  /// is the enclosing IfOp or ScopeOp whose cc.continue operands map to its
+  /// results; it is null at the top level and on loop back-edges. Clears
+  /// `analysisOk` on the first unsupported construct.
   void
   analyzeBlock(Block &b, bool doCollectInteractions, Operation *parentOp,
                bool &analysisOk,
@@ -2409,28 +2464,29 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
             !isa<cudaq::cc::ContinueOp>(
                 scope.getInitRegion().front().getTerminator())) {
           if (nonComposable) {
-            scope.emitOpError(
-                "mapper can only handle ordinary single-block scopes");
+            scope.emitOpError("mapper can only handle single-block scopes");
             signalPassFailure();
           }
           analysisOk = false;
           return;
         }
-        if (scope.hasQuantumAllocation() || hasScopeLocalBorrow(scope)) {
+        if (scope.hasQuantumAllocation() ||
+            findScopeOwnedOperation<cudaq::quake::BorrowWireOp>(scope)) {
           if (nonComposable) {
             scope.emitOpError(
                 "mapper cannot handle quantum allocations or borrows inside "
-                "an ordinary scope");
+                "a scope");
             signalPassFailure();
           }
           analysisOk = false;
           return;
         }
-        if (hasScopeTerminalWire(scope)) {
+        if (findScopeOwnedOperation<cudaq::quake::SinkOp,
+                                    cudaq::quake::ReturnWireOp>(scope)) {
           if (nonComposable) {
             scope.emitOpError(
-                "mapper cannot handle terminal wire operations inside an "
-                "ordinary scope");
+                "mapper cannot handle terminal wire operations inside a "
+                "scope");
             signalPassFailure();
           }
           analysisOk = false;
@@ -2442,10 +2498,30 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                      interactions, userVirtualQubits);
         if (!analysisOk)
           return;
+        llvm::SmallSet<unsigned, 16> returnedVQs;
         for (Value result : scope->getResults())
-          if (isa<cudaq::quake::WireType>(result.getType()))
-            finalQubitWire[requireVirtualQ(wireToVirtualQ, result).index] =
-                result;
+          if (isa<cudaq::quake::WireType>(result.getType())) {
+            auto vq = requireVirtualQ(wireToVirtualQ, result);
+            returnedVQs.insert(vq.index);
+          }
+        for (const auto &[vq, wire] : finalQubitWire) {
+          Value currentWire = wire;
+          if (scope.getInitRegion().isAncestor(currentWire.getParentRegion()) &&
+              !returnedVQs.contains(vq)) {
+            if (nonComposable) {
+              scope.emitOpError("mapper requires a scope result for every "
+                                "wire consumed in the scope");
+              signalPassFailure();
+            }
+            analysisOk = false;
+            return;
+          }
+        }
+        for (Value result : scope->getResults())
+          if (isa<cudaq::quake::WireType>(result.getType())) {
+            auto vq = requireVirtualQ(wireToVirtualQ, result);
+            finalQubitWire[vq.index] = result;
+          }
       } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
         auto *whileBlock = loopOp.getWhileBlock();
         auto *bodyBlock = loopOp.getDoEntryBlock();
@@ -2583,17 +2659,17 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Verify that the function contains wiresets and return if it does not.
-    // Also populate the highest identity borrow up as long as we're
-    // traversing them.
+    // Also populate the highest identity borrow up as long as we're traversing
+    // them.
     StringRef inputWireSet;
     std::optional<std::uint32_t> highestIdentity;
     auto walkResult = func.walk([&](cudaq::quake::BorrowWireOp borrowOp) {
       if (inputWireSet.empty()) {
         inputWireSet = borrowOp.getSetName();
       } else if (borrowOp.getSetName() != inputWireSet) {
-        // Why is this here? It's entirely possible to have disjoint wire
-        // sets, where the sets are for fundamentally distinct purposes in the
-        // target model.
+        // Why is this here? It's entirely possible to have disjoint wire sets,
+        // where the sets are for fundamentally distinct purposes in the target
+        // model.
         if (nonComposable)
           func.emitOpError("function cannot use multiple WireSets");
         return WalkResult::interrupt();
@@ -2672,6 +2748,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     // entry point, descend into the `cc.scope` that wraps the body when that
     // scope has survived canonicalization.
     Block *bodyBlock = &blocks.front();
+    cudaq::cc::ScopeOp runScope;
     if (isRunEntry) {
       const auto scopes = bodyBlock->getOps<cudaq::cc::ScopeOp>();
       if (!scopes.empty()) {
@@ -2696,6 +2773,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                      << "run entry scope does not have exactly one block\n");
           return;
         }
+        runScope = scope;
         bodyBlock = &scope.getInitRegion().front();
       }
 
@@ -2734,10 +2812,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     const std::size_t deviceNumQubits = deviceInstance->getNumQubits();
 
     // Borrow identities index device-sized tables (`sources`,
-    // `userVirtualQubits`, `interactions`) during the scan below, so a
-    // circuit that needs more qubits than the device provides must be
-    // rejected before those writes go out of bounds. `highestIdentity` is the
-    // largest identity in the function.
+    // `userVirtualQubits`, `interactions`) during the scan below, so a circuit
+    // that needs more qubits than the device provides must be rejected before
+    // those writes go out of bounds. `highestIdentity` is the largest identity
+    // in the function.
     if (*highestIdentity >= deviceNumQubits) {
       if (nonComposable) {
         func.emitOpError(
@@ -2756,8 +2834,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     DenseMap<std::size_t, Value> finalQubitWire;
     Operation *lastSource = nullptr;
 
-    // Resolve the placement and search strategies before scanning the
-    // circuit.
+    // Resolve the placement and search strategies before scanning the circuit.
     std::optional<PlacementStrategy> parsedPlacement =
         parsePlacementStrategy(this->placement);
     if (!parsedPlacement) {
@@ -2787,6 +2864,31 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
     SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
+    auto rejectScopeNesting = [&](Operation *op, StringRef message) {
+      if (nonComposable) {
+        op->emitOpError(message);
+        signalPassFailure();
+      }
+      return WalkResult::interrupt();
+    };
+    auto scopeCheckResult = func.walk([&](cudaq::cc::ScopeOp scope) {
+      if (scope->getParentOfType<cudaq::cc::IfOp>() ||
+          scope->getParentOfType<cudaq::cc::LoopOp>())
+        return rejectScopeNesting(
+            scope, "mapper cannot handle scopes nested inside structured "
+                   "control flow");
+      if (scope == runScope)
+        return WalkResult::advance();
+      if (Operation *op =
+              findScopeOwnedOperation<cudaq::cc::IfOp, cudaq::cc::LoopOp>(
+                  scope))
+        return rejectScopeNesting(
+            op, "mapper cannot handle structured control flow inside a scope");
+      return WalkResult::advance();
+    });
+    if (scopeCheckResult.wasInterrupted())
+      return;
+
     // Reject loop bodies that are not yet supported: multi-block, else
     // regions, or break statements.
     auto loopCheckResult = func.walk([&](cudaq::cc::LoopOp loopOp) {
@@ -2807,8 +2909,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         return WalkResult::interrupt();
       }
       // Condition and step regions with quantum gates are not currently
-      // supported. In general, these regions shouldn't require routing, but
-      // may need to account for measurements.
+      // supported. In general, these regions shouldn't require routing, but may
+      // need to account for measurements.
       auto hasQuantumGate = [](Region &region) {
         return region
             .walk([](Operation *op) {
@@ -2835,11 +2937,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // Reject measurements not directly inside the function — measure order
-    // must be preserved and cannot yet be reconciled across branches or
-    // loops. This does not apply to `run` entry points, whose per-shot output
-    // log records results by measurement rather than by global register
-    // order, so skip the check there.
+    // Reject measurements not directly inside the function — measure order must
+    // be preserved and cannot yet be reconciled across branches or loops. This
+    // does not apply to `run` entry points, whose per-shot output log records
+    // results by measurement rather than by global register order, so skip the
+    // check there.
     if (!isRunEntry) {
       auto measureCheckResult =
           func.walk([&](cudaq::quake::MeasurementInterface meas) {
@@ -2859,8 +2961,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Interaction data is required by every placement strategy: greedy and
-    // auto use it to build seeds, while identity uses it to reject
-    // interactions that cross disconnected device islands.
+    // auto use it to build seeds, while identity uses it to reject interactions
+    // that cross disconnected device islands.
     VirtualInteractionGraph interactions(deviceNumQubits);
     SmallVector<bool> userVirtualQubits(deviceNumQubits, false);
 
@@ -2893,9 +2995,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     llvm::erase_if(seeds, shouldDiscardSeed);
     if (seeds.empty()) {
       if (islandPackingBudgetExhausted) {
-        // The packing fallback ran out of attempts before it could either
-        // find a layout or prove none exists, so point the user at the knob
-        // rather than reporting the topology as unroutable.
+        // The packing fallback ran out of attempts before it could either find
+        // a layout or prove none exists, so point the user at the knob rather
+        // than reporting the topology as unroutable.
         func.emitError("could not find a routable initial layout for "
                        "disconnected device topology within the island-packing "
                        "attempt budget of " +
@@ -2956,9 +3058,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Save the order of the measurements. They are not allowed to change. For
-    // `run` this ordering does not matter (results are recorded by index),
-    // and the measurements may live inside branch/loop regions where moving
-    // them out of their region would be invalid, so leave them in place.
+    // `run` this ordering does not matter (results are recorded by index), and
+    // the measurements may live inside branch/loop regions where moving them
+    // out of their region would be invalid, so leave them in place.
     SmallVector<mlir::Operation *> measureOrder;
     if (!isRunEntry)
       func.walk([&](cudaq::quake::MeasurementInterface measure) {
@@ -2980,9 +3082,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
     }
 
-    // Search the seeds for the fewest-swap layout and record every block's
-    // RoutingResult, reconciling control-flow joins with the Stage 1.5
-    // policy.
+    // Search the seeds for the fewest-swap layout and restore each structured
+    // control-flow predecessor to its entry layout at a join.
     RestoreToEntryStrategy joinStrategy;
     RoutingSearchOptions options{extendedLayerSize,  extendedLayerWeight,
                                  decayDelta,         roundsDecayReset,
@@ -2998,9 +3099,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     auto phyToWire = emitter.emit(block, sources, blockResults[&block]);
     sortTopologically(&block);
 
-    // Ensure that the original measurement ordering is still honored by
-    // moving the measurements to the end (in their original order). Note that
-    // we must move the users of those measurements to the end as well.
+    // Ensure that the original measurement ordering is still honored by moving
+    // the measurements to the end (in their original order). Note that we must
+    // move the users of those measurements to the end as well.
     for (Operation *measure : measureOrder) {
       SmallVector<Operation *> opsToMoveToEnd;
       addOpAndUsersToList(measure, opsToMoveToEnd);
@@ -3009,9 +3110,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                                      block.getOperations(), op->getIterator());
     }
 
-    // Remove any unused BorrowWireOps and add ReturnWireOp's where needed.
-    // Each source starts on physical qubit `initialLayout[i]`, so its final
-    // wire is the one threaded onto that track.
+    // Remove any unused BorrowWireOps and add ReturnWireOp's where needed. Each
+    // source starts on physical qubit `initialLayout[i]`, so its final wire is
+    // the one threaded onto that track.
     builder.setInsertionPoint(block.getTerminator());
     for (const auto &[i, s] : llvm::enumerate(sources)) {
       if (s->getUsers().empty()) {
@@ -3024,11 +3125,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Populate mapping_v2p attribute on this function such that:
-    // - mapping_v2p[v] contains the final physical qubit placement for
-    // virtual
+    // - mapping_v2p[v] contains the final physical qubit placement for virtual
     //   qubit `v`.
-    // To map the backend qubits back to the original user program (i.e.
-    // before this pass), run something like this:
+    // To map the backend qubits back to the original user program (i.e. before
+    // this pass), run something like this:
     //   for (int v = 0; v < numQubits; v++)
     //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
     llvm::SmallVector<Attribute> attrs(*highestIdentity + 1);
