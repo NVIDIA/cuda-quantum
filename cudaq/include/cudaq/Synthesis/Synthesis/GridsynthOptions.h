@@ -83,12 +83,20 @@ inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
 ///   `maxFactoringRestarts`   re-rolls on one composite (sec. 6, App. C)
 ///
 /// The two factoring budgets are not interchangeable, though, and the
-/// difference decides which one to reach for. On 38 angles at 1e-30..1e-40:
-/// doubling `maxCandidateIterations` alone costs 1.83x runtime and moves the
-/// summed T-count by +4 in ~65000, i.e. nothing (it bounds the tail, it does
-/// not buy quality). `maxFactoringIterations` is the cap that actually decides
-/// when a candidate is abandoned, so it is the one that trades T gates for
-/// time. Raise that one, not the other, if a caller wants shorter circuits.
+/// difference decides which one to reach for. Swept one at a time over 38
+/// angles x 3 seeds:
+///
+/// `maxCandidateIterations` is a floor, not a dial. At 1e-40, 500k costs +12
+/// T gates and 1M costs +10, the shipped 2M reaches the best T-count observed,
+/// and 4M and 8M buy nothing further while runtime doubles (4.2s -> 8.3s over
+/// the corpus). Set it too low and circuits get longer. Raising it past the
+/// default only costs time.
+///
+/// `maxFactoringIterations` is the one that keeps paying, because it decides
+/// when a candidate is abandoned, 14 gates for 1.5x runtime at 1e-35. Raise
+/// that one if a caller wants shorter circuits. Note its effect is not
+/// monotone at 1e-40 (a different budget abandons different candidates and
+/// lands on a different k), so single-point comparisons there are unreliable.
 struct GridsynthOptions {
   /// Seed for the random parameter Pollard-rho draws at the start of each
   /// factoring attempt (sec. 6, and Rabin's `primality` test draws from the
