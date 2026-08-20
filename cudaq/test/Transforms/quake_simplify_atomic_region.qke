@@ -8,11 +8,11 @@
 
 // RUN: cudaq-opt --verify-each --quake-simplify %s | FileCheck %s
 
-// Multi-operation quake-simplify rewrites must honor the atomic-region
-// contract: optimize freely inside one marked scope and on disjoint wires,
-// but never combine operations across a marked-scope boundary. Ordinary
-// single-block scopes remain transparent, and unsupported structured control
-// conservatively ends the search.
+// Multi-operation quake-simplify rewrites may optimize inside one marked
+// scope, but marked atomic scopes are physical rewrite boundaries even for
+// operations on disjoint wires. Ordinary supported single-block scopes may
+// allow crossing when their captured wires are disjoint. Unsupported
+// structured control conservatively ends the search.
 
 func.func @preserve_atomic_scope_entry() {
   %q0 = quake.null_wire
@@ -43,6 +43,26 @@ func.func @ordinary_scope_entry_is_transparent(%arg0: !quake.wire) -> !quake.wir
   return %1 : !quake.wire
 }
 
+func.func @ordinary_scope_transposed_swap_is_transparent() -> (!quake.wire, !quake.wire) {
+  %arg0 = quake.null_wire
+  %arg1 = quake.null_wire
+  %0:2 = quake.swap %arg0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %1:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %2:2 = quake.swap %0#1, %0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %2#0, %2#1 : !quake.wire, !quake.wire
+  }
+  return %1#0, %1#1 : !quake.wire, !quake.wire
+}
+
+func.func @ordinary_scope_unresolved_swap_is_preserved(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %0:2 = quake.swap %arg0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %1:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %2:2 = quake.swap %0#1, %0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %2#0, %2#1 : !quake.wire, !quake.wire
+  }
+  return %1#0, %1#1 : !quake.wire, !quake.wire
+}
+
 func.func @nested_atomic_scopes_block(%arg0: !quake.wire) -> !quake.wire {
   %0 = cc.scope -> (!quake.wire) {
     %1 = quake.h %arg0 : (!quake.wire) -> !quake.wire
@@ -55,7 +75,7 @@ func.func @nested_atomic_scopes_block(%arg0: !quake.wire) -> !quake.wire {
   return %0 : !quake.wire
 }
 
-func.func @disjoint_outside_pair_still_simplifies() -> (!quake.wire, !quake.wire) {
+func.func @marked_scope_preserves_disjoint_outside_pair() -> (!quake.wire, !quake.wire) {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.x %0 : (!quake.wire) -> !quake.wire
@@ -175,6 +195,26 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK:           return %[[SCOPE_0]] : !quake.wire
 // CHECK:         }
 
+// CHECK-LABEL:   func.func @ordinary_scope_transposed_swap_is_transparent() -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT:      %[[ARG0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[ARG1:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[SCOPE_0:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT:        cc.continue %[[ARG1]], %[[ARG0]] : !quake.wire, !quake.wire
+// CHECK-NEXT:      }
+// CHECK-NEXT:      return %[[SCOPE_0]]#0, %[[SCOPE_0]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT:    }
+
+// CHECK-LABEL:   func.func @ordinary_scope_unresolved_swap_is_preserved(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
+// CHECK:           %[[SWAP0:.*]]:2 = quake.swap %[[ARG0]], %[[ARG1]]
+// CHECK-NEXT:      %[[SCOPE:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT:        %[[SWAP1:.*]]:2 = quake.swap %[[SWAP0]]#1, %[[SWAP0]]#0
+// CHECK-NEXT:        cc.continue %[[SWAP1]]#0, %[[SWAP1]]#1
+// CHECK-NEXT:      }
+// CHECK-NEXT:      return %[[SCOPE]]#0, %[[SCOPE]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT:    }
+
 // CHECK-LABEL:   func.func @nested_atomic_scopes_block(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
 // CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
@@ -188,15 +228,17 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK:           return %[[SCOPE_0]] : !quake.wire
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @disjoint_outside_pair_still_simplifies() -> (!quake.wire, !quake.wire) {
-// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
-// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
-// CHECK:             %[[H_0:.*]] = quake.h %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
-// CHECK:             cc.continue %[[H_0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
-// CHECK:           return %[[NULL_WIRE_0]], %[[SCOPE_0]] : !quake.wire, !quake.wire
-// CHECK:         }
+// CHECK-LABEL:   func.func @marked_scope_preserves_disjoint_outside_pair() -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT:      %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[X_0:.*]] = quake.x %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:        %[[H_0:.*]] = quake.h %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:        cc.continue %[[H_0]] : !quake.wire
+// CHECK-NEXT:      } {atomic_quantum_region}
+// CHECK-NEXT:      %[[X_1:.*]] = quake.x %[[X_0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      return %[[X_1]], %[[SCOPE_0]] : !quake.wire, !quake.wire
+// CHECK-NEXT:    }
 
 // CHECK-LABEL:   func.func @conditional_region_stops_rewrite(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire,

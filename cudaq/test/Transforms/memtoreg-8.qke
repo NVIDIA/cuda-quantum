@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --canonicalize --memtoreg %s | FileCheck %s
+// RUN: cudaq-opt --canonicalize --memtoreg --canonicalize %s | FileCheck %s
 
 func.func @nested_concat_dynamic_alias(%index: i64) {
   %r0 = quake.alloca !quake.ref
@@ -34,17 +34,19 @@ func.func @nested_concat_dynamic_alias(%index: i64) {
 // CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]] : (!quake.ref, !quake.ref, !quake.ref) -> !quake.veq<3>
-// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<3>, i64) -> !quake.ref
-// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
-// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
-// CHECK:           quake.sink %[[UNWRAP_2]] : !quake.wire
-// CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
-// CHECK:           quake.sink %[[UNWRAP_3]] : !quake.wire
-// CHECK:           quake.sink %[[X_0]] : !quake.wire
+// CHECK-DAG:       %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<3>, i64) -> !quake.ref
+// CHECK-DAG:       %[[UNWRAP_3:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[H_0:.*]] = quake.h %[[UNWRAP_3]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK-DAG:       %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       quake.sink %[[UNWRAP_2]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[UNWRAP_1]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[X_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
 
 func.func @ai_failure_scenario_2(%arg0 : i64, %arg1 : i1) {
   %0 = quake.alloca !quake.ref
@@ -66,34 +68,30 @@ func.func @ai_failure_scenario_2(%arg0 : i64, %arg1 : i1) {
 // CHECK-LABEL:   func.func @ai_failure_scenario_2(
 // CHECK-SAME:      %[[ARG0:.*]]: i64, %[[ARG1:.*]]: i1) {
 // CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
-// CHECK:           quake.wrap %[[UNWRAP_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
-// CHECK:           quake.wrap %[[UNWRAP_1]] to %[[ALLOCA_1]] : !quake.wire, !quake.ref
-// CHECK:           quake.wrap %[[UNWRAP_2]] to %[[ALLOCA_2]] : !quake.wire, !quake.ref
 // CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]] : (!quake.ref, !quake.ref, !quake.ref) -> !quake.veq<3>
-// CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[IF_0:.*]] = cc.if(%[[ARG1]]) ((%[[VAL_0:.*]] = %[[UNWRAP_3]])) -> !quake.wire {
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[IF_0:.*]] = cc.if(%[[ARG1]]) ((%[[VAL_0:.*]] = %[[UNWRAP_0]])) -> !quake.wire {
 // CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<3>, i64) -> !quake.ref
-// CHECK:             %[[UNWRAP_4:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
-// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_4]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
 // CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
-// CHECK:             %[[UNWRAP_5:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_5]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[X_0]] : !quake.wire
 // CHECK:           } else {
 // CHECK:             cc.continue %[[VAL_1:.*]] : !quake.wire
 // CHECK:           }
 // CHECK:           quake.wrap %[[IF_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
-// CHECK:           %[[UNWRAP_6:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
-// CHECK:           quake.sink %[[UNWRAP_6]] : !quake.wire
-// CHECK:           %[[UNWRAP_7:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
-// CHECK:           quake.sink %[[UNWRAP_7]] : !quake.wire
-// CHECK:           %[[UNWRAP_8:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           quake.sink %[[UNWRAP_8]] : !quake.wire
+// CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_3]] : !quake.wire
+// CHECK:           %[[UNWRAP_4:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_4]] : !quake.wire
+// CHECK:           %[[UNWRAP_5:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_5]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
 
 func.func @init_state(%ar0: !cc.ptr<!quake.state>) {
     %c5_i64 = arith.constant 5 : i64

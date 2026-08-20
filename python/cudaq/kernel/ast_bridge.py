@@ -4104,7 +4104,10 @@ class PyASTBridge(ast.NodeVisitor):
                                     f'{otherFuncName} that returns a value',
                                     node)
                             invert_controls()
-                            quake.ApplyOp([], indirectCallee, controls, args,
+                            quake.ApplyOp([],
+                                          controls,
+                                          args,
+                                          indirect_callee=indirectCallee[0],
                                           **kwargs)
                             invert_controls()
                         return

@@ -24,7 +24,7 @@ func.func private @marked_feedback(%q: !quake.ref) attributes {atomic_quantum_re
 }
 
 func.func @marked_caller(%q: !quake.ref) {
-  quake.apply<adj> @marked_feedback %q : (!quake.ref) -> ()
+  quake.apply<adj> @marked_feedback (%q) : (!quake.ref) -> ()
   return
 }
 
@@ -40,7 +40,7 @@ func.func private @ordinary_feedback(%q: !quake.ref) {
 }
 
 func.func @ordinary_caller(%q: !quake.ref) {
-  quake.apply<adj> @ordinary_feedback %q : (!quake.ref) -> ()
+  quake.apply<adj> @ordinary_feedback (%q) : (!quake.ref) -> ()
   return
 }
 
@@ -56,7 +56,7 @@ func.func @ordinary_caller(%q: !quake.ref) {
 
 // CHECK-LABEL:   func.func @marked_caller(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) {
-// CHECK:           quake.apply<adj> @marked_feedback %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           quake.apply<adj> @marked_feedback (%[[ARG0]]) : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -72,6 +72,6 @@ func.func @ordinary_caller(%q: !quake.ref) {
 
 // CHECK-LABEL:   func.func @ordinary_caller(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) {
-// CHECK:           quake.apply<adj> @ordinary_feedback %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           quake.apply<adj> @ordinary_feedback (%[[ARG0]]) : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }

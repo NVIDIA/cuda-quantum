@@ -1678,7 +1678,9 @@ def cc_CallIndirectCallableOp :
   }];
 }
 
-def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
+def cc_InstantiateCallableOp : CCOp<"instantiate_callable",
+    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
+     DeclareOpInterfaceMethods<ConditionallySpeculatable>]> {
   let summary = "Construction of a callable object.";
   let description = [{
     An InstantiateCallableOp is created by the compiler when lifting a λ
@@ -1753,8 +1755,10 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
       "mlir::ValueRange":$closure_data), [{
       return build($_builder, $_state, signature, callee, closure_data,
         mlir::UnitAttr{});
-    }]> 
+    }]>
   ];
+
+  let hasVerifier = 1;
 
   let assemblyFormat = [{
     $callee `(` $closure_data `)` ( `nocapture` $no_capture^ )?
@@ -1829,6 +1833,7 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
   let assemblyFormat = [{
     $callable `:` functional-type(operands, results) attr-dict
   }];
+  let hasCanonicalizer = 1;
 }
 
 def cc_NoInlineCallOp : CCOp<"noinline_call",

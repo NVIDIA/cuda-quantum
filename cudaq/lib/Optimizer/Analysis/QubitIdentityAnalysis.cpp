@@ -9,6 +9,7 @@
 #include "QubitIdentityAnalysis.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <utility>
@@ -20,17 +21,42 @@ using QubitId = QubitIdentityAnalysis::QubitId;
 using BorrowKey = std::pair<Attribute, std::int32_t>;
 using QubitIdMap = llvm::DenseMap<Value, QubitId>;
 
-static void propagateQubitIds(QubitIdMap &qubitIds, Operation *operation) {
-  auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
-  if (!flow)
-    return;
-  for (auto [input, result] : llvm::zip(flow->inputs, flow->results)) {
+// Initial construction preserves every identity it can prove independently.
+// An unknown input leaves only its corresponding result unidentified.
+static void
+propagateKnownQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
+                       const cudaq::quake::detail::ScalarWireFlow &flow) {
+  for (auto [input, result] : llvm::zip(flow.inputs, flow.results)) {
     auto qubitId = qubitIds.find(input);
     if (qubitId != qubitIds.end()) {
       QubitId propagatedId = qubitId->second;
       qubitIds.try_emplace(result, propagatedId);
     }
   }
+}
+
+// Incremental maintenance requires every input identity because it cannot
+// revisit existing downstream users after a later lane becomes known. A full
+// block-order rebuild can propagate each independently known lane.
+static bool registerQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
+                             const cudaq::quake::detail::ScalarWireFlow &flow) {
+  llvm::SmallVector<QubitId> inputIds;
+  inputIds.reserve(flow.inputs.size());
+  for (Value input : flow.inputs) {
+    auto qubitId = qubitIds.find(input);
+    if (qubitId == qubitIds.end())
+      return false;
+    inputIds.push_back(qubitId->second);
+  }
+
+  for (auto [result, qubitId] : llvm::zip(flow.results, inputIds)) {
+    auto entry = qubitIds.find(result);
+    if (entry != qubitIds.end() && entry->second != qubitId)
+      return false;
+  }
+  for (auto [result, qubitId] : llvm::zip(flow.results, inputIds))
+    qubitIds.try_emplace(result, qubitId);
+  return true;
 }
 
 static void updateWrappedIdentity(QubitIdMap &qubitIds,
@@ -96,7 +122,8 @@ static void buildQubitIdMap(Block &block, QubitIdMap &qubitIds) {
       referenceQubitIds.clear();
       continue;
     }
-    propagateQubitIds(qubitIds, &operation);
+    if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
+      propagateKnownQubitIds(qubitIds, *flow);
   }
 }
 
@@ -110,4 +137,52 @@ QubitIdentityAnalysis::getQubitId(mlir::Value value) const {
   if (qubitId == qubitIds.end())
     return std::nullopt;
   return qubitId->second;
+}
+
+bool QubitIdentityAnalysis::haveSameOrderedQubitIdentities(
+    ValueRange lhs, ValueRange rhs) const {
+  if (lhs.size() != rhs.size())
+    return false;
+  for (auto [lhsValue, rhsValue] : llvm::zip(lhs, rhs)) {
+    auto lhsId = getQubitId(lhsValue);
+    auto rhsId = getQubitId(rhsValue);
+    if (!lhsId || !rhsId || lhsId != rhsId)
+      return false;
+  }
+  return true;
+}
+
+bool QubitIdentityAnalysis::registerOperation(Operation &operation) {
+  if (isa<CallOpInterface>(operation) || operation.getNumRegions() != 0 ||
+      !isMemoryEffectFree(&operation))
+    return false;
+
+  if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
+    return registerQubitIds(qubitIds, *flow);
+
+  bool hasQuantumValue =
+      llvm::any_of(operation.getOperandTypes(), cudaq::quake::isQuantumType) ||
+      llvm::any_of(operation.getResultTypes(), cudaq::quake::isQuantumType);
+  return !hasQuantumValue;
+}
+
+bool QubitIdentityAnalysis::replacementPreservesIdentities(
+    Operation &operation, ValueRange replacement) const {
+  if (operation.getNumResults() != replacement.size())
+    return false;
+  for (auto [result, replacementValue] :
+       llvm::zip(operation.getResults(), replacement)) {
+    if (!cudaq::quake::isQuantumType(result.getType()))
+      continue;
+    auto oldId = getQubitId(result);
+    auto replacementId = getQubitId(replacementValue);
+    if (!oldId || !replacementId || oldId != replacementId)
+      return false;
+  }
+  return true;
+}
+
+void QubitIdentityAnalysis::eraseOperation(Operation &operation) {
+  for (Value result : operation.getResults())
+    qubitIds.erase(result);
 }
