@@ -34,12 +34,15 @@ create_cudaq_unittest_check_target("OptimizerUnitTests" "optimizer-unit-tests")
 
 add_cudaq_unittest("AnalysisPassUnitTests" "analysis-passes"
     SOURCES
+        CommutationAnalysisTest.cpp
         UnitaryOpGroupingTest.cpp
     INCLUDES
+        ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Analysis
     LINKED_LIBS
         MLIRArithDialect
         MLIRFuncDialect
         MLIRIR
+        MLIRParser
         QuakeDialect
         CCDialect
         OptAnalysis
