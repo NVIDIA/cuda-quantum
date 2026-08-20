@@ -17,7 +17,7 @@ func.func private @phase_helper(%theta: f64, %anchor: !quake.ref) {
 
 func.func @phase_lifecycle(%theta: f64, %outer: !quake.ref,
                            %anchor: !quake.ref) {
-  quake.apply @phase_helper [%outer] %theta, %anchor
+  quake.apply @phase_helper [%outer] (%theta, %anchor)
       : (!quake.ref, f64, !quake.ref) -> ()
   return
 }
@@ -48,7 +48,7 @@ func.func private @negative_phase_helper(
 func.func @negative_phase_lifecycle(
     %theta: f64, %outer: !quake.ref, %inner: !quake.ref,
     %anchor: !quake.ref) {
-  quake.apply @negative_phase_helper [%outer] %theta, %inner, %anchor
+  quake.apply @negative_phase_helper [%outer] (%theta, %inner, %anchor)
       : (!quake.ref, f64, !quake.ref, !quake.ref) -> ()
   return
 }

@@ -10,6 +10,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "mlir/IR/ValueRange.h"
 #include <memory>
 #include <utility>
 
@@ -17,6 +18,13 @@ namespace mlir {
 class Block;
 class Operation;
 } // namespace mlir
+
+namespace cudaq::opt {
+class CommutationAwareRewriteMatcher;
+namespace detail {
+class CommutationAwareRewriteListener;
+}
+} // namespace cudaq::opt
 
 namespace cudaq::quake::detail {
 
@@ -139,8 +147,13 @@ struct CommutationResult {
 /// incoming wires are distinct. Operations reached only from those arguments
 /// therefore remain indeterminate.
 ///
-/// Any mutation of the block invalidates the analysis instance. The caller
-/// must discard it before querying the changed block.
+/// The commutation-aware rewrite driver clears cached relations after an
+/// accepted replacement or erasure. It discards and lazily rebuilds the whole
+/// analysis when identity preservation cannot be proven locally.
+///
+/// Direct mutation of the block invalidates the analysis instance. The
+/// commutation-aware rewrite driver observes `PatternRewriter` mutations and
+/// maintains or discards its private analysis instances as appropriate.
 class CommutationAnalysis {
 public:
   explicit CommutationAnalysis(mlir::Block &block);
@@ -156,11 +169,39 @@ public:
   bool canCommute(mlir::Operation *lhs, mlir::Operation *rhs);
 
 private:
+  using OperationPair = std::pair<mlir::Operation *, mlir::Operation *>;
+
+  /// Return true when every control and target role has a distinct known
+  /// analysis-local identity.
+  bool hasDistinctQuantumOperands(mlir::Operation *operation) const;
+  /// Return true when every value is a known scalar wire outside the
+  /// operation's quantum support.
+  bool hasDisjointQuantumSupport(mlir::Operation *operation,
+                                 mlir::ValueRange values) const;
+  /// Return true when both operations implement Quake OperatorInterface and
+  /// their ordered controls and targets have the same known analysis-local
+  /// identities.
+  bool haveSameOrderedQuantumOperands(mlir::Operation *lhs,
+                                      mlir::Operation *rhs) const;
+  /// Register a newly inserted scalar-wire operation only when every input
+  /// identity is known. A classical-only insertion succeeds without changing
+  /// identity state only when it is not call-like, owns no regions, and is
+  /// memory-effect-free. Return false for every other insertion.
+  bool registerIdentityPreservingOperation(mlir::Operation *operation);
+  /// Validate an identity-preserving replacement and clear cached relations.
+  bool prepareIdentityPreservingReplacement(mlir::Operation *operation,
+                                            mlir::ValueRange replacement);
+  /// Clear cached relations without changing proved qubit identities.
+  void clearCachedRelations();
+  /// Clear cached relations, then remove an operation's result identities.
+  void eraseOperation(mlir::Operation *operation);
+
   mlir::Block *block;
   std::unique_ptr<QubitIdentityAnalysis> qubitIdentity;
-  llvm::DenseMap<std::pair<mlir::Operation *, mlir::Operation *>,
-                 CommutationResult>
-      cache;
+  llvm::DenseMap<OperationPair, CommutationResult> cache;
+
+  friend class cudaq::opt::CommutationAwareRewriteMatcher;
+  friend class cudaq::opt::detail::CommutationAwareRewriteListener;
 };
 
 } // namespace cudaq::quake::detail

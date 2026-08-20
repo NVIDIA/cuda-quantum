@@ -10,3 +10,6 @@ include(HandleLLVMOptions)
 add_llvm_pass_plugin(CustomPassPlugin CustomPassPlugin.cpp)
 # Depends on QuakeDialect TableGen to use the generated `.h.inc` files.
 add_dependencies(CustomPassPlugin QuakeDialect)
+# Resolve CUDA-Q and MLIR symbols through the shared plugin boundary. Linking
+# static OptTransforms here would duplicate bundled compiler state in the DSO.
+target_link_libraries(CustomPassPlugin PRIVATE cudaqMLIR)

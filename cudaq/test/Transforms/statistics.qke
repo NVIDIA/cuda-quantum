@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --factor-quantum-alloc --dqe --quake-simplify --mlir-pass-statistics %s -o /dev/null >& %t && FileCheck %s < %t && FileCheck --check-prefix=SIMPLE %s < %t
+// RUN: cudaq-opt --factor-quantum-alloc --dqe --quake-simplify='rotations-to-clifford-t=true' --mlir-pass-statistics %s -o /dev/null >& %t && FileCheck %s < %t && FileCheck --check-prefix=SIMPLE %s < %t
 
-func.func @f1() {
+func.func @unused_wires() {
   %0 = quake.null_wire
   %1 = quake.null_wire
   quake.sink %1 : !quake.wire
@@ -16,7 +16,7 @@ func.func @f1() {
   return
 }
 
-func.func @f2() {
+func.func @unused_vector() {
   %0 = quake.alloca !quake.veq<123>
   quake.dealloc %0 : !quake.veq<123>
   return
@@ -26,7 +26,7 @@ func.func @f2() {
 // CHECK:  123 refs-eliminated
 // CHECK:  2 wires-eliminated
 
-func.func @f3() {
+func.func @inverse_x_pair() {
   %0 = quake.null_wire
   %1 = quake.x %0 : (!quake.wire) -> !quake.wire
   %2 = quake.x %1 : (!quake.wire) -> !quake.wire
@@ -34,7 +34,7 @@ func.func @f3() {
   return
 }
 
-func.func @f4() {
+func.func @zero_rx() {
   %0 = quake.null_wire
   %1 = arith.constant 0.0 : f64
   %2 = quake.rx (%1) %0 : (f64, !quake.wire) -> !quake.wire
@@ -42,7 +42,7 @@ func.func @f4() {
   return
 }
 
-func.func @f5() {
+func.func @combined_ry_pair() {
   %0 = quake.null_wire
   %1 = arith.constant 1.0 : f64
   %2 = quake.ry (%1) %0 : (f64, !quake.wire) -> !quake.wire
@@ -51,7 +51,7 @@ func.func @f5() {
   return
 }
 
-func.func @f5b() {
+func.func @inverse_t_pair() {
   %0 = quake.null_wire
   %1 = quake.t<adj> %0 : (!quake.wire) -> !quake.wire
   %2 = quake.t %1 : (!quake.wire) -> !quake.wire
@@ -59,7 +59,7 @@ func.func @f5b() {
   return
 }
 
-func.func @f6() {
+func.func @redundant_resets() {
   %0 = quake.null_wire
   %1 = quake.t<adj> %0 : (!quake.wire) -> !quake.wire
   %2 = quake.reset %1 : (!quake.wire) -> !quake.wire
@@ -69,7 +69,7 @@ func.func @f6() {
   return
 }
 
-func.func @f7() {
+func.func @noncommuting_t_x_reset() {
   %0 = quake.null_wire
   %1 = quake.t<adj> %0 : (!quake.wire) -> !quake.wire
   %2 = quake.x %1 : (!quake.wire) -> !quake.wire
@@ -78,7 +78,7 @@ func.func @f7() {
   return
 }
 
-func.func @f8() {
+func.func @double_t() {
   %0 = quake.null_wire
   %1 = quake.t %0 : (!quake.wire) -> !quake.wire
   %2 = quake.t %1 : (!quake.wire) -> !quake.wire
@@ -86,7 +86,7 @@ func.func @f8() {
   return
 }
 
-func.func @f9() {
+func.func @double_s() {
   %0 = quake.null_wire
   %1 = quake.s %0 : (!quake.wire) -> !quake.wire
   %2 = quake.s %1 : (!quake.wire) -> !quake.wire
@@ -94,7 +94,7 @@ func.func @f9() {
   return
 }
 
-func.func @f10() {
+func.func @reduce_ysx() {
   %0 = quake.null_wire
   %1 = quake.y %0 : (!quake.wire) -> !quake.wire
   %2 = quake.s %1 : (!quake.wire) -> !quake.wire
@@ -103,8 +103,17 @@ func.func @f10() {
   return
 }
 
+func.func @clifford_t_rotation() {
+  %wire = quake.null_wire
+  %angle = arith.constant 0.7853981633974483 : f64
+  %rotated = quake.r1 (%angle) %wire : (f64, !quake.wire) -> !quake.wire
+  quake.sink %rotated : !quake.wire
+  return
+}
+
 // SIMPLE-LABEL: QuakeSimplify
 // SIMPLE: 1 adjoint-eliminations
+// SIMPLE: 1 clifford-t-rotations
 // SIMPLE: 1 double-s-rewrites
 // SIMPLE: 1 double-t-rewrites
 // SIMPLE: 1 hermitian-eliminations

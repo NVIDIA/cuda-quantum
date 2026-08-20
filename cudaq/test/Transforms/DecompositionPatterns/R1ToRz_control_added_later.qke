@@ -21,8 +21,7 @@ func.func private @r1_helper(%theta: f64, %anchor: !quake.ref) {
 
 func.func @control_added_later(%theta: f64, %outer: !quake.ref,
                                %anchor: !quake.ref) {
-  quake.apply @r1_helper [%outer] %theta, %anchor
-      : (!quake.ref, f64, !quake.ref) -> ()
+  quake.apply @r1_helper [%outer] (%theta, %anchor) : (!quake.ref, f64, !quake.ref) -> ()
   return
 }
 

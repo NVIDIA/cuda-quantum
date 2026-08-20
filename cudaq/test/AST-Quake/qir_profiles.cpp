@@ -235,11 +235,11 @@ struct comprehensive {
 // FULL:         tail call void @__quantum__qis__t(ptr %[[VAL_8]])
 // FULL:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_5]], ptr %[[VAL_8]], ptr %[[VAL_1]])
 // FULL:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__t__ctl, ptr %[[VAL_1]], ptr %[[VAL_3]])
-// FULL:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_5]], ptr %[[VAL_8]], ptr %[[VAL_1]])
+// FULL-NOT:     @generalizedInvokeWithRotationsControlsTargets({{.*}}@__quantum__qis__x__ctl
 // FULL:         tail call void @__quantum__qis__s(ptr %[[VAL_6]])
 // FULL:         tail call void @__quantum__qis__s(ptr %[[VAL_7]])
 // FULL:         tail call void @__quantum__qis__s(ptr %[[VAL_8]])
-// FULL:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_5]], ptr %[[VAL_8]], ptr %[[VAL_1]])
+// FULL-NOT:     @generalizedInvokeWithRotationsControlsTargets({{.*}}@__quantum__qis__x__ctl
 // FULL:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__s__ctl, ptr %[[VAL_1]], ptr %[[VAL_3]])
 // FULL:         tail call void @__quantum__qis__rx(double 5.612300e+00, ptr %[[VAL_7]])
 // FULL:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 1, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__rx__ctl, double 5.612300e+00, ptr %[[VAL_1]], ptr %[[VAL_3]])
@@ -285,4 +285,3 @@ struct comprehensive {
 // FULL:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_8]])
 // FULL:         ret void
 // FULL:       }
-
