@@ -48,7 +48,8 @@ public:
         op.getCanonicalizationPatterns(patterns, ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
-                                         progress, unrollOnlyWireBlockingLoops);
+                                         progress, unrollOnlyWireBlockingLoops,
+                                         unrollOnlyIndexUseLoops);
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
@@ -73,6 +74,23 @@ public:
               "loop accesses quantum data by a dynamic index or slice and "
               "cannot be unrolled (trip count is not a compile-time constant); "
               "it can be neither kept in value semantics nor unrolled");
+          signalPassFailure();
+        }
+      });
+    } else if (unrollOnlyIndexUseLoops) {
+      // TODO: Should this check only be done when `signalFailure` is true?
+      // In this mode a loop that never reads its induction variable is meant
+      // to stay rolled. An index use loop that survived the unrolling above
+      // (e.g. a non-constant trip count) did not: its iterations are not
+      // identical, so leaving it rolled loses the per-iteration indices.
+      // Report each such loop.
+      op->walk([&](cudaq::cc::LoopOp loop) {
+        if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
+          return;
+        if (loopUsesInductionVariable(loop)) {
+          loop.emitOpError("loop uses its induction variable and cannot be "
+                           "unrolled (trip count is not a compile-time "
+                           "constant or exceeds the iteration threshold)");
           signalPassFailure();
         }
       });

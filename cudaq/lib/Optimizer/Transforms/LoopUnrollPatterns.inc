@@ -131,6 +131,28 @@ static bool loopHasParentDependentWireBlockingNestedLoop(
   return found;
 }
 
+/// Returns true if \p loop reads its induction variable anywhere other than
+/// the loop's own control flow. A loop that ignores its induction variable
+/// runs identical work on every iteration, so unrolling it only duplicates
+/// code. Forwarding the induction variable to the body terminator does not
+/// count as a use; anything else (including a use in a nested region) does.
+static bool loopUsesInductionVariable(cudaq::cc::LoopOp loop) {
+  auto components = cudaq::opt::getLoopComponents(loop);
+  if (!components)
+    return true;
+  Region &body = loop.getBodyRegion();
+  if (body.empty())
+    return false;
+  Block &entry = body.front();
+  if (components->induction >= entry.getNumArguments())
+    return false;
+  Value induction = entry.getArgument(components->induction);
+  auto *terminator = entry.getTerminator();
+  return llvm::any_of(induction.getUsers(), [&](Operation *user) {
+    return user != terminator;
+  });
+}
+
 static bool loopMustUnrollForWireConversion(cudaq::cc::LoopOp loop) {
   return loopBlocksWireConversion(loop) ||
          loopHasParentDependentWireBlockingNestedLoop(loop);
@@ -150,9 +172,11 @@ namespace {
 /// specific number of times, even if that number is only known at runtime.
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
   explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf, bool ab,
-                             unsigned &p, bool unrollOnlyWireBlocking = false)
+                             unsigned &p, bool unrollOnlyWireBlocking = false,
+                             bool unrollOnlyIndexUse = false)
       : OpRewritePattern(ctx), threshold(t), signalFailure(sf), allowBreak(ab),
-        progress(p), unrollOnlyWireBlockingLoops(unrollOnlyWireBlocking) {}
+        progress(p), unrollOnlyWireBlockingLoops(unrollOnlyWireBlocking),
+        unrollOnlyIndexUseLoops(unrollOnlyIndexUse) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
@@ -175,6 +199,17 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
                              /*emitWarning=*/false))
         return failure();
       if (!loopMustUnrollForWireConversion(loop))
+        return failure();
+    }
+    // Opt-in selective unrolling: only index use loops are unrolled. A loop
+    // that does not read its induction variable stays rolled, since every
+    // iteration would expand to the same code. As above, these skips are
+    // quiet; the final validation diagnoses any index use loop left rolled.
+    if (unrollOnlyIndexUseLoops) {
+      if (!loopCanBeUnrolled(loop, allowBreak, threshold,
+                             /*emitWarning=*/false))
+        return failure();
+      if (!loopUsesInductionVariable(loop))
         return failure();
     }
     if (!allowBreak && !cudaq::opt::isaCountedLoop(loop)) {
@@ -323,5 +358,6 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
   bool allowBreak;
   unsigned &progress;
   bool unrollOnlyWireBlockingLoops;
+  bool unrollOnlyIndexUseLoops;
 };
 } // namespace

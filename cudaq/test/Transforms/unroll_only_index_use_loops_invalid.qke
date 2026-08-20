@@ -1,0 +1,81 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-unroll=unroll-only-index-use-loops=true --verify-diagnostics %s
+
+// A loop that reads its induction variable but has a runtime trip count
+// (%arg0, a kernel argument) cannot be unrolled, and leaving it rolled loses
+// the per-iteration indices. With unroll-only-index-use-loops the pass rejects
+// it. `dyn_bound` indexes a qubit with the induction variable and
+// `dyn_bound_classical_use` reads it in a classical computation; both are
+// reported. `dyn_bound_no_use` has the same runtime trip count but ignores its
+// induction variable, so it is legitimately left rolled.
+
+func.func @dyn_bound(%arg0: i64) {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %0 = quake.alloca !quake.veq<4>
+  // expected-error@+1 {{loop uses its induction variable and cannot be unrolled (trip count is not a compile-time constant or exceeds the iteration threshold)}}
+  %1 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg1, %arg0 : i64
+    cc.condition %2(%arg1 : i64)
+  } do {
+  ^bb0(%arg1: i64):
+    %2 = quake.extract_ref %0[%arg1] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %2 : (!quake.ref) -> ()
+    cc.continue %arg1 : i64
+  } step {
+  ^bb0(%arg1: i64):
+    %2 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}
+
+func.func @dyn_bound_classical_use(%arg0: i64) {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %cst = arith.constant 5.000000e-01 : f64
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{loop uses its induction variable and cannot be unrolled (trip count is not a compile-time constant or exceeds the iteration threshold)}}
+  %1 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg1, %arg0 : i64
+    cc.condition %2(%arg1 : i64)
+  } do {
+  ^bb0(%arg1: i64):
+    %2 = arith.sitofp %arg1 : i64 to f64
+    %3 = arith.mulf %2, %cst : f64
+    quake.rz (%3) %0 : (f64, !quake.ref) -> ()
+    cc.continue %arg1 : i64
+  } step {
+  ^bb0(%arg1: i64):
+    %2 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}
+
+func.func @dyn_bound_no_use(%arg0: i64) {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg1, %arg0 : i64
+    cc.condition %2(%arg1 : i64)
+  } do {
+  ^bb0(%arg1: i64):
+    %2 = quake.extract_ref %0[0] : (!quake.veq<4>) -> !quake.ref
+    quake.h %2 : (!quake.ref) -> ()
+    cc.continue %arg1 : i64
+  } step {
+  ^bb0(%arg1: i64):
+    %2 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}

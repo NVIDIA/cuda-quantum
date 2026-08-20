@@ -1009,6 +1009,13 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     conversion but cannot be unrolled (e.g. a non-constant trip
     count) is a dead end and is reported as an error. This option defaults to
     false, leaving the pass behavior unchanged for all existing pipelines.
+
+    The unroll-only-index-use-loops option unrolls only index use loops:
+    loops whose induction variable is used in the loop body. A loop that
+    ignores its induction variable performs identical work on each iteration,
+    so leaving it rolled keeps the IR small. An index use loop that cannot be
+    unrolled (e.g. a non-constant trip count) is reported as an error. This
+    option also defaults to false.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
@@ -1026,7 +1033,12 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "bool", /*default=*/"false",
       "Unroll only loops that block wire conversion; keep counted loops "
       "whose quantum accesses can be represented with static wireset indices "
-      "rolled (and error on a blocking loop that cannot be unrolled).">
+      "rolled (and error on a blocking loop that cannot be unrolled).">,
+    Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
+      /*default=*/"false",
+      "Unroll only index use loops, i.e. loops whose induction variable is "
+      "used in the loop body; leave loops that merely repeat identical work "
+      "rolled.">
   ];
 }
 
