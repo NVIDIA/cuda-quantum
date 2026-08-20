@@ -1127,11 +1127,11 @@ demonstrates plugin registration and does not preserve circuit semantics.</p>
 <span class="cm"> * the terms of the Apache License 2.0 which accompanies this distribution.    *</span>
 <span class="cm"> ******************************************************************************/</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeDialect.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeOps.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Support/Plugin.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Rewrite/FrozenRewritePatternSet.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Transforms/DialectConversion.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Optimizer/Dialect/Quake/QuakeOps.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Support/Plugin.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"mlir/Rewrite/FrozenRewritePatternSet.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"mlir/Transforms/DialectConversion.h"</span>
 
 <span class="c1">// Here is an example MLIR Pass that one can write externally and</span>
 <span class="c1">// use via the cudaq-opt tool, with the --load-cudaq-plugin flag.</span>
@@ -1157,7 +1157,7 @@ demonstrates plugin registration and does not preserve circuit semantics.</p>
 <span class="k">public</span><span class="o">:</span>
 <span class="w">  </span><span class="n">MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID</span><span class="p">(</span><span class="n">CustomPassPlugin</span><span class="p">)</span>
 
-<span class="w">  </span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="w"> </span><span class="n">getArgument</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;cudaq-custom-pass&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="w"> </span><span class="n">getArgument</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">"cudaq-custom-pass"</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">runOnOperation</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">circuit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getOperation</span><span class="p">();</span>
@@ -1169,7 +1169,7 @@ demonstrates plugin registration and does not preserve circuit semantics.</p>
 <span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addLegalDialect</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">QuakeDialect</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addIllegalOp</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">applyPartialConversion</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">))))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">&quot;simple pass failed&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">"simple pass failed"</span><span class="p">);</span>
 <span class="w">      </span><span class="n">signalPassFailure</span><span class="p">();</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>

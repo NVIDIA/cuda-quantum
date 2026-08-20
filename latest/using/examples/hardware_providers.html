@@ -1112,17 +1112,17 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="c1"># NOTE: Amazon Braket credentials must be set before running this program.</span>
 <span class="c1"># Amazon Braket costs apply.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"braket"</span><span class="p">)</span>
 
 <span class="c1"># The default device is SV1, state vector simulator. Users may choose any of</span>
 <span class="c1"># the available devices by supplying its `ARN` with the `machine` parameter.</span>
 <span class="c1"># For example,</span>
 <span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;braket&quot;, machine=&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;)</span>
+<span class="c1"># cudaq.set_target("braket", machine="arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet")</span>
 <span class="c1"># ```</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute</span>
+<span class="c1"># Create the kernel we'd like to execute</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1161,7 +1161,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">// specifying its `ARN` with the `--braket-machine`, e.g.,</span>
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target braket --braket-machine \</span>
-<span class="c1">// &quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot; braket.cpp -o out.x</span>
+<span class="c1">// "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" braket.cpp -o out.x</span>
 <span class="c1">// ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials have been set prior to execution.</span>
@@ -1216,25 +1216,25 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="c1"># To use the Anyon target you will need to set up credentials in `~/.anyon_config`</span>
 <span class="c1"># The configuration file should contain your Anyon Technologies username and password:</span>
-<span class="c1"># credentials: {&quot;username&quot;:&quot;&lt;username&gt;&quot;,&quot;password&quot;:&quot;&lt;password&gt;&quot;}</span>
+<span class="c1"># credentials: {"username":"&lt;username&gt;","password":"&lt;password&gt;"}</span>
 
 <span class="c1"># Set the target to the default QPU</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;anyon&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"anyon"</span><span class="p">)</span>
 
 <span class="c1"># You can specify a specific machine via the machine parameter:</span>
 <span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;anyon&quot;, machine=&quot;telegraph-8q&quot;)</span>
+<span class="c1"># cudaq.set_target("anyon", machine="telegraph-8q")</span>
 <span class="c1"># ```</span>
 <span class="c1"># or for the larger system:</span>
 <span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;anyon&quot;, machine=&quot;berkeley-25q&quot;)</span>
+<span class="c1"># cudaq.set_target("anyon", machine="berkeley-25q")</span>
 <span class="c1"># ```</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute on Anyon.</span>
+<span class="c1"># Create the kernel we'd like to execute on Anyon.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">ghz</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Maximally entangled state between 5 qubits.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Maximally entangled state between 5 qubits."""</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
@@ -1247,22 +1247,22 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># Option A (recommended):</span>
 <span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
 <span class="c1"># classical code will be executed while the job is being handled</span>
-<span class="c1"># remotely on Anyon&#39;s superconducting QPU. This is ideal for</span>
+<span class="c1"># remotely on Anyon's superconducting QPU. This is ideal for</span>
 <span class="c1"># longer running jobs.</span>
 <span class="n">future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">ghz</span><span class="p">)</span>
 <span class="c1"># ... classical optimization code can run while job executes ...</span>
 
 <span class="c1"># Can write the future to file:</span>
-<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">future</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">outfile</span><span class="p">)</span>
 
 <span class="c1"># Then come back and read it in later.</span>
-<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
     <span class="n">restored_future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="n">infile</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 
 <span class="c1"># Get the results of the restored future.</span>
 <span class="n">async_counts</span> <span class="o">=</span> <span class="n">restored_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Asynchronous results:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Asynchronous results:"</span><span class="p">)</span>
 <span class="n">async_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
 <span class="c1"># Option B:</span>
@@ -1270,7 +1270,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># will be executed on Anyon and the calling thread will be blocked</span>
 <span class="c1"># until the results are returned.</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Synchronous results:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Synchronous results:"</span><span class="p">)</span>
 <span class="n">counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1280,7 +1280,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target anyon anyon.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
-<span class="c1">// This will submit the job to Anyon&#39;s default superconducting QPU.</span>
+<span class="c1">// This will submit the job to Anyon's default superconducting QPU.</span>
 <span class="c1">// You can specify a specific machine via the `--anyon-machine` flag:</span>
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target anyon --anyon-machine telegraph-8q anyon.cpp -o out.x &amp;&amp;</span>
@@ -1324,13 +1324,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">future</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
@@ -1359,10 +1359,10 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># for every execution call on your kernel.</span>
 <span class="c1"># To use different targets in the same file, you must update</span>
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"infleqtion"</span><span class="p">)</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute on Infleqtion.</span>
+<span class="c1"># Create the kernel we'd like to execute on Infleqtion.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1388,13 +1388,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># ```</span>
 <span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
-<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
 <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># We can later read the file content and retrieve the job</span>
 <span class="c1"># information and results.</span>
-<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
 <span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
 
 <span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -1422,7 +1422,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">// nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu</span>
 <span class="c1">// --infleqtion-method noise-sim infleqtion.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
-<span class="c1">// where &quot;noise-sim&quot; instructs Superstaq to perform a noisy emulation of the</span>
+<span class="c1">// where "noise-sim" instructs Superstaq to perform a noisy emulation of the</span>
 <span class="c1">// QPU. An ideal dry-run execution on the QPU may be performed by passing</span>
 <span class="c1">// `dry-run` to the `--infleqtion-method` flag, e.g.,</span>
 <span class="c1">// ```</span>
@@ -1457,13 +1457,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">future</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
@@ -1491,10 +1491,10 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># for every execution call on your kernel.</span>
 <span class="c1"># To use different targets in the same file, you must update</span>
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;ionq&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"ionq"</span><span class="p">)</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute on IonQ.</span>
+<span class="c1"># Create the kernel we'd like to execute on IonQ.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1522,13 +1522,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># ```</span>
 <span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
-<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
 <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># We can later read the file content and retrieve the job</span>
 <span class="c1"># information and results.</span>
-<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
 <span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
 
 <span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -1555,10 +1555,10 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">// nvq++ --target ionq --ionq-machine simulator --ionq-noise-model aria-1</span>
 <span class="c1">// ionq.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
-<span class="c1">// where we set the noise model to mimic the &#39;aria-1&#39; hardware device.</span>
+<span class="c1">// where we set the noise model to mimic the 'aria-1' hardware device.</span>
 <span class="c1">// Please refer to your IonQ Cloud dashboard for the list of simulator noise</span>
 <span class="c1">// models.</span>
-<span class="c1">// Note: `--ionq-machine simulator` is  optional since &#39;simulator&#39; is the</span>
+<span class="c1">// Note: `--ionq-machine simulator` is  optional since 'simulator' is the</span>
 <span class="c1">// default configuration if not provided. Assumes a valid set of credentials</span>
 <span class="c1">// have been stored.</span>
 
@@ -1586,13 +1586,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">future</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
@@ -1620,7 +1620,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># for every execution call on your kernel.</span>
 <span class="c1"># To use different targets in the same file, you must update</span>
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://localhost/&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"iqm"</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost/"</span><span class="p">)</span>
 
 <span class="c1"># Crystal_5 QPU architecture:</span>
 <span class="c1">#       QB1</span>
@@ -1630,7 +1630,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">#       QB5</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute on IQM.</span>
+<span class="c1"># Create the kernel we'd like to execute on IQM.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
@@ -1655,13 +1655,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># ```</span>
 <span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
-<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
 <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># We can later read the file content and retrieve the job</span>
 <span class="c1"># information and results.</span>
-<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
 <span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
 
 <span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -1705,7 +1705,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="w">    </span><span class="c1">// means that despite QB1 not being physically connected to QB2, the user</span>
 <span class="w">    </span><span class="c1">// can still perform joint operations q[0] and q[1] because the compiler</span>
 <span class="w">    </span><span class="c1">// will automatically (and transparently) inject the necessary swap</span>
-<span class="w">    </span><span class="c1">// instructions to execute the user&#39;s program without the user having to</span>
+<span class="w">    </span><span class="c1">// instructions to execute the user's program without the user having to</span>
 <span class="w">    </span><span class="c1">// worry about the physical constraints.</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
@@ -1722,13 +1722,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">future</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
@@ -1763,10 +1763,10 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># OQC_PASSWORD</span>
 <span class="c1"># To setup an account, contact oqc_qcaas_support@oxfordquantumcircuits.com</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;oqc&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"oqc"</span><span class="p">)</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute on OQC.</span>
+<span class="c1"># Create the kernel we'd like to execute on OQC.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1789,13 +1789,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># ```</span>
 <span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
-<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
 <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># We can later read the file content and retrieve the job</span>
 <span class="c1"># information and results.</span>
-<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
 <span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
 
 <span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -1847,13 +1847,13 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;future.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"future.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">future</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;future.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"future.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
@@ -1904,9 +1904,9 @@ parameters of the time bin interferometer.</p>
 
 <span class="c1"># To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL</span>
 <span class="c1"># environment variable or pass a URL.</span>
-<span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ORCA_ACCESS_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;http://localhost/sample&quot;</span><span class="p">)</span>
+<span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ORCA_ACCESS_URL"</span><span class="p">,</span> <span class="s2">"http://localhost/sample"</span><span class="p">)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">orca_url</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"orca"</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">orca_url</span><span class="p">)</span>
 
 <span class="c1"># A time-bin boson sampling experiment: An input state of 4 indistinguishable</span>
 <span class="c1"># photons mixed with 4 vacuum states across 8 time bins (modes) enter the</span>
@@ -1944,7 +1944,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1"># By using the synchronous `cudaq.orca.sample`, the execution of</span>
 <span class="c1"># any remaining classical code in the file will occur only</span>
 <span class="c1"># after the job has been returned from ORCA Server.</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Submitting to ORCA Server synchronously&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Submitting to ORCA Server synchronously"</span><span class="p">)</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
 
 <span class="c1"># If the system includes phase shifters, the phase shifter angles can be</span>
@@ -1962,7 +1962,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1"># classical code will be executed while the job is being handled</span>
 <span class="c1"># by Orca. This is ideal when submitting via a queue over</span>
 <span class="c1"># the cloud.</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Submitting to ORCA Server asynchronously&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Submitting to ORCA Server asynchronously"</span><span class="p">)</span>
 <span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">,</span>
                                         <span class="n">n_samples</span><span class="p">)</span>
 <span class="c1"># ... more classical code to run ...</span>
@@ -1973,14 +1973,14 @@ parameters of the time bin interferometer.</p>
 <span class="c1"># ```</span>
 <span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
-<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
 <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># We can later read the file content and retrieve the job</span>
 <span class="c1"># information and results.</span>
 <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>  <span class="c1"># wait for the job to be processed</span>
-<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
 <span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
 
 <span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -2048,7 +2048,7 @@ parameters of the time bin interferometer.</p>
 
 <span class="w">  </span><span class="c1">// Submit to ORCA synchronously (e.g., wait for the job result to be</span>
 <span class="w">  </span><span class="c1">// returned before proceeding with the rest of the execution).</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Submitting to ORCA Server synchronously&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Submitting to ORCA Server synchronously"</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">orca</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">n_samples</span><span class="p">);</span>
 
@@ -2065,19 +2065,19 @@ parameters of the time bin interferometer.</p>
 
 <span class="w">  </span><span class="c1">// Alternatively we can submit to ORCA asynchronously (e.g., continue</span>
 <span class="w">  </span><span class="c1">// executing code in the file until the job has been returned).</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Submitting to ORCA Server asynchronously&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Submitting to ORCA Server asynchronously"</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">async_results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">orca</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">,</span>
 <span class="w">                                                 </span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">n_samples</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">async_results</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">200</span><span class="n">ms</span><span class="p">);</span><span class="w"> </span><span class="c1">// wait for the job to be processed</span>
@@ -2103,18 +2103,18 @@ argument is supplied by QRMI at runtime.</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.operators</span><span class="w"> </span><span class="kn">import</span> <span class="n">RydbergHamiltonian</span><span class="p">,</span> <span class="n">ScalarOperator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Schedule</span>
 
-<span class="c1"># This example illustrates how to use Pasqal&#39;s EMU_MPS emulator over Pasqal&#39;s cloud via CUDA-Q.</span>
+<span class="c1"># This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.</span>
 <span class="c1"># It uses the direct `pasqal` target with Pasqal credentials.</span>
-<span class="c1"># For the QRMI-routed flow use a supported cluster and set `machine=&quot;qrmi&quot;`</span>
+<span class="c1"># For the QRMI-routed flow use a supported cluster and set `machine="qrmi"`</span>
 <span class="c1"># (see QRMI docs).</span>
 <span class="c1">#</span>
 <span class="c1"># To obtain the authentication token for the cloud  we recommend logging in with</span>
-<span class="c1"># Pasqal&#39;s Python SDK. See our documentation https://docs.pasqal.com/cloud/ for more.</span>
+<span class="c1"># Pasqal's Python SDK. See our documentation https://docs.pasqal.com/cloud/ for more.</span>
 <span class="c1">#</span>
 <span class="c1"># Contact Pasqal at help@pasqal.com or through https://community.pasqal.com for assistance.</span>
 <span class="c1">#</span>
 <span class="c1"># Visit the documentation portal, https://docs.pasqal.com/, to find further</span>
-<span class="c1"># documentation on Pasqal&#39;s devices, emulators and the cloud platform.</span>
+<span class="c1"># documentation on Pasqal's devices, emulators and the cloud platform.</span>
 <span class="c1">#</span>
 <span class="c1"># For more details on the EMU_MPS emulator see the documentation of the open-source</span>
 <span class="c1"># package: https://pasqal-io.github.io/emulators/latest/emu_mps/.</span>
@@ -2124,26 +2124,26 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1"># We recommend leaving the password empty in an interactive session as you will be</span>
 <span class="c1"># prompted to enter it securely via the command line interface.</span>
 <span class="n">sdk</span> <span class="o">=</span> <span class="n">SDK</span><span class="p">(</span>
-    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PASQAL_USERNAME&quot;</span><span class="p">),</span>
-    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PASQAL_PASSWORD&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"PASQAL_USERNAME"</span><span class="p">),</span>
+    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"PASQAL_PASSWORD"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
 <span class="p">)</span>
 
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PASQAL_AUTH_TOKEN&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">sdk</span><span class="o">.</span><span class="n">user_token</span><span class="p">())</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"PASQAL_AUTH_TOKEN"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">sdk</span><span class="o">.</span><span class="n">user_token</span><span class="p">())</span>
 
 <span class="c1"># It is also mandatory to specify the project against which the execution will be billed.</span>
 <span class="c1"># Uncomment this line to set it from Python, or export it as an environment variable</span>
 <span class="c1"># prior to execution. You can find your projects here: https://portal.pasqal.cloud/projects.</span>
 <span class="c1"># ```</span>
-<span class="c1"># os.environ[&#39;PASQAL_PROJECT_ID&#39;] = &#39;your project id&#39;</span>
+<span class="c1"># os.environ['PASQAL_PROJECT_ID'] = 'your project id'</span>
 <span class="c1"># ```</span>
 
 <span class="c1"># Set the target including specifying optional arguments like target machine</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;pasqal&quot;</span><span class="p">,</span>
-                 <span class="n">machine</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PASQAL_MACHINE_TARGET&quot;</span><span class="p">,</span> <span class="s2">&quot;EMU_MPS&quot;</span><span class="p">))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"pasqal"</span><span class="p">,</span>
+                 <span class="n">machine</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"PASQAL_MACHINE_TARGET"</span><span class="p">,</span> <span class="s2">"EMU_MPS"</span><span class="p">))</span>
 
 <span class="c1"># ```</span>
 <span class="c1">## To target QPU set FRESNEL as the machine, see our cloud portal for latest machine names</span>
-<span class="c1"># cudaq.set_target(&quot;pasqal&quot;, machine=&quot;FRESNEL&quot;)</span>
+<span class="c1"># cudaq.set_target("pasqal", machine="FRESNEL")</span>
 <span class="c1"># ```</span>
 
 <span class="c1"># Define the 2-dimensional atom arrangement</span>
@@ -2153,7 +2153,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="n">time_max</span> <span class="o">=</span> <span class="mf">0.000003</span>
 <span class="c1"># Times for the piece-wise linear waveforms</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span> <span class="o">-</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span><span class="p">]</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"t"</span><span class="p">])</span>
 <span class="c1"># Rabi frequencies at each step</span>
 <span class="n">omega_max</span> <span class="o">=</span> <span class="mi">1000000</span>
 <span class="n">delta_end</span> <span class="o">=</span> <span class="mi">1000000</span>
@@ -2176,7 +2176,7 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="c1">## Sample result</span>
 <span class="c1"># ```</span>
-<span class="c1"># {&#39;001&#39;: 16, &#39;010&#39;: 23, &#39;100&#39;: 19, &#39;000&#39;: 42}</span>
+<span class="c1"># {'001': 16, '010': 23, '100': 19, '000': 42}</span>
 <span class="c1"># ```</span>
 </pre></div>
 </div>
@@ -2202,8 +2202,8 @@ argument is supplied by QRMI at runtime.</p>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
 
-<span class="c1">// This example illustrates how to use `Pasqal&#39;s` EMU_MPS emulator over</span>
-<span class="c1">// `Pasqal&#39;s` cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through</span>
+<span class="c1">// This example illustrates how to use `Pasqal's` EMU_MPS emulator over</span>
+<span class="c1">// `Pasqal's` cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through</span>
 <span class="c1">// https://community.pasqal.com for assistance.</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -2223,14 +2223,14 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span>
 <span class="w">                                             </span><span class="n">time_max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">};</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">},</span><span class="w"> </span><span class="p">{});</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">"t"</span><span class="p">},</span><span class="w"> </span><span class="p">{});</span>
 
 <span class="w">  </span><span class="c1">// Basic Rydberg Hamiltonian</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">omega</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span>
 <span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span>
 <span class="w">       </span><span class="n">omega_max</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
 <span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">"t"</span><span class="p">));</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
 <span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">omega_max</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
 <span class="w">      </span><span class="p">});</span>
@@ -2241,7 +2241,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span>
 <span class="w">       </span><span class="n">delta_end</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
 <span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">"t"</span><span class="p">));</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
 <span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">delta_end</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
 <span class="w">      </span><span class="p">});</span>
@@ -2271,10 +2271,10 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1"># for every execution call on your kernel.</span>
 <span class="c1"># To use different targets in the same file, you must update</span>
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qbraid&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qbraid"</span><span class="p">)</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute on qBraid.</span>
+<span class="c1"># Create the kernel we'd like to execute on qBraid.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -2298,13 +2298,13 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1"># ```</span>
 <span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
-<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
 <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># We can later read the file content and retrieve the job</span>
 <span class="c1"># information and results.</span>
-<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
 <span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
 
 <span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -2350,13 +2350,13 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">future</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
@@ -2387,17 +2387,17 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1">## NOTE: It is mandatory to specify the Nexus project by name or ID.</span>
 <span class="c1"># Update and un-comment the line below.</span>
 <span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;quantinuum&quot;, project=&quot;nexus_project&quot;)</span>
+<span class="c1"># cudaq.set_target("quantinuum", project="nexus_project")</span>
 <span class="c1"># ```</span>
 <span class="c1"># Or use environment variable</span>
 <span class="c1"># ```</span>
-<span class="c1"># os.environ[&quot;QUANTINUUM_NEXUS_PROJECT&quot;] = &quot;nexus_project&quot;</span>
+<span class="c1"># os.environ["QUANTINUUM_NEXUS_PROJECT"] = "nexus_project"</span>
 <span class="c1"># ```</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">,</span>
-                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;QUANTINUUM_NEXUS_PROJECT&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"quantinuum"</span><span class="p">,</span>
+                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"QUANTINUUM_NEXUS_PROJECT"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute on Quantinuum.</span>
+<span class="c1"># Create the kernel we'd like to execute on Quantinuum.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -2405,7 +2405,7 @@ argument is supplied by QRMI at runtime.</p>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
-<span class="c1"># Submit to Quantinuum&#39;s endpoint and confirm the program is valid.</span>
+<span class="c1"># Submit to Quantinuum's endpoint and confirm the program is valid.</span>
 
 <span class="c1"># Option A:</span>
 <span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
@@ -2415,13 +2415,13 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1"># checker to confirm the validity of the program.</span>
 <span class="n">syntax_check</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="k">if</span> <span class="p">(</span><span class="n">syntax_check</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Syntax check passed! Kernel is ready for submission.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Syntax check passed! Kernel is ready for submission."</span><span class="p">)</span>
 
 <span class="c1"># Now we can update the target to the Quantinuum emulator and</span>
 <span class="c1"># execute our program.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">,</span>
-                 <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;H2-1E&quot;</span><span class="p">,</span>
-                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;QUANTINUUM_NEXUS_PROJECT&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"quantinuum"</span><span class="p">,</span>
+                 <span class="n">machine</span><span class="o">=</span><span class="s2">"H2-1E"</span><span class="p">,</span>
+                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"QUANTINUUM_NEXUS_PROJECT"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
 <span class="c1"># Option B:</span>
 <span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
@@ -2437,13 +2437,13 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1"># ```</span>
 <span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
-<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
 <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># We can later read the file content and retrieve the job</span>
 <span class="c1"># information and results.</span>
-<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"future.txt"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
 <span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
 
 <span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -2484,13 +2484,13 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">future</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">"saveMe.json"</span><span class="p">);</span>
 <span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
@@ -2517,12 +2517,12 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1"># Make sure to export or otherwise present your user token via the environment,</span>
 <span class="c1"># e.g., using export:</span>
 <span class="c1"># ```</span>
-<span class="c1"># export QCI_AUTH_TOKEN=&quot;your token here&quot;</span>
+<span class="c1"># export QCI_AUTH_TOKEN="your token here"</span>
 <span class="c1"># ```</span>
 <span class="c1">#</span>
-<span class="c1"># The example will run on QCI&#39;s AquSim simulator by default.</span>
+<span class="c1"># The example will run on QCI's AquSim simulator by default.</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qci&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qci"</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -2568,7 +2568,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1">// Make sure to export or otherwise present your user token via the environment,</span>
 <span class="c1">// e.g., using export:</span>
 <span class="c1">// ```</span>
-<span class="c1">// export QCI_AUTH_TOKEN=&quot;your token here&quot;</span>
+<span class="c1">// export QCI_AUTH_TOKEN="your token here"</span>
 <span class="c1">// ```</span>
 <span class="c1">//</span>
 <span class="c1">// Then run against the Seeker or AquSim with:</span>
@@ -2632,10 +2632,10 @@ argument is supplied by QRMI at runtime.</p>
 <span class="w">  </span><span class="c1">// `mz[0]` and `mz[1]` are Bell measurement outcomes, so each is ~50%.</span>
 <span class="w">  </span><span class="c1">// Probability of measuring`mz[2]` in 1 is determined by the prepared state,</span>
 <span class="w">  </span><span class="c1">// which is ~4.6% for the angles above.</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Results over &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">num_shots</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot; shots:</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Results over "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">num_shots</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" shots:</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">q</span><span class="p">)</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;  mz[&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;] = 1:  &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ones</span><span class="p">[</span><span class="n">q</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot; / &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">num_shots</span>
-<span class="w">              </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;  (&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mf">100.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">freq</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;%)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"  mz["</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"] = 1:  "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ones</span><span class="p">[</span><span class="n">q</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" / "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">num_shots</span>
+<span class="w">              </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"  ("</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mf">100.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">freq</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"%)</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -2654,10 +2654,10 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="c1"># The default executor is mock, use executor name to run on another backend (real or simulator).</span>
 <span class="c1"># Configure the address of the QOperator server in the `url` argument, and set the `api_key`.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantum_machines&quot;</span><span class="p">,</span>
-                 <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://host.docker.internal:8080&quot;</span><span class="p">,</span>
-                 <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
-                 <span class="n">executor</span><span class="o">=</span><span class="s2">&quot;mock&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"quantum_machines"</span><span class="p">,</span>
+                 <span class="n">url</span><span class="o">=</span><span class="s2">"http://host.docker.internal:8080"</span><span class="p">,</span>
+                 <span class="n">api_key</span><span class="o">=</span><span class="s2">"1234567890"</span><span class="p">,</span>
+                 <span class="n">executor</span><span class="o">=</span><span class="s2">"mock"</span><span class="p">)</span>
 
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>
 
@@ -2691,13 +2691,13 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1">// `--quantum-machines-executor`.</span>
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target quantum_machines --quantum-machines-url</span>
-<span class="c1">// &quot;https://iqcc.qoperator.qm.co&quot; \</span>
+<span class="c1">// "https://iqcc.qoperator.qm.co" \</span>
 <span class="c1">//  --quantum-machines-executor iqcc quantum_machines.cpp -o out.x</span>
 <span class="c1">// ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials have been set prior to execution.</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;math.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"math.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
 
@@ -2749,11 +2749,11 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1"># Credentials must be set before running this program.</span>
 <span class="c1"># Amazon Braket costs apply.</span>
 
-<span class="c1"># This example illustrates how to use QuEra&#39;s Aquila device on Braket with CUDA-Q.</span>
+<span class="c1"># This example illustrates how to use QuEra's Aquila device on Braket with CUDA-Q.</span>
 <span class="c1"># It is a CUDA-Q implementation of the getting started materials for Braket available here:</span>
 <span class="c1"># https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quera&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"quera"</span><span class="p">)</span>
 
 <span class="c1"># Define the 2-dimensional atom arrangement</span>
 <span class="n">a</span> <span class="o">=</span> <span class="mf">5.7e-6</span>
@@ -2775,7 +2775,7 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="c1"># Times for the piece-wise linear waveforms</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span> <span class="o">-</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span><span class="p">]</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"t"</span><span class="p">])</span>
 <span class="c1"># Rabi frequencies at each step</span>
 <span class="n">omega</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">omega_max</span>
                        <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span><span class="o">.</span><span class="n">real</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
@@ -2838,7 +2838,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1">// Credentials must be set before running this program.</span>
 <span class="c1">// Amazon Braket costs apply.</span>
 
-<span class="c1">// This example illustrates how to use QuEra&#39;s Aquila device on Braket with</span>
+<span class="c1">// This example illustrates how to use QuEra's Aquila device on Braket with</span>
 <span class="c1">// CUDA-Q. It is a CUDA-Q implementation of the getting started materials for</span>
 <span class="c1">// Braket available here:</span>
 <span class="c1">// https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html</span>
@@ -2870,14 +2870,14 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span>
 <span class="w">                                             </span><span class="n">time_max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">};</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">},</span><span class="w"> </span><span class="p">{});</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">"t"</span><span class="p">},</span><span class="w"> </span><span class="p">{});</span>
 
 <span class="w">  </span><span class="c1">// Basic Rydberg Hamiltonian</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">omega</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span>
 <span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span>
 <span class="w">       </span><span class="n">omega_max</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
 <span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">"t"</span><span class="p">));</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
 <span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">omega_max</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
 <span class="w">      </span><span class="p">});</span>
@@ -2888,7 +2888,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span>
 <span class="w">       </span><span class="n">delta_end</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
 <span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">"t"</span><span class="p">));</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
 <span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">delta_end</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
 <span class="w">      </span><span class="p">});</span>
@@ -2916,27 +2916,27 @@ argument is supplied by QRMI at runtime.</p>
 
 <span class="c1"># NOTE: Scaleway credentials must be set before running this program.</span>
 <span class="c1"># Scaleway costs apply.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;scaleway&quot;</span><span class="p">,</span> <span class="n">max_duration</span><span class="o">=</span><span class="s2">&quot;10m&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"scaleway"</span><span class="p">,</span> <span class="n">max_duration</span><span class="o">=</span><span class="s2">"10m"</span><span class="p">)</span>
 
 <span class="c1"># The default device is EMU-CUDAQ-H100, a state vector simulator running on an H100 GPU. Users may choose any of</span>
 <span class="c1"># the available devices by supplying its name with the `machine` parameter.</span>
 <span class="c1"># For example,</span>
 <span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;scaleway&quot;, machine=&quot;EMU-CUDAQ-H100&quot;)</span>
+<span class="c1"># cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100")</span>
 <span class="c1"># ```</span>
 <span class="c1"># To ensure we keep the same QPU session between runs, we can also specify the `deduplication_id` parameter.</span>
 <span class="c1"># For example,</span>
 <span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;scaleway&quot;, machine=&quot;EMU-CUDAQ-H100&quot;, deduplication_id=&quot;my_unique_id_1234&quot;)</span>
+<span class="c1"># cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100", deduplication_id="my_unique_id_1234")</span>
 <span class="c1"># ```</span>
 <span class="c1"># Users may also specify QPU session duration limits with the `max_duration` and `max_idle_duration` parameters.</span>
 <span class="c1"># For example,</span>
 <span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;scaleway&quot;, machine=&quot;EMU-CUDAQ-H100&quot;, max_duration=&quot;30m&quot;, max_idle_duration=&quot;5m&quot;)</span>
+<span class="c1"># cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100", max_duration="30m", max_idle_duration="5m")</span>
 <span class="c1"># ```</span>
 
 
-<span class="c1"># Create the kernel we&#39;d like to execute</span>
+<span class="c1"># Create the kernel we'd like to execute</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -2975,7 +2975,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1">// devices by specifying its name with the `--scaleway-machine`, e.g.,</span>
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target scaleway --scaleway-machine \</span>
-<span class="c1">// &quot;EMU-CUDAQ-H100&quot; scaleway.cpp -o out.x</span>
+<span class="c1">// "EMU-CUDAQ-H100" scaleway.cpp -o out.x</span>
 <span class="c1">// ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials have been set prior to execution.</span>
@@ -2983,7 +2983,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
 
-<span class="c1">// Define a simple quantum kernel to execute on Scaleway&#39;s QaaS.</span>
+<span class="c1">// Define a simple quantum kernel to execute on Scaleway's QaaS.</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
@@ -3027,9 +3027,9 @@ argument is supplied by QRMI at runtime.</p>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
 <span class="c1"># Set the target at the beginning of the program.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tii&quot;</span><span class="p">,</span>
-                 <span class="n">device</span><span class="o">=</span><span class="s2">&quot;tii-sim&quot;</span><span class="p">,</span>
-                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TII_PROJECT&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tii"</span><span class="p">,</span>
+                 <span class="n">device</span><span class="o">=</span><span class="s2">"tii-sim"</span><span class="p">,</span>
+                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"TII_PROJECT"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
 
 <span class="c1"># Create the kernel.</span>
@@ -3058,7 +3058,7 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1">//</span>
 <span class="c1">// The authentication key must be stored (or exported) as environment variable:</span>
 <span class="c1">// ```</span>
-<span class="c1">// export TII_API_TOKEN=&quot;your-tii-token&quot;</span>
+<span class="c1">// export TII_API_TOKEN="your-tii-token"</span>
 <span class="c1">// ```</span>
 <span class="c1">//</span>
 <span class="c1">// Compile and run with:</span>

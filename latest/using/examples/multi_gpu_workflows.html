@@ -1121,7 +1121,7 @@ involving multiple architectures working in tandem. This page will walk through 
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A function that will sample a variable sized GHZ state.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""A function that will sample a variable sized GHZ state."""</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz_state</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span>
@@ -1130,7 +1130,7 @@ involving multiple architectures working in tandem. This page will walk through 
 </pre></div>
 </div>
 <p>You can run a state vector simulation using your CPU with the <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> backend. This is helpful for debugging code and testing small circuits.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpu_result</span> <span class="o">=</span> <span class="n">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpu_result</span> <span class="o">=</span> <span class="n">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 <span class="n">cpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1139,7 +1139,7 @@ involving multiple architectures working in tandem. This page will walk through 
 </div>
 <p>As the number of qubits increases to even modest size, the CPU simulation will become impractically slow.  By switching to the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend, you can accelerate the same code on a single GPU and achieve a speedup of up to <strong>425x</strong>.  If you have a GPU available, this the default backend to ensure maximum productivity.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="n">gpu_result</span> <span class="o">=</span> <span class="n">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+    <span class="n">gpu_result</span> <span class="o">=</span> <span class="n">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">"nvidia"</span><span class="p">)</span>
     <span class="n">gpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1173,10 +1173,10 @@ solved this problem by pooling the memory of multiple GPUs across multiple nodes
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 
 <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This example requires a GPU to run. No GPU detected.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"This example requires a GPU to run. No GPU detected."</span><span class="p">)</span>
     <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">"mqpu"</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
 
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">15</span>
@@ -1232,11 +1232,11 @@ solved this problem by pooling the memory of multiple GPUs across multiple nodes
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This example requires a GPU to run. No GPU detected.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"This example requires a GPU to run. No GPU detected."</span><span class="p">)</span>
     <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">sample_count</span> <span class="o">=</span> <span class="mi">10000</span>
@@ -1275,14 +1275,14 @@ solved this problem by pooling the memory of multiple GPUs across multiple nodes
 </pre></div>
 </div>
 <p>This can be greatly accelerated by batching the circuits on multiple QPUs. The first step is to slice the large list of parameters unto smaller arrays. The example below divides by four, in preparation to run on four GPUs.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;There are&#39;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;parameter sets to execute&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">'There are'</span><span class="p">,</span> <span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">'parameter sets to execute'</span><span class="p">)</span>
 
 <span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
     <span class="n">parameters</span><span class="p">,</span>
     <span class="mi">4</span><span class="p">)</span>  <span class="c1"># Split the parameters into 4 arrays since 4 GPUs are available.</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Split parameters into&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xi</span><span class="p">),</span> <span class="s1">&#39;batches of&#39;</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span>
-      <span class="n">xi</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Split parameters into'</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xi</span><span class="p">),</span> <span class="s1">'batches of'</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">','</span><span class="p">,</span>
+      <span class="n">xi</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">','</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">','</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">There</span> <span class="n">are</span> <span class="n">now</span> <span class="mi">10000</span> <span class="n">parameter</span> <span class="n">sets</span> <span class="n">split</span> <span class="n">into</span> <span class="mi">4</span> <span class="n">batches</span> <span class="n">of</span> <span class="mi">2500</span> <span class="p">,</span> <span class="mi">2500</span> <span class="p">,</span> <span class="mi">2500</span> <span class="p">,</span> <span class="mi">2500</span>
@@ -1292,7 +1292,7 @@ solved this problem by pooling the memory of multiple GPUs across multiple nodes
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timing the execution on a single GPU vs 4 GPUs,</span>
 <span class="c1"># one will see a nearly 4x performance improvement if 4 GPUs are available.</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">"mqpu"</span><span class="p">)</span>
 <span class="n">asyncresults</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="n">num_gpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span>
 

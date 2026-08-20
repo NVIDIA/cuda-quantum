@@ -1143,11 +1143,11 @@ state vector.</p>
 <span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
 
 <span class="c1"># Single-node, single gpu</span>
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -1163,16 +1163,16 @@ state vector.</p>
 
 <span class="c1"># Generate the spin Hamiltonian</span>
 
-<span class="n">geometry</span> <span class="o">=</span> <span class="s1">&#39;H 0.0 0.0 0.0; H 0.0 0.0 0.7474&#39;</span>
-<span class="c1">#geometry = &#39;Li 0.3925 0.0 0.0; H -1.1774 0.0 0.0&#39;</span>
-<span class="c1">#geometry = &quot;qchem/H2O.xyz&quot;</span>
+<span class="n">geometry</span> <span class="o">=</span> <span class="s1">'H 0.0 0.0 0.0; H 0.0 0.0 0.7474'</span>
+<span class="c1">#geometry = 'Li 0.3925 0.0 0.0; H -1.1774 0.0 0.0'</span>
+<span class="c1">#geometry = "qchem/H2O.xyz"</span>
 
 
 <span class="c1"># Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;sto3g&#39;</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'sto3g'</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># For active space calculations, we can specify the number of active electrons and orbitals.</span>
-<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=geometry, spin=0, charge=0, basis=&#39;631g&#39;, nele_cas=4, norb_cas=4,</span>
+<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=geometry, spin=0, charge=0, basis='631g', nele_cas=4, norb_cas=4,</span>
 <span class="c1">#                                     ccsd=True, casci=True, verbose=True)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1191,7 +1191,7 @@ state vector.</p>
 <span class="n">e</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">spin_ham_matrix</span><span class="p">)</span>
 
 <span class="c1"># Find the ground state energy and the corresponding eigenvector</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ground state energy (classical simulation)= &#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="s1">&#39;, index= &#39;</span><span class="p">,</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Ground state energy (classical simulation)= '</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="s1">', index= '</span><span class="p">,</span>
       <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 <span class="n">min_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
@@ -1336,13 +1336,13 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 
     <span class="n">my_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">'I'</span><span class="p">:</span>
             <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">'X'</span><span class="p">:</span>
             <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;Y&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">'Y'</span><span class="p">:</span>
             <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">'Z'</span><span class="p">:</span>
             <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">my_list</span>
 </pre></div>
@@ -1384,7 +1384,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the identity operator</span>
-<span class="n">identity_op</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="o">.</span><span class="n">from_word</span><span class="p">(</span><span class="s1">&#39;I&#39;</span> <span class="o">*</span> <span class="n">qubits_num</span><span class="p">)</span>
+<span class="n">identity_op</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="o">.</span><span class="n">from_word</span><span class="p">(</span><span class="s1">'I'</span> <span class="o">*</span> <span class="n">qubits_num</span><span class="p">)</span>
 <span class="c1"># Get the Pauli word and convert it to a list of integers</span>
 <span class="c1"># where I=0, X=1, Y=2, Z=3</span>
 <span class="c1"># This is used to apply the identity operator in the kernel.</span>
@@ -1482,7 +1482,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
     <span class="k">for</span> <span class="n">sii</span> <span class="ow">in</span> <span class="n">s_diag</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-7</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;S may not be hermitian, large imag. eval component.&quot;</span><span class="p">)</span>
+                <span class="s2">"S may not be hermitian, large imag. eval component."</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">:</span>
             <span class="n">s_prime</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">))</span>
 
@@ -1506,7 +1506,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eigen_value</span><span class="p">,</span> <span class="n">eigen_vect</span> <span class="o">=</span> <span class="n">eig</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">],</span> <span class="n">wf_overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span>
                                                                       <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Energy from QFD:&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Energy from QFD:'</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">eigen_value</span><span class="p">))</span>
 </pre></div>
 </div>

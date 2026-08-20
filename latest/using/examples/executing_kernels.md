@@ -2364,7 +2364,7 @@ C++
       auto results = cudaq::run(10, bell_pair_with_data);
       int correlated_count = 0;
       for (auto i = 0; i < results.size(); ++i) {
-        printf("Shot %d: {%d, %d} total ones=%d\n", i, results[i].first_qubit,
+        printf("Shot %d: {%d, %d}  total ones=%d\n", i, results[i].first_qubit,
                results[i].last_qubit, results[i].total);
         if (results[i].first_qubit == results[i].last_qubit)
           correlated_count++;

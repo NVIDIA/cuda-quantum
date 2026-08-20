@@ -1190,12 +1190,12 @@ and the other predefined noise channels.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the detector error model. A noise model must be supplied for the</span>
-<span class="c1"># in-kernel `apply_noise` mechanisms to take effect. The result&#39;s `dem` member</span>
+<span class="c1"># in-kernel `apply_noise` mechanisms to take effect. The result's `dem` member</span>
 <span class="c1"># contains Stim `.dem` text; pass it to `stim.DetectorErrorModel(result.dem)`</span>
 <span class="c1"># to drive a decoder. Converting the result to a string also returns this text.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Memory experiment DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1207,7 +1207,7 @@ and the other predefined noise channels.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"Memory experiment DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
 </pre></div>
 </div>
 </div>
@@ -1377,8 +1377,8 @@ hyper-edge decomposes into (since <code class="docutils literal notranslate"><sp
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
     <span class="n">decompose_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Raw DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_raw</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_decomposed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Raw DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_raw</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Decomposed DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_decomposed</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1393,8 +1393,8 @@ argument (after the noise model):</p>
 <span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">decompose_errors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">opts</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Raw DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_raw</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"Raw DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">dem_raw</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"Decomposed DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
 </pre></div>
 </div>
 </div>
@@ -1451,10 +1451,10 @@ computation; both properties will then be <code class="docutils literal notransl
 <span class="c1"># m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means</span>
 <span class="c1"># measurement m contributes to detector d. m2o has shape</span>
 <span class="c1"># `(num_observables, num_measurements)` with the same convention for observables.</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d shape: </span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o shape: </span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2d shape: </span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2o shape: </span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2d:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2o:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1472,9 +1472,9 @@ observable, and <code class="docutils literal notranslate"><span class="pre">num
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2OSparseMatrix</span><span class="w"> </span><span class="n">m2o</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_mm</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2d: %zu detectors x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"m2d: %zu detectors x %zu measurements</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
 <span class="w">              </span><span class="n">m2d</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2o: %zu observables x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"m2o: %zu observables x %zu measurements</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
 <span class="w">              </span><span class="n">m2o</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// The measurement matrices can be combined with any DEM options by passing a</span>

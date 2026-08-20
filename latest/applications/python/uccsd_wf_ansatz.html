@@ -1120,11 +1120,11 @@ ground state energy for chemical systems.</p>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1136,15 +1136,15 @@ ground state energy for chemical systems.</p>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.classical_pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_mol_hamiltonian</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qchem.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span>
 
-<span class="c1">#geometry = &#39;H 0.0 0.0 0.0; H 0.0 0.0 0.7474&#39;</span>
-<span class="c1">#geometry = &#39;Li 0.3925 0.0 0.0; H -1.1774 0.0 0.0&#39;</span>
-<span class="n">geometry</span> <span class="o">=</span>  <span class="s1">&#39;Zn 0.0 0.0 00; O 0.0 0.0 1.7047&#39;</span>
+<span class="c1">#geometry = 'H 0.0 0.0 0.0; H 0.0 0.0 0.7474'</span>
+<span class="c1">#geometry = 'Li 0.3925 0.0 0.0; H -1.1774 0.0 0.0'</span>
+<span class="n">geometry</span> <span class="o">=</span>  <span class="s1">'Zn 0.0 0.0 00; O 0.0 0.0 1.7047'</span>
 
 <span class="c1"># When not using active space.</span>
-<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=geometry, spin=0, charge=0, basis=&#39;sto3g&#39;, ccsd=True, verbose=True)</span>
+<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=geometry, spin=0, charge=0, basis='sto3g', ccsd=True, verbose=True)</span>
 
 <span class="c1"># When using active space.</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;ccpvdz&#39;</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'ccpvdz'</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                                      <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1209,40 +1209,40 @@ number of gates dramatically leading to improvements in perfomance.</p>
 
 <span class="c1"># Get the number of parameters</span>
 <span class="n">singles</span><span class="p">,</span> <span class="n">doubles</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">uccsd_parameter_size</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">spin_mult</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of parameters: </span><span class="si">{</span><span class="n">singles</span><span class="si">}</span><span class="s2"> singles, </span><span class="si">{</span><span class="n">doubles</span><span class="si">}</span><span class="s2"> doubles, </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> total&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Number of parameters: </span><span class="si">{</span><span class="n">singles</span><span class="si">}</span><span class="s2"> singles, </span><span class="si">{</span><span class="n">doubles</span><span class="si">}</span><span class="s2"> doubles, </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> total"</span><span class="p">)</span>
 
 
 <span class="c1"># Get the UCCSD pool</span>
 <span class="k">if</span> <span class="ow">not</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
     <span class="n">word_single</span><span class="p">,</span> <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_single</span><span class="p">,</span> <span class="n">coef_double</span> <span class="o">=</span> <span class="n">get_uccsd_op</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span>
                                                                   <span class="n">spin_mult</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">only_singles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">only_doubles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_single: </span><span class="si">{</span><span class="n">word_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_double: </span><span class="si">{</span><span class="n">word_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_single: </span><span class="si">{</span><span class="n">coef_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_double: </span><span class="si">{</span><span class="n">coef_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"word_single: </span><span class="si">{</span><span class="n">word_single</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"word_double: </span><span class="si">{</span><span class="n">word_double</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"coef_single: </span><span class="si">{</span><span class="n">coef_single</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"coef_double: </span><span class="si">{</span><span class="n">coef_double</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="k">elif</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
     <span class="n">word_single</span><span class="p">,</span> <span class="n">coef_single</span> <span class="o">=</span> <span class="n">get_uccsd_op</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">spin_mult</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">only_singles</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">only_doubles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_single: </span><span class="si">{</span><span class="n">word_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_single: </span><span class="si">{</span><span class="n">coef_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"word_single: </span><span class="si">{</span><span class="n">word_single</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"coef_single: </span><span class="si">{</span><span class="n">coef_single</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="k">elif</span> <span class="n">only_doubles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_singles</span><span class="p">:</span>
     <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_double</span> <span class="o">=</span> <span class="n">get_uccsd_op</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">spin_mult</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">only_singles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">only_doubles</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_double: </span><span class="si">{</span><span class="n">word_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_double: </span><span class="si">{</span><span class="n">coef_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"word_double: </span><span class="si">{</span><span class="n">word_double</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"coef_double: </span><span class="si">{</span><span class="n">coef_double</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid option for only_singles and only_doubles&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Invalid option for only_singles and only_doubles"</span><span class="p">)</span>
 
 
 <span class="c1"># Get the UCCSD circuit (singles and doubles excitation are included)</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">uccsd_kernel</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
                  <span class="n">word_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">word_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">coef_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">coef_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    UCCSD kernel</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Prepare the statefrom qchem.uccsd import get_uccsd_op, uccsd_circuit, uccsd_parameter_size</span>
 
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
@@ -1259,9 +1259,9 @@ number of gates dramatically leading to improvements in perfomance.</p>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">uccsd_double_kernel</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
                 <span class="n">word_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">coef_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    UCCSD kernel</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Prepare the state</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
 
@@ -1276,9 +1276,9 @@ number of gates dramatically leading to improvements in perfomance.</p>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">uccsd_single_kernel</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
                 <span class="n">word_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">coef_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    UCCSD kernel</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Prepare the state</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
 
@@ -1322,7 +1322,7 @@ coef_double: [0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125,
 <span class="k">elif</span> <span class="n">only_doubles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_singles</span><span class="p">:</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">doubles</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid option for only_singles and only_doubles&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Invalid option for only_singles and only_doubles"</span><span class="p">)</span>
 
 <span class="c1">#print(cudaq.draw(kernel, qubits_num, electron_count, theta, word_single, word_double, coef_single, coef_double))</span>
 
@@ -1361,17 +1361,17 @@ coef_double: [0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125,
         <span class="n">energy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">uccsd_double_kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
                             <span class="n">theta</span><span class="p">,</span> <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid option for only_singles and only_doubles&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Invalid option for only_singles and only_doubles"</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">energy</span>
 
-<span class="c1">#result_vqe=minimize(cost, theta, method=&#39;L-BFGS-B&#39;, jac=&#39;2-point&#39;, tol=1e-7)</span>
-<span class="n">result_vqe</span><span class="o">=</span><span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="n">parameter_shift</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">)</span>
+<span class="c1">#result_vqe=minimize(cost, theta, method='L-BFGS-B', jac='2-point', tol=1e-7)</span>
+<span class="n">result_vqe</span><span class="o">=</span><span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'L-BFGS-B'</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="n">parameter_shift</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">)</span>
 
 <span class="n">total_energy</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span> <span class="o">+</span> <span class="n">const</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total energy: </span><span class="si">{</span><span class="n">total_energy</span><span class="si">:</span><span class="s2">.10f</span><span class="si">}</span><span class="s2"> Hartree&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total energy: </span><span class="si">{</span><span class="n">total_energy</span><span class="si">:</span><span class="s2">.10f</span><span class="si">}</span><span class="s2"> Hartree"</span><span class="p">)</span>
 <span class="c1"># Print the optimized parameters: first n are singles, then doubles.</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimized parameters: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"optimized parameters: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>

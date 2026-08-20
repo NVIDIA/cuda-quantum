@@ -1166,10 +1166,10 @@ for all functions intended to be called from CUDA-Q (see also
 <p>Create the corresponding header file <code class="code docutils literal notranslate"><span class="pre">my_proj.h</span></code> declaring the <code class="code docutils literal notranslate"><span class="pre">setFirstNElements</span></code>
 template. You can then call <code class="code docutils literal notranslate"><span class="pre">setFirstNElements</span></code> from within <code class="code docutils literal notranslate"><span class="pre">my_proj_quantum.cpp</span></code>
 by including <code class="code docutils literal notranslate"><span class="pre">my_proj.h</span></code>, for example</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cuComplex.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cuda_runtime.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;device_launch_parameters.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;my_proj.h&quot;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"cuComplex.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cuda_runtime.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"device_launch_parameters.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"my_proj.h"</span>
 
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">my_kernels</span><span class="p">;</span><span class="w"> </span><span class="c1">// the namespace where you defined setFirstNElements</span>
 
@@ -1191,7 +1191,7 @@ by including <code class="code docutils literal notranslate"><span class="pre">m
 </div>
 <p>To get an executable, compile the code with</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-c<span class="w"> </span>-std<span class="o">=</span>c++20<span class="w"> </span>-Xcompiler<span class="w"> </span>-fPIC<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
-nvq++<span class="w"> </span>my_proj_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-I<span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/include/&quot;</span><span class="w"> </span>-L<span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/lib64&quot;</span><span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
+nvq++<span class="w"> </span>my_proj_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-I<span class="s2">"</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/include/"</span><span class="w"> </span>-L<span class="s2">"</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/lib64"</span><span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
 </pre></div>
 </div>
 <p>Above, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> is used for the link step and will make sure the CUDA-Q

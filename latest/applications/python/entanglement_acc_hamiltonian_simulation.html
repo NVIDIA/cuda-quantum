@@ -1122,7 +1122,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1146,9 +1146,9 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_initial_state</span><span class="p">(</span><span class="n">n_spins</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    Create initial state |0000...&gt; for n_spins</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    '''</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n_spins</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1209,14 +1209,14 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">trotter_step_pf1</span> <span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_a</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
                       <span class="n">c_b</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">words_a</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">words_b</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    The following kernel performs one trotter step for a Hamiltonian, split into two non-commuting parts.</span>
 <span class="sd">    Each represented by:</span>
 <span class="sd">    c_a, c_b: List[complex]</span>
 <span class="sd">        a set of coefficients corresponding to the Pauli terms</span>
 <span class="sd">    words_a, words_b: List[complex]</span>
 <span class="sd">        a list of Pauli words specifying the operators</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    '''</span>
 
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 
@@ -1236,9 +1236,9 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="sd">&#39;&#39;&#39;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="sd">'''</span>
 <span class="sd">Here, we extract coefficients and words from Hamiltonian for decomposition.</span>
-<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">'''</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">extractCoefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">):</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">hamiltonian</span><span class="p">:</span>
@@ -1271,15 +1271,15 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">partial_trace</span> <span class="p">(</span><span class="n">psi</span><span class="p">:</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">keep</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    The following function computes the reduced density matrix for a pure state of an n-qubit system.</span>
 <span class="sd">    psi: cp.ndarray</span>
 <span class="sd">        The full statevector of the system</span>
 <span class="sd">    keep: List[int]</span>
-<span class="sd">        The list of qubit indices to &quot;keep&quot; (subsystem A). The rest of the qubits will be traced out (sybsystem B).</span>
+<span class="sd">        The list of qubit indices to "keep" (subsystem A). The rest of the qubits will be traced out (sybsystem B).</span>
 <span class="sd">    n_qubits: int</span>
 <span class="sd">        The number of qubits</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    '''</span>
     <span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span> <span class="o">/</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span>
 
     <span class="n">traced_out</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keep</span><span class="p">]</span>
@@ -1302,10 +1302,10 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="n">rho</span><span class="p">:</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    The following function calculates the entropy of a given density matrix:</span>
 <span class="sd">    rho: cp.ndarray</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    '''</span>
     <span class="n">eigvals</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
     <span class="n">eigvals</span> <span class="o">=</span> <span class="n">eigvals</span><span class="p">[</span><span class="n">eigvals</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">entropy</span> <span class="o">=</span> <span class="o">-</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">eigvals</span> <span class="o">*</span> <span class="n">cp</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">eigvals</span><span class="p">))</span>
@@ -1322,23 +1322,23 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">ideal_U</span> <span class="p">(</span><span class="n">H</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    This function constructs the exact unitary time-evolution operator U = exp(-i*H*dt), given</span>
 <span class="sd">        H: cudaq.SpinOperator</span>
 <span class="sd">            The Hamiltonian operator</span>
 <span class="sd">        dt: float</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    '''</span>
     <span class="n">Hm</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">expm</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">Hm</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">ideal_next_state</span><span class="p">(</span><span class="n">U</span><span class="p">:</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    The following function apply the exact unitary time-evolution operator U to the current state.</span>
 <span class="sd">        U: cp.ndarray</span>
 <span class="sd">            Unitary time-evolution operator</span>
 <span class="sd">        state: cp.ndarray</span>
 <span class="sd">            Current quantum state</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    '''</span>
     <span class="k">return</span> <span class="n">U</span> <span class="o">@</span> <span class="n">state</span>
 </pre></div>
 </div>
@@ -1409,7 +1409,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
         <span class="n">t_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">psi_ideal</span><span class="p">))</span>
 
     <span class="n">total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Simulation done in </span><span class="si">{</span><span class="n">total_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Simulation done in </span><span class="si">{</span><span class="n">total_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds"</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">out_list_ideal</span><span class="p">,</span> <span class="n">out_list_trotter</span>
 </pre></div>
@@ -1425,7 +1425,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Expect ~4 seconds on an NVIDIA A100 GPU (dense ideal evolution dominates runtime).</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 
 <span class="n">n</span> <span class="o">=</span> <span class="mi">12</span>  <span class="c1"># system size, number of qubits</span>
 <span class="n">r</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># number of PF1 Trotter steps</span>
@@ -1485,17 +1485,17 @@ Simulation done in 14.51 seconds
     <span class="p">[</span><span class="n">step</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">entropy_list</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
 <span class="p">]</span>
-<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;$S_</span><span class="si">{1}</span><span class="s2">$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$S_{1,2}$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$S_{1,2,3}$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$S_{1,2,3,4}$&quot;</span><span class="p">]</span>
-<span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:red&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">]</span>
+<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">"$S_</span><span class="si">{1}</span><span class="s2">$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$S_{1,2}$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$S_{1,2,3}$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$S_{1,2,3,4}$"</span><span class="p">]</span>
+<span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"tab:orange"</span><span class="p">,</span> <span class="s2">"tab:green"</span><span class="p">,</span> <span class="s2">"tab:red"</span><span class="p">,</span> <span class="s2">"tab:purple"</span><span class="p">]</span>
 
 <span class="n">fig</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
 <span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
 
 <span class="c1"># PF1 error trend (left axis)</span>
-<span class="n">err_line</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">tro_error</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;PF1 Trotter error&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Trotter error&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time $t$&quot;</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">)</span>
+<span class="n">err_line</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">tro_error</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"tab:blue"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"PF1 Trotter error"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Trotter error"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"tab:blue"</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Time $t$"</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="s2">"tab:blue"</span><span class="p">)</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
 
@@ -1505,16 +1505,16 @@ Simulation done in 14.51 seconds
     <span class="n">line</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">entropy_lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
 
-<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Subsystem entanglement entropy&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Subsystem entanglement entropy"</span><span class="p">)</span>
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">4.2</span><span class="p">)</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">"y"</span><span class="p">)</span>
 
 <span class="c1"># Combined legend</span>
 <span class="n">lines</span> <span class="o">=</span> <span class="n">err_line</span> <span class="o">+</span> <span class="n">entropy_lines</span>
 <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">get_label</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"upper right"</span><span class="p">)</span>
 
-<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;PF1 error decreases as entanglement spreads&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"PF1 error decreases as entanglement spreads"</span><span class="p">)</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 </pre></div>
 </div>

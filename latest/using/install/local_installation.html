@@ -1165,10 +1165,10 @@ please take a look at the section on <a class="reference internal" href="#docker
 follow the instructions for generating a new SSH key on <a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent">this page</a>.
 You can then launch the container and connect to it via SSH by executing the following commands:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -itd --gpus all --name cuda-quantum -p 2222:22 nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest</span>
-<span class="go">docker exec cuda-quantum bash -c &quot;sudo apt-get install -y --no-install-recommends openssh-server&quot;</span>
-<span class="go">docker exec cuda-quantum bash -c &quot;sudo sed -i -E &quot;s/#?\s*UsePAM\s+.+/UsePAM yes/g&quot; /etc/ssh/sshd_config&quot;</span>
+<span class="go">docker exec cuda-quantum bash -c "sudo apt-get install -y --no-install-recommends openssh-server"</span>
+<span class="go">docker exec cuda-quantum bash -c "sudo sed -i -E "s/#?\s*UsePAM\s+.+/UsePAM yes/g" /etc/ssh/sshd_config"</span>
 <span class="go">docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys</span>
-<span class="go">docker exec -d cuda-quantum bash -c &quot;sudo -E /usr/sbin/sshd -D&quot;</span>
+<span class="go">docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"</span>
 <span class="go">ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null</span>
 </pre></div>
 </div>
@@ -1196,12 +1196,12 @@ dependencies to use the python wheels.</p>
 </pre></div>
 </div>
 <p>With this new version of torch, you may see:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Module &#39;torch&#39; was found, but when imported by pytest it raised:</span>
-<span class="go">ImportError(&#39;/home/cudaq/.local/lib/python3.12/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12&#39;)</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Module 'torch' was found, but when imported by pytest it raised:</span>
+<span class="go">ImportError('/home/cudaq/.local/lib/python3.12/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12')</span>
 </pre></div>
 </div>
 <p>This may be caused by an incorrectly linked shared object. If you encounter this, try adding the shared object to the LD_LIBRARY_PATH:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export LD_LIBRARY_PATH=$(pip show nvidia-nvjitlink-cu12 | sed -nE &#39;s/Location: (.*)$/\1/p&#39;)/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export LD_LIBRARY_PATH=$(pip show nvidia-nvjitlink-cu12 | sed -nE 's/Location: (.*)$/\1/p')/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH</span>
 </pre></div>
 </div>
 </div>
@@ -1213,9 +1213,9 @@ If you do not already have Singularity installed, you can build a relocatable in
 To do so on Linux or WSL, make sure you have the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#prerequisites">necessary prerequisites</a> installed, download a suitable version of the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#install-go">go toolchain</a>, and make sure the <code class="code docutils literal notranslate"><span class="pre">go</span></code> binaries are on your <code class="code docutils literal notranslate"><span class="pre">PATH</span></code>. You can then build Singularity with the commands</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">wget https://github.com/sylabs/singularity/releases/download/v4.0.1/singularity-ce-4.0.1.tar.gz</span>
 <span class="go">tar -xzf singularity-ce-4.0.1.tar.gz singularity-ce-4.0.1/ &amp;&amp; rm singularity-ce-4.0.1.tar.gz &amp;&amp; cd singularity-ce-4.0.1/</span>
-<span class="go">./mconfig --without-suid --prefix=&quot;$HOME/.local/singularity&quot;</span>
+<span class="go">./mconfig --without-suid --prefix="$HOME/.local/singularity"</span>
 <span class="go">make -C ./builddir &amp;&amp; make -C ./builddir install &amp;&amp; cd .. &amp;&amp; rm -rf singularity-ce-4.0.1/</span>
-<span class="go">echo &#39;PATH=&quot;$PATH:$HOME/.local/singularity/bin/&quot;&#39; &gt;&gt; ~/.profile &amp;&amp; source ~/.profile</span>
+<span class="go">echo 'PATH="$PATH:$HOME/.local/singularity/bin/"' &gt;&gt; ~/.profile &amp;&amp; source ~/.profile</span>
 </pre></div>
 </div>
 <p>For more information about using Singularity on other systems, take a look at the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/admin-guide/installation.html#installation-on-windows-or-mac">admin guide</a>.</p>
@@ -1259,8 +1259,8 @@ working on WSL. To improve compatibility with older drivers, or to enable GPU su
 on WSL, please install the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA container toolkit</a>, and update the singularity configuration
 to set <code class="code docutils literal notranslate"><span class="pre">use</span> <span class="pre">nvidia-container-cli</span></code> to <code class="code docutils literal notranslate"><span class="pre">yes</span></code> and configure the correct <code class="code docutils literal notranslate"><span class="pre">nvidia-container-cli</span> <span class="pre">path</span></code>.
 The two commands below use <code class="code docutils literal notranslate"><span class="pre">sed</span></code> to do that:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sed -i &#39;s/use nvidia-container-cli = no/use nvidia-container-cli = yes/&#39; &quot;$HOME/.local/singularity/etc/singularity/singularity.conf&quot;</span>
-<span class="go">sed -i &#39;s/# nvidia-container-cli path =/nvidia-container-cli path = \/usr\/bin\/nvidia-container-cli/&#39; &quot;$HOME/.local/singularity/etc/singularity/singularity.conf&quot;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sed -i 's/use nvidia-container-cli = no/use nvidia-container-cli = yes/' "$HOME/.local/singularity/etc/singularity/singularity.conf"</span>
+<span class="go">sed -i 's/# nvidia-container-cli path =/nvidia-container-cli path = \/usr\/bin\/nvidia-container-cli/' "$HOME/.local/singularity/etc/singularity/singularity.conf"</span>
 </pre></div>
 </div>
 </div>
@@ -1352,7 +1352,7 @@ If you install MPI at a later point in time, you can activate the MPI support in
 Quantum by setting the <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> variable to its installation location and
 executing the commands</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">MPI_PATH=/usr/local/openmpi # update this path as needed</span>
-<span class="go">bash &quot;${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
+<span class="go">bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1416,7 +1416,7 @@ and enter the following commands to create a suitable sandbox:</p>
 <p>You can launch this sandbox by entering the commands below. Please see the <a class="reference internal" href="#singularity">Singularity</a> section above
 for more information about how to get the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum.sif</span></code> image, and how to enable GPU-acceleration
 with the <code class="code docutils literal notranslate"><span class="pre">--nv</span></code> flag.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">singularity run --writable --fakeroot --nv --network-args=&quot;portmap=22:2222/tcp&quot; cuda-quantum-sandbox</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">singularity run --writable --fakeroot --nv --network-args="portmap=22:2222/tcp" cuda-quantum-sandbox</span>
 <span class="go">/usr/sbin/sshd -D -p 2222 -E sshd_output.txt</span>
 </pre></div>
 </div>
@@ -1527,12 +1527,12 @@ of the remote host, titled <code class="code docutils literal notranslate"><span
 <p>You will need to edit a couple of VS Code setting to make use of the newly defined remote command;
 open the Command Palette, enter “Preferences: Open User Settings (JSON)”, and add or update the
 following configurations:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">&quot;remote.SSH.enableRemoteCommand&quot;: true,</span>
-<span class="go">&quot;remote.SSH.useLocalServer&quot;: true,</span>
-<span class="go">&quot;remote.SSH.remoteServerListenOnSocket&quot;: false,</span>
-<span class="go">&quot;remote.SSH.connectTimeout&quot;: 120,</span>
-<span class="go">&quot;remote.SSH.serverInstallPath&quot;: {</span>
-<span class="go">    &quot;cuda-quantum~remote-host&quot;: &quot;~/.vscode-container/cuda-quantum&quot;,</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">"remote.SSH.enableRemoteCommand": true,</span>
+<span class="go">"remote.SSH.useLocalServer": true,</span>
+<span class="go">"remote.SSH.remoteServerListenOnSocket": false,</span>
+<span class="go">"remote.SSH.connectTimeout": 120,</span>
+<span class="go">"remote.SSH.serverInstallPath": {</span>
+<span class="go">    "cuda-quantum~remote-host": "~/.vscode-container/cuda-quantum",</span>
 <span class="go">},</span>
 </pre></div>
 </div>
@@ -1586,7 +1586,7 @@ with the command</p>
 <span class="go">  --name Job-001 --total-runtime 60s \</span>
 <span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \</span>
 <span class="go">  --ace &lt;ace_name&gt; --instance &lt;instance_name&gt; \</span>
-<span class="go">  --commandline &#39;echo &quot;Hello from DGX Cloud!&quot;&#39;</span>
+<span class="go">  --commandline 'echo "Hello from DGX Cloud!"'</span>
 </pre></div>
 </div>
 <p>replacing <code class="code docutils literal notranslate"><span class="pre">&lt;ace_name&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">&lt;instance_name&gt;</span></code> with the name of the ace and instance you want
@@ -1614,7 +1614,7 @@ running on DGX Cloud:</p>
 <span class="go">  --name Job-interactive-001 --total-runtime 600s \</span>
 <span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \</span>
 <span class="go">  --ace &lt;ace_name&gt; --instance &lt;instance_name&gt; \</span>
-<span class="go">  --port 8888 --commandline &#39;jupyter-lab-setup &lt;my-custom-token&gt; --port=8888&#39;</span>
+<span class="go">  --port 8888 --commandline 'jupyter-lab-setup &lt;my-custom-token&gt; --port=8888'</span>
 </pre></div>
 </div>
 <p>Replace <code class="code docutils literal notranslate"><span class="pre">&lt;my-custom-token&gt;</span></code> in the command above with a custom token that you can freely choose.
@@ -1641,7 +1641,7 @@ or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</
 <span class="go">  --name Job-interactive-001 --total-runtime 600s \</span>
 <span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \</span>
 <span class="go">  --ace &lt;ace_name&gt; --instance &lt;instance_name&gt; \</span>
-<span class="go">  --commandline &#39;vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms&#39;</span>
+<span class="go">  --commandline 'vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms'</span>
 </pre></div>
 </div>
 <p>In the Base Command Platform web interface, navigate to your job (see
@@ -1702,7 +1702,7 @@ commands, for example, install the necessary packages for RHEL 8:</p>
 <span class="c1"># DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64</span>
 
 <span class="nv">version_suffix</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
-dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
+dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo"</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-nvrtc-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
@@ -1801,7 +1801,7 @@ of a CUDA-Q binary distribution will conflict with each other and not work prope
 <p>If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your
 current CUDA-Q installation before installing the new version using the installer.
 To uninstall your current CUDA-Q version, run the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sudo bash &quot;${CUDA_QUANTUM_PATH}/uninstall.sh&quot; -y</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sudo bash "${CUDA_QUANTUM_PATH}/uninstall.sh" -y</span>
 </pre></div>
 </div>
 <p>The <code class="code docutils literal notranslate"><span class="pre">uninstall.sh</span></code> script is generated during installation, and will remove all files

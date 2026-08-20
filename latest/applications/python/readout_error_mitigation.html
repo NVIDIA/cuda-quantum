@@ -1139,13 +1139,13 @@ adjusted quasi-probability distribution</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
 
-<span class="n">sns</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;dark&quot;</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">"dark"</span><span class="p">)</span>
 
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"density-matrix-cpu"</span><span class="p">)</span>
 
 <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span>
 
@@ -1161,7 +1161,7 @@ adjusted quasi-probability distribution</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_noise</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">probs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Creates a noise model with specified probabilities of bit flip errors on each qubit.</span>
 
 <span class="sd">    Args:</span>
@@ -1172,7 +1172,7 @@ adjusted quasi-probability distribution</p>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        cudaq noise model</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -1180,7 +1180,7 @@ adjusted quasi-probability distribution</p>
 
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">probs</span><span class="p">):</span>
         <span class="n">bit_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-        <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;rx&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bit_flip</span><span class="p">)</span>
+        <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">"rx"</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bit_flip</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">noise</span>
 </pre></div>
@@ -1237,12 +1237,12 @@ adjusted quasi-probability distribution</p>
     <span class="n">im2</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Reds</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">])</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">])</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Confusion Matrix&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Prepared State&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s2">&quot;top&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Measured State&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">[</span><span class="s2">""</span><span class="p">])</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">[</span><span class="s2">""</span><span class="p">])</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">"Confusion Matrix"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Prepared State"</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s2">"top"</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Measured State"</span><span class="p">)</span>
     <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im2</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
@@ -1257,7 +1257,7 @@ adjusted quasi-probability distribution</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">find_closest_distribution</span><span class="p">(</span><span class="n">empirical_dist</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Find the closest distribution to an empirical distribution by minimizing the L1 norm.</span>
 
 <span class="sd">    Args:</span>
@@ -1265,7 +1265,7 @@ adjusted quasi-probability distribution</p>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Closest distribution to `empirical_dist`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">empirical_dist</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -1273,12 +1273,12 @@ adjusted quasi-probability distribution</p>
     <span class="c1"># Constraint: all elements of p must be positive, and the distribution must sum to 1</span>
     <span class="n">cons</span> <span class="o">=</span> <span class="p">(</span>
         <span class="p">{</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ineq&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"ineq"</span><span class="p">,</span>
+            <span class="s2">"fun"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span>
         <span class="p">},</span>
         <span class="p">{</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;eq&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"eq"</span><span class="p">,</span>
+            <span class="s2">"fun"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="p">},</span>
     <span class="p">)</span>
     <span class="n">bnds</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">empirical_dist</span><span class="p">))]</span>
@@ -1287,8 +1287,8 @@ adjusted quasi-probability distribution</p>
     <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
         <span class="n">objective</span><span class="p">,</span>
         <span class="n">initial_value</span><span class="p">,</span>
-        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;SLSQP&quot;</span><span class="p">,</span>
-        <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;maxiter&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">},</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">"SLSQP"</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">"maxiter"</span><span class="p">:</span> <span class="mi">1000</span><span class="p">},</span>
         <span class="n">bounds</span><span class="o">=</span><span class="n">bnds</span><span class="p">,</span>
         <span class="n">constraints</span><span class="o">=</span><span class="n">cons</span><span class="p">,</span>
     <span class="p">)</span>
@@ -1302,7 +1302,7 @@ adjusted quasi-probability distribution</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dist</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Generates samples based on a given distribution and returns the counts of each sample value.</span>
 
 <span class="sd">    Args:</span>
@@ -1311,7 +1311,7 @@ adjusted quasi-probability distribution</p>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        An array of counts for each possible value in the distribution. The array has a length of 2^n_qubits.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_qubits</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">dist</span><span class="p">)</span>
     <span class="n">values</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
@@ -1329,7 +1329,7 @@ adjusted quasi-probability distribution</p>
 <span class="n">shots</span> <span class="o">=</span> <span class="mi">1024</span>
 
 <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">repeat</span><span class="o">=</span><span class="n">n_qubits</span><span class="p">)))</span>
-<span class="n">states</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">label</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">)),</span> <span class="n">labels</span><span class="p">))</span>
+<span class="n">states</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">label</span><span class="p">:</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">)),</span> <span class="n">labels</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1338,7 +1338,7 @@ adjusted quasi-probability distribution</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="mf">0.1</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bitflip probability: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bitflip probability: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">noise_1</span> <span class="o">=</span> <span class="n">get_noise</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
@@ -1385,7 +1385,7 @@ bitflip probability: 0.1
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_qubits</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bitflip probability: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bitflip probability: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">noise_2</span> <span class="o">=</span> <span class="n">get_noise</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
@@ -1443,7 +1443,7 @@ P(1|0) &amp; P(1|1)
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">single_qubit_labels</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-<span class="n">single_qubit_states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">]</span>  <span class="c1"># Used for dictionary keys</span>
+<span class="n">single_qubit_states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"0"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">]</span>  <span class="c1"># Used for dictionary keys</span>
 
 <span class="c1"># we use noise_1 which has same bitflip probability for all qubits</span>
 <span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
@@ -1453,7 +1453,7 @@ P(1|0) &amp; P(1|1)
 
 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">single_qubit_states</span><span class="p">):</span>
     <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1500,12 +1500,12 @@ P(1|0) &amp; P(1|1)
 <span class="n">A_pinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>  <span class="c1"># Generate pseudoinverse confusion matrix.</span>
 <span class="n">mitigated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_pinv</span><span class="p">,</span> <span class="n">noisy_res_1</span><span class="p">),</span>
                      <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>  <span class="c1"># Obtain mitigated counts</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
     <span class="n">positive_dist</span> <span class="o">=</span> <span class="n">find_closest_distribution</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span>
     <span class="n">mitigated</span> <span class="o">=</span> <span class="n">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">positive_dist</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1523,18 +1523,18 @@ Mitigated counts:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s2">&quot;states&quot;</span><span class="p">:</span> <span class="n">states</span><span class="p">,</span>
-    <span class="s2">&quot;noisy&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">noisy_res_1</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">noisy_res_1</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
-    <span class="s2">&quot;mitigated_sg&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"states"</span><span class="p">:</span> <span class="n">states</span><span class="p">,</span>
+    <span class="s2">"noisy"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">noisy_res_1</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">noisy_res_1</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"mitigated_sg"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
 <span class="p">})</span>
 
-<span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;states&quot;</span><span class="p">,</span>
-             <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_sg&quot;</span><span class="p">],</span>
-             <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">"states"</span><span class="p">,</span>
+             <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">"noisy"</span><span class="p">,</span> <span class="s2">"mitigated_sg"</span><span class="p">],</span>
+             <span class="n">kind</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span>
              <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_sg&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">"noisy"</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">"mitigated_sg"</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"probabilities"</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1557,7 +1557,7 @@ Mitigated counts:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">local_labels</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">]</span>
-<span class="n">local_states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">]</span>
+<span class="n">local_states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"0"</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="s2">"1"</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">]</span>
 
 <span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
@@ -1569,7 +1569,7 @@ Mitigated counts:
 
 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">local_states</span><span class="p">):</span>
     <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1647,12 +1647,12 @@ Mitigated counts:
 <span class="n">A_pinv</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">,</span> <span class="n">pinv_confusion_matrices</span><span class="p">)</span>
 
 <span class="n">mitigated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_pinv</span><span class="p">,</span> <span class="n">noisy_res_2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
     <span class="n">positive_dist</span> <span class="o">=</span> <span class="n">find_closest_distribution</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span>
     <span class="n">mitigated</span> <span class="o">=</span> <span class="n">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">positive_dist</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">A_joint</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">,</span> <span class="n">matrices</span><span class="p">)</span>
 <span class="n">plot_cmat</span><span class="p">(</span><span class="n">A_joint</span><span class="p">)</span>
@@ -1683,18 +1683,18 @@ Corrected for negative counts:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s2">&quot;states&quot;</span><span class="p">:</span> <span class="n">states</span><span class="p">,</span>
-    <span class="s2">&quot;noisy&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">noisy_res_2</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">noisy_res_2</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
-    <span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"states"</span><span class="p">:</span> <span class="n">states</span><span class="p">,</span>
+    <span class="s2">"noisy"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">noisy_res_2</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">noisy_res_2</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"mitigated_k_local"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
 <span class="p">})</span>
 
-<span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;states&quot;</span><span class="p">,</span>
-             <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">],</span>
-             <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">"states"</span><span class="p">,</span>
+             <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">"noisy"</span><span class="p">,</span> <span class="s2">"mitigated_k_local"</span><span class="p">],</span>
+             <span class="n">kind</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span>
              <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">"noisy"</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">"mitigated_k_local"</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"probabilities"</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1724,7 +1724,7 @@ Corrected for negative counts:
 
 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">states</span><span class="p">):</span>
     <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1796,12 +1796,12 @@ Corrected for negative counts:
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">A_pinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">A_full</span><span class="p">)</span>
 <span class="n">mitigated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_pinv</span><span class="p">,</span> <span class="n">noisy_res_2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
     <span class="n">positive_dist</span> <span class="o">=</span> <span class="n">find_closest_distribution</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span>
     <span class="n">mitigated</span> <span class="o">=</span> <span class="n">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">positive_dist</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1821,18 +1821,18 @@ Corrected for negative counts:
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_full&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="p">[</span><span class="s2">"mitigated_full"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
 
 <span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;states&quot;</span><span class="p">,</span>
-    <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_full&quot;</span><span class="p">],</span>
-    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">"states"</span><span class="p">,</span>
+    <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">"noisy"</span><span class="p">,</span> <span class="s2">"mitigated_k_local"</span><span class="p">,</span> <span class="s2">"mitigated_full"</span><span class="p">],</span>
+    <span class="n">kind</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span>
     <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
 <span class="p">)</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_full&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">"noisy"</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">"mitigated_k_local"</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">"mitigated_full"</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"probabilities"</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>

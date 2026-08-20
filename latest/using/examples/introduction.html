@@ -1112,14 +1112,14 @@
 <span class="c1"># program with.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    This is our first CUDA-Q kernel.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    '''</span>
     <span class="c1"># Next, we can allocate a single qubit to the kernel via `qubit()`.</span>
     <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 
     <span class="c1"># Now we can begin adding instructions to apply to this qubit!</span>
-    <span class="c1"># Here we&#39;ll just add every non-parameterized</span>
+    <span class="c1"># Here we'll just add every non-parameterized</span>
     <span class="c1"># single qubit gate that is supported by CUDA-Q.</span>
     <span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
@@ -1139,7 +1139,7 @@
 <span class="c1"># as a `cudaq.SampleResult` dictionary.</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 
-<span class="c1"># Now let&#39;s take a look at the `SampleResult` we&#39;ve gotten back!</span>
+<span class="c1"># Now let's take a look at the `SampleResult` we've gotten back!</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1181,7 +1181,7 @@ simple “Hello World” example, specifically a CUDA-Q kernel that prepares a G
 
 <span class="w">    </span><span class="c1">// Fine grain access to the bits and counts</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">counts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Observed: %s, %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
+<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">"Observed: %s, %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 

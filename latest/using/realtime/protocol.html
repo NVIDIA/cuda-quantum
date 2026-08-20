@@ -1124,7 +1124,7 @@ the wire format and encoding rules specified here apply universally.</p>
 </div>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">RPCHeader</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">magic</span><span class="p">;</span><span class="w">          </span><span class="c1">// RPC_MAGIC_REQUEST</span>
-<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">function_id</span><span class="p">;</span><span class="w">    </span><span class="c1">// fnv1a_hash(&quot;handler_name&quot;)</span>
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">function_id</span><span class="p">;</span><span class="w">    </span><span class="c1">// fnv1a_hash("handler_name")</span>
 <span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">arg_len</span><span class="p">;</span><span class="w">        </span><span class="c1">// payload bytes following this header</span>
 <span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">request_id</span><span class="p">;</span><span class="w">     </span><span class="c1">// caller-assigned ID, echoed in the response</span>
 <span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">ptp_timestamp</span><span class="p">;</span><span class="w">  </span><span class="c1">// PTP send timestamp (set by sender; 0 if unused)</span>

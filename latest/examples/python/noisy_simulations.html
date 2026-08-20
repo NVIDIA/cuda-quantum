@@ -1128,7 +1128,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1"># To model quantum noise, we need to utilize the density matrix simulator target.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"density-matrix-cpu"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1136,7 +1136,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Let&#39;s define a simple kernel that we will add noise to.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Let's define a simple kernel that we will add noise to.</span>
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
 
 
@@ -1218,9 +1218,9 @@ q1 : ┤ x ├
 <span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 
 <span class="c1"># Apply the depolarization channel to any X-gate on the 0th qubit.</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">depolarization_channel</span><span class="p">)</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">depolarization_channel</span><span class="p">)</span>
 <span class="c1"># Apply the bitflip channel to any X-gate on the 1st qubit.</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bitflip_channel</span><span class="p">)</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bitflip_channel</span><span class="p">)</span>
 
 <span class="c1"># Due to the impact of noise, our measurements will no longer be uniformly</span>
 <span class="c1"># in the |11&gt; state.</span>

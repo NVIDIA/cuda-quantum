@@ -1127,10 +1127,10 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">"mqpu"</span><span class="p">)</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
 <span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Number of QPUs:"</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1163,7 +1163,7 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 
 <span class="w">  </span><span class="c1">// Query the number of QPUs in the system</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">num_qpus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">platform</span><span class="p">.</span><span class="n">num_qpus</span><span class="p">();</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Number of QPUs: %zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Number of QPUs: %zu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// We will launch asynchronous sampling tasks</span>
 <span class="w">  </span><span class="c1">// and will store the results immediately as a future</span>
 <span class="w">  </span><span class="c1">// we can query at some later point</span>
@@ -1216,10 +1216,10 @@ QPU via the <code class="code docutils literal notranslate"><span class="pre">cu
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">"mqpu"</span><span class="p">)</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
 <span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Number of QPUs:"</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1253,7 +1253,7 @@ QPU via the <code class="code docutils literal notranslate"><span class="pre">cu
 
 <span class="w">  </span><span class="c1">// Query the number of QPUs in the system</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">num_qpus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">platform</span><span class="p">.</span><span class="n">num_qpus</span><span class="p">();</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Number of QPUs: %zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Number of QPUs: %zu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// We will launch asynchronous tasks</span>
 <span class="w">  </span><span class="c1">// and will store the results immediately as a future</span>
 <span class="w">  </span><span class="c1">// we can query at some later point</span>
@@ -1303,7 +1303,7 @@ should be used.</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">"mqpu"</span><span class="p">)</span>
 
 
 <span class="c1"># Define spin ansatz.</span>
@@ -1322,7 +1322,7 @@ should be used.</p>
 <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="mf">0.59</span><span class="p">,</span>
                         <span class="n">execution</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">mpi</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Expectation value: &quot;</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Expectation value: "</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
 </pre></div>
@@ -1347,7 +1347,7 @@ should be used.</p>
 
 <span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">parallel</span><span class="o">::</span><span class="n">mpi</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="mf">0.59</span><span class="p">);</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">rank</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Expectation value: %lf</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Expectation value: %lf</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">finalize</span><span class="p">();</span>
 </pre></div>
 </div>
@@ -1412,7 +1412,7 @@ simulation).</p>
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
     <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
@@ -1430,7 +1430,7 @@ simulation).</p>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">qpu_id</span><span class="p">)</span>
 
 <span class="c1"># Select the target and pass the sub-communicator for this QPU group.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">qpu_comm</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tensornet"</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">qpu_comm</span><span class="p">)</span>
 
 <span class="c1"># Run an independent circuit on each QPU group.</span>
 <span class="c1"># The `tensornet` backend can handle a large number of qubits via multi-GPU</span>
@@ -1439,7 +1439,7 @@ simulation).</p>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="n">world_rank</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;QPU </span><span class="si">{</span><span class="n">qpu_id</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2"> qubits):&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"QPU </span><span class="si">{</span><span class="n">qpu_id</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2"> qubits):"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
@@ -1473,7 +1473,7 @@ simulation).</p>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_size</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
-<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
+<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">finalize</span><span class="p">();</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
@@ -1502,7 +1502,7 @@ simulation).</p>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">,</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">);</span>
 
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;QPU %d (%d qubits):</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">,</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"QPU %d (%d qubits):</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">,</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">);</span>
 <span class="w">    </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 <span class="w">  </span><span class="p">}</span>
 
@@ -1546,7 +1546,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">mpi_comm_handle</span><span class="p">(</span><span class="n">comm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a pointer to the MPI_Comm handle as an integer.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return a pointer to the MPI_Comm handle as an integer."""</span>
     <span class="k">return</span> <span class="n">MPI</span><span class="o">.</span><span class="n">_addressof</span><span class="p">(</span><span class="n">comm</span><span class="p">)</span>
 
 
@@ -1558,7 +1558,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
               <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
@@ -1576,7 +1576,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">world_rank</span><span class="p">)</span>
 
 <span class="c1"># Pass the sub-communicator handle to CUDA-Q when selecting the target.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">mpi_comm_handle</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tensornet"</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">mpi_comm_handle</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">))</span>
 
 <span class="c1"># Run an independent circuit on each QPU group.</span>
 <span class="c1"># The `tensornet` backend can handle a large number of qubits via multi-GPU</span>
@@ -1585,7 +1585,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="n">qpu_comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;QPU </span><span class="si">{</span><span class="n">qpu_id</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2"> qubits):&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"QPU </span><span class="si">{</span><span class="n">qpu_id</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2"> qubits):"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 <span class="c1"># [End Documentation]</span>
 </pre></div>
@@ -1620,7 +1620,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_size</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
-<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
+<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
 <span class="w">    </span><span class="n">MPI_Finalize</span><span class="p">();</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
@@ -1652,7 +1652,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">qpu_rank</span><span class="p">;</span>
 <span class="w">  </span><span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">qpu_rank</span><span class="p">);</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">qpu_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;QPU %d (%d qubits):</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">,</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"QPU %d (%d qubits):</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">,</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">);</span>
 <span class="w">    </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 <span class="w">  </span><span class="p">}</span>
 
@@ -1727,11 +1727,11 @@ gathered gradient back to the optimizer at each iteration.</p>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">ansatz</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">theta1</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dummy ansatz for demonstration: replace with your VQE circuit.</span>
+<span class="w">    </span><span class="sd">"""Dummy ansatz for demonstration: replace with your VQE circuit.</span>
 <span class="sd">    Ry(theta0) on even qubits, Ry(theta1) on odd qubits — product state,</span>
 <span class="sd">    no entanglement. With H = sum_i Z(i) this gives an analytically</span>
 <span class="sd">    verifiable gradient: grad[k] = -n/2 * sin(theta_k).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1748,7 +1748,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
     <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
@@ -1774,7 +1774,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">qpu_id</span><span class="p">)</span>
 
 <span class="c1"># Each QPU group uses `ranks_per_qpu` GPUs for every cudaq.observe() call.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">qpu_comm</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tensornet"</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">qpu_comm</span><span class="p">)</span>
 
 <span class="c1"># Dummy Hamiltonian (sum of Z on all qubits) for demonstration:</span>
 <span class="c1"># replace with your physical Hamiltonian, e.g. generated from PySCF.</span>
@@ -1809,7 +1809,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 
 <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
     <span class="n">gradient</span> <span class="o">=</span> <span class="p">[</span><span class="n">all_grads</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">ranks_per_qpu</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qpus</span><span class="p">)]</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Gradient: </span><span class="si">{</span><span class="n">gradient</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Gradient: </span><span class="si">{</span><span class="n">gradient</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
 </pre></div>
@@ -1829,11 +1829,11 @@ gathered gradient back to the optimizer at each iteration.</p>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">ansatz</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">theta1</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dummy ansatz for demonstration: replace with your VQE circuit.</span>
+<span class="w">    </span><span class="sd">"""Dummy ansatz for demonstration: replace with your VQE circuit.</span>
 <span class="sd">    Ry(theta0) on even qubits, Ry(theta1) on odd qubits — product state,</span>
 <span class="sd">    no entanglement. With H = sum_i Z(i) this gives an analytically</span>
 <span class="sd">    verifiable gradient: grad[k] = -n/2 * sin(theta_k).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1843,7 +1843,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">mpi_comm_handle</span><span class="p">(</span><span class="n">comm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a pointer to the MPI_Comm handle as an integer.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return a pointer to the MPI_Comm handle as an integer."""</span>
     <span class="k">return</span> <span class="n">MPI</span><span class="o">.</span><span class="n">_addressof</span><span class="p">(</span><span class="n">comm</span><span class="p">)</span>
 
 
@@ -1854,7 +1854,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"World size must be a multiple of </span><span class="si">{</span><span class="n">ranks_per_qpu</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
               <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
@@ -1880,7 +1880,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">world_rank</span><span class="p">)</span>
 
 <span class="c1"># Each QPU group uses `ranks_per_qpu` GPUs for every cudaq.observe() call.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">mpi_comm_handle</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tensornet"</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">mpi_comm_handle</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">))</span>
 
 <span class="c1"># Dummy Hamiltonian (sum of Z on all qubits) for demonstration:</span>
 <span class="c1"># replace with your physical Hamiltonian, e.g. generated from PySCF.</span>
@@ -1915,7 +1915,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 
 <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
     <span class="n">gradient</span> <span class="o">=</span> <span class="p">[</span><span class="n">all_grads</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">ranks_per_qpu</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qpus</span><span class="p">)]</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Gradient: </span><span class="si">{</span><span class="n">gradient</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Gradient: </span><span class="si">{</span><span class="n">gradient</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">qpu_comm</span><span class="o">.</span><span class="n">Free</span><span class="p">()</span>
 </pre></div>
@@ -1954,7 +1954,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_size</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
-<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
+<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">finalize</span><span class="p">();</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
@@ -2016,10 +2016,10 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">all_gather</span><span class="p">(</span><span class="n">all_grads</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">{</span><span class="n">local_grad</span><span class="p">});</span>
 
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Gradient: [&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Gradient: ["</span><span class="p">);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
-<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s%.6f&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot;, &quot;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">all_grads</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">]);</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;]</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">"%s%.6f"</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">", "</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="n">all_grads</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">finalize</span><span class="p">();</span>
@@ -2064,7 +2064,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_size</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
-<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
+<span class="w">      </span><span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"World size must be a multiple of %d.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">);</span>
 <span class="w">    </span><span class="n">MPI_Finalize</span><span class="p">();</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
@@ -2128,10 +2128,10 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">                </span><span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
 
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Gradient: [&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Gradient: ["</span><span class="p">);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
-<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s%.6f&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot;, &quot;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">all_grads</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">]);</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;]</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">"%s%.6f"</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">", "</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="n">all_grads</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="n">MPI_Comm_free</span><span class="p">(</span><span class="o">&amp;</span><span class="n">qpu_comm</span><span class="p">);</span>

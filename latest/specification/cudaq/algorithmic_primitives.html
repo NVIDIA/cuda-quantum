@@ -1160,7 +1160,7 @@ extract the result information in the following manner:</p>
 
 <span class="c1">// Fine-grained access to the bits and counts</span>
 <span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="p">[</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">counts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Observed: %s, %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Observed: %s, %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -1178,7 +1178,7 @@ extract the result information in the following manner:</p>
 
 <span class="c1"># Fine-grained access to the bits and counts</span>
 <span class="k">for</span> <span class="n">bits</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Observed: </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bits</span><span class="p">,</span> <span class="n">count</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'Observed: </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bits</span><span class="p">,</span> <span class="n">count</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1186,7 +1186,7 @@ extract the result information in the following manner:</p>
 <p><strong>[6]</strong> CUDA-Q specifies the following structure for <code class="code docutils literal notranslate"><span class="pre">cudaq::sample_result</span></code>:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">CountsDictionary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">;</span>
-<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GlobalRegisterName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;__global__&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GlobalRegisterName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"__global__"</span><span class="p">;</span>
 <span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">sample_result</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">public</span><span class="o">:</span>
 <span class="w">      </span><span class="n">sample_result</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
@@ -1241,11 +1241,11 @@ To illustrate this, observe</p>
 <span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="p">};</span>
 
-<span class="n">printf</span><span class="p">(</span><span class="s">&quot;Default - no explicit measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"Default - no explicit measurements</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">).</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="n">cudaq</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">options</span><span class="p">{.</span><span class="n">explicit_measurements</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">};</span>
-<span class="n">printf</span><span class="p">(</span><span class="s">&quot;Setting `explicit_measurements` option</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"Setting `explicit_measurements` option</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">options</span><span class="p">,</span><span class="w"> </span><span class="n">kernel</span><span class="p">).</span><span class="n">dump</span><span class="p">();</span>
 </pre></div>
 </div>
@@ -1259,10 +1259,10 @@ To illustrate this, observe</p>
    <span class="n">reset</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default - no explicit measurements&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Default - no explicit measurements"</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting `explicit_measurements` option&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Setting `explicit_measurements` option"</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">explicit_measurements</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1350,11 +1350,11 @@ the concatenated measurements in the order they were executed in the kernel.</p>
 <span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
 <span class="p">};</span>
 
-<span class="n">printf</span><span class="p">(</span><span class="s">&quot;Default - no explicit measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"Default - no explicit measurements</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">).</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="n">cudaq</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">options</span><span class="p">{.</span><span class="n">explicit_measurements</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">};</span>
-<span class="n">printf</span><span class="p">(</span><span class="s">&quot;Setting `explicit_measurements` option</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"Setting `explicit_measurements` option</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">options</span><span class="p">,</span><span class="w"> </span><span class="n">kernel</span><span class="p">).</span><span class="n">dump</span><span class="p">();</span>
 </pre></div>
 </div>
@@ -1367,10 +1367,10 @@ the concatenated measurements in the order they were executed in the kernel.</p>
     <span class="n">mz</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
     <span class="n">mz</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default - no explicit measurements&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Default - no explicit measurements"</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting `explicit_measurements` option&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Setting `explicit_measurements` option"</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">explicit_measurements</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -1469,7 +1469,7 @@ representing the return value of a single kernel execution.</p>
 
 <span class="c1">// Process the results</span>
 <span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">results</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Result: %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Result: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -1488,7 +1488,7 @@ representing the return value of a single kernel execution.</p>
 
 <span class="c1"># Process the results</span>
 <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Result: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Result: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1626,7 +1626,7 @@ This return type can be used in the following way.</p>
 <span class="w">              </span><span class="mf">.21829</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">6.125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
 
 <span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">energy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">(</span><span class="n">ansatz</span><span class="p">{},</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="mf">.59</span><span class="p">);</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Energy is %lf</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">energy</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Energy is %lf</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">energy</span><span class="p">);</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
@@ -1643,7 +1643,7 @@ This return type can be used in the following way.</p>
 <span class="n">h</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
                 <span class="mf">.21829</span> <span class="o">*</span> <span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">energy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="mf">.59</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Energy is </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">energy</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Energy is </span><span class="si">{}</span><span class="s1">'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">energy</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1830,7 +1830,7 @@ default <code class="code docutils literal notranslate"><span class="pre">std::v
 <span class="w">    </span><span class="p">});</span>
 
 <span class="c1">// Print the results</span>
-<span class="n">printf</span><span class="p">(</span><span class="s">&quot;Optimizer found %lf at [%lf,%lf]</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">min_val</span><span class="p">,</span><span class="w"> </span><span class="n">opt_params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">opt_params</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"Optimizer found %lf at [%lf,%lf]</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">min_val</span><span class="p">,</span><span class="w"> </span><span class="n">opt_params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">opt_params</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 </pre></div>
 </div>
 </section>

@@ -1158,13 +1158,13 @@ single quantum bit (<span class="math notranslate nohighlight">\(2\)</span>-leve
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">  </span><span class="c1">// Put the qubit in a superposition of |0&gt; and |1&gt;</span>
 <span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span><span class="w"> </span><span class="c1">// cudaq::h == hadamard, ADL leveraged</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;ID = %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">id</span><span class="p">());</span><span class="w"> </span><span class="c1">// prints 0</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"ID = %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">id</span><span class="p">());</span><span class="w"> </span><span class="c1">// prints 0</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">r</span><span class="p">;</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;ID = %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">id</span><span class="p">());</span><span class="w"> </span><span class="c1">// prints 1</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"ID = %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">id</span><span class="p">());</span><span class="w"> </span><span class="c1">// prints 1</span>
 <span class="w">  </span><span class="c1">// qubit out of scope, implicit deallocation</span>
 <span class="p">}</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
-<span class="n">printf</span><span class="p">(</span><span class="s">&quot;ID = %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">id</span><span class="p">());</span><span class="w"> </span><span class="c1">// prints 0 (previous deallocated)</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"ID = %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">id</span><span class="p">());</span><span class="w"> </span><span class="c1">// prints 0 (previous deallocated)</span>
 </pre></div>
 </div>
 </div>
@@ -1173,10 +1173,10 @@ single quantum bit (<span class="math notranslate nohighlight">\(2\)</span>-leve
 <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 <span class="c1"># Put the qubit in a superposition of |0&gt; and |1&gt;</span>
 <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ID = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">id</span><span class="p">()))</span> <span class="c1"># prints 0</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"ID = </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">id</span><span class="p">()))</span> <span class="c1"># prints 0</span>
 
 <span class="n">r</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ID = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">id</span><span class="p">())</span> <span class="c1"># prints 1</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"ID = </span><span class="si">{}</span><span class="s2">"</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">id</span><span class="p">())</span> <span class="c1"># prints 1</span>
 <span class="c1"># qubits go out of scope, implicit deallocation</span>
 </pre></div>
 </div>

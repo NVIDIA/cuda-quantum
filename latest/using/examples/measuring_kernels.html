@@ -1206,9 +1206,9 @@ integer inside the kernel before returning it.</p>
 <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 <span class="c1"># Convert results to bitstrings and count</span>
 <span class="n">bitstring_counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span>
-    <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;1&#39;</span> <span class="k">if</span> <span class="n">bit</span> <span class="k">else</span> <span class="s1">&#39;0&#39;</span> <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="n">result</span><span class="p">)</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">)</span>
+    <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'1'</span> <span class="k">if</span> <span class="n">bit</span> <span class="k">else</span> <span class="s1">'0'</span> <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="n">result</span><span class="p">)</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Bitstring counts: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">bitstring_counts</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Bitstring counts: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">bitstring_counts</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 </pre></div>
 </div>
@@ -1237,11 +1237,11 @@ integer inside the kernel before returning it.</p>
 <span class="w">    </span><span class="n">bitstring_counts</span><span class="p">[</span><span class="n">bits</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Bitstring counts:</span><span class="se">\n</span><span class="s">{</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Bitstring counts:</span><span class="se">\n</span><span class="s">{</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">bitstring_counts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  %s: %zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  %s: %zu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"}</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -1252,7 +1252,7 @@ integer inside the kernel before returning it.</p>
 <p>Output</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Bitstring</span> <span class="n">counts</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;11&#39;</span><span class="p">:</span> <span class="mi">247</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">:</span> <span class="mi">753</span><span class="p">}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Bitstring</span> <span class="n">counts</span><span class="p">:</span> <span class="p">{</span><span class="s1">'11'</span><span class="p">:</span> <span class="mi">247</span><span class="p">,</span> <span class="s1">'10'</span><span class="p">:</span> <span class="mi">753</span><span class="p">}</span>
 </pre></div>
 </div>
 </div>

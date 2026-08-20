@@ -1120,7 +1120,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
 <span class="c1"># Set the target to our dynamics simulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"dynamics"</span><span class="p">)</span>
 
 <span class="c1"># System dimensions: atom (2-level system) and cavity (10-level system)</span>
 <span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">10</span><span class="p">}</span>
@@ -1150,7 +1150,7 @@
 <span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">cavity_state</span><span class="p">,</span> <span class="n">qubit_state</span><span class="p">))</span>
 
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">201</span><span class="p">)</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
 
 <span class="c1"># First, evolve the system without any collapse operators (ideal).</span>
 <span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
@@ -1191,18 +1191,18 @@
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">ideal_results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">ideal_results</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Expectation value&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">&quot;Cavity Photon Number&quot;</span><span class="p">,</span> <span class="s2">&quot;Atom Excitation Probability&quot;</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;No decay&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Expectation value"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">"Cavity Photon Number"</span><span class="p">,</span> <span class="s2">"Atom Excitation Probability"</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"No decay"</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">decay_results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">decay_results</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Expectation value&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">&quot;Cavity Photon Number&quot;</span><span class="p">,</span> <span class="s2">&quot;Atom Excitation Probability&quot;</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;With decay&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Expectation value"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">"Cavity Photon Number"</span><span class="p">,</span> <span class="s2">"Atom Excitation Probability"</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"With decay"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1238,7 +1238,7 @@ Text(0.5, 1.0, &#39;With decay&#39;)
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
 <span class="c1"># Set the target to our dynamics simulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"dynamics"</span><span class="p">)</span>
 
 <span class="c1"># Device parameters</span>
 <span class="c1"># Detuning between two qubits</span>
@@ -1264,7 +1264,7 @@ Text(0.5, 1.0, &#39;With decay&#39;)
     <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
 
 <span class="c1"># Two initial states: |00&gt; and |10&gt;.</span>
-<span class="c1"># We show the &#39;conditional&#39; evolution when controlled qubit is in |1&gt; state.</span>
+<span class="c1"># We show the 'conditional' evolution when controlled qubit is in |1&gt; state.</span>
 <span class="n">psi_00</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
     <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
 <span class="n">psi_10</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
@@ -1272,7 +1272,7 @@ Text(0.5, 1.0, &#39;With decay&#39;)
 
 <span class="c1"># Schedule of time steps.</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1001</span><span class="p">)</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
 
 <span class="c1"># Run the simulation.</span>
 <span class="c1"># Control bit = 0</span>
@@ -1335,16 +1335,16 @@ Text(0.5, 1.0, &#39;With decay&#39;)
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">results_00</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">results_10</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\langle Z_2\rangle$&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="sa">r</span><span class="s2">&quot;$|\psi_0\rangle=|00\rangle$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$|\psi_0\rangle=|10\rangle$&quot;</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">"$\langle Z_2\rangle$"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="sa">r</span><span class="s2">"$|\psi_0\rangle=|00\rangle$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$|\psi_0\rangle=|10\rangle$"</span><span class="p">))</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">results_00</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">results_10</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\langle Y_2\rangle$&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="sa">r</span><span class="s2">&quot;$|\psi_0\rangle=|00\rangle$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$|\psi_0\rangle=|10\rangle$&quot;</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">"$\langle Y_2\rangle$"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="sa">r</span><span class="s2">"$|\psi_0\rangle=|00\rangle$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$|\psi_0\rangle=|10\rangle$"</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1380,7 +1380,7 @@ Text(0.5, 1.0, &#39;With decay&#39;)
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
 <span class="c1"># Set the target to our dynamics simulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"dynamics"</span><span class="p">)</span>
 
 <span class="c1"># Number of cavity photons</span>
 <span class="n">N</span> <span class="o">=</span> <span class="mi">20</span>
@@ -1429,7 +1429,7 @@ Text(0.5, 1.0, &#39;With decay&#39;)
 <span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">transmon_state</span><span class="p">,</span> <span class="n">cavity_state</span><span class="p">))</span>
 
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
 
 <span class="c1"># Evolve the system</span>
 <span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
@@ -1464,17 +1464,17 @@ Text(0.5, 1.0, &#39;With decay&#39;)
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">count_results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">count_results</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time [ns]&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">&quot;Cavity Photon Number&quot;</span><span class="p">,</span> <span class="s2">&quot;Transmon Excitation Probability&quot;</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Excitation Numbers&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"n"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time [ns]"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">"Cavity Photon Number"</span><span class="p">,</span> <span class="s2">"Transmon Excitation Probability"</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"Excitation Numbers"</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">quadrature_results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time [ns]&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">&quot;cavity&quot;</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Resonator Quadrature&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time [ns]"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">"cavity"</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"Resonator Quadrature"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

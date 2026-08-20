@@ -1142,11 +1142,11 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
 
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 
 <span class="n">qubit_num</span> <span class="o">=</span> <span class="mi">2</span>
 
@@ -1170,10 +1170,10 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psi_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Psi state: &#39;</span><span class="p">,</span> <span class="n">psi_state</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Psi state: '</span><span class="p">,</span> <span class="n">psi_state</span><span class="p">)</span>
 
 <span class="n">phi_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Phi state: &#39;</span><span class="p">,</span> <span class="n">phi_state</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Phi state: '</span><span class="p">,</span> <span class="n">phi_state</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1201,11 +1201,11 @@ Phi state:  (0,0)
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ham</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">ham_matrix</span> <span class="o">=</span> <span class="n">ham</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;hamiltonian: &#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ham_matrix</span><span class="p">),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'hamiltonian: '</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ham_matrix</span><span class="p">),</span> <span class="s1">'</span><span class="se">\n</span><span class="s1">'</span><span class="p">)</span>
 
 <span class="n">exp_val</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">psi_state</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ham_matrix</span><span class="p">,</span> <span class="n">phi_state</span><span class="p">))</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Numerical expectation value: &#39;</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Numerical expectation value: '</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1232,11 +1232,11 @@ Numerical expectation value:  (0.7071067690849304+0j)
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1280,10 +1280,10 @@ Numerical expectation value:  (0.7071067690849304+0j)
 <span class="n">count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
 
-<span class="n">mean_val</span> <span class="o">=</span> <span class="p">(</span><span class="n">count</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">count</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">shots</span>
-<span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">count</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">count</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span> <span class="o">/</span> <span class="n">shots</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Observable QC: &#39;</span><span class="p">,</span> <span class="n">mean_val</span><span class="p">,</span> <span class="s1">&#39;+ -&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Numerical result&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">exp_val</span><span class="p">))</span>
+<span class="n">mean_val</span> <span class="o">=</span> <span class="p">(</span><span class="n">count</span><span class="p">[</span><span class="s1">'0'</span><span class="p">]</span> <span class="o">-</span> <span class="n">count</span><span class="p">[</span><span class="s1">'1'</span><span class="p">])</span> <span class="o">/</span> <span class="n">shots</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">count</span><span class="p">[</span><span class="s1">'0'</span><span class="p">]</span> <span class="o">*</span> <span class="n">count</span><span class="p">[</span><span class="s1">'1'</span><span class="p">]</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span> <span class="o">/</span> <span class="n">shots</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Observable QC: '</span><span class="p">,</span> <span class="n">mean_val</span><span class="p">,</span> <span class="s1">'+ -'</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Numerical result'</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">exp_val</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1349,17 +1349,17 @@ paper</a> described the method in more detail and is the source of the figure be
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
-<span class="k">elif</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">"mqpu"</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 
 <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
 <span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Number of QPUs:"</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1404,9 +1404,9 @@ Number of QPUs: 1
     <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">i_result</span> <span class="o">=</span> <span class="n">count</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">i_result</span><span class="p">)</span>
-    <span class="n">mean_val</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">shots</span>
-    <span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span> <span class="o">/</span> <span class="n">shots</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;QKSD Matrix Element: &#39;</span><span class="p">,</span> <span class="n">mean_val</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s1">&#39;+ -&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+    <span class="n">mean_val</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">i_result</span><span class="p">[</span><span class="s1">'0'</span><span class="p">]</span> <span class="o">-</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">'1'</span><span class="p">])</span> <span class="o">/</span> <span class="n">shots</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">'0'</span><span class="p">]</span> <span class="o">*</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">'1'</span><span class="p">]</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span> <span class="o">/</span> <span class="n">shots</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'QKSD Matrix Element: '</span><span class="p">,</span> <span class="n">mean_val</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s1">'+ -'</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
     <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 </pre></div>
 </div>
@@ -1454,10 +1454,10 @@ QKSD Matrix Element:  -0.00336 + - 0.0022360553553076455
 
 <span class="n">E</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">my_mat</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Eigenvalues: &#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Eigenvalues: '</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Eigenvector: &#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Eigenvector: '</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
 </pre></div>
 </div>

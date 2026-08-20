@@ -1119,11 +1119,11 @@ process is repeated many times and the resulted averaged. The test is passed if 
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 
 <span class="c1"># Select an even number</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
@@ -1223,18 +1223,18 @@ process is repeated many times and the resulted averaged. The test is passed if 
     <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
     <span class="n">bf</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="n">error_rate</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-        <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bf</span><span class="p">)</span>
+        <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">'x'</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bf</span><span class="p">)</span>
 
     <span class="c1"># Gets noiseless probability distribution</span>
-    <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">):</span>
-        <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s1">'nvidia'</span><span class="p">):</span>
+        <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'nvidia'</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>
+        <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'qpp-cpu'</span><span class="p">)</span>
     <span class="n">clean_result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
         <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">qv</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">circuit_params</span><span class="p">,</span> <span class="n">layer_permutations</span><span class="p">))</span>
 
     <span class="c1"># Performs noisy sampling</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"density-matrix-cpu"</span><span class="p">)</span>
     <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">qv</span><span class="p">,</span>
                                 <span class="n">n</span><span class="p">,</span>
                                 <span class="n">circuit_params</span><span class="p">,</span>
@@ -1249,7 +1249,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
     <span class="n">cutoff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
 
     <span class="k">if</span> <span class="n">print_output</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The Median for this circuit is:&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'The Median for this circuit is:'</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
 
     <span class="c1"># Determines if a bitstring is heavy and saves the bitstring in a list if so.</span>
@@ -1265,10 +1265,10 @@ process is repeated many times and the resulted averaged. The test is passed if 
 
     <span class="k">if</span> <span class="n">print_output</span><span class="p">:</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The heavy bitstrings for this circuit are&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'The heavy bitstrings for this circuit are'</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">heavy</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;This circuit has an ideal havy sampling probability of:&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'This circuit has an ideal havy sampling probability of:'</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">circuit_prob</span><span class="p">)</span>
 
     <span class="c1"># Determines percent of noisy sample results that are heavy</span>
@@ -1277,7 +1277,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
         <span class="n">prob_heavy_in_noisy</span> <span class="o">+=</span> <span class="n">noisy_result</span><span class="o">.</span><span class="n">probability</span><span class="p">(</span><span class="n">heavy_bitstring</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">print_output</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Percent of time noisy sample returned heavy bitstring&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'Percent of time noisy sample returned heavy bitstring'</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">prob_heavy_in_noisy</span><span class="p">)</span>
 
     <span class="c1"># Returns this probability</span>
@@ -1347,17 +1347,17 @@ Percent of time noisy sample returned heavy bitstring
     <span class="c1"># Average the results</span>
     <span class="n">score</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">circuit_results</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuit_results</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The score is:&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'The score is:'</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
 
     <span class="c1"># Determined if QV test is passed</span>
     <span class="k">if</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;passed!&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Quantum Volume&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'passed!'</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'Quantum Volume'</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;failed QV Test&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'failed QV Test'</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">score</span>
 </pre></div>

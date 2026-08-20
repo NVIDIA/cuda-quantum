@@ -1185,10 +1185,10 @@
                        <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
                        <span class="n">gradient_strategy</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span>
                        <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Objective function for gradient-based optimizers.</span>
 <span class="sd">    Returns: (cost, gradient_vector)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
     <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
@@ -1206,9 +1206,9 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== Adam Optimizer Results ===&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimized &lt;H&gt; = </span><span class="si">{</span><span class="n">energy</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">parameter</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== Adam Optimizer Results ==="</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Minimized &lt;H&gt; = </span><span class="si">{</span><span class="n">energy</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">parameter</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1244,9 +1244,9 @@ Optimal parameters: [-5.721116]
 <span class="c1"># Run optimization</span>
 <span class="n">sgd_energy</span><span class="p">,</span> <span class="n">sgd_params</span> <span class="o">=</span> <span class="n">sgd_optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== SGD Optimizer Results ===&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimized &lt;H&gt; = </span><span class="si">{</span><span class="n">sgd_energy</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">sgd_params</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== SGD Optimizer Results ==="</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Minimized &lt;H&gt; = </span><span class="si">{</span><span class="n">sgd_energy</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">sgd_params</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1280,18 +1280,18 @@ Optimal parameters: [-5.688733]
 
 <span class="c1"># Define gradient-free objective function</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">spsa_objective</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Objective function for gradient-free optimizers like SPSA.</span>
 <span class="sd">    Returns: cost only (no gradient)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
 <span class="c1"># Run optimization</span>
 <span class="n">spsa_energy</span><span class="p">,</span> <span class="n">spsa_params</span> <span class="o">=</span> <span class="n">spsa_optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">spsa_objective</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== SPSA Optimizer Results ===&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">spsa_energy</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">spsa_params</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== SPSA Optimizer Results ==="</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">spsa_energy</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">spsa_params</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1324,7 +1324,7 @@ Optimal parameters: [-5.681724]
 
     <span class="k">return</span> <span class="n">exp_val</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">initial_params</span> <span class="p">,</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;COBYLA&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">40</span><span class="p">})</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">initial_params</span> <span class="p">,</span><span class="n">method</span><span class="o">=</span><span class="s1">'COBYLA'</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">'maxiter'</span><span class="p">:</span> <span class="mi">40</span><span class="p">})</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1356,7 +1356,7 @@ Optimal parameters: [-5.681724]
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w">  </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="c1"># cudaq.set_target(&#39;nvidia&#39;, option = &#39;mqpu&#39;)</span>
+<span class="c1"># cudaq.set_target('nvidia', option = 'mqpu')</span>
 
 <span class="n">num_qpus</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">epsilon</span> <span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span>
@@ -1400,10 +1400,10 @@ Optimal parameters: [-5.681724]
                        <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
                        <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
                        <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Objective function for VQE with parallel parameter shift gradients.</span>
 <span class="sd">    Computes both cost and gradient at the current parameter values.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Compute cost at current parameters</span>
     <span class="n">cost</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
@@ -1419,13 +1419,13 @@ Optimal parameters: [-5.681724]
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run VQE optimization with parallel parameter shift gradients</span>
-<span class="n">result_vqe</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">initial_params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">})</span>
+<span class="n">result_vqe</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">initial_params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'L-BFGS-B'</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">'maxiter'</span><span class="p">:</span> <span class="mi">50</span><span class="p">})</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== VQE with Parallel Parameter Shift Gradients ===&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimized energy: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of iterations: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">nit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Success: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">success</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== VQE with Parallel Parameter Shift Gradients ==="</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Optimized energy: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Optimal parameters: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Number of iterations: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">nit</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Success: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">success</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

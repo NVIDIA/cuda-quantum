@@ -1112,7 +1112,7 @@ account by following <a class="reference external" href="https://superstaq.readt
 <p>Programmers of CUDA-Q may access Infleqtion backends from either C++ or Python. Generate
 an API key from your <a class="reference external" href="https://superstaq.infleqtion.com/profile">Superstaq account</a> and export
 it as an environment variable:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUPERSTAQ_API_KEY</span><span class="o">=</span><span class="s2">&quot;superstaq_api_key&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUPERSTAQ_API_KEY</span><span class="o">=</span><span class="s2">"superstaq_api_key"</span>
 </pre></div>
 </div>
 </section>
@@ -1122,28 +1122,28 @@ it as an environment variable:</p>
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"infleqtion"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>By default, quantum kernel code will be submitted to Infleqtion’s Sqale
 simulator.</p>
 <p>To specify which Infleqtion QPU to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"infleqtion"</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">"cq_sqale_qpu"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>where <code class="docutils literal notranslate"><span class="pre">cq_sqale_qpu</span></code> is an example of a physical QPU.</p>
 <p>To run an ideal dry-run execution of the QPU, additionally set the <code class="docutils literal notranslate"><span class="pre">method</span></code> flag to <code class="docutils literal notranslate"><span class="pre">&quot;dry-run&quot;</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;dry-run&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"infleqtion"</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">"cq_sqale_qpu"</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"dry-run"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>To noisily simulate the QPU instead, set the <code class="docutils literal notranslate"><span class="pre">method</span></code> flag to <code class="docutils literal notranslate"><span class="pre">&quot;noise-sim&quot;</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;noise-sim&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"infleqtion"</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">"cq_sqale_qpu"</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"noise-sim"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
 you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
 specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"infleqtion"</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The number of shots for a kernel execution can be set through
@@ -1213,14 +1213,14 @@ For example from Python one can use the <a class="reference external" href="http
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
 <span class="n">sdk</span> <span class="o">=</span> <span class="n">SDK</span><span class="p">(</span>
-    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_USERNAME&#39;</span><span class="p">),</span>
-    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_PASSWORD&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="c1"># Ensures you will be securely prompted</span>
+    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'PASQAL_USERNAME'</span><span class="p">),</span>
+    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'PASQAL_PASSWORD'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="c1"># Ensures you will be securely prompted</span>
 <span class="p">)</span>
 
 <span class="n">token</span> <span class="o">=</span> <span class="n">sdk</span><span class="o">.</span><span class="n">user_token</span><span class="p">()</span>
 
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_AUTH_TOKEN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_PROJECT_ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;your project id&#39;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">'PASQAL_AUTH_TOKEN'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">'PASQAL_PROJECT_ID'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'your project id'</span>
 </pre></div>
 </div>
 <p>Alternatively, users can set the following environment variables directly.</p>
@@ -1235,7 +1235,7 @@ For example from Python one can use the <a class="reference external" href="http
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'pasqal'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This accepts an optional argument, <code class="docutils literal notranslate"><span class="pre">machine</span></code>, which selects the
@@ -1245,7 +1245,7 @@ The default value is <code class="docutils literal notranslate"><span class="pre
 Matrix Product State formalism running in Pasqal’s cloud platform. You can see the
 documentation for the publicly accessible emulator <a class="reference external" href="https://pasqal-io.github.io/emulators/latest/emu_mps/">here</a>.</p>
 <p>To target the QPU, pass the <code class="docutils literal notranslate"><span class="pre">FRESNEL</span></code> machine name:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;FRESNEL&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'pasqal'</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">'FRESNEL'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note that there are restrictions
@@ -1335,7 +1335,7 @@ and let QRMI handle submission.</p>
 </div>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;qrmi&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'pasqal'</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">'qrmi'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1364,10 +1364,10 @@ One of the simplest ways is to use <a class="reference external" href="https://a
 </pre></div>
 </div>
 <p>Alternatively, users can set the following environment variables.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">&quot;&lt;key_id&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;access_key&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;token&gt;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">"us-east-1"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">"&lt;key_id&gt;"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">"&lt;access_key&gt;"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">"&lt;token&gt;"</span>
 </pre></div>
 </div>
 </section>
@@ -1384,7 +1384,7 @@ Refer to QuEra’s <a class="reference external" href="https://cdn.prod.website-
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quera&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'quera'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Due to the nature of the underlying hardware, this target only supports the

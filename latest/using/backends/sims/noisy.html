@@ -1118,9 +1118,9 @@ to the noise model specified, as shown in the below example.</p>
 <span class="c1"># Other targets capable of trajectory simulation are:</span>
 <span class="c1"># - `tensornet`</span>
 <span class="c1"># - `tensornet-mps`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 
-<span class="c1"># Let&#39;s define a simple kernel that we will add noise to.</span>
+<span class="c1"># Let's define a simple kernel that we will add noise to.</span>
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
 
 
@@ -1138,7 +1138,7 @@ to the noise model specified, as shown in the below example.</p>
 <span class="c1"># Add noise channels to our noise model.</span>
 <span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 <span class="c1"># Apply the bit-flip channel to any X-gate on any qubits</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
 
 <span class="c1"># Due to the impact of noise, our measurements will no longer be uniformly</span>
 <span class="c1"># in the |11&gt; state.</span>
@@ -1271,7 +1271,7 @@ Hence, depending on the required level of accuracy, the number of trajectories c
 <span class="c1"># Other targets capable of trajectory simulation are:</span>
 <span class="c1"># - `tensornet`</span>
 <span class="c1"># - `tensornet-mps`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1287,21 +1287,21 @@ Hence, depending on the required level of accuracy, the number of trajectories c
 <span class="c1"># Add noise channels to our noise model.</span>
 <span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 <span class="c1"># Apply the bit-flip channel to any X-gate on any qubits</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
 
 <span class="n">noisy_exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
                               <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
                               <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
                               <span class="n">num_trajectories</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 <span class="c1"># True expectation: 0.1 - 0.9 = -0.8 (|1&gt; has &lt;Z&gt; of -1 and |1&gt; has &lt;Z&gt; of +1)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Noisy &lt;Z&gt; with 1024 trajectories =&quot;</span><span class="p">,</span> <span class="n">noisy_exp_val</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Noisy &lt;Z&gt; with 1024 trajectories ="</span><span class="p">,</span> <span class="n">noisy_exp_val</span><span class="p">)</span>
 
 <span class="c1"># Rerun with a higher number of trajectories</span>
 <span class="n">noisy_exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
                               <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
                               <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
                               <span class="n">num_trajectories</span><span class="o">=</span><span class="mi">8192</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Noisy &lt;Z&gt; with 8192 trajectories =&quot;</span><span class="p">,</span> <span class="n">noisy_exp_val</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Noisy &lt;Z&gt; with 8192 trajectories ="</span><span class="p">,</span> <span class="n">noisy_exp_val</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py
@@ -1336,13 +1336,13 @@ Noisy<span class="w"> </span>&lt;Z&gt;<span class="w"> </span>with<span class="w
 
 <span class="w">  </span><span class="c1">// True expectation: 0.1 - 0.9 = -0.8 (|1&gt; has &lt;Z&gt; of -1 and |1&gt; has &lt;Z&gt; of</span>
 <span class="w">  </span><span class="c1">// +1)</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Noisy &lt;Z&gt; with 1024 trajectories = &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Noisy &lt;Z&gt; with 1024 trajectories = "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Rerun with a higher number of trajectories</span>
 <span class="w">  </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">({.</span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noise_model</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">num_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">},</span><span class="w"> </span><span class="n">xOp</span><span class="p">{},</span>
 <span class="w">                     </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Noisy &lt;Z&gt; with 8192 trajectories = &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Noisy &lt;Z&gt; with 8192 trajectories = "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
@@ -1429,9 +1429,9 @@ Any environment variables must be set prior to setting the target or running “
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="c1"># Use the `nvidia` target</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 
-<span class="c1"># Let&#39;s define a simple kernel that we will add noise to.</span>
+<span class="c1"># Let's define a simple kernel that we will add noise to.</span>
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">10</span>
 
 
@@ -1449,7 +1449,7 @@ Any environment variables must be set prior to setting the target or running “
 <span class="c1"># Add noise channels to our noise model.</span>
 <span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 <span class="c1"># Apply the bit-flip channel to any X-gate on any qubits</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
 
 <span class="n">ideal_counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 
@@ -1462,7 +1462,7 @@ Any environment variables must be set prior to setting the target or running “
                             <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 <span class="n">noisy_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Simulation elapsed time: </span><span class="si">{</span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="si">}</span><span class="s2"> ms&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Simulation elapsed time: </span><span class="si">{</span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="si">}</span><span class="s2"> ms"</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Default batching parameter</span>
@@ -1508,7 +1508,7 @@ Simulation<span class="w"> </span>elapsed<span class="w"> </span>time:<span clas
 <span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">milli</span><span class="o">&gt;</span><span class="w"> </span><span class="n">elapsed_time</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">end_time</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start_time</span><span class="p">;</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Simulation elapsed time: &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">elapsed_time</span><span class="p">.</span><span class="n">count</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;ms</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Simulation elapsed time: "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">elapsed_time</span><span class="p">.</span><span class="n">count</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"ms</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
@@ -1541,7 +1541,7 @@ view detailed logs of batched trajectory simulation, e.g., the batch size.</p>
 </pre></div>
 </div>
 <p>The target can also be defined in the application code by calling</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'density-matrix-cpu'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
@@ -1567,7 +1567,7 @@ library.</p>
 </pre></div>
 </div>
 <p>The target can also be defined in the application code by calling</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;stim&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'stim'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>

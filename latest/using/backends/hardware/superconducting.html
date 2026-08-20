@@ -1114,17 +1114,17 @@ the <code class="docutils literal notranslate"><span class="pre">&lt;username&gt
 account details. The credential in the file will be used by CUDA-Q to login to Anyon quantum services
 and will be updated by CUDA-Q with an obtained API token and refresh token.
 Note, the credential line will be deleted in the updated configuration file.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;credentials: {&quot;username&quot;:&quot;&lt;username&gt;&quot;,&quot;password&quot;:&quot;&lt;password&gt;&quot;}&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$HOME</span>/.anyon_config
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s1">'credentials: {"username":"&lt;username&gt;","password":"&lt;password&gt;"}'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$HOME</span>/.anyon_config
 </pre></div>
 </div>
 <p>Users can also login and get the keys manually using the following commands:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># You may need to run: `apt-get update &amp;&amp; apt-get install curl jq`</span>
-curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>--user<span class="w"> </span><span class="s2">&quot;&lt;username&gt;:&lt;password&gt;&quot;</span><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>--user<span class="w"> </span><span class="s2">"&lt;username&gt;:&lt;password&gt;"</span><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Content-Type: application/json"</span><span class="w"> </span><span class="se">\</span>
 https://api.anyon.cloud:5000/login<span class="w"> </span>&gt;<span class="w"> </span>credentials.json
-<span class="nv">id_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.&quot;id_token&quot;&#39;</span><span class="sb">`</span>
-<span class="nv">refresh_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.&quot;refresh_token&quot;&#39;</span><span class="sb">`</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;key: </span><span class="nv">$id_token</span><span class="s2">&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>~/.anyon_config
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;refresh: </span><span class="nv">$refresh_token</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.anyon_config
+<span class="nv">id_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'."id_token"'</span><span class="sb">`</span>
+<span class="nv">refresh_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'."refresh_token"'</span><span class="sb">`</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"key: </span><span class="nv">$id_token</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span>~/.anyon_config
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"refresh: </span><span class="nv">$refresh_token</span><span class="s2">"</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.anyon_config
 </pre></div>
 </div>
 <p>The path to the configuration can be specified as an environment variable:</p>
@@ -1141,14 +1141,14 @@ can be controlled with the <code class="docutils literal notranslate"><span clas
 <p>To execute your kernels using Anyon Technologies backends, specify which machine to submit quantum kernels to
 by setting the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter of the target.
 If <code class="code docutils literal notranslate"><span class="pre">machine</span></code> is not specified, the default machine will be <code class="docutils literal notranslate"><span class="pre">telegraph-8q</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;anyon&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;telegraph-8q&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'anyon'</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">'telegraph-8q'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>As shown above, <code class="docutils literal notranslate"><span class="pre">telegraph-8q</span></code> is an example of a physical QPU.</p>
 <p>To emulate the Anyon Technologies machine locally, without submitting through the cloud,
 you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
 specific compiler warnings and diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;anyon&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'anyon'</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The number of shots for a kernel execution can be set through
@@ -1206,7 +1206,7 @@ The IQM backend integration will use this as authorization token at the IQM serv
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://&lt;IQM Server&gt;/&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"iqm"</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">"https://&lt;IQM Server&gt;/"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Please note that setting the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code> takes precedence over the URL configured in the code.</p>
@@ -1218,7 +1218,7 @@ The IQM backend integration will use this as authorization token at the IQM serv
 </div>
 <p>Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code> as shown here:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/&quot;</span><span class="w"> </span>./program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://demo.qc.iqm.fi/"</span><span class="w"> </span>./program
 </pre></div>
 </div>
 </div>
@@ -1265,14 +1265,14 @@ To set which OQC email, set the <code class="code docutils literal notranslate">
 To set which OQC machine, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;OQC_PASSWORD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">password</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;oqc&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;lucy&quot;</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">'OQC_PASSWORD'</span><span class="p">]</span> <span class="o">=</span> <span class="n">password</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"oqc"</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">"lucy"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can then execute a kernel against the platform using the OQC Lucy device</p>
 <p>To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>.
 This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;oqc&quot;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"oqc"</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1336,7 +1336,7 @@ page to learn more about the Quantum Circuits Select Quantum Release Program.</p
 <p>You may present your user token to Quantum Circuits via CUDA-Q by setting an environment variable
 named <code class="code docutils literal notranslate"><span class="pre">QCI_AUTH_TOKEN</span></code> before running your CUDA-Q program.</p>
 <p>For example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">QCI_AUTH_TOKEN</span><span class="o">=</span><span class="s2">&quot;example-token&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">QCI_AUTH_TOKEN</span><span class="o">=</span><span class="s2">"example-token"</span>
 </pre></div>
 </div>
 <p>Tokens are provided as part of the Strategic Quantum Release Program. Please visit our
@@ -1453,32 +1453,32 @@ regardless of how many errors are detected.</p></li>
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <p>To set the target to Quantum Circuits, add the following to your Python
 program:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'qci'</span><span class="p">)</span>
 <span class="p">[</span><span class="o">...</span> <span class="n">your</span> <span class="n">Python</span> <span class="n">here</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>To run on AquSim, simply execute the script using your Python interpreter.</p>
 <p>To specify which Quantum Circuits machine to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The default machine is AquSim</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;AquSim&#39;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'qci'</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">'AquSim'</span><span class="p">)</span>
 <span class="c1"># or</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;Seeker&#39;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'qci'</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">'Seeker'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can control the execution method using the <code class="code docutils literal notranslate"><span class="pre">method</span></code> parameter:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For simulation (default)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;Seeker&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;simulate&#39;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'Seeker'</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'simulate'</span><span class="p">)</span>
 <span class="c1"># For hardware execution</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;Seeker&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;execute&#39;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'Seeker'</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'execute'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>For noisy simulation, you can enable the <code class="code docutils literal notranslate"><span class="pre">noisy</span></code> parameter:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">noisy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'qci'</span><span class="p">,</span> <span class="n">noisy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>When collecting shots, you can ensure the requested number of shots are obtained
 by enabling the <code class="code docutils literal notranslate"><span class="pre">repeat_until_shots_requested</span></code> parameter:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">repeat_until_shots_requested</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'qci'</span><span class="p">,</span> <span class="n">repeat_until_shots_requested</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1563,12 +1563,12 @@ jobs will be executed.</p>
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <p>Before submitting a job, the TII backend must be selected using <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code>.
 The following example runs a circuit simulation using the user’s <code class="docutils literal notranslate"><span class="pre">personal</span></code> project:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tii&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;tii-sim&quot;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s2">&quot;personal&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tii"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">"tii-sim"</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s2">"personal"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>If the <code class="docutils literal notranslate"><span class="pre">TII_API_TOKEN</span></code> environment variable is not set, the authentication token can be
 passed directly:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tii&quot;</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;my_authentication_token&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;tii-sim&quot;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s2">&quot;personal&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tii"</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="s2">"my_authentication_token"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">"tii-sim"</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s2">"personal"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

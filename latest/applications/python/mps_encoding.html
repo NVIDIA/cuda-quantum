@@ -1160,7 +1160,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">gram_schmidt</span><span class="p">(</span><span class="n">matrix</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Perform Gram-Schmidt orthogonalization on the columns of a matrix</span>
+<span class="w">    </span><span class="sd">""" Perform Gram-Schmidt orthogonalization on the columns of a matrix</span>
 <span class="sd">    to define the unitary block to encode the MPS.</span>
 
 <span class="sd">    Notes</span>
@@ -1177,7 +1177,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 <span class="sd">    `unitary` : NDArray[np.complex128]</span>
 <span class="sd">        A unitary matrix with orthonormal columns derived from the input matrix.</span>
 <span class="sd">        If a column is (approximately) zero, it is replaced with a random vector.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">num_rows</span><span class="p">,</span> <span class="n">num_columns</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">unitary</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_rows</span><span class="p">,</span> <span class="n">num_columns</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
     <span class="n">orthonormal_basis</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1218,15 +1218,15 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Sequential</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_fidelity</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Sequential class.</span>
+<span class="w">        </span><span class="sd">"""Initialize the Sequential class.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            target_fidelity (float): The target fidelity for the MPS encoding.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_fidelity</span> <span class="o">=</span> <span class="n">target_fidelity</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">generate_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mps</span><span class="p">:</span> <span class="n">qtn</span><span class="o">.</span><span class="n">MatrixProductState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">]]]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Convert a Matrix Product State (MPS) to a circuit representation</span>
+<span class="w">        </span><span class="sd">""" Convert a Matrix Product State (MPS) to a circuit representation</span>
 <span class="sd">        using a single unitary layer.</span>
 
 <span class="sd">        Args:</span>
@@ -1238,7 +1238,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 <span class="sd">                Each tuple contains:</span>
 <span class="sd">                - A list of qubit indices (in LSB order) that the unitary acts on.</span>
 <span class="sd">                - A unitary matrix (as a 2D NumPy array) that encodes the MPS.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">num_sites</span> <span class="o">=</span> <span class="n">mps</span><span class="o">.</span><span class="n">L</span>
 
         <span class="n">unitary_layer</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1289,7 +1289,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
             <span class="n">max_num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
             <span class="n">chi_max</span><span class="p">:</span> <span class="nb">int</span>
         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Approximately encodes the MPS into a circuit via multiple layers</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">""" Approximately encodes the MPS into a circuit via multiple layers</span>
 <span class="sd">        of exact encoding of bond 2 truncated MPS.</span>
 
 <span class="sd">        Notes</span>
@@ -1300,7 +1300,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 <span class="sd">        two qubit gates, which results in smaller circuits, and easier to run on</span>
 <span class="sd">        hardware.</span>
 
-<span class="sd">        This is the core idea of Ran&#39;s paper [1].</span>
+<span class="sd">        This is the core idea of Ran's paper [1].</span>
 
 <span class="sd">        [1] https://arxiv.org/abs/1908.07958</span>
 
@@ -1317,12 +1317,12 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 <span class="sd">        -------</span>
 <span class="sd">        `circuit` : cudaq.Kernel</span>
 <span class="sd">            The CUDA Quantum circuit that approximates the statevector.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">mps</span> <span class="o">=</span> <span class="n">qtn</span><span class="o">.</span><span class="n">MatrixProductState</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span><span class="n">statevector</span><span class="p">)</span>
         <span class="n">mps</span><span class="p">:</span> <span class="n">qtn</span><span class="o">.</span><span class="n">MatrixProductState</span> <span class="o">=</span> <span class="n">qtn</span><span class="o">.</span><span class="n">tensor_1d_compress</span><span class="o">.</span><span class="n">tensor_network_1d_compress</span><span class="p">(</span><span class="n">mps</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="n">chi_max</span><span class="p">)</span> <span class="c1"># type: ignore</span>
         <span class="n">mps</span><span class="o">.</span><span class="n">permute_arrays</span><span class="p">()</span>
 
-        <span class="n">mps</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="n">chi_max</span><span class="p">)</span>
+        <span class="n">mps</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="n">chi_max</span><span class="p">)</span>
         <span class="n">mps</span><span class="o">.</span><span class="n">left_canonicalize</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">compressed_mps</span> <span class="o">=</span> <span class="n">mps</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1338,7 +1338,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
         <span class="n">zero_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="o">**</span><span class="n">mps</span><span class="o">.</span><span class="n">L</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
         <span class="n">zero_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># |00...0&gt; state</span>
 
-        <span class="c1"># Ran&#39;s approach uses a iterative disentanglement of the MPS</span>
+        <span class="c1"># Ran's approach uses a iterative disentanglement of the MPS</span>
         <span class="c1"># where each layer compresses the MPS to a maximum bond dimension of 2</span>
         <span class="c1"># and applies the inverse of the layer to disentangle the MPS</span>
         <span class="c1"># After a few layers we are adequately close to |00...0&gt; state</span>
@@ -1346,12 +1346,12 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
         <span class="c1"># to the |00...0&gt; state to obtain the MPS state</span>
         <span class="k">for</span> <span class="n">layer_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_num_layers</span><span class="p">):</span>
             <span class="c1"># Compress the MPS from the previous layer to a maximum bond dimension of 2,</span>
-            <span class="c1"># |ψ_k&gt; -&gt; |ψ&#39;_k&gt;</span>
+            <span class="c1"># |ψ_k&gt; -&gt; |ψ'_k&gt;</span>
             <span class="n">compressed_mps</span> <span class="o">=</span> <span class="n">disentangled_mps</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
             <span class="c1"># Normalize improves fidelity of the encoding</span>
             <span class="n">compressed_mps</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
-            <span class="n">compressed_mps</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">compressed_mps</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
             <span class="c1"># Generate unitary layer</span>
             <span class="n">unitary_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_layer</span><span class="p">(</span><span class="n">compressed_mps</span><span class="p">)</span>
@@ -1383,11 +1383,11 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
             <span class="k">if</span> <span class="n">fidelity</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_fidelity</span><span class="p">:</span>
                 <span class="c1"># If the disentangled MPS is close enough to the zero state,</span>
                 <span class="c1"># we can stop the disentanglement process</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reached target fidelity in </span><span class="si">{</span><span class="n">layer_index</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> layers.&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Reached target fidelity in </span><span class="si">{</span><span class="n">layer_index</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> layers."</span><span class="p">)</span>
                 <span class="k">break</span>
 
         <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="n">max_num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reached </span><span class="si">{</span><span class="n">fidelity</span><span class="si">}</span><span class="s2"> with the maximum number of layers </span><span class="si">{</span><span class="n">max_num_layers</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Reached </span><span class="si">{</span><span class="n">fidelity</span><span class="si">}</span><span class="s2"> with the maximum number of layers </span><span class="si">{</span><span class="n">max_num_layers</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
 
         <span class="c1"># The layers disentangle the MPS to a state close to |00...0&gt;</span>
         <span class="c1"># inv(U_k) ... inv(U_1) |ψ&gt; = |00...0&gt;</span>
@@ -1400,7 +1400,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
         <span class="n">gate_index</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">unitary_layer</span> <span class="ow">in</span> <span class="n">unitary_layers</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">unitary</span> <span class="ow">in</span> <span class="n">unitary_layer</span><span class="p">:</span>
-                <span class="n">gate_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;unitary_</span><span class="si">{</span><span class="n">gate_index</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">gate_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"unitary_</span><span class="si">{</span><span class="n">gate_index</span><span class="si">}</span><span class="s2">"</span>
                 <span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="n">gate_name</span><span class="p">,</span> <span class="n">unitary</span><span class="p">)</span>
                 <span class="n">qubits</span> <span class="o">=</span> <span class="p">[</span><span class="n">qr</span><span class="p">[</span><span class="n">qubit_index</span><span class="p">]</span> <span class="k">for</span> <span class="n">qubit_index</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">]</span>
                 <span class="n">qubits</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
@@ -1415,7 +1415,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
             <span class="n">max_num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
             <span class="n">chi_max</span><span class="p">:</span> <span class="nb">int</span>
         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Call the instance to generate a circuit from the MPS.</span>
+<span class="w">        </span><span class="sd">""" Call the instance to generate a circuit from the MPS.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1428,7 +1428,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 
 <span class="sd">        Returns:</span>
 <span class="sd">            cudaq.Kernel: The generated quantum circuit.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mps_to_circuit_approx</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">max_num_layers</span><span class="p">,</span> <span class="n">chi_max</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1440,7 +1440,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">generate_random_state</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Generate a random normalized quantum state vector.</span>
+<span class="w">    </span><span class="sd">""" Generate a random normalized quantum state vector.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1451,7 +1451,7 @@ layer from the updated original MPS. We do so until we run out of layers, or rea
 <span class="sd">    -------</span>
 <span class="sd">    `statevector` : NDArray[np.complex128]</span>
 <span class="sd">        A normalized state vector of shape (2**num_qubits,).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_qubits</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_qubits</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">statevector</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">statevector</span><span class="p">)</span>
 </pre></div>

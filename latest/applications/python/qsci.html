@@ -1127,7 +1127,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="s1">&#39;string_&#39;</span><span class="p">):</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="s1">'string_'</span><span class="p">):</span>
     <span class="n">np</span><span class="o">.</span><span class="n">string_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bytes_</span>
 </pre></div>
 </div>
@@ -1143,9 +1143,9 @@
 <span class="n">bond_distance</span> <span class="o">=</span> <span class="mf">0.7474</span>
 
 <span class="c1"># Define a linear chain of Hydrogen atoms</span>
-<span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">bond_distance</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hydrogen_count</span><span class="p">)]</span>
+<span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"H"</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">bond_distance</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hydrogen_count</span><span class="p">)]</span>
 
-<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;sto3g&quot;</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s2">"sto3g"</span>
 <span class="n">multiplicity</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -1172,11 +1172,11 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1255,14 +1255,14 @@
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">pauli_element</span><span class="p">(</span>
     <span class="n">operator</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">b1</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Compute an inner product &lt;b1|operator|b2&gt;.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b1</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">b1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">b1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="o">==</span> <span class="s2">"1"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">b1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b2</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">b2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">b2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">b2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="o">==</span> <span class="s2">"1"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">b2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 
     <span class="n">num_qubits</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">qubit_count</span>
     <span class="n">num_terms</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">term_count</span>
@@ -1338,7 +1338,7 @@
 
 <span class="c1"># eigsh requires k &lt; N; fall back to dense solver for small subspaces</span>
 <span class="k">if</span> <span class="n">subspace_dimension</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-    <span class="n">eigvals</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigsh</span><span class="p">(</span><span class="n">truncated_hamiltonian</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">&quot;SA&quot;</span><span class="p">)</span>
+    <span class="n">eigvals</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigsh</span><span class="p">(</span><span class="n">truncated_hamiltonian</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">"SA"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="n">eigvals</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">truncated_hamiltonian</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">eigvals_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>

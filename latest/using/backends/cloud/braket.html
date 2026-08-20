@@ -1119,10 +1119,10 @@ One of the simplest ways is to use <a class="reference external" href="https://a
 </pre></div>
 </div>
 <p>Alternatively, users can set the following environment variables.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">&quot;&lt;region&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">&quot;&lt;key_id&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;access_key&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;token&gt;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">"&lt;region&gt;"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">"&lt;key_id&gt;"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">"&lt;access_key&gt;"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">"&lt;token&gt;"</span>
 </pre></div>
 </div>
 </section>
@@ -1132,19 +1132,19 @@ One of the simplest ways is to use <a class="reference external" href="https://a
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"braket"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>By default, jobs are submitted to the state vector simulator, <code class="code docutils literal notranslate"><span class="pre">SV1</span></code>.</p>
 <p>To specify which Amazon Braket device to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">device_arn</span> <span class="o">=</span> <span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">device_arn</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">device_arn</span> <span class="o">=</span> <span class="s2">"arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet"</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"braket"</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">device_arn</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>
 <p>To emulate the device locally, without submitting through the cloud,
 you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"braket"</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
@@ -1162,7 +1162,7 @@ By default jobs are submitted to the state vector simulator, <code class="code d
 </div>
 <p>To execute your kernels on different device, pass the <code class="docutils literal notranslate"><span class="pre">--braket-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
 to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>--braket-machine<span class="w"> </span><span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span><span class="w"> </span>src.cpp<span class="w"> </span>...
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>--braket-machine<span class="w"> </span><span class="s2">"arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet"</span><span class="w"> </span>src.cpp<span class="w"> </span>...
 </pre></div>
 </div>
 <p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>

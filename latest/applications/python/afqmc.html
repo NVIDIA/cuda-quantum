@@ -1151,15 +1151,15 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ipie.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 
 <span class="c1"># Ipie has recently added GPU support however this remains a bit tricky to use as it requires manual installation of several packages.</span>
 <span class="c1"># Once this is streamlined, we can set the GPU option to True in the tutorial.</span>
-<span class="n">config</span><span class="o">.</span><span class="n">update_option</span><span class="p">(</span><span class="s2">&quot;use_gpu&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">update_option</span><span class="p">(</span><span class="s2">"use_gpu"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1171,16 +1171,16 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the molecular structure and the basis set for the Fenta molecule.</span>
 
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_fenta.xyz&quot;</span>
-<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
+<span class="n">atom</span> <span class="o">=</span> <span class="s2">"afqmc_src/geo_fenta.xyz"</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s2">"cc-pVTZ"</span>
 <span class="n">spin</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">5</span>
 
 <span class="c1"># You can swap to O3 which is a smaller system and takes less computational resources and time to run.</span>
 
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_o3.xyz&quot;</span>
-<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
+<span class="n">atom</span> <span class="o">=</span> <span class="s2">"afqmc_src/geo_o3.xyz"</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s2">"cc-pVTZ"</span>
 <span class="n">spin</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">9</span>
 <span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">12</span>
@@ -1198,7 +1198,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 
 <span class="c1"># Restriced open shell HF.</span>
 <span class="n">hartee_fock</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">ROHF</span><span class="p">(</span><span class="n">molecule</span><span class="p">)</span>
-<span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/output.chk&quot;</span>
+<span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span> <span class="o">=</span> <span class="s2">"afqmc_src/output.chk"</span>
 
 <span class="c1"># Run Hartree-Fock.</span>
 <span class="n">hartee_fock</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
@@ -1238,10 +1238,10 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 <span class="n">h1</span><span class="p">,</span> <span class="n">energy_core</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h1eff</span><span class="p">()</span>
 
 <span class="n">h2</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h2eff</span><span class="p">()</span>
-<span class="n">h2_no_symmetry</span> <span class="o">=</span> <span class="n">ao2mo</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">)</span>
+<span class="n">h2_no_symmetry</span> <span class="o">=</span> <span class="n">ao2mo</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="s1">'1'</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">)</span>
 
 <span class="c1"># V_pqrs terms in H.</span>
-<span class="n">tbi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h2_no_symmetry</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+<span class="n">tbi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h2_no_symmetry</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">'C'</span><span class="p">)</span>
 
 <span class="c1"># Compute the hamiltonian and convert it to a CUDA-Q operator.</span>
 <span class="n">mol_ham</span> <span class="o">=</span> <span class="n">generate_hamiltonian</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">energy_core</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
@@ -1260,10 +1260,10 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define some options for the VQE.</span>
 <span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;n_vqe_layers&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
-    <span class="s1">&#39;energy_core&#39;</span><span class="p">:</span> <span class="n">constant_term</span><span class="p">,</span>
-    <span class="s1">&#39;return_final_state_vec&#39;</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="s1">'n_vqe_layers'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">'maxiter'</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="s1">'energy_core'</span><span class="p">:</span> <span class="n">constant_term</span><span class="p">,</span>
+    <span class="s1">'return_final_state_vec'</span><span class="p">:</span> <span class="kc">True</span>
 <span class="p">}</span>
 
 <span class="n">n_qubits</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_active_orbitals</span>
@@ -1276,13 +1276,13 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 <span class="n">results</span> <span class="o">=</span> <span class="n">vqe</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
 
 <span class="c1"># Best energy from VQE.</span>
-<span class="n">optimized_energy</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;energy_optimized&#39;</span><span class="p">]</span>
+<span class="n">optimized_energy</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">'energy_optimized'</span><span class="p">]</span>
 
 <span class="c1"># Final state vector.</span>
-<span class="n">final_state_vector</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;state_vec&quot;</span><span class="p">]</span>
+<span class="n">final_state_vector</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">"state_vec"</span><span class="p">]</span>
 
 <span class="c1"># Energies during the optimization loop.</span>
-<span class="n">vqe_energies</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;callback_energies&quot;</span><span class="p">]</span>
+<span class="n">vqe_energies</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">"callback_energies"</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
@@ -1408,11 +1408,11 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
                         <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="c1"># Run the AFQMC.</span>
-<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">estimator_filename</span><span class="o">=</span><span class="s1">&#39;afqmc_src/estimates.0.h5&#39;</span><span class="p">)</span>
+<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">estimator_filename</span><span class="o">=</span><span class="s1">'afqmc_src/estimates.0.h5'</span><span class="p">)</span>
 <span class="n">afqmc_msd</span><span class="o">.</span><span class="n">finalise</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="c1"># Extract the energies.</span>
-<span class="n">qmc_data</span> <span class="o">=</span> <span class="n">extract_observable</span><span class="p">(</span><span class="n">afqmc_msd</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
+<span class="n">qmc_data</span> <span class="o">=</span> <span class="n">extract_observable</span><span class="p">(</span><span class="n">afqmc_msd</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s2">"energy"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1444,14 +1444,14 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 
 <span class="n">vqe_y</span> <span class="o">=</span> <span class="n">vqe_energies</span>
 <span class="n">vqe_x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vqe_y</span><span class="p">)))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vqe_x</span><span class="p">,</span> <span class="n">vqe_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;VQE&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vqe_x</span><span class="p">,</span> <span class="n">vqe_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"VQE"</span><span class="p">)</span>
 
-<span class="n">afqmc_y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qmc_data</span><span class="p">[</span><span class="s2">&quot;ETotal&quot;</span><span class="p">])</span>
+<span class="n">afqmc_y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qmc_data</span><span class="p">[</span><span class="s2">"ETotal"</span><span class="p">])</span>
 <span class="n">afqmc_x</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">vqe_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">afqmc_y</span><span class="p">)))]</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">afqmc_x</span><span class="p">,</span> <span class="n">afqmc_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;AFQMC&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">afqmc_x</span><span class="p">,</span> <span class="n">afqmc_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"AFQMC"</span><span class="p">)</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Optimization steps&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Energy [Ha]&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Optimization steps"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Energy [Ha]"</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 </pre></div>
 </div>

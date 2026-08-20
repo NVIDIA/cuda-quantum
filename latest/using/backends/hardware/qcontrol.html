@@ -1114,7 +1114,7 @@ please consult the <a class="reference external" href="https://www.quantum-machi
 <p>To use Quantum Machines with CUDA-Q, you need to have an API key and access to
 the Quantum Machines server or their <code class="code docutils literal notranslate"><span class="pre">QOperator</span></code> service. You can set it using
 an environment variable:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">QUANTUM_MACHINES_API_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;your_api_key&gt;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">QUANTUM_MACHINES_API_KEY</span><span class="o">=</span><span class="s2">"&lt;your_api_key&gt;"</span>
 </pre></div>
 </div>
 <p>Alternatively, you can provide it directly when setting the target in your code.</p>
@@ -1127,10 +1127,10 @@ set up with Quantum Machines.  By default, a mock executor is used.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <p>To target Quantum Machines from Python, use the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantum_machines&quot;</span><span class="p">,</span>
-                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://api.quantum-machines.com&quot;</span><span class="p">,</span>
-                <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your_api_key&quot;</span><span class="p">,</span>
-                <span class="n">executor</span><span class="o">=</span><span class="s2">&quot;mock&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"quantum_machines"</span><span class="p">,</span>
+                <span class="n">url</span><span class="o">=</span><span class="s2">"https://api.quantum-machines.com"</span><span class="p">,</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="s2">"your_api_key"</span><span class="p">,</span>
+                <span class="n">executor</span><span class="o">=</span><span class="s2">"mock"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Parameters:</p>
@@ -1143,7 +1143,7 @@ set up with Quantum Machines.  By default, a mock executor is used.</p>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution on Quantum Machines, pass the
 flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quantum_machines</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantum_machines<span class="w"> </span>--quantum-machines-url<span class="w"> </span><span class="s2">&quot;https://api.quantum-machines.com&quot;</span><span class="w"> </span>src.cpp
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantum_machines<span class="w"> </span>--quantum-machines-url<span class="w"> </span><span class="s2">"https://api.quantum-machines.com"</span><span class="w"> </span>src.cpp
 </pre></div>
 </div>
 <p>You can specify additional parameters:</p>

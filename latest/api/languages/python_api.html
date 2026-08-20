@@ -3607,7 +3607,7 @@ on multiple degrees of freedom.</p></li>
 <span class="c1"># Create a simulation state.</span>
 <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="c1"># Return the amplitude of |0101&gt;, assuming this is a 4-qubit state.</span>
-<span class="n">amplitude</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitude</span><span class="p">(</span><span class="s1">&#39;0101&#39;</span><span class="p">)</span>
+<span class="n">amplitude</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitude</span><span class="p">(</span><span class="s1">'0101'</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -3635,7 +3635,7 @@ on multiple degrees of freedom.</p></li>
 <span class="c1"># Create a simulation state.</span>
 <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="c1"># Return the amplitudes of |0101&gt; and |1010&gt;, assuming this is a 4-qubit state.</span>
-<span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([</span><span class="s1">&#39;0101&#39;</span><span class="p">,</span> <span class="s1">&#39;1010&#39;</span><span class="p">])</span>
+<span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([</span><span class="s1">'0101'</span><span class="p">,</span> <span class="s1">'1010'</span><span class="p">])</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -5668,7 +5668,7 @@ split key.</p></li>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tensornet"</span><span class="p">)</span>
 
 <span class="n">world_rank</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>
 <span class="n">world_size</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">num_ranks</span><span class="p">()</span>
@@ -5677,7 +5677,7 @@ split key.</p></li>
 <span class="c1"># With four ranks, ranks 0 and 1 use color 0, while ranks 2 and 3 use color 1.</span>
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;World size must be a multiple of ranks_per_qpu.&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"World size must be a multiple of ranks_per_qpu."</span><span class="p">)</span>
 
 <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">)</span>
@@ -5707,7 +5707,7 @@ and ignores this call.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tensornet"</span><span class="p">)</span>
 
 <span class="n">world_rank</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
@@ -5721,7 +5721,7 @@ and ignores this call.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpi4py</span><span class="w"> </span><span class="kn">import</span> <span class="n">MPI</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tensornet"</span><span class="p">)</span>
 
 <span class="n">world_comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
 <span class="n">world_rank</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>

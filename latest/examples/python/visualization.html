@@ -1126,8 +1126,8 @@ about the existence of other states that will call for a 3D extension.</p>
 <span class="c1"># In a Jupyter notebook, go to the menu bar &gt; Kernel &gt; Restart Kernel.</span>
 <span class="c1"># In VSCode, click on the Restart button in the Jupyter toolbar.</span>
 
-<span class="c1"># The &#39;\&#39; before the &#39;&gt;&#39; operator is so that the shell does not misunderstand</span>
-<span class="c1"># the &#39;&gt;&#39; qualifier for the bash pipe operation.</span>
+<span class="c1"># The '\' before the '&gt;' operator is so that the shell does not misunderstand</span>
+<span class="c1"># the '&gt;' qualifier for the bash pipe operation.</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
@@ -1136,7 +1136,7 @@ about the existence of other states that will call for a 3D extension.</p>
     <span class="kn">import</span><span class="w"> </span><span class="nn">qutip</span>
 
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Tools not found, please install and restart your kernel after this is done.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Tools not found, please install and restart your kernel after this is done."</span><span class="p">)</span>
     <span class="c1">#!{sys.executable} -m pip install qutip\&gt;5 matplotlib\&gt;=3.5</span>
 <br/></pre></div>
 </div>
@@ -1149,7 +1149,7 @@ about the existence of other states that will call for a 3D extension.</p>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1">## Retry the subsequent cells by setting the target to density matrix simulator.</span>
-<span class="c1"># cudaq.set_target(&quot;density-matrix-cpu&quot;)</span>
+<span class="c1"># cudaq.set_target("density-matrix-cpu")</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1326,7 +1326,7 @@ q3 : ┤ h ├────────────────╳─────
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">,</span> <span class="n">kernel_to_draw</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="s1">'latex'</span><span class="p">,</span> <span class="n">kernel_to_draw</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>

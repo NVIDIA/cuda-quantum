@@ -1173,11 +1173,11 @@ Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/py
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="c1"># Set the target</span>
-<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="s2">&quot;fp64&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="s2">"fp64"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced."</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"qpp-cpu"</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -1191,10 +1191,10 @@ Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/py
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2_mol</span> <span class="o">=</span> <span class="s2">&quot;qchem/H2.xyz&quot;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2.xyz"</span>
 
 <span class="c1"># Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;sto3g&#39;</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'sto3g'</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -1204,24 +1204,24 @@ Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/py
 <span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="n">energies</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular data&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of electrons: &#39;</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of spatial orbitals: &#39;</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spin molecular orbitals: &#39;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Nuclear repulsion energy: &#39;</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Fermionic hamiltonian: &#39;</span><span class="p">,</span> <span class="n">fermionic_hamiltonian</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Energies: &#39;</span><span class="p">,</span> <span class="n">energies</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Molecular data'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of electrons: '</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Total number of spatial orbitals: '</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spin molecular orbitals: '</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Nuclear repulsion energy: '</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Fermionic hamiltonian: '</span><span class="p">,</span> <span class="n">fermionic_hamiltonian</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Energies: '</span><span class="p">,</span> <span class="n">energies</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Jordan-Wigner transformation&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Jordan-Wigner transformation'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
 <span class="c1"># Compute the qubit hamiltonian.</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Number of terms in the Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Number of terms in the Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -1258,10 +1258,10 @@ Jordan-Wigner transformation
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2_mol</span> <span class="o">=</span> <span class="s2">&quot;qchem/H2.xyz&quot;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2.xyz"</span>
 
 <span class="c1"># Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;sto3g&#39;</span><span class="p">,</span> <span class="n">UR</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'sto3g'</span><span class="p">,</span> <span class="n">UR</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -1271,24 +1271,24 @@ Jordan-Wigner transformation
 <span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="n">energies</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular data&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of electrons: &#39;</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of spatial orbitals: &#39;</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spin molecular orbitals: &#39;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Nuclear repulsion energy: &#39;</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Fermionic hamiltonian: &#39;</span><span class="p">,</span> <span class="n">fermionic_hamiltonian</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Energies: &#39;</span><span class="p">,</span> <span class="n">energies</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Molecular data'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of electrons: '</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Total number of spatial orbitals: '</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spin molecular orbitals: '</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Nuclear repulsion energy: '</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Fermionic hamiltonian: '</span><span class="p">,</span> <span class="n">fermionic_hamiltonian</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Energies: '</span><span class="p">,</span> <span class="n">energies</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Jordan-Wigner transformation&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Jordan-Wigner transformation'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
 <span class="c1"># Compute the qubit hamiltonian.</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Number of terms in the Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Number of terms in the Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1339,11 +1339,11 @@ Jordan-Wigner transformation
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">&quot;qchem/H2O.xyz&quot;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2O.xyz"</span>
 
 <span class="c1"># Run HF, ccsd, casci and compute the active space spin molecular hamiltonian</span>
 <span class="c1"># using the HF molecular orbitals with 4 electron and 4 orbitals in the active space.</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2O_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;631g&#39;</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2O_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'631g'</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                                      <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1354,23 +1354,23 @@ Jordan-Wigner transformation
 <span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="n">energies</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular data&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of electrons in the active space: &#39;</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spatial orbitals in the active space: &#39;</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spin molecular orbitals: &#39;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Core energy: &#39;</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;CASCI Energy: &#39;</span><span class="p">,</span> <span class="n">energies</span><span class="p">[</span><span class="s1">&#39;casci&#39;</span><span class="p">])</span>
-<span class="c1">#print(&#39;Fermionic hamiltonian: &#39;, fermionic_hamiltonian)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Molecular data'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of electrons in the active space: '</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spatial orbitals in the active space: '</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spin molecular orbitals: '</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Core energy: '</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'CASCI Energy: '</span><span class="p">,</span> <span class="n">energies</span><span class="p">[</span><span class="s1">'casci'</span><span class="p">])</span>
+<span class="c1">#print('Fermionic hamiltonian: ', fermionic_hamiltonian)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Jordan-Wigner transformation&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Jordan-Wigner transformation'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
 <span class="c1"># Compute the qubit hamiltonian.</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Number of terms in the Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Number of terms in the Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1407,13 +1407,13 @@ Jordan-Wigner transformation
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">&quot;qchem/H2O.xyz&quot;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2O.xyz"</span>
 
 <span class="c1"># Run HF, MP2, ccsd, casci and compute the active space spin molecular hamiltonian.</span>
 <span class="c1"># Inspect the active space from the natural orbitals. Natural orbitals are computed using MP2.</span>
 <span class="c1"># The active space is defined by 4 electrons and 4 orbitals.</span>
 <span class="c1"># The natural orbitals are used to compute the electron integrals.</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2O_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;631g&#39;</span><span class="p">,</span><span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2O_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'631g'</span><span class="p">,</span><span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                                      <span class="n">MP2</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">natorb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrals_natorb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1424,22 +1424,22 @@ Jordan-Wigner transformation
 <span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="n">energies</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular data&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of electrons in the active space: &#39;</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spatial orbitals in the active space: &#39;</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spin molecular orbitals: &#39;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Core energy: &#39;</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="c1">#print(&#39;Fermionic hamiltonian: &#39;, fermionic_hamiltonian)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Molecular data'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of electrons in the active space: '</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spatial orbitals in the active space: '</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spin molecular orbitals: '</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Core energy: '</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
+<span class="c1">#print('Fermionic hamiltonian: ', fermionic_hamiltonian)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Jordan-Wigner transformation&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Jordan-Wigner transformation'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
 <span class="c1"># Compute the qubit hamiltonian.</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Number of terms in the Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Number of terms in the Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -1481,18 +1481,18 @@ Jordan-Wigner transformation
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">&quot;qchem/H2O.xyz&quot;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2O.xyz"</span>
 
 <span class="c1"># Run HF, MP2, casscf and compute the active space spin molecular hamiltonian.</span>
 <span class="c1"># Inspect and the active space from the natural orbitals. Natural orbitals are computed using MP2.</span>
 <span class="c1"># The natural orbitals are used with casscf calaculations.</span>
 <span class="c1"># The casscf  orbitals are used to compute the electron integrals.</span>
 
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2O_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;631g&#39;</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">H2O_mol</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'631g'</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                                      <span class="n">MP2</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">natorb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casscf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrals_casscf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># If do not want to use the natural orbitals to inspect active space, set natorb=False (default).</span>
-<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=H2O_mol, spin=0, charge=0, basis=&#39;631g&#39;, nele_cas=4, norb_cas=4,</span>
+<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=H2O_mol, spin=0, charge=0, basis='631g', nele_cas=4, norb_cas=4,</span>
 <span class="c1">#                                    casscf=True, integrals_casscf=True, verbose=True)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1503,22 +1503,22 @@ Jordan-Wigner transformation
 <span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="n">energies</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular data&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of electrons in the active space: &#39;</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spatial orbitals in the active space: &#39;</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spin molecular orbitals: &#39;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Core energy: &#39;</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="c1">#print(&#39;Fermionic hamiltonian: &#39;, fermionic_hamiltonian)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Molecular data'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of electrons in the active space: '</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spatial orbitals in the active space: '</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spin molecular orbitals: '</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Core energy: '</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
+<span class="c1">#print('Fermionic hamiltonian: ', fermionic_hamiltonian)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Jordan-Wigner transformation&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Jordan-Wigner transformation'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
 <span class="c1"># Compute the qubit hamiltonian.</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Number of terms in the Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Number of terms in the Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1559,8 +1559,8 @@ Jordan-Wigner transformation
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geomerty</span> <span class="o">=</span> <span class="s1">&#39;N 0.0 0.0 0.56; N 0.0 0.0 -0.56&#39;</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span> <span class="n">geomerty</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;631g&#39;</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geomerty</span> <span class="o">=</span> <span class="s1">'N 0.0 0.0 0.56; N 0.0 0.0 -0.56'</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span> <span class="n">geomerty</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'631g'</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -1570,18 +1570,18 @@ Jordan-Wigner transformation
 <span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="n">energies</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular data&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of electrons in the active space: &#39;</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spatial orbitals in the active space: &#39;</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spin molecular orbitals: &#39;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Core energy: &#39;</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Molecular data'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of electrons in the active space: '</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spatial orbitals in the active space: '</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spin molecular orbitals: '</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Core energy: '</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
 
 <span class="c1"># Compute the qubit hamiltonian.</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Number of terms in the Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Number of terms in the Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1630,8 +1630,8 @@ Core energy:  -97.73731859734099
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geomerty</span> <span class="o">=</span> <span class="s1">&#39;N 0.0 0.0 0.56; N 0.0 0.0 -0.56&#39;</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span> <span class="n">geomerty</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;631g&#39;</span><span class="p">,</span> <span class="n">UR</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geomerty</span> <span class="o">=</span> <span class="s1">'N 0.0 0.0 0.56; N 0.0 0.0 -0.56'</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span> <span class="n">geomerty</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">'631g'</span><span class="p">,</span> <span class="n">UR</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -1641,19 +1641,19 @@ Core energy:  -97.73731859734099
 <span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="n">energies</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular data&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-------------------------------&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of electrons in the active space: &#39;</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spatial orbitals in the active space: &#39;</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of spin molecular orbitals: &#39;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Core energy: &#39;</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Molecular data'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'-------------------------------'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of electrons in the active space: '</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spatial orbitals in the active space: '</span><span class="p">,</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Number of spin molecular orbitals: '</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Core energy: '</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">energies</span><span class="p">)</span>
 
 <span class="c1"># Compute the qubit hamiltonian.</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">ecore</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Cudaq] Number of terms in the Qubit hamiltonian: &#39;</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'[Cudaq] Number of terms in the Qubit hamiltonian: '</span><span class="p">,</span> <span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

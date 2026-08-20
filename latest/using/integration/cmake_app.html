@@ -1122,7 +1122,7 @@ add_executable<span class="o">(</span>ghz_exe<span class="w"> </span>ghz.cpp<spa
 </div>
 <p>To configure and build this file, all we need to do is execute the following from the top level of the <code class="code docutils literal notranslate"><span class="pre">myCudaQApp</span></code> folder:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
-cmake<span class="w"> </span>..<span class="w"> </span>-G<span class="w"> </span>Ninja<span class="w"> </span>-DCUDAQ_DIR<span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CUDA_QUANTUM_PATH</span><span class="s2">/lib/cmake/cudaq&quot;</span>
+cmake<span class="w"> </span>..<span class="w"> </span>-G<span class="w"> </span>Ninja<span class="w"> </span>-DCUDAQ_DIR<span class="o">=</span><span class="s2">"</span><span class="nv">$CUDA_QUANTUM_PATH</span><span class="s2">/lib/cmake/cudaq"</span>
 ninja
 ./ghz_exe
 </pre></div>

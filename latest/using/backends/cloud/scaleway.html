@@ -1117,8 +1117,8 @@ for step-by-step instructions.</p>
 <a class="reference external" href="https://www.scaleway.com/en/docs/quantum-computing/">Scaleway Quantum Computing documentation</a>.</p>
 <section id="setting-credentials">
 <h2>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SCW_SECRET_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;secret_key&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SCW_PROJECT_ID</span><span class="o">=</span><span class="s2">&quot;&lt;project_id&gt;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SCW_SECRET_KEY</span><span class="o">=</span><span class="s2">"&lt;secret_key&gt;"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">SCW_PROJECT_ID</span><span class="o">=</span><span class="s2">"&lt;project_id&gt;"</span>
 </pre></div>
 </div>
 </section>
@@ -1130,20 +1130,20 @@ for step-by-step instructions.</p>
 <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="c1"># Use credentials from environment variables</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;scaleway&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"scaleway"</span><span class="p">)</span>
 
 <span class="c1"># You can specify manually your credentials</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;scaleway&quot;</span><span class="p">,</span> <span class="n">project_id</span><span class="o">=</span><span class="s2">&quot;&lt;project_id&gt;&quot;</span><span class="p">,</span> <span class="n">secret_key</span><span class="o">=</span><span class="s2">&quot;&lt;secret_key&gt;&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"scaleway"</span><span class="p">,</span> <span class="n">project_id</span><span class="o">=</span><span class="s2">"&lt;project_id&gt;"</span><span class="p">,</span> <span class="n">secret_key</span><span class="o">=</span><span class="s2">"&lt;secret_key&gt;"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>By default, kernels are executed on a Scaleway quantum emulator <code class="docutils literal notranslate"><span class="pre">EMU-CUDAQ-H100</span></code>.</p>
 <p>To select a specific Scaleway device, set the <code class="docutils literal notranslate"><span class="pre">machine</span></code> argument:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="o">=</span> <span class="s2">&quot;EMU-CUDAQ-H100&quot;</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="o">=</span> <span class="s2">"EMU-CUDAQ-H100"</span>
 <span class="c1"># machine = EMU-AER-H100 # Access to Aer emulator</span>
 <span class="c1"># machine = QPU-EMERALD-54PQ # Access to IQM QPUs (Garnet, Sirius, Emerald)</span>
 <span class="c1"># machine = QPU-IBEX-12PQ # Access to AQT IBEX-Q1 QPU</span>
 <span class="c1"># machine = EMU-IBEX-12PQ-L4 # Access to AQT IBEX-Q1 emulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;scaleway&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">machine</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"scaleway"</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">machine</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>where <code class="docutils literal notranslate"><span class="pre">EMU-CUDAQ-H100</span></code> identifies an emulator or QPU offer available through Scaleway
@@ -1153,18 +1153,18 @@ Quantum as a Service. Available emulators and QPUs are listed on the
 <p>This allocation can take up to few minutes. To use the same session between different script execution
 or users, you can specify a <code class="docutils literal notranslate"><span class="pre">deduplication_id</span></code>.</p>
 <p>The session will be created if doesn’t exist, else it will retrieve and use the matching one.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="o">=</span> <span class="s2">&quot;EMU-CUDAQ-H100&quot;</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="o">=</span> <span class="s2">"EMU-CUDAQ-H100"</span>
 <span class="c1"># The deduplication identifier is a convenient way to keep using the same resource</span>
 <span class="c1"># between script calls or user</span>
 <span class="c1"># Notes: The target ``machine`` must be the same as well as Scaleway project id</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;scaleway&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">machine</span><span class="p">,</span> <span class="n">deduplication_id</span><span class="o">=</span><span class="s2">&quot;my-workshop&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"scaleway"</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">machine</span><span class="p">,</span> <span class="n">deduplication_id</span><span class="o">=</span><span class="s2">"my-workshop"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can specify the maximal duration or the maximal idle duration to limit the billing.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="o">=</span> <span class="s2">&quot;EMU-CUDAQ-H100&quot;</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="o">=</span> <span class="s2">"EMU-CUDAQ-H100"</span>
 <span class="c1"># The underlying QPU session will be killed after 30 minutes</span>
 <span class="c1"># or after 5 idle minutes without new jobs</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;scaleway&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">machine</span><span class="p">,</span> <span class="n">max_duration</span><span class="o">=</span><span class="s2">&quot;30m&quot;</span><span class="p">,</span> <span class="n">max_idle_duration</span><span class="o">=</span><span class="s2">&quot;5m&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"scaleway"</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">machine</span><span class="p">,</span> <span class="n">max_duration</span><span class="o">=</span><span class="s2">"30m"</span><span class="p">,</span> <span class="n">max_idle_duration</span><span class="o">=</span><span class="s2">"5m"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The number of shots for a kernel execution can be specified via the
@@ -1184,7 +1184,7 @@ capabilities, execution limits, and pricing.</p>
 </div>
 <p>To execute kernels on a specific Scaleway quantum device, pass the
 <code class="docutils literal notranslate"><span class="pre">--scaleway-machine</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> and specify the device identifier.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>scaleway<span class="w"> </span>--scaleway-machine<span class="w"> </span><span class="s2">&quot;&lt;offer_name&gt;&quot;</span><span class="w"> </span>src.cpp
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>scaleway<span class="w"> </span>--scaleway-machine<span class="w"> </span><span class="s2">"&lt;offer_name&gt;"</span><span class="w"> </span>src.cpp
 </pre></div>
 </div>
 <p>where &lt;offer_name&gt; refers to a Scaleway simulator or QPU available in your
@@ -1198,10 +1198,10 @@ project. Available emulators and QPUs are listed on the
 <p>If you want to manually shutdown a QPU session, you can either go to the <a class="reference external" href="https://console.scaleway.com/qaas/sessions">Scaleway console</a>
 or do it by calling the Scaleway’s QaaS API:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># List active sessions</span>
-curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-Auth-Token: </span><span class="nv">$SCW_SECRET_KEY</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=&lt;project_id&gt;&quot;</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>-H<span class="w"> </span><span class="s2">"X-Auth-Token: </span><span class="nv">$SCW_SECRET_KEY</span><span class="s2">"</span><span class="w"> </span><span class="s2">"https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=&lt;project_id&gt;"</span>
 
 <span class="c1"># Terminate the session</span>
-curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-Auth-Token: </span><span class="nv">$SCW_SECRET_KEY</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="s2">&quot;https://api.scaleway.com/qaas/v1alpha1/sessions/{session_id}/terminate&quot;</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">"X-Auth-Token: </span><span class="nv">$SCW_SECRET_KEY</span><span class="s2">"</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">"Content-Type: application/json"</span><span class="w"> </span><span class="s2">"https://api.scaleway.com/qaas/v1alpha1/sessions/{session_id}/terminate"</span>
 </pre></div>
 </div>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#scaleway-examples"><span class="std std-ref">Scaleway QaaS examples</span></a>.</p>
