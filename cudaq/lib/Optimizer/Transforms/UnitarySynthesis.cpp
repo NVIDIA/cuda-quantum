@@ -109,13 +109,14 @@ static void emitLegacySynthesizedGlobalPhase(OpBuilder &rewriter,
                              target);
 }
 
-/// Materialize the global phase extracted by a synthesis decomposer.
+/// Emit a non-negligible global-phase correction from a synthesis decomposer.
 ///
-/// The legacy R1(2 * phi) / Rz(-2 * phi) encoding only emitted a correction
-/// when the doubled angle exceeded the synthesis threshold. Preserve that
-/// numerical decision while recording the actual angle with PhaseOp, so a
-/// later controlled application can make the phase observable before the
-/// phase lifecycle lowers it to ordinary gates.
+/// When a scalar anchor is available, retain the correction as `quake.phase`.
+/// This lets apply-op specialization propagate an outer control, making the
+/// phase observable before phase lowering materializes ordinary gates.
+///
+/// Unsized vector-only helpers cannot provide a scalar anchor, so retain the
+/// equivalent `r1`/`rz` gate sequence as a fallback.
 static void emitSynthesizedGlobalPhase(OpBuilder &rewriter, Location location,
                                        double phase, FloatType floatType,
                                        ValueRange targets) {
