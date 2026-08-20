@@ -52,7 +52,6 @@ header:
     - 'cudaq/include/cudaq/Optimizer/CodeGen/OptUtils.h'
     - 'cudaq/lib/Optimizer/CodeGen/OptUtils.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
-    - 'benchmarks'
 
   comment: on-failure
 
