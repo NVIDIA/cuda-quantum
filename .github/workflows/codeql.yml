@@ -25,7 +25,7 @@ on:
 jobs:
   changes:
     name: Check for stable CUDA-Q changes
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' && 'ubuntu-latest') || 'linux-amd64-cpu4' }}
     permissions:
       contents: read
       pull-requests: read
@@ -59,7 +59,7 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ (github.event_name == 'pull_request' && 'ubuntu-latest') || 'linux-amd64-cpu4' }}
     permissions:
       packages: read # required to fetch internal or private CodeQL packs
       security-events: write
@@ -123,7 +123,7 @@ jobs:
           contents: read
           checks: read
           pull-requests: read
-      runs-on: ubuntu-latest
+      runs-on: ${{ (github.event_name == 'pull_request' && 'ubuntu-latest') || 'linux-amd64-cpu4' }}
       if: >-
         ${{ github.event_name == 'pull_request' &&
             needs.changes.outputs.stable == 'true' }}

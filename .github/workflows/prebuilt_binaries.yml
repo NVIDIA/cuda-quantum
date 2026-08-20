@@ -330,7 +330,7 @@ jobs:
 
   create_test_config:
     name: Prepare validation
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       contents: read
 
@@ -590,7 +590,7 @@ jobs:
     name: Staging
     needs: [build_installer, build_openmpi, create_test_config]
     if: inputs.environment
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       contents: read
 
@@ -631,7 +631,7 @@ jobs:
     needs: [build_installer, validation]
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
 
     steps:
       - name: Delete artifacts
