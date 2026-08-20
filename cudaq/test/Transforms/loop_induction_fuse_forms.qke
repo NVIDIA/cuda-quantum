@@ -1,0 +1,169 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-normalize --cc-loop-induction-fusion \
+// RUN:   --canonicalize %s | FileCheck %s
+
+// ---------------------------------------------------------------------------
+// Test 1: cc.loop without a step region (step lives inside the do-block).
+//
+//   for (i = 1, j = 0; i < N; )   // no step region
+//       { ...; i += 1; j += 5; }
+//
+// Loop control variable starts at 1 so cc-loop-normalize fires.
+// getLoopComponents finds the step in the body and getSecondaryInductions
+// finds j there too.
+// ---------------------------------------------------------------------------
+
+func.func private @two_args(i64, i64)
+
+func.func @test_no_step_region(%n: i64) -> (i64, i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c5 = arith.constant 5 : i64
+  %r:2 = cc.loop while ((%i = %c1, %j = %c0) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c5 : i64
+    cc.continue %i1, %j1 : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_no_step_region(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 5 : i64
+// CHECK:           %[[SUBI_0:.*]] = arith.subi %[[ARG0]], %[[CONSTANT_1]] : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[SUBI_0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             func.call @two_args(%[[ADDI_0]], %[[MULI_0]]) : (i64, i64) -> ()
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[ADDI_2:.*]] = arith.addi %[[LOOP_0]], %[[CONSTANT_1]] : i64
+// CHECK:           return %[[ADDI_2]], %[[MULI_1]] : i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 2: post-conditional (do-while) loop — fusion will be skipped.
+//
+//   do { body; i += 1; j += 3; } while (i < N);
+//
+// isaMonotonicLoop returns false for post-conditional loops, so
+// isaInvariantLoop also returns false and the fusion pass is a NOP.
+// ---------------------------------------------------------------------------
+
+func.func @test_post_conditional(%n: i64) -> (i64, i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c3 = arith.constant 3 : i64
+  %r:2 = cc.loop do ((%i = %c0, %j = %c0) -> (i64, i64)) {
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c3 : i64
+    cc.continue %i1, %j1 : i64, i64
+  } while {
+  ^bb0(%i : i64, %j : i64):
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_post_conditional(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 3 : i64
+// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop do ((%[[VAL_0:.*]] = %[[CONSTANT_0]], %[[VAL_1:.*]] = %[[CONSTANT_0]]) -> (i64, i64)) {
+// CHECK:             func.call @two_args(%[[VAL_0]], %[[VAL_1]]) : (i64, i64) -> ()
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_0]], %[[CONSTANT_1]] : i64
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             cc.continue %[[ADDI_0]], %[[ADDI_1]] : i64, i64
+// CHECK:           } while {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64, %[[VAL_3:.*]]: i64):
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ult, %[[VAL_2]], %[[ARG0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_2]], %[[VAL_3]] : i64, i64)
+// CHECK:           }
+// CHECK:           return %[[VAL_4:.*]]#0, %[[VAL_4]]#1 : i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 3: Python for-else loop.
+//
+//   for (i = 1, j = 0; i < N; i += 1, j += 4):
+//       use(i, j)
+//   else:
+//       use(j)   // j here equals j_initial + N_norm * 4
+//
+// Secondary j will be fused in both the body AND the else region.
+// ---------------------------------------------------------------------------
+
+func.func @test_python_for_else(%n: i64) -> (i64, i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %r:2 = cc.loop while ((%i = %c1, %j = %c0) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c4 : i64
+    cc.continue %i1, %j1 : i64, i64
+  } else {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_python_for_else(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 4 : i64
+// CHECK:           %[[SUBI_0:.*]] = arith.subi %[[ARG0]], %[[CONSTANT_1]] : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[SUBI_0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             func.call @two_args(%[[ADDI_0]], %[[MULI_0]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]] : i64
+// CHECK:           } else {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: i64):
+// CHECK:             %[[MULI_1:.*]] = arith.muli %[[VAL_3]], %[[CONSTANT_2]] : i64
+// CHECK:             func.call @two_args(%[[VAL_3]], %[[MULI_1]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_3]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_2:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[ADDI_2:.*]] = arith.addi %[[LOOP_0]], %[[CONSTANT_1]] : i64
+// CHECK:           return %[[ADDI_2]], %[[MULI_2]] : i64, i64
+

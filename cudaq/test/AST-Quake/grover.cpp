@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt -lambda-lifting=constant-prop=1 -apply-op-specialization | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt -lambda-lifting=constant-prop=1 --canonicalize -apply-op-specialization | FileCheck %s
 // clang-format on
 
 #include <cmath>
@@ -77,9 +77,9 @@ int main(int argc, char *argv[]) {
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_2]] : i64
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C0:[0-9]*]] %[[VAL_0]] : (!quake.veq<?>) -> ()
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C1:[0-9]*]] %[[VAL_6]], %[[VAL_9]] : (!quake.veq<?>, !quake.ref) -> ()
-// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C0]] %[[VAL_0]] : (!quake.veq<?>) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C0:[0-9]*]] (%[[VAL_0]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C1:[0-9]*]] (%[[VAL_6]], %[[VAL_9]]) : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C0]] (%[[VAL_0]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -87,9 +87,9 @@ int main(int argc, char *argv[]) {
 // CHECK-SAME:      %[[VAL_0:.*]]: i64, %[[VAL_1:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_7:.*]] = cc.alloca i64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_7]] : !cc.ptr<i64>
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C2:[0-9]*]] %[[VAL_1]], %[[VAL_7]] : (!quake.veq<?>, !cc.ptr<i64>) -> ()
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C3:[0-9]*]] %[[VAL_1]] : (!quake.veq<?>) -> ()
-// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C2]] %[[VAL_1]], %[[VAL_7]] : (!quake.veq<?>, !cc.ptr<i64>) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C2:[0-9]*]] (%[[VAL_1]], %[[VAL_7]]) : (!quake.veq<?>, !cc.ptr<i64>) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C3:[0-9]*]] (%[[VAL_1]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C2]] (%[[VAL_1]], %[[VAL_7]]) : (!quake.veq<?>, !cc.ptr<i64>) -> ()
 // CHECK:           return
 // CHECK:         }
 

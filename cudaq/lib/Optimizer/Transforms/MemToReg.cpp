@@ -77,6 +77,27 @@ static bool onlyTakesLinearTypeArguments(Operation *op) {
   return op->hasTrait<cudaq::cc::LinearTypeArgsTrait>();
 }
 
+/// Returns true if and only if \p op behaves like a quantum-gate operator:
+/// it implicitly dereferences a `!quake.ref` operand and modifies the wire
+/// it refers to. All quake ops with the `QuantumGate` trait (which includes
+/// `quake.reset` and `quake.exp_pauli`) act this way, as do the quantum
+/// measurement ops (`quake.mx`/`my`/`mz`, tagged `QuantumMeasure`) and ops
+/// tagged `QuantumSideEffects` that are not themselves quantum operators
+/// but macro-expand to (or invoke) one: `quake.apply`,
+/// `quake.compute_action`, `quake.apply_noise`, and `quake.call_by_ref`.
+/// Every other op only manages references/veqs — e.g. `quake.concat`,
+/// `quake.dealloc`, `quake.relax_size`, `cc.instantiate_callable`,
+/// `cc.callable_closure`, and (despite appearances) `quake.log_output` — and
+/// cannot alias or mutate a qubit we are tracking. `quake.log_output` merely
+/// marks a value as observable for later codegen; it does not dereference
+/// or modify anything, so it must not trigger the conservative
+/// wrap-and-cancel-everything path below.
+static bool actsLikeQuantumOperator(Operation *op) {
+  return op->hasTrait<cudaq::QuantumGate>() ||
+         op->hasTrait<cudaq::QuantumMeasure>() ||
+         op->hasTrait<cudaq::QuantumSideEffects>();
+}
+
 static bool isLinearType(Value v) {
   return cudaq::quake::isLinearType(v.getType());
 }
@@ -143,8 +164,22 @@ private:
       for (auto *u : a->getUsers()) {
         // Don't convert quake.custom unitary ops as they have ambiguous
         // semantics.
+        //
+        // cc.instantiate_callable always escapes any pointer-typed operand it
+        // captures: the closure holds onto that raw address for later
+        // dereference from a completely different function, not a load-like
+        // use here. isMemoryUse's op-level MemoryEffectOpInterface check
+        // can't tell escaping capture operands apart from ordinary ones —
+        // InstantiateCallableOp::getEffects reports a blanket Read (to keep
+        // CSE from merging distinct instantiations of a closure that
+        // captures a quantum reference; see its definition in CCOps.cpp),
+        // which makes isMemoryUse return true for the whole op regardless of
+        // which operand is being examined, so a classical alloca captured
+        // alongside an unrelated quantum capture would otherwise look like a
+        // harmless load and get promoted out from under the closure.
         if (isa<cudaq::quake::CustomUnitaryCallOp,
-                cudaq::quake::CustomUnitaryConstantOp>(u) ||
+                cudaq::quake::CustomUnitaryConstantOp,
+                cudaq::cc::InstantiateCallableOp>(u) ||
             (!isMemoryUse(u) && !nonEscapingDef(u, v))) {
           add = nullptr;
           break;
@@ -297,7 +332,7 @@ public:
   void addBlock(Block *block) {
     assert(block);
     if (!rMap.count(block)) {
-      rMap.insert({block, DenseMap<MemRef, SSAReg>{}});
+      rMap.insert({block, llvm::MapVector<MemRef, SSAReg>{}});
       liveInMap.insert({block, llvm::MapVector<MemRef, SSAReg>{}});
     }
   }
@@ -318,6 +353,30 @@ public:
   /// location.
   void cancelBinding(Block *block, MemRef mr) {
     addBinding(block, mr, SSAReg{});
+  }
+
+  /// \p ref is an alloca-promoted ref that is about to be erased (its
+  /// defining op is in \p cleanUps), but a downstream op not yet visited may
+  /// still hold \p ref as a raw operand (e.g. a synthetic UnwrapOp inserted
+  /// by convertToQLS). Cancelling \p ref's binding without doing anything
+  /// else would leave that later use dangling once the alloca is erased —
+  /// give \p ref a fresh, live stand-in and redirect every remaining use to
+  /// it before cancelling.
+  ///
+  /// \p wire is consumed by the mint (its qubit identity is handed off to
+  /// the fresh ref), so the fresh ref's own binding must be cancelled too —
+  /// not bound back to \p wire — otherwise a later use of the fresh ref
+  /// would be optimized straight through to \p wire, giving it a second use
+  /// and violating wire linearity. This mirrors the fact that whatever
+  /// mutated the aliased qubit did so entirely in ref-space: \p wire no
+  /// longer represents the qubit's current state, only the fresh ref does.
+  void reclaimAliasedRef(Block *block, OpBuilder &builder, Location loc,
+                         MemRef ref, SSAReg wire) {
+    auto newRef =
+        cudaq::quake::WrapNewOp::create(builder, loc, ref.getType(), wire);
+    ref.replaceAllUsesWith(newRef);
+    cancelBinding(block, newRef);
+    cancelBinding(block, ref);
   }
 
   /// Wrap all active quantum-ref bindings back into their refs and cancel them.
@@ -348,10 +407,11 @@ public:
         continue;
 
       // Alloca refs in cleanUps are being SSA-promoted; skip the wrap but
-      // still cancel so subsequent uses get a fresh binding.
+      // give ref a live stand-in before cancelling so subsequent uses get a
+      // fresh binding instead of a dangling operand.
       if (auto *defOp = ref.getDefiningOp())
         if (cleanUps.count(defOp)) {
-          cancelBinding(block, ref);
+          reclaimAliasedRef(block, builder, loc, ref, wire);
           continue;
         }
 
@@ -387,17 +447,32 @@ public:
       for (Value arg : concat.getTargets()) {
         if (fallback)
           break;
+        // A quake.wrap_new result is a stand-in ref minted to let some
+        // other op (e.g. this very concat) consume a memref that couldn't
+        // be used directly — see reclaimAliasedRef and the toReclaim
+        // pattern above. Its binding in rMap is a one-time snapshot that is
+        // never updated as the real, underlying memref's binding evolves,
+        // so cancelling *it* would silently leave the real memref's (now
+        // stale) binding live. There is no way to trace a stand-in back to
+        // the memref it stood in for, so fall back to the conservative
+        // cancel-everything path.
+        if (arg.getDefiningOp<cudaq::quake::WrapNewOp>()) {
+          fallback = true;
+          continue;
+        }
         if (isa<cudaq::quake::RefType>(arg.getType())) {
           SSAReg cur = lookupBinding(block, arg);
           if (cur && !llvm::is_contained(op->getOperands(), cur)) {
             bool argInCleanUps =
                 arg.getDefiningOp() && cleanUps.count(arg.getDefiningOp());
-            if (!argInCleanUps) {
+            if (argInCleanUps) {
+              reclaimAliasedRef(block, builder, loc, arg, cur);
+            } else {
               auto wrapOp =
                   cudaq::quake::WrapOp::create(builder, loc, cur, arg);
               cleanUps.insert(wrapOp);
+              cancelBinding(block, arg);
             }
-            cancelBinding(block, arg);
           }
         } else if (auto veqTy =
                        dyn_cast<cudaq::quake::VeqType>(arg.getType())) {
@@ -658,8 +733,11 @@ private:
   }
 
   /// A map for each block to its bindings from a memory reference to a
-  /// virtual register value.
-  DenseMap<Block *, DenseMap<MemRef, SSAReg>> rMap;
+  /// virtual register value. Insertion-order-preserving so that ops emitted
+  /// while iterating a block's bindings (e.g. wrapAndCancelAllQuantumBindings)
+  /// come out in a deterministic order instead of DenseMap's pointer-hash
+  /// bucket order, which varies run to run.
+  DenseMap<Block *, llvm::MapVector<MemRef, SSAReg>> rMap;
   /// For a CFG, maintain a distinct map for each block of the definitions
   /// that are live-in to each block.
   DenseMap<Block *, llvm::MapVector<MemRef, SSAReg>> liveInMap;
@@ -1027,10 +1105,30 @@ public:
           // `continue` — so it fires even for ops like extract_ref that both
           // use a veq operand and produce a !quake.ref result.
           //
-          // Excluded: quake.concat (assembles refs into a veq without reading
-          // through it) and quake.dealloc (handled separately).
-          if (quantumValues &&
-              !isa<cudaq::quake::ConcatOp, cudaq::quake::DeallocOp>(op)) {
+          // Ops that act like quantum-gate operators (see
+          // actsLikeQuantumOperator) actually dereference a ref and modify
+          // the wire it refers to. A dynamic-index quake.extract_ref is the
+          // other trigger: it doesn't itself mutate anything, but it returns
+          // a ref that may alias any individually-tracked ref in the same
+          // veq, so any such stale binding must be invalidated right here —
+          // waiting for a later op to dereference the extracted ref would be
+          // too late, since that op's own operand is the ref, not the veq,
+          // and so it can't be traced back to the veq it may alias. Every
+          // other op — quake.concat, quake.dealloc, quake.relax_size,
+          // cc.instantiate_callable, cc.callable_closure, etc. — only
+          // manages references/veqs and cannot alias or mutate a qubit we
+          // are tracking, so this conservative cancellation must not fire
+          // for them. The third trigger is any op with regions (cc.loop,
+          // cc.if, cc.scope, ...): the aliasing access may be nested inside
+          // one of its regions rather than be a direct operand of the op
+          // itself, reported back via childMap/parentMap (Source 2 below)
+          // by the recursive processOpWithRegions call that already ran
+          // over its regions. That summary is only ever consumed here, so
+          // an op with regions must always enter this branch to have a
+          // chance to consume it, regardless of what its own operands are.
+          if (quantumValues && (actsLikeQuantumOperator(op) ||
+                                isa<cudaq::quake::ExtractRefOp>(op) ||
+                                op->getNumRegions() > 0)) {
             // Collect veqs whose ref-bindings need to be cancelled.
             // Two sources feed into this set:
             //
@@ -1130,14 +1228,34 @@ public:
             } else {
               OpBuilder builder(ctx);
               builder.setInsertionPoint(op);
+              // Track (memref, freshRef) pairs so the wires captured by op's
+              // ref-typed operands can be reclaimed with an unwrap placed
+              // after op.
+              SmallVector<std::pair<Value, Value>> toReclaim;
               for (auto v : op->getOperands())
                 if (v.getType() == qrefTy)
                   if (auto vBinding = dataFlow.lookupBinding(block, v)) {
-                    cudaq::quake::WrapOp::create(builder, op->getLoc(),
-                                                 vBinding, v);
-                    dataFlow.cancelBinding(block, v);
+                    // v may be an alloca-promoted ref that is about to be
+                    // erased, so op cannot keep using it directly. Bind the
+                    // current wire to a fresh reference for op to consume
+                    // (see quake.wrap_new) and reclaim the wire with an
+                    // unwrap placed after op.
+                    auto newRef = cudaq::quake::WrapNewOp::create(
+                        builder, op->getLoc(), qrefTy, vBinding);
+                    op->replaceUsesOfWith(v, newRef);
+                    toReclaim.emplace_back(v, newRef);
                   }
               builder.setInsertionPointAfter(op);
+              for (auto [v, newRef] : toReclaim) {
+                Value newWire = cudaq::quake::UnwrapOp::create(
+                    builder, op->getLoc(), wireTy, newRef);
+                dataFlow.addBinding(block, v, newWire);
+                // This unwrap's own ref operand is newRef, not v: bind it
+                // too so the walk loop's own re-visit of this synthetic
+                // unwrap (below) resolves to a known def instead of
+                // reporting a spurious "use before def".
+                dataFlow.addBinding(block, newRef, newWire);
+              }
               for (auto r : op->getResults())
                 if (r.getType() == qrefTy) {
                   Value v = cudaq::quake::UnwrapOp::create(
@@ -1290,15 +1408,36 @@ public:
           }
 
           // If op uses a quantum reference, then halt forwarding the unwrap
-          // use chain and leave a wrap dominating op.
-          for (auto v : op->getOperands())
-            if (v.getType() == qrefTy)
-              if (auto vBinding = dataFlow.lookupBinding(block, v)) {
-                OpBuilder builder(op);
-                cudaq::quake::WrapOp::create(builder, op->getLoc(), vBinding,
-                                             v);
-                dataFlow.cancelBinding(block, v);
+          // use chain and leave a wrap dominating op. Since v may be an
+          // alloca-promoted ref that is about to be erased, op cannot keep
+          // using it directly: bind the current wire to a fresh reference
+          // for op to consume (see quake.wrap_new) and reclaim the wire
+          // with an unwrap placed after op.
+          {
+            SmallVector<std::pair<Value, Value>> toReclaim;
+            OpBuilder builder(op);
+            for (auto v : op->getOperands())
+              if (v.getType() == qrefTy)
+                if (auto vBinding = dataFlow.lookupBinding(block, v)) {
+                  auto newRef = cudaq::quake::WrapNewOp::create(
+                      builder, op->getLoc(), qrefTy, vBinding);
+                  op->replaceUsesOfWith(v, newRef);
+                  toReclaim.emplace_back(v, newRef);
+                }
+            if (!toReclaim.empty()) {
+              builder.setInsertionPointAfter(op);
+              for (auto [v, newRef] : toReclaim) {
+                Value newWire = cudaq::quake::UnwrapOp::create(
+                    builder, op->getLoc(), wireTy, newRef);
+                dataFlow.addBinding(block, v, newWire);
+                // This unwrap's own ref operand is newRef, not v: bind it
+                // too so the walk loop's own re-visit of this synthetic
+                // unwrap (below) resolves to a known def instead of
+                // reporting a spurious "use before def".
+                dataFlow.addBinding(block, newRef, newWire);
               }
+            }
+          }
 
         } // end loop over ops
       } // end loop over blocks

@@ -10,14 +10,14 @@
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CallGraphFix.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "llvm/ADT/DepthFirstIterator.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -30,6 +30,42 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
+/// Collect all functions defined in \p module that `root` transitively
+/// depends on (including `root` itself), in depth-first pre-order over call
+/// sites as they appear in each function's body (matching the traversal
+/// order `mlir::CallGraph`'s `df_iterator` used to produce, which some tests
+/// depend on for the order functions are printed in). A dependency edge
+/// exists for any `CallOpInterface` op (e.g. `func.call`, `quake.apply`) as
+/// well as for `cc.instantiate_callable`, whose `callee` symbol is *not*
+/// visible to `mlir::CallGraph` since the op does not implement
+/// `CallOpInterface` (the callable it builds is invoked indirectly, not
+/// called directly at the instantiation site). Missing that edge here would
+/// cause a kernel's self-contained embedded Quake IR to omit a function
+/// referenced only via an instantiated callable, e.g. a control-variant
+/// closure wrapper synthesized by ApplyOpSpecialization, producing IR that
+/// fails to parse (`must refer to a valid function`) when reloaded
+/// standalone.
+static void
+collectDependentFunctions(mlir::ModuleOp module, mlir::func::FuncOp f,
+                          llvm::SetVector<mlir::func::FuncOp> &deps) {
+  if (f.isExternal() || !deps.insert(f))
+    return;
+  f.walk([&](Operation *op) {
+    FlatSymbolRefAttr calleeAttr;
+    if (auto call = dyn_cast<CallOpInterface>(op)) {
+      if (auto sym =
+              dyn_cast_if_present<SymbolRefAttr>(call.getCallableForCallee()))
+        calleeAttr = dyn_cast<FlatSymbolRefAttr>(sym);
+    } else if (auto inst = dyn_cast<cudaq::cc::InstantiateCallableOp>(op)) {
+      calleeAttr = dyn_cast<FlatSymbolRefAttr>(inst.getCallee());
+    }
+    if (calleeAttr)
+      if (auto callee =
+              module.lookupSymbol<mlir::func::FuncOp>(calleeAttr.getValue()))
+        collectDependentFunctions(module, callee, deps);
+  });
+}
+
 class GenerateDeviceCodeLoaderPass
     : public cudaq::opt::impl::GenerateDeviceCodeLoaderBase<
           GenerateDeviceCodeLoaderPass> {
@@ -93,8 +129,6 @@ public:
       }
     }
 
-    // Create a call graph to track kernel dependency.
-    mlir::CallGraph callGraph(module);
     for (auto &op : *module.getBody()) {
       auto funcOp = dyn_cast<func::FuncOp>(op);
       if (!funcOp)
@@ -120,22 +154,14 @@ public:
       // We'll also need any non-inlined functions that are
       // called by our cudaq kernel
       // Set of dependent kernels that we've included.
-      // Note: the `CallGraphNode` does include 'this' function.
-      mlir::CallGraphNode *node =
-          callGraph.lookupNode(funcOp.getCallableRegion());
-      // Iterate over all dependent kernels starting at this node.
-      for (auto it = llvm::df_begin(node), itEnd = llvm::df_end(node);
-           it != itEnd; ++it) {
-        // Only consider those that are defined in this module.
-        if (!it->isExternal()) {
-          auto *callableRegion = it->getCallableRegion();
-          auto parentFuncOp =
-              callableRegion->getParentOfType<mlir::func::FuncOp>();
-          LLVM_DEBUG(llvm::dbgs() << "  Adding dependent function "
-                                  << parentFuncOp->getName() << '\n');
-          parentFuncOp.print(strOut, opf);
-          strOut << '\n';
-        }
+      // Note: `deps` does include 'this' function.
+      llvm::SetVector<mlir::func::FuncOp> deps;
+      collectDependentFunctions(module, funcOp, deps);
+      for (mlir::func::FuncOp parentFuncOp : deps) {
+        LLVM_DEBUG(llvm::dbgs() << "  Adding dependent function "
+                                << parentFuncOp->getName() << '\n');
+        parentFuncOp.print(strOut, opf);
+        strOut << '\n';
       }
 
       // Include the generated kernel thunk if present since it is on the
