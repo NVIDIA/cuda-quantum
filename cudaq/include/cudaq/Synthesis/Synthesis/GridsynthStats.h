@@ -57,7 +57,7 @@ namespace details {
 /// while the search runs.
 ///
 /// One thread writes, so relaxed ordering suffices and increment lowers to a
-/// plain load, add and store (no lock). What it buys is definedness. Reading
+/// plain load, add and store (no lock). What it buys is `definedness`. Reading
 /// a plain scalar while another thread writes it is a data race, whatever
 /// word-sized loads happen to do on a given target.
 ///

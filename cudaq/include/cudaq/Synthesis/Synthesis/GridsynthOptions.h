@@ -41,7 +41,7 @@ inline constexpr uint32_t DEFAULT_MAX_FACTORING_RESTARTS = 8;
 /// Steps one ODGP line scan may take without yielding. The scan's a-range is
 /// finite but can be astronomically wide (past 1e15 at k=100), harmless only
 /// because a solution normally turns up in a few steps; on a line that has
-/// none the scan never finishes. gridsynth(pi/4, 1e-15) hung on exactly that.
+/// none the scan never finishes. `gridsynth(pi/4, 1e-15)` hung on exactly that.
 inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
 
 } // namespace details
