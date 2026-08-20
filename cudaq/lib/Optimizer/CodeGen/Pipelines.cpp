@@ -159,11 +159,12 @@ void cudaq::opt::addKernelBuilderJITPrepPipeline(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createUnwindLowering());
   addAggressiveInlining(pm);
   pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createExpandMeasurementsPass());
-  pm.addNestedPass<func::FuncOp>(createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createAddDeallocs());
