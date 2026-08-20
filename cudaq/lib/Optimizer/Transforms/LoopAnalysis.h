@@ -199,7 +199,7 @@ getSecondaryInductions(cc::LoopOp loop, const LoopComponents &primary);
 std::optional<LoopComponents> getLoopComponents(cc::LoopOp loop);
 
 /// If \p v is loop-invariant with respect to \p loop (see isLoopInvariant)
-/// but does not itself dominate \p loop -- i.e. it is a pure recomputation
+/// but does not itself dominate \p loop -- i.e. it is a pure `recomputation`
 /// of an invariant expression nested inside the loop rather than a value
 /// hoisted above it -- clone the defining op (and, recursively, its
 /// operands) at the current insertion point of \p rewriter so the result
