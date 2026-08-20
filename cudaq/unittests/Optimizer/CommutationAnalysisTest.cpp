@@ -7,24 +7,28 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Analysis/CommutationAnalysis.h"
+#include "QubitIdentityAnalysis.h"
 #include "gtest/gtest.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
+#include <string>
 
 using namespace mlir;
 
 using CommutationAnalysis = cudaq::quake::detail::CommutationAnalysis;
 using commutation_reason = cudaq::quake::detail::commutation_reason;
 using commutation_status = cudaq::quake::detail::commutation_status;
+using QubitIdentityAnalysis = cudaq::quake::detail::QubitIdentityAnalysis;
 
 namespace {
 class CommutationAnalysisTest : public ::testing::Test {
@@ -38,9 +42,9 @@ protected:
   }
 
   OwningOpRef<ModuleOp> parseModule(llvm::StringRef source) {
-    auto parsed = parseSourceString<ModuleOp>(source, &context);
-    if (parsed && succeeded(verify(*parsed)))
-      return parsed;
+    auto module = parseSourceString<ModuleOp>(source, &context);
+    if (module && succeeded(verify(*module)))
+      return module;
     return {};
   }
 
@@ -52,611 +56,218 @@ protected:
 
   static llvm::SmallVector<Operation *> getOperators(func::FuncOp function) {
     llvm::SmallVector<Operation *> operators;
-    if (!function)
-      return operators;
     for (Operation &operation : function.front())
       if (isa<cudaq::quake::OperatorInterface>(operation))
         operators.push_back(&operation);
     return operators;
   }
 
-  // Check that both operand orders produce the expected detailed result.
-  static void expectPair(CommutationAnalysis &analysis, Operation *lhs,
-                         Operation *rhs, commutation_status status,
-                         commutation_reason reason) {
-    auto forward = analysis.getResult(lhs, rhs);
-    auto reverse = analysis.getResult(rhs, lhs);
-    EXPECT_EQ(forward.status, status);
-    EXPECT_EQ(forward.reason, reason);
-    EXPECT_EQ(reverse.status, status);
-    EXPECT_EQ(reverse.reason, reason);
+  static void expectResult(CommutationAnalysis &analysis, Operation *lhs,
+                           Operation *rhs, commutation_status status,
+                           commutation_reason reason) {
+    auto result = analysis.getResult(lhs, rhs);
+    EXPECT_EQ(result.status, status);
+    EXPECT_EQ(result.reason, reason);
   }
 
   MLIRContext context;
 };
 } // namespace
 
-TEST_F(CommutationAnalysisTest, CommutesOperationsOnDifferentQubits) {
+TEST_F(CommutationAnalysisTest, ReportsCoreDetailedResultsSymmetrically) {
   auto module = parseModule(R"mlir(
     module {
-      func.func @disjoint() {
+      func.func @relations() {
         %q0 = quake.null_wire
+        %x0 = quake.x %q0 : (!quake.wire) -> !quake.wire
+        %z0 = quake.z %x0 : (!quake.wire) -> !quake.wire
         %q1 = quake.null_wire
-        %x = quake.x %q0 : (!quake.wire) -> !quake.wire
-        %h = quake.h %q1 : (!quake.wire) -> !quake.wire
-        quake.sink %x : !quake.wire
-        quake.sink %h : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "disjoint");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 2u);
-  CommutationAnalysis analysis(function.front());
-  // X and H act on different virtual qubits.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::disjoint_support);
-}
-
-TEST_F(CommutationAnalysisTest, CanCommuteIsTrueOnlyForProvenCommutation) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @boolean_contract() {
-        %q0 = quake.null_wire
-        %q1 = quake.null_wire
+        %h1 = quake.h %q1 : (!quake.wire) -> !quake.wire
         %q2 = quake.null_wire
-        %x = quake.x %q0 : (!quake.wire) -> !quake.wire
-        %z = quake.z %x : (!quake.wire) -> !quake.wire
-        %disjoint = quake.h %q1 : (!quake.wire) -> !quake.wire
-        %h = quake.h %q2 : (!quake.wire) -> !quake.wire
-        %s = quake.s %h : (!quake.wire) -> !quake.wire
-        quake.sink %z : !quake.wire
-        quake.sink %disjoint : !quake.wire
-        quake.sink %s : !quake.wire
+        %h2 = quake.h %q2 : (!quake.wire) -> !quake.wire
+        %s2 = quake.s %h2 : (!quake.wire) -> !quake.wire
+        %q3 = quake.null_wire
+        %x3 = quake.x %q3 : (!quake.wire) -> !quake.wire
+        quake.sink %z0 : !quake.wire
+        quake.sink %h1 : !quake.wire
+        quake.sink %s2 : !quake.wire
+        quake.sink %x3 : !quake.wire
         return
       }
     })mlir");
   ASSERT_TRUE(module);
-  auto function = getFunction(*module, "boolean_contract");
+  auto function = getFunction(*module, "relations");
   auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 5u);
+  auto sinks = llvm::to_vector(function.getOps<cudaq::quake::SinkOp>());
+  ASSERT_EQ(operators.size(), 6u);
+  ASSERT_EQ(sinks.size(), 4u);
   CommutationAnalysis analysis(function.front());
 
-  struct Query {
-    Operation *lhs;
-    Operation *rhs;
-    commutation_status status;
-    bool canCommute;
-  };
-  const Query queries[] = {
-      {operators[0], operators[2], commutation_status::commutes, true},
-      {operators[0], operators[1], commutation_status::does_not_commute, false},
-      {operators[3], operators[4], commutation_status::indeterminate, false},
-  };
-  for (const auto &query : queries) {
-    EXPECT_EQ(analysis.getResult(query.lhs, query.rhs).status, query.status);
-    EXPECT_EQ(analysis.canCommute(query.lhs, query.rhs), query.canCommute);
-  }
-}
-
-TEST_F(CommutationAnalysisTest, FreshReferenceProvenanceBoundaries) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @rebind(%destination: !quake.ref, %source: !quake.ref) {
-        %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
-        quake.wrap %wire to %destination : !quake.wire, !quake.ref
-        return
-      }
-
-      func.func @fresh_allocations() {
-        %angle = arith.constant 5.0e-1 : f64
-        %first = quake.alloca !quake.ref
-        %firstWire = quake.unwrap %first : (!quake.ref) -> !quake.wire
-        %x = quake.x %firstWire : (!quake.wire) -> !quake.wire
-        %rx = quake.rx (%angle) %x
-            : (f64, !quake.wire) -> !quake.wire
-        %second = quake.alloca !quake.ref
-        %secondWire = quake.unwrap %second : (!quake.ref) -> !quake.wire
-        %h = quake.h %secondWire : (!quake.wire) -> !quake.wire
-        quake.sink %rx : !quake.wire
-        quake.sink %h : !quake.wire
-        return
-      }
-
-      func.func @call_boundary() {
-        %destination = quake.alloca !quake.ref
-        %destinationWire = quake.unwrap %destination
-            : (!quake.ref) -> !quake.wire
-        %destinationBefore = quake.x %destinationWire
-            : (!quake.wire) -> !quake.wire
-        quake.wrap %destinationBefore to %destination
-            : !quake.wire, !quake.ref
-        %source = quake.alloca !quake.ref
-        %sourceWire = quake.unwrap %source
-            : (!quake.ref) -> !quake.wire
-        %sourceBefore = quake.h %sourceWire
-            : (!quake.wire) -> !quake.wire
-        quake.wrap %sourceBefore to %source : !quake.wire, !quake.ref
-        func.call @rebind(%destination, %source)
-            : (!quake.ref, !quake.ref) -> ()
-        %destinationAfterWire = quake.unwrap %destination
-            : (!quake.ref) -> !quake.wire
-        %destinationAfter = quake.x %destinationAfterWire
-            : (!quake.wire) -> !quake.wire
-        %sourceAfterWire = quake.unwrap %source
-            : (!quake.ref) -> !quake.wire
-        %sourceAfter = quake.h %sourceAfterWire
-            : (!quake.wire) -> !quake.wire
-        quake.sink %destinationAfter : !quake.wire
-        quake.sink %sourceAfter : !quake.wire
-        return
-      }
-
-      func.func @region_boundary() {
-        %destination = quake.alloca !quake.ref
-        %destinationWire = quake.unwrap %destination
-            : (!quake.ref) -> !quake.wire
-        %destinationBefore = quake.x %destinationWire
-            : (!quake.wire) -> !quake.wire
-        quake.wrap %destinationBefore to %destination
-            : !quake.wire, !quake.ref
-        %source = quake.alloca !quake.ref
-        %sourceWire = quake.unwrap %source
-            : (!quake.ref) -> !quake.wire
-        %sourceBefore = quake.h %sourceWire
-            : (!quake.wire) -> !quake.wire
-        quake.wrap %sourceBefore to %source : !quake.wire, !quake.ref
-        cc.scope {
-          %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
-          quake.wrap %wire to %destination : !quake.wire, !quake.ref
-          cc.continue
-        }
-        %destinationAfterWire = quake.unwrap %destination
-            : (!quake.ref) -> !quake.wire
-        %destinationAfter = quake.x %destinationAfterWire
-            : (!quake.wire) -> !quake.wire
-        %sourceAfterWire = quake.unwrap %source
-            : (!quake.ref) -> !quake.wire
-        %sourceAfter = quake.h %sourceAfterWire
-            : (!quake.wire) -> !quake.wire
-        quake.sink %destinationAfter : !quake.wire
-        quake.sink %sourceAfter : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  auto fresh = getFunction(*module, "fresh_allocations");
-  auto freshOperators = getOperators(fresh);
-  ASSERT_EQ(freshOperators.size(), 3u);
-  CommutationAnalysis freshAnalysis(fresh.front());
-  expectPair(freshAnalysis, freshOperators[0], freshOperators[1],
-             commutation_status::commutes, commutation_reason::same_axis);
-  expectPair(freshAnalysis, freshOperators[0], freshOperators[2],
-             commutation_status::commutes,
-             commutation_reason::disjoint_support);
-
-  for (llvm::StringRef functionName : {"call_boundary", "region_boundary"}) {
-    auto boundary = getFunction(*module, functionName);
-    auto boundaryOperators = getOperators(boundary);
-    ASSERT_EQ(boundaryOperators.size(), 4u);
-    CommutationAnalysis boundaryAnalysis(boundary.front());
-    expectPair(boundaryAnalysis, boundaryOperators[0], boundaryOperators[1],
+  expectResult(analysis, operators[0], operators[2],
                commutation_status::commutes,
                commutation_reason::disjoint_support);
-    expectPair(boundaryAnalysis, boundaryOperators[2], boundaryOperators[3],
+  expectResult(analysis, operators[2], operators[0],
+               commutation_status::commutes,
+               commutation_reason::disjoint_support);
+  EXPECT_TRUE(analysis.canCommute(operators[0], operators[2]));
+
+  expectResult(analysis, operators[0], operators[1],
+               commutation_status::does_not_commute,
+               commutation_reason::odd_pauli_parity);
+  expectResult(analysis, operators[1], operators[0],
+               commutation_status::does_not_commute,
+               commutation_reason::odd_pauli_parity);
+  EXPECT_FALSE(analysis.canCommute(operators[0], operators[1]));
+
+  expectResult(analysis, operators[3], operators[4],
                commutation_status::indeterminate,
-               commutation_reason::unmapped_qubit_id);
-  }
+               commutation_reason::no_applicable_rule);
+  EXPECT_FALSE(analysis.canCommute(operators[3], operators[4]));
+  expectResult(analysis, operators[5], sinks[3],
+               commutation_status::indeterminate,
+               commutation_reason::no_applicable_rule);
 }
 
-TEST_F(CommutationAnalysisTest, UnknownSuccessorArgumentSupport) {
+TEST_F(CommutationAnalysisTest, ClassifiesRepresentativeSemanticRules) {
   auto module = parseModule(R"mlir(
     module {
-      func.func @successor_arguments() {
-        %wire = quake.null_wire
-        cf.br ^bb1(%wire, %wire : !quake.wire, !quake.wire)
-      ^bb1(%first: !quake.wire, %second: !quake.wire):
-        %x = quake.x %first : (!quake.wire) -> !quake.wire
-        %h = quake.h %second : (!quake.wire) -> !quake.wire
-        quake.sink %x : !quake.wire
-        quake.sink %h : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "successor_arguments");
-  ASSERT_EQ(function.getBlocks().size(), 2u);
-  Block &successor = function.back();
-  auto operators =
-      llvm::to_vector(successor.getOps<cudaq::quake::OperatorInterface>());
-  ASSERT_EQ(operators.size(), 2u);
-
-  CommutationAnalysis analysis(successor);
-  expectPair(analysis, operators[0], operators[1],
-             commutation_status::indeterminate,
-             commutation_reason::unmapped_qubit_id);
-}
-
-TEST_F(CommutationAnalysisTest, CommutesMatchingOperationsAndAdjoints) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @same_operation(%theta: f64) {
-        %zero0 = arith.constant 0.0 : f64
-        %zero1 = arith.constant 0.0 : f64
-        %one0 = arith.constant 1.0 : f64
-        %one1 = arith.constant 1.0 : f64
-        %q0 = quake.null_wire
-        %q1 = quake.null_wire
-        %q2 = quake.null_wire
-        %q3 = quake.null_wire
-        %rx0 = quake.rx (%theta) %q0 : (f64, !quake.wire) -> !quake.wire
-        %rx1 = quake.rx<adj> (%theta) %rx0 : (f64, !quake.wire) -> !quake.wire
-        %swap0:2 = quake.swap %rx1, %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %swap1:2 = quake.swap %swap0#1, %swap0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %u20 = quake.u2 (%zero0, %one0) %q2 : (f64, f64, !quake.wire) -> !quake.wire
-        %u21 = quake.u2 (%zero1, %one1) %u20 : (f64, f64, !quake.wire) -> !quake.wire
-        %u30 = quake.u3 (%theta, %zero0, %one0) %q3 : (f64, f64, f64, !quake.wire) -> !quake.wire
-        %u31 = quake.u3 (%theta, %zero0, %one0) %u30 : (f64, f64, f64, !quake.wire) -> !quake.wire
-        quake.sink %swap1#0 : !quake.wire
-        quake.sink %swap1#1 : !quake.wire
-        quake.sink %u21 : !quake.wire
-        quake.sink %u31 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "same_operation");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 8u);
-  CommutationAnalysis analysis(function.front());
-  // Rx and its adjoint have the same parameter and target.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::same_operation);
-  // Reversing Swap's target order represents the same operation.
-  expectPair(analysis, operators[2], operators[3], commutation_status::commutes,
-             commutation_reason::same_operation);
-  // Equal constant attributes make the two U2 parameter lists exact matches.
-  expectPair(analysis, operators[4], operators[5], commutation_status::commutes,
-             commutation_reason::same_operation);
-  // The two U3 operations reuse the same SSA parameters and target.
-  expectPair(analysis, operators[6], operators[7], commutation_status::commutes,
-             commutation_reason::same_operation);
-}
-
-TEST_F(CommutationAnalysisTest, CommutesComputationalBasisDiagonalOperations) {
-  auto module = parseModule(R"mlir(
-    module {
+      quake.wire_set @wires[1]
       func.func @diagonal() {
-        %angle = arith.constant 5.0e-1 : f64
         %q = quake.null_wire
         %z = quake.z %q : (!quake.wire) -> !quake.wire
         %s = quake.s %z : (!quake.wire) -> !quake.wire
-        %t = quake.t %s : (!quake.wire) -> !quake.wire
-        %r1 = quake.r1 (%angle) %t : (f64, !quake.wire) -> !quake.wire
-        %rz = quake.rz (%angle) %r1 : (f64, !quake.wire) -> !quake.wire
-        quake.sink %rz : !quake.wire
+        quake.sink %s : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "diagonal");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 5u);
-  CommutationAnalysis analysis(function.front());
-  // Z and S are diagonal in the computational basis.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::computational_diagonal);
-  // S and T are diagonal in the computational basis.
-  expectPair(analysis, operators[1], operators[2], commutation_status::commutes,
-             commutation_reason::computational_diagonal);
-  // R1 and Rz are diagonal for any rotation angle.
-  expectPair(analysis, operators[3], operators[4], commutation_status::commutes,
-             commutation_reason::computational_diagonal);
-}
-
-TEST_F(CommutationAnalysisTest,
-       CommutesMatchingAxesAndRejectsDifferentPhasedAxes) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @same_axis() {
+      func.func @axes() {
         %angle0 = arith.constant 5.0e-1 : f64
         %angle1 = arith.constant 1.0 : f64
-        %phase = arith.constant 2.5e-1 : f64
-        %other_phase = arith.constant 7.5e-1 : f64
+        %phase0 = arith.constant 2.5e-1 : f64
+        %phase1 = arith.constant 7.5e-1 : f64
         %q0 = quake.null_wire
-        %q1 = quake.null_wire
-        %q2 = quake.null_wire
         %x = quake.x %q0 : (!quake.wire) -> !quake.wire
         %rx = quake.rx (%angle0) %x : (f64, !quake.wire) -> !quake.wire
-        %p0 = quake.phased_rx (%angle0, %phase) %q1 : (f64, f64, !quake.wire) -> !quake.wire
-        %p1 = quake.phased_rx (%angle1, %phase) %p0 : (f64, f64, !quake.wire) -> !quake.wire
-        %p2 = quake.phased_rx (%angle0, %other_phase) %p1 : (f64, f64, !quake.wire) -> !quake.wire
-        %y = quake.y %q2 : (!quake.wire) -> !quake.wire
-        %ry = quake.ry (%angle0) %y : (f64, !quake.wire) -> !quake.wire
+        %q1 = quake.null_wire
+        %p0 = quake.phased_rx (%angle0, %phase0) %q1
+            : (f64, f64, !quake.wire) -> !quake.wire
+        %p1 = quake.phased_rx (%angle1, %phase0) %p0
+            : (f64, f64, !quake.wire) -> !quake.wire
+        %p2 = quake.phased_rx (%angle1, %phase1) %p1
+            : (f64, f64, !quake.wire) -> !quake.wire
         quake.sink %rx : !quake.wire
         quake.sink %p2 : !quake.wire
-        quake.sink %ry : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "same_axis");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 7u);
-  CommutationAnalysis analysis(function.front());
-  // X and Rx share the X axis on the same target.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::same_axis);
-  // PhasedRx rotations share an axis when their phase parameters match.
-  expectPair(analysis, operators[2], operators[3], commutation_status::commutes,
-             commutation_reason::same_axis);
-  // Different PhasedRx phase parameters do not establish a shared axis.
-  expectPair(analysis, operators[3], operators[4],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-  // Y and Ry share the Y axis on the same target.
-  expectPair(analysis, operators[5], operators[6], commutation_status::commutes,
-             commutation_reason::same_axis);
-}
-
-TEST_F(CommutationAnalysisTest,
-       ClassifiesPauliProductsByAnticommutationParity) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @pauli_parity(%word: !cc.charspan) {
+      func.func @paulis(%word: !cc.charspan) {
         %angle = arith.constant 5.0e-1 : f64
         %q0 = quake.null_wire
         %q1 = quake.null_wire
+        %xx:2 = quake.exp_pauli (%angle) %q0, %q1 to "XX"
+            : (f64, !quake.wire, !quake.wire)
+              -> (!quake.wire, !quake.wire)
+        %zz:2 = quake.exp_pauli (%angle) %xx#0, %xx#1 to "ZZ"
+            : (f64, !quake.wire, !quake.wire)
+              -> (!quake.wire, !quake.wire)
         %q2 = quake.null_wire
-        %q3 = quake.null_wire
-        %q4 = quake.null_wire
-        %xx:2 = quake.exp_pauli (%angle) %q0, %q1 to "XX" : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %zz:2 = quake.exp_pauli (%angle) %xx#0, %xx#1 to "ZZ" : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %x = quake.x %q2 : (!quake.wire) -> !quake.wire
-        %z = quake.z %x : (!quake.wire) -> !quake.wire
-        %exp_x = quake.exp_pauli (%angle) %q3 to "X" : (f64, !quake.wire) -> !quake.wire
-        %exp_z = quake.z %exp_x : (!quake.wire) -> !quake.wire
-        %dynamic = quake.exp_pauli (%angle) %q4 to %word : (f64, !quake.wire, !cc.charspan) -> !quake.wire
-        %dynamic_z = quake.z %dynamic : (!quake.wire) -> !quake.wire
+        %dynamic = quake.exp_pauli (%angle) %q2 to %word
+            : (f64, !quake.wire, !cc.charspan) -> !quake.wire
+        %z = quake.z %dynamic : (!quake.wire) -> !quake.wire
         quake.sink %zz#0 : !quake.wire
         quake.sink %zz#1 : !quake.wire
         quake.sink %z : !quake.wire
-        quake.sink %exp_z : !quake.wire
-        quake.sink %dynamic_z : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "pauli_parity");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 8u);
-  CommutationAnalysis analysis(function.front());
-  // XX and ZZ have two anti-commuting factors, giving even parity.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::even_pauli_parity);
-  // X and Z have one anti-commuting factor and therefore do not commute.
-  expectPair(analysis, operators[2], operators[3],
-             commutation_status::does_not_commute,
-             commutation_reason::odd_pauli_parity);
-  // Odd parity does not prove that a parameterized ExpPauli rotation fails to
-  // commute with Z for every angle.
-  expectPair(analysis, operators[4], operators[5],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-  // A dynamic Pauli word cannot be normalized for comparison with Z.
-  expectPair(analysis, operators[6], operators[7],
-             commutation_status::indeterminate,
-             commutation_reason::unsupported_pauli_word);
-}
-
-TEST_F(CommutationAnalysisTest, DiagonalOnControls) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @diagonal_on_controls() {
+      func.func @diagonal_control() {
         %control = quake.null_wire
         %target = quake.null_wire
         %z = quake.z %control : (!quake.wire) -> !quake.wire
-        %cx:2 = quake.x [%z] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %cx:2 = quake.x [%z] %target
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
         quake.sink %cx#0 : !quake.wire
         quake.sink %cx#1 : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "diagonal_on_controls");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 2u);
-  CommutationAnalysis analysis(function.front());
-  // Z overlaps the controlled X only on its control qubit.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::diagonal_on_controls);
-}
-
-TEST_F(CommutationAnalysisTest, CompatibleControlledTargets) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @compatible_targets() {
+      func.func @controlled_targets() {
         %angle = arith.constant 5.0e-1 : f64
         %control = quake.null_wire
         %target = quake.null_wire
-        %cx:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %crx:2 = quake.rx (%angle) [%cx#0] %cx#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %cross_control = quake.null_wire
-        %cross_target = quake.null_wire
-        %cross_x:2 = quake.x [%cross_control] %cross_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %cross_z:2 = quake.z [%cross_x#1] %cross_x#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %cx:2 = quake.x [%control] %target
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %crx:2 = quake.rx (%angle) [%cx#0] %cx#1
+            : (f64, !quake.wire, !quake.wire)
+              -> (!quake.wire, !quake.wire)
+        %crossControl = quake.null_wire
+        %crossTarget = quake.null_wire
+        %crossX:2 = quake.x [%crossControl] %crossTarget
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %crossZ:2 = quake.z [%crossX#1] %crossX#0
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
         quake.sink %crx#0 : !quake.wire
         quake.sink %crx#1 : !quake.wire
-        quake.sink %cross_z#0 : !quake.wire
-        quake.sink %cross_z#1 : !quake.wire
+        quake.sink %crossZ#0 : !quake.wire
+        quake.sink %crossZ#1 : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "compatible_targets");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 4u);
-  CommutationAnalysis analysis(function.front());
-  // Controlled X and Rx share a control and have compatible X-axis targets.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::compatible_controlled_targets);
-  // Exchanging target and control roles prevents a controlled-target proof.
-  expectPair(analysis, operators[2], operators[3],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-}
-
-TEST_F(CommutationAnalysisTest, MutuallyExclusiveControls) {
-  auto module = parseModule(R"mlir(
-    module {
       func.func @exclusive_controls() {
         %control = quake.null_wire
         %target = quake.null_wire
-        %x:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %y:2 = quake.y [%x#0 neg [true]] %x#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %x:2 = quake.x [%control] %target
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %y:2 = quake.y [%x#0 neg [true]] %x#1
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
         quake.sink %y#0 : !quake.wire
         quake.sink %y#1 : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto function = getFunction(*module, "exclusive_controls");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 2u);
-  CommutationAnalysis analysis(function.front());
-  // Opposite polarity on the shared control makes the predicates exclusive.
-  expectPair(analysis, operators[0], operators[1], commutation_status::commutes,
-             commutation_reason::mutually_exclusive_controls);
-}
-
-TEST_F(CommutationAnalysisTest, MeasurementInstrumentRelations) {
-  auto module = parseModule(R"mlir(
-    module {
       func.func @measurement() {
-        %angle = arith.constant 5.0e-1 : f64
         %qx = quake.null_wire
         %x = quake.x %qx : (!quake.wire) -> !quake.wire
-        %measurement, %measured = quake.mx %x
+        %mx, %mxWire = quake.mx %x
             : (!quake.wire) -> (!quake.measure, !quake.wire)
-        %rx = quake.rx (%angle) %measured
-            : (f64, !quake.wire) -> !quake.wire
-        quake.sink %rx : !quake.wire
-        %qy = quake.null_wire
-        %y = quake.y %qy : (!quake.wire) -> !quake.wire
-        %myMeasurement, %myMeasured = quake.my %y
-            : (!quake.wire) -> (!quake.measure, !quake.wire)
-        quake.sink %myMeasured : !quake.wire
         %qz = quake.null_wire
         %z = quake.z %qz : (!quake.wire) -> !quake.wire
-        %mzMeasurement, %mzMeasured = quake.mz %z
+        %mz, %mzWire = quake.mz %z
             : (!quake.wire) -> (!quake.measure, !quake.wire)
-        quake.sink %mzMeasured : !quake.wire
-        %qxMz = quake.null_wire
-        %xMz = quake.x %qxMz : (!quake.wire) -> !quake.wire
-        %mzAfterX, %mzMeasuredAfterX = quake.mz %xMz
-            : (!quake.wire) -> (!quake.measure, !quake.wire)
-        quake.sink %mzMeasuredAfterX : !quake.wire
+        quake.sink %mxWire : !quake.wire
+        quake.sink %mzWire : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  auto measurement = getFunction(*module, "measurement");
-  auto xOps = llvm::to_vector(measurement.front().getOps<cudaq::quake::XOp>());
-  auto mxOps =
-      llvm::to_vector(measurement.front().getOps<cudaq::quake::MxOp>());
-  auto yOps = llvm::to_vector(measurement.front().getOps<cudaq::quake::YOp>());
-  auto myOps =
-      llvm::to_vector(measurement.front().getOps<cudaq::quake::MyOp>());
-  auto zOps = llvm::to_vector(measurement.front().getOps<cudaq::quake::ZOp>());
-  auto mzOps =
-      llvm::to_vector(measurement.front().getOps<cudaq::quake::MzOp>());
-  auto rxOps =
-      llvm::to_vector(measurement.front().getOps<cudaq::quake::RxOp>());
-  auto sinks =
-      llvm::to_vector(measurement.front().getOps<cudaq::quake::SinkOp>());
-  ASSERT_EQ(xOps.size(), 2u);
-  ASSERT_EQ(mxOps.size(), 1u);
-  ASSERT_EQ(yOps.size(), 1u);
-  ASSERT_EQ(myOps.size(), 1u);
-  ASSERT_EQ(zOps.size(), 1u);
-  ASSERT_EQ(mzOps.size(), 2u);
-  ASSERT_EQ(rxOps.size(), 1u);
-  ASSERT_EQ(sinks.size(), 4u);
-
-  CommutationAnalysis measurementAnalysis(measurement.front());
-  // Mx and My return computational-basis wires, so moving the named-axis
-  // operator after measurement would change the conditional output state.
-  expectPair(measurementAnalysis, xOps[0], mxOps[0],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-  expectPair(measurementAnalysis, yOps[0], myOps[0],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-  // Mz already returns its wire in the basis measured by a Z-axis operator.
-  expectPair(measurementAnalysis, zOps[0], mzOps[0],
-             commutation_status::commutes,
-             commutation_reason::measurement_instrument_basis);
-  // X changes Mz's labelled conditional output state.
-  expectPair(measurementAnalysis, xOps[1], mzOps[1],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-  // The later Rx retains the measured wire's block-local identity.
-  expectPair(measurementAnalysis, xOps[0], rxOps[0],
-             commutation_status::commutes, commutation_reason::same_axis);
-  // A shared sink remains a conservative boundary.
-  expectPair(measurementAnalysis, rxOps[0], sinks[0],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-}
-
-TEST_F(CommutationAnalysisTest, ResetChannelRelations) {
-  auto module = parseModule(R"mlir(
-    module {
       func.func @reset() {
-        %q = quake.null_wire
-        %z = quake.z %q : (!quake.wire) -> !quake.wire
-        %reset = quake.reset %z : (!quake.wire) -> !quake.wire
-        %s = quake.s %reset : (!quake.wire) -> !quake.wire
-        quake.sink %s : !quake.wire
+        %qz = quake.null_wire
+        %z = quake.z %qz : (!quake.wire) -> !quake.wire
+        %resetZ = quake.reset %z : (!quake.wire) -> !quake.wire
         %qx = quake.null_wire
         %x = quake.x %qx : (!quake.wire) -> !quake.wire
-        %resetAfterX = quake.reset %x : (!quake.wire) -> !quake.wire
-        quake.sink %resetAfterX : !quake.wire
+        %resetX = quake.reset %x : (!quake.wire) -> !quake.wire
+        quake.sink %resetZ : !quake.wire
+        quake.sink %resetX : !quake.wire
         return
       }
-    })mlir");
-  ASSERT_TRUE(module);
-  auto reset = getFunction(*module, "reset");
-  auto resetZOps = llvm::to_vector(reset.front().getOps<cudaq::quake::ZOp>());
-  auto resetXOps = llvm::to_vector(reset.front().getOps<cudaq::quake::XOp>());
-  auto resetOps =
-      llvm::to_vector(reset.front().getOps<cudaq::quake::ResetOp>());
-  auto sOps = llvm::to_vector(reset.front().getOps<cudaq::quake::SOp>());
-  ASSERT_EQ(resetZOps.size(), 1u);
-  ASSERT_EQ(resetXOps.size(), 1u);
-  ASSERT_EQ(resetOps.size(), 2u);
-  ASSERT_EQ(sOps.size(), 1u);
-
-  CommutationAnalysis resetAnalysis(reset.front());
-  // Reset commutes with operations that preserve the |0><0| state.
-  expectPair(resetAnalysis, resetZOps[0], resetOps[0],
-             commutation_status::commutes,
-             commutation_reason::preserved_reset_state);
-  // X does not preserve reset's |0><0| output state.
-  expectPair(resetAnalysis, resetXOps[0], resetOps[1],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-  // The later S retains the reset wire's block-local identity.
-  expectPair(resetAnalysis, resetZOps[0], sOps[0], commutation_status::commutes,
-             commutation_reason::computational_diagonal);
-}
-
-TEST_F(CommutationAnalysisTest, UnsupportedMeasurementInstrumentBoundary) {
-  auto module = parseModule(R"mlir(
-    module {
+      func.func @duplicate_operand() {
+        %control = quake.borrow_wire @wires[0] : !quake.wire
+        %target = quake.borrow_wire @wires[0] : !quake.wire
+        %result:2 = quake.x [%control] %target
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.return_wire %result#0 : !quake.wire
+        quake.return_wire %result#1 : !quake.wire
+        return
+      }
+      func.func @reusable_control() {
+        %wire = quake.null_wire
+        %control = quake.to_ctrl %wire : (!quake.wire) -> !quake.control
+        %q0 = quake.null_wire
+        %q1 = quake.null_wire
+        %x0 = quake.x [%control] %q0
+            : (!quake.control, !quake.wire) -> !quake.wire
+        %x1 = quake.x [%control] %q1
+            : (!quake.control, !quake.wire) -> !quake.wire
+        %returned = quake.from_ctrl %control
+            : (!quake.control) -> !quake.wire
+        quake.sink %returned : !quake.wire
+        quake.sink %x0 : !quake.wire
+        quake.sink %x1 : !quake.wire
+        return
+      }
       func.func @multi_target_measurement() {
         %q0 = quake.null_wire
         %q1 = quake.null_wire
@@ -672,137 +283,128 @@ TEST_F(CommutationAnalysisTest, UnsupportedMeasurementInstrumentBoundary) {
       }
     })mlir");
   ASSERT_TRUE(module);
+
+  auto checkOperators = [&](llvm::StringRef functionName, unsigned lhs,
+                            unsigned rhs, commutation_status status,
+                            commutation_reason reason) {
+    auto function = getFunction(*module, functionName);
+    auto operators = getOperators(function);
+    ASSERT_LT(lhs, operators.size());
+    ASSERT_LT(rhs, operators.size());
+    CommutationAnalysis analysis(function.front());
+    expectResult(analysis, operators[lhs], operators[rhs], status, reason);
+  };
+  checkOperators("diagonal", 0, 1, commutation_status::commutes,
+                 commutation_reason::computational_diagonal);
+  checkOperators("axes", 0, 1, commutation_status::commutes,
+                 commutation_reason::same_axis);
+  checkOperators("axes", 2, 3, commutation_status::commutes,
+                 commutation_reason::same_axis);
+  checkOperators("axes", 3, 4, commutation_status::indeterminate,
+                 commutation_reason::no_applicable_rule);
+  checkOperators("paulis", 0, 1, commutation_status::commutes,
+                 commutation_reason::even_pauli_parity);
+  checkOperators("paulis", 2, 3, commutation_status::indeterminate,
+                 commutation_reason::unsupported_pauli_word);
+  checkOperators("diagonal_control", 0, 1, commutation_status::commutes,
+                 commutation_reason::diagonal_on_controls);
+  checkOperators("controlled_targets", 0, 1, commutation_status::commutes,
+                 commutation_reason::compatible_controlled_targets);
+  checkOperators("controlled_targets", 2, 3, commutation_status::indeterminate,
+                 commutation_reason::no_applicable_rule);
+  checkOperators("exclusive_controls", 0, 1, commutation_status::commutes,
+                 commutation_reason::mutually_exclusive_controls);
+  checkOperators("duplicate_operand", 0, 0, commutation_status::indeterminate,
+                 commutation_reason::duplicate_qubit_operand);
+  checkOperators("reusable_control", 0, 1, commutation_status::indeterminate,
+                 commutation_reason::unsupported_quantum_operand_type);
+
+  auto measurement = getFunction(*module, "measurement");
+  auto measurementOperators = getOperators(measurement);
+  auto mx = *measurement.getOps<cudaq::quake::MxOp>().begin();
+  auto mz = *measurement.getOps<cudaq::quake::MzOp>().begin();
+  ASSERT_EQ(measurementOperators.size(), 2u);
+  CommutationAnalysis measurementAnalysis(measurement.front());
+  expectResult(measurementAnalysis, measurementOperators[0], mx,
+               commutation_status::indeterminate,
+               commutation_reason::no_applicable_rule);
+  expectResult(measurementAnalysis, measurementOperators[1], mz,
+               commutation_status::commutes,
+               commutation_reason::measurement_instrument_basis);
+
+  auto reset = getFunction(*module, "reset");
+  auto resetOperators = getOperators(reset);
+  auto resets = llvm::to_vector(reset.getOps<cudaq::quake::ResetOp>());
+  ASSERT_EQ(resetOperators.size(), 2u);
+  ASSERT_EQ(resets.size(), 2u);
+  CommutationAnalysis resetAnalysis(reset.front());
+  expectResult(resetAnalysis, resetOperators[0], resets[0],
+               commutation_status::commutes,
+               commutation_reason::preserved_reset_state);
+  expectResult(resetAnalysis, resetOperators[1], resets[1],
+               commutation_status::indeterminate,
+               commutation_reason::no_applicable_rule);
+
   auto multiTarget = getFunction(*module, "multi_target_measurement");
-  auto multiMeasurements =
-      llvm::to_vector(multiTarget.front().getOps<cudaq::quake::MzOp>());
-  auto disjointXOps =
-      llvm::to_vector(multiTarget.front().getOps<cudaq::quake::XOp>());
-  ASSERT_EQ(multiMeasurements.size(), 1u);
-  ASSERT_EQ(disjointXOps.size(), 1u);
-
+  auto multiTargetOperators = getOperators(multiTarget);
+  auto multiTargetMz = *multiTarget.getOps<cudaq::quake::MzOp>().begin();
+  ASSERT_EQ(multiTargetOperators.size(), 1u);
   CommutationAnalysis multiTargetAnalysis(multiTarget.front());
-  // Multi-target measurement instruments remain unsupported even on disjoint
-  // support.
-  expectPair(multiTargetAnalysis, multiMeasurements[0], disjointXOps[0],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
+  expectResult(multiTargetAnalysis, multiTargetMz, multiTargetOperators[0],
+               commutation_status::indeterminate,
+               commutation_reason::no_applicable_rule);
 }
 
-TEST_F(CommutationAnalysisTest,
-       CommutesMatchingCustomUnitariesAndRejectsOpaqueDifferences) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func private @unitary_generator()
-      func.func private @other_unitary_generator()
-      func.func @opaque_unitaries() {
-        %angle0 = arith.constant 2.5e-1 : f64
-        %angle1 = arith.constant 5.0e-1 : f64
-        %q0 = quake.null_wire
-        %q1 = quake.null_wire
-        %q2 = quake.null_wire
-        %u0 = quake.custom_unitary_call @unitary_generator %q0 : (!quake.wire) -> !quake.wire
-        %u1 = quake.custom_unitary_call @unitary_generator %q1 : (!quake.wire) -> !quake.wire
-        %u2 = quake.custom_unitary_call @unitary_generator<adj> %u0 : (!quake.wire) -> !quake.wire
-        %u3 = quake.custom_unitary_call @other_unitary_generator %u2 : (!quake.wire) -> !quake.wire
-        %u4 = quake.custom_unitary_call @unitary_generator(%angle0) %q2 : (f64, !quake.wire) -> !quake.wire
-        %u5 = quake.custom_unitary_call @unitary_generator(%angle1) %u4 : (f64, !quake.wire) -> !quake.wire
-        quake.sink %u1 : !quake.wire
-        quake.sink %u3 : !quake.wire
-        quake.sink %u5 : !quake.wire
-        return
-      }
-      func.func @constant_unitaries() {
-        %q = quake.null_wire
-        %u0 = quake.custom_unitary_constant @unitary_matrix %q : (!quake.wire) -> !quake.wire
-        %u1 = quake.custom_unitary_constant @unitary_matrix<adj> %u0 : (!quake.wire) -> !quake.wire
-        quake.sink %u1 : !quake.wire
-        return
-      }
-      cc.global constant private @unitary_matrix (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-    })mlir");
-  ASSERT_TRUE(module);
-  auto opaque = getFunction(*module, "opaque_unitaries");
-  auto opaqueOperators = getOperators(opaque);
-  ASSERT_EQ(opaqueOperators.size(), 6u);
-  CommutationAnalysis opaqueAnalysis(opaque.front());
-  // Opaque custom unitaries still commute when their supports are disjoint.
-  expectPair(opaqueAnalysis, opaqueOperators[0], opaqueOperators[1],
-             commutation_status::commutes,
-             commutation_reason::disjoint_support);
-  // A custom unitary commutes with its adjoint when the definition matches.
-  expectPair(opaqueAnalysis, opaqueOperators[0], opaqueOperators[2],
-             commutation_status::commutes, commutation_reason::same_operation);
-  // Different custom-unitary definitions remain opaque on shared support.
-  expectPair(opaqueAnalysis, opaqueOperators[0], opaqueOperators[3],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-  // Unequal parameters prevent a same-operation proof for one definition.
-  expectPair(opaqueAnalysis, opaqueOperators[4], opaqueOperators[5],
-             commutation_status::indeterminate,
-             commutation_reason::no_applicable_rule);
-
-  auto constant = getFunction(*module, "constant_unitaries");
-  auto constantOperators = getOperators(constant);
-  ASSERT_EQ(constantOperators.size(), 2u);
-  CommutationAnalysis constantAnalysis(constant.front());
-  // Constant custom unitaries share the same matrix symbol and target.
-  expectPair(constantAnalysis, constantOperators[0], constantOperators[1],
-             commutation_status::commutes, commutation_reason::same_operation);
-}
-
-TEST_F(CommutationAnalysisTest,
-       ReturnsIndeterminateForUnsupportedOrUnresolvedQueries) {
+TEST_F(CommutationAnalysisTest, NormalizesValidationFailuresBeforeCaching) {
   auto module = parseModule(R"mlir(
     module {
       quake.wire_set @wires[1]
       func.func private @wire_source() -> !quake.wire
-      func.func @unsupported_query() {
+      func.func @failures(%aggregate: !quake.veq<2>) {
+        %unknown = func.call @wire_source() : () -> !quake.wire
+        quake.x %aggregate : (!quake.veq<2>) -> ()
+        %unmapped = quake.x %unknown : (!quake.wire) -> !quake.wire
+        %control = quake.borrow_wire @wires[0] : !quake.wire
+        %target = quake.borrow_wire @wires[0] : !quake.wire
+        %duplicate:2 = quake.x [%control] %target
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %unmapped : !quake.wire
+        quake.return_wire %duplicate#0 : !quake.wire
+        quake.return_wire %duplicate#1 : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+  auto function = getFunction(*module, "failures");
+  auto operators = getOperators(function);
+  ASSERT_EQ(operators.size(), 3u);
+
+  CommutationAnalysis unsupportedFirst(function.front());
+  CommutationAnalysis unmappedFirst(function.front());
+  expectResult(unsupportedFirst, operators[0], operators[1],
+               commutation_status::indeterminate,
+               commutation_reason::unsupported_quantum_operand_type);
+  expectResult(unmappedFirst, operators[1], operators[0],
+               commutation_status::indeterminate,
+               commutation_reason::unsupported_quantum_operand_type);
+
+  CommutationAnalysis unmappedBeforeDuplicate(function.front());
+  CommutationAnalysis duplicateBeforeUnmapped(function.front());
+  expectResult(unmappedBeforeDuplicate, operators[1], operators[2],
+               commutation_status::indeterminate,
+               commutation_reason::unmapped_qubit_id);
+  expectResult(duplicateBeforeUnmapped, operators[2], operators[1],
+               commutation_status::indeterminate,
+               commutation_reason::unmapped_qubit_id);
+}
+
+TEST_F(CommutationAnalysisTest, RejectsInvalidQueries) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @local() {
         %q = quake.null_wire
         %x = quake.x %q : (!quake.wire) -> !quake.wire
         quake.sink %x : !quake.wire
-        return
-      }
-      func.func @aggregate(%q: !quake.veq<2>) {
-        quake.x %q : (!quake.veq<2>) -> ()
-        return
-      }
-      func.func @reusable_control() {
-        %control_wire = quake.null_wire
-        %target0 = quake.null_wire
-        %target1 = quake.null_wire
-        %control = quake.to_ctrl %control_wire : (!quake.wire) -> !quake.control
-        %x0 = quake.x [%control] %target0 : (!quake.control, !quake.wire) -> !quake.wire
-        %x1 = quake.x [%control] %target1 : (!quake.control, !quake.wire) -> !quake.wire
-        %returned = quake.from_ctrl %control : (!quake.control) -> !quake.wire
-        quake.sink %returned : !quake.wire
-        quake.sink %x0 : !quake.wire
-        quake.sink %x1 : !quake.wire
-        return
-      }
-      func.func @call_result() {
-        %q = call @wire_source() : () -> !quake.wire
-        %x = quake.x %q : (!quake.wire) -> !quake.wire
-        %z = quake.z %x : (!quake.wire) -> !quake.wire
-        quake.sink %z : !quake.wire
-        return
-      }
-      func.func @different_failures(%aggregate: !quake.veq<2>) {
-        %q = call @wire_source() : () -> !quake.wire
-        quake.x %aggregate : (!quake.veq<2>) -> ()
-        %x = quake.x %q : (!quake.wire) -> !quake.wire
-        quake.sink %x : !quake.wire
-        return
-      }
-      func.func @duplicate_qubit_operand() {
-        %unknown = call @wire_source() : () -> !quake.wire
-        %unmapped = quake.z %unknown : (!quake.wire) -> !quake.wire
-        %control = quake.borrow_wire @wires[0] : !quake.wire
-        %target = quake.borrow_wire @wires[0] : !quake.wire
-        %result:2 = quake.x [%control] %target
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.return_wire %result#0 : !quake.wire
-        quake.return_wire %result#1 : !quake.wire
-        quake.sink %unmapped : !quake.wire
         return
       }
       func.func @other() {
@@ -813,95 +415,296 @@ TEST_F(CommutationAnalysisTest,
       }
     })mlir");
   ASSERT_TRUE(module);
-
-  auto function = getFunction(*module, "unsupported_query");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 1u);
-  auto *returnOp = function.front().getTerminator();
-  CommutationAnalysis analysis(function.front());
-  // A null query operand cannot be analyzed.
-  expectPair(analysis, nullptr, operators[0], commutation_status::indeterminate,
-             commutation_reason::null_operation);
-  // func.return does not implement Quake OperatorInterface.
-  expectPair(analysis, operators[0], returnOp,
-             commutation_status::indeterminate,
-             commutation_reason::unsupported_operation_kind);
-
-  auto aggregate = getFunction(*module, "aggregate");
-  auto aggregateOperators = getOperators(aggregate);
-  ASSERT_EQ(aggregateOperators.size(), 1u);
-  CommutationAnalysis aggregateAnalysis(aggregate.front());
-  // Aggregate targets are outside the supported scalar value form.
-  expectPair(aggregateAnalysis, aggregateOperators[0], aggregateOperators[0],
-             commutation_status::indeterminate,
-             commutation_reason::unsupported_quantum_operand_type);
-
-  auto reusableControl = getFunction(*module, "reusable_control");
-  auto reusableControlOperators = getOperators(reusableControl);
-  ASSERT_EQ(reusableControlOperators.size(), 2u);
-  CommutationAnalysis reusableControlAnalysis(reusableControl.front());
-  // Reusable controls are valid Quake but outside the scalar wire contract.
-  expectPair(reusableControlAnalysis, reusableControlOperators[0],
-             reusableControlOperators[1], commutation_status::indeterminate,
-             commutation_reason::unsupported_quantum_operand_type);
-
-  auto callResult = getFunction(*module, "call_result");
-  auto callOperators = getOperators(callResult);
-  ASSERT_EQ(callOperators.size(), 2u);
-  CommutationAnalysis callAnalysis(callResult.front());
-  // Qubit identity is not propagated through a function call result.
-  expectPair(callAnalysis, callOperators[0], callOperators[1],
-             commutation_status::indeterminate,
-             commutation_reason::unmapped_qubit_id);
-
-  auto differentFailures = getFunction(*module, "different_failures");
-  auto failureOperators = getOperators(differentFailures);
-  ASSERT_EQ(failureOperators.size(), 2u);
-  CommutationAnalysis forwardAnalysis(differentFailures.front());
-  CommutationAnalysis reverseAnalysis(differentFailures.front());
-  // Separate analysis instances evaluate opposite caller orders and produce
-  // the same semantic failure precedence.
-  auto forward =
-      forwardAnalysis.getResult(failureOperators[0], failureOperators[1]);
-  auto reverse =
-      reverseAnalysis.getResult(failureOperators[1], failureOperators[0]);
-  EXPECT_EQ(forward.status, commutation_status::indeterminate);
-  EXPECT_EQ(forward.reason,
-            commutation_reason::unsupported_quantum_operand_type);
-  EXPECT_EQ(reverse.status, commutation_status::indeterminate);
-  EXPECT_EQ(reverse.reason,
-            commutation_reason::unsupported_quantum_operand_type);
-
-  auto duplicate = getFunction(*module, "duplicate_qubit_operand");
-  auto duplicateOperators = getOperators(duplicate);
-  ASSERT_EQ(duplicateOperators.size(), 2u);
-  CommutationAnalysis duplicateAnalysis(duplicate.front());
-  // Distinct SSA values that borrow the same wire-set slot identify one qubit,
-  // which cannot serve as both the control and target of one operation.
-  expectPair(duplicateAnalysis, duplicateOperators[1], duplicateOperators[1],
-             commutation_status::indeterminate,
-             commutation_reason::duplicate_qubit_operand);
-
-  CommutationAnalysis unmappedFirstAnalysis(duplicate.front());
-  CommutationAnalysis duplicateFirstAnalysis(duplicate.front());
-  // Identity resolution precedes duplicate-role validation regardless of the
-  // caller's operand order on a cache miss.
-  auto unmappedFirst = unmappedFirstAnalysis.getResult(duplicateOperators[0],
-                                                       duplicateOperators[1]);
-  auto duplicateFirst = duplicateFirstAnalysis.getResult(duplicateOperators[1],
-                                                         duplicateOperators[0]);
-  EXPECT_EQ(unmappedFirst.status, commutation_status::indeterminate);
-  EXPECT_EQ(unmappedFirst.reason, commutation_reason::unmapped_qubit_id);
-  EXPECT_EQ(duplicateFirst.status, commutation_status::indeterminate);
-  EXPECT_EQ(duplicateFirst.reason, commutation_reason::unmapped_qubit_id);
-
+  auto local = getFunction(*module, "local");
   auto other = getFunction(*module, "other");
+  auto localOperators = getOperators(local);
   auto otherOperators = getOperators(other);
+  ASSERT_EQ(localOperators.size(), 1u);
   ASSERT_EQ(otherOperators.size(), 1u);
-  // Operations outside the block owned by the analysis cannot be compared.
-  expectPair(analysis, operators[0], otherOperators[0],
-             commutation_status::indeterminate,
-             commutation_reason::different_blocks);
+  CommutationAnalysis analysis(local.front());
+
+  expectResult(analysis, nullptr, localOperators[0],
+               commutation_status::indeterminate,
+               commutation_reason::null_operation);
+  expectResult(analysis, localOperators[0], local.front().getTerminator(),
+               commutation_status::indeterminate,
+               commutation_reason::unsupported_operation_kind);
+  expectResult(analysis, localOperators[0], otherOperators[0],
+               commutation_status::indeterminate,
+               commutation_reason::different_blocks);
+}
+
+TEST_F(CommutationAnalysisTest, RecognizesMatchingCustomUnitaryDefinitions) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func private @generator()
+      func.func private @other_generator()
+      func.func @custom_unitaries() {
+        %angle0 = arith.constant 2.5e-1 : f64
+        %angle0Equal = arith.constant 2.5e-1 : f64
+        %angle1 = arith.constant 5.0e-1 : f64
+        %q0 = quake.null_wire
+        %call0 = quake.custom_unitary_call @generator %q0
+            : (!quake.wire) -> !quake.wire
+        %call1 = quake.custom_unitary_call @generator<adj> %call0
+            : (!quake.wire) -> !quake.wire
+        %opaque = quake.custom_unitary_call @other_generator %call1
+            : (!quake.wire) -> !quake.wire
+        %q1 = quake.null_wire
+        %constant0 = quake.custom_unitary_constant @matrix %q1
+            : (!quake.wire) -> !quake.wire
+        %constant1 = quake.custom_unitary_constant @matrix<adj> %constant0
+            : (!quake.wire) -> !quake.wire
+        %q2 = quake.null_wire
+        %parameter0 = quake.custom_unitary_call @generator(%angle0) %q2
+            : (f64, !quake.wire) -> !quake.wire
+        %parameter1 = quake.custom_unitary_call @generator<adj>(%angle0Equal) %parameter0
+            : (f64, !quake.wire) -> !quake.wire
+        %parameter2 = quake.custom_unitary_call @generator(%angle1) %parameter1
+            : (f64, !quake.wire) -> !quake.wire
+        quake.sink %opaque : !quake.wire
+        quake.sink %constant1 : !quake.wire
+        quake.sink %parameter2 : !quake.wire
+        return
+      }
+      cc.global constant private @matrix (dense<[
+        (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00),
+        (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00)
+      ]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+    })mlir");
+  ASSERT_TRUE(module);
+  auto function = getFunction(*module, "custom_unitaries");
+  auto operators = getOperators(function);
+  ASSERT_EQ(operators.size(), 8u);
+  CommutationAnalysis analysis(function.front());
+
+  expectResult(analysis, operators[0], operators[1],
+               commutation_status::commutes,
+               commutation_reason::same_operation);
+  expectResult(analysis, operators[0], operators[2],
+               commutation_status::indeterminate,
+               commutation_reason::no_applicable_rule);
+  expectResult(analysis, operators[3], operators[4],
+               commutation_status::commutes,
+               commutation_reason::same_operation);
+  expectResult(analysis, operators[5], operators[6],
+               commutation_status::commutes,
+               commutation_reason::same_operation);
+  expectResult(analysis, operators[6], operators[7],
+               commutation_status::indeterminate,
+               commutation_reason::no_applicable_rule);
+}
+
+TEST_F(CommutationAnalysisTest, PropagatesAcrossIdentityMapGrowth) {
+  constexpr unsigned identityCount = 64;
+  std::string source;
+  llvm::raw_string_ostream os(source);
+  os << "module { func.func @growth() {\n";
+  for (unsigned i = 0; i < identityCount; ++i)
+    os << "  %wire" << i << " = quake.null_wire\n"
+       << "  %result" << i << " = quake.x %wire" << i
+       << " : (!quake.wire) -> !quake.wire\n"
+       << "  quake.sink %result" << i << " : !quake.wire\n";
+  os << "  return\n} }\n";
+
+  auto module = parseModule(source);
+  ASSERT_TRUE(module);
+  auto function = module->lookupSymbol<func::FuncOp>("growth");
+  ASSERT_TRUE(function);
+  auto nullWires = llvm::to_vector(function.getOps<cudaq::quake::NullWireOp>());
+  auto xOps = llvm::to_vector(function.getOps<cudaq::quake::XOp>());
+  ASSERT_EQ(nullWires.size(), identityCount);
+  ASSERT_EQ(xOps.size(), identityCount);
+
+  QubitIdentityAnalysis analysis(function.front());
+  for (auto [nullWire, x] : llvm::zip_equal(nullWires, xOps)) {
+    auto inputId = analysis.getQubitId(nullWire.getResult());
+    ASSERT_TRUE(inputId);
+    EXPECT_EQ(inputId, analysis.getQubitId(x.getWires().front()));
+  }
+}
+
+TEST_F(CommutationAnalysisTest, PreservesKnownLanesAcrossUnknownWireOperands) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func private @wire_source() -> !quake.wire
+      func.func @partial_lanes() {
+        %known = quake.null_wire
+        %unknown = func.call @wire_source() : () -> !quake.wire
+        %results:2 = quake.x [%unknown] %known
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %results#0 : !quake.wire
+        quake.sink %results#1 : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+  auto function = module->lookupSymbol<func::FuncOp>("partial_lanes");
+  ASSERT_TRUE(function);
+  auto nullWire = *function.getOps<cudaq::quake::NullWireOp>().begin();
+  auto x = *function.getOps<cudaq::quake::XOp>().begin();
+
+  QubitIdentityAnalysis analysis(function.front());
+  auto knownId = analysis.getQubitId(nullWire.getResult());
+  ASSERT_TRUE(knownId);
+  // An unidentified lane does not erase the independently known result lane.
+  EXPECT_FALSE(analysis.getQubitId(x.getWires()[0]));
+  EXPECT_EQ(knownId, analysis.getQubitId(x.getWires()[1]));
+}
+
+TEST_F(CommutationAnalysisTest, TracksFreshAndConservativeReferenceBoundaries) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @rebind(%destination: !quake.ref, %source: !quake.ref) {
+        %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
+        quake.wrap %wire to %destination : !quake.wire, !quake.ref
+        return
+      }
+      func.func @fresh() {
+        %first = quake.alloca !quake.ref
+        %firstWire = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        quake.wrap %firstWire to %first : !quake.wire, !quake.ref
+        %firstAfterWrap = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        %second = quake.alloca !quake.ref
+        %secondWire = quake.unwrap %second : (!quake.ref) -> !quake.wire
+        %knownWire = quake.null_wire
+        %knownReference = quake.wrap_new %knownWire
+            : (!quake.wire) -> !quake.ref
+        %knownUnwrapped = quake.unwrap %knownReference
+            : (!quake.ref) -> !quake.wire
+        return
+      }
+      func.func @different_wrap() {
+        %reference = quake.alloca !quake.ref
+        %before = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        %different = quake.null_wire
+        quake.wrap %different to %reference : !quake.wire, !quake.ref
+        %after = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        return
+      }
+      func.func @untracked_wrap(%possiblyAliased: !quake.ref) {
+        %first = quake.alloca !quake.ref
+        %firstBefore = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        %second = quake.alloca !quake.ref
+        %secondBefore = quake.unwrap %second : (!quake.ref) -> !quake.wire
+        %wire = quake.null_wire
+        quake.wrap %wire to %possiblyAliased : !quake.wire, !quake.ref
+        %firstAfter = quake.unwrap %first : (!quake.ref) -> !quake.wire
+        %secondAfter = quake.unwrap %second : (!quake.ref) -> !quake.wire
+        return
+      }
+      func.func @call_boundary() {
+        %destination = quake.alloca !quake.ref
+        %destinationBefore = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %source = quake.alloca !quake.ref
+        %sourceBefore = quake.unwrap %source : (!quake.ref) -> !quake.wire
+        func.call @rebind(%destination, %source)
+            : (!quake.ref, !quake.ref) -> ()
+        %destinationAfter = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %sourceAfter = quake.unwrap %source : (!quake.ref) -> !quake.wire
+        return
+      }
+      func.func @region_boundary() {
+        %destination = quake.alloca !quake.ref
+        %destinationBefore = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %source = quake.alloca !quake.ref
+        %sourceBefore = quake.unwrap %source : (!quake.ref) -> !quake.wire
+        cc.scope {
+          %wire = quake.unwrap %source : (!quake.ref) -> !quake.wire
+          quake.wrap %wire to %destination : !quake.wire, !quake.ref
+          cc.continue
+        }
+        %destinationAfter = quake.unwrap %destination
+            : (!quake.ref) -> !quake.wire
+        %sourceAfter = quake.unwrap %source : (!quake.ref) -> !quake.wire
+        return
+      }
+      func.func @cfg_boundary() {
+        %wire = quake.null_wire
+        cf.br ^bb1(%wire : !quake.wire)
+      ^bb1(%argument: !quake.wire):
+        %x = quake.x %argument : (!quake.wire) -> !quake.wire
+        quake.sink %x : !quake.wire
+        return
+      }
+      func.func @effect_boundary() {
+        %slot = cc.alloca i64
+        %zero = arith.constant 0 : i64
+        %reference = quake.alloca !quake.ref
+        %before = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        cc.store %zero, %slot : !cc.ptr<i64>
+        %after = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  auto fresh = module->lookupSymbol<func::FuncOp>("fresh");
+  ASSERT_TRUE(fresh);
+  auto freshUnwraps = llvm::to_vector(fresh.getOps<cudaq::quake::UnwrapOp>());
+  auto freshNullWire = *fresh.getOps<cudaq::quake::NullWireOp>().begin();
+  ASSERT_EQ(freshUnwraps.size(), 4u);
+  QubitIdentityAnalysis freshAnalysis(fresh.front());
+  auto firstId = freshAnalysis.getQubitId(freshUnwraps[0].getResult());
+  auto secondId = freshAnalysis.getQubitId(freshUnwraps[2].getResult());
+  ASSERT_TRUE(firstId);
+  ASSERT_TRUE(secondId);
+  EXPECT_EQ(firstId, freshAnalysis.getQubitId(freshUnwraps[1].getResult()));
+  EXPECT_NE(firstId, secondId);
+  EXPECT_EQ(freshAnalysis.getQubitId(freshNullWire.getResult()),
+            freshAnalysis.getQubitId(freshUnwraps[3].getResult()));
+
+  auto different = module->lookupSymbol<func::FuncOp>("different_wrap");
+  ASSERT_TRUE(different);
+  auto differentUnwraps =
+      llvm::to_vector(different.getOps<cudaq::quake::UnwrapOp>());
+  ASSERT_EQ(differentUnwraps.size(), 2u);
+  QubitIdentityAnalysis differentAnalysis(different.front());
+  EXPECT_TRUE(differentAnalysis.getQubitId(differentUnwraps[0].getResult()));
+  EXPECT_FALSE(differentAnalysis.getQubitId(differentUnwraps[1].getResult()));
+
+  auto untracked = module->lookupSymbol<func::FuncOp>("untracked_wrap");
+  ASSERT_TRUE(untracked);
+  auto untrackedUnwraps =
+      llvm::to_vector(untracked.getOps<cudaq::quake::UnwrapOp>());
+  ASSERT_EQ(untrackedUnwraps.size(), 4u);
+  QubitIdentityAnalysis untrackedAnalysis(untracked.front());
+  EXPECT_TRUE(untrackedAnalysis.getQubitId(untrackedUnwraps[0].getResult()));
+  EXPECT_TRUE(untrackedAnalysis.getQubitId(untrackedUnwraps[1].getResult()));
+  EXPECT_FALSE(untrackedAnalysis.getQubitId(untrackedUnwraps[2].getResult()));
+  EXPECT_FALSE(untrackedAnalysis.getQubitId(untrackedUnwraps[3].getResult()));
+
+  for (llvm::StringRef functionName : {"call_boundary", "region_boundary"}) {
+    auto boundary = module->lookupSymbol<func::FuncOp>(functionName);
+    ASSERT_TRUE(boundary);
+    auto unwraps = llvm::to_vector(boundary.getOps<cudaq::quake::UnwrapOp>());
+    ASSERT_EQ(unwraps.size(), 4u);
+    QubitIdentityAnalysis analysis(boundary.front());
+    EXPECT_TRUE(analysis.getQubitId(unwraps[0].getResult()));
+    EXPECT_TRUE(analysis.getQubitId(unwraps[1].getResult()));
+    EXPECT_FALSE(analysis.getQubitId(unwraps[2].getResult()));
+    EXPECT_FALSE(analysis.getQubitId(unwraps[3].getResult()));
+  }
+
+  auto cfg = module->lookupSymbol<func::FuncOp>("cfg_boundary");
+  ASSERT_TRUE(cfg);
+  ASSERT_EQ(cfg.getBlocks().size(), 2u);
+  Block &successor = cfg.back();
+  QubitIdentityAnalysis cfgAnalysis(successor);
+  EXPECT_FALSE(cfgAnalysis.getQubitId(successor.getArgument(0)));
+  auto x = *successor.getOps<cudaq::quake::XOp>().begin();
+  EXPECT_FALSE(cfgAnalysis.getQubitId(x.getWires().front()));
+
+  auto effect = module->lookupSymbol<func::FuncOp>("effect_boundary");
+  ASSERT_TRUE(effect);
+  auto effectUnwraps = llvm::to_vector(effect.getOps<cudaq::quake::UnwrapOp>());
+  ASSERT_EQ(effectUnwraps.size(), 2u);
+  QubitIdentityAnalysis effectAnalysis(effect.front());
+  EXPECT_TRUE(effectAnalysis.getQubitId(effectUnwraps[0].getResult()));
+  EXPECT_FALSE(effectAnalysis.getQubitId(effectUnwraps[1].getResult()));
 }
 
 TEST(CommutationReasonTest, ReturnsStableIdentifierForEveryReason) {
