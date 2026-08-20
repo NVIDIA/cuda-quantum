@@ -11,13 +11,17 @@
 
 struct cudaq::detail::EstimateResultImpl {
   EstimateResultImpl() = default;
-  EstimateResultImpl(Resources counts) : counts(std::move(counts)) {}
+  EstimateResultImpl(Resources counts, cudaq_json annotations)
+      : counts(std::move(counts)), annotations(std::move(annotations)) {}
 
   Resources counts;
+  cudaq_json annotations;
 };
 
-cudaq::estimate_result::estimate_result(Resources counts) {
-  impl = std::make_unique<detail::EstimateResultImpl>(std::move(counts));
+cudaq::estimate_result::estimate_result(Resources counts,
+                                        cudaq_json annotations) {
+  impl = std::make_unique<detail::EstimateResultImpl>(std::move(counts),
+                                                      std::move(annotations));
 }
 
 cudaq::estimate_result::estimate_result() {
@@ -53,4 +57,12 @@ cudaq::estimate_result::~estimate_result() = default;
 
 const cudaq::Resources &cudaq::estimate_result::get_resources() const {
   return impl->counts;
+}
+
+const cudaq::cudaq_json &cudaq::estimate_result::get_annotations() const {
+  return impl->annotations;
+}
+
+cudaq::cudaq_json &cudaq::estimate_result::get_annotations() {
+  return impl->annotations;
 }

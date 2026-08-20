@@ -205,6 +205,7 @@ from .runtime.translate import translate
 from .runtime.state import (get_state, get_state_async, to_cupy)
 from .runtime.draw import draw
 from .runtime.unitary import get_unitary
+from .runtime.resource_count import estimate
 from .runtime.resource_count import estimate_resources
 from .runtime.dem import dem_from_kernel
 from .runtime.vqe import vqe  # Removed! Use VQE from CUDA-QX
@@ -235,6 +236,7 @@ pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
 Resources = cudaq_runtime.Resources
+EstimateResult = cudaq_runtime.EstimateResult
 
 # to be deprecated
 qreg = qvector

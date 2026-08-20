@@ -231,6 +231,46 @@ def test_loop_with_args():
     assert d["h"] == 1
 
 
+def test_estimate_result_construction():
+    result = cudaq.EstimateResult()
+    assert result.resources.count() == 0
+    assert result.annotations == {}
+    assert repr(result) == (
+        "EstimateResult(Resources({}, num_qubits=0, num_used_qubits=0, depth=0))"
+    )
+
+
+def test_estimate_result_annotations():
+    annotations = {"backend": "somewhere", "revision": 3}
+    result = cudaq.EstimateResult(annotations=annotations)
+
+    assert result.annotations == annotations
+    assert "annotations=" in repr(result)
+    assert "'backend': 'somewhere'" in repr(result)
+
+
+def test_estimate():
+
+    @cudaq.kernel
+    def mykernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+
+    result = cudaq.estimate(mykernel)
+    assert result.resources.count("h") == 1
+    assert result.resources.count_controls("x", 1) == 1
+    assert result.resources.count() == 2
+
+    chosen = cudaq.estimate(mykernel, choice=lambda: True)
+    assert chosen.resources.count("h") == 1
+    assert chosen.resources.count_controls("x", 1) == 1
+
+    # `estimate_resources` is a thin wrapper and must keep agreeing.
+    resources = cudaq.estimate_resources(mykernel)
+    assert resources.count() == result.resources.count()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
