@@ -319,7 +319,7 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
       return emitOpError("callee must be declared");
     asSig = fn.getFunctionType();
   } else {
-    Value callable = getIndirectCallee().front();
+    Value callable = getIndirectCallee();
     asSig = cast<cudaq::cc::CallableType>(callable.getType()).getSignature();
   }
 
@@ -333,29 +333,110 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
     return emitOpError("number of arguments must be consistent");
   }
 
-  // Quantum reference type values are allowed to implicitly coerce to a relaxed
-  // veq type when they appear as arguments to a `quake.apply` op. Specifically,
-  // lowering the apply op is required to add a `quake.concat` op to manifest
-  // the type conversion.
-  auto isRelaxedVeq = [](Type ty1, Type ty2) {
-    if (auto veq2 = dyn_cast<cudaq::quake::VeqType>(ty2))
-      return cudaq::quake::isQuantumReferenceType(ty1) &&
-             !veq2.hasSpecifiedSize();
+  // Type compatibility rules for quake.apply arguments and results:
+  //
+  //   (a) Any quantum reference type (ref, veq, struq) may coerce to an
+  //       unsized veq<?>.  The lowering inserts a concat op to manifest the
+  //       conversion.  (pre-existing rule)
+  //
+  //   (b) A wire actual may be used where the formal parameter is a ref.
+  //       wire and ref both represent a single qubit; wire is the linear-type
+  //       (value-semantic) counterpart of ref (reference-semantic).
+  //
+  //   (c) A cable<N> actual may be used where the formal parameter is a
+  //       veq<N> or an unsized veq<?>.  cable<N> is the linear-type
+  //       counterpart of veq<N>.
+  //
+  // For rules (b) and (c), because wire and cable are linear types they must
+  // appear in the result list.  The result signature of a wire/cable apply is:
+  //
+  //   [formal results of callee] ++ [linear actuals, left-to-right]
+  //
+  auto isCompatible = [](Type actual, Type formal) -> bool {
+    // (a) quantum ref/veq/struq → unsized veq.  Only return true here; if
+    // actual is not a reference type fall through so case (c) can handle
+    // cable → veq<?> without being blocked by this branch.
+    if (auto veqFormal = dyn_cast<cudaq::quake::VeqType>(formal))
+      if (!veqFormal.hasSpecifiedSize())
+        if (cudaq::quake::isQuantumReferenceType(actual))
+          return true;
+    // (b) wire → ref  /  control → ref
+    // Both wire and control represent a single qubit in value-semantic form.
+    // wire is linear (must be returned); control is not linear (may be reused).
+    if ((isa<cudaq::quake::WireType>(actual) ||
+         isa<cudaq::quake::ControlType>(actual)) &&
+        isa<cudaq::quake::RefType>(formal))
+      return true;
+    // (c) cable<N> → veq<N> or unsized veq<?>
+    if (isa<cudaq::quake::CableType>(actual))
+      if (auto veqFormal = dyn_cast<cudaq::quake::VeqType>(formal))
+        return !veqFormal.hasSpecifiedSize() ||
+               cudaq::quake::getWireCount(actual) ==
+                   cudaq::quake::getAllocationSize(formal);
     return false;
   };
 
   SmallVector<Type> actualTypes{getActuals().getTypes().begin() +
                                     (callingCallable ? 1 : 0),
                                 getActuals().getTypes().end()};
-  // The args are the formal arguments and they must match.
-  for (auto [ty1, ty2] : llvm::zip(actualTypes, asSig.getInputs()))
-    if (ty1 != ty2 && !isRelaxedVeq(ty1, ty2))
-      return emitOpError("argument types must match");
 
-  // The results are the formal results and they must match.
-  for (auto [ty1, ty2] : llvm::zip(getResultTypes(), asSig.getResults()))
-    if (ty1 != ty2 && !isRelaxedVeq(ty1, ty2))
-      return emitOpError("result types must match");
+  // Validate argument types against the formal signature.
+  for (auto [actual, formal] : llvm::zip(actualTypes, asSig.getInputs()))
+    if (actual != formal && !isCompatible(actual, formal))
+      return emitOpError("argument types must be compatible with callee");
+
+  // Collect linear-type controls.  Wire/cable controls are linear and must be
+  // returned so the caller can recover them after the apply.
+  SmallVector<Type> linearCtrlTypes;
+  for (Type ty : getControls().getTypes())
+    if (cudaq::quake::isLinearType(ty))
+      linearCtrlTypes.push_back(ty);
+
+  // Collect the linear-type actuals to coerce them to reference types.  If the
+  // formal parameter is already a linear type, the value is passed through
+  // directly and the function's own declared results must already carry it.
+  SmallVector<Type> linearActualTypes;
+  for (auto [actual, formal] : llvm::zip(actualTypes, asSig.getInputs()))
+    if (cudaq::quake::isLinearType(actual) &&
+        !cudaq::quake::isLinearType(formal))
+      linearActualTypes.push_back(actual);
+
+  // The result layout is:
+  //   [ formal callee results ]
+  //   [ linear controls from left to right ]
+  //   [ coerced linear actuals from left to right ]
+  unsigned formalResultCount = asSig.getResults().size();
+  unsigned expectedResultCount =
+      formalResultCount + linearCtrlTypes.size() + linearActualTypes.size();
+  if (getResultTypes().size() != expectedResultCount)
+    return emitOpError("result count (")
+           << getResultTypes().size() << ") must equal formal results ("
+           << formalResultCount << ") + linear controls ("
+           << linearCtrlTypes.size() << ") + linear actuals ("
+           << linearActualTypes.size() << ")";
+
+  // Validate formal result types (first formalResultCount results).
+  TypeRange allResults(getResultTypes());
+  for (auto [result, formal] :
+       llvm::zip(allResults.take_front(formalResultCount), asSig.getResults()))
+    if (result != formal && !isCompatible(result, formal))
+      return emitOpError("result types must match callee return types");
+
+  // Validate linear-control results.
+  for (auto [result, ctrl] :
+       llvm::zip(allResults.slice(formalResultCount, linearCtrlTypes.size()),
+                 linearCtrlTypes))
+    if (result != ctrl)
+      return emitOpError(
+          "appended result types must match linear-type controls in order");
+
+  // Validate appended linear-actual results.
+  for (auto [result, linear] : llvm::zip(
+           allResults.drop_front(formalResultCount + linearCtrlTypes.size()),
+           linearActualTypes))
+    if (result != linear)
+      return emitOpError(
+          "appended result types must match linear-type actuals in order");
 
   return success();
 }
@@ -372,7 +453,7 @@ void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
   p << ' ';
   if (!getControls().empty())
     p << '[' << getControls() << "] ";
-  p << getActuals() << " : ";
+  p << '(' << getActuals() << ") : ";
   SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(ArrayRef<Type>{operandTys}.drop_front(isDirect ? 0 : 1),
@@ -412,7 +493,8 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
       return failure();
 
   SmallVector<OpAsmParser::UnresolvedOperand> miscOperands;
-  if (parser.parseOperandList(miscOperands) || parser.parseColon())
+  if (parser.parseLParen() || parser.parseOperandList(miscOperands) ||
+      parser.parseRParen() || parser.parseColon())
     return failure();
 
   FunctionType applyTy;
@@ -863,6 +945,15 @@ void cudaq::quake::WrapOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
+// WrapNewOp
+//===----------------------------------------------------------------------===//
+
+void cudaq::quake::WrapNewOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardUnwrappedRefPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // CallByRefOp
 //===----------------------------------------------------------------------===//
 
@@ -917,6 +1008,16 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
   // - Each classical argument should match exactly.
   SmallVector<Type> myResultTypes{getResultTypes().begin(),
                                   getResultTypes().end()};
+  // Only quantum value (wire) operands consume a promoted result slot, so the
+  // required result count depends on how many operands are quantum-valued,
+  // not on the total operand count (e.g. a leading `cc.callable` operand from
+  // a ctrl-closure wrapper is classical and consumes no slot).
+  std::size_t numQuantumValueArgs =
+      llvm::count_if(getOperandTypes(), cudaq::quake::isQuantumValueType);
+  if (myResultTypes.size() < formalResultsSize + numQuantumValueArgs)
+    return emitOpError("number of results must account for each quantum "
+                       "value argument");
+  std::size_t quantumValueIdx = 0;
   for (auto iter :
        llvm::enumerate(llvm::zip(getOperandTypes(), asSig.getInputs()))) {
     auto i = iter.index();
@@ -930,11 +1031,11 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
               cudaq::quake::getAllocationSize(sigTy))
         return emitOpError("argument #" + std::to_string(i) +
                            " must match in size");
-      if (operTy != myResultTypes[formalResultsSize + i])
-        return emitOpError("result quantum value type #" +
-                           std::to_string(formalResultsSize + i) +
-                           " must match argument value type #" +
-                           std::to_string(i));
+      auto resultIdx = formalResultsSize + quantumValueIdx++;
+      if (operTy != myResultTypes[resultIdx])
+        return emitOpError(
+            "result quantum value type #" + std::to_string(resultIdx) +
+            " must match argument value type #" + std::to_string(i));
     } else {
       if (operTy != sigTy)
         return emitOpError("argument #" + std::to_string(i) +

@@ -49,6 +49,7 @@ add_cudaq_library(OptTransforms
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
+  LoopInductionFusion.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
