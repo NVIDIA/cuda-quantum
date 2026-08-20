@@ -125,6 +125,7 @@ NVIDIA
 NVLink
 NVQIR
 NVQLink
+NormalizePhasePlacement
 OPX
 OQC
 ORCA
@@ -278,8 +279,10 @@ callable
 callables
 canonicalization
 canonicalize
+canonicalized
 canonicalizer
 canonicalizes
+canonicalizing
 ceil
 centroid
 centroids
@@ -404,6 +407,7 @@ heisenberg
 hoistable
 homogenous
 hz
+idempotence
 idx
 iff
 increment
@@ -589,6 +593,7 @@ subtyped
 subtypes
 subtyping
 summarize
+superlinear
 superoperator
 superpositions
 sx
