@@ -405,18 +405,18 @@ static cudaq::cc::CallableType dynamicArgType(FunctionType ty,
   return callTy;
 }
 
-/// If \p targetFnTy - a `.ctrl`/`.adj.ctrl` variant's own function type -
-/// keeps a dynamic callable as its own argument at position 1
-/// (position 0 being the control veq every such variant prepends), build a
-/// fresh `cc.instantiate_callable` of that exact type, targeting \p
-/// targetAttr, with \p closureData as its captured data, and return it.
-/// Otherwise return a null Value.
+/// If \p targetFnTy - a `.ctrl`/`.adj.ctrl` variant's own function type - keeps
+/// a dynamic callable as its own argument at position 1 (position 0 being the
+/// control veq every such variant prepends), build a fresh
+/// `cc.instantiate_callable` of that exact type, targeting \p targetAttr, with
+/// \p closureData as its captured data, and return it. Otherwise return a null
+/// Value.
 ///
-/// This is the one place that both decides whether a call to a `.ctrl`
-/// variant needs a rebuilt self argument and constructs it. Every caller
-/// that threads arguments into such a call must go through this rather than
-/// re-deriving the same decision independently (via its own
-/// dynamicArgType check plus its own InstantiateCallableOp::create).
+/// This is the one place that both decides whether a call to a `.ctrl` variant
+/// needs a rebuilt self argument and constructs it. Every caller that threads
+/// arguments into such a call must go through this rather than re-deriving the
+/// same decision independently (via its own dynamicArgType check plus its own
+/// `InstantiateCallableOp::create`).
 static Value maybeBuildCtrlSelfArg(PatternRewriter &rewriter, Location loc,
                                    FunctionType targetFnTy,
                                    FlatSymbolRefAttr targetAttr,
@@ -703,10 +703,20 @@ buildCtrlClosureInstantiation(
     // instead silently drops those captured values, producing a self
     // instantiation whose actual operand count/types don't match what the
     // target's body expects to unpack from it.
-    if (Value selfArg = maybeBuildCtrlSelfArg(rewriter, loc,
-                                              innerCtrlFunc.getFunctionType(),
-                                              innerCtrlAttr, origClosureData))
-      callArgs.push_back(selfArg);
+    // innerCtrlFunc may be null here: unlike the indirect-callee call site
+    // (which only calls into this function after confirming the target
+    // `.ctrl` variant exists), the direct-callee call site has no such
+    // guard, e.g. when aggressive-inlining already absorbed all of
+    // calleeOrigName's quantum work into some other function, leaving no
+    // `.ctrl` variant to find. needsSelfArg is already false in that case
+    // (see above), so this stays safe without redundantly recomputing
+    // dynamicArgType on a null function type.
+    if (needsSelfArg) {
+      if (Value selfArg = maybeBuildCtrlSelfArg(rewriter, loc,
+                                                innerCtrlFunc.getFunctionType(),
+                                                innerCtrlAttr, origClosureData))
+        callArgs.push_back(selfArg);
+    }
 
     // See isApplicativeClosure above: in the applicative case, origClosureData
     // and the wrapper's own trailing entry arguments carry the same values,
@@ -1207,7 +1217,8 @@ public:
     auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto loc = func.getLoc();
     SmallVector<Type> inTys = {veqTy};
-    if (auto callTy = dynamicArgType(funcTy, 0)) {
+    auto callTy = dynamicArgType(funcTy, 0);
+    if (callTy) {
       SmallVector<Type> newInTys = {veqTy};
       newInTys.append(funcTy.getInputs().begin() + 1, funcTy.getInputs().end());
       auto newFnTy =
@@ -1226,7 +1237,12 @@ public:
     IRMapping mapping;
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
-    newFunc.getBody().front().getArgument(0).setType(inTys[1]);
+    // Only the dynamic-callable-self-arg case needs arg0's type rebuilt (to
+    // the freshly-built callable type in inTys[1], reflecting the prepended
+    // control veq in its signature); the plain case leaves arg0 as-is, and
+    // func may have no arguments at all to retype.
+    if (callTy)
+      newFunc.getBody().front().getArgument(0).setType(inTys[1]);
     auto newCond = newFunc.getBody().front().insertArgument(0u, veqTy, loc);
 
     newFunc.walk([&](Operation *op) {
@@ -1267,7 +1283,8 @@ public:
         OperationState res(op->getLoc(), op->getName().getStringRef(), operands,
                            op->getResultTypes(), attrs);
         // FIXME: Quake quantum gates do have results.
-        builder.create(res);
+        auto *newOp = builder.create(res);
+        op->replaceAllUsesWith(newOp->getResults());
         op->erase();
       } else if (auto apply = dyn_cast<cudaq::quake::ApplyOp>(op)) {
         // If op is an apply and in the set `controlNotNeeded`, then skip it.
@@ -1292,6 +1309,7 @@ public:
         LLVM_DEBUG(llvm::dbgs() << "replacing call: " << call
                                 << " with an apply: " << app << '\n');
         newApplyOps.push_back(app);
+        call->replaceAllUsesWith(app->getResults());
         call->erase();
       }
     });

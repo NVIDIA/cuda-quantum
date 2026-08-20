@@ -96,6 +96,47 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:         }
 
 
+def test_sample_control_no_args():
+    """
+    Regression test: `cudaq.control()` on a `@cudaq.kernel`-decorated
+    target that takes no arguments used to crash while creating the
+    `.ctrl` variant (an out-of-bounds access when the target kernel has
+    zero formal parameters; see the `createControlVariantOf` fix in
+    `ApplyOpSpecialization.cpp`). Also exercises the `quake.ApplyOp`
+    Python binding call site in `ast_bridge.py`.
+    """
+
+    @cudaq.kernel
+    def target():
+        q = cudaq.qubit()
+        x(q)
+
+    @cudaq.kernel
+    def caller():
+        ctrls = cudaq.qvector(2)
+        x(ctrls)
+        cudaq.control(target, ctrls)
+
+    # Check the MLIR.
+    print(caller)
+
+    # Simulate and check for correctness: both control qubits and the
+    # controlled-x target qubit should measure |1>.
+    result = cudaq.sample(caller)
+    assert len(result) == 1
+    assert '111' in result
+
+
+# CHECK-LABEL: test_sample_control_no_args
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__caller..
+# CHECK-SAME:      (%[[VAL_0:.*]]: !cc.callable<() -> ()> {{.*}}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_1]] : (!quake.veq<2>) -> !quake.veq<?>
+# CHECK:           quake.apply %[[VAL_0]] {{\[}}%[[VAL_2]]] () : (!quake.veq<?>) -> ()
+# CHECK:           return
+# CHECK:         }
+
+
 @pytest.mark.parametrize("qubit_count", [1, 5])
 def test_kernel_control_float_args(qubit_count):
     """
