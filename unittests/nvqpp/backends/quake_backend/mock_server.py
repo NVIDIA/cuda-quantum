@@ -31,7 +31,7 @@ createdJobs = {}
 
 SERVER_EXECUTION_PIPELINE = (
     "builtin.module("
-    "canonicalize,distributed-device-call,cse,"
+    "canonicalize,distributed-device-call,cse,return-to-output-log,"
     "func.func("
     "memtoreg,canonicalize,cc-loop-normalize,"
     "cc-loop-unroll{maximum-iterations=1024 "

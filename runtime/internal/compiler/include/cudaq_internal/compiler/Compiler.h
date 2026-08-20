@@ -136,7 +136,8 @@ public:
 /// [,deployStage] [,mid] [,finalizeStage] [,low] where deployStage and
 /// finalizeStage are fixed stages interleaved between the config-provided
 /// stages. Pass empty strings to skip them.
-std::string getPassPipeline(const cudaq::CompileTarget &target);
+std::string getPassPipeline(const cudaq::CompileTarget &target,
+                            const cudaq::CompileOptions &options);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.

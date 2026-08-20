@@ -36,6 +36,12 @@ struct Decomposition
   /// Initialize the decomposer by building the set of patterns used during
   /// execution.
   LogicalResult initialize(MLIRContext *context) override {
+    if (basis.empty() && enabledPatterns.empty()) {
+      mlir::emitWarning(mlir::UnknownLoc::get(context),
+                        "Decomposition: 'basis' must be specified");
+      return failure();
+    }
+
     RewritePatternSet owningPatterns(context);
 
     if (!basis.empty() && !enabledPatterns.empty()) {

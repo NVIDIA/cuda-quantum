@@ -169,34 +169,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
   });
 }
 
-cudaq::CompileTarget
-cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
-  return createDefaultCompileTarget();
-}
-
-cudaq::CompileTarget
-cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
-  return createDefaultCompileTarget();
-}
-
-cudaq::CompileTarget
-cudaq::DefaultQPU::getCompileTarget(const run_policy &policy) {
-  return createDefaultCompileTarget();
-}
-
-cudaq::CompileTarget
-cudaq::DefaultQPU::getCompileTarget(const dem_policy &policy) {
-  return createDefaultCompileTarget();
-}
-
-cudaq::CompileTarget
-cudaq::DefaultQPU::getCompileTarget(const estimate_policy &policy) {
-  return createDefaultCompileTarget();
-}
-
-cudaq::CompileTarget
-cudaq::DefaultQPU::getCompileTarget(const other_policies &policy,
-                                    ExecutionContext *context) {
+cudaq::CompileTarget cudaq::DefaultQPU::getCompileTarget(bool) {
   return createDefaultCompileTarget();
 }
 
