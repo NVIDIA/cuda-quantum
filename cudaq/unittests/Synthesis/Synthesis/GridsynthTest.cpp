@@ -717,10 +717,21 @@ TEST(GridsynthPrecisionTest, TightEpsilonAfterLooseEpsilonStaysWithinEpsilon) {
 }
 
 // ============================================================
-// Near-miss angles
+// Regressions found during performance tuning
 // ============================================================
+//
+// Neither test below states a property of the algorithm. Each pins a specific
+// bug the tuning work surfaced, extracted from the corpus run that found it.
+// Reintroducing either threshold reproduces the original symptom. The first
+// test then never returns, the second fails outright.
+//
+// They are kept together because they are the same mistake twice. An absolute
+// threshold compared against a quantity that scales with 1/sqrt(2)^k. That is
+// invisible at loose epsilon and fatal at deep, so the parametrized accuracy
+// test above never reaches the tolerances that expose it. A future change of
+// that shape should fail here first.
 
-// theta just below pi/4 used to run forever: the line-intersection filter
+// theta just below pi/4 used to run forever. The line-intersection filter
 // judged |z.v| against an absolute 1e-30, so deep-k rays read as parallel and
 // it returned the whole disk chord rather than the sliver. The value is the
 // double nearest pi/4.
@@ -740,10 +751,6 @@ TEST(GridsynthNearMissTest, SynthesizesJustBelowPiOverFour) {
   EXPECT_LE(Real(err_str), Real(epsilon_str))
       << "error " << err_str << " exceeds epsilon " << epsilon_str;
 }
-
-// ============================================================
-// Deep epsilon at odd multiples of pi/4
-// ============================================================
 
 // Odd multiples of pi/4 leave the per-b slope in the ODGP bound refinement at
 // ~1e-47 while b runs to ~1e45. Judging that slope against an absolute
