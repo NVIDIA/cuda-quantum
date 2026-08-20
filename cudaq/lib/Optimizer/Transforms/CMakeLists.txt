@@ -23,6 +23,7 @@ add_cudaq_library(OptTransforms
   CliffordTSynthesis.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
+  CommutationAwareRewrite.cpp
   ConstantPropagation.cpp
   DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
@@ -98,6 +99,7 @@ add_cudaq_library(OptTransforms
     CCDialect
     MLIRIR
     MLIRTransforms
+    OptAnalysis
     OptimBuilder
     QECDialect
     QuakeDialect
