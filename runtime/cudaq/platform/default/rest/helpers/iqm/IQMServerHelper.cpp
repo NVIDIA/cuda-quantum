@@ -450,9 +450,18 @@ std::map<std::string, std::string> IQMServerHelper::getPipelineSubstitutions(
       // Use provided string as path+filename
       pathToFile = iter->second;
     } else {
-      // Use the dynamic quantum architecture of the configured IQM server
-      fetchQuantumArchitecture();
-      pathToFile = writeQuantumArchitectureFile();
+      // Use the dynamic quantum architecture of the configured IQM server.
+      // Fallback to an empty substitution map and let the pipeline report the
+      // problem if it is ever actually used.
+      try {
+        fetchQuantumArchitecture();
+        pathToFile = writeQuantumArchitectureFile();
+      } catch (const std::exception &e) {
+        CUDAQ_WARN("Leaving %QPU_ARCH% unresolved: {}. Set IQM_QPU_QA or pass "
+                   "--mapping-file to supply it offline.",
+                   e.what());
+        return {};
+      }
     }
   }
   CUDAQ_INFO("Using quantum architecture file: {}", pathToFile);

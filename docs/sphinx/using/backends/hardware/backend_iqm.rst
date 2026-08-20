@@ -20,6 +20,11 @@ Emulation Mode
     This can be done by setting `mapping_file` to point to a file describing the QPU architecture which should be emulated.
     If an architecture is specified no server URL is needed anymore.
 
+    Without an architecture file, the target attempts to fetch the dynamic quantum architecture from the server.
+    If that fetch fails (for example due to missing authentication or no network access), CUDA-Q emits a warning and continues.
+    Execution modes that do not require qubit mapping, such as detector error model generation, still work in that case.
+    Execution that does require qubit mapping will fail later with an unresolved architecture placeholder.
+
     .. code:: python
 
         cudaq.set_target('iqm', emulate=True, mapping_file="<path+filename>")
@@ -52,6 +57,11 @@ Emulation Mode
     Emulation mode will still contact the configured IQM Server to retrieve the dynamic quantum architecture resulting from the active calibration unless a QPU architecture file is explicitly specified.
     This can be done by specifying a file with the architecture either at compile time or in an variable in the environment executing the binary.
     If an architecture is specified no server URL is needed anymore.
+
+    Without an architecture file, the target attempts to fetch the dynamic quantum architecture from the server.
+    If that fetch fails (for example due to missing authentication or no network access), CUDA-Q emits a warning and continues.
+    Execution modes that do not require qubit mapping, such as detector error model generation, still work in that case.
+    Execution that does require qubit mapping will fail later with an unresolved architecture placeholder.
 
     .. code:: bash
 

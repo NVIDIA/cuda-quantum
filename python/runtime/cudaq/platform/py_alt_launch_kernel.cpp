@@ -706,9 +706,9 @@ static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
 getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
   cudaq::CompileOptions options;
+  if (!target)
+    target = cudaq::get_compile_target();
   if (!ctx) {
-    if (!target)
-      target = cudaq::get_compile_target(cudaq::other_policies{});
     options = cudaq::get_compile_options(cudaq::other_policies{});
   } else {
     cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
@@ -717,8 +717,6 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
         policy.spin = ctx->spin.value();
       }
 
-      if (!target)
-        target = cudaq::get_compile_target(policy);
       options = cudaq::get_compile_options(policy);
     });
   }
