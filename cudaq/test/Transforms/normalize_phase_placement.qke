@@ -277,6 +277,39 @@ func.func @merge_interleaved_wire(%a0: f64, %b: f64, %a1: f64) {
   return
 }
 
+// These phases shouldn't merge because
+// - the predicate types differ (f32 vs f64)
+// - the control polarities differ (negated vs non-negated)
+// CHECK-LABEL: func.func @keep_distinct_phase_predicates(
+// CHECK-SAME: %[[NEGATIVE:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME: %[[POSITIVE:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME: %[[SINGLE:[a-zA-Z0-9_.$-]+]]: f32
+// CHECK: %[[CONTROL:.*]] = quake.alloca !quake.ref
+// CHECK-NOT: arith.addf
+// CHECK: quake.phase (%[[NEGATIVE]]) {{\[}}%[[CONTROL]] neg [true]{{\]}} %{{.*}}
+// CHECK-NEXT: quake.phase (%[[POSITIVE]]) {{\[}}%[[CONTROL]]{{\]}} %{{.*}}
+// CHECK-NEXT: quake.phase (%[[SINGLE]]) {{\[}}%[[CONTROL]]{{\]}} %{{.*}}
+func.func @keep_distinct_phase_predicates(%negative: f64, %positive: f64,
+                                          %single: f32) {
+  %control = quake.alloca !quake.ref
+  %negative_anchor = quake.alloca !quake.ref
+  %positive_anchor = quake.alloca !quake.ref
+  %single_anchor = quake.alloca !quake.ref
+
+  quake.phase (%negative) [%control neg [true]] %negative_anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%positive) [%control] %positive_anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%single) [%control] %single_anchor
+      : (f32, !quake.ref, !quake.ref) -> ()
+
+  quake.dealloc %single_anchor : !quake.ref
+  quake.dealloc %positive_anchor : !quake.ref
+  quake.dealloc %negative_anchor : !quake.ref
+  quake.dealloc %control : !quake.ref
+  return
+}
+
 // Distinct reference-typed function arguments are not proof of distinct
 // qubits: callers may alias them. Conservatively stop before a gate targeting
 // another reference argument when it may therefore change the phase control.
