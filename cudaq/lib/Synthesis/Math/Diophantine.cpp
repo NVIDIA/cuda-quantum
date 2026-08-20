@@ -816,13 +816,13 @@ DiophantineResult adj_decompose(Integer n, const DiophantineBudget &budget,
           stats->factoring_restarts++;
         if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
           if (stats)
-            stats->candidates_budget_exhausted++;
+            stats->candidates_restart_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
         if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
           if (stats)
-            stats->candidates_budget_exhausted++;
+            stats->candidates_iteration_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
           return NoSolution{};
         }
@@ -1033,13 +1033,13 @@ DiophantineResult adj_decompose_selfcoprime(const ZSqrt2 &xi,
           stats->factoring_restarts++;
         if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
           if (stats)
-            stats->candidates_budget_exhausted++;
+            stats->candidates_restart_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
         if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
           if (stats)
-            stats->candidates_budget_exhausted++;
+            stats->candidates_iteration_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
           return NoSolution{};
         }

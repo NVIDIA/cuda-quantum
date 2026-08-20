@@ -26,9 +26,19 @@ namespace details {
 /// attempt and the result depends on host speed.
 inline constexpr uint64_t DEFAULT_MAX_FACTORING_ITERATIONS = 500000;
 
-/// The same, summed over one candidate's attempts. Capping only the
-/// per-attempt budget moves the unbounded loop up a level rather than removing
-/// it: a composite that never splits just starts attempt after attempt.
+/// The same, summed over every factoring attempt one grid candidate makes.
+///
+/// This is not implied by the per-attempt cap and the restart cap, because the
+/// restart cap is per composite, not per candidate: the counter resets
+/// whenever the top of the factor stack changes. A candidate that keeps making
+/// partial progress (splitting off a factor, pushing the two cofactors,
+/// failing on those) resets it every time and can spend without bound.
+///
+/// Measured over 38 tuning angles x 1e-30..1e-40. Lifting this cap costs 1.97x
+/// total runtime and 2.2x p95, uniformly across tolerances, and raises
+/// restarts 222 -> 560 while changing the summed T-count by +2 in 64830. The
+/// implied bound (per-attempt x restarts = 4M) recovers almost none of that,
+/// so the useful value is well below it.
 inline constexpr uint64_t DEFAULT_MAX_CANDIDATE_ITERATIONS =
     4 * DEFAULT_MAX_FACTORING_ITERATIONS;
 

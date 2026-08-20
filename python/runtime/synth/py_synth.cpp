@@ -157,7 +157,9 @@ nanobind::tuple gridsynthWithStatsBinding(RealArg theta, RealArg epsilon,
   out["k_max"] = stats.k_max.load();
   out["candidates_enumerated"] = stats.candidates_enumerated.load();
   out["candidates_residue_rejected"] = stats.candidates_residue_rejected.load();
-  out["candidates_budget_exhausted"] = stats.candidates_budget_exhausted.load();
+  out["candidates_restart_limited"] = stats.candidates_restart_limited.load();
+  out["candidates_iteration_limited"] =
+      stats.candidates_iteration_limited.load();
   out["diophantine_calls"] = stats.diophantine_calls.load();
   out["diophantine_successes"] = stats.diophantine_successes.load();
   out["factoring_calls"] = stats.factoring_calls.load();

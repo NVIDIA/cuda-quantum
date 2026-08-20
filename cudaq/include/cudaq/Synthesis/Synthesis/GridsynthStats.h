@@ -132,12 +132,19 @@ struct GridsynthStats {
   details::Relaxed<int64_t> factoring_successes = 0;
   details::Relaxed<int64_t> factoring_restarts = 0;
 
-  /// Solves abandoned because a work budget ran out -- the restart limit or
-  /// the per-candidate iteration budget -- rather than because the equation
-  /// has no solution. Without this the two are indistinguishable, and they say
-  /// opposite things about a budget: one that never exhausts is not buying
+  /// Solves abandoned because a work budget ran out rather than because the
+  /// equation has no solution, split by which budget ended it, the
+  /// per-composite restart limit (`maxFactoringRestarts`) or the per-candidate
+  /// iteration budget (`maxCandidateIterations`).
+  ///
+  /// They are counted apart because their sum is nearly constant while the two
+  /// trade against each other (lifting the iteration budget moves work onto
+  /// the restart limit and doubles runtime while the total barely moves), so a
+  /// single counter reports "nothing changed" for a 2x regression. Each also
+  /// says something different. A budget that never exhausts is not buying
   /// anything, one that exhausts constantly is costing T gates.
-  details::Relaxed<int64_t> candidates_budget_exhausted = 0;
+  details::Relaxed<int64_t> candidates_restart_limited = 0;
+  details::Relaxed<int64_t> candidates_iteration_limited = 0;
 
   /// Attempts `GridsynthOptions::timeout` ended before their iteration budget
   /// ran out, and the same one level up. Both must be zero for a run to
