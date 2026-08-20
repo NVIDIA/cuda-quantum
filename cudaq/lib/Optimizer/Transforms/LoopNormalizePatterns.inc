@@ -77,8 +77,8 @@ public:
     // the loop doesn't modify), not just values that already dominate the
     // loop. Materialize (hoist a clone of) any such value here so it can
     // legally be used at this insertion point, which must dominate the loop.
-    Value upper = cudaq::opt::materializeLoopInvariant(rewriter,
-                                                       c.compareValue, loop);
+    Value upper =
+        cudaq::opt::materializeLoopInvariant(rewriter, c.compareValue, loop);
     auto one = createConstantOp(1);
     Value step =
         cudaq::opt::materializeLoopInvariant(rewriter, c.stepValue, loop);
@@ -132,13 +132,14 @@ public:
       if (c.minusOneMult) {
         // `b - m * i` (b eliminated), multiply lower and step by `-1` (`m`
         // follows).
-        auto wideNegOne = arith::ConstantIntOp::create(rewriter, loc, wideTy, -1);
+        auto wideNegOne =
+            arith::ConstantIntOp::create(rewriter, loc, wideTy, -1);
         lower = arith::MulIOp::create(rewriter, loc, lower, wideNegOne);
         step = arith::MulIOp::create(rewriter, loc, step, wideNegOne);
       }
       if (c.scaleValue) {
-        Value scale = promote(cudaq::opt::materializeLoopInvariant(
-            rewriter, c.scaleValue, loop));
+        Value scale = promote(
+            cudaq::opt::materializeLoopInvariant(rewriter, c.scaleValue, loop));
         if (c.reciprocalScale) {
           // `1/m * i + b` (b eliminated), multiply upper by `m`.
           upper = arith::MulIOp::create(rewriter, loc, upper, scale);
