@@ -74,6 +74,27 @@ struct FuseSecondaryInductions : public OpRewritePattern<cudaq::cc::LoopOp> {
     // to the primary's own current value (`cc.continue %i, %i, ...`): its
     // value at `k` is just the primary's value one iteration earlier, except
     // at the zeroth iteration where the given initial value applies verbatim.
+    // Converts `v` to `ty` via cc.cast when its own type differs, mirroring
+    // LoopNormalizePatterns.inc's LoopPat::promote: the secondary's own
+    // declared type need not match the primary induction's, so `k` (the
+    // primary's per-iteration value, passed in below) may need converting to
+    // line up with `si`'s own initial/step values before doing arithmetic.
+    // Unlike LoopPat::promote (which only ever widens, having already picked
+    // the widest of several types to promote to), this may need to *narrow*
+    // `k` when the secondary's own declared type is narrower than the
+    // primary's — cc.cast's signed/unsigned mode is for extension only, so a
+    // narrowing conversion must instead use the plain (mode-less) truncating
+    // form.
+    auto promote = [&](Value v, Type ty) -> Value {
+      if (v.getType() == ty)
+        return v;
+      auto vWidth = cast<IntegerType>(v.getType()).getWidth();
+      auto tyWidth = cast<IntegerType>(ty).getWidth();
+      if (vWidth < tyWidth)
+        return cudaq::cc::CastOp::create(rewriter, loc, ty, v,
+                                         cudaq::cc::CastOpMode::Signed);
+      return cudaq::cc::CastOp::create(rewriter, loc, ty, v);
+    };
     auto buildClosedForm =
         [&](Value k, const cudaq::opt::SecondaryInduction &si) -> Value {
       Value initVal = si.initialValue;
@@ -84,22 +105,19 @@ struct FuseSecondaryInductions : public OpRewritePattern<cudaq::cc::LoopOp> {
       Value step =
           cudaq::opt::materializeLoopInvariant(rewriter, si.stepValue, loop);
       Type ty = initVal.getType();
-      if (step.getType() != ty)
-        step = arith::ExtUIOp::create(rewriter, loc, ty, step);
-      Value kCast = k;
-      if (kCast.getType() != ty)
-        kCast = arith::ExtUIOp::create(rewriter, loc, ty, kCast);
+      Value kCast = promote(k, ty);
       if (!si.aliasesPrimary) {
-        Value scaled = arith::MulIOp::create(rewriter, loc, kCast, step);
-        return si.stepIsAdd
-                   ? arith::AddIOp::create(rewriter, loc, initVal, scaled)
-                         .getResult()
-                   : arith::SubIOp::create(rewriter, loc, initVal, scaled)
-                         .getResult();
+        // j(k) = j_initial ± k * step_j, matching LoopPat's own recovery of
+        // the (pre-normalization) induction value from its normalized form.
+        auto mul = arith::MulIOp::create(rewriter, loc, kCast, step);
+        return si.stepIsAdd ? arith::AddIOp::create(rewriter, loc, initVal, mul)
+                                  .getResult()
+                            : arith::SubIOp::create(rewriter, loc, initVal, mul)
+                                  .getResult();
       }
-      Value primaryInit = lcv.initialValue;
-      if (primaryInit.getType() != ty)
-        primaryInit = arith::ExtUIOp::create(rewriter, loc, ty, primaryInit);
+      // aliasesPrimary: j(k) = select(k == primary_initial, j_initial,
+      //                               k ∓ step_j).
+      Value primaryInit = promote(lcv.initialValue, ty);
       Value prevVal =
           si.stepIsAdd
               ? arith::SubIOp::create(rewriter, loc, kCast, step).getResult()
@@ -172,9 +190,26 @@ struct FuseSecondaryInductions : public OpRewritePattern<cudaq::cc::LoopOp> {
       return kept;
     };
 
-    // (a) Capture the step-computation values that will become dead once the
-    //     step cc.continue drops them.
+    // (a) Capture the step-computation values that will become dead once
+    //     their terminator drops them. Phase 1/2 already replace every use
+    //     of the body/else regions' own copy of a fused secondary's entry
+    //     argument (including any use inside that region's own stepping
+    //     computation, which is what makes body/else-local stepping ops
+    //     dead without needing to be listed here explicitly). The while and
+    //     step regions get no such treatment — a secondary stepped in
+    //     either of those (the while region only when coincident with the
+    //     primary's own while-region step; see getSecondaryInductions) can
+    //     leave that region's own copy of the entry argument with one
+    //     remaining use, from the now-otherwise-dead computation that stepped
+    //     it, which would make the eraseArgument in (d) below fail its
+    //     "still has uses" invariant. So explicitly capture and clean up
+    //     each fused secondary's carried value from both of those regions.
     SmallVector<Value> deadStepVals;
+    if (auto cond = dyn_cast<cudaq::cc::ConditionOp>(
+            loop.getWhileRegion().front().back()))
+      for (auto &si : secondaries)
+        if (si.argIndex < cond.getResults().size())
+          deadStepVals.push_back(cond.getResults()[si.argIndex]);
     if (loop.hasStep()) {
       auto stepCont =
           dyn_cast<cudaq::cc::ContinueOp>(loop.getStepRegion().front().back());

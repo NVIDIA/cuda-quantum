@@ -167,3 +167,168 @@ func.func @test_python_for_else(%n: i64) -> (i64, i64) {
 // CHECK:           %[[ADDI_2:.*]] = arith.addi %[[LOOP_0]], %[[CONSTANT_1]] : i64
 // CHECK:           return %[[ADDI_2]], %[[MULI_2]] : i64, i64
 
+// ---------------------------------------------------------------------------
+// Test 4: secondary induction narrower than the (i64) primary.
+//
+//   for (i = 0; i < N; i += 1) { use(i, j); j += 3_i32; }   // j : i32
+//
+// The primary's own per-iteration value used to build j's closed form
+// (`i * step_j`) must be *narrowed* from i64 to i32 to match j's declared
+// type, exercising the truncating (mode-less) cc.cast path rather than the
+// widening (signed) one used elsewhere in this file.
+// ---------------------------------------------------------------------------
+
+func.func private @two_args32(i64, i32)
+
+func.func @test_narrower_secondary(%n: i64) -> (i64, i32) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c0_i32 = arith.constant 0 : i32
+  %c3_i32 = arith.constant 3 : i32
+  %r:2 = cc.loop while ((%i = %c0, %j = %c0_i32) -> (i64, i32)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i32)
+  } do {
+  ^bb0(%i : i64, %j : i32):
+    func.call @two_args32(%i, %j) : (i64, i32) -> ()
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c3_i32 : i32
+    cc.continue %i1, %j1 : i64, i32
+  }
+  return %r#0, %r#1 : i64, i32
+}
+
+// CHECK-LABEL:   func.func @test_narrower_secondary(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i32) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 3 : i32
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ult, %[[VAL_0]], %[[ARG0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[CAST_0:.*]] = cc.cast %[[VAL_1]] : (i64) -> i32
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[CAST_0]], %[[CONSTANT_2]] : i32
+// CHECK:             func.call @two_args32(%[[VAL_1]], %[[MULI_0]]) : (i64, i32) -> ()
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_0]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[LOOP_0]] : (i64) -> i32
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[CAST_1]], %[[CONSTANT_2]] : i32
+// CHECK:           return %[[LOOP_0]], %[[MULI_1]] : i64, i32
+
+// ---------------------------------------------------------------------------
+// Test 5: secondary stepped in the WHILE region — must NOT be fused.
+//
+//   i = 0; j = 0;
+//   while (i < n) { j += 1;  // <-- in the condition block, not the body
+//     use(i, j);
+//     i += 1;
+//   }
+//
+// The while region's condition block runs once *before* every body
+// iteration (and once more, with no matching iteration, to find the exit),
+// so a value stepped there arrives at body already one step further along
+// than the closed form `init + i*step` this pass builds for body/step-region
+// stepping would give. getSecondaryInductions must recognize this shape as
+// unfusable (rather than emitting an incorrect closed form, or — as this
+// once did — crashing while trying to erase a still-used while-region block
+// argument): the loop must come out of this pass completely unchanged.
+// ---------------------------------------------------------------------------
+
+func.func @while_stepped_secondary(%n: i64) -> (i64, i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %r:2 = cc.loop while ((%i = %c0, %j = %c0) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    %j1 = arith.addi %j, %c1 : i64
+    cc.condition %cond(%i, %j1 : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    cc.continue %i1, %j : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @while_stepped_secondary(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]], %[[VAL_1:.*]] = %[[CONSTANT_0]]) -> (i64, i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ult, %[[VAL_0]], %[[ARG0]] : i64
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[ADDI_0]] : i64, i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64, %[[VAL_3:.*]]: i64):
+// CHECK:             func.call @two_args(%[[VAL_2]], %[[VAL_3]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_2]], %[[VAL_3]] : i64, i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_4:.*]]: i64, %[[VAL_5:.*]]: i64):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_4]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]], %[[VAL_5]] : i64, i64
+// CHECK:           }
+// CHECK:           return %[[LOOP_0]]#0, %[[LOOP_0]]#1 : i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 6: secondary stepped in the WHILE region *coincident* with the
+// primary's own while-region step — this one SHOULD fuse.
+//
+//   i = n; j = 0;
+//   while ({i -= 1; j += 1;}, i > 0) { use(i, j); }
+//
+// Unlike Test 5, the primary itself (`i`, decrementing) is also stepped in
+// the while region here (getLoopComponents' last-resort scan of the while
+// region — see the `while (i-- > 0)` comment there). Both `i` and `j` pick
+// up the same one-extra-step bump from the same while-region execution on
+// the same schedule, so the closed form built from the primary's own raw
+// per-iteration value still holds and this secondary must be fused (leaving
+// `j`'s carried value entirely, as it collapses to exactly the primary's own
+// normalized value). This also exercises cleaning up the resulting dead
+// while-region step computation without erasing a still-used block argument
+// (see deadStepVals in LoopInductionFusion.cpp).
+// ---------------------------------------------------------------------------
+
+func.func @while_coincident_secondary(%n: i64) -> (i64, i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %r:2 = cc.loop while ((%i = %n, %j = %c0) -> (i64, i64)) {
+    %i1 = arith.subi %i, %c1 : i64
+    %j1 = arith.addi %j, %c1 : i64
+    %cond = arith.cmpi sgt, %i1, %c0 : i64
+    cc.condition %cond(%i1, %j1 : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @while_coincident_secondary(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK-DAG:       %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[CONSTANT_2:.*]] = arith.constant -1 : i64
+// CHECK:           %[[SUBI_0:.*]] = arith.subi %[[CONSTANT_1]], %[[ARG0]] : i64
+// CHECK:           %[[DIVSI_0:.*]] = arith.divsi %[[SUBI_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi sgt, %[[DIVSI_0]], %[[CONSTANT_0]] : i64
+// CHECK:           %[[SELECT_0:.*]] = arith.select %[[CMPI_0]], %[[DIVSI_0]], %[[CONSTANT_0]] : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_0]], %[[CONSTANT_1]] : i64
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi ne, %[[ADDI_0]], %[[SELECT_0]] : i64
+// CHECK:             cc.condition %[[CMPI_1]](%[[ADDI_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[SUBI_1:.*]] = arith.subi %[[ARG0]], %[[VAL_1]] : i64
+// CHECK:             func.call @two_args(%[[SUBI_1]], %[[VAL_1]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[SUBI_2:.*]] = arith.subi %[[ARG0]], %[[LOOP_0]] : i64
+// CHECK:           return %[[SUBI_2]], %[[LOOP_0]] : i64, i64
+

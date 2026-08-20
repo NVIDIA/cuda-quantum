@@ -868,6 +868,30 @@ cudaq::opt::getSecondaryInductions(cudaq::cc::LoopOp loop,
       if (carried == entryArg)
         continue; // Pure passthrough in this region — nothing to check.
 
+      // The while region's condition block runs once *before* every body
+      // iteration attempt (including one extra time, with no matching body
+      // iteration, to find the exit), one more time than body/step run — so
+      // a value stepped there is one step further along than the same value
+      // would be if body or step had stepped it instead: body would see
+      // `init + k*step` at iteration k for a body/step-stepped value, but a
+      // while-region-stepped one arrives at body already bumped to
+      // `init + (k+1)*step`. That mismatch only actually matters, though,
+      // when the *primary* induction's own step lives somewhere else: if the
+      // primary is itself stepped in the while region too (e.g.
+      // `while (i-- > 0)` — see getLoopComponents scanning the while region
+      // as a last resort), both it and this secondary pick up the exact same
+      // extra bump on the exact same schedule, so the closed form built
+      // below (in terms of the primary's own raw per-iteration value) still
+      // holds unchanged. It's only a body/step-vs-while (or while-vs-while
+      // but naming a *different* region — not possible here, there being
+      // only one while region — so really just body/step-vs-while) mismatch
+      // between where the primary and this secondary are each stepped that
+      // invalidates the closed form.
+      if (site.isWhile && primary.stepRegion != site.region) {
+        malformed = true;
+        break;
+      }
+
       // The arg is reassigned each iteration to the primary induction's own
       // per-iteration value, e.g. `cc.continue %i, %i, ...`. Its closed form
       // then rides on the primary's own step rather than an independent
