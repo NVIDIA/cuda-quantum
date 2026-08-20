@@ -312,7 +312,8 @@ constexpr double exactIdentityPeriod() {
   return 4.0 * M_PI;
 }
 
-// `quake.ry (12 * pi)` is a reserved marker and is never optimized.
+// Preserve `quake.ry(12 * pi)` as an identity marker until Quake provides an
+// explicit identity operation.
 template <typename QOP>
 static bool isReservedRyMarker(double theta) {
   return std::is_same_v<QOP, cudaq::quake::RyOp> && theta == 12.0 * M_PI;
@@ -754,8 +755,28 @@ private:
   Pass::Statistic &stat;
 };
 
-// A reset before a sink can be eliminated as the wire is going out of scope.
-// NB: this optimization would not be valid before return_wire.
+static bool hasExclusiveNullWireLineage(Value wire, Operation *downstream) {
+  Block *block = downstream->getBlock();
+  while (Operation *producer = wire.getDefiningOp()) {
+    if (producer->getBlock() != block || !wire.hasOneUse() ||
+        wire.use_begin()->getOwner() != downstream)
+      return false;
+    if (isa<cudaq::quake::NullWireOp>(producer))
+      return true;
+
+    auto flow = cudaq::quake::detail::getScalarWireFlow(producer);
+    if (!flow || flow->inputs.size() != 1 || flow->results.size() != 1 ||
+        flow->results.front() != wire)
+      return false;
+    wire = flow->inputs.front();
+    downstream = producer;
+  }
+  return false;
+}
+
+// Physical adjacency proves only that no operation lies between the reset and
+// sink; reference and duplicate-wire aliases may still survive the sink.
+// Restrict removal to an exclusive scalar lineage from a fresh local wire.
 class EraseResetSink : public OpRewritePattern<cudaq::quake::SinkOp> {
 public:
   EraseResetSink(MLIRContext *context, Pass::Statistic &stat)
@@ -772,10 +793,11 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be reset\n");
       return failure();
     }
-    // Scalar def-use cannot exclude uses through another SSA or reference
-    // alias. Accept only an empty interval, conservatively missing safe
-    // nonempty intervals.
+    // Keep the physical interval empty as a separate guard against effects
+    // through aliases that do not appear on the scalar lineage.
     if (reset0->getNextNode() != sink.getOperation())
+      return failure();
+    if (!hasExclusiveNullWireLineage(reset0.getTargets(), reset0))
       return failure();
     if (shouldSkipRewrite(sink, reset0))
       return failure();

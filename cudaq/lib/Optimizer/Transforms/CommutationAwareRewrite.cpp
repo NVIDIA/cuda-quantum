@@ -335,9 +335,10 @@ public:
         pendingIdentityPreservingUsers.erase(pending);
       return;
     }
-    // Any other in-place change may alter commutation semantics or identity
-    // placement, so rebuild the affected block conservatively.
-    discardBlock(operation->getBlock());
+    // An unexplained in-place change invalidates the operation's block and
+    // analyzed blocks that depend on its results. Unrelated block analyses do
+    // not observe the changed operation and remain valid.
+    discardDependentBlocks(operation);
   }
 
   void notifyOperationReplaced(Operation *operation,
@@ -364,6 +365,44 @@ public:
   }
 
 private:
+  void discardDependentBlocks(Operation *operation) {
+    pendingIdentityPreservingUsers.clear();
+    llvm::SmallVector<Operation *> worklist{operation};
+    llvm::DenseSet<Operation *> visited;
+    llvm::DenseSet<Value> visitedValues;
+    llvm::DenseSet<Block *> affectedBlocks;
+    auto markBlock = [&](Block *block) {
+      if (block && matcher.impl->analyses.contains(block))
+        affectedBlocks.insert(block);
+    };
+
+    while (!worklist.empty()) {
+      Operation *dependent = worklist.pop_back_val();
+      if (!visited.insert(dependent).second)
+        continue;
+      markBlock(dependent->getBlock());
+
+      // A region owner or branch can carry a changed value into blocks without
+      // preserving an SSA result-to-use edge through their block arguments.
+      dependent->walk(
+          [&](Operation *nested) { markBlock(nested->getBlock()); });
+      for (Block *successor : dependent->getSuccessors()) {
+        markBlock(successor);
+        for (BlockArgument argument : successor->getArguments())
+          if (visitedValues.insert(argument).second)
+            for (Operation *user : argument.getUsers())
+              worklist.push_back(user);
+      }
+      for (Value result : dependent->getResults())
+        if (visitedValues.insert(result).second)
+          for (Operation *user : result.getUsers())
+            worklist.push_back(user);
+    }
+
+    for (Block *block : affectedBlocks)
+      discardBlock(block);
+  }
+
   void updateReplacement(Operation *operation, ValueRange replacement) {
     // Replacement callbacks and their per-use modification callbacks are
     // synchronous. Starting another replacement or falling back must never

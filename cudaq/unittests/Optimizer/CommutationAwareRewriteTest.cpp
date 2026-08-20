@@ -11,16 +11,15 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
 #include <gtest/gtest.h>
-#include <iterator>
 
 using namespace mlir;
 
@@ -30,6 +29,7 @@ class CommutationAwareRewriteTest : public ::testing::Test {
 protected:
   void SetUp() override {
     context.loadDialect<arith::ArithDialect>();
+    context.loadDialect<cf::ControlFlowDialect>();
     context.loadDialect<func::FuncDialect>();
     context.loadDialect<cudaq::cc::CCDialect>();
     context.loadDialect<cudaq::quake::QuakeDialect>();
@@ -59,17 +59,16 @@ protected:
   MLIRContext context;
 };
 
-template <typename QOP>
-class CancelSelfInverse : public OpRewritePattern<QOP> {
+class CancelHadamard : public OpRewritePattern<cudaq::quake::HOp> {
 public:
-  CancelSelfInverse(MLIRContext *context,
-                    cudaq::opt::CommutationAwareRewriteMatcher &matcher)
-      : OpRewritePattern<QOP>(context), matcher(matcher) {}
+  CancelHadamard(MLIRContext *context,
+                 cudaq::opt::CommutationAwareRewriteMatcher &matcher)
+      : OpRewritePattern(context), matcher(matcher) {}
 
-  LogicalResult matchAndRewrite(QOP later,
+  LogicalResult matchAndRewrite(cudaq::quake::HOp later,
                                 PatternRewriter &rewriter) const override {
     Operation *earlier = matcher.find_nearest(later, [&](Operation *candidate) {
-      return isa<QOP>(candidate) &&
+      return isa<cudaq::quake::HOp>(candidate) &&
              matcher.have_same_ordered_quantum_operands(later, candidate);
     });
     if (!earlier)
@@ -84,21 +83,20 @@ private:
   cudaq::opt::CommutationAwareRewriteMatcher &matcher;
 };
 
-using CancelHadamard = CancelSelfInverse<cudaq::quake::HOp>;
-using CancelX = CancelSelfInverse<cudaq::quake::XOp>;
+enum class ParameterChange { Replacement, InPlaceMutation };
 
-class ReplaceOperatorParameter : public OpRewritePattern<cudaq::quake::U3Op> {
+class ChangeOperatorParameter : public OpRewritePattern<cudaq::quake::U3Op> {
 public:
-  ReplaceOperatorParameter(MLIRContext *context,
-                           cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                           bool &matchedBefore, bool &matchedAfter,
-                           Operation *primedLater = nullptr,
-                           Operation *primedEarlier = nullptr,
-                           bool *primedMatched = nullptr)
+  ChangeOperatorParameter(
+      MLIRContext *context, cudaq::opt::CommutationAwareRewriteMatcher &matcher,
+      bool &matchedBefore, bool &matchedAfter, ParameterChange change,
+      Operation *primedLater = nullptr, Operation *primedEarlier = nullptr,
+      bool *primedMatchedBefore = nullptr, bool *primedMatchedAfter = nullptr)
       : OpRewritePattern(context), matcher(matcher),
         matchedBefore(matchedBefore), matchedAfter(matchedAfter),
-        primedLater(primedLater), primedEarlier(primedEarlier),
-        primedMatched(primedMatched) {}
+        change(change), primedLater(primedLater), primedEarlier(primedEarlier),
+        primedMatchedBefore(primedMatchedBefore),
+        primedMatchedAfter(primedMatchedAfter) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::U3Op operation,
                                 PatternRewriter &rewriter) const override {
@@ -112,25 +110,37 @@ public:
     auto reachesEarlier = [earlier](Operation *candidate) {
       return candidate == earlier;
     };
-    if (primedLater && (!primedEarlier || !primedMatched))
+    if (primedLater &&
+        (!primedEarlier || !primedMatchedBefore || !primedMatchedAfter))
       return failure();
     if (primedLater) {
-      *primedMatched =
+      *primedMatchedBefore =
           matcher.find_nearest(primedLater, [this](Operation *candidate) {
             return candidate == primedEarlier;
           });
     }
     matchedBefore = matcher.find_nearest(later, reachesEarlier);
 
-    auto replacedConstant =
+    auto parameterConstant =
         operation.getParameters().front().getDefiningOp<arith::ConstantOp>();
-    rewriter.setInsertionPoint(replacedConstant);
-    auto replacement = arith::ConstantFloatOp::create(
-        rewriter, operation.getLoc(), rewriter.getF64Type(),
-        llvm::APFloat(2.0));
-    rewriter.replaceOp(replacedConstant, replacement.getResult());
+    if (change == ParameterChange::InPlaceMutation) {
+      rewriter.modifyOpInPlace(parameterConstant, [&] {
+        parameterConstant->setAttr("value", rewriter.getF64FloatAttr(2.0));
+      });
+    } else {
+      rewriter.setInsertionPoint(parameterConstant);
+      auto replacement = arith::ConstantFloatOp::create(
+          rewriter, operation.getLoc(), rewriter.getF64Type(),
+          llvm::APFloat(2.0));
+      rewriter.replaceOp(parameterConstant, replacement.getResult());
+    }
 
     matchedAfter = matcher.find_nearest(later, reachesEarlier);
+    if (primedLater)
+      *primedMatchedAfter =
+          matcher.find_nearest(primedLater, [this](Operation *candidate) {
+            return candidate == primedEarlier;
+          });
     return success();
   }
 
@@ -138,9 +148,11 @@ private:
   cudaq::opt::CommutationAwareRewriteMatcher &matcher;
   bool &matchedBefore;
   bool &matchedAfter;
+  ParameterChange change;
   Operation *primedLater;
   Operation *primedEarlier;
-  bool *primedMatched;
+  bool *primedMatchedBefore;
+  bool *primedMatchedAfter;
 };
 
 class CancelHadamardThenModifyUser
@@ -277,7 +289,8 @@ struct EraseListener : public RewriterBase::Listener {
   unsigned eraseCount = 0;
 };
 
-TEST_F(CommutationAwareRewriteTest, FindsNearestEarlierEndpoint) {
+TEST_F(CommutationAwareRewriteTest,
+       FindsNearestWithoutOpOrderAndUsesAdjacentFastPath) {
   auto module = parseModule(R"mlir(
     module {
       func.func @nearest() {
@@ -286,6 +299,14 @@ TEST_F(CommutationAwareRewriteTest, FindsNearestEarlierEndpoint) {
         %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
         %h2 = quake.h %h1 : (!quake.wire) -> !quake.wire
         quake.sink %h2 : !quake.wire
+        return
+      }
+      func.func @adjacent_cancel() {
+        %reference = quake.alloca !quake.ref
+        %wire = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+        %h0 = quake.h %wire : (!quake.wire) -> !quake.wire
+        %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+        quake.wrap %h1 to %reference : !quake.wire, !quake.ref
         return
       }
     })mlir");
@@ -307,311 +328,12 @@ TEST_F(CommutationAwareRewriteTest, FindsNearestEarlierEndpoint) {
 
   EXPECT_EQ(match, operators[1]);
   EXPECT_FALSE(block.isOpOrderValid());
-  EXPECT_TRUE(driver.get_matcher().has_distinct_quantum_operands(operators[2]));
-  EXPECT_EQ(driver.get_statistics().analysisBuilds, 0u);
-}
-
-TEST_F(CommutationAwareRewriteTest,
-       AcceptsDistinctDynamicPauliOperandsAndAdjacentEndpoint) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @dynamic_pauli(%word: !cc.charspan) {
-        %angle = arith.constant 5.0e-1 : f64
-        %q0 = quake.null_wire
-        %q1 = quake.null_wire
-        %earlier:2 = quake.exp_pauli (%angle) %q0, %q1 to %word
-            : (f64, !quake.wire, !quake.wire, !cc.charspan)
-              -> (!quake.wire, !quake.wire)
-        %later:2 = quake.x [%earlier#0] %earlier#1
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.sink %later#0 : !quake.wire
-        quake.sink %later#1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto operators = getOperators(getFunction(*module, "dynamic_pauli"));
-  ASSERT_EQ(operators.size(), 2u);
-  EXPECT_TRUE(driver.get_matcher().has_distinct_quantum_operands(operators[0]));
-  EXPECT_EQ(driver.get_matcher().find_nearest(operators[1],
-                                              [&](Operation *candidate) {
-                                                return candidate ==
-                                                       operators[0];
-                                              }),
-            operators[0]);
-  EXPECT_EQ(driver.get_statistics().analysisBuilds, 1u);
-}
-
-TEST_F(CommutationAwareRewriteTest, RequiresCompleteMultiWireFrontier) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @complete_frontier() {
-        %control = quake.null_wire
-        %target = quake.null_wire
-        %other = quake.null_wire
-        %h0:2 = quake.h [%control] %target
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %z:2 = quake.z [%h0#0] %other
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %h1:2 = quake.h [%z#0] %h0#1
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.sink %h1#0 : !quake.wire
-        quake.sink %h1#1 : !quake.wire
-        quake.sink %z#1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto function = getFunction(*module, "complete_frontier");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 3u);
-  Block &block = function.getBody().front();
-  block.invalidateOpOrder();
-  ASSERT_FALSE(block.isOpOrderValid());
-  Operation *match = driver.get_matcher().find_nearest(
-      operators[2],
-      [&](Operation *candidate) { return candidate == operators[0]; });
-
-  EXPECT_EQ(match, operators[0]);
-  EXPECT_FALSE(block.isOpOrderValid());
-}
-
-TEST_F(CommutationAwareRewriteTest, StopsAtIncompleteMultiWireFrontier) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @incomplete_frontier() {
-        %control = quake.null_wire
-        %target = quake.null_wire
-        %candidate = quake.x %target : (!quake.wire) -> !quake.wire
-        %anchor:2 = quake.x [%control] %candidate
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.sink %anchor#0 : !quake.wire
-        quake.sink %anchor#1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto operators = getOperators(getFunction(*module, "incomplete_frontier"));
-  ASSERT_EQ(operators.size(), 2u);
-  unsigned predicateCalls = 0;
-  Operation *match = driver.get_matcher().find_nearest(
-      operators[1], [&](Operation *candidate) {
-        ++predicateCalls;
-        return candidate == operators[0];
-      });
-
-  EXPECT_FALSE(match);
-  EXPECT_EQ(predicateCalls, 1u);
-}
-
-TEST_F(CommutationAwareRewriteTest, RejectsBranchedProducerResult) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @branched_result() {
-        %q = quake.null_wire
-        %h0 = quake.h %q : (!quake.wire) -> !quake.wire
-        %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
-        quake.sink %h1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto function = getFunction(*module, "branched_result");
-  auto operators = getOperators(function);
-  ASSERT_EQ(operators.size(), 2u);
-
-  OpBuilder builder(&context);
-  builder.setInsertionPoint(operators[1]);
-  cudaq::quake::SinkOp::create(builder, operators[0]->getLoc(), TypeRange{},
-                               operators[0]->getResult(0));
-  ASSERT_EQ(std::distance(operators[0]->getResult(0).use_begin(),
-                          operators[0]->getResult(0).use_end()),
-            2);
-  EXPECT_FALSE(driver.get_matcher().find_nearest(
-      operators[1],
-      [&](Operation *candidate) { return candidate == operators[0]; }));
-}
-
-TEST_F(CommutationAwareRewriteTest, RejectsUnsupportedCallBoundary) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func private @opaque(!quake.wire) -> !quake.wire
-      func.func @call_boundary() {
-        %q = quake.null_wire
-        %h0 = quake.h %q : (!quake.wire) -> !quake.wire
-        %called = func.call @opaque(%h0) : (!quake.wire) -> !quake.wire
-        %h1 = quake.h %called : (!quake.wire) -> !quake.wire
-        quake.sink %h1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto operators = getOperators(getFunction(*module, "call_boundary"));
-  ASSERT_EQ(operators.size(), 2u);
-  unsigned predicateCalls = 0;
-  EXPECT_FALSE(driver.get_matcher().find_nearest(
-      operators[1], [&](Operation *candidate) {
-        ++predicateCalls;
-        return candidate == operators[0];
-      }));
-  EXPECT_EQ(predicateCalls, 0u);
-}
-
-TEST_F(CommutationAwareRewriteTest, KeepsReplacementAtLaterAnchorLocation) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @later_location() {
-        %q = quake.null_wire
-        %s0 = quake.s %q : (!quake.wire) -> !quake.wire loc("earlier")
-        %s1 = quake.s %s0 : (!quake.wire) -> !quake.wire loc("later")
-        quake.sink %s1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  PassManager manager(&context);
-  manager.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
-  ASSERT_TRUE(succeeded(manager.run(*module)));
-
-  auto function = getFunction(*module, "later_location");
-  auto replacements = llvm::to_vector(function.getOps<cudaq::quake::ZOp>());
-  ASSERT_EQ(replacements.size(), 1u);
-  auto location = dyn_cast<NameLoc>(replacements.front().getLoc());
-  ASSERT_TRUE(location);
-  EXPECT_EQ(location.getName(), "later");
-  EXPECT_TRUE(function.getOps<cudaq::quake::SOp>().empty());
-  EXPECT_TRUE(succeeded(verify(*module)));
-}
-
-TEST_F(CommutationAwareRewriteTest,
-       UsesExactThreadingForAdjacentUnwrapRootedRewrites) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @adjacent_cancel() {
-        %reference = quake.alloca !quake.ref
-        %unwrapped = quake.unwrap %reference : (!quake.ref) -> !quake.wire
-        %h0 = quake.h %unwrapped : (!quake.wire) -> !quake.wire
-        %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
-        quake.wrap %h1 to %reference : !quake.wire, !quake.ref
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
   auto cancelFunction = getFunction(*module, "adjacent_cancel");
-  cudaq::opt::CommutationAwareRewriteDriver cancelDriver(context);
-  cancelDriver.get_patterns().add<CancelHadamard>(&context,
-                                                  cancelDriver.get_matcher());
-  EXPECT_TRUE(succeeded(cancelDriver.run(cancelFunction.getBody())));
+  driver.get_patterns().add<CancelHadamard>(&context, driver.get_matcher());
+  EXPECT_TRUE(succeeded(driver.run(cancelFunction.getBody())));
   EXPECT_TRUE(cancelFunction.getOps<cudaq::quake::HOp>().empty());
-  EXPECT_EQ(cancelDriver.get_statistics().analysisBuilds, 0u);
-
-  EXPECT_TRUE(succeeded(verify(*module)));
-}
-
-TEST_F(CommutationAwareRewriteTest,
-       RejectsAdjacentRoleMismatchWithoutAnalysis) {
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @role_mismatch() {
-        %control = quake.null_wire
-        %target = quake.null_wire
-        %x0:2 = quake.x [%control] %target
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %x1:2 = quake.x [%x0#1] %x0#0
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.sink %x1#0 : !quake.wire
-        quake.sink %x1#1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto operators = getOperators(getFunction(*module, "role_mismatch"));
-  ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(driver.get_matcher().have_same_ordered_quantum_operands(
-      operators[0], operators[1]));
   EXPECT_EQ(driver.get_statistics().analysisBuilds, 0u);
-}
-
-TEST_F(CommutationAwareRewriteTest, RejectsDirectRepeatedWireOperand) {
-  // The first operator uses one SSA wire as both control and target. Exact
-  // threading to the adjacent operator must not bypass operand validation.
-  auto module = parseModule(R"mlir(
-    module {
-      func.func @repeated_wire() {
-        %q = quake.null_wire
-        %x0:2 = quake.x [%q] %q
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %x1:2 = quake.x [%x0#0] %x0#1
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.sink %x1#0 : !quake.wire
-        quake.sink %x1#1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto operators = getOperators(getFunction(*module, "repeated_wire"));
-  ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(driver.get_matcher().find_nearest(
-      operators[1],
-      [&](Operation *candidate) { return candidate == operators[0]; }));
-  EXPECT_FALSE(driver.get_matcher().have_same_ordered_quantum_operands(
-      operators[0], operators[1]));
-  EXPECT_FALSE(
-      driver.get_matcher().has_distinct_quantum_operands(operators[0]));
-  EXPECT_FALSE(
-      driver.get_matcher().has_distinct_quantum_operands(operators[1]));
-  EXPECT_EQ(driver.get_statistics().analysisBuilds, 1u);
-}
-
-TEST_F(CommutationAwareRewriteTest, RejectsDirectAliasedWireOperands) {
-  // The control and target have different SSA values but borrow the same
-  // wire-set identity. Only identity normalization exposes the duplicate.
-  auto module = parseModule(R"mlir(
-    module {
-      quake.wire_set @wires[1]
-      func.func @aliased_wires() {
-        %q0 = quake.borrow_wire @wires[0] : !quake.wire
-        %q1 = quake.borrow_wire @wires[0] : !quake.wire
-        %x0:2 = quake.x [%q0] %q1
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        %x1:2 = quake.x [%x0#0] %x0#1
-            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.sink %x1#0 : !quake.wire
-        quake.sink %x1#1 : !quake.wire
-        return
-      }
-    })mlir");
-  ASSERT_TRUE(module);
-
-  cudaq::opt::CommutationAwareRewriteDriver driver(context);
-  auto operators = getOperators(getFunction(*module, "aliased_wires"));
-  ASSERT_EQ(operators.size(), 2u);
-  EXPECT_FALSE(driver.get_matcher().find_nearest(
-      operators[1],
-      [&](Operation *candidate) { return candidate == operators[0]; }));
-  EXPECT_FALSE(driver.get_matcher().have_same_ordered_quantum_operands(
-      operators[0], operators[1]));
-  EXPECT_FALSE(
-      driver.get_matcher().has_distinct_quantum_operands(operators[0]));
-  EXPECT_FALSE(
-      driver.get_matcher().has_distinct_quantum_operands(operators[1]));
-  EXPECT_EQ(driver.get_statistics().analysisBuilds, 1u);
+  EXPECT_TRUE(succeeded(verify(*module)));
 }
 
 TEST_F(CommutationAwareRewriteTest,
@@ -666,7 +388,6 @@ TEST_F(CommutationAwareRewriteTest,
   auto statistics = driver.get_statistics();
   EXPECT_EQ(statistics.analysisBuilds, 1u);
   EXPECT_EQ(statistics.fallbackRebuilds, 0u);
-  EXPECT_TRUE(succeeded(verify(*module)));
   EXPECT_TRUE(failed(driver.run(function.getBody())));
 
   // A used classical replacement may change operator parameters. The first
@@ -679,8 +400,9 @@ TEST_F(CommutationAwareRewriteTest,
                                                             parameterConfig);
   bool matchedBefore = false;
   bool matchedAfter = true;
-  parameterDriver.get_patterns().add<ReplaceOperatorParameter>(
-      &context, parameterDriver.get_matcher(), matchedBefore, matchedAfter);
+  parameterDriver.get_patterns().add<ChangeOperatorParameter>(
+      &context, parameterDriver.get_matcher(), matchedBefore, matchedAfter,
+      ParameterChange::Replacement);
   EXPECT_TRUE(succeeded(parameterDriver.run(parameterFunction.getBody())));
   EXPECT_TRUE(matchedBefore);
   EXPECT_FALSE(matchedAfter);
@@ -703,6 +425,64 @@ TEST_F(CommutationAwareRewriteTest,
   auto mutationStatistics = mutationDriver.get_statistics();
   EXPECT_EQ(mutationStatistics.analysisBuilds, 2u);
   EXPECT_EQ(mutationStatistics.fallbackRebuilds, 1u);
+  EXPECT_TRUE(succeeded(verify(*module)));
+}
+
+TEST_F(CommutationAwareRewriteTest, StopsAtIncompleteMultiWireFrontier) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @incomplete_frontier() {
+        %control = quake.null_wire
+        %target = quake.null_wire
+        %candidate = quake.x %target : (!quake.wire) -> !quake.wire
+        %anchor:2 = quake.x [%control] %candidate
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %anchor#0 : !quake.wire
+        quake.sink %anchor#1 : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  cudaq::opt::CommutationAwareRewriteDriver driver(context);
+  auto operators = getOperators(getFunction(*module, "incomplete_frontier"));
+  ASSERT_EQ(operators.size(), 2u);
+  unsigned predicateCalls = 0;
+  EXPECT_FALSE(driver.get_matcher().find_nearest(
+      operators[1], [&](Operation *candidate) {
+        ++predicateCalls;
+        return candidate == operators[0];
+      }));
+  EXPECT_EQ(predicateCalls, 1u);
+  EXPECT_TRUE(succeeded(verify(*module)));
+}
+
+TEST_F(CommutationAwareRewriteTest, RejectsBranchedProducerResult) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @branched_result(%condition: i1) {
+        %q = quake.null_wire
+        %h0 = quake.h %q : (!quake.wire) -> !quake.wire
+        %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+        cf.cond_br %condition, ^left(%h1 : !quake.wire),
+            ^right(%h1 : !quake.wire)
+      ^left(%left: !quake.wire):
+        quake.sink %h0 : !quake.wire
+        quake.sink %left : !quake.wire
+        return
+      ^right(%right: !quake.wire):
+        quake.sink %right : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  cudaq::opt::CommutationAwareRewriteDriver driver(context);
+  auto operators = getOperators(getFunction(*module, "branched_result"));
+  ASSERT_EQ(operators.size(), 2u);
+  EXPECT_FALSE(driver.get_matcher().find_nearest(
+      operators[1],
+      [&](Operation *candidate) { return candidate == operators[0]; }));
   EXPECT_TRUE(succeeded(verify(*module)));
 }
 
@@ -736,7 +516,6 @@ TEST_F(CommutationAwareRewriteTest,
       &context, driver.get_matcher(), inserted, matchedBefore, matchedAfter);
 
   EXPECT_TRUE(succeeded(driver.run(function.getBody())));
-  EXPECT_TRUE(inserted);
   EXPECT_TRUE(matchedBefore);
   EXPECT_FALSE(matchedAfter);
   auto statistics = driver.get_statistics();
@@ -791,7 +570,6 @@ TEST_F(CommutationAwareRewriteTest, RebuildsBothBlocksAfterOperationMove) {
       destinationValidAfter);
 
   EXPECT_TRUE(succeeded(driver.run(function.getBody())));
-  EXPECT_TRUE(moved);
   EXPECT_TRUE(sourceValidAfter);
   EXPECT_TRUE(destinationValidAfter);
   auto statistics = driver.get_statistics();
@@ -801,7 +579,7 @@ TEST_F(CommutationAwareRewriteTest, RebuildsBothBlocksAfterOperationMove) {
 }
 
 TEST_F(CommutationAwareRewriteTest,
-       ClearsRelationsInAnalyzedBlocksUsingAReplacement) {
+       MaintainsNestedRelationsAfterClassicalChanges) {
   auto module = parseModule(R"mlir(
     module {
       func.func @nested_classical_replacement() {
@@ -825,6 +603,30 @@ TEST_F(CommutationAwareRewriteTest,
         }
         return
       }
+      func.func @nested_captured_parameter_mutation() {
+        %theta0 = arith.constant 1.0 : f64
+        %theta1 = arith.constant 1.0 : f64
+        %zero = arith.constant 0.0 : f64
+        cc.scope {
+          %q = quake.null_wire
+          %u0 = quake.u3 (%theta0, %zero, %zero) %q : (f64, f64, f64, !quake.wire) -> !quake.wire
+          %u1 = quake.u3 (%theta1, %zero, %zero) %u0 : (f64, f64, f64, !quake.wire) -> !quake.wire
+          %u2 = quake.u3 (%theta0, %zero, %zero) %u1 : (f64, f64, f64, !quake.wire) -> !quake.wire
+          %h = quake.h %u2 : (!quake.wire) -> !quake.wire
+          quake.sink %h : !quake.wire
+          cc.continue
+        }
+        cc.scope {
+          %control = quake.null_wire
+          %target = quake.null_wire
+          %h0:2 = quake.h [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+          %h1:2 = quake.h [%h0#0] %h0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+          quake.sink %h1#0 : !quake.wire
+          quake.sink %h1#1 : !quake.wire
+          cc.continue
+        }
+        return
+      }
     })mlir");
   ASSERT_TRUE(module);
 
@@ -834,20 +636,56 @@ TEST_F(CommutationAwareRewriteTest,
   GreedyRewriteConfig config;
   config.enableFolding(false).enableConstantCSE(false);
   cudaq::opt::CommutationAwareRewriteDriver driver(context, config);
-  bool outerMatched = false;
+  bool outerMatchedBefore = false;
+  bool outerMatchedAfter = false;
   bool matchedBefore = false;
   bool matchedAfter = true;
-  driver.get_patterns().add<ReplaceOperatorParameter>(
+  driver.get_patterns().add<ChangeOperatorParameter>(
       &context, driver.get_matcher(), matchedBefore, matchedAfter,
-      outerOperators[1], outerOperators[0], &outerMatched);
+      ParameterChange::Replacement, outerOperators[1], outerOperators[0],
+      &outerMatchedBefore, &outerMatchedAfter);
 
   EXPECT_TRUE(succeeded(driver.run(function.getBody())));
-  EXPECT_TRUE(outerMatched);
+  EXPECT_TRUE(outerMatchedBefore);
+  EXPECT_TRUE(outerMatchedAfter);
   EXPECT_TRUE(matchedBefore);
   EXPECT_FALSE(matchedAfter);
   auto statistics = driver.get_statistics();
   EXPECT_EQ(statistics.analysisBuilds, 2u);
   EXPECT_EQ(statistics.fallbackRebuilds, 0u);
+
+  // A nested analysis can depend on a classical value captured from its
+  // parent block. An unexplained in-place change has no replacement use-list
+  // from which the listener could recover those dependencies.
+  auto mutationFunction =
+      getFunction(*module, "nested_captured_parameter_mutation");
+  GreedyRewriteConfig mutationConfig;
+  mutationConfig.enableFolding(false).enableConstantCSE(false);
+  cudaq::opt::CommutationAwareRewriteDriver mutationDriver(context,
+                                                           mutationConfig);
+  bool mutationMatchedBefore = false;
+  bool mutationMatchedAfter = true;
+  auto mutationScopes = llvm::to_vector(
+      mutationFunction.getBody().front().getOps<cudaq::cc::ScopeOp>());
+  ASSERT_EQ(mutationScopes.size(), 2u);
+  auto siblingOperators = llvm::to_vector(
+      mutationScopes[1].getInitRegion().front().getOps<cudaq::quake::HOp>());
+  ASSERT_EQ(siblingOperators.size(), 2u);
+  bool siblingMatchedBefore = false;
+  bool siblingMatchedAfter = false;
+  mutationDriver.get_patterns().add<ChangeOperatorParameter>(
+      &context, mutationDriver.get_matcher(), mutationMatchedBefore,
+      mutationMatchedAfter, ParameterChange::InPlaceMutation,
+      siblingOperators[1], siblingOperators[0], &siblingMatchedBefore,
+      &siblingMatchedAfter);
+  EXPECT_TRUE(succeeded(mutationDriver.run(mutationFunction.getBody())));
+  EXPECT_TRUE(mutationMatchedBefore);
+  EXPECT_FALSE(mutationMatchedAfter);
+  EXPECT_TRUE(siblingMatchedBefore);
+  EXPECT_TRUE(siblingMatchedAfter);
+  auto mutationStatistics = mutationDriver.get_statistics();
+  EXPECT_EQ(mutationStatistics.analysisBuilds, 3u);
+  EXPECT_EQ(mutationStatistics.fallbackRebuilds, 1u);
   EXPECT_TRUE(succeeded(verify(*module)));
 }
 

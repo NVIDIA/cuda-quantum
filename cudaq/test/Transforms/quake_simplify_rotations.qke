@@ -42,19 +42,25 @@ func.func @zero_angle_wire() {
 // rotations, and that phase is observable if the function is specialized into
 // a controlled variant, so they keep their exact 4*pi period. r1(2*pi) = I
 // exactly and is erased.
-func.func @full_turn(%q: !quake.ref) {
-  %a = arith.constant 6.2831853071795862 : f64
-  quake.rz (%a) %q : (f64, !quake.ref) -> ()
-  quake.rx (%a) %q : (f64, !quake.ref) -> ()
-  quake.ry (%a) %q : (f64, !quake.ref) -> ()
-  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+// The `quake.ry(12 * pi)` identity marker must survive exact-period folding.
+func.func @full_turn_and_ry_marker(%q: !quake.ref) {
+  %turn = arith.constant 6.2831853071795862 : f64
+  %marker = arith.constant 37.69911184307752 : f64
+  quake.rz (%turn) %q : (f64, !quake.ref) -> ()
+  quake.rx (%turn) %q : (f64, !quake.ref) -> ()
+  quake.ry (%turn) %q : (f64, !quake.ref) -> ()
+  quake.ry (%marker) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%turn) %q : (f64, !quake.ref) -> ()
   return
 }
 
-// CHECK-LABEL: func.func @full_turn
-// CHECK:         quake.rz
-// CHECK:         quake.rx
-// CHECK:         quake.ry
+// CHECK-LABEL: func.func @full_turn_and_ry_marker
+// CHECK-DAG:     %[[TURN:.*]] = arith.constant 6.2831853071795862 : f64
+// CHECK-DAG:     %[[MARKER:.*]] = arith.constant 37.699111843077517 : f64
+// CHECK:         quake.rz (%[[TURN]])
+// CHECK:         quake.rx (%[[TURN]])
+// CHECK:         quake.ry (%[[TURN]])
+// CHECK:         quake.ry (%[[MARKER]])
 // CHECK-NOT:     quake.r1
 
 // The entry point attribute says a kernel may be launched directly, not that
@@ -81,19 +87,6 @@ func.func @two_full_turns(%q: !quake.ref) {
 // CHECK-LABEL: func.func @two_full_turns
 // CHECK-NOT:     quake.rz
 // CHECK-NOT:     quake.r1
-
-// The reserved twelve-pi Ry marker must survive even though it is also three
-// exact Ry identity periods.
-func.func @reserved_ry_marker(%q: !quake.ref) {
-  %a = arith.constant 37.69911184307752 : f64
-  quake.ry (%a) %q : (f64, !quake.ref) -> ()
-  return
-}
-
-// CHECK-LABEL: func.func @reserved_ry_marker(
-// CHECK-SAME:    %[[Q:.*]]: !quake.ref) {
-// CHECK:         %[[ANGLE:.*]] = arith.constant 37.699111843077517 : f64
-// CHECK-NEXT:    quake.ry (%[[ANGLE]]) %[[Q]] : (f64, !quake.ref) -> ()
 
 // phased_rx(theta, phi) rotates by theta about the cos(phi)x + sin(phi)y axis,
 // so a zero angle is the identity whatever the axis parameter says.

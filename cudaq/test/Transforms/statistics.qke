@@ -104,10 +104,10 @@ func.func @reduce_ysx() {
 }
 
 func.func @clifford_t_rotation() {
-  %0 = quake.null_wire
-  %1 = arith.constant 0.7853981633974483 : f64
-  %2 = quake.r1 (%1) %0 : (f64, !quake.wire) -> !quake.wire
-  quake.sink %2 : !quake.wire
+  %wire = quake.null_wire
+  %angle = arith.constant 0.7853981633974483 : f64
+  %rotated = quake.r1 (%angle) %wire : (f64, !quake.wire) -> !quake.wire
+  quake.sink %rotated : !quake.wire
   return
 }
 
