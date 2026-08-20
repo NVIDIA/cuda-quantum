@@ -1,0 +1,237 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// PR9 exact ExpPauli coverage compares the rewritten circuit to trusted
+// primitive references. CircuitCheck is strict by default: losing the
+// identity-word phase, its adjoint sign, or its predicate fails the check.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition})' %s > %t.actual
+// RUN: FileCheck %s --check-prefix=DECOMP < %t.actual
+// RUN: CircuitCheck --input=%t.actual %S/Inputs/ExpPauli-exact-reference.qke
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s > %t.lower.actual
+// RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.lower.actual
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %S/Inputs/ExpPauli-exact-reference.qke > %t.lower.reference
+// RUN: CircuitCheck --input=%t.lower.actual %t.lower.reference
+
+quake.wire_set @exp_pauli_wires[2]
+
+func.func @identity_forward(%target: !quake.ref) {
+  %theta = arith.constant 3.700000e-01 : f64
+  quake.exp_pauli (%theta) %target to "I" : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_adjoint(%target: !quake.ref) {
+  %theta = arith.constant 6.100000e-01 : f64
+  quake.exp_pauli<adj> (%theta) %target to "I" : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_dynamic_adjoint(%theta: f64, %target: !quake.ref) {
+  quake.exp_pauli<adj> (%theta) %target to "I" : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_positive(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 2.900000e-01 : f64
+  quake.exp_pauli (%theta) [%control] %target to "I"
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_negative(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 4.300000e-01 : f64
+  quake.exp_pauli (%theta) [%control neg [true]] %target to "I"
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_mixed_controls(%positive: !quake.ref, %negative: !quake.ref,
+                                   %target: !quake.ref) {
+  %theta = arith.constant 7.100000e-01 : f64
+  quake.exp_pauli (%theta) [%positive, %negative neg [false, true]] %target
+      to "I" : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_vector(%targets: !quake.veq<3>) {
+  %theta = arith.constant 1.700000e-01 : f64
+  quake.exp_pauli (%theta) %targets to "III" : (f64, !quake.veq<3>) -> ()
+  return
+}
+
+func.func @identity_mixed_targets(%first: !quake.ref, %rest: !quake.veq<2>) {
+  %theta = arith.constant 1.900000e-01 : f64
+  quake.exp_pauli (%theta) %first, %rest to "III"
+      : (f64, !quake.ref, !quake.veq<2>) -> ()
+  return
+}
+
+func.func @identity_controlled_vector_with_separate_anchor(%anchor: !quake.ref,
+                                                       %aliased: !quake.veq<2>) {
+  %theta = arith.constant 4.100000e-01 : f64
+  %control = quake.extract_ref %aliased[1] : (!quake.veq<2>) -> !quake.ref
+  quake.exp_pauli (%theta) [%control] %anchor, %aliased to "III"
+      : (f64, !quake.ref, !quake.ref, !quake.veq<2>) -> ()
+  return
+}
+
+func.func @identity_wire() attributes {"cudaq-entrypoint"} {
+  %control = quake.borrow_wire @exp_pauli_wires[0] : !quake.wire
+  %target = quake.borrow_wire @exp_pauli_wires[1] : !quake.wire
+  %theta = arith.constant 5.300000e-01 : f64
+  %next:2 = quake.exp_pauli<adj> (%theta) [%control neg [true]] %target to "I"
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %next#0 : !quake.wire
+  quake.return_wire %next#1 : !quake.wire
+  return
+}
+
+func.func @identity_zero_adjoint(%target: !quake.ref) {
+  %zero = arith.constant 0.000000e+00 : f64
+  quake.exp_pauli<adj> (%zero) %target to "I" : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @nonidentity_forward(%target: !quake.ref) {
+  %theta = arith.constant 2.200000e-01 : f64
+  quake.exp_pauli (%theta) %target to "X" : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @nonidentity_adjoint(%target: !quake.ref) {
+  %theta = arith.constant 3.100000e-01 : f64
+  quake.exp_pauli<adj> (%theta) %target to "X" : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @nonidentity_f32(%theta: f32, %target: !quake.ref) {
+  quake.exp_pauli (%theta) %target to "Z" : (f32, !quake.ref) -> ()
+  return
+}
+
+func.func @nonidentity_mixed_targets(%first: !quake.ref, %rest: !quake.veq<2>) {
+  %theta = arith.constant 6.600000e-01 : f64
+  quake.exp_pauli<adj> (%theta) %first, %rest to "IXY"
+      : (f64, !quake.ref, !quake.veq<2>) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func @identity_forward
+// DECOMP: quake.phase (%{{.*}}) %{{.*}} : (f64, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_adjoint
+// DECOMP: arith.constant -6.100000e-01
+// DECOMP: quake.phase (%{{.*}}) %{{.*}} : (f64, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_dynamic_adjoint(
+// DECOMP-SAME: %[[DYNAMIC_THETA:.*]]: f64, %[[DYNAMIC_TARGET:.*]]: !quake.ref
+// DECOMP: %[[NEG_DYNAMIC:.*]] = arith.negf %[[DYNAMIC_THETA]] : f64
+// DECOMP: quake.phase (%[[NEG_DYNAMIC]]) %[[DYNAMIC_TARGET]] : (f64, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_positive
+// DECOMP: quake.phase (%{{.*}}) {{\[}}%{{.*}}{{\]}} %{{.*}} : (f64, !quake.ref, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_negative
+// DECOMP: quake.phase (%{{.*}}) {{\[}}%{{.*}} neg [true]{{\]}} %{{.*}} : (f64, !quake.ref, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_mixed_controls
+// DECOMP: quake.phase (%{{.*}}) {{\[}}%{{.*}}, %{{.*}} neg [false, true]{{\]}} %{{.*}} : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_vector
+// DECOMP: %[[VECTOR_ANCHOR:.*]] = quake.extract_ref %{{.*}}{{\[}}2{{\]}} : (!quake.veq<3>) -> !quake.ref
+// DECOMP: quake.phase (%{{.*}}) %[[VECTOR_ANCHOR]] : (f64, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_mixed_targets
+// DECOMP: %[[MIXED_ANCHOR:.*]] = quake.extract_ref %{{.*}}{{\[}}1{{\]}} : (!quake.veq<2>) -> !quake.ref
+// DECOMP: quake.phase (%{{.*}}) %[[MIXED_ANCHOR]] : (f64, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_controlled_vector_with_separate_anchor(
+// DECOMP-SAME: %[[SAFE_ANCHOR:.*]]: !quake.ref, %{{.*}}: !quake.veq<2>
+// DECOMP: %[[CONTROL:.*]] = quake.extract_ref %{{.*}}{{\[}}1{{\]}} : (!quake.veq<2>) -> !quake.ref
+// DECOMP: quake.phase (%{{.*}}) {{\[}}%[[CONTROL]]{{\]}} %[[SAFE_ANCHOR]] : (f64, !quake.ref, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @identity_wire()
+// DECOMP: arith.constant -5.300000e-01
+// DECOMP: %[[WIRE_CONTROL:.*]] = quake.borrow_wire @exp_pauli_wires[0] : !quake.wire
+// DECOMP: %[[WIRE_TARGET:.*]] = quake.borrow_wire @exp_pauli_wires[1] : !quake.wire
+// DECOMP: %[[WIRE_PHASE:.*]]:2 = quake.phase (%{{.*}}) {{\[}}%[[WIRE_CONTROL]] neg [true]{{\]}} %[[WIRE_TARGET]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// DECOMP: quake.return_wire %[[WIRE_PHASE]]#0 : !quake.wire
+// DECOMP: quake.return_wire %[[WIRE_PHASE]]#1 : !quake.wire
+
+// DECOMP-LABEL: func.func @identity_zero_adjoint
+// DECOMP-NOT: arith.negf
+// DECOMP-NOT: quake.phase
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @nonidentity_forward
+// DECOMP: quake.h
+// DECOMP: quake.rz
+// DECOMP: quake.h
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @nonidentity_adjoint
+// DECOMP: arith.constant 6.200000e-01
+// DECOMP: quake.h
+// DECOMP: quake.rz
+// DECOMP: quake.h
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @nonidentity_f32(
+// DECOMP-SAME: %[[F32_THETA:.*]]: f32, %[[F32_TARGET:.*]]: !quake.ref
+// DECOMP: arith.constant -2.000000e+00 : f32
+// DECOMP: %[[F32_ROTATION:.*]] = arith.mulf %[[F32_THETA]], %{{.*}} : f32
+// DECOMP: quake.rz (%[[F32_ROTATION]]) %[[F32_TARGET]] : (f32, !quake.ref) -> ()
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func @nonidentity_mixed_targets(
+// DECOMP-DAG: %[[ZERO:.*]] = arith.constant 0 : i64
+// DECOMP-DAG: %[[ONE:.*]] = arith.constant 1 : i64
+// DECOMP: %[[X_TARGET:.*]] = quake.extract_ref %{{.*}}{{\[}}%[[ZERO]]] : (!quake.veq<2>, i64) -> !quake.ref
+// DECOMP: %[[Y_TARGET:.*]] = quake.extract_ref %{{.*}}{{\[}}%[[ONE]]] : (!quake.veq<2>, i64) -> !quake.ref
+// DECOMP: quake.h %[[X_TARGET]]
+// DECOMP: quake.rx {{.*}} %[[Y_TARGET]]
+// DECOMP: quake.x {{\[}}%[[X_TARGET]]{{\]}} %[[Y_TARGET]]
+// DECOMP: quake.rz {{.*}} %[[Y_TARGET]]
+// DECOMP: quake.x {{\[}}%[[X_TARGET]]{{\]}} %[[Y_TARGET]]
+// DECOMP: quake.rx {{.*}} %[[Y_TARGET]]
+// DECOMP: quake.h %[[X_TARGET]]
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// LOWER-LABEL: func.func @identity_dynamic_adjoint
+// LOWER: return
+// LOWER-LABEL: func.func @identity_positive
+// LOWER: quake.r1
+// LOWER-LABEL: func.func @identity_negative
+// LOWER: quake.x
+// LOWER: quake.r1
+// LOWER: quake.x
+// LOWER-LABEL: func.func @identity_wire
+// LOWER: quake.r1

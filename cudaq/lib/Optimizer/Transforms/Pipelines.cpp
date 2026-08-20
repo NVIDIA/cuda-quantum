@@ -304,7 +304,9 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   // Apply specialization must see the quantum operations directly. Inlining
   // first prevents quantum func.call operations from being left uncontrolled
-  // in generated control or adjoint variants.
+  // in generated control or adjoint variants. The first cleanup can expose
+  // another callable thunk, so inline once more before specialization.
+  cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::GenerateKernelExecutionOptions gkeOpts;

@@ -1,0 +1,126 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Trusted primitive equivalents for ExpPauli-exact.qke. This file intentionally
+// contains no quake.exp_pauli so strict CircuitCheck can serve as the oracle.
+
+quake.wire_set @exp_pauli_wires[2]
+
+func.func @identity_forward(%target: !quake.ref) {
+  %theta = arith.constant 3.700000e-01 : f64
+  quake.phase (%theta) %target : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_adjoint(%target: !quake.ref) {
+  %theta = arith.constant 6.100000e-01 : f64
+  %neg_theta = arith.negf %theta : f64
+  quake.phase (%neg_theta) %target : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_positive(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 2.900000e-01 : f64
+  quake.phase (%theta) [%control] %target : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_negative(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 4.300000e-01 : f64
+  quake.phase (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_mixed_controls(%positive: !quake.ref, %negative: !quake.ref,
+                                   %target: !quake.ref) {
+  %theta = arith.constant 7.100000e-01 : f64
+  quake.phase (%theta) [%positive, %negative neg [false, true]] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_vector(%targets: !quake.veq<3>) {
+  %theta = arith.constant 1.700000e-01 : f64
+  %anchor = quake.extract_ref %targets[2] : (!quake.veq<3>) -> !quake.ref
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_mixed_targets(%first: !quake.ref, %rest: !quake.veq<2>) {
+  %theta = arith.constant 1.900000e-01 : f64
+  %anchor = quake.extract_ref %rest[1] : (!quake.veq<2>) -> !quake.ref
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_controlled_vector_with_separate_anchor(%anchor: !quake.ref,
+                                                       %aliased: !quake.veq<2>) {
+  %theta = arith.constant 4.100000e-01 : f64
+  %control = quake.extract_ref %aliased[1] : (!quake.veq<2>) -> !quake.ref
+  quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @identity_wire() attributes {"cudaq-entrypoint"} {
+  %control = quake.borrow_wire @exp_pauli_wires[0] : !quake.wire
+  %target = quake.borrow_wire @exp_pauli_wires[1] : !quake.wire
+  %theta = arith.constant 5.300000e-01 : f64
+  %neg_theta = arith.negf %theta : f64
+  %next:2 = quake.phase (%neg_theta) [%control neg [true]] %target
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %next#0 : !quake.wire
+  quake.return_wire %next#1 : !quake.wire
+  return
+}
+
+func.func @identity_zero_adjoint(%target: !quake.ref) {
+  %zero = arith.constant 0.000000e+00 : f64
+  return
+}
+
+func.func @nonidentity_forward(%target: !quake.ref) {
+  %theta = arith.constant 2.200000e-01 : f64
+  %neg_two = arith.constant -2.000000e+00 : f64
+  %rotation = arith.mulf %theta, %neg_two : f64
+  quake.h %target : (!quake.ref) -> ()
+  quake.rz (%rotation) %target : (f64, !quake.ref) -> ()
+  quake.h %target : (!quake.ref) -> ()
+  return
+}
+
+func.func @nonidentity_adjoint(%target: !quake.ref) {
+  %theta = arith.constant 3.100000e-01 : f64
+  %neg_theta = arith.negf %theta : f64
+  %neg_two = arith.constant -2.000000e+00 : f64
+  %rotation = arith.mulf %neg_theta, %neg_two : f64
+  quake.h %target : (!quake.ref) -> ()
+  quake.rz (%rotation) %target : (f64, !quake.ref) -> ()
+  quake.h %target : (!quake.ref) -> ()
+  return
+}
+
+func.func @nonidentity_mixed_targets(%first: !quake.ref, %rest: !quake.veq<2>) {
+  %theta = arith.constant 6.600000e-01 : f64
+  %x = quake.extract_ref %rest[0] : (!quake.veq<2>) -> !quake.ref
+  %y = quake.extract_ref %rest[1] : (!quake.veq<2>) -> !quake.ref
+  %neg_theta = arith.negf %theta : f64
+  %neg_two = arith.constant -2.000000e+00 : f64
+  %rotation = arith.mulf %neg_theta, %neg_two : f64
+  %plus_half_pi = arith.constant 1.5707963267948966 : f64
+  %neg_half_pi = arith.constant -1.5707963267948966 : f64
+  quake.h %x : (!quake.ref) -> ()
+  quake.rx (%plus_half_pi) %y : (f64, !quake.ref) -> ()
+  quake.x [%x] %y : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%rotation) %y : (f64, !quake.ref) -> ()
+  quake.x [%x] %y : (!quake.ref, !quake.ref) -> ()
+  quake.rx (%neg_half_pi) %y : (f64, !quake.ref) -> ()
+  quake.h %x : (!quake.ref) -> ()
+  return
+}
