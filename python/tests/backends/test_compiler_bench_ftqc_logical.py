@@ -190,6 +190,25 @@ def test_exact_clifford_t_angles_avoid_rotation_resources():
     assert ops.get('s', 0) + ops.get('sdg', 0) == 2
 
 
+def test_large_exact_rz_lowering_uses_logical_t_basis():
+
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+
+    num_rotations = 1_024
+    quarter_turn = 0.7853981633974483
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(num_rotations)
+
+    for i in range(num_rotations):
+        kernel.rz(quarter_turn, qubits[i])
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert_logical_basis_only(ops)
+    assert 'rz' not in ops, (
+        f"Exact Rz(pi/4) operations survived target lowering: {ops}")
+    assert ops.get('t', 0) + ops.get('tdg', 0) == num_rotations
+
+
 def test_epsilon_controls_thresholded_canonicalization():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc()
