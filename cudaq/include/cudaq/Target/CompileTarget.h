@@ -77,6 +77,11 @@ struct CompileTarget {
   /// Whether device calls are supported by the target.
   bool supportDeviceCalls = false;
 
+  /// Whether resource counting is disabled for this target. When set, the
+  /// resource-counting preprocessing is skipped even if requested by the
+  /// compile options.
+  bool disableResourceCounting = false;
+
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
 

@@ -87,6 +87,8 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       .def_rw("support_conditionals_on_measure_results",
               &CompileTarget::supportConditionalsOnMeasureResults)
       .def_rw("support_device_calls", &CompileTarget::supportDeviceCalls)
+      .def_rw("disable_resource_counting",
+              &CompileTarget::disableResourceCounting)
       .def_rw("fully_specialize", &CompileTarget::fullySpecialize)
       .def_rw("is_local_simulator", &CompileTarget::isLocalSimulator)
       .def(nanobind::self == nanobind::self)

@@ -247,6 +247,19 @@ void test_resource_count_completes_phase_lifecycle(mlir::MLIRContext *ctx) {
 // CHECK-NEXT: 1Q gates: 6
 // CHECK-NEXT: 2Q gates: 1
 
+void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
+  auto target = nonEmptyPipelineTarget("decomposition{enable-patterns=R1ToRz}");
+  target.disableResourceCounting = true;
+
+  cudaq::CompileOptions options;
+  options.emitResourceCounts = true;
+  options.emitTargetCode = false;
+  compileAndDumpResources(ctx, "phaseResources", phaseResourceKernel,
+                          std::move(target), std::move(options));
+}
+
+// CHECK-LABEL: NO RESOURCE ARTIFACT
+
 int main() {
   auto context = cudaq_internal::compiler::getOwningMLIRContext();
 
@@ -256,5 +269,6 @@ int main() {
   test_empty_pipeline(context.get());
   test_non_empty_pipeline(context.get());
   test_resource_count_completes_phase_lifecycle(context.get());
+  test_resource_count_disabled_by_target(context.get());
   return 0;
 }

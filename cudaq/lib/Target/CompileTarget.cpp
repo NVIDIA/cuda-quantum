@@ -100,6 +100,9 @@ cudaq::CompileTarget::CompileTarget(
                "Post-codegen:", pipelineConfig.postCodeGenPasses);
   }
 
+  disableResourceCounting =
+      backendConfig.DisableResourceCounting.value_or(false);
+
   // Handle disable_qubit_mapping runtime option.
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
   if (disableQM != runtimeConfig.end() && disableQM->second == "true") {
@@ -116,6 +119,7 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
   return cudaq::detail::hashVal(
       t.pipelineConfig, t.overrideAOTCompilation, t.emulate,
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+      t.disableResourceCounting,
       t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics,
       pauliStr);
 }
