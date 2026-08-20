@@ -74,7 +74,7 @@ bool hasRegisteredDefinition(func::FuncOp func) {
 std::optional<std::array<std::uint8_t, 32>>
 cudaq::detail::createProgramFingerprint(
     const std::string &name, mlir::ModuleOp mod,
-    const std::vector<void *> &rawArgs, const cudaq::CompileTarget &target,
+    const std::vector<void *> &rawArgs,
     mlir::OwningOpRef<mlir::ModuleOp> &resolvedModule) {
   resolvedModule = mod.clone();
   cudaq_internal::compiler::mergeAllCallableClosures(resolvedModule.get(), name,
@@ -108,6 +108,8 @@ cudaq::detail::createProgramFingerprint(
 
   // Digest components 2..n: the argument substitutions that compilation will
   // bake into the artifact.
+  // Note that it is safe to ignore any differences in arguments synthesis due
+  // to compile options/target, as those are hashed separately anyways.
   auto entryPoint = cudaq::getKernelFuncOp(resolvedModule.get(), name);
   std::span<void *const> synthesisArgs{rawArgs};
   // Must outlive `gen()`: `retainCallableArguments` re-points `synthesisArgs`
@@ -118,7 +120,7 @@ cudaq::detail::createProgramFingerprint(
                                                       closureArgs, entryPoint);
 
   cudaq_internal::compiler::ArgumentConverter argConverter(
-      name, resolvedModule.get(), target.isLocalSimulator);
+      name, resolvedModule.get());
   argConverter.gen(synthesisArgs);
   for (auto *substitution : argConverter.getKernelSubstitutions()) {
     appendFingerprintComponent(hasher, substitution->getKernelName());

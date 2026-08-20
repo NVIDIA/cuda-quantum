@@ -58,11 +58,11 @@ static void applyPipelineSubstitutions(
   }
 }
 
-cudaq::CompileTarget::CompileTarget(
+cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
     config::TargetConfig targetConfig,
-    std::map<std::string, std::string> runtimeConfig, bool emulate_,
-    std::map<std::string, std::string> pipelineSubstitutions)
-    : emulate(emulate_) {
+    std::map<std::string, std::string> runtimeConfig,
+    std::map<std::string, std::string> pipelineSubstitutions) {
+  cudaq::CompileTarget target;
   const config::BackendEndConfigEntry defaultConfig;
 
   const auto &backendConfig =
@@ -79,25 +79,25 @@ cudaq::CompileTarget::CompileTarget(
   };
 
   if (!backendConfig.TargetPassPipeline.empty()) {
-    pipelineConfig.overridePassPipeline = prepPipeline(
+    target.pipelineConfig.overridePassPipeline = prepPipeline(
         backendConfig.TargetPassPipeline, "Pass pipeline (overridden)");
   } else {
-    pipelineConfig.highLevelPipeline =
+    target.pipelineConfig.highLevelPipeline =
         prepPipeline(backendConfig.JITHighLevelPipeline, "JIT high level");
-    pipelineConfig.midLevelPipeline =
+    target.pipelineConfig.midLevelPipeline =
         prepPipeline(backendConfig.JITMidLevelPipeline, "JIT mid level");
-    pipelineConfig.lowLevelPipeline =
+    target.pipelineConfig.lowLevelPipeline =
         prepPipeline(backendConfig.JITLowLevelPipeline, "JIT low level");
   }
   auto codegenTranslation = targetConfig.getCodeGenSpec(runtimeConfig);
   if (!codegenTranslation.empty()) {
-    pipelineConfig.codegenTranslation = codegenTranslation;
+    target.pipelineConfig.codegenTranslation = codegenTranslation;
     CUDAQ_INFO("{:<27} {}\n", "Codegen:", codegenTranslation);
   }
   if (!backendConfig.PostCodeGenPasses.empty()) {
-    pipelineConfig.postCodeGenPasses = backendConfig.PostCodeGenPasses;
+    target.pipelineConfig.postCodeGenPasses = backendConfig.PostCodeGenPasses;
     CUDAQ_INFO("{:<27} {}\n",
-               "Post-codegen:", pipelineConfig.postCodeGenPasses);
+               "Post-codegen:", target.pipelineConfig.postCodeGenPasses);
   }
 
   disableResourceCounting =
@@ -106,22 +106,21 @@ cudaq::CompileTarget::CompileTarget(
   // Handle disable_qubit_mapping runtime option.
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
   if (disableQM != runtimeConfig.end() && disableQM->second == "true") {
-    pipelineConfig.disableQubitMapping = true;
+    target.pipelineConfig.disableQubitMapping = true;
     CUDAQ_INFO("{:<27} {}\n", "disable_qubit_mapping:", "true");
   }
+
+  return target;
 }
 
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
-  // Optional spin observable: include its string representation when present.
-  auto pauliStr =
-      t.pauliTermSplitObservable ? t.pauliTermSplitObservable->to_string() : "";
   return cudaq::detail::hashVal(
-      t.pipelineConfig, t.overrideAOTCompilation, t.emulate,
+      t.pipelineConfig, t.overrideAOTCompilation,
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
-      t.disableResourceCounting,
-      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics,
-      pauliStr);
+      t.supportExplicitMeasurements, t.supportObservableMeasurements,
+      t.supportSampleWithoutMeasurements, t.fullySpecialize,
+      t.argumentSynthChangeSemantics, t.disableResourceCounting);
 }
 
 std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
@@ -129,5 +128,5 @@ std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
   return cudaq::detail::hashVal(
       pc.overridePassPipeline, pc.highLevelPipeline, pc.midLevelPipeline,
       pc.lowLevelPipeline, pc.codegenTranslation, pc.postCodeGenPasses,
-      pc.disableQubitMapping, pc.replaceStateWithKernel, pc.addMeasurements);
+      pc.disableQubitMapping, pc.replaceStateWithKernel);
 }

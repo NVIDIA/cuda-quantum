@@ -50,9 +50,9 @@ struct CompileOptions {
   /// code generation.
   bool skipTargetLoweringPipeline = false;
 
-  /// Whether to add measurements at the end of the kernel using the
-  /// `add-measurements` pass.
-  bool addMeasurements = false;
+  /// Whether to add measurements at the end of the kernel for `sample` using
+  /// the `add-measurements` pass.
+  bool addSampleMeasurements = false;
 
   /// Throw a compilation error if the kernel uses conditionals on measurement
   /// results.
@@ -65,20 +65,15 @@ struct CompileOptions {
   /// Whether to disable quantum optimization passes (e.g. value semantics
   /// lowering). Used in tracer mode.
   bool disableQuantumOpts = false;
-};
 
-/// A temporary function to modify the compile options based on the target.
-///
-/// This is bad! We want these two classes to be separate and remove the
-/// 'entanglement'.
-inline void propagateTargetOptionsToCompileOptions(const CompileTarget &target,
-                                                   CompileOptions &options) {
-  if (target.emulate || target.isLocalSimulator)
-    options.emitJit = true;
-  if (target.emulate)
-    options.emulate = true;
-  options.addMeasurements = target.pipelineConfig.addMeasurements;
-}
+  /// Whether to pack `i1` vectors as bit-packed `std::vector<bool>` (for local
+  /// simulators)
+  bool boolVecBitPacked = false;
+
+  /// Whether to measure an observable at the end of the kernel, and if so,
+  /// the observable to measure.
+  std::optional<cudaq::spin_op> measureObservable;
+};
 
 } // namespace cudaq
 
@@ -88,10 +83,11 @@ inline void propagateTargetOptionsToCompileOptions(const CompileTarget &target,
 template <>
 struct std::hash<cudaq::CompileOptions> {
   std::size_t operator()(const cudaq::CompileOptions &o) const noexcept {
+    auto pauliStr = o.measureObservable ? o.measureObservable->to_string() : "";
     return cudaq::detail::hashVal(
         o.warnNamedMeasurements, o.storeReorderIdx, o.emitResourceCounts,
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
-        o.addMeasurements, o.failOnConditionalsOnMeasureResults, o.emulate,
-        o.disableQuantumOpts);
+        o.addSampleMeasurements, o.failOnConditionalsOnMeasureResults,
+        o.emulate, o.disableQuantumOpts, o.boolVecBitPacked, pauliStr);
   }
 };

@@ -76,7 +76,6 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
             // Some good defaults for Python simulators.
             // TODO: refine this and unify with `createDefaultCompileTarget`.
             target->fullySpecialize = false;
-            target->isLocalSimulator = true;
             target->argumentSynthChangeSemantics = false;
             if (target->pipelineConfig.codegenTranslation.empty()) {
               target->pipelineConfig.codegenTranslation = "qir:";
@@ -89,8 +88,13 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       .def_rw("support_device_calls", &CompileTarget::supportDeviceCalls)
       .def_rw("disable_resource_counting",
               &CompileTarget::disableResourceCounting)
+      .def_rw("support_explicit_measurements",
+              &CompileTarget::supportExplicitMeasurements)
+      .def_rw("support_observable_measurements",
+              &CompileTarget::supportObservableMeasurements)
+      .def_rw("support_sample_without_measurements",
+              &CompileTarget::supportSampleWithoutMeasurements)
       .def_rw("fully_specialize", &CompileTarget::fullySpecialize)
-      .def_rw("is_local_simulator", &CompileTarget::isLocalSimulator)
       .def(nanobind::self == nanobind::self)
       .def("__hash__", std::hash<CompileTarget>())
       .def("__repr__", compileTargetRepr);

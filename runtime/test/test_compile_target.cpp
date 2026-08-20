@@ -94,9 +94,7 @@ static void compileAndDumpResources(mlir::MLIRContext *ctx,
 /// Build a CompileTarget with no backend configuration
 static cudaq::CompileTarget noBackendTarget() {
   cudaq::config::TargetConfig cfg;
-  return cudaq::CompileTarget(cfg, /*runtimeConfig=*/
-                              std::map<std::string, std::string>{},
-                              /*emulate=*/false);
+  return cudaq::CompileTarget::createFromConfig(cfg, {});
 }
 
 /// Build a CompileTarget with a backend configuration with an empty pass
@@ -104,8 +102,7 @@ static cudaq::CompileTarget noBackendTarget() {
 static cudaq::CompileTarget emptyPipelineTarget() {
   cudaq::config::TargetConfig cfg;
   cfg.BackendConfig = cudaq::config::BackendEndConfigEntry{};
-  return cudaq::CompileTarget(cfg, std::map<std::string, std::string>{},
-                              /*emulate=*/false);
+  return cudaq::CompileTarget::createFromConfig(cfg, {});
 }
 
 /// Build a CompileTarget with a backend configuration with a non-empty pass
@@ -116,8 +113,7 @@ nonEmptyPipelineTarget(const std::string &pipeline) {
   cudaq::config::BackendEndConfigEntry backend;
   backend.TargetPassPipeline = pipeline;
   cfg.BackendConfig = backend;
-  return cudaq::CompileTarget(cfg, std::map<std::string, std::string>{},
-                              /*emulate=*/false);
+  return cudaq::CompileTarget::createFromConfig(cfg, {});
 }
 
 /// Kernel with statically-sized qubit register
