@@ -48,10 +48,9 @@ runs:
         fi
         python3 -m venv "$VENV_DIR"
         "$VENV_DIR/bin/pip" install --quiet wheel
-        "$VENV_DIR/bin/python" "$GITHUB_WORKSPACE/scripts/restamp_wheel.py" \
-          --wheel "$wheel" \
-          --version "$VERSION" \
-          --output-dir "$OUTPUT_DIR"
+        PYTHON="$VENV_DIR/bin/python" \
+          bash "$GITHUB_WORKSPACE/scripts/restamp_wheel.sh" \
+          "$wheel" "$VERSION" "$OUTPUT_DIR"
 
     - name: Upload re-stamped wheel
       id: upload

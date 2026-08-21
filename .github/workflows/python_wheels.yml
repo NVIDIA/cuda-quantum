@@ -43,13 +43,13 @@ on:
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
-        value: ${{ jobs.wheel_ready.outputs.cudaq_version }}
+        value: ${{ jobs.resolve_wheels.outputs.cudaq_version }}
       runtime_artifact_name:
         description: "Artifact name of the runtime wheel."
-        value: ${{ jobs.wheel_ready.outputs.runtime_artifact_name }}
+        value: ${{ jobs.build_wheel.outputs.artifact_name }}
       devel_artifact_name:
         description: "Artifact name of the devel wheel, if requested."
-        value: ${{ jobs.wheel_ready.outputs.devel_artifact_name }}
+        value: ${{ jobs.build_devel_wheel.outputs.artifact_name }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -119,18 +119,18 @@ jobs:
         with:
           key: ${{ steps.devel_hash.outputs.cache_key }}
 
-  build_runtime_wheel:
-    name: Build Python ${{ inputs.python_version }} wheel
+  build_wheel:
+    name: ${{ (needs.resolve_wheels.outputs.runtime_hit == 'true' && 'Retrieve cached') || 'Build' }} Python ${{ inputs.python_version }} wheel
     needs: resolve_wheels
-    if: needs.resolve_wheels.outputs.runtime_hit != 'true'
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (needs.resolve_wheels.outputs.runtime_hit == 'true' && 'ubuntu-latest') || (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: write
       actions: write
-
+    env:
+      RESTORE: ${{ needs.resolve_wheels.outputs.runtime_hit }}
     outputs:
-      artifact_name: ${{ steps.build.outputs.artifact_name }}
+      artifact_name: ${{ steps.build.outputs.artifact_name || needs.resolve_wheels.outputs.runtime_artifact_name }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -144,13 +144,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Retrieve cached wheel
+        if: env.RESTORE == 'true'
+        uses: ./.github/actions/wheel-restore
+        with:
+          key: ${{ needs.resolve_wheels.outputs.runtime_cache_key }}
+          run_id: ${{ needs.resolve_wheels.outputs.runtime_run_id }}
+          artifact_id: ${{ needs.resolve_wheels.outputs.runtime_artifact_id }}
+          artifact_name: ${{ needs.resolve_wheels.outputs.runtime_artifact_name }}
+          version: ${{ needs.resolve_wheels.outputs.cudaq_version }}
+
       - name: Log in to DockerHub
+        if: env.RESTORE != 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Login to GitHub CR
+        if: env.RESTORE != 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -158,6 +170,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build wheel
+        if: env.RESTORE != 'true'
         id: build
         uses: ./.github/actions/build-wheel-in-docker
         with:
@@ -169,6 +182,7 @@ jobs:
           devdeps_archive: ${{ inputs.devdeps_archive }}
 
       - name: Upload wheel
+        if: env.RESTORE != 'true'
         id: upload
         uses: actions/upload-artifact@v7
         with:
@@ -178,6 +192,7 @@ jobs:
           if-no-files-found: error
 
       - name: Register wheel
+        if: env.RESTORE != 'true'
         uses: ./.github/actions/wheel-cache-register
         with:
           key: ${{ needs.resolve_wheels.outputs.runtime_cache_key }}
@@ -185,17 +200,18 @@ jobs:
           artifact_name: ${{ steps.build.outputs.artifact_name }}
 
   build_devel_wheel:
-    name: Build cudaq-devel wheel
+    name: ${{ (needs.resolve_wheels.outputs.devel_hit == 'true' && 'Retrieve cached') || 'Build' }} cudaq-devel wheel
     needs: resolve_wheels
-    if: inputs.build_devel_wheel && needs.resolve_wheels.outputs.devel_hit != 'true'
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    if: inputs.build_devel_wheel
+    runs-on: ${{ (needs.resolve_wheels.outputs.devel_hit == 'true' && 'ubuntu-latest') || (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: write
       actions: write
-
+    env:
+      RESTORE: ${{ needs.resolve_wheels.outputs.devel_hit }}
     outputs:
-      artifact_name: ${{ steps.build.outputs.artifact_name }}
+      artifact_name: ${{ steps.build.outputs.artifact_name || needs.resolve_wheels.outputs.devel_artifact_name }}
 
     services:
         registry:
@@ -207,13 +223,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Retrieve cached devel wheel
+        if: env.RESTORE == 'true'
+        uses: ./.github/actions/wheel-restore
+        with:
+          key: ${{ needs.resolve_wheels.outputs.devel_cache_key }}
+          run_id: ${{ needs.resolve_wheels.outputs.devel_run_id }}
+          artifact_id: ${{ needs.resolve_wheels.outputs.devel_artifact_id }}
+          artifact_name: ${{ needs.resolve_wheels.outputs.devel_artifact_name }}
+          version: ${{ needs.resolve_wheels.outputs.cudaq_version }}
+
       - name: Log in to DockerHub
+        if: env.RESTORE != 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Login to GitHub CR
+        if: env.RESTORE != 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -221,6 +249,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build devel wheel
+        if: env.RESTORE != 'true'
         id: build
         uses: ./.github/actions/build-wheel-in-docker
         with:
@@ -233,6 +262,7 @@ jobs:
           build_devel: '1'
 
       - name: Upload devel wheel
+        if: env.RESTORE != 'true'
         id: upload
         uses: actions/upload-artifact@v7
         with:
@@ -242,115 +272,12 @@ jobs:
           if-no-files-found: error
 
       - name: Register devel wheel
+        if: env.RESTORE != 'true'
         uses: ./.github/actions/wheel-cache-register
         with:
           key: ${{ needs.resolve_wheels.outputs.devel_cache_key }}
           artifact_id: ${{ steps.upload.outputs.artifact-id }}
           artifact_name: ${{ steps.build.outputs.artifact_name }}
-
-  restore_runtime_wheel:
-    name: Restore Python ${{ inputs.python_version }} wheel
-    needs: resolve_wheels
-    if: needs.resolve_wheels.outputs.runtime_hit == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Restore wheel
-        uses: ./.github/actions/wheel-restore
-        with:
-          key: ${{ needs.resolve_wheels.outputs.runtime_cache_key }}
-          run_id: ${{ needs.resolve_wheels.outputs.runtime_run_id }}
-          artifact_id: ${{ needs.resolve_wheels.outputs.runtime_artifact_id }}
-          artifact_name: ${{ needs.resolve_wheels.outputs.runtime_artifact_name }}
-          version: ${{ needs.resolve_wheels.outputs.cudaq_version }}
-
-  restore_devel_wheel:
-    name: Restore cudaq-devel wheel
-    needs: resolve_wheels
-    if: inputs.build_devel_wheel && needs.resolve_wheels.outputs.devel_hit == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Restore devel wheel
-        uses: ./.github/actions/wheel-restore
-        with:
-          key: ${{ needs.resolve_wheels.outputs.devel_cache_key }}
-          run_id: ${{ needs.resolve_wheels.outputs.devel_run_id }}
-          artifact_id: ${{ needs.resolve_wheels.outputs.devel_artifact_id }}
-          artifact_name: ${{ needs.resolve_wheels.outputs.devel_artifact_name }}
-          version: ${{ needs.resolve_wheels.outputs.cudaq_version }}
-
-  wheel_ready:
-    name: Wheels ready
-    needs:
-      - resolve_wheels
-      - build_runtime_wheel
-      - build_devel_wheel
-      - restore_runtime_wheel
-      - restore_devel_wheel
-    if: always() && !cancelled()
-    runs-on: ubuntu-latest
-    outputs:
-      cudaq_version: ${{ needs.resolve_wheels.outputs.cudaq_version }}
-      runtime_artifact_name: ${{ steps.pick.outputs.runtime_artifact_name }}
-      devel_artifact_name: ${{ steps.pick.outputs.devel_artifact_name }}
-
-    steps:
-      - name: Select artifact names
-        id: pick
-        env:
-          RESOLVE_RESULT: ${{ needs.resolve_wheels.result }}
-          RUNTIME_HIT: ${{ needs.resolve_wheels.outputs.runtime_hit }}
-          DEVEL_HIT: ${{ needs.resolve_wheels.outputs.devel_hit }}
-        run: |
-          set -euo pipefail
-          if [ "$RESOLVE_RESULT" != "success" ]; then
-            echo "::error::resolve_wheels did not succeed"
-            exit 1
-          fi
-
-          if [ "$RUNTIME_HIT" = "true" ]; then
-            if [ "${{ needs.restore_runtime_wheel.result }}" != "success" ]; then
-              echo "::error::Failed to restore the runtime wheel"
-              exit 1
-            fi
-            echo "runtime_artifact_name=${{ needs.resolve_wheels.outputs.runtime_artifact_name }}" >> "$GITHUB_OUTPUT"
-          else
-            if [ "${{ needs.build_runtime_wheel.result }}" != "success" ]; then
-              echo "::error::Failed to build the runtime wheel"
-              exit 1
-            fi
-            echo "runtime_artifact_name=${{ needs.build_runtime_wheel.outputs.artifact_name }}" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ "${{ inputs.build_devel_wheel }}" != "true" ]; then
-            exit 0
-          fi
-          if [ "$DEVEL_HIT" = "true" ]; then
-            if [ "${{ needs.restore_devel_wheel.result }}" != "success" ]; then
-              echo "::error::Failed to restore the devel wheel"
-              exit 1
-            fi
-            echo "devel_artifact_name=${{ needs.resolve_wheels.outputs.devel_artifact_name }}" >> "$GITHUB_OUTPUT"
-          else
-            if [ "${{ needs.build_devel_wheel.result }}" != "success" ]; then
-              echo "::error::Failed to build the devel wheel"
-              exit 1
-            fi
-            echo "devel_artifact_name=${{ needs.build_devel_wheel.outputs.artifact_name }}" >> "$GITHUB_OUTPUT"
-          fi
 
   create_test_config:
     name: Prepare validation
@@ -373,8 +300,8 @@ jobs:
 
   validation:
     name: Validate wheel
-    needs: [wheel_ready, create_test_config]
-    if: inputs.run_validation && needs.wheel_ready.result == 'success'
+    needs: [build_wheel, create_test_config]
+    if: inputs.run_validation && needs.build_wheel.result == 'success'
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -404,7 +331,7 @@ jobs:
       - name: Load cuda-quantum wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.wheel_ready.outputs.runtime_artifact_name }}
+          name: ${{ needs.build_wheel.outputs.artifact_name }}
 
       - name: Install wheel in clean environment
         run: |
@@ -675,11 +602,11 @@ jobs:
     # Merge-queue gate: run the Python test suite against the GPU (nvidia)
     # statevector simulator. Regressions that only manifest on the nvidia
     # target pass on qpp-cpu and so escape per-PR CI, which has no GPU. This
-    # reuses the wheel from wheel_ready and runs a single representative
-    # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
+    # reuses the runtime wheel and runs a single representative config
+    # (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
     name: Validate wheel on GPU (nvidia simulator)
-    needs: wheel_ready
-    if: inputs.run_validation && needs.wheel_ready.result == 'success' && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
+    needs: build_wheel
+    if: inputs.run_validation && needs.build_wheel.result == 'success' && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
     runs-on: linux-amd64-gpu-a100-latest-1
     timeout-minutes: 30
     permissions:
@@ -700,7 +627,7 @@ jobs:
       - name: Load cuda-quantum wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.wheel_ready.outputs.runtime_artifact_name }}
+          name: ${{ needs.build_wheel.outputs.artifact_name }}
 
       - name: Build wheel test image
         run: |
@@ -750,8 +677,8 @@ jobs:
 
   validate_devel:
     name: Validate devel wheel
-    needs: wheel_ready
-    if: inputs.build_devel_wheel && needs.wheel_ready.result == 'success'
+    needs: [build_wheel, build_devel_wheel]
+    if: inputs.build_devel_wheel && needs.build_devel_wheel.result == 'success'
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -764,13 +691,13 @@ jobs:
       - name: Download runtime wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.wheel_ready.outputs.runtime_artifact_name }}
+          name: ${{ needs.build_wheel.outputs.artifact_name }}
           path: dist
 
       - name: Download devel wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.wheel_ready.outputs.devel_artifact_name }}
+          name: ${{ needs.build_devel_wheel.outputs.artifact_name }}
           path: dist
 
       - name: Install uv
@@ -799,8 +726,8 @@ jobs:
 
   staging:
     name: Staging
-    needs: [wheel_ready]
-    if: inputs.create_staging_info && needs.wheel_ready.result == 'success'
+    needs: [build_wheel]
+    if: inputs.create_staging_info && needs.build_wheel.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
