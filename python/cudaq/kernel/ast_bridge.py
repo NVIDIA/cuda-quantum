@@ -6164,9 +6164,8 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     """
 
     verbose = 'verbose' in kwargs and kwargs['verbose']
-    # `location` may be absent, explicitly None (e.g. a kernel reconstructed via
-    # `from_json` whose serialized location was null), or empty; in every such
-    # case fall back to the default offset so diagnostics never subscript a
+    # `location` may be absent, explicitly None, or empty; in every such case
+    # fall back to the default offset so diagnostics never subscript a
     # non-`(filename, lineno)` value.
     lineNumberOffset = kwargs.get('location') or ('', 0)
     kernelModuleName = kwargs[
@@ -6197,7 +6196,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
 
     # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
     # so `TracePassInstrumentation` is installed (matching the JIT-side
-    # install at `runtime/internal/compiler/RuntimePyMLIR.cpp`). Without this,
+    # install at `runtime/internal/compiler/RuntimeMLIR.cpp`). Without this,
     # AOT passes execute through upstream MLIR's `pm.run()` without a tracer
     # attached and per-pass wall-time cannot be attributed.
     #
