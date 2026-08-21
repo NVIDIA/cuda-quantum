@@ -134,7 +134,7 @@ func.func @cbr_callee(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
 
 func.func @__nvqpp__mlirgen__apply_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.null_wire
-  %1 = quake.apply @apply_callee %0 : (!quake.wire) -> !quake.wire
+  %1 = quake.apply @apply_callee(%0) : (!quake.wire) -> !quake.wire
   quake.sink %1 : !quake.wire
   return
 }
@@ -145,7 +145,7 @@ func.func @apply_callee(%arg0: !quake.wire) -> !quake.wire attributes {"cudaq-ke
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__apply_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
-// CHECK:           %[[VAL_1:.*]] = quake.apply @apply_callee %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_1:.*]] = quake.apply @apply_callee (%[[VAL_0]]) : (!quake.wire) -> !quake.wire
 // CHECK:           quake.sink %[[VAL_1]] : !quake.wire
 // CHECK:           return
 // CHECK:         }

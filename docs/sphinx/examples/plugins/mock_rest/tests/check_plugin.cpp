@@ -14,7 +14,9 @@
 // RUN: env XDG_DATA_HOME=%t.xdg cudaq-install-plugin --copy %cudaq_example_plugins_dir/mock-rest
 // RUN: env XDG_DATA_HOME=%t.xdg cudaq-install-plugin --list | FileCheck %s --check-prefix=LIST
 // RUN: env XDG_DATA_HOME=%t.xdg nvq++ --list-targets | FileCheck %s --check-prefix=TARGETS
-// RUN: env XDG_DATA_HOME=%t.xdg nvq++ --target mock_rest %s -o %t.native
+// RUN: sed -i.bak 's/^cudaq-version:.*/cudaq-version: "mismatched-test-version"/' %t.xdg/cudaq/plugins/mock-rest/targets/mock_rest.yml
+// RUN: env XDG_DATA_HOME=%t.xdg nvq++ --target mock_rest %s -o %t.native 2>&1 | FileCheck %s --check-prefix=VERSION-WARNING
+// RUN: test -x %t.native
 // RUN: env XDG_DATA_HOME=%t.xdg %t.native
 // RUN: PYTHONPATH=%cudaq_target_dir/../python python3 -c "import cudaq; cudaq.register_backend_path('%cudaq_example_plugins_dir/mock-rest'); cudaq.set_target('mock_rest'); cudaq.reset_target()"
 // RUN: rm -rf %t.python %t.pip-cache %t.python-xdg
@@ -33,6 +35,10 @@
 // LIST: user{{[[:space:]]+}}mock-rest
 
 // TARGETS: mock_rest
+
+// VERSION-WARNING: warning: target 'mock_rest'
+// VERSION-WARNING-SAME: was built for CUDA-Q mismatched-test-version
+// VERSION-WARNING-SAME: compatibility is not guaranteed
 
 #include <cudaq.h>
 

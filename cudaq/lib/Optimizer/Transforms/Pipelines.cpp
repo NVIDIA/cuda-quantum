@@ -118,11 +118,8 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  // Apply specialization must see the quantum operations it is going to
-  // control. Inlining here exposes quantum work hidden behind ordinary
-  // func.call operations (e.g., the UCCSD helper hierarchy) before creating
-  // a control variant.
   cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
   cudaq::opt::addAggressiveInlining(pm);
@@ -183,6 +180,8 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
 void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
                                        bool failOnControlledRotation) {
   pm.addPass(cudaq::opt::createUnitarySynthesis());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
   cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition", "U3ToRotations"});
@@ -306,6 +305,8 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   // first prevents quantum func.call operations from being left uncontrolled
   // in generated control or adjoint variants.
   cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::GenerateKernelExecutionOptions gkeOpts;
   gkeOpts.genRunStack = options.autoGenRunStack;

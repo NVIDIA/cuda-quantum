@@ -719,7 +719,7 @@ class PyKernel(object):
 
                 mlirValues.append(value)
             if isAdjoint or len(controls) > 0:
-                quake.ApplyOp([], [],
+                quake.ApplyOp([],
                               controls,
                               mlirValues,
                               callee=FlatSymbolRefAttr.get(

@@ -31,7 +31,7 @@ module {
     %closure = cc.instantiate_callable @callable_thunk() : () -> !cc.callable<(!quake.ref) -> ()>
     %control = quake.alloca !quake.ref
     %target = quake.alloca !quake.ref
-    quake.apply @wrapper [%control] %closure, %target : (!quake.ref, !cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+    quake.apply @wrapper [%control](%closure, %target) : (!quake.ref, !cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
     return
   }
 }
