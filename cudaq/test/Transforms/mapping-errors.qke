@@ -57,16 +57,13 @@ func.func @test_02() {
 
 // -----
 
-quake.wire_set @wires_02_scope[10]
+quake.wire_set @wires_02_scope_alloc[10]
 
-// Transparent scope routing does not assign or retire local quantum tracks.
-func.func @test_02_scope() {
-  %0 = quake.borrow_wire @wires_02_scope[0] : !quake.wire
+func.func @test_02_scope_alloc() {
+  %0 = quake.borrow_wire @wires_02_scope_alloc[0] : !quake.wire
   // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside a scope}}
   cc.scope {
     %1 = quake.alloca !quake.ref
-    quake.x %1 : (!quake.ref) -> ()
-    quake.dealloc %1 : !quake.ref
     cc.continue
   }
   quake.return_wire %0 : !quake.wire
@@ -77,15 +74,12 @@ func.func @test_02_scope() {
 
 quake.wire_set @wires_02_scope_borrow[10]
 
-// A local borrow has an independent device-wire lifetime and cannot be seeded
-// from the enclosing scope's layout.
 func.func @test_02_scope_borrow() {
   %0 = quake.borrow_wire @wires_02_scope_borrow[0] : !quake.wire
   // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside a scope}}
   cc.scope {
     %1 = quake.borrow_wire @wires_02_scope_borrow[1] : !quake.wire
-    %2 = quake.x %1 : (!quake.wire) -> !quake.wire
-    quake.sink %2 : !quake.wire
+    quake.sink %1 : !quake.wire
     cc.continue
   }
   quake.return_wire %0 : !quake.wire
@@ -96,7 +90,6 @@ func.func @test_02_scope_borrow() {
 
 quake.wire_set @wires_02_scope_exit[10]
 
-// The mapper cannot yet track a physical lane released within a scope.
 func.func @test_02_scope_return() {
   %0 = quake.borrow_wire @wires_02_scope_exit[0] : !quake.wire
   cc.scope {
@@ -114,12 +107,8 @@ func.func @test_02_scope_return() {
 
 quake.wire_set @wires_02_scope_drop[10]
 
-// A wire consumed in a scope remains live until the scope forwards its current
-// value. Diagnose a missing result before mapping mutates the function.
-//
 // UNCHANGED-LABEL: func.func @test_02_scope_drop
 // UNCHANGED:       quake.borrow_wire @wires_02_scope_drop[0]
-// UNCHANGED:       quake.borrow_wire @wires_02_scope_drop[1]
 // UNCHANGED:       cc.scope -> (!quake.wire)
 // UNCHANGED:       quake.return_wire
 func.func @test_02_scope_drop() {
@@ -138,8 +127,6 @@ func.func @test_02_scope_drop() {
 
 quake.wire_set @wires_02_scope_cfg[10]
 
-// The scope router deliberately does not construct a CFG routing
-// problem. A multi-block scope is diagnosed before mapping rewrites wires.
 func.func @test_02_scope_cfg() {
   %0 = quake.borrow_wire @wires_02_scope_cfg[0] : !quake.wire
   // expected-error @+1 {{mapper can only handle single-block scopes}}

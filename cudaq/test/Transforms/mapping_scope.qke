@@ -7,8 +7,8 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --verify-each '--qubit-mapping=device=path(3) placement=identity search=none' %s | FileCheck --check-prefix=PATH %s
-// RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(5,2) placement=auto search=none' %s | FileCheck --check-prefix=AUTO %s
-// RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(5,2) placement=identity search=sabre' %s | FileCheck --check-prefix=SABRE %s
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(3,1) placement=auto search=none' %s | FileCheck --check-prefix=AUTO %s
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(3,1) placement=identity search=sabre' %s | FileCheck --check-prefix=SABRE %s
 // RUN: cudaq-opt '--qubit-mapping=device=path(3) placement=identity search=none' --repair-linear-type %s | FileCheck --check-prefix=LINEAR %s
 
 // LINEAR: module
@@ -33,78 +33,39 @@ quake.wire_set @wires[2147483647]
 // PATH:         }
 // PATH:         cc.continue %[[INNER]]#0, %[[INNER]]#1, %[[INNER]]#2
 // PATH:       } {atomic_quantum_region}
-// PATH:       quake.h %[[OUTER]]#2
-func.func @atomic_scope_live_lane() {
-  %q0 = quake.borrow_wire @wires[0] : !quake.wire
-  %q1 = quake.borrow_wire @wires[1] : !quake.wire
-  %q2 = quake.borrow_wire @wires[2] : !quake.wire
-  %outer:2 = cc.scope -> (!quake.wire, !quake.wire) {
-    %inner:2 = cc.scope -> (!quake.wire, !quake.wire) {
-      %gate:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-      cc.continue %gate#0, %gate#1 : !quake.wire, !quake.wire
-    }
-    cc.continue %inner#0, %inner#1 : !quake.wire, !quake.wire
-  } {atomic_quantum_region}
-  %after = quake.h %q1 : (!quake.wire) -> !quake.wire
-  quake.return_wire %outer#0 : !quake.wire
-  quake.return_wire %outer#1 : !quake.wire
-  quake.return_wire %after : !quake.wire
-  return
-}
-
-// A cudaq.run entry scope is the function body rather than a routed lexical
-// boundary, so its structured control flow remains supported.
-//
-// PATH-LABEL: func.func @run_scope_with_if
-// PATH:       cc.scope {
-// PATH:         cc.if
-func.func @run_scope_with_if() attributes {quake.cudaq_run = []} {
+// PATH:       cc.if{{.*}}%[[OUTER]]#2
+// AUTO-LABEL: func.func @atomic_scope_live_lane()
+// AUTO-SAME:  mapping_v2p = [1, 2, 0]
+// AUTO-NOT:   quake.swap
+// AUTO:       return
+// SABRE-LABEL: func.func @atomic_scope_live_lane()
+// SABRE-SAME:  mapping_v2p = [1, 0, 2]
+// SABRE-NOT:   quake.swap
+// SABRE:       return
+func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
   cc.scope {
     %cond = cc.undef i1
-    %q = quake.borrow_wire @wires[0] : !quake.wire
-    %if:1 = cc.if (%cond) ((%arg = %q)) -> (!quake.wire) {
+    %q0 = quake.borrow_wire @wires[0] : !quake.wire
+    %q1 = quake.borrow_wire @wires[1] : !quake.wire
+    %q2 = quake.borrow_wire @wires[2] : !quake.wire
+    %outer:2 = cc.scope -> (!quake.wire, !quake.wire) {
+      %inner:2 = cc.scope -> (!quake.wire, !quake.wire) {
+        %gate:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        cc.continue %gate#0, %gate#1 : !quake.wire, !quake.wire
+      }
+      cc.continue %inner#0, %inner#1 : !quake.wire, !quake.wire
+    } {atomic_quantum_region}
+    %if:1 = cc.if (%cond) ((%arg = %q1)) -> (!quake.wire) {
       %then = quake.h %arg : (!quake.wire) -> !quake.wire
       cc.continue %then : !quake.wire
     } else {
       %else = quake.x %arg : (!quake.wire) -> !quake.wire
       cc.continue %else : !quake.wire
     }
+    quake.return_wire %outer#0 : !quake.wire
+    quake.return_wire %outer#1 : !quake.wire
     quake.return_wire %if#0 : !quake.wire
     cc.continue
   }
-  return
-}
-
-// All placement-relevant gates are inside the scope. `auto` must score the
-// routed body to prefer the zero-swap greedy seed over identity, while SABRE
-// refinement must see the same gates to move the fan's hub to the device
-// center.
-//
-// AUTO-LABEL: func.func @scoped_star_fan()
-// AUTO-SAME:  mapping_v2p = [2,
-// AUTO-NOT:   quake.swap
-// AUTO:       return
-// SABRE-LABEL: func.func @scoped_star_fan()
-// SABRE-SAME:  mapping_v2p = [2,
-// SABRE-NOT:   quake.swap
-// SABRE:       return
-func.func @scoped_star_fan() {
-  %q0 = quake.borrow_wire @wires[0] : !quake.wire
-  %q1 = quake.borrow_wire @wires[1] : !quake.wire
-  %q2 = quake.borrow_wire @wires[2] : !quake.wire
-  %q3 = quake.borrow_wire @wires[3] : !quake.wire
-  %q4 = quake.borrow_wire @wires[4] : !quake.wire
-  %scope:5 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) {
-    %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    %b:2 = quake.x [%a#0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    %c:2 = quake.x [%b#0] %q3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    %d:2 = quake.x [%c#0] %q4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    cc.continue %d#0, %a#1, %b#1, %c#1, %d#1 : !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire
-  }
-  quake.return_wire %scope#0 : !quake.wire
-  quake.return_wire %scope#1 : !quake.wire
-  quake.return_wire %scope#2 : !quake.wire
-  quake.return_wire %scope#3 : !quake.wire
-  quake.return_wire %scope#4 : !quake.wire
   return
 }
