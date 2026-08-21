@@ -426,11 +426,14 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
   bool emitResourceCounts =
-      options.emitResourceCounts && !target.disableResourceCounting;
+      options.emitResourceCounts && target.supportResourceCounts;
   if (emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (succeeded(result))
       resourceCounts = std::move(*result);
+  } else if (options.emitResourceCounts) {
+    CUDAQ_INFO(
+        "Skipping counting resources from IR as target does not support it.");
   }
 
   std::vector<std::size_t> mapping_reorder_idx;

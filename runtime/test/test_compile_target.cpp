@@ -245,7 +245,7 @@ void test_resource_count_completes_phase_lifecycle(mlir::MLIRContext *ctx) {
 
 void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
   auto target = nonEmptyPipelineTarget("decomposition{enable-patterns=R1ToRz}");
-  target.disableResourceCounting = true;
+  target.supportResourceCounts = false;
 
   cudaq::CompileOptions options;
   options.emitResourceCounts = true;
