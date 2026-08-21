@@ -221,10 +221,37 @@ static Type dereferencedType(Type ty) {
   return cast<cudaq::cc::PointerType>(ty).getElementType();
 }
 
+/// Peel a chain of `quake.subveq`/`quake.relax_size` views off \p veq to find
+/// the underlying veq it is ultimately a view of (an alloca, init_state
+/// result, function/block argument, or any other op result that isn't itself
+/// a further view). \p veq itself is returned unchanged if it isn't a view.
+static Value resolveVeqRoot(Value veq) {
+  while (true) {
+    if (auto sub = veq.getDefiningOp<cudaq::quake::SubVeqOp>()) {
+      veq = sub.getVeq();
+      continue;
+    }
+    if (auto relax = veq.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
+      veq = relax.getInputVec();
+      continue;
+    }
+    return veq;
+  }
+}
+
 /// Walk \p ref's provenance backward — through the `quake.extract_ref` that
 /// produced it and that op's source-veq chain of `quake.subveq`/
-/// `quake.relax_size` views — to determine whether \p ref can be proven
-/// independent of \p v's qubit range.
+/// `quake.relax_size` views — and compare its ultimate root veq against \p
+/// v's own ultimate root (resolved the same way) to determine whether \p ref
+/// can be proven independent of \p v's qubit range.
+///
+/// Both provenance chains must be resolved to their roots and compared —
+/// not just \p ref's chain searched for the literal value \p v — because
+/// \p ref and \p v may be *siblings* that share a common root without either
+/// being derived from the other (e.g. \p ref extracted directly from a veq
+/// %q, and \p v a `quake.subveq` of that same %q taken independently): \p
+/// v never appears verbatim in \p ref's chain in that case, even though they
+/// plainly alias.
 ///
 /// This is intentionally driven backward from a single, already-tracked ref
 /// binding rather than forward from \p v across every use in the function:
@@ -236,11 +263,11 @@ static Type dereferencedType(Type ty) {
 /// blanket bailout for) refs that have nothing to do with the current
 /// aliasing site.
 ///
-/// Returns true only when \p ref's provenance is fully resolved and every
-/// veq in its chain is a distinct SSA value from \p v — i.e. \p ref is
+/// Returns true only when \p ref's provenance is fully resolved and its root
+/// is a distinct SSA value from \p v's own resolved root — i.e. \p ref is
 /// definitely not derived from \p v. Returns false (can't rule it out, so
-/// the caller must treat \p ref as a possible alias) whenever the chain
-/// reaches \p v or bottoms out at something that isn't itself further
+/// the caller must treat \p ref as a possible alias) whenever the roots
+/// match or \p ref bottoms out at something that isn't itself further
 /// resolvable (e.g. \p ref is a quake.wrap_new stand-in — see
 /// reclaimAliasedRef — whose provenance can't be traced back at all).
 static bool definitelyNotDerivedFrom(Value ref, Value v) {
@@ -253,27 +280,7 @@ static bool definitelyNotDerivedFrom(Value ref, Value v) {
   auto extract = ref.getDefiningOp<cudaq::quake::ExtractRefOp>();
   if (!extract)
     return false;
-  SmallPtrSet<Value, 8> visited;
-  SmallVector<Value> worklist{extract.getVeq()};
-  while (!worklist.empty()) {
-    Value cur = worklist.pop_back_val();
-    if (cur == v)
-      return false;
-    if (!visited.insert(cur).second)
-      continue;
-    if (auto sub = cur.getDefiningOp<cudaq::quake::SubVeqOp>()) {
-      worklist.push_back(sub.getVeq());
-      continue;
-    }
-    if (auto relax = cur.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
-      worklist.push_back(relax.getInputVec());
-      continue;
-    }
-    // cur is a fully-resolved veq source (alloca, init_state, function or
-    // block argument, ...) distinct from v: this branch of ref's provenance
-    // is unrelated to v.
-  }
-  return true;
+  return resolveVeqRoot(extract.getVeq()) != resolveVeqRoot(v);
 }
 
 namespace {
@@ -586,8 +593,17 @@ public:
           }
         } else if (auto veqTy =
                        dyn_cast<cudaq::quake::VeqType>(arg.getType())) {
-          if (!veqTy.hasSpecifiedSize())
+          if (!veqTy.hasSpecifiedSize()) {
             fallback = true;
+          } else {
+            // A specified-size veq member of the concat may itself alias
+            // refs extracted from a different view of the same underlying
+            // storage (e.g. arg is a quake.subveq of some %q, and some
+            // other live ref was extracted directly from %q) -- those
+            // bindings must be invalidated too, exactly as for a veq
+            // operand outside of a concat (see cancelBindingsAliasing).
+            cancelBindingsAliasing(arg, block, builder, loc, cleanUps, op);
+          }
         } else {
           fallback = true;
         }
