@@ -131,19 +131,16 @@ only when they do not move scoped allocations or their uses, or bypass cleanup
 performed when the scope exits.
 
 A ``cc.scope`` carrying the ``atomic_quantum_region`` unit attribute is not
-normally transparent in this way. Canonicalization retains a marked scope even
-when it holds no allocations, so the marker reaches later passes. Topology
-mapping is a structural exception: it may route operations within the retained
-scope and thread physical placement across its boundary, including inserting
-swaps and scope results required by linear wires. The mapper preserves the
-scope, marker, linear wire dependencies, and quantum behavior under the
-recorded qubit mapping. Other semantic optimizations may rewrite quantum
-operations wholly inside or wholly outside a marked scope, but must not
-combine, cancel, or move operations across its boundary.
+transparent in this way. Canonicalization retains a marked scope even when it
+holds no allocations, so the marker reaches later passes. The qubit-mapping
+pass maps through scopes carrying this attribute as if it were not present.
+Other optimizations may rewrite quantum operations wholly inside or wholly
+outside a marked scope, but must not combine, cancel, or move operations across
+its boundary.
 
-Tests for semantic optimizations should cover optimization within a block,
-across an ordinary scope, and conservative behavior at both a marked scope and
-an unsupported control-flow boundary.
+Tests should cover optimization within a block, across an ordinary scope, and
+conservative behavior at both a marked scope and an unsupported control-flow
+boundary.
 
 Pipeline integration should keep related quantum optimizations together in a
 value-form portion of the pipeline. A quantum optimization should not require
