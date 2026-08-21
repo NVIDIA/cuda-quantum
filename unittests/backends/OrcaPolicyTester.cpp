@@ -29,7 +29,7 @@ struct OrcaLaunchState {
 
 TEST(OrcaPolicyTester, CompileTargetPreservesSourceModule) {
   cudaq::OrcaRemoteRESTQPU qpu;
-  auto target = qpu.getCompileTarget(cudaq::orca::sample_policy{});
+  auto target = qpu.getCompileTarget();
   EXPECT_FALSE(target.overrideAOTCompilation);
 }
 
