@@ -1648,6 +1648,109 @@ LogicalResult cudaq::quake::LogOutputOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// Control and wire helpers
+//===----------------------------------------------------------------------===//
+
+bool cudaq::quake::hasUnresolvedControlVeq(ValueRange controls) {
+  return llvm::any_of(controls, [](Value control) {
+    return isa<cudaq::quake::VeqType>(control.getType()) &&
+           !cudaq::quake::getVeqSize(control);
+  });
+}
+
+SmallVector<bool> cudaq::quake::getControlPolarities(
+    ValueRange controls, std::optional<llvm::ArrayRef<bool>> negatedControls) {
+  SmallVector<bool> polarities(controls.size(), false);
+  if (negatedControls)
+    for (auto [index, value] : llvm::enumerate(*negatedControls))
+      polarities[index] = value;
+  return polarities;
+}
+
+SmallVector<bool>
+cudaq::quake::getControlPolarities(cudaq::quake::OperatorInterface op) {
+  return cudaq::quake::getControlPolarities(op.getControls(),
+                                            op.getNegatedControls());
+}
+
+cudaq::quake::ExpandedControlVeqs
+cudaq::quake::expandKnownSizedControlVeqs(OpBuilder &builder, Location location,
+                                          ValueRange controls,
+                                          llvm::ArrayRef<bool> polarities) {
+  assert(controls.size() == polarities.size() &&
+         "every control must have a corresponding polarity");
+
+  ExpandedControlVeqs expanded;
+  for (auto [index, control] : llvm::enumerate(controls)) {
+    if (!isa<cudaq::quake::VeqType>(control.getType())) {
+      expanded.controls.push_back(control);
+      expanded.polarities.push_back(polarities[index]);
+      continue;
+    }
+
+    auto size = cudaq::quake::getVeqSize(control);
+    if (!size) {
+      expanded.controls.push_back(control);
+      expanded.polarities.push_back(polarities[index]);
+      continue;
+    }
+
+    // extract_ref requires the sized source of a relaxed vector.
+    Value vector = control;
+    if (auto relax = control.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+      vector = relax.getInputVec();
+    for (std::size_t i = 0; i < *size; ++i) {
+      expanded.controls.push_back(
+          cudaq::quake::ExtractRefOp::create(builder, location, vector, i));
+      expanded.polarities.push_back(polarities[index]);
+    }
+    expanded.didExpand = true;
+  }
+  return expanded;
+}
+
+SmallVector<Type> cudaq::quake::getWireResultTypes(OpBuilder &builder,
+                                                   ValueRange controls,
+                                                   ValueRange targets) {
+  auto wireType = cudaq::quake::WireType::get(builder.getContext());
+  SmallVector<Type> resultTypes;
+  for (Value control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      resultTypes.push_back(wireType);
+  for (Value target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      resultTypes.push_back(wireType);
+  return resultTypes;
+}
+
+SmallVector<Value> cudaq::quake::getWireValues(ValueRange controls,
+                                               ValueRange targets) {
+  SmallVector<Value> values;
+  for (Value control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      values.push_back(control);
+  for (Value target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      values.push_back(target);
+  return values;
+}
+
+void cudaq::quake::threadWireResults(cudaq::quake::OperatorInterface op,
+                                     llvm::MutableArrayRef<Value> controls,
+                                     llvm::MutableArrayRef<Value> targets) {
+  ValueRange wires = op.getWires();
+  unsigned result = 0;
+  for (Value &control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      control = wires[result++];
+  for (Value &target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      target = wires[result++];
+  assert(result == wires.size() &&
+         "gate result count does not match its wire operands");
+}
+
+//===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
 
