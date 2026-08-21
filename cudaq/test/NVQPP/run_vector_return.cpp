@@ -14,9 +14,15 @@
 // Compile in an isolated directory with -save-temps and check the generated
 // .qke file, which is the Quake IR after the nvq++ optimization pipeline.
 //
+// clang-format off
 // RUN: rm -rf %t && mkdir %t
 // RUN: cd %t && nvq++ -save-temps %s -o app
 // RUN: FileCheck %s --input-file=%t/run_vector_return.dcl.qke
+// RUN: cd %t && nvq++ -c %s -o first.o
+// RUN: cd %t && nvq++ -Drun_vector_return=run_vector_return_second \
+// RUN:   -Dmain=run_vector_return_second_main -c %s -o second.o
+// RUN: cd %t && nvq++ first.o second.o -o linked-app
+// clang-format on
 
 #include <cudaq.h>
 
