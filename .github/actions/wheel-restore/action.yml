@@ -1,0 +1,70 @@
+name: Restore cached wheel
+description: |
+  Download a wheel artifact recorded in the wheel index, re-stamp it to the
+  current version, re-upload it under the same artifact name, and refresh the
+  index entry so it points at the new artifact.
+
+inputs:
+  key:
+    description: Actions cache key of the index entry.
+    required: true
+  run_id:
+    description: Workflow run holding the cached artifact.
+    required: true
+  artifact_id:
+    description: Artifact id of the cached wheel.
+    required: true
+  artifact_name:
+    description: Artifact name to re-upload under.
+    required: true
+  version:
+    description: Version to stamp into the wheel metadata.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Download cached wheel
+      uses: actions/download-artifact@v8
+      with:
+        run-id: ${{ inputs.run_id }}
+        artifact-ids: ${{ inputs.artifact_id }}
+        path: /tmp/cached-wheel
+        github-token: ${{ github.token }}
+
+    - name: Re-stamp wheel
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        VENV_DIR: /tmp/restamp-venv
+        OUTPUT_DIR: /tmp/restamped-wheel
+      run: |
+        set -euo pipefail
+        wheel=$(find /tmp/cached-wheel -name '*.whl' -print -quit)
+        if [ -z "$wheel" ]; then
+          echo "::error::No wheel found in the downloaded artifact."
+          find /tmp/cached-wheel -type f || true
+          exit 1
+        fi
+        python3 -m venv "$VENV_DIR"
+        "$VENV_DIR/bin/pip" install --quiet wheel
+        "$VENV_DIR/bin/python" "$GITHUB_WORKSPACE/scripts/restamp_wheel.py" \
+          --wheel "$wheel" \
+          --version "$VERSION" \
+          --output-dir "$OUTPUT_DIR"
+
+    - name: Upload re-stamped wheel
+      id: upload
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: /tmp/restamped-wheel
+        retention-days: 1
+        if-no-files-found: error
+
+    - name: Refresh index entry
+      uses: ./.github/actions/wheel-cache-register
+      with:
+        key: ${{ inputs.key }}
+        artifact_id: ${{ steps.upload.outputs.artifact-id }}
+        artifact_name: ${{ inputs.artifact_name }}

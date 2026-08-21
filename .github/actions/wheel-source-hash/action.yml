@@ -1,0 +1,127 @@
+name: Wheel source hash
+description: |
+  Hash the source tree that determines a project's wheel, folded with the
+  build configuration, and emit the corresponding cache key.
+
+inputs:
+  platform:
+    description: Wheel platform (e.g. linux/amd64).
+    required: true
+  python_version:
+    description: Python version (e.g. 3.11).
+    required: true
+  cuda_version:
+    description: CUDA version (e.g. 13.0).
+    required: true
+  project:
+    description: Project key in wheel_sources.yml.
+    required: false
+    default: cudaq
+  tag:
+    description: Optional extra cache-key segment (e.g. devel).
+    required: false
+    default: ''
+
+outputs:
+  source_hash:
+    description: Digest of the source tree plus build configuration.
+    value: ${{ steps.hash.outputs.source_hash }}
+  cache_key:
+    description: Actions cache key for this wheel.
+    value: ${{ steps.hash.outputs.cache_key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install yq
+      shell: bash
+      env:
+        YQ_VERSION: "4.44.6"
+      run: |
+        set -euo pipefail
+        if command -v yq >/dev/null; then
+          echo "yq already installed: $(yq --version)"
+          exit 0
+        fi
+        os=$(uname -s | tr '[:upper:]' '[:lower:]')
+        arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+        curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 \
+          --connect-timeout 10 --max-time 120 \
+          -o /tmp/yq \
+          "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_${os}_${arch}"
+        chmod +x /tmp/yq
+        sudo mv /tmp/yq /usr/local/bin/yq
+        yq --version
+
+    - name: Compute source hash
+      id: hash
+      shell: bash
+      env:
+        CONFIG_PATH: .github/workflows/config/wheel_sources.yml
+        KEY_PREFIX: wheel-index
+        PROJECT: ${{ inputs.project }}
+        TAG: ${{ inputs.tag }}
+        PLATFORM: ${{ inputs.platform }}
+        PYTHON_VERSION: ${{ inputs.python_version }}
+        CUDA_VERSION: ${{ inputs.cuda_version }}
+      run: |
+        set -euo pipefail
+        if [ ! -f "$CONFIG_PATH" ]; then
+          echo "::error::Missing wheel source config $CONFIG_PATH"
+          exit 1
+        fi
+        proj_type=$(yq -r ".$PROJECT | type" "$CONFIG_PATH")
+        if [ "$proj_type" != "!!map" ] && [ "$proj_type" != "map" ]; then
+          echo "::error::Unknown project '$PROJECT' in $CONFIG_PATH"
+          exit 1
+        fi
+
+        mapfile -t includes < <(yq -r ".$PROJECT.include[]" "$CONFIG_PATH")
+        mapfile -t excludes < <(yq -r "(.${PROJECT}.exclude // []) | .[]" "$CONFIG_PATH")
+        if [ "${#includes[@]}" -eq 0 ]; then
+          echo "::error::Project '$PROJECT' has no include paths"
+          exit 1
+        fi
+
+        is_excluded() {
+          local path="$1" ex
+          for ex in "${excludes[@]}"; do
+            [ -z "$ex" ] && continue
+            case "$path" in
+              "$ex"|"$ex"/*) return 0 ;;
+            esac
+          done
+          return 1
+        }
+
+        tree_hash=$(
+          git ls-tree -r HEAD -- "${includes[@]}" \
+            | while IFS=$'\t' read -r meta path; do
+                is_excluded "$path" && continue
+                printf '%s\t%s\n' "$meta" "$path"
+              done \
+            | sort \
+            | sha256sum \
+            | awk '{print $1}'
+        )
+
+        source_hash=$(
+          {
+            echo "tree=$tree_hash"
+            echo "platform=$PLATFORM"
+            echo "python_version=$PYTHON_VERSION"
+            echo "cuda_version=$CUDA_VERSION"
+            echo "tag=$TAG"
+          } | sha256sum | awk '{print $1}'
+        )
+
+        platform_id=$(echo "$PLATFORM" | tr '/' '-' | tr -d ' ')
+        tag_part=""
+        [ -n "$TAG" ] && tag_part="-$TAG"
+        cache_key="${KEY_PREFIX}${tag_part}-${platform_id}-py${PYTHON_VERSION}-cu${CUDA_VERSION}-${source_hash}"
+
+        echo "source_hash=$source_hash" >> "$GITHUB_OUTPUT"
+        echo "cache_key=$cache_key" >> "$GITHUB_OUTPUT"
+        echo "tree_hash=$tree_hash"
+        echo "source_hash=$source_hash"
+        echo "cache_key=$cache_key"
