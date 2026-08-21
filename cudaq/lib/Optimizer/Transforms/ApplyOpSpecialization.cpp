@@ -758,6 +758,31 @@ buildCtrlClosureInstantiation(
   return {result, wrapperAttr};
 }
 
+/// A `cc.loop` and the position of the value in the loop's iteration arguments.
+/// (loop-carried value)
+using LoopCarriedSlot = std::pair<Operation *, unsigned>;
+
+/// Return the slot use passes its value into, if passing it along is all the
+/// use does (a loop's initial argument, or a region terminator forwarding it
+/// around the loop).
+static std::optional<LoopCarriedSlot> forwardedSlot(OpOperand &use) {
+  Operation *user = use.getOwner();
+  unsigned pos = use.getOperandNumber();
+  if (auto loop = dyn_cast<cudaq::cc::LoopOp>(user))
+    return LoopCarriedSlot{loop.getOperation(), pos};
+  auto loop = dyn_cast_or_null<cudaq::cc::LoopOp>(user->getParentOp());
+  if (!loop)
+    return std::nullopt;
+  if (isa<cudaq::cc::ConditionOp>(user)) {
+    if (pos == 0)
+      return std::nullopt;
+    return LoopCarriedSlot{loop.getOperation(), pos - 1};
+  }
+  if (isa<cudaq::cc::ContinueOp, cudaq::cc::BreakOp>(user))
+    return LoopCarriedSlot{loop.getOperation(), pos};
+  return std::nullopt;
+}
+
 namespace {
 /// Replace a quake.apply op with a call to the correct variant function.
 struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
