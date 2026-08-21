@@ -1027,6 +1027,9 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     so leaving it rolled keeps the IR small. An index use loop that cannot be
     unrolled (e.g. a non-constant trip count) is reported as an error. This
     option also defaults to false.
+
+    The two selective unrolling options are mutually exclusive; enabling both
+    is an error.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",

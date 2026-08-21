@@ -38,6 +38,12 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+    if (unrollOnlyWireBlockingLoops && unrollOnlyIndexUseLoops) {
+      op->emitOpError("unroll-only-wire-blocking-loops and "
+                      "unroll-only-index-use-loops are mutually exclusive");
+      signalPassFailure();
+      return;
+    }
     auto numLoops = countLoopOps(op);
     unsigned progress = 0;
     if (numLoops) {
