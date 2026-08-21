@@ -642,9 +642,9 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "must have the same number of controls\n");
       return failure();
     }
-    auto polarities = cudaq::opt::getControlPolarities(qop);
-    if (polarities != cudaq::opt::getControlPolarities(prev0) ||
-        polarities != cudaq::opt::getControlPolarities(prev)) {
+    auto polarities = cudaq::quake::getControlPolarities(qop);
+    if (polarities != cudaq::quake::getControlPolarities(prev0) ||
+        polarities != cudaq::quake::getControlPolarities(prev)) {
       LLVM_DEBUG(llvm::dbgs() << "control polarities must be the same\n");
       return failure();
     }
@@ -685,8 +685,8 @@ public:
         rewriter, qop.getLoc(), qop.getResultTypes(), prev0.getIsAdjAttr(),
         ValueRange{}, replacementControls, replacementTargets,
         prev.getNegatedQubitControlsAttr());
-    cudaq::opt::threadWireResults(replacement, replacementControls,
-                                  replacementTargets);
+    cudaq::quake::threadWireResults(replacement, replacementControls,
+                                    replacementTargets);
 
     if (!prev0.isAdj()) {
       Value pi = cudaq::opt::factory::createPiConstant(qop.getLoc(), rewriter,
@@ -698,8 +698,8 @@ public:
       replacementTargets.back() = correction.anchor;
     }
 
-    rewriter.replaceOp(qop, cudaq::opt::getWireValues(replacementControls,
-                                                      replacementTargets));
+    rewriter.replaceOp(qop, cudaq::quake::getWireValues(replacementControls,
+                                                        replacementTargets));
     rewriter.eraseOp(prev0);
     rewriter.eraseOp(prev);
     ++stat;
