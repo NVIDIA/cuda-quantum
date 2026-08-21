@@ -783,6 +783,22 @@ static std::optional<LoopCarriedSlot> forwardedSlot(OpOperand &use) {
   return std::nullopt;
 }
 
+/// Collect every value occupying slot pos of loop (the loop's result and
+/// the matching entry block argument of each of its regions).
+static SmallVector<Value> valuesInSlot(cudaq::cc::LoopOp loop, unsigned pos) {
+  SmallVector<Value> values;
+  if (pos < loop.getNumResults())
+    values.push_back(loop.getResult(pos));
+  for (auto *region : loop.getRegions()) {
+    if (region->empty())
+      continue;
+    Block &entry = region->front();
+    if (pos < entry.getNumArguments())
+      values.push_back(entry.getArgument(pos));
+  }
+  return values;
+}
+
 namespace {
 /// Replace a quake.apply op with a call to the correct variant function.
 struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
