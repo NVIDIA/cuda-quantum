@@ -1559,6 +1559,10 @@ public:
       newFunc->setAttr(cudaq::cc::atomicQuantumRegionAttrName, atomicRegion);
     IRMapping mapping;
     funcBody.cloneInto(&newFunc.getBody(), mapping);
+
+    // Drop loop-carried values that nothing reads before reversing.
+    pruneDeadLoopCarriedValues(newFunc);
+
     if (failed(reverseTheOpsInTheBlock</*checkEmpty=*/true>(
             loc, newFunc.getBody().front().getTerminator(),
             getOpsToInvert(newFunc.getBody().front()), newApplyOps))) {

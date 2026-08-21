@@ -142,7 +142,9 @@ func.func private @__nvqpp__callable.thunk.lambda.1(%arg0: !cc.callable<(!quake.
 // ADJ:           %[[SUBI_0:.*]] = arith.subi %[[SELECT_0]], %[[CONSTANT_4]] : i64
 // ADJ:           %[[LOOP_0:.*]]:4 = cc.loop while ((%[[VAL_0:.*]] = %[[SUBI_0]], %[[VAL_1:.*]] = %[[UNDEF_1]], %[[VAL_2:.*]] = %[[UNDEF_0]], %[[VAL_3:.*]] = %[[SELECT_0]]) -> (i64, i64, i1, i64)) {
 // ADJ:             %[[CMPI_1:.*]] = arith.cmpi sgt, %[[VAL_3]], %[[CONSTANT_3]] : i64
-// ADJ:             cc.condition %[[CMPI_1]](%[[VAL_0]], %[[VAL_1]], %[[VAL_2]], %[[VAL_3]] : i64, i64, i1, i64)
+// Nothing reads the second and third loop-carried values so they are short
+// circuited to the loop's initial values before the kernel is reversed.
+// ADJ:             cc.condition %[[CMPI_1]](%[[VAL_0]], %[[UNDEF_1]], %[[UNDEF_0]], %[[VAL_3]] : i64, i64, i1, i64)
 // ADJ:           } do {
 // ADJ:           ^bb0(%[[VAL_4:.*]]: i64, %[[VAL_5:.*]]: i64, %[[VAL_6:.*]]: i1, %[[VAL_7:.*]]: i64):
 // ADJ:             %[[SEQUENCE_DATA_0:.*]] = cc.sequence_data %[[ARG3]] : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
@@ -161,7 +163,7 @@ func.func private @__nvqpp__callable.thunk.lambda.1(%arg0: !cc.callable<(!quake.
 // ADJ:           ^bb0(%[[VAL_8:.*]]: i64, %[[VAL_9:.*]]: i64, %[[VAL_10:.*]]: i1, %[[VAL_11:.*]]: i64):
 // ADJ:             %[[SUBI_1:.*]] = arith.subi %[[VAL_8]], %[[CONSTANT_4]] : i64
 // ADJ:             %[[SUBI_2:.*]] = arith.subi %[[VAL_11]], %[[CONSTANT_4]] : i64
-// ADJ:             cc.continue %[[SUBI_1]], %[[VAL_9]], %[[VAL_10]], %[[SUBI_2]] : i64, i64, i1, i64
+// ADJ:             cc.continue %[[SUBI_1]], %[[UNDEF_1]], %[[UNDEF_0]], %[[SUBI_2]] : i64, i64, i1, i64
 // ADJ:           }
 // ADJ:           return
 // ADJ:         }
