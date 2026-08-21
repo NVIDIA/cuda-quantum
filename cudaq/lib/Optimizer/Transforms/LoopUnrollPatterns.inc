@@ -88,8 +88,7 @@ static bool loopTripCountDependsOnRegionArgs(cudaq::cc::LoopOp loop,
 /// constant-index, at which point this loop no longer blocks. This lets a
 /// purely-repeating outer loop stay rolled while inner index-dependent loops
 /// are unrolled. A loop with only constant-index references/slices (or only
-/// `!quake.wire` values) does not block: mem2reg can thread those qubits as
-/// loop iter-args.
+/// `!quake.wire` values) does not block.
 static bool loopBlocksWireConversion(cudaq::cc::LoopOp loop) {
   bool found = false;
   loop->walk<mlir::WalkOrder::PreOrder>([&](Operation *op) -> WalkResult {
@@ -110,8 +109,29 @@ static bool loopBlocksWireConversion(cudaq::cc::LoopOp loop) {
   return found;
 }
 
-static bool
-loopHasParentDependentWireBlockingNestedLoop(cudaq::cc::LoopOp loop) {
+/// Returns true if \p loop selects a Pauli word using one of its induction
+/// variables. Such an operation cannot be decomposed until the loop is fully
+/// unrolled and its Pauli-word loads are made static.
+static bool loopHasLoopDependentPauliWord(cudaq::cc::LoopOp loop) {
+  bool found = false;
+  Region &body = loop.getBodyRegion();
+  loop->walk<mlir::WalkOrder::PreOrder>([&](Operation *op) -> WalkResult {
+    if (op != loop.getOperation() && isa<cudaq::cc::LoopOp>(op))
+      return WalkResult::skip(); // nested loops are handled separately
+    auto expPauli = dyn_cast<cudaq::quake::ExpPauliOp>(op);
+    if (!expPauli)
+      return WalkResult::advance();
+    Value pauli = expPauli.getPauli();
+    if (pauli && valueDependsOnRegionBlockArgument(pauli, body)) {
+      found = true;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+  return found;
+}
+
+static bool loopHasParentDependentBlockingNestedLoop(cudaq::cc::LoopOp loop) {
   bool found = false;
   Region &body = loop.getBodyRegion();
   loop->walk<mlir::WalkOrder::PreOrder>([&](Operation *op) -> WalkResult {
@@ -120,8 +140,9 @@ loopHasParentDependentWireBlockingNestedLoop(cudaq::cc::LoopOp loop) {
     auto nested = dyn_cast<cudaq::cc::LoopOp>(op);
     if (!nested)
       return WalkResult::advance();
-    if (loopBlocksWireConversion(nested) &&
-        loopTripCountDependsOnRegionArgs(nested, body)) {
+    const bool nestedMustUnroll = loopBlocksWireConversion(nested) ||
+                                  loopHasLoopDependentPauliWord(nested);
+    if (nestedMustUnroll && loopTripCountDependsOnRegionArgs(nested, body)) {
       found = true;
       return WalkResult::interrupt();
     }
@@ -132,7 +153,8 @@ loopHasParentDependentWireBlockingNestedLoop(cudaq::cc::LoopOp loop) {
 
 static bool loopMustUnrollForWireConversion(cudaq::cc::LoopOp loop) {
   return loopBlocksWireConversion(loop) ||
-         loopHasParentDependentWireBlockingNestedLoop(loop);
+         loopHasParentDependentBlockingNestedLoop(loop) ||
+         loopHasLoopDependentPauliWord(loop);
 }
 
 namespace {
@@ -163,8 +185,8 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
       return failure();
     // Opt-in selective unrolling for value-semantics pipelines: a loop that
     // does not itself index or slice qubits dynamically is left rolled unless
-    // it must be unrolled first to make a nested wire-blocking loop's trip
-    // count constant. Otherwise its qubits can be threaded as wire iter-args.
+    // it must be unrolled first to make a nested blocking loop's trip count
+    // constant. Otherwise its qubits can be threaded as wire iter-args.
     if (unrollOnlyWireBlockingLoops) {
       // Filter out loops that cannot be unrolled before doing the more
       // expensive quantum-access walks below. These skips are intentionally

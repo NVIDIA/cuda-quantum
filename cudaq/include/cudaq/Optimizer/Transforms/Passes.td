@@ -1059,13 +1059,13 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     be completely unrolled.
 
     The unroll-only-wire-blocking-loops option opts in to selective unrolling
-    for a value-semantics (wire) pipeline: only loops that still access
-    quantum data by dynamic reference or slice (blocking wire conversion) are
-    unrolled. Counted loops whose quantum accesses can be represented with
-    static wireset indices are left rolled. A loop that blocks wire
-    conversion but cannot be unrolled (e.g. a non-constant trip
-    count) is a dead end and is reported as an error. This option defaults to
-    false, leaving the pass behavior unchanged for all existing pipelines.
+    for wire-set lowering. Quantum references and slices must be statically
+    resolved. An `exp_pauli` also requires both its quantum register and Pauli
+    word to be resolved. Loops that block any of these resolutions are
+    unrolled; other counted loops remain rolled. A required loop that cannot be
+    unrolled (e.g. a non-constant trip count) is reported as an error. This
+    option defaults to false, leaving the pass behavior unchanged for existing
+    pipelines.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
@@ -1081,9 +1081,8 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "Allow unrolling of loop with early exit (i.e. break statement).">,
     Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
       "bool", /*default=*/"false",
-      "Unroll only loops that block wire conversion; keep counted loops "
-      "whose quantum accesses can be represented with static wireset indices "
-      "rolled (and error on a blocking loop that cannot be unrolled).">
+      "Unroll only loops that prevent quantum references, slices, or "
+      "exp_pauli operands from being resolved for wire-set lowering.">
   ];
 }
 
