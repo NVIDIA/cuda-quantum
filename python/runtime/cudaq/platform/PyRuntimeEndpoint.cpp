@@ -158,6 +158,25 @@ private:
 template <launch_policy Policy>
 struct PyProtocol {};
 
+/// Python-owned options that are opaque to core launch policies.
+struct PythonEndpointOptions final : endpoint_options {
+  explicit PythonEndpointOptions(nanobind::dict options)
+      : options(std::move(options)) {}
+
+  nanobind::dict options;
+};
+
+template <typename Policy>
+static void appendEndpointOptions(const Policy &policy,
+                                  nanobind::dict &kwargs) {
+  auto options =
+      std::dynamic_pointer_cast<PythonEndpointOptions>(policy.endpointOptions);
+  if (!options)
+    return;
+  for (auto [key, value] : options->options)
+    kwargs[key] = value;
+}
+
 template <>
 struct PyProtocol<sample_policy> {
   static constexpr const char *Method = "sample";
@@ -261,6 +280,7 @@ pyLaunch(std::any &impl, const Policy &policy, const CompiledModule &module,
                                nanobind::rv_policy::move);
 
   auto kwargs = Protocol::kwargs(policy);
+  appendEndpointOptions(policy, kwargs);
   auto result = obj.attr(Protocol::Method)(pyModule, pyArgs, **kwargs);
 
   if (!nanobind::isinstance<Result>(result)) {
@@ -276,6 +296,25 @@ pyLaunch(std::any &impl, const Policy &policy, const CompiledModule &module,
   }
 
   return nanobind::cast<typename Policy::result_type>(result);
+}
+
+std::shared_ptr<endpoint_options>
+cudaq::makePythonEndpointOptions(nanobind::dict options) {
+  if (options.empty())
+    return {};
+
+  auto optionsDestructor = +[](endpoint_options *base) {
+    auto *options = static_cast<PythonEndpointOptions *>(base);
+    if (!Py_IsInitialized()) {
+      (void)options->options.release();
+      delete options;
+      return;
+    }
+    nanobind::gil_scoped_acquire gil;
+    delete options;
+  };
+  return std::shared_ptr<endpoint_options>(
+      new PythonEndpointOptions(std::move(options)), optionsDestructor);
 }
 
 static bool getAttrOrDefault(const nanobind::object &obj, const char *attr,

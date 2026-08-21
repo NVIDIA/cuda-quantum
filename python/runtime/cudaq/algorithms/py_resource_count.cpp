@@ -9,6 +9,7 @@
 #include "py_resource_count.h"
 #include "common/Resources.h"
 #include "common/cudaq_json.h"
+#include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/JsonNanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
@@ -25,7 +26,7 @@ using namespace cudaq;
 static estimate_result
 estimate_impl(const std::string &kernelName, MlirModule kernelMod,
               std::optional<std::function<bool()>> choice,
-              nanobind::args args) {
+              nanobind::dict endpointOptions, nanobind::args args) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -47,6 +48,7 @@ estimate_impl(const std::string &kernelName, MlirModule kernelMod,
   estimate_policy policy{
       .kernelName = kernelName,
       .choice = *std::move(choice),
+      .endpointOptions = makePythonEndpointOptions(std::move(endpointOptions)),
   };
   return detail::launch(policy, 0, ctx, platform, [&]() {
     // Pass nullptr for the compiled slot to disable JIT-artifact caching:
@@ -61,8 +63,10 @@ estimate_impl(const std::string &kernelName, MlirModule kernelMod,
 static Resources
 estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
                         std::optional<std::function<bool()>> choice,
-                        nanobind::args args) {
-  return estimate_impl(kernelName, kernelMod, choice, args).get_resources();
+                        nanobind::dict endpointOptions, nanobind::args args) {
+  return estimate_impl(kernelName, kernelMod, choice,
+                       std::move(endpointOptions), args)
+      .get_resources();
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {
@@ -117,9 +121,12 @@ Args:
 
   mod.def("estimate_impl", estimate_impl, nanobind::arg("kernel_name"),
           nanobind::arg("kernel_mod"), nanobind::arg("choice").none(),
+          nanobind::arg("endpoint_options") = nanobind::dict(),
           nanobind::arg("args"), "See python documentation for estimate.");
   mod.def("estimate_resources_impl", estimate_resources_impl,
           nanobind::arg("kernel_name"), nanobind::arg("kernel_mod"),
-          nanobind::arg("choice").none(), nanobind::arg("args"),
+          nanobind::arg("choice").none(),
+          nanobind::arg("endpoint_options") = nanobind::dict(),
+          nanobind::arg("args"),
           "See python documentation for estimate_resources.");
 }

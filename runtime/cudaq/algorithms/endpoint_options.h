@@ -8,26 +8,14 @@
 
 #pragma once
 
-#include "common/CompileOptions.h"
-#include "cudaq/algorithms/dem/options.h"
-#include "cudaq/algorithms/dem/result.h"
-#include "cudaq/algorithms/endpoint_options.h"
-#include <string>
+#include <memory>
 
 namespace cudaq {
 
-class noise_model;
-
-/// @brief Tag and options for Detector Error Model (DEM) generation.
-struct dem_policy {
-  static constexpr char name[] = "dem";
-  using result_type = dem_result;
-  dem_options options;
-  std::string kernelName;
-  const noise_model *noiseModel = nullptr;
-  std::shared_ptr<endpoint_options> endpointOptions;
-
-  friend CompileOptions get_compile_options_impl(const dem_policy &);
+/// Type-erased, endpoint-specific options attached to a launch policy.
+/// Core policies remain independent of the language used by an endpoint.
+struct endpoint_options {
+  virtual ~endpoint_options() = default;
 };
 
 } // namespace cudaq

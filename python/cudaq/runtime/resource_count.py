@@ -40,6 +40,9 @@ def estimate(kernel, *args, **kwargs):
       kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
       *arguments (Optional[Any]): The concrete values to evaluate the kernel
           function at. Leave empty if the kernel doesn't accept any arguments.
+      **kwargs: Endpoint-specific options are forwarded unchanged to a
+          configured runtime endpoint. This includes resource-estimation
+          options such as ``tier``.
 
     Returns:
       :class:`cudaq.EstimateResult`: A data-type containing the resource count
@@ -51,8 +54,11 @@ def estimate(kernel, *args, **kwargs):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     choice = kwargs.get("choice", None)
+    endpoint_options = {
+        key: value for key, value in kwargs.items() if key != "choice"
+    }
     return cudaq_runtime.estimate_impl(decorator.uniqName, module, choice,
-                                       *processedArgs)
+                                       endpoint_options, *processedArgs)
 
 
 @trace.traced
