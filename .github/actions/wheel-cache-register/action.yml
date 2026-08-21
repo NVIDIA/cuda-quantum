@@ -1,0 +1,46 @@
+name: Wheel cache register
+description: |
+  Record a freshly uploaded wheel artifact in the Actions cache index.
+
+inputs:
+  key:
+    description: Actions cache key emitted by wheel-source-hash.
+    required: true
+  artifact_id:
+    description: Artifact id from upload-artifact.
+    required: true
+  artifact_name:
+    description: Artifact name the wheel was uploaded under.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write index entry
+      shell: bash
+      env:
+        ENTRY_FILE: .wheel-index/entry.json
+        ARTIFACT_ID: ${{ inputs.artifact_id }}
+        ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        CACHE_KEY: ${{ inputs.key }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$(dirname "$ENTRY_FILE")"
+        source_hash="${CACHE_KEY##*-}"
+        jq -n \
+          --arg source_hash "$source_hash" \
+          --arg run_id "$GITHUB_RUN_ID" \
+          --arg artifact_id "$ARTIFACT_ID" \
+          --arg artifact_name "$ARTIFACT_NAME" \
+          --arg built_commit "$GITHUB_SHA" \
+          --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          '{source_hash, run_id, artifact_id, artifact_name, built_commit, created_at}' \
+          > "$ENTRY_FILE"
+        echo "Registered $ARTIFACT_NAME (id $ARTIFACT_ID) under $CACHE_KEY"
+
+    - name: Save wheel index
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        path: .wheel-index/entry.json
+        key: ${{ inputs.key }}-${{ github.run_id }}

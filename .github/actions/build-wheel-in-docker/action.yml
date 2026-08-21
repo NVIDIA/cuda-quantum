@@ -1,0 +1,200 @@
+name: Build CUDA-Q wheel in Docker
+description: |
+  Resolve the devdeps base image, build a runtime or devel wheel with the
+  wheel Dockerfile, and persist the ccache. Expects the repository to be
+  checked out and the container registries to be logged in.
+
+inputs:
+  platform:
+    description: Wheel platform (e.g. linux/amd64).
+    required: true
+  python_version:
+    description: Python version to build for (e.g. 3.11).
+    required: true
+  release_version:
+    description: Version stamped into the wheel.
+    required: true
+  devdeps_image:
+    description: Devdeps image to pull. Used when no cached archive is given.
+    required: false
+    default: ''
+  devdeps_cache:
+    description: Cache key of the devdeps image archive.
+    required: false
+    default: ''
+  devdeps_archive:
+    description: Path of the devdeps image archive within the cache.
+    required: false
+    default: ''
+  build_devel:
+    description: Set to 1 to build the cudaq-devel wheel instead of the runtime wheel.
+    required: false
+    default: ''
+
+outputs:
+  artifact_name:
+    description: Artifact name the wheel should be uploaded under.
+    value: ${{ steps.prereqs.outputs.artifact_name }}
+  wheel_dir:
+    description: Directory containing the built wheel.
+    value: ${{ steps.prereqs.outputs.wheel_dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore build environment
+      if: inputs.devdeps_cache != '' && inputs.devdeps_archive != ''
+      id: restore
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ inputs.devdeps_archive }}
+        key: ${{ inputs.devdeps_cache }}
+        fail-on-cache-miss: true
+
+    - name: Load prerequisites
+      id: prereqs
+      shell: bash
+      env:
+        WHEEL_DIR: /tmp/wheels
+        PLATFORM: ${{ inputs.platform }}
+        PYTHON_VERSION: ${{ inputs.python_version }}
+        DEVDEPS_IMAGE: ${{ inputs.devdeps_image }}
+        DEVDEPS_ARCHIVE: ${{ inputs.devdeps_archive }}
+        BUILD_DEVEL: ${{ inputs.build_devel }}
+      run: |
+        retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+        if ${{ steps.restore.outcome != 'skipped' }}; then
+          load_output=`docker load --input "$DEVDEPS_ARCHIVE"`
+          base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+          echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
+          # Push the image to the local registry to make it available within
+          # the containered environment that docker/build-push-action uses.
+          retry docker push $base_image
+          rm -rf "$DEVDEPS_ARCHIVE"
+        elif [ -n "$DEVDEPS_IMAGE" ]; then
+          base_image="$DEVDEPS_IMAGE"
+          echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
+          retry docker pull $base_image
+        else
+          echo "::error::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
+          exit 1
+        fi
+
+        devenv_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
+        docker image rm $base_image && docker image prune --force
+        cache_id=`echo $PYTHON_VERSION-$devenv_tag | tr . -`
+        platform_id=$(echo "$PLATFORM" | sed 's/linux\///g' | tr -d ' ')
+
+        if [ -n "$BUILD_DEVEL" ]; then
+          artifact_name="cudaq-devel-$cache_id"
+          ccache_key="$platform_id-wheel-devel"
+          # The devel build compiles the same objects as the runtime build, so
+          # its cache can be seeded from the runtime one when empty.
+          ccache_fallback_key="$platform_id-wheel"
+        else
+          # do not change this prefix without adjusting other workflows
+          artifact_name="pycudaq-$cache_id"
+          ccache_key="$platform_id-wheel"
+          ccache_fallback_key=""
+        fi
+
+        mkdir -p "$WHEEL_DIR"
+
+        echo "base_image=$base_image" >> $GITHUB_OUTPUT
+        echo "wheel_dir=$WHEEL_DIR" >> $GITHUB_OUTPUT
+        echo "docker_output=type=local,dest=$WHEEL_DIR" >> $GITHUB_OUTPUT
+        echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+        echo "ccache_key=$ccache_key" >> $GITHUB_OUTPUT
+        echo "ccache_fallback_key=$ccache_fallback_key" >> $GITHUB_OUTPUT
+
+    - name: Set up ccache and ORAS
+      uses: ./.github/actions/ccache-setup
+
+    - name: Restore ccache from GHCR
+      id: ccache
+      uses: ./.github/actions/ccache-restore
+      with:
+        cache-key: ${{ steps.prereqs.outputs.ccache_key }}
+        registry-token: ${{ github.token }}
+
+    - name: Restore ccache from fallback key
+      if: steps.ccache.outputs.restored != 'true' && steps.prereqs.outputs.ccache_fallback_key != ''
+      uses: ./.github/actions/ccache-restore
+      with:
+        cache-key: ${{ steps.prereqs.outputs.ccache_fallback_key }}
+        registry-token: ${{ github.token }}
+
+    - name: Set up context for buildx
+      shell: bash
+      run: docker context create builder_context
+
+    - name: Set up buildx runner
+      uses: docker/setup-buildx-action@v4
+      with:
+        endpoint: builder_context
+        version: v0.19.0
+        buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
+        driver-opts: |
+          network=host
+          image=moby/buildkit:v0.19.0
+
+    - name: Setup proxy cache
+      uses: nv-gha-runners/setup-proxy-cache@main
+      with:
+        enable-apt: true
+
+    - name: Build wheel
+      uses: docker/build-push-action@v7
+      env:
+        DOCKER_BUILD_RECORD_UPLOAD: "false"
+      with:
+        context: .
+        file: ./docker/release/cudaq.wheel.Dockerfile
+        build-contexts: |
+          ccache-data=/tmp/ccache-data
+        build-args: |
+          base_image=${{ steps.prereqs.outputs.base_image }}
+          release_version=${{ inputs.release_version }}
+          python_version=${{ inputs.python_version }}
+          build_devel=${{ inputs.build_devel }}
+        outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+    - name: Extract ccache from build
+      continue-on-error: true
+      shell: bash
+      env:
+        BASE_IMAGE: ${{ steps.prereqs.outputs.base_image }}
+        RELEASE_VERSION: ${{ inputs.release_version }}
+        PYTHON_VERSION: ${{ inputs.python_version }}
+        BUILD_DEVEL: ${{ inputs.build_devel }}
+      run: |
+        # The final image is scratch with only the .whl, so we target the
+        # ccache-export stage. Uses buildx to hit the same builder cache
+        # as the step above; only the COPY runs.
+        mkdir -p /tmp/ccache-export
+        docker buildx build \
+          -f ./docker/release/cudaq.wheel.Dockerfile . \
+          --build-context ccache-data=/tmp/ccache-data \
+          --build-arg base_image="$BASE_IMAGE" \
+          --build-arg release_version="$RELEASE_VERSION" \
+          --build-arg python_version="$PYTHON_VERSION" \
+          --build-arg build_devel="$BUILD_DEVEL" \
+          --target ccache-export \
+          --output type=local,dest=/tmp/ccache-export \
+          2>&1 | tail -20
+        if [ -f /tmp/ccache-export/ccache.tar ]; then
+          mkdir -p /tmp/ccache-export/ccache
+          tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+          rm -f /tmp/ccache-export/ccache.tar
+        fi
+        if [ -d /tmp/ccache-export/ccache ]; then
+          rm -rf /tmp/ccache-data
+          mv /tmp/ccache-export/ccache /tmp/ccache-data
+        fi
+
+    - name: Push ccache to GHCR
+      uses: ./.github/actions/ccache-push
+      with:
+        cache-key: ${{ steps.prereqs.outputs.ccache_key }}
+        cache-path: /tmp/ccache-data
+        registry-token: ${{ github.token }}
