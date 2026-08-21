@@ -67,7 +67,8 @@ def cc_ScopeOp : CCOp<"scope",
     it is not empty, so later transformations can identify it as an atomic
     quantum region. When every operation inside a marked scope has legally
     optimized away and the scope does nothing but forward values from its
-    parent, the boundary no longer guards anything and folding removes it.
+    parent, the boundary no longer guards anything and canonicalization
+    removes it.
 
     A ScopeOp may contain a single-entry, multiple-exit CFG with multiple
     basic blocks in its region. A ContinueOp is the terminator that exits a
@@ -90,7 +91,6 @@ def cc_ScopeOp : CCOp<"scope",
   
   let hasCustomAssemblyFormat = 1;
   let hasCanonicalizer = 1;
-  let hasFolder = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::TypeRange",

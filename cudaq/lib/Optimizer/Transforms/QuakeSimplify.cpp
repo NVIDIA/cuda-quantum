@@ -838,6 +838,9 @@ public:
     cudaq::opt::CommutationAwareRewriteDriver driver(*ctx, config);
     auto &patterns = driver.get_patterns();
     patterns.add<EraseDoubleReset, EraseResetSink>(ctx, numResetsErased);
+    // Emptied atomic regions must collapse within this same run so that
+    // operations separated only by a spent boundary can combine.
+    cudaq::cc::populateEraseEmptyAtomicRegionPattern(patterns);
     patterns.add<ReduceYSX>(ctx, numReduceYSXRewrites);
     auto &matcher = driver.get_matcher();
 

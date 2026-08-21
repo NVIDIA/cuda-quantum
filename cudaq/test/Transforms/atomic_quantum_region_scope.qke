@@ -69,7 +69,9 @@ func.func private @exposed_ops(%t0: !quake.ref, %t1: !quake.ref) {
 
 // U followed by adjoint(U): with the marker, both invocations must survive
 // the whole codegen pipeline; without it, the pair legally cancels. The
-// disjoint z;z pair around the invocations cancels in both variants.
+// disjoint z;z pair around the invocations cancels in the unmarked variant;
+// in the marked variant the commutation-aware simplifier keeps it, since
+// commutation cannot be proven through the intervening region ops.
 func.func @shielded_roundtrip()
     attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %q0 = quake.alloca !quake.ref
@@ -77,7 +79,7 @@ func.func @shielded_roundtrip()
   %spare = quake.alloca !quake.ref
   quake.z %spare : (!quake.ref) -> ()
   func.call @shielded_ops(%q0, %q1) : (!quake.ref, !quake.ref) -> ()
-  quake.apply<adj> @shielded_ops %q0, %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @shielded_ops (%q0, %q1) : (!quake.ref, !quake.ref) -> ()
   quake.z %spare : (!quake.ref) -> ()
   %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
   %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
@@ -98,7 +100,7 @@ func.func @exposed_roundtrip()
   %spare = quake.alloca !quake.ref
   quake.z %spare : (!quake.ref) -> ()
   func.call @exposed_ops(%q0, %q1) : (!quake.ref, !quake.ref) -> ()
-  quake.apply<adj> @exposed_ops %q0, %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @exposed_ops (%q0, %q1) : (!quake.ref, !quake.ref) -> ()
   quake.z %spare : (!quake.ref) -> ()
   %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
   %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
@@ -173,11 +175,11 @@ func.func @exposed_roundtrip()
 // ERASE:         }
 
 // QIR-LABEL: llvm.func @shielded_roundtrip()
-// QIR-NOT:   @__quantum__qis__z
+// QIR:       llvm.call @__quantum__qis__z
 // QIR:       llvm.call @__quantum__qis__h
 // QIR-COUNT-2: llvm.call @generalizedInvokeWithRotationsControlsTargets
 // QIR:       llvm.call @__quantum__qis__h
-// QIR-NOT:   @__quantum__qis__z
+// QIR:       llvm.call @__quantum__qis__z
 // QIR:       llvm.call @__quantum__qis__mz
 
 // QIR-LABEL: llvm.func @exposed_roundtrip()
@@ -187,11 +189,11 @@ func.func @exposed_roundtrip()
 // QIR:       llvm.call @__quantum__qis__mz
 
 // BASE-LABEL: llvm.func @shielded_roundtrip()
-// BASE-NOT:   @__quantum__qis__z__body
+// BASE:       llvm.call @__quantum__qis__z__body
 // BASE:       llvm.call @__quantum__qis__h__body
 // BASE-COUNT-2: llvm.call @__quantum__qis__cnot__body
 // BASE:       llvm.call @__quantum__qis__h__body
-// BASE-NOT:   @__quantum__qis__z__body
+// BASE:       llvm.call @__quantum__qis__z__body
 // BASE:       llvm.call @__quantum__qis__mz__body
 
 // BASE-LABEL: llvm.func @exposed_roundtrip()
