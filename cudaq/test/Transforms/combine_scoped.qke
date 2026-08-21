@@ -29,10 +29,13 @@ func.func @scope_combine() {
   return
 }
 
+// The top-level %0 is the only eligible alloca at the function's own top
+// level, so it is left as a plain ref: combining a single alloca reduces
+// nothing and would only change its type for no benefit (see
+// combineAllocationsInRegion's size<2 guard).
 // CHECK-LABEL:   func.func @scope_combine() {
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
-// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
 // CHECK:             %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<4>) -> !quake.ref
@@ -41,7 +44,7 @@ func.func @scope_combine() {
 // CHECK:             quake.y %[[VAL_4]] : (!quake.ref) -> ()
 // CHECK:             quake.dealloc %[[VAL_2]] : !quake.veq<4>
 // CHECK:           }
-// CHECK:           quake.dealloc %[[VAL_0]] : !quake.veq<1>
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
 // CHECK:           return
 // CHECK:         }
 
@@ -95,11 +98,12 @@ func.func @nested_scope_lambda() {
   return
 }
 
+// The cc.scope's own top level likewise has only one eligible alloca (%0);
+// it is left as a plain ref for the same reason.
 // CHECK-LABEL:   func.func @nested_scope_lambda() {
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
-// CHECK:             %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
-// CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:             %[[VAL_2:.*]] = cc.create_lambda {
 // CHECK:               %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
 // CHECK:               %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<3>) -> !quake.ref
@@ -107,7 +111,7 @@ func.func @nested_scope_lambda() {
 // CHECK:               quake.dealloc %[[VAL_3]] : !quake.veq<3>
 // CHECK:               cc.return
 // CHECK:             } : !cc.callable<() -> ()>
-// CHECK:             quake.dealloc %[[VAL_0]] : !quake.veq<1>
+// CHECK:             quake.dealloc %[[VAL_0]] : !quake.ref
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }

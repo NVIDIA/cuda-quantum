@@ -158,8 +158,14 @@ public:
             combineAllocationsInRegion(nested);
 
     // 1. Scan the top level of \p region for all `alloca` operations. Skip
-    // those that are parametric or married to an initialize with state.
+    // those that are parametric or married to an initialize with state: they
+    // are left exactly as they are, so their own dealloc must be left alone
+    // too -- only a dealloc of an alloca actually being combined belongs in
+    // analysis.deallocs, or step 4 below would erase the dealloc of a
+    // skipped (untouched) alloca along with the ones actually being merged,
+    // silently leaving it never deallocated.
     Analysis analysis;
+    SmallPtrSet<Operation *, 8> combinedAllocaOps;
     std::size_t currentOffset = 0;
     for (auto &block : region)
       for (auto &op : block) {
@@ -175,12 +181,22 @@ public:
           analysis.allocations.push_back(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
+          combinedAllocaOps.insert(alloc);
         } else if (auto dealloc =
                        dyn_cast_or_null<cudaq::quake::DeallocOp>(&op)) {
-          analysis.deallocs.push_back(dealloc);
+          auto *defOp = dealloc.getReference().getDefiningOp();
+          if (defOp && combinedAllocaOps.count(defOp))
+            analysis.deallocs.push_back(dealloc);
         }
       }
-    if (analysis.empty())
+    // Nothing is gained by "combining" a single eligible alloca: it doesn't
+    // reduce the allocation count, and rewriting it into a 1-element veq
+    // changes its type from ref to veq, which downstream codegen may lower
+    // differently (e.g. a veq-typed control operand gets its 1-element
+    // pointer array built eagerly, right after allocation, while a ref-typed
+    // one defers that until just before the gate that consumes it) --
+    // purely cosmetic churn with no benefit. Leave it untouched.
+    if (analysis.allocations.size() < 2)
       return;
 
     // 2. Combine all the allocas into a single alloca at the top of the region.
