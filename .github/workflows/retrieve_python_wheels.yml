@@ -11,9 +11,15 @@ on:
       metapackage_sdist:
         type: boolean
         description: Generate cudaq metapackage sdist
+        default: true
       devel_wheel:
         type: boolean
         description: Generate cudaq-devel wheel
+        default: true
+      run_validation:
+        type: boolean
+        description: Run validation
+        default: true
   # copy-pr-bot mirrors approved PRs onto pull-request/* branches; match CI trigger pattern.
   push:
     branches:
@@ -97,12 +103,11 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key['amd64-cu13.0-python'] }}
       devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive['amd64-cu13.0-python'] }}
       allow_cached_wheels: true
-      build_devel_wheel: ${{ github.event_name == 'workflow_dispatch' && inputs.devel_wheel || false }}
-      run_validation: false
+      build_devel_wheel: true
+      run_validation: true
 
   build_metapackage_sdist:
     name: Generate cudaq metapackage sdist
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.metapackage_sdist }}
     needs: python_wheels
     runs-on: ubuntu-latest
     permissions:

@@ -675,7 +675,7 @@ jobs:
               exit 1
             fi
 
-  validate_devel:
+  validation_devel:
     name: Validate devel wheel
     needs: [build_wheel, build_devel_wheel]
     if: inputs.run_validation && inputs.build_devel_wheel
