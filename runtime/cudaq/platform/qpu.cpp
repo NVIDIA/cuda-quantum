@@ -106,7 +106,6 @@ cudaq::QPU::launchKernel(const ptsbe::sample_policy &policy,
       "This QPU does not support launching the ptsbe::sample_policy.");
 }
 
-cudaq::CompileTarget
-cudaq::QPU::getCompileTarget(bool skipPipelineSubstitutions) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget() {
   throw std::runtime_error("No CompileTarget defined for this QPU");
 }

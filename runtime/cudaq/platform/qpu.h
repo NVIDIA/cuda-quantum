@@ -179,9 +179,7 @@ public:
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
-  /// Get the compile target of the QPU.
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(bool skipPipelineSubstitutions = false);
+  [[nodiscard]] virtual CompileTarget getCompileTarget();
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.

@@ -20,7 +20,6 @@
 #include "nvqpp_interface.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/RuntimeEndpoint.h"
-#include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -225,19 +224,8 @@ public:
   unifiedLaunchModule(const AnyModule &module, KernelArgs args,
                       std::size_t qpu_id = 0);
 
-  template <typename Policy>
   [[nodiscard]] cudaq::CompileTarget
-  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0,
-                   bool skipPipelineSubstitutions = false) const {
-    validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
-    if (compileTarget.has_value()) {
-      return compileTarget.value();
-    }
-    // Fallback to old behaviour: query the QPU for its compile target.
-    auto &qpu = platformQPUs[qpu_id];
-    skipPipelineSubstitutions |= std::is_same_v<Policy, cudaq::dem_policy>;
-    return qpu->getCompileTarget(skipPipelineSubstitutions);
-  }
+  getCompileTarget(std::size_t qpu_id = 0) const;
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

@@ -92,8 +92,7 @@ public:
   [[nodiscard]] KernelThunkResultType
   launchKernelCommon(const std::string &kernelName, void *args);
 
-  CompileTarget
-  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+  CompileTarget getCompileTarget() override {
     return {
         .supportExplicitMeasurements = false,
     };

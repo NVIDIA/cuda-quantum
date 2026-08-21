@@ -221,12 +221,9 @@ public:
                                         serverHelper, executor);
   }
 
-  CompileTarget
-  getCompileTarget(bool skipPipelineSubstitutions = false) override {
-    std::map<std::string, std::string> pipelineSubstitutions{};
-    if (!skipPipelineSubstitutions)
-      pipelineSubstitutions =
-          serverHelper->getPipelineSubstitutions(platformPath);
+  CompileTarget getCompileTarget() override {
+    auto pipelineSubstitutions =
+        serverHelper->getPipelineSubstitutions(platformPath);
     auto target = CompileTarget::createFromConfig(targetConfig, backendConfig,
                                                   pipelineSubstitutions);
     target.pipelineConfig.replaceStateWithKernel = true;
