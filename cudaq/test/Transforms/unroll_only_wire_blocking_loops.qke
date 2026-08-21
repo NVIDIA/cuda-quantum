@@ -8,6 +8,9 @@
 
 // clang-format off
 // RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck %s
+// Both options below must be forwarded through convert-to-wireset and reach cc-loop-unroll.
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-wireset{cc-loop-unroll-options={unroll-only-wire-blocking-loops=true maximum-iterations=5}})' %s | FileCheck %s
+// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(convert-to-wireset{cc-loop-unroll-options={unroll-only-wire-blocking-loops=true maximum-iterations=5}})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
 // RUN: cudaq-opt --cc-loop-unroll --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck --check-prefix=DEFAULT %s
 // clang-format on
 
@@ -246,3 +249,10 @@ module {
 // DEFAULT:           return %[[CMPI_0]] : i1
 // DEFAULT:         }
 }
+
+// Both forwarded options must appear on cc-loop-unroll.
+// PIPELINE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-wire-blocking-loops=true}
+// PIPELINE: decomposition{{.*}}ExpPauliDecomposition
+// PIPELINE: assign-wire-indices
+// PIPELINE-NOT: qubit-mapping
+// PIPELINE-NOT: basis=

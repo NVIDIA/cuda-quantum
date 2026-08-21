@@ -27,7 +27,61 @@ struct TargetCodegenPipelineOptions
       *this, "convert-to", llvm::cl::desc("Conversion target specifier."),
       llvm::cl::init("")};
 };
+
+struct ConvertToWiresetPipelineOptions
+    : public PassPipelineOptions<ConvertToWiresetPipelineOptions> {
+  PassOptions::Option<std::string> loopUnrollOptions{
+      *this, "cc-loop-unroll-options",
+      llvm::cl::desc("Options forwarded to cc-loop-unroll."),
+      llvm::cl::init("")};
+};
 } // namespace
+
+static LogicalResult createConvertToWiresetPipeline(
+    OpPassManager &pm, StringRef loopUnrollOptions,
+    function_ref<LogicalResult(const Twine &)> errorHandler) {
+  auto &funcPM = pm.nest<func::FuncOp>();
+  funcPM.addPass(cudaq::opt::createAddDeallocs());
+  funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedLogOutput());
+  funcPM.addPass(cudaq::opt::createExpandControlVeqs());
+  funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createLoopNormalize());
+  auto loopUnroll = cudaq::opt::createLoopUnroll();
+  if (failed(loopUnroll->initializeOptions(loopUnrollOptions, errorHandler)))
+    return failure();
+  funcPM.addPass(std::move(loopUnroll));
+  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(createCSEPass());
+  // Classically scalarize and promote Pauli words for early exp_pauli
+  // decomposition because quantum mem2reg cannot handle that operation.
+  funcPM.addPass(cudaq::opt::createSROA());
+  funcPM.addPass(cudaq::opt::createClassicalMemToReg());
+  funcPM.addPass(createCanonicalizerPass());
+  cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition"});
+  cudaq::opt::addConvertToLinearValues(pm);
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  pm.addPass(cudaq::opt::createAddWireset());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignWireIndices());
+  return success();
+}
+
+void cudaq::opt::registerConvertToWiresetPipeline() {
+  registerPassPipeline(
+      "convert-to-wireset", "Convert supported Quake IR to wire-set form.",
+      [](OpPassManager &pm, StringRef optionsString,
+         function_ref<LogicalResult(const Twine &)> errorHandler) {
+        ConvertToWiresetPipelineOptions options;
+        if (failed(options.parseFromString(optionsString)))
+          return failure();
+        return createConvertToWiresetPipeline(pm, options.loopUnrollOptions,
+                                              errorHandler);
+      },
+      [](function_ref<void(const mlir::detail::PassOptions &)> optionHandler) {
+        optionHandler(ConvertToWiresetPipelineOptions());
+      });
+}
 
 static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
   auto convertFields = convertTo.split(':');
