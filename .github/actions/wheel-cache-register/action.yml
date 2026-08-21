@@ -34,7 +34,7 @@ runs:
           --arg artifact_name "$ARTIFACT_NAME" \
           --arg built_commit "$GITHUB_SHA" \
           --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-          '{source_hash, run_id, artifact_id, artifact_name, built_commit, created_at}' \
+          '{source_hash: $source_hash, run_id: $run_id, artifact_id: $artifact_id, artifact_name: $artifact_name, built_commit: $built_commit, created_at: $created_at}' \
           > "$ENTRY_FILE"
         echo "Registered $ARTIFACT_NAME (id $ARTIFACT_ID) under $CACHE_KEY"
 
