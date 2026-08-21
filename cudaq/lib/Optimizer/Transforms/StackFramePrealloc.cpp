@@ -242,14 +242,30 @@ struct SFPAnalysis {
   }
 
   // Find all strongly connected components in `O(v+e)` over \p root's own
-  // (flat) block graph. In this modified version, a block is not a singleton
-  // SCC unless it has a backedge to itself. Note that a consequence of this
-  // algorithm is the SCC list will be built from outermost (largest) to
-  // innermost (smallest).
+  // (flat) block graph, AND independently over the (flat) block graph of
+  // every other region nested within \p root's own scope (a cc.scope/cc.if's
+  // single region, or each of a cc.loop's while/do/step regions).
+  //
+  // A region fence only guards against repetition of the construct that owns
+  // it, not against a lowered CFG loop (a block with a backedge to itself or an
+  // ancestor) already present inside its own body, so that body's block graph
+  // must be searched for SCCs too. In this modified version, a block is not a
+  // singleton SCC unless it has a backedge to itself.
   void modifiedKosaraju() {
+    computeSCCs(body);
+    walkOwnScope(root, [&](Operation *op) {
+      if (isa<cudaq::cc::CreateLambdaOp>(op))
+        return;
+      for (Region &r : op->getRegions())
+        if (!r.empty())
+          computeSCCs(r);
+    });
+  }
+
+  void computeSCCs(Region &region) {
     DenseMap<Block *, unsigned> finishTimes;
     SmallVector<Block *> stack;
-    dfs_build(&body.front(), finishTimes, stack);
+    dfs_build(&region.front(), finishTimes, stack);
     for (Block *visit : llvm::reverse(stack)) {
       llvm::SmallPtrSet<Block *, 4> scc;
       reverse_dfs(scc, visit, finishTimes[visit], finishTimes);
@@ -295,33 +311,50 @@ struct SFPAnalysis {
 
   // The smallest repeating construct enclosing some op, if any. Exactly one of
   // `sccIdx` (an index into sccList, i.e. a strongly connected component of
-  // root's own flat block graph) or `loopOp` (a cc.loop whose repeating region
-  // encloses the op) is set when a repeating construct was found.
+  // some region's own flat block graph) or `loopOp` (a cc.loop whose
+  // repeating region encloses the op) is set when a repeating construct was
+  // found.
   struct LoopBoundary {
     std::optional<unsigned> sccIdx;
     Operation *loopOp = nullptr;
     explicit operator bool() const { return sccIdx.has_value() || loopOp; }
   };
 
-  // Find the smallest repeating construct enclosing \p op, if any. \p op may be
-  // nested inside any number of cc.scope/cc.if regions and cc.loop regions.
+  // Find the smallest SCC (of any region's own block graph, see
+  // modifiedKosaraju) that \p block belongs to, if any.
+  std::optional<unsigned> findSCC(Block *block) {
+    unsigned size = sccList.size();
+    for (unsigned i = 0; i < size; ++i) {
+      // Scan the vector back to front to find the smallest SCC, if any.
+      unsigned j = size - 1 - i;
+      if (sccList[j].contains(block))
+        return j;
+    }
+    return std::nullopt;
+  }
+
+  // Find the smallest repeating construct enclosing \p op, if any. \p op may
+  // be nested inside any number of cc.scope/cc.if regions and cc.loop
+  // regions. A repeating construct may be a lowered CFG loop (a block with a
+  // backedge) found directly in the block graph of the innermost region
+  // enclosing \p op, or, one level further out, a cc.loop whose own
+  // while/do/step regions form a cycle. Every level walked must be checked
+  // for both: a cc.scope/cc.if's own region is a SESE fence for repetition
+  // of *that* construct, but it does not itself guard against a lowered CFG
+  // loop already present inside its body.
   LoopBoundary findEnclosingLoop(Operation *op) {
     Block *block = op->getBlock();
-    while (block->getParentOp() != root) {
+    while (true) {
+      if (auto sccIdx = findSCC(block))
+        return {sccIdx, nullptr};
+      if (block->getParentOp() == root)
+        return {};
       Operation *parentOp = block->getParentOp();
       if (auto regionOp = dyn_cast<RegionBranchOpInterface>(parentOp))
         if (regionMayRepeat(regionOp, block->getParent()))
           return {std::nullopt, parentOp};
       block = parentOp->getBlock();
     }
-    unsigned size = sccList.size();
-    for (unsigned i = 0; i < size; ++i) {
-      // Scan the vector back to front to find the smallest SCC, if any.
-      unsigned j = size - 1 - i;
-      if (sccList[j].contains(block))
-        return {j, nullptr};
-    }
-    return {};
   }
 
   // Get the paired llvm.stackrestore.p0 given the llvm.stacksave.p0.

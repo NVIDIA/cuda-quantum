@@ -145,3 +145,67 @@ func.func @lambda_selfcontained(%b: i1) {
 // CHECK:             }
 // CHECK:             cc.return
 // CHECK:           }
+
+// A cc.alloca that appears in a block that is itself part of a loop already
+// lowered to a plain CFG (here, a single-block loop with a self-edge, not a
+// cc.loop) must not be promoted/hoisted to the function's entry block: a
+// fresh allocation is required on every iteration.
+func.func @not_in_scope(%arg0: i1) {
+  %c1_i32 = arith.constant 1 : i32
+  cf.br ^bb1
+^bb1:  // 2 preds: ^bb0, ^bb1
+  %0 = cc.alloca i32
+  cc.store %c1_i32, %0 : !cc.ptr<i32>
+  cf.cond_br %arg0, ^bb1, ^bb2
+^bb2:  // pred: ^bb1
+  return
+}
+
+// CHECK-LABEL:   func.func @not_in_scope(
+// CHECK-SAME:                                 %[[VAL_0:.*]]: i1) {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<i32>
+// CHECK:           cf.cond_br %[[VAL_0]], ^bb1, ^bb2
+// CHECK:         ^bb2:
+// CHECK:           return
+// CHECK:         }
+
+// A cc.scope only fences repetition of the cc.scope construct itself; it
+// does not, by itself, prove that the code inside it runs only once. Here
+// the cc.scope's own body is *already* a lowered CFG with a self-looping
+// block, so the alloca inside it must still be treated exactly like the
+// not_in_scope case above and left untouched: it is not fenced by anything
+// nested *inside* the loop, so hoisting it would collapse every iteration's
+// allocation into one, an unbounded-stack-growth bug (see modifiedKosaraju,
+// which must find SCCs in every region's own block graph, not just root's).
+func.func @cfg_loop_in_scope(%n: i1) {
+  cc.scope {
+    %c1 = arith.constant 1 : i32
+    cf.br ^bb1
+  ^bb1:
+    %x = cc.alloca i32
+    cc.store %c1, %x : !cc.ptr<i32>
+    cf.cond_br %n, ^bb1, ^bb2
+  ^bb2:
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @cfg_loop_in_scope(
+// CHECK-SAME:                                 %[[VAL_0:.*]]: i1) {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:             cf.br ^bb1
+// CHECK:           ^bb1:
+// CHECK:             %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:             cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<i32>
+// CHECK:             cf.cond_br %[[VAL_0]], ^bb1, ^bb2
+// CHECK:           ^bb2:
+// CHECK:             cc.continue
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
