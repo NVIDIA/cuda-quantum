@@ -922,7 +922,7 @@ static SmallVector<Value> getRoutingInputWires(Operation &op) {
 static bool isRoutingNode(Operation &op) {
   if (isa<cudaq::quake::BorrowWireOp>(op))
     return false;
-  return isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(op) ||
+  return isStructuredRoutingOperation(&op) ||
          cudaq::quake::isSupportedMappingOperation(&op);
 }
 
@@ -1650,13 +1650,11 @@ private:
   RoutingProblem reverseProblem;
 };
 
-/// Drives layout routing across a function's control-flow graph. The top block
-/// and every nested if/loop region are routed block-by-block (each via
-/// RoutingSearchStrategy, treating nested control flow as opaque), and the
-/// placements that meet at a control-flow join are reconciled through the
-/// pluggable JoinPointStrategy. This is the shared, strategy-independent
-/// infrastructure: block-by-block SABRE plus join-point detection. It yields
-/// one RoutingResult per block for the emitter, plus the winning top layout.
+/// Drives layout routing across a function's structured regions. Control flow
+/// is routed block-by-block and scopes divide a block into ordered routing
+/// segments. Placements that meet at a control-flow join are reconciled through
+/// the pluggable JoinPointStrategy. The router yields one RoutingResult per
+/// block for the emitter, plus the winning top layout.
 class ControlFlowRouter {
 public:
   ControlFlowRouter(
@@ -1708,11 +1706,55 @@ public:
   }
 
 private:
+  /// Route the regions referenced by an `if` or `loop` event and include their
+  /// reconciled swaps in the parent result.
+  void routeControlFlowEvent(RoutingEvent &event, ArrayRef<unsigned> layout,
+                             RoutingResult &parentResult) {
+    if (event.kind == RoutingEvent::Kind::If) {
+      auto ifOp = cast<cudaq::cc::IfOp>(event.op);
+      SmallVector<Block *> branchBlocks;
+      for (Region *region : ifOp.getRegions()) {
+        if (region->empty())
+          continue;
+        routeBlock(region->front(), layout);
+        branchBlocks.push_back(&region->front());
+      }
+      // Collect the predecessors after routing all branches because inserting
+      // a block result may rehash `blockResults`.
+      SmallVector<RoutingResult *> branchResults;
+      for (Block *block : branchBlocks)
+        branchResults.push_back(&blockResults[block]);
+      joinStrategy.reconcile(branchResults);
+      for (RoutingResult *branchResult : branchResults)
+        parentResult.swapCount += branchResult->swapCount;
+      assert(!ifOp.hasElse() ||
+             blockResults[&ifOp.getThenRegion().front()].exitLayout ==
+                 blockResults[&ifOp.getElseRegion().front()].exitLayout);
+    } else if (event.kind == RoutingEvent::Kind::Loop) {
+      auto loopOp = cast<cudaq::cc::LoopOp>(event.op);
+      Block *bodyBlock = loopOp.getDoEntryBlock();
+      routeBlock(*bodyBlock, layout);
+      // Restoring the body to its entry layout establishes the loop invariant.
+      RoutingResult *bodyResult = &blockResults[bodyBlock];
+      joinStrategy.reconcile(bodyResult);
+      parentResult.swapCount += bodyResult->swapCount;
+      // Quantum gates in the optional step region are rejected during
+      // preflight, so the step cannot insert swaps or affect reconciliation.
+      if (loopOp.hasStep()) {
+        Block *stepBlock = loopOp.getStepBlock();
+        routeBlock(*stepBlock, layout);
+        parentResult.swapCount += blockResults.at(stepBlock).swapCount;
+      }
+    } else {
+      llvm_unreachable("expected a structured control-flow event");
+    }
+    parentResult.trace.push_back(std::move(event));
+  }
+
   /// Route `block` in ordered segments. A scope is a placement boundary: its
   /// body receives the enclosing layout and its exit layout seeds the following
   /// segment. Every block must honor the layout established at its entry.
   void routeBlock(Block &block, ArrayRef<unsigned> initialLayout) {
-
     RoutingResult result;
     llvm::append_range(result.initialLayout, initialLayout);
 
@@ -1746,51 +1788,8 @@ private:
           result.trace.push_back(std::move(ev));
         } else if (ev.kind == RoutingEvent::Kind::Gate) {
           result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::If) {
-          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
-          SmallVector<Block *> branchBlocks;
-          for (Region *region : ifOp.getRegions()) {
-            if (region->empty())
-              continue;
-            routeBlock(region->front(), replayVqToPhy);
-            branchBlocks.push_back(&region->front());
-          }
-          // Reconcile the branches at the if-join so they exit at a common
-          // layout. Collect the predecessors after all branches are routed,
-          // as building each result may rehash blockResults.
-          SmallVector<RoutingResult *> branchResults;
-          for (Block *b : branchBlocks)
-            branchResults.push_back(&blockResults[b]);
-          joinStrategy.reconcile(branchResults);
-          for (RoutingResult *branchResult : branchResults)
-            result.swapCount += branchResult->swapCount;
-          assert(!ifOp.hasElse() ||
-                 blockResults[&ifOp.getThenRegion().front()].exitLayout ==
-                     blockResults[&ifOp.getElseRegion().front()].exitLayout);
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::Loop) {
-          auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
-          auto *bodyBlock = loopOp.getDoEntryBlock();
-          routeBlock(*bodyBlock, replayVqToPhy);
-          // Reconcile the loop back-edge: the loop invariant is the entry
-          // layout, restored before the body terminator each iteration.
-          RoutingResult *bodyResult = &blockResults[bodyBlock];
-          joinStrategy.reconcile(bodyResult);
-          result.swapCount += bodyResult->swapCount;
-          // Route the step block if present (for-loop style). It carries
-          // wires straight through (quantum gates in a step are rejected),
-          // so it never inserts swaps and needs no back-edge
-          // reconciliation.
-          if (loopOp.hasStep()) {
-            routeBlock(*loopOp.getStepBlock(), replayVqToPhy);
-            result.swapCount +=
-                blockResults.at(loopOp.getStepBlock()).swapCount;
-          }
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::Scope) {
-          llvm_unreachable("scopes delimit routing segments");
         } else {
-          llvm_unreachable("unhandled RoutingEvent::Kind");
+          routeControlFlowEvent(ev, replayVqToPhy, result);
         }
       }
     };
@@ -1816,7 +1815,7 @@ private:
     result.exitLayout =
         SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
     blockResults[&block] = std::move(result);
-  };
+  }
 
   const cudaq::Device &device;
   SearchStrategy searchStrategy;
@@ -2375,6 +2374,48 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     return success();
   }
 
+  WalkResult rejectUnsupportedScope(Operation *op, StringRef message) {
+    if (nonComposable) {
+      op->emitOpError(message);
+      signalPassFailure();
+    }
+    return WalkResult::interrupt();
+  }
+
+  /// Validate the scope forms whose routing and wire boundaries the mapper can
+  /// preserve. The outer scope of a `cudaq.run` entry is the function body and
+  /// remains subject to the existing top-level analysis rules.
+  WalkResult validateScope(cudaq::cc::ScopeOp scope,
+                           cudaq::cc::ScopeOp runScope) {
+    if (scope->getParentOfType<cudaq::cc::IfOp>() ||
+        scope->getParentOfType<cudaq::cc::LoopOp>())
+      return rejectUnsupportedScope(
+          scope, "mapper cannot handle scopes nested inside structured "
+                 "control flow");
+    if (scope == runScope)
+      return WalkResult::advance();
+    if (Operation *op =
+            findScopeOwnedOperation<cudaq::cc::IfOp, cudaq::cc::LoopOp>(scope))
+      return rejectUnsupportedScope(
+          op, "mapper cannot handle structured control flow inside a scope");
+    if (!scope.getInitRegion().hasOneBlock() ||
+        !isa<cudaq::cc::ContinueOp>(
+            scope.getInitRegion().front().getTerminator()))
+      return rejectUnsupportedScope(
+          scope, "mapper can only handle single-block scopes");
+    if (scope.hasQuantumAllocation() ||
+        findScopeOwnedOperation<cudaq::quake::BorrowWireOp>(scope))
+      return rejectUnsupportedScope(
+          scope, "mapper cannot handle quantum allocations or borrows inside "
+                 "a scope");
+    if (findScopeOwnedOperation<cudaq::quake::SinkOp,
+                                cudaq::quake::ReturnWireOp>(scope))
+      return rejectUnsupportedScope(
+          scope, "mapper cannot handle terminal wire operations inside a "
+                 "scope");
+    return WalkResult::advance();
+  }
+
   /// Recursively analyze `b` and supported structured regions, populating
   /// wireToVirtualQ, finalQubitWire, sources, and interaction data. `parentOp`
   /// is the enclosing IfOp or ScopeOp whose cc.continue operands map to its
@@ -2460,38 +2501,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           if (isa<cudaq::quake::WireType>(res.getType()))
             finalQubitWire[wireToVirtualQ[res].index] = res;
       } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
-        if (!scope.getInitRegion().hasOneBlock() ||
-            !isa<cudaq::cc::ContinueOp>(
-                scope.getInitRegion().front().getTerminator())) {
-          if (nonComposable) {
-            scope.emitOpError("mapper can only handle single-block scopes");
-            signalPassFailure();
-          }
-          analysisOk = false;
-          return;
-        }
-        if (scope.hasQuantumAllocation() ||
-            findScopeOwnedOperation<cudaq::quake::BorrowWireOp>(scope)) {
-          if (nonComposable) {
-            scope.emitOpError(
-                "mapper cannot handle quantum allocations or borrows inside "
-                "a scope");
-            signalPassFailure();
-          }
-          analysisOk = false;
-          return;
-        }
-        if (findScopeOwnedOperation<cudaq::quake::SinkOp,
-                                    cudaq::quake::ReturnWireOp>(scope)) {
-          if (nonComposable) {
-            scope.emitOpError(
-                "mapper cannot handle terminal wire operations inside a "
-                "scope");
-            signalPassFailure();
-          }
-          analysisOk = false;
-          return;
-        }
         analyzeBlock(scope.getInitRegion().front(), doCollectInteractions, &op,
                      analysisOk, sources, returnsToRemove, wireToVirtualQ,
                      userQubitsMeasured, finalQubitWire, lastSource,
@@ -2864,27 +2873,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
     SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
-    auto rejectScopeNesting = [&](Operation *op, StringRef message) {
-      if (nonComposable) {
-        op->emitOpError(message);
-        signalPassFailure();
-      }
-      return WalkResult::interrupt();
-    };
     auto scopeCheckResult = func.walk([&](cudaq::cc::ScopeOp scope) {
-      if (scope->getParentOfType<cudaq::cc::IfOp>() ||
-          scope->getParentOfType<cudaq::cc::LoopOp>())
-        return rejectScopeNesting(
-            scope, "mapper cannot handle scopes nested inside structured "
-                   "control flow");
-      if (scope == runScope)
-        return WalkResult::advance();
-      if (Operation *op =
-              findScopeOwnedOperation<cudaq::cc::IfOp, cudaq::cc::LoopOp>(
-                  scope))
-        return rejectScopeNesting(
-            op, "mapper cannot handle structured control flow inside a scope");
-      return WalkResult::advance();
+      return validateScope(scope, runScope);
     });
     if (scopeCheckResult.wasInterrupted())
       return;
