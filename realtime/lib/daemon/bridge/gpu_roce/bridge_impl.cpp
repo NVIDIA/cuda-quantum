@@ -326,6 +326,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       /*get_cpu_dataplane=*/nullptr, // GPU rings; no host unified shape
       gpu_roce_bridge_get_endpoint_info,
       gpu_roce_bridge_get_ring_geometry,
+      /*set_function_table=*/nullptr, // no function table needed
   };
   return &cudaq_gpu_roce_bridge_interface;
 }
