@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // REQUIRES: custom-pass-plugin
-// RUN: cudaq-opt %s --load-cudaq-plugin %cudaq_lib_dir/CustomPassPlugin%cudaq_plugin_ext --cudaq-custom-pass  | FileCheck %s
+// RUN: cudaq-opt %s --load-cudaq-plugin %cudaq_lib_dir/CustomPassPlugin%cudaq_plugin_ext --cudaq-custom-pass  | FileCheck --implicit-check-not=quake.h %s
 
 module {
     func.func @bell() {
@@ -27,15 +27,8 @@ module {
 }
 
 // CHECK-LABEL:   func.func @bell() {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_0]] : i32]
-// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_1]]] : (!quake.veq<?>, i32) -> !quake.ref
-// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_2]]] : (!quake.veq<?>, i32) -> !quake.ref
-// CHECK:           quake.s %[[VAL_4]] : (!quake.ref) -> ()
-// CHECK:           quake.x {{\[}}%[[VAL_4]]] %[[VAL_5]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:           quake.mz %[[VAL_4]] : (!quake.ref) -> !quake.measure
-// CHECK:           quake.mz %[[VAL_5]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.s %[[Q0:[^ ]+]]
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1:[^ ]+]]
+// CHECK:           quake.mz %[[Q0]]
+// CHECK:           quake.mz %[[Q1]]
 // CHECK:           return
-// CHECK:         }

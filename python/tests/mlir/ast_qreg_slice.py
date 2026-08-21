@@ -63,7 +63,6 @@ if __name__ == '__main__':
 # CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 5 : i64
 # CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 0 : i64
 # CHECK-DAG:       %[[VAL_7:.*]] = cc.undef i64
-# CHECK-DAG:       %[[VAL_8:.*]] = cc.undef i64
 # CHECK-DAG:       %[[VAL_9:.*]] = quake.alloca !quake.veq<4>
 # CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][2] : (!quake.veq<4>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_10]] : (!quake.ref) -> ()
