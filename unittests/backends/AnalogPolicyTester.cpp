@@ -15,7 +15,7 @@ namespace {
 // from an `nvq++`-built binary with a complete runtime.
 TEST(AnalogPolicyTester, CompileTargetPreservesSourceModule) {
   cudaq::AnalogRemoteRESTQPU qpu;
-  auto target = qpu.getCompileTarget(cudaq::sample_policy{});
+  auto target = qpu.getCompileTarget();
   EXPECT_FALSE(target.overrideAOTCompilation);
 }
 
