@@ -20,10 +20,10 @@ namespace cudaq::synth {
 
 namespace details {
 
-/// Pollard-rho iterations one factoring attempt may spend. The solver's own
-/// bound, L = 1.1774 * 10^(digits/4), is unreachable at deep epsilon (1.2e10
-/// for a 40-digit composite), so without this cap only a clock ends a hard
-/// attempt and the result depends on host speed.
+/// Pollard-Brent rho iterations one factoring attempt may spend. The
+/// solver's own bound, L = 1.1774 * 10^(digits/4), is unreachable at deep
+/// epsilon (1.2e10 for a 40-digit composite), so without this cap only a
+/// clock ends a hard attempt and the result depends on host speed.
 inline constexpr uint64_t DEFAULT_MAX_FACTORING_ITERATIONS = 500000;
 
 /// The same, summed over every factoring attempt one grid candidate makes.
@@ -78,9 +78,17 @@ inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
 /// setting is never shorter). Which stage each one bounds:
 ///
 ///   `maxOdgpScanSteps`       enumerating candidates u  (sec. 4-5)
-///   `maxFactoringIterations` one factoring attempt     (sec. 6, App. C)
-///   `maxCandidateIterations` all attempts for one u    (sec. 6, App. C)
-///   `maxFactoringRestarts`   re-rolls on one composite (sec. 6, App. C)
+///   `maxFactoringIterations` one factoring attempt     (step 2b)
+///   `maxCandidateIterations` all attempts for one u    (step 2b)
+///   `maxFactoringRestarts`   re-rolls on one composite (step 2b)
+///
+/// Candidate enumeration and the reduction of the Diophantine equation to a
+/// prime factorization are the paper's (sec. 4-5, and Theorem 6.2 with
+/// App. C). The factoring method is not: step 2b is left to "any classical
+/// algorithm", provided the effort spent on any one integer is capped
+/// (sec. 8.2, and the proof of Prop. 8.11). This implementation uses
+/// Pollard-Brent rho, so the three budgets above bound its attempts rather
+/// than anything the paper names.
 ///
 /// The two factoring budgets are not interchangeable, though, and the
 /// difference decides which one to reach for. Swept one at a time over 38
@@ -98,15 +106,15 @@ inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
 /// monotone at 1e-40 (a different budget abandons different candidates and
 /// lands on a different k), so single-point comparisons there are unreliable.
 struct GridsynthOptions {
-  /// Seed for the random parameter Pollard-rho draws at the start of each
-  /// factoring attempt (sec. 6, and Rabin's `primality` test draws from the
-  /// same stream). Unset draws from `std::random_device`, so two calls on
+  /// Seed for the random parameter Pollard-Brent rho draws at the start of
+  /// each factoring attempt (Rabin's `primality` test draws from the same
+  /// stream). Unset draws from `std::random_device`, so two calls on
   /// identical inputs try different attempts and their runtimes can differ by
   /// orders of magnitude. Set it when a run has to replay exactly.
   std::optional<uint64_t> seed = std::nullopt;
 
-  /// Pollard-rho iterations one factoring attempt may spend before giving up
-  /// on its composite.
+  /// Pollard-Brent rho iterations one factoring attempt may spend before
+  /// giving up on its composite.
   ///
   /// Solving conj(t) * t = xi for a candidate needs the prime factorization of
   /// xi's norm (Theorem 6.2, Proposition C.24), and factoring is where

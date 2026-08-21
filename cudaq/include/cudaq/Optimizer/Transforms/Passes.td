@@ -209,38 +209,42 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     via the `cudaq-fault-tolerant-target` pipeline only. It is not added to
     the default target-prep pipeline.
 
-    The work-budget options below bound the search rather than timing it, so
-    the pass produces the same circuits on every machine. They all trade
-    compile time against T-count in the same direction. See
-    `GridsynthOptions.h` for what each one bounds in the algorithm and for
-    the measurements behind the defaults.
+    The work-budget options below cap the search work gridsynth may spend on
+    each rotation. They trade compile time against T-count: raise
+    `max-factoring-iterations` for shorter circuits, and the rest to widen the
+    worst case a single angle is allowed to reach. See `GridsynthOptions.h`
+    for what each one bounds in the algorithm and for the measurements behind
+    the defaults.
   }];
   let options = [
     Option<"epsilon", "epsilon", "double", /*default=*/"1e-10",
       "Approximation tolerance epsilon for Clifford+T synthesis.">,
     Option<"maxFactoringIterations", "max-factoring-iterations", "int64_t",
       /*default=*/"500000",
-      "Pollard-rho iterations one factoring attempt may spend before giving "
-      "up on its composite. Gridsynth tests a candidate circuit by factoring "
-      "an integer, so this is where nearly all synthesis time goes, and it is "
-      "the budget that decides when a candidate is abandoned. Lower is faster "
-      "everywhere and costs T gates. Raise this one, not the others, to trade "
-      "compile time for shorter circuits.">,
+      "Gridsynth tests a candidate circuit by factoring an integer derived "
+      "from it (Algorithm 7.6, step 2b). This implementation factors with "
+      "Pollard-Brent rho, a randomized method that either finds a factor or "
+      "gives up, and this option caps the iterations one attempt may spend "
+      "on its composite. Factoring is where nearly all synthesis time goes, "
+      "so a lower cap is faster on every call; the cost is that abandoning a "
+      "candidate pushes the answer onto a later one, whose denominator "
+      "exponent -- and so T-count -- is at least as large. Raise this one to "
+      "trade compile time for shorter circuits.">,
     Option<"maxCandidateIterations", "max-candidate-iterations", "int64_t",
       /*default=*/"2000000",
-      "The same iterations, summed over every factoring attempt made for one "
-      "candidate circuit. Bounds worst-case time per rotation, which the "
-      "per-attempt cap and max-factoring-restarts do not, because those are "
-      "per factoring attempt and per composite respectively. Doubling it "
-      "costs ~1.8x compile time and buys no T gates, so it is a tail control "
-      "rather than a quality one.">,
+      "Total factoring iterations allowed for one candidate circuit, summed "
+      "over its attempts. This is the cap on a whole candidate, and so on the "
+      "worst-case time one rotation can take: max-factoring-iterations "
+      "applies to a single attempt, and max-factoring-restarts to a single "
+      "composite within it. Doubling this costs ~1.8x compile time for the "
+      "same T-count, so it bounds the tail rather than tuning quality.">,
     Option<"maxFactoringRestarts", "max-factoring-restarts", "int32_t",
       /*default=*/"8",
       "Consecutive failed factoring attempts allowed on one composite before "
       "the candidate is abandoned. Each attempt re-rolls a random parameter, "
-      "so a retry searches differently rather than repeating. Returns "
-      "diminish steeply, and the default is already well above the measured "
-      "need.">,
+      "so a retry searches differently rather than repeating. Measured "
+      "restart chains succeed within a depth of 3, so the default of 8 leaves "
+      "ample margin.">,
     Option<"maxOdgpScanSteps", "max-odgp-scan-steps", "int64_t",
       /*default=*/"65536",
       "Steps one candidate-enumeration line scan may take without producing a "
@@ -255,12 +259,11 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       "retry N re-runs the whole synthesis with them scaled by 2^N, so the "
       "last retry runs at 2^retry-count times the baseline and the "
       "worst-case total work for one angle is (2^(retry-count+1) - 1) times "
-      "it. Scales max-factoring-iterations, max-candidate-iterations and "
-      "max-odgp-scan-steps. max-factoring-restarts is deliberately left "
-      "unscaled as it caps consecutive failures on a single composite, where "
-      "the measured need is a depth of 3, so raising it does not make a "
-      "failed angle any more likely to succeed. Set to 0 to attempt each "
-      "angle once.">,
+      "it. Scaled: max-factoring-iterations, max-candidate-iterations and "
+      "max-odgp-scan-steps. Unscaled: max-factoring-restarts, which counts "
+      "consecutive failures on a single composite and holds its configured "
+      "value, since each attempt already re-rolls its own random parameter. "
+      "Set to 0 to attempt each angle once.">,
     Option<"onDynamicAngle", "on-dynamic-angle", "std::string",
       /*default=*/"\"error\"",
       "Behavior on non-constant rotation angles: 'error' or 'skip'.">,

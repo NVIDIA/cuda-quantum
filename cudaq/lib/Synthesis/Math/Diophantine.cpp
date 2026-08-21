@@ -230,9 +230,11 @@ bool past_deadline(
 /// Pollard-Brent rho: return a non-trivial factor of n, or failure if either
 /// the iteration budget or the caller's optional deadline is exhausted.
 ///
-/// Used as the factoring sub-oracle in the Diophantine solver -- the paper
-/// notes this is the only super-polynomial step (sec. 8, Algorithm 7.6 step
-/// 2b). Heuristic; the iteration cap is set from a digit-count power law.
+/// Used as the factoring sub-oracle in the Diophantine solver (Algorithm 7.6
+/// step 2b). The paper leaves this step to a factoring oracle or to "any
+/// classical algorithm" with the effort spent on any one integer capped
+/// (sec. 8.2, and the proof of Proposition 8.11); this budget is that cap.
+/// Heuristic; the iteration limit is set from a digit-count power law.
 ///
 /// `iterations_out`, if non-null, accumulates the rho iterations spent here.
 llvm::FailureOr<Integer> find_factor(const Integer &n,
@@ -989,7 +991,7 @@ DiophantineResult adj_decompose_prime_power(const ZSqrt2 &eta,
 /// adj-decompose xi in Z[sqrt(2)] under the assumption that gcd(xi,
 /// conj_sq2(xi)) ~ 1. All prime factors eta of xi then satisfy eta not ~
 /// conj_sq2(eta) -- they are the split primes from Lemma C.11. We
-/// iteratively factor the norm |conj_sq2(eta) * eta| through Pollard-rho,
+/// iteratively factor the norm |conj_sq2(eta) * eta| through Pollard-Brent rho,
 /// adj-decompose each Z[sqrt(2)]-prime power, and combine via Lemma C.19.
 DiophantineResult adj_decompose_selfcoprime(const ZSqrt2 &xi,
                                             const DiophantineBudget &budget,
