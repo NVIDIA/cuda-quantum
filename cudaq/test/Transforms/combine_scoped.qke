@@ -1,0 +1,113 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --combine-quantum-alloc --canonicalize %s | FileCheck %s
+
+// combine-quantum-alloc must recurse into cc.scope and cc.create_lambda:
+// each is combined independently, with the merged alloca placed at the top
+// of that op's own body rather than hoisted out to the function (or an
+// enclosing scope). See combine.qke for the base (top-level only) behavior.
+
+func.func @scope_combine() {
+  %0 = quake.alloca !quake.ref
+  quake.x %0 : (!quake.ref) -> ()
+  cc.scope {
+    %1 = quake.alloca !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.alloca !quake.veq<3>
+    %a = quake.extract_ref %2[0] : (!quake.veq<3>) -> !quake.ref
+    quake.y %a : (!quake.ref) -> ()
+    quake.dealloc %1 : !quake.ref
+    quake.dealloc %2 : !quake.veq<3>
+  }
+  quake.dealloc %0 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @scope_combine() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
+// CHECK:             %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<4>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<4>) -> !quake.ref
+// CHECK:             quake.y %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:             quake.dealloc %[[VAL_2]] : !quake.veq<4>
+// CHECK:           }
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.veq<1>
+// CHECK:           return
+// CHECK:         }
+
+// A cc.create_lambda's allocations are combined into its own body, never
+// into the enclosing func.func: it is a separate callable activation that
+// may be invoked any number of times.
+func.func @lambda_combine() {
+  %lam = cc.create_lambda {
+    %1 = quake.alloca !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.alloca !quake.veq<2>
+    %a = quake.extract_ref %2[0] : (!quake.veq<2>) -> !quake.ref
+    quake.y %a : (!quake.ref) -> ()
+    quake.dealloc %1 : !quake.ref
+    quake.dealloc %2 : !quake.veq<2>
+    cc.return
+  } : !cc.callable<() -> ()>
+  return
+}
+
+// CHECK-LABEL:   func.func @lambda_combine() {
+// CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
+// CHECK:             %[[VAL_1:.*]] = quake.alloca !quake.veq<3>
+// CHECK:             %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             quake.y %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             quake.dealloc %[[VAL_1]] : !quake.veq<3>
+// CHECK:             cc.return
+// CHECK:           } : !cc.callable<() -> ()>
+// CHECK:           return
+// CHECK:         }
+
+// A cc.create_lambda nested inside a cc.scope is still its own,
+// independent combining unit: its allocations are never pulled up into the
+// enclosing scope's merged alloca.
+func.func @nested_scope_lambda() {
+  cc.scope {
+    %1 = quake.alloca !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %lam = cc.create_lambda {
+      %2 = quake.alloca !quake.ref
+      quake.y %2 : (!quake.ref) -> ()
+      %3 = quake.alloca !quake.veq<2>
+      quake.dealloc %2 : !quake.ref
+      quake.dealloc %3 : !quake.veq<2>
+      cc.return
+    } : !cc.callable<() -> ()>
+    quake.dealloc %1 : !quake.ref
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @nested_scope_lambda() {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
+// CHECK:             %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_2:.*]] = cc.create_lambda {
+// CHECK:               %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+// CHECK:               %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:               quake.y %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:               quake.dealloc %[[VAL_3]] : !quake.veq<3>
+// CHECK:               cc.return
+// CHECK:             } : !cc.callable<() -> ()>
+// CHECK:             quake.dealloc %[[VAL_0]] : !quake.veq<1>
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }

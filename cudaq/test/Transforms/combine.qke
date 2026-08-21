@@ -213,3 +213,40 @@ func.func @d(%c2: i64, %c3: i64, %c1: i64, %off: i16) {
 // FACTOR:           quake.x %[[VAL_12]] : (!quake.ref) -> ()
 // FACTOR:           return
 // FACTOR:         }
+
+// Negative case: a parametric (dynamically sized) alloca and an alloca that
+// is paired with an init_state must be skipped -- neither can be safely
+// folded into a combined veq -- while the other, ordinary allocas around
+// them are still combined together.
+func.func @e(%n: i64) {
+  %0 = quake.alloca !quake.ref
+  quake.x %0 : (!quake.ref) -> ()
+  %1 = quake.alloca !quake.veq<2>
+  %a1 = quake.extract_ref %1[0] : (!quake.veq<2>) -> !quake.ref
+  quake.y %a1 : (!quake.ref) -> ()
+  %ptr = cc.address_of @__nvqpp__rodata_e : !cc.ptr<!cc.array<f64 x 2>>
+  %2 = quake.alloca !quake.veq<2>
+  %3 = quake.init_state %2, %ptr : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 2>>) -> !quake.veq<2>
+  %4 = quake.alloca !quake.veq<?>[%n : i64]
+  %5 = quake.alloca !quake.ref
+  quake.z %5 : (!quake.ref) -> ()
+  return
+}
+cc.global constant private @__nvqpp__rodata_e (
+    dense<[1.000000e+00, 0.000000e+00]> : tensor<2xf64>) : !cc.array<f64 x 2>
+
+// CHECK-LABEL:   func.func @e(
+// CHECK-SAME:                 %[[VAL_0:.*]]: i64) {
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.y %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = cc.address_of @__nvqpp__rodata_e : !cc.ptr<!cc.array<f64 x 2>>
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 2>>) -> !quake.veq<2>
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_0]] : i64]
+// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_1]][3] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.z %[[VAL_8]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }

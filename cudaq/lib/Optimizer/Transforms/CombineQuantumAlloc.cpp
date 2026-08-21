@@ -122,20 +122,56 @@ public:
       return;
     }
 
-    // 1. Scan the top-level of the function for all alloca operations. Exit if
-    // any of them are parametric.
+    combineAllocationsInRegion(func.getRegion());
+
+    LLVM_DEBUG(llvm::dbgs() << "Function after combining quake alloca:\n"
+                            << func << "\n\n");
+  }
+
+  /// Combine the `quake.alloca` ops that appear directly in the top level of
+  /// \p region (i.e. not nested inside a further `cc.scope` /
+  /// `cc.create_lambda`, which is handled independently below) into a single
+  /// `quake.alloca` at the top of \p region. \p region may be a func.func's own
+  /// body, or the body of a `cc.scope` / `cc.create_lambda`.
+  ///
+  /// A `cc.scope`'s own body is combined independently of its enclosing
+  /// region, with the merged `alloca` placed at the top of \e that body, rather
+  /// than hoisted out. If the scope executes more than once (i.e. nested in
+  /// a loop), each execution still produces its own fresh merged `alloca`,
+  /// exactly matching the un-combined semantics — this is a \e CORRECTNESS
+  /// constraint that cannot be whimsically ignored and why lowering `cc.scope`
+  /// to CFG form sets `disableQubitCombineAttrName` when it contains quantum
+  /// allocations. A `cc.create_lambda`'s body is likewise combined
+  /// independently: it is an entirely separate callable activation that may be
+  /// invoked any number of times, independent of the enclosing function.
+  void combineAllocationsInRegion(Region &region) {
+    if (region.empty())
+      return;
+
+    // Recurse first (innermost first) into every cc.scope / cc.create_lambda
+    // found directly in this region's own top level. Recursion handled
+    // naturally here, so go no further.
+    for (auto &block : region)
+      for (auto &op : block)
+        if (isa<cudaq::cc::ScopeOp, cudaq::cc::CreateLambdaOp>(op))
+          for (auto &nested : op.getRegions())
+            combineAllocationsInRegion(nested);
+
+    // 1. Scan the top level of \p region for all `alloca` operations. Skip
+    // those that are parametric or married to an initialize with state.
     Analysis analysis;
     std::size_t currentOffset = 0;
-    for (auto &block : func.getRegion())
+    for (auto &block : region)
       for (auto &op : block) {
         if (auto alloc = dyn_cast_or_null<cudaq::quake::AllocaOp>(&op)) {
           if (alloc.getSize() || alloc.hasInitializedState())
-            return;
-          auto size = cudaq::quake::getAllocationSize(alloc.getType());
-          if (size == 0)
-            // Skip zero-size allocas. Merging them would
-            // produce subveq(lo, lo-1) which is invalid.
             continue;
+          auto size = cudaq::quake::getAllocationSize(alloc.getType());
+          if (size == 0) {
+            // Skip zero-size allocas. Merging them would produce
+            // subveq(lo, lo-1) which is invalid.
+            continue;
+          }
           analysis.allocations.push_back(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
@@ -147,9 +183,8 @@ public:
     if (analysis.empty())
       return;
 
-    // 2. Combine all the allocas into a single alloca at the top of the
-    // function.
-    auto *entryBlock = &func.getRegion().front();
+    // 2. Combine all the allocas into a single alloca at the top of the region.
+    auto *entryBlock = &region.front();
     auto *ctx = &getContext();
     auto loc = analysis.allocations.front().getLoc();
     OpBuilder rewriter(ctx);
@@ -160,7 +195,14 @@ public:
     // 3. Greedily replace the uses of the original alloca ops with uses of
     // partitions of the new alloca op. Replace subveq of subveq with a single
     // new subveq. Replace extract from subveq with extract from original
-    // veq.
+    // veq. AllocaPat only matches ops literally in analysis.allocations (this
+    // call's own, region-scoped list), so it is harmless to always root the
+    // driver at the pass's own top-level function rather than region's
+    // owning op: a cc.scope/cc.create_lambda is not IsolatedFromAbove (it may
+    // reference values from its enclosing region), so applyPatternsGreedily
+    // cannot be rooted there directly, but the func::FuncOp always is and the
+    // driver already walks every nested region regardless of where it's
+    // rooted.
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
@@ -168,9 +210,9 @@ public:
       cudaq::quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
       cudaq::quake::SubVeqOp::getCanonicalizationPatterns(patterns, ctx);
       cudaq::quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
-      if (failed(applyPatternsGreedily(func.getOperation(),
-                                       std::move(patterns)))) {
-        func.emitOpError("combining alloca, subveq, and extract ops failed");
+      if (failed(applyPatternsGreedily(getOperation(), std::move(patterns)))) {
+        region.getParentOp()->emitOpError(
+            "combining alloca, subveq, and extract ops failed");
         signalPassFailure();
       }
     }
@@ -179,7 +221,7 @@ public:
     if (!analysis.deallocs.empty()) {
       for (auto d : analysis.deallocs)
         d.erase();
-      for (auto &block : func.getRegion()) {
+      for (auto &block : region) {
         if (block.hasNoSuccessors()) {
           rewriter.setInsertionPoint(block.getTerminator());
           cudaq::quake::DeallocOp::create(rewriter, analysis.newAlloc.getLoc(),
@@ -187,9 +229,6 @@ public:
         }
       }
     }
-
-    LLVM_DEBUG(llvm::dbgs() << "Function after combining quake alloca:\n"
-                            << func << "\n\n");
   }
 };
 } // namespace
