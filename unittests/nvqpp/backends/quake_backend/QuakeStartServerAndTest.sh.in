@@ -62,6 +62,22 @@ else
   fi
 fi
 
+# Scalar-return test with client-side qubit mapping enabled explicitly.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --mapping-file @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mapping_device.txt @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_mapping_app.cpp -o test_mapping_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_mapping_app"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_mapping_app with nvq++"
+  ./test_mapping_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_mapping_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_mapping_app"
+  fi
+fi
+
 # Loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the client
 # preserves cc.loop operations, and the mock server validates and executes the
 # submitted payload.
