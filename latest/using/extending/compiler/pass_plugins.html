@@ -922,6 +922,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -1000,6 +1001,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1127,11 +1129,9 @@ demonstrates plugin registration and does not preserve circuit semantics.</p>
 <span class="cm"> * the terms of the Apache License 2.0 which accompanies this distribution.    *</span>
 <span class="cm"> ******************************************************************************/</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Optimizer/Dialect/Quake/QuakeOps.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Support/Plugin.h"</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">"mlir/Rewrite/FrozenRewritePatternSet.h"</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">"mlir/Transforms/DialectConversion.h"</span>
 
 <span class="c1">// Here is an example MLIR Pass that one can write externally and</span>
 <span class="c1">// use via the cudaq-opt tool, with the --load-cudaq-plugin flag.</span>
@@ -1163,12 +1163,9 @@ demonstrates plugin registration and does not preserve circuit semantics.</p>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">circuit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getOperation</span><span class="p">();</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circuit</span><span class="p">.</span><span class="n">getContext</span><span class="p">();</span>
 
-<span class="w">    </span><span class="n">RewritePatternSet</span><span class="w"> </span><span class="nf">patterns</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">patterns</span><span class="p">.</span><span class="n">insert</span><span class="o">&lt;</span><span class="n">ReplaceH</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ConversionTarget</span><span class="w"> </span><span class="nf">target</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addLegalDialect</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">QuakeDialect</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addIllegalOp</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">applyPartialConversion</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">))))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">opt</span><span class="o">::</span><span class="n">CommutationAwareRewriteDriver</span><span class="w"> </span><span class="nf">driver</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="n">driver</span><span class="p">.</span><span class="n">get_patterns</span><span class="p">().</span><span class="n">add</span><span class="o">&lt;</span><span class="n">ReplaceH</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">driver</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">circuit</span><span class="p">.</span><span class="n">getBody</span><span class="p">())))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">"simple pass failed"</span><span class="p">);</span>
 <span class="w">      </span><span class="n">signalPassFailure</span><span class="p">();</span>
 <span class="w">    </span><span class="p">}</span>
@@ -1197,6 +1194,9 @@ generated Quake dialect headers:</p>
 <span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">CustomPassPlugin.cpp</span><span class="p">)</span>
 <span class="c"># Depends on QuakeDialect TableGen to use the generated `.h.inc` files.</span>
 <span class="nb">add_dependencies</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">QuakeDialect</span><span class="p">)</span>
+<span class="c"># Resolve CUDA-Q and MLIR symbols through the shared plugin boundary. Linking</span>
+<span class="c"># static OptTransforms here would duplicate bundled compiler state in the DSO.</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">cudaqMLIR</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Build that target from a configured CUDA-Q build tree:</p>

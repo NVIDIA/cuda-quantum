@@ -924,6 +924,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -1002,6 +1003,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -8407,12 +8409,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv">
-<span class="target" id="classcudaq_1_1QPU_1a7dbeada25331aff921bc06b047ed49b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supportsExplicitMeasurements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return whether this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> supports explicit measurements. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">
 <span class="target" id="classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the remote capabilities for this platform. </p>
@@ -8463,10 +8459,9 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy">
-<span class="target" id="classcudaq_1_1QPU_1abe5bda9898c9e96558ad65a9caa48d39"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">CompileTarget</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getCompileTarget</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">sample_policy</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">policy</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> for the given policy.</p>
-<p>By default, fall back to <a class="reference internal" href="#structcudaq_1_1other__policies"><span class="std std-ref">other_policies</span></a> compile target. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU16getCompileTargetEb">
+<span class="target" id="classcudaq_1_1QPU_1a945fb6566ca01562c092cb3e4b3d98ab"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">CompileTarget</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getCompileTarget</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">skipPipelineSubstitutions</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU16getCompileTargetEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">

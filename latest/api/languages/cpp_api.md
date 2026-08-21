@@ -1583,6 +1583,9 @@ latest
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.estimate){.reference
+                .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.estimate_resources){.reference
                 .internal}
@@ -1775,6 +1778,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](python_api.html#optimizers){.reference
                 .internal}
@@ -13037,16 +13043,6 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1a7dbeada25331aff921bc06b047ed49b6 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[supportsExplicitMeasurements]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv "Permalink to this definition"){.headerlink}\
-
-    :   Return whether this [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} supports
-        explicit measurements.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[[RemoteCapabilities]{.pre}]{.n}](#_CPPv4N5cudaq18RemoteCapabilitiesE "cudaq::RemoteCapabilities"){.reference .internal}[ ]{.w}[[[getRemoteCapabilities]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv "Permalink to this definition"){.headerlink}\
 
     :   Return the remote capabilities for this platform.
@@ -13126,15 +13122,10 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1abe5bda9898c9e96558ad65a9caa48d39 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1QPU_1a945fb6566ca01562c092cb3e4b3d98ab .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[bool]{.pre}]{.kt}[ ]{.w}[[skipPipelineSubstitutions]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetEb "Permalink to this definition"){.headerlink}\
 
     :   Get the compile target of the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
-        given policy.
-
-        By default, fall back to [[other_policies]{.std
-        .std-ref}](#structcudaq_1_1other__policies){.reference
-        .internal} compile target.
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
 
     ```{=html}
     <!-- -->

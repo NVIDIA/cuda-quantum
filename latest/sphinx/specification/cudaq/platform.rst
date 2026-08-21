@@ -13,7 +13,7 @@ information and enable asynchronous quantum kernel invocations.
 quantum processing units (QPUs), with each QPU assigned a logical integer index (:code:`{0,1,2,...}`). 
 
 **[4]** The properties of the QPUs on the platform are exposed by a collection
-of functions such as :code:`get_num_qubits`, :code:`is_simulator`, :code:`is_remote`, :code:`is_emulated`, etc.
+of functions such as :code:`supports_explicit_measurements`, :code:`is_simulator`, :code:`is_remote`, :code:`is_emulated`, etc.
 They take an optional :code:`qpu_id` argument (defaults to 0) to specify the QPU of interest.
 
 **[5]** The ID of the desired QPU can be specified as argument when invoking

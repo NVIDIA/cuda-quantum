@@ -1578,6 +1578,9 @@ latest
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
+                .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
@@ -1773,6 +1776,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -2502,7 +2508,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![16ab1aa2459f4be58ef5b63d079fa3e5](../../_images/speedup.png){.no-scaled-link
+![9dbd66026bda47e8ad8506076a52a6bd](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2516,9 +2522,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![62afa12a1e674b4eb7f7d9352c15d573](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![3d2ae904c0a84d8cae3a59bedbacad9b](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![61453ec0b61f4c2285c227885c5cc483](../../_images/efficiency.jpeg){.no-scaled-link
+![f643c9c6795b4339a3036d00c032cecb](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

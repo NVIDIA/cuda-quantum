@@ -919,6 +919,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -997,6 +998,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1200,14 +1202,16 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.contrib.angular_encode">angular_encode() (in module cudaq.contrib)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.DEMResult.annotations">annotations (cudaq.DEMResult property)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.EstimateResult.annotations">(cudaq.EstimateResult property)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.SampleResult.annotations">(cudaq.SampleResult property)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.KrausChannel.append">append (cudaq.KrausChannel attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernel.argument_count">argument_count (cudaq.PyKernel attribute)</a>
@@ -2249,7 +2253,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU24finalizeExecutionContextER16ExecutionContext">cudaq::QPU::finalizeExecutionContext (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy">cudaq::QPU::getCompileTarget (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU16getCompileTargetEb">cudaq::QPU::getCompileTarget (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15getConnectivityEv">cudaq::QPU::getConnectivity (C++ function)</a>
 </li>
@@ -2270,8 +2274,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU5setIdENSt6size_tE">cudaq::QPU::setId (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU8setShotsEi">cudaq::QPU::setShots (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv">cudaq::QPU::supportsExplicitMeasurements (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUD0Ev">cudaq::QPU::~QPU (C++ function)</a>
 </li>
@@ -2869,7 +2871,11 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.epsilon">epsilon (cudaq.optimizers.Adam property)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.estimate">estimate() (in module cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.estimate_resources">estimate_resources() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.EstimateResult">EstimateResult (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.evaluate">evaluate (cudaq.operators.ScalarOperator attribute)</a>
 </li>
@@ -3497,6 +3503,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Resources">Resources (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.EstimateResult.resources">resources (cudaq.EstimateResult property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.right_multiply">right_multiply (cudaq.SuperOperator attribute)</a>
 </li>

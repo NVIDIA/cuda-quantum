@@ -1580,6 +1580,9 @@ latest
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
+                .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
@@ -1776,6 +1779,9 @@ latest
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EstimateResult){.reference
+                .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
             -   [Gradients](../../api/languages/python_api.html#gradients){.reference
@@ -1966,9 +1972,9 @@ logical integer index ([`{0,1,2,...}`{.code .docutils .literal
 .notranslate}]{.pre}).
 
 **\[4\]** The properties of the QPUs on the platform are exposed by a
-collection of functions such as [`get_num_qubits`{.code .docutils
-.literal .notranslate}]{.pre}, [`is_simulator`{.code .docutils .literal
-.notranslate}]{.pre}, [`is_remote`{.code .docutils .literal
+collection of functions such as [`supports_explicit_measurements`{.code
+.docutils .literal .notranslate}]{.pre}, [`is_simulator`{.code .docutils
+.literal .notranslate}]{.pre}, [`is_remote`{.code .docutils .literal
 .notranslate}]{.pre}, [`is_emulated`{.code .docutils .literal
 .notranslate}]{.pre}, etc. They take an optional [`qpu_id`{.code
 .docutils .literal .notranslate}]{.pre} argument (defaults to 0) to
