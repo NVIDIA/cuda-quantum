@@ -1565,6 +1565,9 @@ latest
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate){.reference
+                .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
@@ -1760,6 +1763,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}

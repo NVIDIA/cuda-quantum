@@ -1574,6 +1574,9 @@ latest
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate){.reference
+                .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
@@ -1769,6 +1772,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1984,11 +1990,9 @@ not preserve circuit semantics.
      * the terms of the Apache License 2.0 which accompanies this distribution.    *
      ******************************************************************************/
 
-    #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
     #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+    #include "cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"
     #include "cudaq/Support/Plugin.h"
-    #include "mlir/Rewrite/FrozenRewritePatternSet.h"
-    #include "mlir/Transforms/DialectConversion.h"
 
     // Here is an example MLIR Pass that one can write externally and
     // use via the cudaq-opt tool, with the --load-cudaq-plugin flag.
@@ -2020,12 +2024,9 @@ not preserve circuit semantics.
         auto circuit = getOperation();
         auto ctx = circuit.getContext();
 
-        RewritePatternSet patterns(ctx);
-        patterns.insert<ReplaceH>(ctx);
-        ConversionTarget target(*ctx);
-        target.addLegalDialect<cudaq::quake::QuakeDialect>();
-        target.addIllegalOp<cudaq::quake::HOp>();
-        if (failed(applyPartialConversion(circuit, target, std::move(patterns)))) {
+        cudaq::opt::CommutationAwareRewriteDriver driver(*ctx);
+        driver.get_patterns().add<ReplaceH>(ctx);
+        if (failed(driver.run(circuit.getBody()))) {
           circuit.emitOpError("simple pass failed");
           signalPassFailure();
         }
@@ -2059,6 +2060,9 @@ the generated Quake dialect headers:
     add_llvm_pass_plugin(CustomPassPlugin CustomPassPlugin.cpp)
     # Depends on QuakeDialect TableGen to use the generated `.h.inc` files.
     add_dependencies(CustomPassPlugin QuakeDialect)
+    # Resolve CUDA-Q and MLIR symbols through the shared plugin boundary. Linking
+    # static OptTransforms here would duplicate bundled compiler state in the DSO.
+    target_link_libraries(CustomPassPlugin PRIVATE cudaqMLIR)
 :::
 :::
 

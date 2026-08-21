@@ -924,6 +924,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -1002,6 +1003,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#noisy-simulation">Noisy Simulation</a></li>
@@ -1684,6 +1686,38 @@ tail call void &#64;`__quantum__rt__qubit_release_array`(%Array* %1)
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cudaq.estimate">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.estimate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs resource counting on the given quantum kernel expression and
+returns an accounting of how many times each gate was applied, in addition
+to the total number of gates and qubits used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>choice</strong> (<em>Any</em>) – A choice function called to determine the outcome of
+measurements, in case control flow depends on measurements. Should
+only return either <code class="code docutils literal notranslate"><span class="pre">True</span></code> or <code class="code docutils literal notranslate"><span class="pre">False</span></code>. Invoking the kernel within
+the choice function is forbidden. Default: returns <code class="code docutils literal notranslate"><span class="pre">True</span></code> or <code class="code docutils literal notranslate"><span class="pre">False</span></code>
+with 50% probability.</p></li>
+<li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to count resources on</p></li>
+<li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel
+function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A data-type containing the resource count</dt><dd><p>results for the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cudaq.EstimateResult" title="cudaq.EstimateResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.EstimateResult</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cudaq.estimate_resources">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">estimate_resources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.estimate_resources" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs resource counting on the given quantum kernel expression and
@@ -1704,7 +1738,11 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>A dictionary containing the resource count results</dt><dd><p>for the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>.</p>
+<dt>A dictionary containing the resource count results</dt><dd><p>for the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>. Any annotation stored on the
+<a class="reference internal" href="#cudaq.EstimateResult" title="cudaq.EstimateResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.EstimateResult</span></code></a> instance is discarded. Use
+<a class="reference internal" href="#cudaq.estimate" title="cudaq.estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.estimate()</span></code></a> to get the full result. The returned instance
+corresponds to the <code class="code docutils literal notranslate"><span class="pre">resources</span></code> attribute of the return value of
+<a class="reference internal" href="#cudaq.estimate" title="cudaq.estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.estimate()</span></code></a>.</p>
 </dd>
 </dl>
 </p>
@@ -4547,6 +4585,24 @@ This includes all gate counts.</p>
 <dt class="sig sig-object py" id="cudaq.Resources.to_dict">
 <span class="sig-name descname"><span class="pre">to_dict</span></span><a class="headerlink" href="#cudaq.Resources.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a dictionary of the raw resource counts that are stored in <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.EstimateResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">EstimateResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.EstimateResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>A data-type containing the results of a call to <a class="reference internal" href="#cudaq.estimate" title="cudaq.estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.estimate()</span></code></a>.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.EstimateResult.annotations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">annotations</span></span><a class="headerlink" href="#cudaq.EstimateResult.annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Additional metadata dict set by backends.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.EstimateResult.resources">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">resources</span></span><a class="headerlink" href="#cudaq.EstimateResult.resources" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><code class="xref py py-class docutils literal notranslate"><span class="pre">Resources</span></code></a> gate counts for the estimated kernel.</p>
 </dd></dl>
 
 </dd></dl>

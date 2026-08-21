@@ -1583,6 +1583,9 @@ latest
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.translate){.reference
                 .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.estimate){.reference
+                .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.estimate_resources){.reference
                 .internal}
@@ -1764,6 +1767,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](#optimizers){.reference .internal}
             -   [Gradients](#gradients){.reference .internal}
@@ -2785,6 +2791,57 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.estimate "Permalink to this definition"){.headerlink}
+
+:   Performs resource counting on the given quantum kernel expression
+    and returns an accounting of how many times each gate was applied,
+    in addition to the total number of gates and qubits used.
+
+    Parameters[:]{.colon}
+
+    :   -   **choice** (*Any*) -- A choice function called to determine
+            the outcome of measurements, in case control flow depends on
+            measurements. Should only return either [`True`{.code
+            .docutils .literal .notranslate}]{.pre} or [`False`{.code
+            .docutils .literal .notranslate}]{.pre}. Invoking the kernel
+            within the choice function is forbidden. Default: returns
+            [`True`{.code .docutils .literal .notranslate}]{.pre} or
+            [`False`{.code .docutils .literal .notranslate}]{.pre} with
+            50% probability.
+
+        -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to count resources on
+
+        -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
+            to evaluate the kernel function at. Leave empty if the
+            kernel doesn't accept any arguments.
+
+    Returns[:]{.colon}
+
+    :   
+
+        A data-type containing the resource count
+
+        :   results for the [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}.
+
+    Return type[:]{.colon}
+
+    :   [[`cudaq.EstimateResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.EstimateResult "cudaq.EstimateResult"){.reference
+        .internal}
+
+```{=html}
+<!-- -->
+```
+
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.estimate_resources "Permalink to this definition"){.headerlink}
 
 :   Performs resource counting on the given quantum kernel expression
@@ -2823,6 +2880,18 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         :   for the [[`Kernel`{.xref .py .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}. Any annotation stored on the
+            [[`cudaq.EstimateResult`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.EstimateResult "cudaq.EstimateResult"){.reference
+            .internal} instance is discarded. Use
+            [[`cudaq.estimate()`{.xref .py .py-func .docutils .literal
+            .notranslate}]{.pre}](#cudaq.estimate "cudaq.estimate"){.reference
+            .internal} to get the full result. The returned instance
+            corresponds to the [`resources`{.code .docutils .literal
+            .notranslate}]{.pre} attribute of the return value of
+            [[`cudaq.estimate()`{.xref .py .py-func .docutils .literal
+            .notranslate}]{.pre}](#cudaq.estimate "cudaq.estimate"){.reference
             .internal}.
 
     Return type[:]{.colon}
@@ -7239,6 +7308,27 @@ discriminated bits into an integer.)
 
     :   Return a dictionary of the raw resource counts that are stored
         in [`self`{.code .docutils .literal .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[EstimateResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.EstimateResult "Permalink to this definition"){.headerlink}
+
+:   A data-type containing the results of a call to
+    [[`cudaq.estimate()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.estimate "cudaq.estimate"){.reference
+    .internal}.
+
+    *[property]{.pre}[ ]{.w}*[[annotations]{.pre}]{.sig-name .descname}[¶](#cudaq.EstimateResult.annotations "Permalink to this definition"){.headerlink}
+
+    :   Additional metadata dict set by backends.
+
+    *[property]{.pre}[ ]{.w}*[[resources]{.pre}]{.sig-name .descname}[¶](#cudaq.EstimateResult.resources "Permalink to this definition"){.headerlink}
+
+    :   The [[`Resources`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference
+        .internal} gate counts for the estimated kernel.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}

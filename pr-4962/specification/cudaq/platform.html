@@ -922,6 +922,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -1000,6 +1001,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1109,7 +1111,7 @@ information and enable asynchronous quantum kernel invocations.</p>
 <p><strong>[3]</strong> The <code class="code docutils literal notranslate"><span class="pre">cudaq::quantum_platform</span></code> provides an API for querying the number of available
 quantum processing units (QPUs), with each QPU assigned a logical integer index (<code class="code docutils literal notranslate"><span class="pre">{0,1,2,...}</span></code>).</p>
 <p><strong>[4]</strong> The properties of the QPUs on the platform are exposed by a collection
-of functions such as <code class="code docutils literal notranslate"><span class="pre">get_num_qubits</span></code>, <code class="code docutils literal notranslate"><span class="pre">is_simulator</span></code>, <code class="code docutils literal notranslate"><span class="pre">is_remote</span></code>, <code class="code docutils literal notranslate"><span class="pre">is_emulated</span></code>, etc.
+of functions such as <code class="code docutils literal notranslate"><span class="pre">supports_explicit_measurements</span></code>, <code class="code docutils literal notranslate"><span class="pre">is_simulator</span></code>, <code class="code docutils literal notranslate"><span class="pre">is_remote</span></code>, <code class="code docutils literal notranslate"><span class="pre">is_emulated</span></code>, etc.
 They take an optional <code class="code docutils literal notranslate"><span class="pre">qpu_id</span></code> argument (defaults to 0) to specify the QPU of interest.</p>
 <p><strong>[5]</strong> The ID of the desired QPU can be specified as argument when invoking
 kernel functions such as <code class="code docutils literal notranslate"><span class="pre">cudaq::sample_async</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::run_async</span></code>, etc.</p>
