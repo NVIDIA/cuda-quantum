@@ -44,6 +44,34 @@ target_include_directories(stim_tester PRIVATE
   ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
 target_link_libraries(stim_tester PRIVATE libstim)
 
+if(TARGET cudaq-orca-qpu)
+  add_executable(orca_policy_tester OrcaPolicyTester.cpp)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(orca_policy_tester PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+  endif()
+  target_link_libraries(orca_policy_tester
+    PRIVATE
+    cudaq
+    cudaq-mlir-runtime
+    cudaq-platform-default
+    cudaq-orca-qpu
+    gtest_main)
+  cudaq_gtest_discover_tests(orca_policy_tester DISCOVERY_TIMEOUT 120)
+endif()
+
+add_executable(analog_policy_tester AnalogPolicyTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(analog_policy_tester PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+endif()
+target_link_libraries(analog_policy_tester
+  PRIVATE
+  cudaq
+  cudaq-mlir-runtime
+  cudaq-platform-default
+  nvqir
+  gtest_main)
+cudaq_gtest_discover_tests(analog_policy_tester DISCOVERY_TIMEOUT 120)
+
 if (cuStateVec_FOUND)
   function(add_custatevec_simulator_test target backend precision)
     string(REPLACE "-" "_" backend_symbol ${backend})
