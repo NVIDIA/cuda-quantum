@@ -1,0 +1,71 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=path(3) placement=identity search=none' %s | FileCheck --check-prefix=PATH %s
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(3,1) placement=auto search=none' %s | FileCheck --check-prefix=AUTO %s
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(3,1) placement=identity search=sabre' %s | FileCheck --check-prefix=SABRE %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(3) placement=identity search=none' --repair-linear-type %s | FileCheck --check-prefix=LINEAR %s
+
+// LINEAR: module
+// LINEAR-NOT: quake.wrap_new
+// LINEAR-NOT: quake.unwrap
+
+quake.wire_set @wires[2147483647]
+
+// Routing through nested scopes may use a live wire that neither source scope
+// captured. The mapper must forward that wire through both lexical boundaries,
+// and the atomic marker must not affect routing.
+//
+// PATH-LABEL: func.func @atomic_scope_live_lane
+// PATH:       %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
+// PATH:       %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
+// PATH:       %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2]
+// PATH:       %[[OUTER:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// PATH:         %[[INNER:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// PATH:           %[[SWAP:.*]]:2 = quake.swap %[[Q0]], %[[Q1]]
+// PATH:           %[[GATE:.*]]:2 = quake.x [%[[SWAP]]#1] %[[Q2]]
+// PATH:           cc.continue %[[GATE]]#0, %[[GATE]]#1, %[[SWAP]]#0
+// PATH:         }
+// PATH:         cc.continue %[[INNER]]#0, %[[INNER]]#1, %[[INNER]]#2
+// PATH:       } {atomic_quantum_region}
+// PATH:       cc.if{{.*}}%[[OUTER]]#2
+// AUTO-LABEL: func.func @atomic_scope_live_lane()
+// AUTO-SAME:  mapping_v2p = [1, 2, 0]
+// AUTO-NOT:   quake.swap
+// AUTO:       return
+// SABRE-LABEL: func.func @atomic_scope_live_lane()
+// SABRE-SAME:  mapping_v2p = [1, 0, 2]
+// SABRE-NOT:   quake.swap
+// SABRE:       return
+func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
+  cc.scope {
+    %cond = cc.undef i1
+    %q0 = quake.borrow_wire @wires[0] : !quake.wire
+    %q1 = quake.borrow_wire @wires[1] : !quake.wire
+    %q2 = quake.borrow_wire @wires[2] : !quake.wire
+    %outer:2 = cc.scope -> (!quake.wire, !quake.wire) {
+      %inner:2 = cc.scope -> (!quake.wire, !quake.wire) {
+        %gate:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        cc.continue %gate#0, %gate#1 : !quake.wire, !quake.wire
+      }
+      cc.continue %inner#0, %inner#1 : !quake.wire, !quake.wire
+    } {atomic_quantum_region}
+    %if:1 = cc.if (%cond) ((%arg = %q1)) -> (!quake.wire) {
+      %then = quake.h %arg : (!quake.wire) -> !quake.wire
+      cc.continue %then : !quake.wire
+    } else {
+      %else = quake.x %arg : (!quake.wire) -> !quake.wire
+      cc.continue %else : !quake.wire
+    }
+    quake.return_wire %outer#0 : !quake.wire
+    quake.return_wire %outer#1 : !quake.wire
+    quake.return_wire %if#0 : !quake.wire
+    cc.continue
+  }
+  return
+}
