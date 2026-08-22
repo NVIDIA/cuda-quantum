@@ -60,11 +60,10 @@ public:
     }
 
     if (unrollOnlyWireBlockingLoops) {
-      // In the value-semantics opt-in mode, a loop that still accesses quantum
-      // data by a dynamic index or slice (blocking wire conversion) but
-      // survived the unrolling above (e.g. a non-constant trip count) is a
-      // dead end: it can be neither kept in value semantics nor unrolled.
-      // Report each such loop.
+      // In the value-semantics opt-in mode, a loop that still blocks wire
+      // conversion or Pauli-word resolution but survived the unrolling above
+      // (e.g. because its trip count is not constant) is a dead end. Report
+      // each such loop.
       op->walk([&](cudaq::cc::LoopOp loop) {
         if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
           return;
@@ -73,6 +72,12 @@ public:
               "loop accesses quantum data by a dynamic index or slice and "
               "cannot be unrolled (trip count is not a compile-time constant); "
               "it can be neither kept in value semantics nor unrolled");
+          signalPassFailure();
+        } else if (loopHasLoopDependentPauliWord(loop)) {
+          loop.emitOpError(
+              "loop-dependent Pauli word cannot be resolved because the loop "
+              "cannot be fully unrolled (trip count is not a compile-time "
+              "constant)");
           signalPassFailure();
         }
       });
