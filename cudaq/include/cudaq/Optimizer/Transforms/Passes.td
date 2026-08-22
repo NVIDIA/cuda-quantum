@@ -1046,7 +1046,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
       "bool", /*default=*/"false",
       "Unroll only loops that prevent quantum references, slices, or "
-      "exp_pauli operands from being resolved for wire-set lowering.">
+      "exp_pauli operands from being resolved for wire-set lowering.">,
     Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
       /*default=*/"false",
       "Unroll only index use loops, i.e. loops whose induction variable is "

@@ -158,15 +158,15 @@ static bool loopHasParentDependentBlockingNestedLoop(cudaq::cc::LoopOp loop) {
 /// count as a use; anything else (including a use in a nested region) does.
 static bool loopUsesInductionVariable(cudaq::cc::LoopOp loop) {
   auto components = cudaq::opt::getLoopComponents(loop);
-  if (!components)
+  if (!components || !components->induction.has_value())
     return true;
   Region &body = loop.getBodyRegion();
   if (body.empty())
     return false;
   Block &entry = body.front();
-  if (components->induction >= entry.getNumArguments())
+  if (*components->induction >= entry.getNumArguments())
     return false;
-  Value induction = entry.getArgument(components->induction);
+  Value induction = entry.getArgument(*components->induction);
   auto *terminator = entry.getTerminator();
   return llvm::any_of(induction.getUsers(), [&](Operation *user) {
     return user != terminator;
