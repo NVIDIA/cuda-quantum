@@ -40,9 +40,6 @@ def estimate(kernel, *args, **kwargs):
       kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
       *arguments (Optional[Any]): The concrete values to evaluate the kernel
           function at. Leave empty if the kernel doesn't accept any arguments.
-      **kwargs: Endpoint-specific options are forwarded unchanged to a
-          configured runtime endpoint. This includes resource-estimation
-          options such as ``tier``.
 
     Returns:
       :class:`cudaq.EstimateResult`: A data-type containing the resource count
