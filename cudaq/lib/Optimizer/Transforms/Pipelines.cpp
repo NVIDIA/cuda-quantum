@@ -118,7 +118,6 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
@@ -301,10 +300,6 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  // Apply specialization must see the quantum operations directly. Inlining
-  // first prevents quantum func.call operations from being left uncontrolled
-  // in generated control or adjoint variants.
-  cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization());
