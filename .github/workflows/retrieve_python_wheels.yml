@@ -1,0 +1,191 @@
+# Look for appropriate pre-built wheels for the current branch, or build them from source.
+
+name: Retrieve Python wheels
+
+env:
+  WHEEL_PLATFORM: manylinux-amd64-cu13-0-gcc12
+
+on:
+  workflow_dispatch:
+    inputs:
+      metapackage_sdist:
+        type: boolean
+        description: Generate cudaq metapackage sdist
+        default: true
+      devel_wheel:
+        type: boolean
+        description: Generate cudaq-devel wheel
+        default: true
+      run_validation:
+        type: boolean
+        description: Run validation
+        default: true
+  # copy-pr-bot mirrors approved PRs onto pull-request/* branches; match CI trigger pattern.
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  metadata:
+    name: Retrieve repo info
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
+      cache_base: main
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
+
+  wheeldeps:
+    name: Load wheel dependencies
+    needs: metadata
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/amd64
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      build_config_id: cu13.0-gcc12
+      build_args: |
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28_x86_64:latest
+        cuda_version=13.0
+        toolchain=gcc12
+        distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      environment: ghcr-ci
+      matrix_key: amd64-cu13.0-python
+      matrix_step_name: dev_environment_wheeldeps
+
+  config_wheeldeps:
+    name: Configure build (wheeldeps)
+    runs-on: ubuntu-latest
+    needs: [metadata, wheeldeps]
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+    steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
+        id: read_json
+        with:
+          matrix-step-name: dev_environment_wheeldeps
+
+  python_wheels:
+    name: Create Python wheels
+    needs: [metadata, config_wheeldeps]
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: linux/amd64
+      python_version: '3.11'
+      cuda_version: '13.0'
+      devdeps_image: ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash['amd64-cu13.0-python'] }}
+      devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key['amd64-cu13.0-python'] }}
+      devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive['amd64-cu13.0-python'] }}
+      allow_cached_wheels: true
+      build_devel_wheel: true
+      run_validation: true
+
+  build_metapackage_sdist:
+    name: Generate cudaq metapackage sdist
+    needs: python_wheels
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build cudaq metapackage sdist
+        id: metapackage
+        shell: bash
+        env:
+          DEVEL_VERSION: ${{ needs.python_wheels.outputs.cudaq_version }}
+        run: |
+          set -euo pipefail
+
+          sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
+          for file in LICENSE NOTICE CITATION.cff; do
+            cp "$file" "python/metapackages/$file"
+          done
+          cp -r LICENSES python/metapackages/LICENSES
+
+          package_name=cudaq
+          cuda_version_requirement="12.x or 13.x"
+          cuda_version_conda=12.4.0
+          deprecation_notice=""
+          cat python/README.md.in > python/metapackages/README.md
+          for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do
+            sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
+          done
+          if grep -qe '.{{.*}}' python/metapackages/README.md; then
+            echo "::error::Incomplete template substitutions in README."
+            exit 1
+          fi
+
+          cd python/metapackages
+          echo "$DEVEL_VERSION" > _version.txt
+          mkdir -p dist
+
+          echo "Building cudaq metapackage sdist at version $DEVEL_VERSION"
+          CUDAQ_META_SDIST_BUILD=1 uv build --sdist --out-dir dist
+          sdist="$(find dist -name 'cudaq-*.tar.gz' -print -quit)"
+          test -n "$sdist"
+          echo "sdist_path=python/metapackages/$sdist" >> "$GITHUB_OUTPUT"
+
+      - name: Upload cudaq metapackage sdist
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-metapackage-sdist-${{ needs.python_wheels.outputs.cudaq_version }}
+          path: ${{ steps.metapackage.outputs.sdist_path }}
+          archive: false
+          if-no-files-found: error
+
+  upload_all_wheels:
+    name: Bundle all wheels
+    needs:
+      - python_wheels
+      - build_metapackage_sdist
+    if: ${{ !cancelled() && needs.python_wheels.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Download built wheels
+        uses: actions/download-artifact@v8
+        with:
+          path: all-wheels
+          merge-multiple: true
+
+      - name: Upload all-wheels bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: all-wheels-${{ env.WHEEL_PLATFORM }}
+          path: all-wheels/
+          if-no-files-found: error
