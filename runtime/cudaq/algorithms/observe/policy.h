@@ -11,6 +11,7 @@
 #include "common/CompileOptions.h"
 #include "common/Future.h"
 #include "common/ObserveResult.h"
+#include "cudaq/algorithms/endpoint_options.h"
 #include "cudaq/algorithms/observe/options.h"
 #include "cudaq/operators.h"
 
@@ -43,6 +44,8 @@ struct observe_policy {
   mutable const noise_model *noiseModel = nullptr;
 
   mutable bool canHandleObserve = false;
+
+  std::shared_ptr<endpoint_options> endpointOptions;
 
   friend observe_result
   finalize_execution_manager_impl(ExecutionManager &mgr,

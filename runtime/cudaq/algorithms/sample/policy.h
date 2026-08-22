@@ -11,6 +11,7 @@
 #include "common/CompileOptions.h"
 #include "common/Future.h"
 #include "common/SampleResult.h"
+#include "cudaq/algorithms/endpoint_options.h"
 #include "cudaq/algorithms/sample/options.h"
 
 namespace nvqir {
@@ -41,6 +42,8 @@ struct sample_policy {
   mutable std::vector<std::size_t> reorderIdx;
 
   mutable const noise_model *noiseModel = nullptr;
+
+  std::shared_ptr<endpoint_options> endpointOptions;
 
   friend sample_result
   finalize_execution_manager_impl(ExecutionManager &mgr,
