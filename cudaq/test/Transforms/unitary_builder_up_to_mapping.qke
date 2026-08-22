@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Under `-up-to-mapping` a routing swap is a relabeling of the qubit map, not
+// a gate. Reading the mapping off the operation's results assumed value
+// semantics. A memory-semantics swap has no results at all, so that walked off
+// the end of the operation instead of relabeling anything. Both forms appear
+// below, alongside a controlled swap, which stays a gate because relabeling
+// cannot express a conditional swap.
+// RUN: CircuitCheck -up-to-mapping -input %S/Inputs/mapped_swap.qke %s
+
+// Without the flag the routing swaps count as gates and the first two kernels
+// no longer match, which is what makes this a test of the flag.
+// RUN: not CircuitCheck -input %S/Inputs/mapped_swap.qke %s
+
+func.func @routed_refs(%q0: !quake.ref, %q1: !quake.ref, %q2: !quake.ref) {
+  quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @routed_wires() {
+  %w0_0 = quake.null_wire
+  %w1_0 = quake.null_wire
+  %w2_0 = quake.null_wire
+  %w0_1, %w2_1 = quake.x [%w0_0] %w2_0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %w0_1 : !quake.wire
+  quake.sink %w1_0 : !quake.wire
+  quake.sink %w2_1 : !quake.wire
+  return
+}
+
+func.func @controlled_swap(%c: !quake.ref, %a: !quake.ref, %b: !quake.ref) {
+  quake.x [%b] %a : (!quake.ref, !quake.ref) -> ()
+  quake.x [%c, %a] %b : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.x [%b] %a : (!quake.ref, !quake.ref) -> ()
+  return
+}

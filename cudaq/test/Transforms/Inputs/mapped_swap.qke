@@ -1,0 +1,39 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The mapped side of unitary_builder_up_to_mapping.qke. This is the file that
+// `-up-to-mapping` applies to, so the routing swaps here are the ones that
+// have to be relabelings rather than gates.
+
+// Memory semantics: the op has no results, so the mapping lives on the ref
+// operands.
+func.func @routed_refs(%q0: !quake.ref, %q1: !quake.ref, %q2: !quake.ref) {
+  quake.swap %q0, %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Value semantics: the mapping moves to the two target results.
+func.func @routed_wires() {
+  %w0_0 = quake.null_wire
+  %w1_0 = quake.null_wire
+  %w2_0 = quake.null_wire
+  %w0_1, %w1_1 = quake.swap %w0_0, %w1_0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w1_2, %w2_1 = quake.x [%w1_1] %w2_0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %w0_1 : !quake.wire
+  quake.sink %w1_2 : !quake.wire
+  quake.sink %w2_1 : !quake.wire
+  return
+}
+
+// A controlled swap is conditional, so it is a gate even under
+// `-up-to-mapping`. Relabeling here would drop the control.
+func.func @controlled_swap(%c: !quake.ref, %a: !quake.ref, %b: !quake.ref) {
+  quake.swap [%c] %a, %b : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}

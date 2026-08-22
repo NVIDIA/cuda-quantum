@@ -114,6 +114,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/cudaq/trace/py_trace.cpp
+    ../runtime/mlir/py_optimization_validation.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/CodeGenConfig.cpp
@@ -135,6 +136,10 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
+    OptAnalysis
+    # The Clifford tableau oracle (Quake -> stim::Tableau). Kept out of the
+    # cudaqMLIR bundle deliberately, so it is linked here explicitly.
+    OptValidationStim
 
   EMBED_CAPI_LINK_LIBS
     cudaqDialectsCAPI

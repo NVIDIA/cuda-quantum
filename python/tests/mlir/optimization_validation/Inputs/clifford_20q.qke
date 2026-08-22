@@ -1,0 +1,59 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A 20-qubit Clifford kernel (GHZ: h + a CX chain), from
+// cudaq._compiler.optimization_corpus.clifford_ghz_module_text(20). Past the
+// dense oracle's 14-qubit bound, so only the stabilizer-tableau oracle can
+// decide it.
+
+// Clifford GHZ from cudaq._compiler.optimization_corpus
+// num_qubits=20 chain_length=19
+func.func @ghz() {
+  %q = quake.alloca !quake.veq<20>
+  %r0 = quake.extract_ref %q[0] : (!quake.veq<20>) -> !quake.ref
+  %r1 = quake.extract_ref %q[1] : (!quake.veq<20>) -> !quake.ref
+  %r2 = quake.extract_ref %q[2] : (!quake.veq<20>) -> !quake.ref
+  %r3 = quake.extract_ref %q[3] : (!quake.veq<20>) -> !quake.ref
+  %r4 = quake.extract_ref %q[4] : (!quake.veq<20>) -> !quake.ref
+  %r5 = quake.extract_ref %q[5] : (!quake.veq<20>) -> !quake.ref
+  %r6 = quake.extract_ref %q[6] : (!quake.veq<20>) -> !quake.ref
+  %r7 = quake.extract_ref %q[7] : (!quake.veq<20>) -> !quake.ref
+  %r8 = quake.extract_ref %q[8] : (!quake.veq<20>) -> !quake.ref
+  %r9 = quake.extract_ref %q[9] : (!quake.veq<20>) -> !quake.ref
+  %r10 = quake.extract_ref %q[10] : (!quake.veq<20>) -> !quake.ref
+  %r11 = quake.extract_ref %q[11] : (!quake.veq<20>) -> !quake.ref
+  %r12 = quake.extract_ref %q[12] : (!quake.veq<20>) -> !quake.ref
+  %r13 = quake.extract_ref %q[13] : (!quake.veq<20>) -> !quake.ref
+  %r14 = quake.extract_ref %q[14] : (!quake.veq<20>) -> !quake.ref
+  %r15 = quake.extract_ref %q[15] : (!quake.veq<20>) -> !quake.ref
+  %r16 = quake.extract_ref %q[16] : (!quake.veq<20>) -> !quake.ref
+  %r17 = quake.extract_ref %q[17] : (!quake.veq<20>) -> !quake.ref
+  %r18 = quake.extract_ref %q[18] : (!quake.veq<20>) -> !quake.ref
+  %r19 = quake.extract_ref %q[19] : (!quake.veq<20>) -> !quake.ref
+  quake.h %r0 : (!quake.ref) -> ()
+  quake.x [%r0] %r1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r1] %r2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r2] %r3 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r3] %r4 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r4] %r5 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r5] %r6 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r6] %r7 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r7] %r8 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r8] %r9 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r9] %r10 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r10] %r11 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r11] %r12 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r12] %r13 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r13] %r14 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r14] %r15 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r15] %r16 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r16] %r17 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r17] %r18 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%r18] %r19 : (!quake.ref, !quake.ref) -> ()
+  cc.return
+}

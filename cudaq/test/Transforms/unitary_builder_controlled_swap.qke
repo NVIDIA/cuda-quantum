@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// `quake.swap` is the only gate with more than one target, so it is the only
+// way to reach the multi-target path in the unitary builder. That path has to
+// expand its index bits over the targets and confine the update to the block
+// where every control is set. Expanding over the operands in order instead
+// picks the controls up as targets and drops the control condition, which
+// modelled a controlled swap as a swap of the wrong pair of qubits and made
+// the builder reject a correct decomposition of it.
+// RUN: CircuitCheck -input %S/Inputs/controlled_swap_decomposed.qke %s
+
+func.func @swap_no_controls(%a: !quake.ref, %b: !quake.ref) {
+  quake.swap %a, %b : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @swap_one_control(%c: !quake.ref, %a: !quake.ref, %b: !quake.ref) {
+  quake.swap [%c] %a, %b : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @swap_two_controls(%c0: !quake.ref, %c1: !quake.ref, %a: !quake.ref,
+                             %b: !quake.ref) {
+  quake.swap [%c0, %c1] %a, %b : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}

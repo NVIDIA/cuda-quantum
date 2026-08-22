@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "UnitaryBuilder.h"
+#include "cudaq/Optimizer/Analysis/UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/Support/CommandLine.h"
@@ -51,7 +51,10 @@ static LogicalResult computeUnitary(func::FuncOp func,
                                     cudaq::UnitaryBuilder::UMatrix &unitary,
                                     bool upToMapping = false) {
   cudaq::UnitaryBuilder builder(unitary, upToMapping);
-  return builder.build(func);
+  auto status = builder.build(func);
+  if (failed(status) && builder.sawDirtyAncilla())
+    llvm::errs() << "Failed to clean up ancilla qubits.\n";
+  return status;
 }
 
 int main(int argc, char **argv) {
