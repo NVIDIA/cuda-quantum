@@ -75,7 +75,11 @@ createCommonTargetCodegenPipeline(OpPassManager &pm,
   // If there was any specialization, we want another round in inlining to
   // inline the apply calls properly.
   cudaq::opt::addAggressiveInlining(pm);
-  cudaq::opt::addLowerToCFG(pm);
+  // Establish the flat, allocation-normalized form expected by the passes
+  // below and by the value-semantics conversion a caller may append, but
+  // keep scopes marked atomic_quantum_region: they must remain visible to
+  // boundary-sensitive quantum optimization until the final full lowering.
+  cudaq::opt::addLowerToCFG(pm, /*preserveAtomicQuantumRegions=*/true);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -100,6 +104,12 @@ createTargetCodegenPipeline(OpPassManager &pm,
   // to run this pass again to expand those negations.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
+
+  // No boundary-sensitive quantum optimization runs past this point, so the
+  // atomic-region lifecycle ends here: lower the surviving marked scopes
+  // before QIR conversion (base-profile preparation cannot handle them).
+  cudaq::opt::addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.

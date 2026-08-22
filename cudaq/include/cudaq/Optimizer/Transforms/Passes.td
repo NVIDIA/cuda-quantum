@@ -1143,7 +1143,12 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
            "unsafe in general (the subsequent combine-quantum-alloc pass may "
            "combine allocations across scope boundaries), but useful when "
            "lower-to-cfg is followed immediately by combine-quantum-alloc and "
-           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
+           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">,
+    Option<"preserveAtomicQuantumRegions", "preserve-atomic-quantum-regions",
+           "bool", /*default=*/"false",
+           "Keep each cc.scope annotated with the atomic_quantum_region "
+           "attribute (and its terminator) in place. Ordinary control flow, "
+           "including structure nested inside a kept scope, is still lowered.">
   ];
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];

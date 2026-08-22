@@ -24,6 +24,10 @@
 namespace cudaq::cc {
 inline constexpr char atomicQuantumRegionAttrName[] = "atomic_quantum_region";
 
+/// Add the pattern that erases an atomic quantum region whose contents have
+/// all been legally optimized away.
+void populateEraseEmptyAtomicRegionPattern(mlir::RewritePatternSet &patterns);
+
 constexpr int kInterleavedArgumentConstantBitWidth = 29;
 using InterleavedArgumentConstantIndex =
     llvm::PointerEmbeddedInt<std::int32_t,

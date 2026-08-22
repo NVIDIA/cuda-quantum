@@ -40,3 +40,23 @@ func.func @negative_wire_phase()
 // CHECK-NEXT: llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[ONE]], %[[ZERO]], %[[ONE]], %[[ONE]], %[[R1_CTL]], %[[THETA]], %[[CONTROL]], %[[TARGET]])
 // CHECK-NEXT: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
 // CHECK: llvm.return
+
+func.func @adjacent_atomic_wire_regions()
+    attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %wire = quake.borrow_wire @phys[0] : !quake.wire
+  %first = cc.scope -> (!quake.wire) {
+    %rotated = quake.h %wire : (!quake.wire) -> !quake.wire
+    cc.continue %rotated : !quake.wire
+  } {atomic_quantum_region}
+  %second = cc.scope -> (!quake.wire) {
+    %rotated = quake.h %first : (!quake.wire) -> !quake.wire
+    cc.continue %rotated : !quake.wire
+  } {atomic_quantum_region}
+  quake.return_wire %second : !quake.wire
+  return
+}
+
+// CHECK-LABEL: llvm.func @adjacent_atomic_wire_regions()
+// CHECK: llvm.call @__quantum__qis__h__body
+// CHECK-NEXT: llvm.call @__quantum__qis__h__body
+// CHECK: llvm.return

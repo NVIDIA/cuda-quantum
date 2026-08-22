@@ -184,11 +184,8 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 
 // CHECK-LABEL:   func.func @simplify_inside_atomic_scope(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
-// CHECK:             cc.continue %[[ARG0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
-// CHECK:           return %[[SCOPE_0]] : !quake.wire
-// CHECK:         }
+// CHECK-NEXT:      return %[[ARG0]] : !quake.wire
+// CHECK-NEXT:    }
 
 // CHECK-LABEL:   func.func @ordinary_scope_entry_is_transparent(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
@@ -336,3 +333,25 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK:           } {atomic_quantum_region}
 // CHECK:           return %[[SCOPE_0]], %[[SCOPE_1]] : !quake.wire, !quake.wire
 // CHECK:         }
+
+
+func.func @spent_regions_unlock_neighbors(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.x %arg0 : (!quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = quake.h %0 : (!quake.wire) -> !quake.wire
+    %3 = cc.scope -> (!quake.wire) {
+      %4 = quake.z %2 : (!quake.wire) -> !quake.wire
+      %5 = quake.z %4 : (!quake.wire) -> !quake.wire
+      cc.continue %5 : !quake.wire
+    } {atomic_quantum_region}
+    %6 = quake.h %3 : (!quake.wire) -> !quake.wire
+    cc.continue %6 : !quake.wire
+  } {atomic_quantum_region}
+  %7 = quake.x %1 : (!quake.wire) -> !quake.wire
+  return %7 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @spent_regions_unlock_neighbors(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
+// CHECK-NEXT:      return %[[ARG0]] : !quake.wire
+// CHECK-NEXT:    }

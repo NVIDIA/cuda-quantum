@@ -748,6 +748,10 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
+  // The wire-set path performs no further boundary-sensitive optimization;
+  // end the atomic-region lifecycle before converting wires to profile QIR.
+  cudaq::opt::addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep());
   WireSetToProfileQIROptions wopt;
   if (!profile.empty())

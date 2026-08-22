@@ -8,38 +8,203 @@
 
 // RUN: cudaq-opt --verify-each --canonicalize %s | FileCheck %s
 // RUN: cudaq-opt --verify-each --canonicalize %s | FileCheck --check-prefix=COUNT %s
+// RUN: cudaq-opt --verify-each --lower-to-cfg='preserve-atomic-quantum-regions=true' %s | FileCheck %s --check-prefix=RETAIN
+// RUN: cudaq-opt --verify-each --lower-to-cfg %s | FileCheck %s --check-prefix=ERASE
+// RUN: cudaq-opt --verify-each --codegen-for-qir='convert-to=qir value-semantics=true' %s | FileCheck %s --check-prefix=QIR
+// RUN: cudaq-opt --verify-each --codegen-for-qir='convert-to=qir-base value-semantics=true' %s | FileCheck %s --check-prefix=BASE
+// RUN: cudaq-opt --dump-pass-pipeline --codegen-for-qir='convert-to=qir-base value-semantics=true' %s -o /dev/null 2>&1 | FileCheck %s --check-prefix=PIPELINE
 
-func.func @marked_scope(%arg: i64) -> i64 {
+func.func @marked_scope(%lhs: i64, %rhs: i64) -> i64 {
   %result = cc.scope -> (i64) {
-    %zero = arith.constant 0 : i64
-    %sum = arith.addi %arg, %zero : i64
+    %sum = arith.addi %lhs, %rhs : i64
     cc.continue %sum : i64
   } {atomic_quantum_region}
   return %result : i64
 }
 
-func.func @ordinary_scope(%arg: i64) -> i64 {
+func.func @ordinary_scope(%lhs: i64, %rhs: i64) -> i64 {
   %result = cc.scope -> (i64) {
-    %zero = arith.constant 0 : i64
-    %sum = arith.addi %arg, %zero : i64
+    %sum = arith.addi %lhs, %rhs : i64
     cc.continue %sum : i64
   }
   return %result : i64
 }
 
+// A marked scope whose body is nothing but a forward of its parent's value
+// no longer bounds any work; it folds away.
+func.func @spent_marked_scope(%passthrough: i64) -> i64 {
+  %result = cc.scope -> (i64) {
+    cc.continue %passthrough : i64
+  } {atomic_quantum_region}
+  return %result : i64
+}
+
+// Ordinary structure nested inside a marked scope still lowers to CFG form
+// in preservation mode; only the marked carrier itself is kept.
+func.func @interior_structure_lowers() {
+  %wire = quake.null_wire
+  %kept = cc.scope -> (!quake.wire) {
+    %inner = cc.scope -> (!quake.wire) {
+      %flipped = quake.x %wire : (!quake.wire) -> !quake.wire
+      cc.continue %flipped : !quake.wire
+    }
+    cc.continue %inner : !quake.wire
+  } {atomic_quantum_region}
+  quake.sink %kept : !quake.wire
+  return
+}
+
+func.func private @shielded_ops(%t0: !quake.ref, %t1: !quake.ref)
+    attributes {atomic_quantum_region} {
+  quake.h %t0 : (!quake.ref) -> ()
+  quake.x [%t0] %t1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @exposed_ops(%t0: !quake.ref, %t1: !quake.ref) {
+  quake.h %t0 : (!quake.ref) -> ()
+  quake.x [%t0] %t1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// U followed by adjoint(U): with the marker, both invocations must survive
+// the whole codegen pipeline; without it, the pair legally cancels. The
+// disjoint z;z pair around the invocations cancels in the unmarked variant;
+// in the marked variant the commutation-aware simplifier keeps it, since
+// commutation cannot be proven through the intervening region ops.
+func.func @shielded_roundtrip()
+    attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %spare = quake.alloca !quake.ref
+  quake.z %spare : (!quake.ref) -> ()
+  func.call @shielded_ops(%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @shielded_ops (%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  quake.z %spare : (!quake.ref) -> ()
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  %m2 = quake.mz %spare : (!quake.ref) -> !quake.measure
+  %b0 = quake.discriminate %m0 : (!quake.measure) -> i1
+  %b1 = quake.discriminate %m1 : (!quake.measure) -> i1
+  %b2 = quake.discriminate %m2 : (!quake.measure) -> i1
+  quake.log_output %b0 : (i1) -> ()
+  quake.log_output %b1 : (i1) -> ()
+  quake.log_output %b2 : (i1) -> ()
+  return
+}
+
+func.func @exposed_roundtrip()
+    attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %spare = quake.alloca !quake.ref
+  quake.z %spare : (!quake.ref) -> ()
+  func.call @exposed_ops(%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @exposed_ops (%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  quake.z %spare : (!quake.ref) -> ()
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  %m2 = quake.mz %spare : (!quake.ref) -> !quake.measure
+  %b0 = quake.discriminate %m0 : (!quake.measure) -> i1
+  %b1 = quake.discriminate %m1 : (!quake.measure) -> i1
+  %b2 = quake.discriminate %m2 : (!quake.measure) -> i1
+  quake.log_output %b0 : (i1) -> ()
+  quake.log_output %b1 : (i1) -> ()
+  quake.log_output %b2 : (i1) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @marked_scope(
-// CHECK-SAME:      %[[ARG0:.*]]: i64) -> i64 {
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (i64) {
-// CHECK:             cc.continue %[[ARG0]] : i64
+// CHECK-SAME:      %[[LHS:.*]]: i64, %[[RHS:.*]]: i64) -> i64 {
+// CHECK:           %[[KEPT:.*]] = cc.scope -> (i64) {
+// CHECK:             %[[SUM:.*]] = arith.addi %[[LHS]], %[[RHS]] : i64
+// CHECK:             cc.continue %[[SUM]] : i64
 // CHECK:           } {atomic_quantum_region}
-// CHECK:           return %[[SCOPE_0]] : i64
+// CHECK:           return %[[KEPT]] : i64
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @ordinary_scope(
-// CHECK-SAME:      %[[ARG0:.*]]: i64) -> i64 {
+// CHECK-SAME:      %[[LHS:.*]]: i64, %[[RHS:.*]]: i64) -> i64 {
 // CHECK-NOT:       cc.scope
-// CHECK:           return %[[ARG0]] : i64
+// CHECK:           %[[SUM:.*]] = arith.addi %[[LHS]], %[[RHS]] : i64
+// CHECK:           return %[[SUM]] : i64
 // CHECK:         }
 
-// COUNT-COUNT-1: atomic_quantum_region
+// CHECK-LABEL:   func.func @spent_marked_scope(
+// CHECK-SAME:      %[[PASS:.*]]: i64) -> i64 {
+// CHECK-NEXT:      return %[[PASS]] : i64
+// CHECK-NEXT:    }
+
+// COUNT-COUNT-3: atomic_quantum_region
 // COUNT-NOT: atomic_quantum_region
+
+// RETAIN-LABEL:   func.func @marked_scope(
+// RETAIN:           cc.scope -> (i64) {
+// RETAIN:           } {atomic_quantum_region}
+
+// RETAIN-LABEL:   func.func @ordinary_scope(
+// RETAIN-NOT:       cc.scope
+// RETAIN:           cf.br
+// RETAIN:           return
+
+// RETAIN-LABEL:   func.func @interior_structure_lowers() {
+// RETAIN:           %[[WIRE:.*]] = quake.null_wire
+// RETAIN:           %[[KEPT:.*]] = cc.scope -> (!quake.wire) {
+// RETAIN:             cf.br ^bb1
+// RETAIN:           ^bb1:
+// RETAIN:             %[[FLIP:.*]] = quake.x %[[WIRE]] : (!quake.wire) -> !quake.wire
+// RETAIN:             cf.br ^bb2(%[[FLIP]] : !quake.wire)
+// RETAIN:           ^bb2(%[[FWD:.*]]: !quake.wire):
+// RETAIN:             cf.br ^bb3
+// RETAIN:           ^bb3:
+// RETAIN:             cc.continue %[[FWD]] : !quake.wire
+// RETAIN:           } {atomic_quantum_region}
+// RETAIN:           quake.sink %[[KEPT]] : !quake.wire
+// RETAIN:           return
+// RETAIN:         }
+
+// ERASE-LABEL:   func.func @interior_structure_lowers() {
+// ERASE-NOT:       cc.scope
+// ERASE:           %[[WIRE:.*]] = quake.null_wire
+// ERASE:           %[[FLIP:.*]] = quake.x %[[WIRE]] : (!quake.wire) -> !quake.wire
+// ERASE:           cf.br ^bb3(%[[FLIP]] : !quake.wire)
+// ERASE:         ^bb3(%[[FWD:.*]]: !quake.wire):
+// ERASE-NOT:       cc.scope
+// ERASE:           quake.sink
+// ERASE:           return
+// ERASE:         }
+
+// QIR-LABEL: llvm.func @shielded_roundtrip()
+// QIR:       llvm.call @__quantum__qis__z
+// QIR:       llvm.call @__quantum__qis__h
+// QIR-COUNT-2: llvm.call @generalizedInvokeWithRotationsControlsTargets
+// QIR:       llvm.call @__quantum__qis__h
+// QIR:       llvm.call @__quantum__qis__z
+// QIR:       llvm.call @__quantum__qis__mz
+
+// QIR-LABEL: llvm.func @exposed_roundtrip()
+// QIR-NOT:   @__quantum__qis__h
+// QIR-NOT:   @__quantum__qis__z
+// QIR-NOT:   @generalizedInvokeWithRotationsControlsTargets
+// QIR:       llvm.call @__quantum__qis__mz
+
+// BASE-LABEL: llvm.func @shielded_roundtrip()
+// BASE:       llvm.call @__quantum__qis__z__body
+// BASE:       llvm.call @__quantum__qis__h__body
+// BASE-COUNT-2: llvm.call @__quantum__qis__cnot__body
+// BASE:       llvm.call @__quantum__qis__h__body
+// BASE:       llvm.call @__quantum__qis__z__body
+// BASE:       llvm.call @__quantum__qis__mz__body
+
+// BASE-LABEL: llvm.func @exposed_roundtrip()
+// BASE-NOT:   @__quantum__qis__h__body
+// BASE-NOT:   @__quantum__qis__cnot__body
+// BASE:       llvm.call @__quantum__qis__mz__body
+
+
+// PIPELINE: convert-to-cfg{preserve-atomic-quantum-regions=true
+// PIPELINE: verify-no-phase
+// PIPELINE: convert-to-cfg{preserve-atomic-quantum-regions=false
+// PIPELINE: canonicalize
+// PIPELINE: delay-measurements
+// PIPELINE: convert-to-cfg{preserve-atomic-quantum-regions=false

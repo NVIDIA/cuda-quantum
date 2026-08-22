@@ -2215,6 +2215,14 @@ bool cudaq::cc::ScopeOp::hasQuantumAllocation() {
       getRegion());
 }
 
+bool cudaq::cc::ScopeOp::isEmptyAtomicQuantumRegion() {
+  if (!getAtomicQuantumRegionAttr() || !getInitRegion().hasOneBlock())
+    return false;
+  auto &body = getInitRegion().front();
+  return body.without_terminator().empty() &&
+         isa<cudaq::cc::ContinueOp>(body.getTerminator());
+}
+
 namespace {
 // If there are no allocations in the scope, then the scope is not needed as
 // there is nothing to deallocate. This transformation does the following
@@ -2282,11 +2290,35 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
     return success();
   }
 };
+
+// An atomic quantum region whose contents have all been legally optimized
+// away no longer bounds anything: erase the scope and forward the values its
+// terminator returns.
+struct EraseEmptyAtomicRegion : public OpRewritePattern<cudaq::cc::ScopeOp> {
+  using Base = OpRewritePattern<cudaq::cc::ScopeOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
+                                PatternRewriter &rewriter) const override {
+    if (!scope.isEmptyAtomicQuantumRegion())
+      return failure();
+    auto exit = cast<cudaq::cc::ContinueOp>(
+        scope.getInitRegion().front().getTerminator());
+    rewriter.replaceOp(scope, exit.getOperands());
+    return success();
+  }
+};
 } // namespace
+
+void cudaq::cc::populateEraseEmptyAtomicRegionPattern(
+    RewritePatternSet &patterns) {
+  patterns.add<EraseEmptyAtomicRegion>(patterns.getContext());
+}
 
 void cudaq::cc::ScopeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<EraseScopeWhenNotNeeded>(context);
+  populateEraseEmptyAtomicRegionPattern(patterns);
 }
 
 //===----------------------------------------------------------------------===//

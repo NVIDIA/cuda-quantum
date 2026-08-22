@@ -63,8 +63,12 @@ def cc_ScopeOp : CCOp<"scope",
     A ScopeOp that contains no allocations has no allocation-lifetime
     semantics and can normally be inlined into the parent Region. This
     transformation is done in canonicalization. A scope carrying the
-    `atomic_quantum_region` attribute is retained, however, so later
-    transformations can identify it as an atomic quantum region.
+    `atomic_quantum_region` attribute is exempt from this inlining as long as
+    it is not empty, so later transformations can identify it as an atomic
+    quantum region. When every operation inside a marked scope has legally
+    optimized away and the scope does nothing but forward values from its
+    parent, the boundary no longer guards anything and canonicalization
+    removes it.
 
     A ScopeOp may contain a single-entry, multiple-exit CFG with multiple
     basic blocks in its region. A ContinueOp is the terminator that exits a
@@ -91,7 +95,7 @@ def cc_ScopeOp : CCOp<"scope",
   let builders = [
     OpBuilder<(ins "mlir::TypeRange",
       "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>")>,
-    OpBuilder<(ins 
+    OpBuilder<(ins
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>",
            "nullptr">)>
   ];
@@ -108,6 +112,10 @@ def cc_ScopeOp : CCOp<"scope",
     
     // Determine if the scope has a quantum allocation, ignoring classical.
     bool hasQuantumAllocation();
+
+    // Determine if this is an atomic quantum region that no longer guards
+    // any work: a single empty block that just forwards its parent's values.
+    bool isEmptyAtomicQuantumRegion();
   }];
 }
 
