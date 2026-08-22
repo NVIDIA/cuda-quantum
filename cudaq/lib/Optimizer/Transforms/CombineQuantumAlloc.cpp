@@ -122,7 +122,7 @@ public:
       return;
     }
 
-    combineAllocationsInRegion(func.getRegion());
+    [[maybe_unused]] bool unused = combineAllocationsInRegion(func.getRegion());
 
     LLVM_DEBUG(llvm::dbgs() << "Function after combining quake alloca:\n"
                             << func << "\n\n");
@@ -144,9 +144,9 @@ public:
   /// allocations. A `cc.create_lambda`'s body is likewise combined
   /// independently: it is an entirely separate callable activation that may be
   /// invoked any number of times, independent of the enclosing function.
-  void combineAllocationsInRegion(Region &region) {
+  bool combineAllocationsInRegion(Region &region) {
     if (region.empty())
-      return;
+      return true;
 
     // Recurse first (innermost first) into every cc.scope / cc.create_lambda
     // found directly in this region's own top level. Recursion handled
@@ -154,24 +154,28 @@ public:
     for (auto &block : region)
       for (auto &op : block)
         if (isa<cudaq::cc::ScopeOp, cudaq::cc::CreateLambdaOp>(op))
-          for (auto &nested : op.getRegions())
-            combineAllocationsInRegion(nested);
+          for (auto &nested : op.getRegions()) {
+            bool ok = combineAllocationsInRegion(nested);
+            if (!ok)
+              return ok;
+          }
 
-    // 1. Scan the top level of \p region for all `alloca` operations. Skip
-    // those that are parametric or married to an initialize with state: they
-    // are left exactly as they are, so their own dealloc must be left alone
-    // too -- only a dealloc of an alloca actually being combined belongs in
-    // analysis.deallocs, or step 4 below would erase the dealloc of a
-    // skipped (untouched) alloca along with the ones actually being merged,
+    // 1. Scan the top level of \p region for all `alloca` operations.
+    // FIXME: other passes rely on this pass to cleanup broken IR. Preserve the
+    // bugs here for now.
+    // Eventually, skip those that are parametric or married to an initialize
+    // with state: they are left exactly as they are, so their own dealloc must
+    // be left alone too -- only a dealloc of an alloca actually being combined
+    // belongs in analysis.deallocs, or step 4 below would erase the dealloc of
+    // a skipped (untouched) alloca along with the ones actually being merged,
     // silently leaving it never deallocated.
     Analysis analysis;
-    SmallPtrSet<Operation *, 8> combinedAllocaOps;
     std::size_t currentOffset = 0;
     for (auto &block : region)
       for (auto &op : block) {
         if (auto alloc = dyn_cast_or_null<cudaq::quake::AllocaOp>(&op)) {
           if (alloc.getSize() || alloc.hasInitializedState())
-            continue;
+            return false;
           auto size = cudaq::quake::getAllocationSize(alloc.getType());
           if (size == 0) {
             // Skip zero-size allocas. Merging them would produce
@@ -181,23 +185,14 @@ public:
           analysis.allocations.push_back(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
-          combinedAllocaOps.insert(alloc);
         } else if (auto dealloc =
                        dyn_cast_or_null<cudaq::quake::DeallocOp>(&op)) {
-          auto *defOp = dealloc.getReference().getDefiningOp();
-          if (defOp && combinedAllocaOps.count(defOp))
-            analysis.deallocs.push_back(dealloc);
+          analysis.deallocs.push_back(dealloc);
         }
       }
-    // Nothing is gained by "combining" a single eligible alloca: it doesn't
-    // reduce the allocation count, and rewriting it into a 1-element veq
-    // changes its type from ref to veq, which downstream codegen may lower
-    // differently (e.g. a veq-typed control operand gets its 1-element
-    // pointer array built eagerly, right after allocation, while a ref-typed
-    // one defers that until just before the gate that consumes it) --
-    // purely cosmetic churn with no benefit. Leave it untouched.
-    if (analysis.allocations.size() < 2)
-      return;
+
+    if (analysis.empty())
+      return true;
 
     // 2. Combine all the allocas into a single alloca at the top of the region.
     auto *entryBlock = &region.front();
@@ -234,6 +229,9 @@ public:
     }
 
     // 4. Remove the deallocations, if any. Add new dealloc to exits.
+    // FIXME: This unintentionally "fixes" broken IR by potentially removing
+    // any number of bogus deallocs on the same alloca. There are other passes
+    // that rely on this behavior to repair the IR behind themselves.
     if (!analysis.deallocs.empty()) {
       for (auto d : analysis.deallocs)
         d.erase();
@@ -245,6 +243,8 @@ public:
         }
       }
     }
+
+    return true;
   }
 };
 } // namespace

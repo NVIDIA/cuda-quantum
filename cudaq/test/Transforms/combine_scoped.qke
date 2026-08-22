@@ -29,24 +29,20 @@ func.func @scope_combine() {
   return
 }
 
-// The top-level %0 is the only eligible alloca at the function's own top
-// level, so it is left as a plain ref: combining a single alloca reduces
-// nothing and would only change its type for no benefit (see
-// combineAllocationsInRegion's size<2 guard).
 // CHECK-LABEL:   func.func @scope_combine() {
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           quake.x %[[EXTRACT_REF_0]] : (!quake.ref) -> ()
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
-// CHECK:             %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<4>) -> !quake.ref
-// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
-// CHECK:             %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<4>) -> !quake.ref
-// CHECK:             quake.y %[[VAL_4]] : (!quake.ref) -> ()
-// CHECK:             quake.dealloc %[[VAL_2]] : !quake.veq<4>
+// CHECK:             %[[ALLOCA_1:.*]] = quake.alloca !quake.veq<4>
+// CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_1]][0] : (!quake.veq<4>) -> !quake.ref
+// CHECK:             quake.x %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:             %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ALLOCA_1]][1] : (!quake.veq<4>) -> !quake.ref
+// CHECK:             quake.y %[[EXTRACT_REF_2]] : (!quake.ref) -> ()
+// CHECK:             quake.dealloc %[[ALLOCA_1]] : !quake.veq<4>
 // CHECK:           }
-// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<1>
 // CHECK:           return
-// CHECK:         }
 
 // A cc.create_lambda's allocations are combined into its own body, never
 // into the enclosing func.func: it is a separate callable activation that
@@ -81,6 +77,7 @@ func.func @lambda_combine() {
 // A cc.create_lambda nested inside a cc.scope is still its own,
 // independent combining unit: its allocations are never pulled up into the
 // enclosing scope's merged alloca.
+
 func.func @nested_scope_lambda() {
   cc.scope {
     %1 = quake.alloca !quake.ref
@@ -98,20 +95,18 @@ func.func @nested_scope_lambda() {
   return
 }
 
-// The cc.scope's own top level likewise has only one eligible alloca (%0);
-// it is left as a plain ref for the same reason.
 // CHECK-LABEL:   func.func @nested_scope_lambda() {
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.ref
-// CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:             %[[VAL_2:.*]] = cc.create_lambda {
-// CHECK:               %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
-// CHECK:               %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<3>) -> !quake.ref
-// CHECK:               quake.y %[[VAL_4]] : (!quake.ref) -> ()
-// CHECK:               quake.dealloc %[[VAL_3]] : !quake.veq<3>
+// CHECK:             %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<1>
+// CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:             quake.x %[[EXTRACT_REF_0]] : (!quake.ref) -> ()
+// CHECK:             %[[CREATE_LAMBDA_0:.*]] = cc.create_lambda {
+// CHECK:               %[[ALLOCA_1:.*]] = quake.alloca !quake.veq<3>
+// CHECK:               %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_1]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:               quake.y %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:               quake.dealloc %[[ALLOCA_1]] : !quake.veq<3>
 // CHECK:               cc.return
 // CHECK:             } : !cc.callable<() -> ()>
-// CHECK:             quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:             quake.dealloc %[[ALLOCA_0]] : !quake.veq<1>
 // CHECK:           }
 // CHECK:           return
-// CHECK:         }
