@@ -15,7 +15,7 @@ namespace cudaq::synth {
 // 256 bits comfortably absorbs the few-ULP drift that the grid-problem
 // machinery is tuned around, without the cost of moving to a wider working
 // precision.
-mpfr_prec_t Real::default_precision_ = 256;
+thread_local mpfr_prec_t Real::default_precision_ = 256;
 
 //===----------------------------------------------------------------------===//
 // Real::to_string
