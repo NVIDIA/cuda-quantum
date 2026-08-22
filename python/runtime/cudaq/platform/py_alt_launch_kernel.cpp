@@ -1372,6 +1372,14 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
           },
           "The MLIR module for this compiled kernel, or None if this module "
           "carries no MLIR artifact.")
+      .def_prop_ro("resource_counts",
+                   [](const cudaq::CompiledModule &cm)
+                       -> std::optional<cudaq::Resources> {
+                     auto counts = cm.getResources();
+                     if (!counts)
+                       return std::nullopt;
+                     return *counts;
+                   })
       .def("__repr__", [](const cudaq::CompiledModule &cm) {
         return "CompiledModule(name='" + cm.getName() + "')";
       });
