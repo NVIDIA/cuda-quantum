@@ -1020,6 +1020,16 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     unrolled (e.g. a non-constant trip count) is reported as an error. This
     option defaults to false, leaving the pass behavior unchanged for existing
     pipelines.
+
+    The unroll-only-index-use-loops option unrolls only index use loops:
+    loops whose induction variable is used in the loop body. A loop that
+    ignores its induction variable performs identical work on each iteration,
+    so leaving it rolled keeps the IR small. An index use loop that cannot be
+    unrolled (e.g. a non-constant trip count) is reported as an error. This
+    option also defaults to false.
+
+    The two selective unrolling options are mutually exclusive; enabling both
+    is an error.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
@@ -1036,7 +1046,12 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
       "bool", /*default=*/"false",
       "Unroll only loops that prevent quantum references, slices, or "
-      "exp_pauli operands from being resolved for wire-set lowering.">
+      "exp_pauli operands from being resolved for wire-set lowering.">,
+    Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
+      /*default=*/"false",
+      "Unroll only index use loops, i.e. loops whose induction variable is "
+      "used in the loop body; leave loops that merely repeat identical work "
+      "rolled.">
   ];
 }
 

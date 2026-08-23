@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
@@ -244,7 +243,7 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
     rewriter.setInsertionPointToEnd(phase->getBlock());
 
   auto resultTypes =
-      cudaq::opt::getWireResultTypes(rewriter, controls, {anchor});
+      cudaq::quake::getWireResultTypes(rewriter, controls, {anchor});
   auto moved = cudaq::quake::PhaseOp::create(
       rewriter, phase.getLoc(), resultTypes, phase.getIsAdjAttr(),
       phase.getParameters(), controls, ValueRange{anchor},
@@ -273,8 +272,8 @@ static bool haveSamePredicate(cudaq::quake::PhaseOp first,
                               cudaq::quake::PhaseOp second) {
   if (first.getControls().size() != second.getControls().size() ||
       first.getParameter().getType() != second.getParameter().getType() ||
-      cudaq::opt::getControlPolarities(first) !=
-          cudaq::opt::getControlPolarities(second))
+      cudaq::quake::getControlPolarities(first) !=
+          cudaq::quake::getControlPolarities(second))
     return false;
 
   SmallVector<Value> secondControls(second.getControls().begin(),
@@ -358,12 +357,12 @@ mergePair(IRRewriter &rewriter, cudaq::quake::PhaseOp first,
                               second.getControls().end());
   Value anchor = second.getTarget();
   auto resultTypes =
-      cudaq::opt::getWireResultTypes(rewriter, controls, {anchor});
+      cudaq::quake::getWireResultTypes(rewriter, controls, {anchor});
   auto merged = cudaq::quake::PhaseOp::create(
       rewriter, second.getLoc(), resultTypes, /*is_adj=*/false,
       ValueRange{angle}, controls, ValueRange{anchor},
       cudaq::opt::makeNegatedControlsAttr(
-          rewriter, cudaq::opt::getControlPolarities(second)));
+          rewriter, cudaq::quake::getControlPolarities(second)));
 
   rewriter.replaceOp(second, merged.getWires());
   return merged;
