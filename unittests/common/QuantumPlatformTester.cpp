@@ -472,6 +472,14 @@ TEST(RuntimeEndpointLaunchKernelTester, dispatchesEstimatePolicy) {
   testPolicyDispatch(estimate_policy{});
 }
 
+TEST(RuntimeEndpointLaunchKernelTester, dispatchesOrcaSamplePolicy) {
+  testPolicyDispatch(orca::sample_policy{});
+}
+
+TEST(RuntimeEndpointLaunchKernelTester, dispatchesOrcaAsyncSamplePolicy) {
+  testPolicyDispatch(orca::async_sample_policy{.inner = {}});
+}
+
 TEST(QuantumPlatformDisableEndpointOverrideTester,
      noiseModelOpsThrowWhenEndpointSet) {
   TestPlatform platform;
