@@ -164,10 +164,12 @@ class PhaseStorage {
         earlierRz.isAdj() || laterRz.isAdj())
       return false;
 
-    // The generic path creates a fresh Rz. Do not retain properties or
-    // discardable attributes that path would otherwise drop with the old op.
-    return !laterRz.getNegatedQubitControls() &&
-           laterRz->getDiscardableAttrDictionary().empty();
+    // The verifier permits an empty negated-controls property when there are
+    // no controls, but downstream consumers distinguish it from no property.
+    // Use the replacement path to remove it.
+    if (laterRz.getNegatedQubitControls().has_value())
+      return false;
+    return true;
   }
 
   // Keep chronological order separate from the insertion position so the
