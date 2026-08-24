@@ -5361,7 +5361,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(assignNode)
             finally:
                 self.sinkAllocaNames = outerSink
-            [self.visit(b) for b in stmts]
+            self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
         self.createMonotonicForLoop(
@@ -5390,7 +5390,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         def blockBuilder(iterVar):
             self.symbolTable.beginBlock()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             self.symbolTable.endBlock()
 
         self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
