@@ -208,9 +208,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       // from a kernel and arguments that generated a state argument.
       // Local simulators marshal `i1` vectors as bit-packed `std::vector<bool>`
       // (argsCreator); remote/emulated targets use `std::vector<char>`.
-      const bool boolVecBitPacked = target.isLocalSimulator;
-      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp,
-                                                         boolVecBitPacked);
+      cudaq_internal::compiler::ArgumentConverter argCon(
+          kernelName, moduleOp, options.boolVecBitPacked);
       // Must stay in scope as `retainCallableArguments` may populate it
       std::vector<void *> closureArgs;
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
@@ -304,7 +303,7 @@ cudaq_internal::compiler::Compiler::executeMainPipeline(
   if (options.skipTargetLoweringPipeline || target.pipelineConfig.empty()) {
     return {false, ""};
   }
-  auto passPipelineConfig = getPassPipeline(target);
+  auto passPipelineConfig = getPassPipeline(target, options);
   auto combineMeasurements =
       passPipelineConfig.find("combine-measurements") != std::string::npos;
   if (emulate && combineMeasurements) {
@@ -460,7 +459,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  if (options.addMeasurements) {
+  if (options.addSampleMeasurements &&
+      !target.supportSampleWithoutMeasurements) {
     // No need to add measurements only to remove them eventually
     if (target.pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
         std::string::npos)
@@ -469,9 +469,9 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 
   // Apply observations if necessary
   std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
-  if (target.pauliTermSplitObservable) {
+  if (!target.supportObservableMeasurements && options.measureObservable) {
     applyPipeline("canonicalize,cse", moduleOp, kernelName);
-    for (const auto &term : *target.pauliTermSplitObservable) {
+    for (const auto &term : *options.measureObservable) {
       if (term.is_identity())
         continue;
 
@@ -667,6 +667,15 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
   // Create a new Module to clone the function into
   auto location = mlir::FileLineColLoc::get(contextPtr, "<builder>", 1, 1);
   mlir::ImplicitLocOpBuilder builder(location, contextPtr);
+
+  if (!func)
+    throw std::runtime_error(
+        "lowerQuakeCodeBuildModule: could not find entry function '" +
+        kernelName +
+        "' in the module. This code looks up the entry function by "
+        "kernel name, but the caller may have passed an artifact key "
+        "(e.g. a Pauli term id) instead of the module's actual kernel "
+        "name.");
 
   // FIXME this should be added to the builder.
   if (!func->hasAttr(cudaq::entryPointAttrName))

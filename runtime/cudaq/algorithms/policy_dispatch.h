@@ -89,6 +89,8 @@ decltype(auto) withPolicy(std::string_view name, Func &&func) {
       {"msm", [](FuncRef f) -> Ret { return f(msm_policy{}); }},
       {"ptsbe-sample",
        [](FuncRef f) -> Ret { return f(ptsbe::sample_policy{}); }},
+      {"orca-sample",
+       [](FuncRef f) -> Ret { return f(orca::sample_policy{}); }},
   };
 
   for (auto &[key, dispatch] : registry) {

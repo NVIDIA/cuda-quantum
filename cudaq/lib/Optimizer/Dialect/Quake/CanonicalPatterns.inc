@@ -27,10 +27,12 @@ struct AdjustAdjointExpPauliPattern
     if (!pauli.getParameters().empty())
       negp.push_back(arith::NegFOp::create(rewriter, pauli.getLoc(),
                                            pauli.getParameters()[0]));
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto dict = pauli->getDiscardableAttrDictionary();
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
         pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
         pauli.getPauli(), pauli.getPauliLiteralAttr());
+    newPauli->setDiscardableAttrs(std::move(dict));
     return success();
   }
 };
@@ -71,11 +73,13 @@ public:
     if (!buffer)
       return failure();
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto dict = pauli->getDiscardableAttrDictionary();
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), pauli.getIsAdjAttr(),
         pauli.getParameters(), pauli.getControls(), pauli.getTargets(),
         pauli.getNegatedQubitControlsAttr(), Value{},
         buffer.getStringLiteralAttr());
+    newPauli->setDiscardableAttrs(std::move(dict));
     return success();
   }
 };
@@ -390,6 +394,44 @@ struct ConcatSizePattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
     auto noSizeTy = cudaq::quake::VeqType::getUnsized(ctx);
     rewriter.replaceOpWithNewOp<cudaq::quake::RelaxSizeOp>(concat, noSizeTy,
                                                            newOp);
+    return success();
+  }
+};
+
+// %i = quake.concat %a, %b     : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// %o = quake.concat %x, %i, %y : (!quake.ref, !quake.veq<2>,
+//                                 !quake.ref) -> !quake.veq<4>
+// ─────────────────────────────────────────────────────────────────────────
+// %o = quake.concat %x, %a, %b, %y : (!quake.ref, !quake.ref, !quake.ref,
+//                                     !quake.ref) -> !quake.veq<4>
+//
+// Flattens one level of concat-of-concat. This enables downstream DCE of the
+// inner concat once it has no remaining uses.
+struct ConcatFlattenPattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    bool anyInner = false;
+    SmallVector<Value> flatArgs;
+    for (Value arg : concat.getTargets()) {
+      auto inner = arg.getDefiningOp<cudaq::quake::ConcatOp>();
+      if (!inner) {
+        flatArgs.push_back(arg);
+        continue;
+      }
+      auto innerTy = dyn_cast<cudaq::quake::VeqType>(inner.getType());
+      if (!innerTy) {
+        flatArgs.push_back(arg);
+        continue;
+      }
+      flatArgs.append(inner.getTargets().begin(), inner.getTargets().end());
+      anyInner = true;
+    }
+    if (!anyInner)
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(
+        concat, concat.getType(), flatArgs);
     return success();
   }
 };
@@ -714,6 +756,29 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
   }
 };
 
+// A wrap_new mints a fresh ref that stands in for a wire's identity. If that
+// wire is itself the direct result of unwrapping some ref (with nothing in
+// between to modify it), the fresh ref is redundant: the unwrapped ref
+// already denotes that same identity. Forward it directly and drop the
+// round trip through wrap_new (and the unwrap too, once it has no other
+// uses).
+struct ForwardUnwrappedRefPattern
+    : public OpRewritePattern<cudaq::quake::WrapNewOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::WrapNewOp wrapNew,
+                                PatternRewriter &rewriter) const override {
+    auto unwrap =
+        wrapNew.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>();
+    if (!unwrap)
+      return failure();
+    rewriter.replaceOp(wrapNew, unwrap.getRefValue());
+    if (unwrap->use_empty())
+      rewriter.eraseOp(unwrap);
+    return success();
+  }
+};
+
 /// Return true when the two phase operations describe the same ordered
 /// control predicate. An omitted polarity attribute is equivalent to an
 /// all-positive control list.
@@ -770,9 +835,9 @@ static bool isDirectlyThreadedPhase(cudaq::quake::PhaseOp first,
        llvm::zip(firstTargets, secondTargets))
     if (!matchesOperand(firstTarget, secondTarget))
       return false;
-  return resultIndex == first.getNumResults() && 
-    llvm::all_of(first.getWires(),
-      [](Value wire) { return wire.hasOneUse(); });
+  return resultIndex == first.getNumResults() &&
+         llvm::all_of(first.getWires(),
+                      [](Value wire) { return wire.hasOneUse(); });
 }
 
 struct EraseZeroPhasePattern : public OpRewritePattern<cudaq::quake::PhaseOp> {

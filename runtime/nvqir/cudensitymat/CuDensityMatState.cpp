@@ -51,37 +51,30 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
     throw std::runtime_error(
         "[CuDensityMatState] overlap error - precision mismatch.");
 
-  if (!isDensityMatrix) {
-    Eigen::VectorXcd state(dimension);
-    HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                                 dimension * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-
-    Eigen::VectorXcd otherState(dimension);
-    HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                                 dimension * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-    return std::abs(std::inner_product(
-        state.begin(), state.end(), otherState.begin(),
-        std::complex<double>{0., 0.}, [](auto a, auto b) { return a + b; },
-        [](auto a, auto b) { return a * std::conj(b); }));
+  const std::size_t bufferSizeBytes = dimension * sizeof(std::complex<double>);
+  const void *otherData = other.getTensor().data;
+  void *stagedData = nullptr;
+  if (!other.isDeviceData()) {
+    stagedData = cudaq::dynamics::DeviceAllocator::allocate(bufferSizeBytes);
+    HANDLE_CUDA_ERROR(cudaMemcpy(stagedData, otherData, bufferSizeBytes,
+                                 cudaMemcpyHostToDevice));
+    otherData = stagedData;
   }
 
-  // FIXME: implement this in GPU memory
-  // For density matrices, `dimension` is the total number of elements (N^2).
-  // The matrix side length is sqrt(dimension).
-  const std::size_t matDim = static_cast<std::size_t>(std::sqrt(dimension));
-  Eigen::MatrixXcd state(matDim, matDim);
-  HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                               dimension * sizeof(std::complex<double>),
-                               cudaMemcpyDeviceToHost));
+  cuDoubleComplex dotResult;
+  const auto status = cublasZdotc_64(
+      dynamics::Context::getCurrentContext()->getCublasHandle(),
+      static_cast<int64_t>(dimension),
+      static_cast<const cuDoubleComplex *>(devicePtr), 1,
+      static_cast<const cuDoubleComplex *>(otherData), 1, &dotResult);
+  if (stagedData)
+    cudaq::dynamics::DeviceAllocator::free(stagedData);
+  HANDLE_CUBLAS_ERROR(status);
 
-  Eigen::MatrixXcd otherState(matDim, matDim);
-  HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                               dimension * sizeof(std::complex<double>),
-                               cudaMemcpyDeviceToHost));
-
-  return (state.adjoint() * otherState).trace();
+  const std::complex<double> dot{cuCreal(dotResult), cuCimag(dotResult)};
+  // State vectors report the magnitude of the overlap and density matrices
+  // report the Hilbert-Schmidt inner product itself.
+  return isDensityMatrix ? dot : std::complex<double>{std::abs(dot), 0.0};
 }
 
 std::complex<double>
@@ -692,7 +685,11 @@ CuDensityMatState::~CuDensityMatState() { destroyState(); }
 bool CuDensityMatState::is_initialized() const { return cudmState != nullptr; }
 
 bool cudaq::CuDensityMatState::is_density_matrix() const {
-  if (!is_initialized())
+  // States split out of a batch keep the shape metadata of the batch but are
+  // left uninitialized until they are evolved again, so the flag is meaningful
+  // for them even though there is no `cudensitymat` state yet.
+  const bool hasHilbertSpaceMetadata = !hilbertSpaceDims.empty();
+  if (!is_initialized() && !hasHilbertSpaceMetadata)
     return false;
 
   return isDensityMatrix;
@@ -1146,8 +1143,11 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
     HANDLE_CUDA_ERROR(cudaMemcpy(splitStateMemPtr, ptr + i * stateSize,
                                  stateSize * sizeof(std::complex<double>),
                                  cudaMemcpyDefault));
-    splitStates.emplace_back(
-        new CuDensityMatState(stateSize, splitStateMemPtr));
+    auto *splitState = new CuDensityMatState(stateSize, splitStateMemPtr);
+    splitState->isDensityMatrix = batchedState.isDensityMatrix;
+    splitState->hilbertSpaceDims = batchedState.hilbertSpaceDims;
+    splitState->singleStateDimension = stateSize;
+    splitStates.emplace_back(splitState);
   }
   return splitStates;
 }

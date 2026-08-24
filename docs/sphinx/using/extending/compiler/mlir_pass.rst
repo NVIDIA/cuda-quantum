@@ -124,14 +124,21 @@ path. Treat calls as boundaries unless they have been inlined or the pass
 explicitly supports optimization across calls.
 
 Ordinary ``cc.scope`` operations are the common exception. Frontend lowering
-and inlining introduce them frequently, so circuit optimizations should work
+and inlining introduce them frequently, so quantum optimizations should work
 within and across scopes when wire threading is unambiguous. This does not
 require general control-flow support. Rewrites may cross the scope boundary
 only when they do not move scoped allocations or their uses, or bypass cleanup
 performed when the scope exits.
 
+A ``cc.scope`` carrying the ``atomic_quantum_region`` unit attribute, is not
+transparent in this way. Canonicalization retains a marked scope even when it
+holds no allocations, so the marker reaches later passes. An optimization may
+rewrite quantum operations wholly inside or wholly outside a marked scope, but
+must not combine, cancel, or move operations across its boundary.
+
 Tests should cover optimization within a block, across an ordinary scope, and
-conservative behavior at an unsupported control-flow boundary.
+conservative behavior at both a marked scope and an unsupported control-flow
+boundary.
 
 Pipeline integration should keep related quantum optimizations together in a
 value-form portion of the pipeline. A quantum optimization should not require

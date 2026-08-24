@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --verify-each --canonicalize %s | FileCheck --check-prefix=COUNT %s
+
+func.func @marked_scope(%arg: i64) -> i64 {
+  %result = cc.scope -> (i64) {
+    %zero = arith.constant 0 : i64
+    %sum = arith.addi %arg, %zero : i64
+    cc.continue %sum : i64
+  } {atomic_quantum_region}
+  return %result : i64
+}
+
+func.func @ordinary_scope(%arg: i64) -> i64 {
+  %result = cc.scope -> (i64) {
+    %zero = arith.constant 0 : i64
+    %sum = arith.addi %arg, %zero : i64
+    cc.continue %sum : i64
+  }
+  return %result : i64
+}
+
+// CHECK-LABEL:   func.func @marked_scope(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> i64 {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (i64) {
+// CHECK:             cc.continue %[[ARG0]] : i64
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           return %[[SCOPE_0]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @ordinary_scope(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> i64 {
+// CHECK-NOT:       cc.scope
+// CHECK:           return %[[ARG0]] : i64
+// CHECK:         }
+
+// COUNT-COUNT-1: atomic_quantum_region
+// COUNT-NOT: atomic_quantum_region

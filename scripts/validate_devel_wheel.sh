@@ -97,7 +97,7 @@ smoke_dir=$(mktemp -d)
 "$python" -m venv "$venv_dir"
 # shellcheck source=/dev/null
 source "$venv_dir/bin/activate"
-pip install -q pip wheel nanobind
+pip install -q pip wheel 'nanobind>=2.12.0,<3'
 
 runtime_wheel=""
 if [ -n "$runtime_dir" ]; then

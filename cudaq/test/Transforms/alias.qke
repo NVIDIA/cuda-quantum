@@ -1,0 +1,257 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --factor-quantum-alloc --canonicalize --memtoreg \
+// RUN:   --canonicalize %s | FileCheck %s
+
+func.func @test0(%arg0: i32) {
+  %0 = cc.alloca i32
+  cc.store %arg0, %0 : !cc.ptr<i32>
+  %1 = quake.alloca !quake.veq<5>
+  %2 = quake.extract_ref %1[0] : (!quake.veq<5>) -> !quake.ref
+  quake.x %2 : (!quake.ref) -> ()
+  %3 = cc.load %0 : !cc.ptr<i32>
+  %4 = cc.cast signed %3 : (i32) -> i64
+  %5 = quake.extract_ref %1[%4] : (!quake.veq<5>, i64) -> !quake.ref
+  quake.h %5 : (!quake.ref) -> ()
+  %6 = quake.extract_ref %1[0] : (!quake.veq<5>) -> !quake.ref
+  quake.x %6 : (!quake.ref) -> ()
+  %measOut = quake.mz %1 : (!quake.veq<5>) -> !cc.sequence<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @test0(
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %{{.*}} : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<5>
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_0]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%{{.*}} : (!quake.veq<5>, i64) -> !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[UNWRAP_2:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       quake.wrap %[[X_1]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK-DAG:       quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+
+func.func @test1(%arg0: i32) {
+  %c1_i32 = arith.constant 1 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %c5_i32 = arith.constant 5 : i32
+  %0 = cc.alloca i32
+  cc.store %arg0, %0 : !cc.ptr<i32>
+  %1 = quake.alloca !quake.veq<5>
+  %2 = quake.extract_ref %1[0] : (!quake.veq<5>) -> !quake.ref
+  quake.x %2 : (!quake.ref) -> ()
+  cc.scope {
+    %4 = cc.alloca i32
+    cc.store %c0_i32, %4 : !cc.ptr<i32>
+    cc.loop while {
+      %5 = cc.load %4 : !cc.ptr<i32>
+      %6 = arith.cmpi ult, %5, %c5_i32 : i32
+      cc.condition %6
+    } do {
+      %5 = cc.load %4 : !cc.ptr<i32>
+      %6 = cc.cast unsigned %5 : (i32) -> i64
+      %7 = quake.extract_ref %1[%6] : (!quake.veq<5>, i64) -> !quake.ref
+      quake.h %7 : (!quake.ref) -> ()
+      cc.continue
+    } step {
+      %5 = cc.load %4 : !cc.ptr<i32>
+      %6 = arith.addi %5, %c1_i32 : i32
+      cc.store %6, %4 : !cc.ptr<i32>
+    }
+  }
+  %3 = quake.extract_ref %1[0] : (!quake.veq<5>) -> !quake.ref
+  quake.x %3 : (!quake.ref) -> ()
+  %measOut = quake.mz %1 : (!quake.veq<5>) -> !cc.sequence<!cc.measure_handle>
+  return
+}
+
+
+// CHECK-LABEL:   func.func @test1(
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %{{.*}} : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<5>
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_0]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK:           cc.loop while
+// CHECK:           } do {
+// CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%{{.*}} : (!quake.veq<5>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:           } step {
+// CHECK:           }
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_1]] to %{{.*}} : !quake.wire, !quake.ref
+
+func.func @test2(%arg0: i32) {
+  %0 = cc.alloca i32
+  cc.store %arg0, %0 : !cc.ptr<i32>
+  %1 = quake.alloca !quake.veq<5>
+  %2 = quake.extract_ref %1[0] : (!quake.veq<5>) -> !quake.ref
+  quake.x %2 : (!quake.ref) -> ()
+  %3 = cc.load %0 : !cc.ptr<i32>
+  %4 = cc.cast signed %3 : (i32) -> i64
+  %5 = quake.extract_ref %1[%4] : (!quake.veq<5>, i64) -> !quake.ref
+  quake.h %5 : (!quake.ref) -> ()
+  quake.x %2 : (!quake.ref) -> ()
+  quake.y %2 : (!quake.ref) -> ()
+  %measOut = quake.mz %1 : (!quake.veq<5>) -> !cc.sequence<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @test2(
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}} : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<5>
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_0]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%{{.*}} : (!quake.veq<5>, i64) -> !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[UNWRAP_2:.*]] = quake.unwrap %{{.*}} : (!quake.ref) -> !quake.wire
+// CHECK-DAG:       %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[Y_0:.*]] = quake.y %[[X_1]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       quake.wrap %[[Y_0]] to %{{.*}} : !quake.wire, !quake.ref
+// CHECK-DAG:       quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+
+// A dynamically-sized veq that quake-factor-quantum-alloc cannot decompose
+// into individual ref allocas "survives into the circuit": refs are
+// extracted directly from it rather than glued together via quake.concat.
+// Regression for a bug where a dynamic-index extract_ref nested inside an
+// op-with-regions (cc.if here) failed to invalidate a same-veq ref binding
+// established *before* that op, letting a stale wire cross the aliasing
+// access unwrapped.
+func.func @test3(%arg0: i32, %arg1: i1, %n: i64) {
+  %0 = quake.alloca !quake.veq<?>[%n : i64]
+  %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  cc.if(%arg1) {
+    %2 = cc.cast unsigned %arg0 : (i32) -> i64
+    %3 = quake.extract_ref %0[%2] : (!quake.veq<?>, i64) -> !quake.ref
+    quake.h %3 : (!quake.ref) -> ()
+    cc.continue
+  }
+  quake.x %1 : (!quake.ref) -> ()
+  %measOut = quake.mz %0 : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @test3(
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<?>{{\[}}%{{.*}} : i64]
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0]
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:           cc.if
+// CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]]{{\[}}%{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_1]] : !quake.wire, !quake.ref
+// CHECK:           }
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_1]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+
+// Same bug as test3, but the aliasing extract_ref is nested two levels deep
+// (inside a cc.if that is itself inside a cc.loop's body), which exercises
+// the childMap/parentMap summary propagating the veq access up through both
+// levels before it is finally resolved and cancelled at the enclosing
+// function scope, dominating the second use of the ref.
+func.func @test4(%arg0: i32, %arg1: i1, %n: i64) {
+  %c1_i32 = arith.constant 1 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %c5_i32 = arith.constant 5 : i32
+  %0 = quake.alloca !quake.veq<?>[%n : i64]
+  %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  cc.scope {
+    %i = cc.alloca i32
+    cc.store %c0_i32, %i : !cc.ptr<i32>
+    cc.loop while {
+      %iv = cc.load %i : !cc.ptr<i32>
+      %cond = arith.cmpi ult, %iv, %c5_i32 : i32
+      cc.condition %cond
+    } do {
+      cc.if(%arg1) {
+        %iv = cc.load %i : !cc.ptr<i32>
+        %2 = cc.cast unsigned %iv : (i32) -> i64
+        %3 = quake.extract_ref %0[%2] : (!quake.veq<?>, i64) -> !quake.ref
+        quake.h %3 : (!quake.ref) -> ()
+        cc.continue
+      }
+      cc.continue
+    } step {
+      %iv = cc.load %i : !cc.ptr<i32>
+      %inc = arith.addi %iv, %c1_i32 : i32
+      cc.store %inc, %i : !cc.ptr<i32>
+    }
+  }
+  quake.x %1 : (!quake.ref) -> ()
+  %measOut = quake.mz %0 : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @test4(
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<?>{{\[}}%{{.*}} : i64]
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0]
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:           cc.loop while
+// CHECK:           } do {
+// CHECK:             cc.if
+// CHECK:               %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]]{{\[}}%{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:               %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
+// CHECK:               %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:               quake.wrap %[[H_0]] to %[[EXTRACT_REF_1]] : !quake.wire, !quake.ref
+// CHECK:             }
+// CHECK:           } step {
+// CHECK:           }
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X_1]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+
+// Precision check: the aliasing extract_ref inside the cc.if reads from a
+// *different*, independently allocated dynamically-sized veq (%s) than the
+// one the ref before/after the cc.if belongs to (%r). Because the two veqs
+// are provably disjoint (see definitelyNotDerivedFrom), the ref's wire must
+// thread straight through the cc.if with no rewrap/unwrap forced around it —
+// unlike test3, where the same veq is involved and a fresh unwrap is
+// required.
+func.func @test5(%arg0: i32, %arg1: i1, %n1: i64, %n2: i64) {
+  %r = quake.alloca !quake.veq<?>[%n1 : i64]
+  %s = quake.alloca !quake.veq<?>[%n2 : i64]
+  %1 = quake.extract_ref %r[0] : (!quake.veq<?>) -> !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  cc.if(%arg1) {
+    %2 = cc.cast unsigned %arg0 : (i32) -> i64
+    %3 = quake.extract_ref %s[%2] : (!quake.veq<?>, i64) -> !quake.ref
+    quake.h %3 : (!quake.ref) -> ()
+    cc.continue
+  }
+  quake.y %1 : (!quake.ref) -> ()
+  %measOutR = quake.mz %r : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  %measOutS = quake.mz %s : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @test5(
+// CHECK:           %[[ALLOCA_R:.*]] = quake.alloca !quake.veq<?>{{\[}}%{{.*}} : i64]
+// CHECK:           %[[ALLOCA_S:.*]] = quake.alloca !quake.veq<?>{{\[}}%{{.*}} : i64]
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_R]][0]
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           cc.if
+// CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_S]]{{\[}}%{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_1]] : !quake.wire, !quake.ref
+// CHECK:           }
+// CHECK:           %[[Y_0:.*]] = quake.y %[[X_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[Y_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref

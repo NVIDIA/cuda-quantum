@@ -383,7 +383,7 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
 //===----------------------------------------------------------------------===//
 
 def quake_ApplyOp : QuakeOp<"apply",
-    [AttrSizedOperandSegments, CallOpInterface]> {
+    [AttrSizedOperandSegments, CallOpInterface, QuantumSideEffects]> {
   let summary = "Abstract application of a function in Quake.";
   let description = [{
     User-defined kernels define both predicated and unpredicated functions.
@@ -395,7 +395,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 
   let arguments = (ins
     OptionalAttr<SymbolRefAttr>:$callee,
-    Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
+    Optional<cc_CallableType>:$indirect_callee,
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
     Variadic<AnyType>:$actuals,
@@ -429,16 +429,56 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::UnitAttr":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   is_adj, controls, args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
                    "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   is_adj, controls, args, {}, {});
+    }]>,
+
+    // CallOp like builders. adj=false, controls=[]
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::StringRef":$callee,
+                   "mlir::ValueRange":$args), [{
+      auto *ctx = $_builder.getContext();
+      return build($_builder, $_state, retTy,
+                   mlir::SymbolRefAttr::get(ctx, callee), {}, /*is_adj=*/false,
+                   mlir::ValueRange{}, args, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::Value":$callable,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   /*is_adj=*/false, mlir::ValueRange{}, args, {}, {});
+    }]>,
+
+    // CallOpInterface builders using CallInterfaceCallable variant.
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::CallInterfaceCallable":$call_variant,
+                   "mlir::ValueRange":$ctrls,
+                   "mlir::ValueRange":$args), [{
+      if (auto indirect = dyn_cast<mlir::Value>(call_variant))
+        return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, indirect,
+                     /*is_adj=*/false, ctrls, args, {}, {});
+      auto sym = cast<mlir::SymbolRefAttr>(call_variant);
+      return build($_builder, $_state, retTy, sym, mlir::Value{},
+                   /*is_adj=*/false, ctrls, args, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::CallInterfaceCallable":$call_variant,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$args), [{
+      if (auto indirect = dyn_cast<mlir::Value>(call_variant))
+        return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, indirect,
+                     is_adj, mlir::ValueRange{}, args, {}, {});
+      auto sym = cast<mlir::SymbolRefAttr>(call_variant);
+      return build($_builder, $_state, retTy, sym, mlir::Value{}, is_adj,
+                   mlir::ValueRange{}, args, {}, {});
     }]>
   ];
 
@@ -466,11 +506,31 @@ def quake_ApplyOp : QuakeOp<"apply",
       return getIsAdj() || !getControls().empty();
     }
 
+    /// Return only the formal results of the callee; i.e., the results that
+    /// correspond to the called function's declared return types. This does not
+    /// include appended wire values.
+    ///
+    /// Note: if the callee already accepts linear types directly, the
+    /// function's own return type must handle those values and no new types are
+    /// appended to the results.
+    mlir::ResultRange getFormalResults() {
+      unsigned formalCount = getFunctionType().getResults().size();
+      return getResults().take_front(formalCount);
+    }
+
+    /// Return the results that are the pass-through linear-type (wire/cable)
+    /// actuals appended after the formal results, in left-to-right order.
+    /// Empty when the callee already declares linear types in its signature.
+    mlir::ResultRange getLinearResults() {
+      unsigned formalCount = getFunctionType().getResults().size();
+      return getResults().drop_front(formalCount);
+    }
+
     /// Return the callee of this operation.
     mlir::CallInterfaceCallable getCallableForCallee() {
       if (getCallee())
         return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
-      return getIndirectCallee().front();
+      return getIndirectCallee();
     }
 
     /// Set the callee for this operation.
@@ -482,7 +542,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 }
 
 // A ComputeActionOp will be transformed into a series of CallOps.
-def quake_ComputeActionOp : QuakeOp<"compute_action"> {
+def quake_ComputeActionOp : QuakeOp<"compute_action", [QuantumSideEffects]> {
   let summary = "Captures the compute/action/uncompute high-level idiom.";
   let description = [{
     CUDA-Q supports the high-level compute, action, uncompute idiom by
@@ -510,7 +570,8 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
-def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
+def quake_ApplyNoiseOp : QuakeOp<"apply_noise",
+    [AttrSizedOperandSegments, QuantumSideEffects]> {
   let summary = "Apply a noise operation to qubits.";
   let description = [{
     This operation provides support for the `cudaq::apply_noise` template
@@ -643,10 +704,11 @@ def quake_WrapNewOp : QuakeOp<"wrap_new"> {
   let assemblyFormat = [{
     $wire_value `:` functional-type(operands, results) attr-dict
   }];
+  let hasCanonicalizer = 1;
 }
 
 def quake_CallByRefOp : QuakeOp<"call_by_ref",
-    [CallOpInterface, SymbolUserOpInterface]> {
+    [CallOpInterface, SymbolUserOpInterface, QuantumSideEffects]> {
   let summary = "Call a kernel casting wires to refs.";
   let description = [{
     This operation performs a wrap operation on the wire arguments, calls the
@@ -1108,7 +1170,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
     AnyQTargetType:$targets
   );
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
   let hasVerifier = 1;
 
@@ -1145,7 +1207,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   let results = (outs
     AnyTypeOf<[MeasureType, cc_MeasureHandleType,
                SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let assemblyFormat = [{
@@ -1265,7 +1327,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   ));
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let builders = [
@@ -1397,7 +1459,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
     OptionalAttr<StrAttr>:$pauliLiteral
   );
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let assemblyFormat = [{
@@ -1978,6 +2040,59 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
   let assemblyFormat = [{
      $numQubitsFunc `,` $initFunc `:` qualified(type(results)) attr-dict
   }];
+}
+
+//===----------------------------------------------------------------------===//
+// LogOutputOp
+//===----------------------------------------------------------------------===//
+
+def quake_LogOutputOp : QuakeOp<"log_output"> {
+  let summary = "Marks a value in the IR as observable.";
+  let description = [{
+    This operation is a high-level \e abstraction for the necessary and
+    sufficient functionality to log output results to a \e virtual output device
+    produced by a well-defined CUDA-Q kernel. \e How this to be accomplished and
+    the details thereof are not the concern of Quake. The presence of this
+    operation explicitly denotes that a \e value in Quake is \e observable in
+    the computational sense. This restricts the types of optimizations that may
+    be applied; such as, the value cannot be trivially erased.
+
+    The semantics of this operation are very clear. Arguments are considered
+    observable and live, and this operation \e explicitly denotes I/O
+    side-effects.
+
+    The lowering of this operation is heavily context dependent. The target and
+    launch policies of an entry-point kernel will interplay with an abstract
+    virtual output stream from the virtual device. Different policies are fully
+    expected to adapt the virtual output stream to data structures pertinent to
+    the launch policy itself. Each policy (or the absence of policy) defines
+    different data structures (I/O) as defined in the CUDA-Q specification.
+
+    This operation explicitly threads linear types.
+
+    Do not read this overly literally. Using this operation on a value of
+    quantum type simply does \e not mean that a qubit is anything more than
+    "of interest". A physical qubit isn't something one can email.
+  }];
+
+  let arguments = (ins
+    Variadic<AnyType>:$args,
+    UnitAttr:$compilerGenerated
+  );
+  let results = (outs Variadic<AnyQLinearType>:$outs);
+  let hasVerifier = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::ValueRange":$args,
+                   CArg<"bool", "false">:$compilerGenerated), [{
+      llvm::SmallVector<mlir::Type> resultTypes;
+      for (mlir::Value v : args)
+        if (cudaq::quake::isLinearType(v.getType()))
+          resultTypes.push_back(v.getType());
+      build($_builder, $_state, resultTypes, args, compilerGenerated);
+    }]>
+  ];
+  let assemblyFormat =
+      "$args `:` functional-type(operands, results) attr-dict";
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS

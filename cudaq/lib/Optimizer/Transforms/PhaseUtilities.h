@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
@@ -19,15 +18,6 @@
 #include <cassert>
 
 namespace cudaq::opt {
-
-inline llvm::SmallVector<bool>
-getControlPolarities(cudaq::quake::PhaseOp phase) {
-  llvm::SmallVector<bool> polarities(phase.getControls().size(), false);
-  if (auto negated = phase.getNegatedQubitControls())
-    for (auto [index, value] : llvm::enumerate(*negated))
-      polarities[index] = value;
-  return polarities;
-}
 
 inline mlir::DenseBoolArrayAttr
 makeNegatedControlsAttr(mlir::OpBuilder &builder,
@@ -52,10 +42,45 @@ inline mlir::Value getSignedAngle(mlir::IRRewriter &rewriter,
 inline llvm::SmallVector<mlir::Value>
 getPhaseReplacements(cudaq::quake::PhaseOp phase, mlir::ValueRange controls,
                      mlir::Value anchor) {
-  auto replacements = getWireValues(controls, {anchor});
+  auto replacements = cudaq::quake::getWireValues(controls, {anchor});
   assert(replacements.size() == phase.getWires().size() &&
          "phase result count does not match its wire operands");
   return replacements;
+}
+
+struct PhaseCorrection {
+  llvm::SmallVector<mlir::Value> controls;
+  mlir::Value anchor;
+};
+
+/// Emit an exact phase correction and return the latest wire values.
+///
+/// The correction is emitted immediately after the replacement that requires
+/// it. A literal zero is omitted. Nonzero constant multiples of 2*pi are left
+/// to PhaseOp's canonicalizer so that there is a single implementation of its
+/// floating-point tolerance policy.
+inline PhaseCorrection
+emitPhaseCorrection(mlir::OpBuilder &rewriter, mlir::Location location,
+                    mlir::Value phase, mlir::ValueRange controls,
+                    mlir::DenseBoolArrayAttr negatedControls,
+                    mlir::Value anchor) {
+  PhaseCorrection result{llvm::SmallVector<mlir::Value>(controls), anchor};
+
+  if (auto constant = phase.getDefiningOp<mlir::arith::ConstantOp>())
+    if (auto angle = mlir::dyn_cast<mlir::FloatAttr>(constant.getValue());
+        angle && angle.getValue().isZero())
+      return result;
+
+  auto resultTypes = cudaq::quake::getWireResultTypes(rewriter, result.controls,
+                                                      mlir::ValueRange{anchor});
+  auto phaseOp = cudaq::quake::PhaseOp::create(
+      rewriter, location, resultTypes, /*is_adj=*/false,
+      mlir::ValueRange{phase}, result.controls, mlir::ValueRange{anchor},
+      negatedControls);
+  llvm::SmallVector<mlir::Value> targets{anchor};
+  cudaq::quake::threadWireResults(phaseOp, result.controls, targets);
+  result.anchor = targets.front();
+  return result;
 }
 
 } // namespace cudaq::opt

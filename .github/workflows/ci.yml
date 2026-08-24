@@ -69,12 +69,18 @@ jobs:
       nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
+      devdeps_matrix: ${{ steps.config.outputs.devdeps_matrix }}
+      merge_queue_fast: ${{ steps.config.outputs.merge_queue_fast }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - id: config
+        env:
+          # Repo variable. Unset/true trims the merge queue to the llvm
+          # build+test legs; set false to restore the full matrix.
+          MERGE_QUEUE_FAST: ${{ vars.MERGE_QUEUE_FAST }}
         run: |
           platforms="{}"
           for platform_id in amd64 arm64; do
@@ -86,13 +92,39 @@ jobs:
           done
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
 
-          # Build/test matrix: on PR push (copy-pr-bot) skip arm64+gcc combos
-          # (expensive, redundant with amd64/gcc). merge_group/dispatch run all.
-          if [ "${{ github.event_name }}" = "push" ]; then
+          # merge_group only; other events keep full coverage.
+          fast=false
+          if [ "${{ github.event_name }}" = "merge_group" ]; then
+            case "$(echo "${MERGE_QUEUE_FAST:-true}" | tr '[:upper:]' '[:lower:]')" in
+              false|0|no|off) fast=false ;;
+              *) fast=true ;;
+            esac
+          fi
+          echo "merge_queue_fast=$fast" >> $GITHUB_OUTPUT
+          echo "Fast merge queue: $fast (MERGE_QUEUE_FAST='${MERGE_QUEUE_FAST:-<unset>}')"
+
+          # Build/test matrix: push (copy-pr-bot) skips arm64+gcc12 (expensive,
+          # redundant with amd64/gcc12); the fast merge queue keeps only llvm.
+          if [ "$fast" = "true" ]; then
+            build_test_matrix='{"include":[
+              {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"}
+            ]}'
+            devdeps_matrix='{"include":[
+              {"platform":"amd64","toolchain":"llvm"},
+              {"platform":"arm64","toolchain":"llvm"}
+            ]}'
+          elif [ "${{ github.event_name }}" = "push" ]; then
             build_test_matrix='{"include":[
               {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
               {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
               {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"}
+            ]}'
+            devdeps_matrix='{"include":[
+              {"platform":"amd64","toolchain":"llvm"},
+              {"platform":"arm64","toolchain":"llvm"},
+              {"platform":"amd64","toolchain":"gcc12"},
+              {"platform":"arm64","toolchain":"gcc12"}
             ]}'
           else
             build_test_matrix='{"include":[
@@ -101,8 +133,15 @@ jobs:
               {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
               {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"}
             ]}'
+            devdeps_matrix='{"include":[
+              {"platform":"amd64","toolchain":"llvm"},
+              {"platform":"arm64","toolchain":"llvm"},
+              {"platform":"amd64","toolchain":"gcc12"},
+              {"platform":"arm64","toolchain":"gcc12"}
+            ]}'
           fi
           echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
+          echo "devdeps_matrix=$(echo "$devdeps_matrix" | jq -c .)" >> $GITHUB_OUTPUT
 
       - id: pr_info
         run: |
@@ -141,9 +180,7 @@ jobs:
     name: Load dependencies
     needs: metadata
     strategy:
-      matrix:
-        platform: [amd64, arm64]
-        toolchain: [llvm, gcc12]
+      matrix: ${{ fromJson(needs.metadata.outputs.devdeps_matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -164,6 +201,7 @@ jobs:
   wheeldeps:
     name: Load wheel dependencies
     needs: metadata
+    if: needs.metadata.outputs.merge_queue_fast != 'true'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -193,7 +231,7 @@ jobs:
   source_build:
     name: Load source build cache
     needs: metadata
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -241,7 +279,8 @@ jobs:
   config_wheeldeps:
     name: Configure build (wheeldeps)
     runs-on: ubuntu-latest
-    needs: wheeldeps
+    needs: [metadata, wheeldeps]
+    if: needs.metadata.outputs.merge_queue_fast != 'true'
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
@@ -259,7 +298,7 @@ jobs:
     name: Configure build (source_build)
     runs-on: ubuntu-latest
     needs: [metadata, source_build]
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
@@ -310,7 +349,7 @@ jobs:
   docker_image:
     name: Create Docker images
     needs: [metadata, config_devdeps]
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -329,7 +368,7 @@ jobs:
   python_wheels:
     name: Create Python wheels
     needs: [metadata, config_wheeldeps]
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -347,11 +386,12 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      build_devel_wheel: ${{ matrix.platform == 'amd64' && matrix.python_version == '3.11' && matrix.cuda_version == '13.0' }}
 
   python_metapackages:
     name: Create Python metapackages
     needs: [metadata, python_wheels]
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
@@ -363,7 +403,7 @@ jobs:
   binaries:
     name: Create CUDA Quantum installer
     needs: [metadata, config_source_build]
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -419,6 +459,9 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       NEEDS_JSON: ${{ toJSON(needs) }}
       EVENT_NAME: ${{ github.event_name }}
+      MERGE_QUEUE_FAST: ${{ needs.metadata.outputs.merge_queue_fast }}
+      # The fast merge queue runs a reduced matrix, so it has its own list.
+      MANIFEST_KEY: ${{ (needs.metadata.outputs.merge_queue_fast == 'true' && 'merge_group_fast') || github.event_name }}
       PR_NUMBER: ${{ needs.metadata.outputs.pull_request_number }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       REPO: ${{ github.repository }}
@@ -512,6 +555,13 @@ jobs:
             echo "[Run #$RUN_ID]($RUN_URL) · :white_check_mark: $n_pass · :fast_forward: $n_skip · :x: $n_fail · :no_entry: $n_cancel"
             echo ""
 
+            if [ "${MERGE_QUEUE_FAST:-false}" = "true" ]; then
+              echo "> :zap: **Fast merge queue** — only the llvm dev-environment build+test legs ran."
+              echo "> Wheels, metapackages, installers, Docker images, and the gcc12 legs were skipped."
+              echo "> Set the repository variable \`MERGE_QUEUE_FAST\` to \`false\` to restore the full matrix."
+              echo ""
+            fi
+
             failed=$(jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key' <<< "$NEEDS_JSON" || true)
             if [ -n "$failed" ]; then
               echo "<details open><summary><b>:x: Failed or cancelled</b></summary>"
@@ -599,11 +649,11 @@ jobs:
           fi
 
           # Extract the section for this event as JSON, defaulting to [].
-          mapfile -t expected < <(yq -o=json "$manifest" | jq -r --arg e "$EVENT_NAME" '.[$e] // [] | .[]')
+          mapfile -t expected < <(yq -o=json "$manifest" | jq -r --arg e "$MANIFEST_KEY" '.[$e] // [] | .[]')
           n_expected=${#expected[@]}
 
           if [ "$n_expected" -eq 0 ]; then
-            echo "No required checks declared for event '$EVENT_NAME' — skipping enforcement."
+            echo "No required checks declared for '$MANIFEST_KEY' — skipping enforcement."
             echo "n_missing=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -642,7 +692,7 @@ jobs:
 
           {
             echo ""
-            echo "${details_state}<summary><b>${summary_line}</b> — declared in <code>.github/required-checks.yml</code> for <code>${EVENT_NAME}</code></summary>"
+            echo "${details_state}<summary><b>${summary_line}</b> — declared in <code>.github/required-checks.yml</code> for <code>${MANIFEST_KEY}</code></summary>"
             echo ""
             echo "| Required check | Status | Link |"
             echo "| --- | --- | --- |"
@@ -664,7 +714,7 @@ jobs:
 
           echo "n_missing=$n_missing" >> "$GITHUB_OUTPUT"
           if [ "$n_missing" -gt 0 ]; then
-            echo "::error file=.github/required-checks.yml::$n_missing required check(s) missing for event '$EVENT_NAME': ${missing[*]}"
+            echo "::error file=.github/required-checks.yml::$n_missing required check(s) missing for '$MANIFEST_KEY': ${missing[*]}"
           fi
 
       - name: Post or update PR comment

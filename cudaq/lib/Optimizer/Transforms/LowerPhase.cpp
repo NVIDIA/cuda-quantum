@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/PatternMatch.h"
@@ -29,7 +28,7 @@ static Op createParameterizedGate(IRRewriter &rewriter, Location location,
                                   Value target,
                                   DenseBoolArrayAttr negatedControls = {}) {
   auto resultTypes =
-      cudaq::opt::getWireResultTypes(rewriter, controls, {target});
+      cudaq::quake::getWireResultTypes(rewriter, controls, {target});
   return Op::create(rewriter, location, resultTypes, /*is_adj=*/false,
                     ValueRange{parameter}, controls, ValueRange{target},
                     negatedControls);
@@ -38,7 +37,7 @@ static Op createParameterizedGate(IRRewriter &rewriter, Location location,
 static cudaq::quake::XOp createXGate(IRRewriter &rewriter, Location location,
                                      Value target) {
   auto resultTypes =
-      cudaq::opt::getWireResultTypes(rewriter, ValueRange{}, {target});
+      cudaq::quake::getWireResultTypes(rewriter, ValueRange{}, {target});
   return cudaq::quake::XOp::create(rewriter, location, resultTypes,
                                    /*is_adj=*/false, ValueRange{}, ValueRange{},
                                    ValueRange{target}, DenseBoolArrayAttr{});
@@ -107,10 +106,9 @@ static bool isKnownAnchorControlAlias(Value anchor, Value control) {
 
 static void lowerWithScalarControl(IRRewriter &rewriter,
                                    cudaq::quake::PhaseOp phase, Value angle,
+                                   SmallVector<Value> controls,
                                    ArrayRef<bool> polarities,
                                    unsigned selectedControl) {
-  SmallVector<Value> controls(phase.getControls().begin(),
-                              phase.getControls().end());
   Value anchor = phase.getTarget();
   Location location = phase.getLoc();
 
@@ -136,8 +134,8 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
   auto r1 = createParameterizedGate<cudaq::quake::R1Op>(
       rewriter, location, angle, remainingControls, controls[selectedControl],
       cudaq::opt::makeNegatedControlsAttr(rewriter, remainingPolarities));
-  cudaq::opt::threadWireResults(r1, remainingControls,
-                                {controls[selectedControl]});
+  cudaq::quake::threadWireResults(r1, remainingControls,
+                                  {controls[selectedControl]});
   for (auto [position, index] : llvm::enumerate(remainingIndices))
     controls[index] = remainingControls[position];
 
@@ -152,9 +150,8 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
 
 static void lowerWithAnchorFallback(IRRewriter &rewriter,
                                     cudaq::quake::PhaseOp phase, Value angle,
+                                    SmallVector<Value> controls,
                                     ArrayRef<bool> polarities) {
-  SmallVector<Value> controls(phase.getControls().begin(),
-                              phase.getControls().end());
   Value anchor = phase.getTarget();
   Location location = phase.getLoc();
   auto negatedControls =
@@ -167,12 +164,12 @@ static void lowerWithAnchorFallback(IRRewriter &rewriter,
   for (unsigned i = 0; i != 2; ++i) {
     auto r1 = createParameterizedGate<cudaq::quake::R1Op>(
         rewriter, location, angle, controls, anchor, negatedControls);
-    cudaq::opt::threadWireResults(r1, controls, {anchor});
+    cudaq::quake::threadWireResults(r1, controls, {anchor});
   }
   for (unsigned i = 0; i != 2; ++i) {
     auto rz = createParameterizedGate<cudaq::quake::RzOp>(
         rewriter, location, negatedAngle, controls, anchor, negatedControls);
-    cudaq::opt::threadWireResults(rz, controls, {anchor});
+    cudaq::quake::threadWireResults(rz, controls, {anchor});
   }
 
   rewriter.replaceOp(phase,
@@ -183,45 +180,50 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
                                 cudaq::quake::PhaseOp phase) {
   rewriter.setInsertionPoint(phase);
 
-  if (phase.getControls().empty()) {
-    SmallVector<Value> controls;
-    rewriter.replaceOp(phase, cudaq::opt::getPhaseReplacements(
-                                  phase, controls, phase.getTarget()));
+  auto predicate = cudaq::quake::expandKnownSizedControlVeqs(
+      rewriter, phase.getLoc(), phase.getControls(),
+      cudaq::quake::getControlPolarities(phase));
+  if (predicate.controls.empty()) {
+    rewriter.replaceOp(
+        phase, cudaq::opt::getPhaseReplacements(phase, predicate.controls,
+                                                phase.getTarget()));
     return success();
   }
 
   Value angle = cudaq::opt::getSignedAngle(rewriter, phase);
-  SmallVector<bool> polarities = cudaq::opt::getControlPolarities(phase);
 
   // Any scalar control can become the R1 target while vector controls remain
   // in the predicate. Prefer the last positive scalar, then the last negative
   // scalar, to make the lowering deterministic.
   std::optional<unsigned> positiveScalar;
   std::optional<unsigned> scalarControl;
-  for (auto [index, control] : llvm::enumerate(phase.getControls())) {
+  for (auto [index, control] : llvm::enumerate(predicate.controls)) {
     if (!isScalarGateTarget(control))
       continue;
     scalarControl = index;
-    if (!polarities[index])
+    if (!predicate.polarities[index])
       positiveScalar = index;
   }
   std::optional<unsigned> selected =
       positiveScalar ? positiveScalar : scalarControl;
   if (selected) {
-    lowerWithScalarControl(rewriter, phase, angle, polarities, *selected);
+    lowerWithScalarControl(rewriter, phase, angle,
+                           std::move(predicate.controls), predicate.polarities,
+                           *selected);
     return success();
   }
 
   // A vector (or another non-targetable control representation) cannot serve
   // as R1's scalar target. The anchored identity is exact on the full active
   // control branch and preserves the complete ordered predicate.
-  for (Value control : phase.getControls())
+  for (Value control : predicate.controls)
     if (isKnownAnchorControlAlias(phase.getTarget(), control)) {
       phase.emitOpError(
           "cannot lower with an anchor that aliases a control operand");
       return failure();
     }
-  lowerWithAnchorFallback(rewriter, phase, angle, polarities);
+  lowerWithAnchorFallback(rewriter, phase, angle, std::move(predicate.controls),
+                          predicate.polarities);
   return success();
 }
 

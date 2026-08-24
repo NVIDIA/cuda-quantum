@@ -23,6 +23,7 @@ add_cudaq_library(OptTransforms
   CliffordTSynthesis.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
+  CommutationAwareRewrite.cpp
   ConstantPropagation.cpp
   DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
@@ -43,10 +44,12 @@ add_cudaq_library(OptTransforms
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
   GlobalizeArrayValues.cpp
+  InjectImplicitOutput.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
+  LoopInductionFusion.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
@@ -81,8 +84,10 @@ add_cudaq_library(OptTransforms
   StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
+  UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyNoPhase.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 
@@ -95,6 +100,8 @@ add_cudaq_library(OptTransforms
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
+    MLIRTransforms
+    OptAnalysis
     OptimBuilder
     QECDialect
     QuakeDialect

@@ -49,6 +49,14 @@ std::optional<APFloat> cudaq::opt::factory::getDoubleIfConstant(Value value) {
   return {};
 }
 
+std::string cudaq::cc::stringOfType(Type ty) {
+  std::string s;
+  llvm::raw_string_ostream os(s);
+  ty.print(os);
+  os.flush();
+  return s;
+}
+
 Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                                    bool useSizeOf) {
   auto createInt = [&](std::int32_t byteWidth) -> Value {
@@ -1342,6 +1350,159 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// InstantiateCallableOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::InstantiateCallableOp::verify() {
+  auto calleeFunc = dyn_cast_if_present<func::FuncOp>(
+      SymbolTable::lookupNearestSymbolFrom(getOperation(), getCallee()));
+  if (!calleeFunc)
+    return emitOpError("must refer to a valid function");
+  FunctionType calleeFnTy = calleeFunc.getFunctionType();
+  if (!getNoCapture()) {
+    // Unless no capture is set, `callee` must have an argument that is a
+    // callable closure with a conforming type. That argument must be the first
+    // argument with a callable type. (Arguments of other types may be
+    // prepended, most notably an unsized veq.)
+    if (calleeFnTy.getInputs().size() < 1)
+      return emitOpError("callable must have at least 1 argument");
+    CallableType callableTy;
+    for (auto argTy : calleeFnTy.getInputs())
+      if (auto ty = dyn_cast<CallableType>(argTy)) {
+        callableTy = ty;
+        break;
+      }
+    if (!callableTy)
+      return emitOpError(
+          "instantiating a callable requires a closure argument");
+
+    // The first argument has callable type. Make sure the signature is
+    // compatible with our result and the thunk function type modulo the closure
+    // argument.
+    if (callableTy != getSignature().getType())
+      return emitOpError("result type (" + stringOfType(callableTy) +
+                         ") must match closure type (" +
+                         stringOfType(getSignature().getType()) + ")");
+    FunctionType callableFnTy = callableTy.getSignature();
+    if (calleeFnTy.getInputs().size() - 1 != callableFnTy.getInputs().size())
+      return emitOpError("arity must be the same (" +
+                         std::to_string(calleeFnTy.getInputs().size() - 1) +
+                         ", " +
+                         std::to_string(callableFnTy.getInputs().size()) + ")");
+    SmallVector<Type> calleeFnInTys;
+    bool found = false;
+    for (auto ty : calleeFnTy.getInputs()) {
+      if (!found)
+        if (auto callTy = dyn_cast<CallableType>(ty)) {
+          found = true;
+          continue;
+        }
+      calleeFnInTys.push_back(ty);
+    }
+    for (auto [ty1, ty2] : llvm::zip(calleeFnInTys, callableFnTy.getInputs())) {
+      if (ty1 != ty2)
+        return emitOpError("argument types must match (" + stringOfType(ty1) +
+                           ", " + stringOfType(ty2) + ")");
+    }
+    if (calleeFnTy.getResults().size() != callableFnTy.getResults().size())
+      return emitOpError("coarity must be the same (" +
+                         std::to_string(calleeFnTy.getResults().size()) + ", " +
+                         std::to_string(callableFnTy.getResults().size()) +
+                         ")");
+    for (auto [ty1, ty2] :
+         llvm::zip(calleeFnTy.getResults(), callableFnTy.getResults())) {
+      if (ty1 != ty2)
+        return emitOpError("result types must match (" + stringOfType(ty1) +
+                           ", " + stringOfType(ty2) + ")");
+    }
+  } else {
+    // In the degenerate case, we just check that the function being wrapped as
+    // a closure has a compatible function type to the degenerate closure's
+    // callable type, which is the result type of this Op.
+    auto resultFnTy =
+        cast<CallableType>(getSignature().getType()).getSignature();
+    if (calleeFnTy != resultFnTy)
+      return emitOpError("degenerate closure function must have compatible "
+                         "signature with the callable closure result");
+  }
+  return success();
+}
+
+// A closure that captures a quantum value (ref, veq, wire, ...) is not pure:
+// the captured value is a handle to mutable quantum state, and ops between
+// two otherwise-identical instantiations (e.g. a `quake.x` on the captured
+// ref) change what that handle observes even though the SSA value itself is
+// unchanged. Treating the op as unconditionally pure lets CSE merge such
+// instantiations, silently dropping the intervening mutation, which is bug.
+static bool capturesQuantumReference(cudaq::cc::InstantiateCallableOp op) {
+  return llvm::any_of(op.getClosureData(), [](mlir::Value v) {
+    return cudaq::quake::isQuantumType(v.getType());
+  });
+}
+
+void cudaq::cc::InstantiateCallableOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  // An instantiate_callable with no uses is dead, even if its arguments could
+  // have had quantum side effects.
+  if (!getOperation()->use_empty() && capturesQuantumReference(*this)) {
+    effects.emplace_back(MemoryEffects::Read::get(),
+                         SideEffects::DefaultResource::get());
+    effects.emplace_back(MemoryEffects::Write::get(),
+                         SideEffects::DefaultResource::get());
+  }
+}
+
+mlir::Speculation::Speculatability
+cudaq::cc::InstantiateCallableOp::getSpeculatability() {
+  return capturesQuantumReference(*this) ? Speculation::NotSpeculatable
+                                         : Speculation::Speculatable;
+}
+
+//===----------------------------------------------------------------------===//
+// CallableClosureOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// callable_closure(instantiate_callable(callee, args...)) folds directly to
+// args: by construction, instantiate_callable's closure_data operands are
+// exactly what a matching callable_closure unpacks back out, 1:1 in count
+// and type. CallableClosureOp is Pure, so this fold alone is enough: once
+// its result's uses are rewired away, and (per getEffects above) the
+// instantiate_callable's own effects disappear once it has no uses, generic
+// DCE cleans up both ops without this pattern needing to erase anything
+// itself.
+struct CallableClosureOpPattern
+    : public OpRewritePattern<cudaq::cc::CallableClosureOp> {
+  using Base = OpRewritePattern<cudaq::cc::CallableClosureOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CallableClosureOp closureOp,
+                                PatternRewriter &rewriter) const override {
+    auto instance = closureOp.getCallable()
+                        .getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+    if (!instance)
+      return failure();
+    auto capturedArgs = instance.getClosureData();
+    auto unpackedResults = closureOp.getClosureData();
+    if (capturedArgs.size() != unpackedResults.size())
+      return failure();
+    for (auto [captured, unpacked] :
+         llvm::zip_equal(capturedArgs, unpackedResults))
+      if (captured.getType() != unpacked.getType())
+        return failure();
+    rewriter.replaceOp(closureOp, capturedArgs);
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CallableClosureOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<CallableClosureOpPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // SequenceInitOp
 //===----------------------------------------------------------------------===//
 
@@ -2081,6 +2242,9 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
+    if (scope.getAtomicQuantumRegionAttr())
+      return failure();
+
     if (scope.hasAllocation())
       return failure();
 

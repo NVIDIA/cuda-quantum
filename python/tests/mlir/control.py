@@ -41,7 +41,7 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:  () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_0]]]  : (!quake.veq<1>) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_0]]] () : (!quake.veq<1>) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -69,7 +69,7 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_0]]] : (!quake.veq<5>) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_0]]] () : (!quake.veq<5>) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -92,6 +92,47 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_10]] : i64
 # CHECK:           } {invariant}
+# CHECK:           return
+# CHECK:         }
+
+
+def test_sample_control_no_args():
+    """
+    Regression test: `cudaq.control()` on a `@cudaq.kernel`-decorated
+    target that takes no arguments used to crash while creating the
+    `.ctrl` variant (an out-of-bounds access when the target kernel has
+    zero formal parameters; see the `createControlVariantOf` fix in
+    `ApplyOpSpecialization.cpp`). Also exercises the `quake.ApplyOp`
+    Python binding call site in `ast_bridge.py`.
+    """
+
+    @cudaq.kernel
+    def target():
+        q = cudaq.qubit()
+        x(q)
+
+    @cudaq.kernel
+    def caller():
+        ctrls = cudaq.qvector(2)
+        x(ctrls)
+        cudaq.control(target, ctrls)
+
+    # Check the MLIR.
+    print(caller)
+
+    # Simulate and check for correctness: both control qubits and the
+    # controlled-x target qubit should measure |1>.
+    result = cudaq.sample(caller)
+    assert len(result) == 1
+    assert '111' in result
+
+
+# CHECK-LABEL: test_sample_control_no_args
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__caller..
+# CHECK-SAME:      (%[[VAL_0:.*]]: !cc.callable<() -> ()> {{.*}}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_1]] : (!quake.veq<2>) -> !quake.veq<?>
+# CHECK:           quake.apply %[[VAL_0]] {{\[}}%[[VAL_2]]] () : (!quake.veq<?>) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -119,7 +160,7 @@ def test_kernel_control_float_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<1>, f64) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] (%[[VAL_0]]) : (!quake.veq<1>, f64) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -133,7 +174,7 @@ def test_kernel_control_float_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<5>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<5>, f64) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] (%[[VAL_0]]) : (!quake.veq<5>, f64) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -167,7 +208,7 @@ def test_kernel_control_int_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<1>, i64) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] (%[[VAL_0]]) : (!quake.veq<1>, i64) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -180,7 +221,7 @@ def test_kernel_control_int_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<5>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<5>, i64) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] (%[[VAL_0]]) : (!quake.veq<5>, i64) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -215,7 +256,7 @@ def test_kernel_control_list_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: !cc.sequence<f64>) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<1>, !cc.sequence<f64>) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] (%[[VAL_0]]) : (!quake.veq<1>, !cc.sequence<f64>) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -232,7 +273,7 @@ def test_kernel_control_list_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: !cc.sequence<f64>) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<5>
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<5>, !cc.sequence<f64>) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}{{\[}}%[[VAL_1]]] (%[[VAL_0]]) : (!quake.veq<5>, !cc.sequence<f64>) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -290,7 +331,7 @@ def test_sample_control_qubit_args():
 # CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_1]]] (%[[VAL_0]]) : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
 # CHECK:           return
@@ -348,7 +389,7 @@ def test_sample_control_qreg_args():
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_5]]] %[[VAL_6]] : (!quake.veq<2>, !quake.ref) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_5]]] (%[[VAL_6]]) : (!quake.veq<2>, !quake.ref) -> ()
 # CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> !cc.measure_handle
 # CHECK:           return
 # CHECK:         }
@@ -405,7 +446,7 @@ def test_sample_apply_call_control():
 # CHECK:           %{{[0-2]}} = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%{{[0-2]}}) : (!quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} [%{{[0-2]}}] %{{[0-2]}} : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} [%{{[0-2]}}] (%{{[0-2]}}) : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} : (!quake.ref) -> !cc.measure_handle
 # CHECK:           return

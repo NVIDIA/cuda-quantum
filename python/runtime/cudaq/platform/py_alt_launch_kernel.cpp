@@ -723,8 +723,12 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
     });
   }
 
-  // TODO: remove this call by moving flags out of the target
-  cudaq::propagateTargetOptionsToCompileOptions(*target, options);
+  const bool isEmulated = cudaq::is_emulated_platform();
+  const bool isRemote = cudaq::is_remote_platform();
+  options.emulate = isEmulated;
+  options.emitJit |= !isRemote;
+  options.boolVecBitPacked = !isRemote && !isEmulated;
+
   return {*std::move(target), std::move(options)};
 }
 
@@ -780,7 +784,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   mlir::OwningOpRef<ModuleOp> resolvedModule;
   if (cacheable && hasCompileTimeDependencies) {
     if (auto digest = cudaq::detail::createProgramFingerprint(
-            name, mod, rawArgs, target, resolvedModule))
+            name, mod, rawArgs, resolvedModule))
       programDigest = *digest;
     else
       cacheable = false;
@@ -839,17 +843,6 @@ static bool isCurrentTargetFullQIR() {
   // Biased. Most likely expected pattern first.
   return transport.starts_with("qir:") || transport == "qir" ||
          transport == "qir-full" || transport.starts_with("qir-full:");
-}
-
-static void pyAltLaunchAnalogKernel(const std::string &name,
-                                    std::string &programArgs) {
-  if (name.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
-    throw std::runtime_error("Unexpected type of kernel.");
-  auto dynamicResult = cudaq::altLaunchKernel(
-      name.c_str(), cudaq::KernelThunkType(nullptr),
-      (void *)(const_cast<char *>(programArgs.c_str())), programArgs.size(), 0);
-  if (dynamicResult.data_buffer || dynamicResult.size)
-    throw std::runtime_error("Not implemented: support dynamic results");
 }
 
 template <typename T>
@@ -1321,7 +1314,9 @@ static MlirModule clonePythonOwnedModule(mlir::ModuleOp mod) {
   std::string ir;
   llvm::raw_string_ostream os(ir);
   mod.print(os);
-  auto context = cudaq_internal::compiler::getOwningMLIRContext();
+  auto *sourceContext = mod.getContext();
+  auto loadedDialects = sourceContext->getLoadedDialects();
+  auto context = cudaq_internal::compiler::getOwningMLIRContext(loadedDialects);
   auto copy = mlir::parseSourceString<mlir::ModuleOp>(ir, context.get());
   if (!copy)
     throw std::runtime_error("failed to clone the compiled MLIR module");
@@ -1385,9 +1380,6 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
           "Compile (specialize + JIT) a kernel module. Returns a "
           "CompiledModule object that owns the JIT engine.");
-  mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
-          "Launch an analog Hamiltonian simulation kernel with given JSON "
-          "payload.");
 
   mod.def("synthesize", synthesizeKernel, "FIXME: document!");
 

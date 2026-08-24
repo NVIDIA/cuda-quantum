@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CallGraphFix.h"
@@ -17,6 +18,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
@@ -154,19 +156,43 @@ struct GeneralRewrite : OpConversionPattern<OP> {
         auto fSym = f.getSymNameAttr();
         qisFuncSymbol = FlatSymbolRefAttr::get(ctx, funcName);
         Value fVal = func::ConstantOp::create(rewriter, loc, fTy, fSym);
-        auto ptrI8Ty = cudaq::cc::PointerType::get(rewriter.getI8Type());
-        Value fPtrVal =
-            cudaq::cc::FuncToPtrOp::create(rewriter, loc, ptrI8Ty, fVal);
-        Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
-        SmallVector<Value> callParamVals{one, fPtrVal,
-                                         *adaptor.getControls().begin(),
-                                         *adaptor.getTargets().begin()};
         SmallVector<Value> qubits(adaptor.getControls().begin(),
                                   adaptor.getControls().end());
         qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
-        func::CallOp::create(rewriter, loc, mlir::TypeRange{},
-                             cudaq::opt::NVQIRInvokeWithControlBits,
-                             callParamVals);
+
+        if (adaptor.getParameters().empty()) {
+          auto ptrI8Ty = cudaq::cc::PointerType::get(rewriter.getI8Type());
+          Value fPtrVal =
+              cudaq::cc::FuncToPtrOp::create(rewriter, loc, ptrI8Ty, fVal);
+          Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
+          SmallVector<Value> callParamVals{one, fPtrVal,
+                                           *adaptor.getControls().begin(),
+                                           *adaptor.getTargets().begin()};
+          func::CallOp::create(rewriter, loc, mlir::TypeRange{},
+                               cudaq::opt::NVQIRInvokeWithControlBits,
+                               callParamVals);
+        } else {
+          // Controlled parameterized QIS functions need the generalized
+          // invocation ABI so that their rotation parameters are forwarded.
+          auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+          Value fPtrVal =
+              cudaq::cc::FuncToPtrOp::create(rewriter, loc, ptrTy, fVal);
+          SmallVector<Value> callParamVals{
+              arith::ConstantIntOp::create(rewriter, loc,
+                                           adaptor.getParameters().size(), 64),
+              arith::ConstantIntOp::create(rewriter, loc, 0, 64),
+              arith::ConstantIntOp::create(rewriter, loc, 1, 64),
+              arith::ConstantIntOp::create(rewriter, loc, 1, 64), fPtrVal};
+          callParamVals.append(adaptor.getParameters().begin(),
+                               adaptor.getParameters().end());
+          callParamVals.push_back(cudaq::cc::CastOp::create(
+              rewriter, loc, ptrTy, *adaptor.getControls().begin()));
+          callParamVals.push_back(cudaq::cc::CastOp::create(
+              rewriter, loc, ptrTy, *adaptor.getTargets().begin()));
+          cudaq::cc::VarargCallOp::create(rewriter, loc, mlir::TypeRange{},
+                                          cudaq::opt::NVQIRGeneralizedInvokeAny,
+                                          callParamVals);
+        }
         rewriter.replaceOp(qop, qubits);
         return success();
       }
@@ -598,6 +624,12 @@ struct WireSetToProfileQIRPrepPass
         ctx, TypeRange{builder.getI64Type(), i8PtrTy, qbTy, qbTy}, TypeRange{});
     createNewDecl(cudaq::opt::NVQIRInvokeWithControlBits, invokeCtrlTy);
 
+    cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::NVQIRGeneralizedInvokeAny, LLVM::LLVMVoidType::get(ctx),
+        {builder.getI64Type(), builder.getI64Type(), builder.getI64Type(),
+         builder.getI64Type(), cudaq::opt::factory::getPointerType(ctx)},
+        op, /*isVar=*/true);
+
     unsigned counter = 0;
     op.walk([&](cudaq::quake::MzOp meas) {
       auto optName = meas.getRegisterName();
@@ -710,11 +742,20 @@ struct WireSetToProfileQIRPostPass
 
 void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
                                                 StringRef profile) {
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep());
   WireSetToProfileQIROptions wopt;
   if (!profile.empty())
     wopt.convertTo = profile.str();
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createWireSetToProfileQIR(wopt));
+  // Insert the array-record-output prologue before the first
+  // result-record-output call emitted by WireSetToProfileQIR.
+  pm.addPass(cudaq::opt::createQirInsertArrayRecord());
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPost());
   // Perform final cleanup for other dialect conversions (like func.func)
   pm.addPass(cudaq::opt::createConvertToQIR());

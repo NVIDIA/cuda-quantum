@@ -53,9 +53,6 @@ struct CompileTarget {
     /// to emulate its behavior by inserting the corresponding kernel calls.
     bool replaceStateWithKernel = false;
 
-    /// Whether to run the add-measurements pass.
-    bool addMeasurements = false;
-
     /// Whether the pipeline is empty.
     bool empty() const {
       return overridePassPipeline.empty() && highLevelPipeline.empty() &&
@@ -66,10 +63,7 @@ struct CompileTarget {
   };
 
   /// Pipeline configuration, populated by the constructor.
-  PipelineConfig pipelineConfig;
-
-  /// Whether to emulate execution locally.
-  bool emulate = false;
+  PipelineConfig pipelineConfig{};
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
@@ -77,28 +71,34 @@ struct CompileTarget {
   /// Whether device calls are supported by the target.
   bool supportDeviceCalls = false;
 
+  /// Whether explicit measurements are supported by the target.
+  bool supportExplicitMeasurements = true;
+
+  /// Whether the target supports measuring arbitrary observables.
+  ///
+  /// If false, the compiler will implement observable measurements by splitting
+  /// the hamiltonian into a sum of Pauli measurements and emit one lowered
+  /// module per Pauli term.
+  bool supportObservableMeasurements = true;
+
+  /// Whether the target supports sampling without explicit measurements in the
+  /// IR.
+  ///
+  /// If false, when compiling for `sample`, the compiler will ensure explicit
+  /// measurements are present at the end of the kernel (or add them if not).
+  bool supportSampleWithoutMeasurements = true;
+
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
-
-  /// Whether this target is a local simulator (not remote, not emulated). On
-  /// this path `i1` vector arguments are packed as bit-packed
-  /// `std::vector<bool>`.
-  bool isLocalSimulator = false;
 
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
-  /// When set, emit one lowered module per non-identity Pauli term of this
-  /// observable. The resulting `CompiledModule` will contain a compilation
-  /// artifact for each term.
-  std::optional<cudaq::spin_op> pauliTermSplitObservable;
-
   /// Construct a CompileTarget from static and runtime backend configurations.
-  CompileTarget(config::TargetConfig targetConfig,
-                std::map<std::string, std::string> runtimeConfig, bool emulate,
-                std::map<std::string, std::string> pipelineSubstitutions = {});
-
-  CompileTarget() = default;
+  static CompileTarget createFromConfig(
+      config::TargetConfig targetConfig,
+      std::map<std::string, std::string> runtimeConfig,
+      std::map<std::string, std::string> pipelineSubstitutions = {});
 
   bool operator==(const CompileTarget &other) const = default;
 };

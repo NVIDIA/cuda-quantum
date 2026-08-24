@@ -33,12 +33,54 @@ runs:
     - name: Install and configure ccache
       shell: bash
       run: |
+        retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+
+        # Install the official statically linked release binary rather than the
+        # distro package. The Ubuntu mirrors used by the CI runners (notably
+        # the arm64 ports mirror) regularly serve 503s for minutes at a time,
+        # which used to fail this step outright; GitHub releases are the same
+        # source we already rely on for ORAS above.
+        install_ccache_release() {
+          local version="4.13.6" arch sha tarball url tmpdir
+          arch=$(uname -m)
+          case "$arch" in
+            x86_64|amd64)
+              arch=x86_64
+              sha=156ec57c5198cc849d92834023d09910b83dc5504c6cf405d09e6ae7b208a3e5 ;;
+            aarch64|arm64)
+              arch=aarch64
+              sha=2098d561e4a8e36bd06a29aedce53ea90c7e365f9573a93d91c230efbf96a958 ;;
+            *) echo "No ccache release binary for $arch." && return 1 ;;
+          esac
+          tarball="ccache-${version}-linux-${arch}-musl-static.tar.xz"
+          url="https://github.com/ccache/ccache/releases/download/v${version}/${tarball}"
+          tmpdir=$(mktemp -d)
+          trap 'rm -rf "$tmpdir"' RETURN
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 10 --max-time 120 -o "$tmpdir/$tarball" "$url" || return 1
+          echo "$sha  $tmpdir/$tarball" | sha256sum -c - || return 1
+          tar -xJf "$tmpdir/$tarball" -C "$tmpdir" --strip-components=1 \
+            "ccache-${version}-linux-${arch}-musl-static/ccache" || return 1
+          sudo install -m 755 "$tmpdir/ccache" /usr/local/bin/ccache
+        }
+
         if ! command -v ccache &>/dev/null; then
           if [ "$(uname)" = "Darwin" ]; then
-            brew install ccache
+            retry brew install ccache
           else
-            sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ccache
+            # Fall back to apt only if the release binary is unavailable.
+            # Treat a partially failed update (e.g. a 503 from a mirror) as an
+            # error so that it is retried instead of silently leaving a stale
+            # index behind that the install then fails on.
+            install_ccache_release || {
+              echo "::warning::Falling back to installing ccache via apt."
+              retry sudo apt-get update -qq -o APT::Update::Error-Mode=any
+              retry sudo apt-get install -y --no-install-recommends ccache
+            }
           fi
+        fi
+        if ! command -v ccache &>/dev/null; then
+          echo "::error::Failed to install ccache." && exit 1
         fi
         ccache --set-config=max_size=${{ inputs.max-size }}
         ccache --set-config=compression=${{ inputs.compression }}

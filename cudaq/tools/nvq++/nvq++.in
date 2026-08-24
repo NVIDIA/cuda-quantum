@@ -173,6 +173,12 @@ function f_option_handling {
 	-fkernel-execution)
 		ENABLE_KERNEL_EXECUTION=true
 		;;
+	-fno-inject-implicit-output)
+		ENABLE_INJECT_IMPLICIT_OUTPUT=false
+		;;
+	-finject-implicit-output)
+		ENABLE_INJECT_IMPLICIT_OUTPUT=true
+		;;
 	-fno-add-dealloc)
 		ENABLE_ADD_DEALLOC=false
 		;;
@@ -226,6 +232,12 @@ function f_option_handling {
 		;;
 	-fno-variable-coalesce)
 		ENABLE_VARIABLE_COALESCE=false
+		;;
+	-flegacy-adjoint)
+		ENABLE_LEGACY_ADJOINT=true
+		;;
+	-fno-legacy-adjoint)
+		ENABLE_LEGACY_ADJOINT=false
 		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
@@ -362,6 +374,9 @@ function show_help {
 
 -f[no-]kernel-execution
 	Enable/disable kernel execution pass.
+
+-f[no-]inject-implicit-output
+	Enable/disable injection of implicit quake.log_output operations.
 
 -f[no-]add-dealloc
 	Enable/disable insertion of quantum deallocation operations.
@@ -561,6 +576,7 @@ PREPROCESS_ONLY=false
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true
 ENABLE_VARIABLE_COALESCE=true
+ENABLE_LEGACY_ADJOINT=false
 ENABLE_UNWIND_LOWERING=true
 ENABLE_DEVICE_CODE_LOADER=true
 ENABLE_REALTIME_LOWERING=false
@@ -571,6 +587,7 @@ ENABLE_ADD_DEALLOC=true
 ENABLE_AGGRESSIVE_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
+ENABLE_INJECT_IMPLICIT_OUTPUT=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_QUANTUM_OPTIMIZATION=true
 ENABLE_MLIR_LIB_LINKING=true
@@ -1015,6 +1032,10 @@ if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering)")
 fi
+if ${ENABLE_INJECT_IMPLICIT_OUTPUT}; then
+	RUN_OPT=true
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(inject-implicit-output)")
+fi
 if ${ENABLE_ADD_DEALLOC}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(add-dealloc)")
@@ -1025,7 +1046,12 @@ if ${ENABLE_LAMBDA_LIFTING}; then
 fi
 if ${ENABLE_APPLY_SPECIALIZATION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(memtoreg{quantum=0}),canonicalize,apply-op-specialization")
+	if ${ENABLE_LEGACY_ADJOINT}; then
+		APPLY_OPTIONS="{legacy-classical=1}"
+	else
+		APPLY_OPTIONS=""
+	fi
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(memtoreg{quantum=0}),canonicalize,apply-op-specialization${APPLY_OPTIONS}")
 fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true

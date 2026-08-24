@@ -1,0 +1,96 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --apply-op-specialization %s | FileCheck %s
+// RUN: cudaq-opt --verify-each --apply-op-specialization %s | \
+// RUN:   FileCheck --check-prefix=COUNT %s
+// RUN: cudaq-opt --verify-each --apply-op-specialization \
+// RUN:   --aggressive-inlining --symbol-dce %s | FileCheck \
+// RUN:   --check-prefix=INLINE --implicit-check-not="call @" %s
+
+func.func private @marked(%target: !quake.ref) attributes {atomic_quantum_region} {
+  quake.t %target : (!quake.ref) -> ()
+  return
+}
+
+func.func private @ordinary(%target: !quake.ref) {
+  quake.t %target : (!quake.ref) -> ()
+  return
+}
+
+func.func @caller(%control: !quake.ref, %target: !quake.ref) {
+  quake.apply<adj> @marked (%target) : (!quake.ref) -> ()
+  quake.apply @marked [%control] (%target) : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @marked [%control] (%target) : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @ordinary (%target) : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func private @ordinary.adj(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.ref) {
+// CHECK:           quake.t<adj> %[[ARG0]] : (!quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @marked.adj.ctrl(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.veq<?>, %[[ARG1:.*]]: !quake.ref) attributes {atomic_quantum_region} {
+// CHECK:           quake.t<adj> {{\[}}%[[ARG0]]] %[[ARG1]] : (!quake.veq<?>, !quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @marked.adj(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.ref) attributes {atomic_quantum_region} {
+// CHECK:           quake.t<adj> %[[ARG0]] : (!quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @marked.ctrl(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.veq<?>, %[[ARG1:.*]]: !quake.ref) attributes {atomic_quantum_region} {
+// CHECK:           quake.t {{\[}}%[[ARG0]]] %[[ARG1]] : (!quake.veq<?>, !quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @marked(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.ref) attributes {atomic_quantum_region} {
+// CHECK:           quake.t %[[ARG0]] : (!quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @ordinary(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.ref) {
+// CHECK:           quake.t %[[ARG0]] : (!quake.ref) -> ()
+
+// CHECK-LABEL:   func.func @caller(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.ref, %[[ARG1:.*]]: !quake.ref) {
+// CHECK:           call @marked.adj(%[[ARG1]]) : (!quake.ref) -> ()
+// CHECK:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @marked.ctrl_closurer(%[[ARG0]]) : (!quake.ref) -> !cc.callable<(!quake.ref) -> ()>
+// CHECK:           call @marked.ctrl_closurer(%[[INSTANTIATE_CALLABLE_0]], %[[ARG1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+// CHECK:           %[[INSTANTIATE_CALLABLE_1:.*]] = cc.instantiate_callable @marked.adj_ctrl_closurer(%[[ARG0]]) : (!quake.ref) -> !cc.callable<(!quake.ref) -> ()>
+// CHECK:           call @marked.adj_ctrl_closurer(%[[INSTANTIATE_CALLABLE_1]], %[[ARG1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+// CHECK:           call @ordinary.adj(%[[ARG1]]) : (!quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @marked.adj_ctrl_closurer(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.callable<(!quake.ref) -> ()>, %[[ARG1:.*]]: !quake.ref) {
+// CHECK:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG0]] : (!cc.callable<(!quake.ref) -> ()>) -> !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[CALLABLE_CLOSURE_0]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @marked.adj.ctrl(%[[CONCAT_0]], %[[ARG1]]) : (!quake.veq<?>, !quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @marked.ctrl_closurer(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.callable<(!quake.ref) -> ()>, %[[ARG1:.*]]: !quake.ref) {
+// CHECK:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG0]] : (!cc.callable<(!quake.ref) -> ()>) -> !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[CALLABLE_CLOSURE_0]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @marked.ctrl(%[[CONCAT_0]], %[[ARG1]]) : (!quake.veq<?>, !quake.ref) -> ()
+
+
+// COUNT-COUNT-4: atomic_quantum_region
+// COUNT-NOT: atomic_quantum_region
+
+// INLINE-LABEL:   func.func @caller(
+// INLINE-SAME:      %[[ARG0:.*]]: !quake.ref, %[[ARG1:.*]]: !quake.ref) {
+// INLINE:           cc.scope {
+// INLINE:             quake.t<adj> %[[ARG1]] : (!quake.ref) -> ()
+// INLINE:           } {atomic_quantum_region}
+// INLINE:           %[[CONCAT_0:.*]] = quake.concat %[[ARG0]] : (!quake.ref) -> !quake.veq<1>
+// INLINE:           cc.scope {
+// INLINE:             quake.t {{\[}}%[[CONCAT_0]]] %[[ARG1]] : (!quake.veq<1>, !quake.ref) -> ()
+// INLINE:           } {atomic_quantum_region}
+// INLINE:           %[[CONCAT_1:.*]] = quake.concat %[[ARG0]] : (!quake.ref) -> !quake.veq<1>
+// INLINE:           cc.scope {
+// INLINE:             quake.t<adj> {{\[}}%[[CONCAT_1]]] %[[ARG1]] : (!quake.veq<1>, !quake.ref) -> ()
+// INLINE:           } {atomic_quantum_region}
+// INLINE:           quake.t<adj> %[[ARG1]] : (!quake.ref) -> ()
