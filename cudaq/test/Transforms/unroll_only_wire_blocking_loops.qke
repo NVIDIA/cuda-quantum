@@ -253,14 +253,14 @@ module {
 }
 
 // Both forwarded options must appear on cc-loop-unroll.
-// PIPELINE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-wire-blocking-loops=true}
+// PIPELINE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=false unroll-only-wire-blocking-loops=true}
 // PIPELINE: decomposition{{.*}}ExpPauliDecomposition
 // PIPELINE-NOT: add-wireset
 // PIPELINE-NOT: assign-wire-indices
 // PIPELINE-NOT: qubit-mapping
 // PIPELINE-NOT: basis=
 
-// PIPELINE-DEFAULTS: cc-loop-unroll{allow-early-exit=false maximum-iterations=50 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-wire-blocking-loops=false}
+// PIPELINE-DEFAULTS: cc-loop-unroll{allow-early-exit=false maximum-iterations=50 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=false unroll-only-wire-blocking-loops=false}
 // PIPELINE-DEFAULTS-NOT: add-wireset
 // PIPELINE-DEFAULTS-NOT: assign-wire-indices
 
