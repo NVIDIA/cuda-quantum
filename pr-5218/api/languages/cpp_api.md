@@ -13219,9 +13219,10 @@ them they are erased before execution.
 
 []{#classcudaq_1_1FermioniqQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[FermioniqQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[BaseRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq17BaseRemoteRESTQPUE "cudaq::BaseRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq12FermioniqQPUE "Permalink to this definition"){.headerlink}\
 
-:   The [`FermioniqBaseQPU`{.docutils .literal .notranslate}]{.pre} is a
+:   The [[[`FermioniqQPU`{.docutils .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal} is a
     [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference .internal}
-    that allows users to.
+    that allows users to submit kernels to the Fermioniq simulator.
 
 ```{=html}
 <!-- -->
