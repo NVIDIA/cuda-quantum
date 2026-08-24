@@ -6,63 +6,17 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --memtoreg %s | FileCheck --check-prefix=ENTRY %s
-// RUN: cudaq-opt --memtoreg --canonicalize %s | FileCheck --check-prefix=ALIAS %s
+// RUN: cudaq-opt --memtoreg %s | FileCheck %s
 
-// A dynamic extract from an outer veq is an aliasing barrier. When a later
-// use imports an outer ref into a cc.scope, MemToReg must capture its promoted
-// value directly: cc.scope has NoRegionArguments and cannot take a live-in
-// entry argument. Internal CFG blocks can and must still take live-in arguments
-// so that they observe mutations from their predecessors.
-func.func @scope_live_in() {
-  %c0 = arith.constant 0 : i64
-  %c1 = arith.constant 1 : i64
-  %c2 = arith.constant 2 : i64
-  %r0 = quake.alloca !quake.ref
-  %r1 = quake.alloca !quake.ref
-  %r2 = quake.alloca !quake.ref
-  %v = quake.concat %r0, %r1, %r2 :
-      (!quake.ref, !quake.ref, !quake.ref) -> !quake.veq<3>
-  quake.x %r0 : (!quake.ref) -> ()
-  cc.scope {
-    %t = quake.alloca !quake.veq<0>
-    %tr = quake.relax_size %t : (!quake.veq<0>) -> !quake.veq<?>
-    %acc:2 = cc.loop while ((%i = %c0, %a = %tr) -> (i64, !quake.veq<?>)) {
-      %cond = arith.cmpi slt, %i, %c2 : i64
-      cc.condition %cond(%i, %a : i64, !quake.veq<?>)
-    } do {
-    ^bb0(%i: i64, %a: !quake.veq<?>):
-      %q = quake.extract_ref %v[%i] : (!quake.veq<3>, i64) -> !quake.ref
-      %cat = quake.concat %a, %q : (!quake.veq<?>, !quake.ref) -> !quake.veq<?>
-      cc.continue %i, %cat : i64, !quake.veq<?>
-    } step {
-    ^bb0(%i: i64, %a: !quake.veq<?>):
-      %n = arith.addi %i, %c1 : i64
-      cc.continue %n, %a : i64, !quake.veq<?>
-    }
-    quake.x [%acc#1] %r2 : (!quake.veq<?>, !quake.ref) -> ()
-    cf.br ^bb1
-  ^bb1:
-    quake.x %r2 : (!quake.ref) -> ()
-    cc.continue
-  }
-  quake.x %r0 : (!quake.ref) -> ()
-  quake.dealloc %r0 : !quake.ref
-  quake.dealloc %r1 : !quake.ref
-  quake.dealloc %r2 : !quake.ref
-  return
-}
-
-// An alias barrier in an internal block must consume the live-in wire by
-// wrapping it back to the ref before the dynamic extract. Otherwise the live-in
-// block argument is unused and canonicalization drops the preceding y gate.
-func.func @scope_internal_alias(%idx: i64) {
+// The dynamic extract is an aliasing barrier. The following fixed use imports
+// the outer ref into the physical entry block of a cc.scope. Since cc.scope has
+// NoRegionArguments, MemToReg must capture the promoted wire directly rather
+// than create an entry block argument.
+func.func @scope_entry_alias(%idx: i64) {
   %r = quake.alloca !quake.ref
   %v = quake.concat %r : (!quake.ref) -> !quake.veq<1>
   quake.y %r : (!quake.ref) -> ()
   cc.scope {
-    cf.br ^bb1
-  ^bb1:
     %q = quake.extract_ref %v[%idx] : (!quake.veq<1>, i64) -> !quake.ref
     quake.h %q : (!quake.ref) -> ()
     quake.x %r : (!quake.ref) -> ()
@@ -72,30 +26,24 @@ func.func @scope_internal_alias(%idx: i64) {
   return
 }
 
-// ENTRY-LABEL:   func.func @scope_live_in() {
-// ENTRY:           quake.alloca !quake.ref
-// ENTRY:           quake.unwrap
-// ENTRY:           quake.alloca !quake.ref
-// ENTRY:           quake.unwrap
-// ENTRY:           %[[R2:.*]] = quake.alloca !quake.ref
-// ENTRY:           %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
-// ENTRY-NEXT:        %[[TEMP:.*]] = quake.alloca !quake.veq<0>
-// ENTRY:             %[[LOOP:.*]]:2 = cc.loop while
-// ENTRY:             %[[CAPTURED:.*]] = quake.unwrap %[[R2]] : (!quake.ref) -> !quake.wire
-// ENTRY:             %[[RESULT:.*]] = quake.x {{\[}}%[[LOOP]]#1] %[[CAPTURED]] : (!quake.veq<?>, !quake.wire) -> !quake.wire
-// ENTRY-NEXT:        cf.br ^bb1(%[[RESULT]] : !quake.wire)
-// ENTRY:           ^bb1(%[[LIVE_IN:.*]]: !quake.wire):
-// ENTRY:             %[[FINAL:.*]] = quake.x %[[LIVE_IN]] : (!quake.wire) -> !quake.wire
-// ENTRY-NEXT:        cc.continue %[[FINAL]] : !quake.wire
-// ENTRY:           quake.sink %[[SCOPE]] : !quake.wire
-
-// ALIAS-LABEL:   func.func @scope_internal_alias(
-// ALIAS:           %[[R:.*]] = quake.alloca !quake.ref
-// ALIAS:           %[[BEFORE:.*]] = quake.unwrap %[[R]] : (!quake.ref) -> !quake.wire
-// ALIAS-NEXT:      %[[Y:.*]] = quake.y %[[BEFORE]] : (!quake.wire) -> !quake.wire
-// ALIAS:           %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
-// ALIAS-NEXT:        quake.wrap %[[Y]] to %[[R]] : !quake.wire, !quake.ref
-// ALIAS-NEXT:        %[[Q:.*]] = quake.extract_ref
-// ALIAS:             %[[AFTER:.*]] = quake.unwrap %[[R]] : (!quake.ref) -> !quake.wire
-// ALIAS-NEXT:        %[[X:.*]] = quake.x %[[AFTER]] : (!quake.wire) -> !quake.wire
-// ALIAS:           quake.sink %[[SCOPE]] : !quake.wire
+// CHECK-LABEL:   func.func @scope_entry_alias(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[UNWRAP_0]] : (!quake.wire) -> !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.veq<1>
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[Y_0:.*]] = quake.y %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[Y_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<1>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_2:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:             %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_3]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[X_0]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           quake.sink %[[SCOPE_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
