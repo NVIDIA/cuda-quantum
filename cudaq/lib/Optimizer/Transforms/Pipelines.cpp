@@ -204,6 +204,11 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   ctsOpts.epsilon = epsilon;
   ctsOpts.failOnControlledRotation = failOnControlledRotation;
   pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
+  // Synthesis emits the omega global phase of each Clifford+T word. It is
+  // uncontrolled here, so lowering erases it. This is the one point where the
+  // phase is discarded, and it happens after the IR that carried it is final.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
   cudaq::opt::DecompositionOptions decOpts;
   decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
   pm.addPass(cudaq::opt::createDecomposition(decOpts));

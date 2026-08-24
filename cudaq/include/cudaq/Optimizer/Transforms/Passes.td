@@ -194,13 +194,13 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     - Rotation angles are folded to constants - run `ArgumentSynthesis` and
       constant-propagation passes first.
     - Controls and adjoints are materialized - run `ApplyOpSpecialization`
-      first. The omega global-phase contributions are dropped on the
-      assumption that no consumer wraps the kernel with `cudaq::control`
-      after this pass runs.
-      TODO: track and preserve the omega global phase once global-phase
-      support lands in Quake, so that controlled uses of a synthesized
-      kernel remain correct (the phase becomes an observable relative phase
-      under `cudaq::control`).
+      first.
+
+    The omega global phase of each synthesized word is emitted as an
+    uncontrolled `quake.phase` in the helper body, so the helper is exactly
+    equal to the rotation it replaces. Run `lower-phase` afterwards to
+    complete the phase lifecycle; the `cudaq-fault-tolerant-target` pipeline
+    does.
 
     Gridsynth is probabilistic, and its cost grows sharply as `epsilon`
     tightens: roughly 2 ms per distinct rotation at the default 1e-10, but
