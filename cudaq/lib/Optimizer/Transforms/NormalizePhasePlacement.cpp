@@ -321,7 +321,7 @@ mergeUncontrolledGroup(IRRewriter &rewriter,
   auto survivingAnchor = survivingPhase.getTarget();
 
   auto resultTypes =
-      cudaq::opt::getWireResultTypes(rewriter, {}, {survivingAnchor});
+      cudaq::quake::getWireResultTypes(rewriter, {}, {survivingAnchor});
 
   auto mergedPhaseOp = cudaq::quake::PhaseOp::create(
       rewriter, survivingPhase.getLoc(), resultTypes,
@@ -488,7 +488,7 @@ static PhasePredicate getCanonicalPhasePredicate(cudaq::quake::PhaseOp phase,
   predicate.controls.reserve(phase.getControls().size());
   for (Value control : phase.getControls())
     predicate.controls.push_back(canonicalizePhaseWire(control, aliases));
-  predicate.polarities = cudaq::opt::getControlPolarities(phase);
+  predicate.polarities = cudaq::quake::getControlPolarities(phase);
   return predicate;
 }
 
