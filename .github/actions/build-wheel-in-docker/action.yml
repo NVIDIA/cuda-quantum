@@ -86,7 +86,8 @@ runs:
         platform_id=$(echo "$PLATFORM" | sed 's/linux\///g' | tr -d ' ')
 
         if [ -n "$BUILD_DEVEL" ]; then
-          artifact_name="cudaq-devel-$cache_id"
+          # The devel wheel is CUDA- and Python-agnostic
+          artifact_name="cudaq-devel-$platform_id"
           ccache_key="$platform_id-wheel-devel"
           # The devel build compiles the same objects as the runtime build, so
           # its cache can be seeded from the runtime one when empty.

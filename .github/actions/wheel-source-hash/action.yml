@@ -9,10 +9,12 @@ inputs:
     required: true
   python_version:
     description: Python version (e.g. 3.11).
-    required: true
+    required: false
+    default: ''
   cuda_version:
     description: CUDA version (e.g. 13.0).
-    required: true
+    required: false
+    default: ''
   project:
     description: Project key in wheel_sources.yml.
     required: false
@@ -118,7 +120,11 @@ runs:
         platform_id=$(echo "$PLATFORM" | tr '/' '-' | tr -d ' ')
         tag_part=""
         [ -n "$TAG" ] && tag_part="-$TAG"
-        cache_key="${KEY_PREFIX}${tag_part}-${platform_id}-py${PYTHON_VERSION}-cu${CUDA_VERSION}-${source_hash}"
+        py_part=""
+        [ -n "$PYTHON_VERSION" ] && py_part="-py${PYTHON_VERSION}"
+        cu_part=""
+        [ -n "$CUDA_VERSION" ] && cu_part="-cu${CUDA_VERSION}"
+        cache_key="${KEY_PREFIX}${tag_part}-${platform_id}${py_part}${cu_part}-${source_hash}"
 
         echo "source_hash=$source_hash" >> "$GITHUB_OUTPUT"
         echo "cache_key=$cache_key" >> "$GITHUB_OUTPUT"

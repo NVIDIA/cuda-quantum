@@ -173,8 +173,6 @@ jobs:
         uses: ./.github/actions/wheel-source-hash
         with:
           platform: ${{ inputs.platform }}
-          python_version: ${{ inputs.python_version }}
-          cuda_version: ${{ inputs.cuda_version }}
           tag: devel
 
       - name: Look up devel wheel
@@ -311,7 +309,8 @@ jobs:
       cuda_versions: "['${{ inputs.cuda_version }}']"
       wheel_artifacts: 'pycudaq-*'
       build_deprecated_package: false
-      run_tests: ${{ inputs.run_validation }}
+      # Only run the metapackage test job on x86_64
+      run_tests: ${{ inputs.run_validation && inputs.platform == 'linux/amd64' }}
 
   upload_all_wheels:
     name: Bundle all wheels

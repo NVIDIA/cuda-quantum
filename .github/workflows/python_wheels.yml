@@ -97,8 +97,6 @@ jobs:
         uses: ./.github/actions/wheel-source-hash
         with:
           platform: ${{ inputs.platform }}
-          python_version: ${{ inputs.python_version }}
-          cuda_version: ${{ inputs.cuda_version }}
           tag: devel
 
   build_wheel:
@@ -155,7 +153,7 @@ jobs:
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: ${{ steps.build.outputs.wheel_dir }}
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
 
       - name: Register wheel
@@ -218,7 +216,7 @@ jobs:
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: ${{ steps.build.outputs.wheel_dir }}
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
 
       - name: Register devel wheel
