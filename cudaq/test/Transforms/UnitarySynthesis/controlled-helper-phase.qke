@@ -1,0 +1,38 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --unitary-synthesis --canonicalize %s | FileCheck %s --check-prefix=PHASE
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
+// RUN:   --aggressive-inlining --expand-control-veqs --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s \
+// RUN:   | CircuitCheck %s
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
+// RUN:   --aggressive-inlining --expand-control-veqs --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s \
+// RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+
+module {
+  func.func @controlled_synthesized_x() attributes {"cudaq-entrypoint"} {
+    %q = quake.alloca !quake.veq<2>
+    %control = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+    %target = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+    quake.h %control : (!quake.ref) -> ()
+    quake.custom_unitary_constant @x [%control] %target : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant private @x (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+}
+
+// The generated helper must preserve the X matrix's phase as bookkeeping.
+// PHASE-LABEL: func.func private @x.kernel(
+// PHASE: quake.phase
+
+// Lowering after helper specialization and inlining must reproduce an exact
+// physical gate sequence and eliminate the bookkeeping operation.
+// LOWER-LABEL: func.func @controlled_synthesized_x
+// LOWER: quake.r1
