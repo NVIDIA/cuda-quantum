@@ -756,21 +756,24 @@ public:
     return result;
   }
 
-  /// If \p parent takes region arguments, convert the live-out parent results
-  /// to live-in parent arguments. Convert the promoted loads to parent op
-  /// arguments. Replace any uses of the promoted loads to uses of block
-  /// arguments and insert modified blocks and their preds on the worklist.
+  /// Convert the promoted loads for live-out values to block arguments and
+  /// insert modified blocks and their predecessors on the worklist. If \p
+  /// parent takes region arguments, also pass those loads as parent operands.
+  /// Otherwise its region entries capture the promoted loads directly while
+  /// internal CFG blocks continue to receive block arguments.
   void updatePromotedDefs(Operation *parent, std::deque<Block *> &worklist) {
-    if (liveOutSet.empty() || neverTakesRegionArguments(parent))
+    if (liveOutSet.empty())
       return;
+    const bool noRegionArguments = neverTakesRegionArguments(parent);
     const bool onlyLinearTypes = onlyTakesLinearTypeArguments(parent);
     assert(liveInArgs.empty() && "parent's live-in args should not be set");
-    for (auto liveOut : liveOutSet) {
-      assert(promotedDefs.count(liveOut));
-      if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
-        continue;
-      liveInArgs.push_back(promotedDefs[liveOut]);
-    }
+    if (!noRegionArguments)
+      for (auto liveOut : liveOutSet) {
+        assert(promotedDefs.count(liveOut));
+        if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
+          continue;
+        liveInArgs.push_back(promotedDefs[liveOut]);
+      }
     // Phase 1: In one pass, collect unique blocks and snapshot (user, block)
     // pairs per def. Snapshotting here avoids re-traversing promotedDefs and
     // re-calling findParentBlock in phase 3.
@@ -796,6 +799,12 @@ public:
     // a binding for memref to the promoted load value. That binding will be
     // overwritten.
     for (auto *block : blockSet) {
+      // NoRegionArguments applies to physical region entry blocks, not to
+      // internal CFG blocks. Entry blocks capture the dominating promoted
+      // values directly; internal blocks still need arguments to thread defs
+      // from their predecessors.
+      if (noRegionArguments && block->isEntryBlock())
+        continue;
       for (auto memref : liveOutSet) {
         if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
           continue;
@@ -1515,14 +1524,27 @@ public:
                 // a non-constant extract_ref from a veq defined outside this
                 // scope acts as a barrier — all wire chains must be wrapped
                 // back to their refs, and subsequent uses get a fresh unwrap.
-                // We still create a promoted value (so it lands in liveInArgs
-                // and the outer scope threads the pre-aliasing state into this
-                // block) and a live-in block arg (so getLiveInToBlock can find
-                // it). The binding is set to the fresh useop (unwrap), NOT to
-                // the live-in arg — the gate sees the current ref state, not
-                // the pre-aliasing state.
-                dataFlow.createPromotedValue(parent, memuse);
-                dataFlow.addLiveInToBlock(block, memuse); // creates block arg
+                // Preserve the incoming state across the aliasing barrier. An
+                // entry block owned by an op with NoRegionArguments captures
+                // the dominating promoted value directly. An internal block
+                // of such an op instead threads a live-in argument and writes
+                // it back to the reference before the barrier. Other parents
+                // consume their live-in as an op operand. The binding after
+                // the barrier is the fresh useop (unwrap), so the gate sees
+                // the current reference state.
+                auto promoted = dataFlow.createPromotedValue(parent, memuse);
+                if (neverTakesRegionArguments(parent)) {
+                  if (block->isEntryBlock()) {
+                    dataFlow.addLiveInToBlock(block, memuse, promoted);
+                  } else {
+                    auto liveIn = dataFlow.addLiveInToBlock(block, memuse);
+                    OpBuilder builder(&block->front());
+                    cudaq::quake::WrapOp::create(builder, useop.getLoc(),
+                                                 liveIn, memuse);
+                  }
+                } else {
+                  dataFlow.addLiveInToBlock(block, memuse);
+                }
                 dataFlow.addBinding(block, memuse, useop);
                 // useop stays in the IR (not replaced, not in cleanUps).
                 return;
