@@ -228,12 +228,11 @@ void threadWireResults(OperatorInterface op,
 /// Create a Quake gate and update controls and targets to its latest wire
 /// results. Reference operands are returned unchanged.
 template <typename Op>
-inline Op createAndThreadGate(
-    mlir::OpBuilder &builder, mlir::Location location, mlir::UnitAttr isAdj,
-    mlir::ValueRange parameters,
-    llvm::MutableArrayRef<mlir::Value> controls,
-    llvm::MutableArrayRef<mlir::Value> targets,
-    mlir::DenseBoolArrayAttr negatedControls = {}) {
+inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
+                              mlir::UnitAttr isAdj, mlir::ValueRange parameters,
+                              llvm::MutableArrayRef<mlir::Value> controls,
+                              llvm::MutableArrayRef<mlir::Value> targets,
+                              mlir::DenseBoolArrayAttr negatedControls = {}) {
   auto resultTypes = getWireResultTypes(builder, controls, targets);
   auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
                        controls, targets, negatedControls);
