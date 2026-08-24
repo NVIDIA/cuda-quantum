@@ -48,6 +48,8 @@ public:
                         "supported in a kernel.");
       return failure();
     }
+    if (!c.induction.has_value())
+      return failure();
 
     if (c.hasAlwaysFalseCondition()) {
       rewriter.startOpModification(loop);
@@ -65,43 +67,86 @@ public:
       return arith::ConstantIntOp::create(rewriter, loc, ty, val);
     };
     auto zero = createConstantOp(0);
-    loop->setOperand(c.induction, zero);
+    loop->setOperand(*c.induction, zero);
 
     // 2) Compute the number of iterations as an invariant. `iterations = max(0,
     // (upper - lower + step) / step)`.
-    Value upper = c.compareValue;
+    // isLoopInvariant (which getLoopComponents relies on) accepts values
+    // that are loop-invariant in *value* but are defined by a pure
+    // recomputation nested inside the loop (e.g. `quake.veq_size` on a veq
+    // the loop doesn't modify), not just values that already dominate the
+    // loop. Materialize (hoist a clone of) any such value here so it can
+    // legally be used at this insertion point, which must dominate the loop.
+    Value upper =
+        cudaq::opt::materializeLoopInvariant(rewriter, c.compareValue, loop);
     auto one = createConstantOp(1);
-    Value step = c.stepValue;
-    Value lower = c.initialValue;
+    Value step =
+        cudaq::opt::materializeLoopInvariant(rewriter, c.stepValue, loop);
+    Value lower =
+        cudaq::opt::materializeLoopInvariant(rewriter, c.initialValue, loop);
+
+    // upper, step, and lower are artifacts pulled from the original
+    // function (e.g. the loop's own bound vs. its induction/step) and are
+    // not guaranteed to share an integer width: the bound may be computed
+    // in a wider type than the induction was declared with (as happens
+    // when the bound is compared against a widened copy of the
+    // induction, such as a veq size). Do all the arithmetic below in a
+    // single, common (widest) integer type, promoting narrower values up
+    // via a signed cc.cast; `newUpper` is narrowed back down to `ty` (the
+    // induction's own type) just before it replaces the comparison below.
+    auto widerOf = [](Type a, Type b) {
+      return cast<IntegerType>(a).getWidth() >= cast<IntegerType>(b).getWidth()
+                 ? a
+                 : b;
+    };
+    Type wideTy =
+        widerOf(widerOf(upper.getType(), step.getType()), lower.getType());
+    auto promote = [&](Value v) -> Value {
+      if (v.getType() == wideTy)
+        return v;
+      return cudaq::cc::CastOp::create(rewriter, loc, wideTy, v,
+                                       cudaq::cc::CastOpMode::Signed);
+    };
+    upper = promote(upper);
+    step = promote(step);
+    lower = promote(lower);
+    auto wideZero = wideTy == ty ? zero : promote(zero);
+    auto wideOne = wideTy == ty ? one : promote(one);
+
     if (!c.stepIsAnAddOp())
-      step = arith::SubIOp::create(rewriter, loc, zero, step);
+      step = arith::SubIOp::create(rewriter, loc, wideZero, step);
     if (c.isLinearExpr()) {
       // Induction is part of a linear expression. Deal with the terms of the
       // equation. `m` scales the step. `b` is an addend to the lower bound.
       if (c.addendValue) {
+        Value addend = promote(cudaq::opt::materializeLoopInvariant(
+            rewriter, c.addendValue, loop));
         if (c.negatedAddend) {
           // `m * i - b`, u += `b`.
-          upper = arith::AddIOp::create(rewriter, loc, upper, c.addendValue);
+          upper = arith::AddIOp::create(rewriter, loc, upper, addend);
         } else {
           // `m * i + b`, u -= `b`.
-          upper = arith::SubIOp::create(rewriter, loc, upper, c.addendValue);
+          upper = arith::SubIOp::create(rewriter, loc, upper, addend);
         }
       }
       if (c.minusOneMult) {
         // `b - m * i` (b eliminated), multiply lower and step by `-1` (`m`
         // follows).
-        auto negOne = createConstantOp(-1);
-        lower = arith::MulIOp::create(rewriter, loc, lower, negOne);
-        step = arith::MulIOp::create(rewriter, loc, step, negOne);
+        auto wideNegOne =
+            arith::ConstantIntOp::create(rewriter, loc, wideTy, -1);
+        lower = arith::MulIOp::create(rewriter, loc, lower, wideNegOne);
+        step = arith::MulIOp::create(rewriter, loc, step, wideNegOne);
       }
       if (c.scaleValue) {
+        Value scale = promote(
+            cudaq::opt::materializeLoopInvariant(rewriter, c.scaleValue, loop));
         if (c.reciprocalScale) {
           // `1/m * i + b` (b eliminated), multiply upper by `m`.
-          upper = arith::MulIOp::create(rewriter, loc, upper, c.scaleValue);
+          upper = arith::MulIOp::create(rewriter, loc, upper, scale);
         } else {
           // `m * i + b` (b eliminated), multiple lower and step by `m`.
-          lower = arith::MulIOp::create(rewriter, loc, lower, c.scaleValue);
-          step = arith::MulIOp::create(rewriter, loc, step, c.scaleValue);
+          lower = arith::MulIOp::create(rewriter, loc, lower, scale);
+          step = arith::MulIOp::create(rewriter, loc, step, scale);
         }
       }
     }
@@ -109,10 +154,10 @@ public:
       // Note: treating the step as a signed value to process countdown loops as
       // well as countup loops.
       Value negStepCond = arith::CmpIOp::create(
-          rewriter, loc, arith::CmpIPredicate::slt, step, zero);
-      auto negOne = createConstantOp(-1);
-      Value adj =
-          arith::SelectOp::create(rewriter, loc, ty, negStepCond, negOne, one);
+          rewriter, loc, arith::CmpIPredicate::slt, step, wideZero);
+      auto wideNegOne = arith::ConstantIntOp::create(rewriter, loc, wideTy, -1);
+      Value adj = arith::SelectOp::create(rewriter, loc, wideTy, negStepCond,
+                                          wideNegOne, wideOne);
       upper = arith::SubIOp::create(rewriter, loc, upper, adj);
     }
     Value diff = arith::SubIOp::create(rewriter, loc, upper, lower);
@@ -121,13 +166,25 @@ public:
     Value newUpper = arith::DivSIOp::create(rewriter, loc, disp, step);
     if (cudaq::opt::isSignedPredicate(cmpOp.getPredicate())) {
       Value noLoopCond = arith::CmpIOp::create(
-          rewriter, loc, arith::CmpIPredicate::sgt, newUpper, zero);
-      newUpper = arith::SelectOp::create(rewriter, loc, ty, noLoopCond,
-                                         newUpper, zero);
+          rewriter, loc, arith::CmpIPredicate::sgt, newUpper, wideZero);
+      newUpper = arith::SelectOp::create(rewriter, loc, wideTy, noLoopCond,
+                                         newUpper, wideZero);
     }
-
     // 3) Rewrite the comparison (!=) and step operations (+1).
+    // getCompareInduction() returns the *other* operand of the original
+    // comparison (i.e. whatever `compareValue`, now folded into newUpper,
+    // was being compared against). That operand may itself be a widened
+    // (cast) copy of the induction rather than the induction's own `ty`, so
+    // promote whichever of v1/newUpper is narrower to match the other
+    // instead of assuming either one's type.
     Value v1 = c.getCompareInduction();
+    if (v1.getType() != newUpper.getType()) {
+      if (widerOf(v1.getType(), newUpper.getType()) == v1.getType())
+        newUpper = promote(newUpper);
+      else
+        v1 = cudaq::cc::CastOp::create(rewriter, loc, newUpper.getType(), v1,
+                                       cudaq::cc::CastOpMode::Signed);
+    }
     rewriter.setInsertionPoint(cmpOp);
     Value newCmp = arith::CmpIOp::create(
         rewriter, cmpOp.getLoc(), arith::CmpIPredicate::ne, v1, newUpper);
@@ -143,7 +200,7 @@ public:
     if (!loop.getBodyRegion().empty()) {
       Block *entry = &loop.getBodyRegion().front();
       rewriter.setInsertionPointToStart(entry);
-      Value induct = entry->getArgument(c.induction);
+      Value induct = entry->getArgument(*c.induction);
       auto mul = arith::MulIOp::create(rewriter, loc, induct, c.stepValue);
       auto newInd = [&]() -> Value {
         if (c.stepIsAnAddOp())
@@ -158,8 +215,8 @@ public:
     }
 
     // 5) Back-convert the loop's induction-position result for external uses
-    if (c.induction < loop.getNumResults()) {
-      Value loopResult = loop.getResult(c.induction);
+    if (*c.induction < loop.getNumResults()) {
+      Value loopResult = loop.getResult(*c.induction);
       if (!loopResult.use_empty()) {
         rewriter.setInsertionPointAfter(loop);
         auto mulRes =

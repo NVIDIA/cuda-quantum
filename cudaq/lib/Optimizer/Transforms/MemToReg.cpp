@@ -20,6 +20,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/SetVector.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -75,6 +76,27 @@ static bool neverTakesRegionArguments(Operation *op) {
 
 static bool onlyTakesLinearTypeArguments(Operation *op) {
   return op->hasTrait<cudaq::cc::LinearTypeArgsTrait>();
+}
+
+/// Returns true if and only if \p op behaves like a quantum-gate operator:
+/// it implicitly dereferences a `!quake.ref` operand and modifies the wire
+/// it refers to. All quake ops with the `QuantumGate` trait (which includes
+/// `quake.reset` and `quake.exp_pauli`) act this way, as do the quantum
+/// measurement ops (`quake.mx`/`my`/`mz`, tagged `QuantumMeasure`) and ops
+/// tagged `QuantumSideEffects` that are not themselves quantum operators
+/// but macro-expand to (or invoke) one: `quake.apply`,
+/// `quake.compute_action`, `quake.apply_noise`, and `quake.call_by_ref`.
+/// Every other op only manages references/veqs — e.g. `quake.concat`,
+/// `quake.dealloc`, `quake.relax_size`, `cc.instantiate_callable`,
+/// `cc.callable_closure`, and (despite appearances) `quake.log_output` — and
+/// cannot alias or mutate a qubit we are tracking. `quake.log_output` merely
+/// marks a value as observable for later codegen; it does not dereference
+/// or modify anything, so it must not trigger the conservative
+/// wrap-and-cancel-everything path below.
+static bool actsLikeQuantumOperator(Operation *op) {
+  return op->hasTrait<cudaq::QuantumGate>() ||
+         op->hasTrait<cudaq::QuantumMeasure>() ||
+         op->hasTrait<cudaq::QuantumSideEffects>();
 }
 
 static bool isLinearType(Value v) {
@@ -143,8 +165,22 @@ private:
       for (auto *u : a->getUsers()) {
         // Don't convert quake.custom unitary ops as they have ambiguous
         // semantics.
+        //
+        // cc.instantiate_callable always escapes any pointer-typed operand it
+        // captures: the closure holds onto that raw address for later
+        // dereference from a completely different function, not a load-like
+        // use here. isMemoryUse's op-level MemoryEffectOpInterface check
+        // can't tell escaping capture operands apart from ordinary ones —
+        // InstantiateCallableOp::getEffects reports a blanket Read (to keep
+        // CSE from merging distinct instantiations of a closure that
+        // captures a quantum reference; see its definition in CCOps.cpp),
+        // which makes isMemoryUse return true for the whole op regardless of
+        // which operand is being examined, so a classical alloca captured
+        // alongside an unrelated quantum capture would otherwise look like a
+        // harmless load and get promoted out from under the closure.
         if (isa<cudaq::quake::CustomUnitaryCallOp,
-                cudaq::quake::CustomUnitaryConstantOp>(u) ||
+                cudaq::quake::CustomUnitaryConstantOp,
+                cudaq::cc::InstantiateCallableOp>(u) ||
             (!isMemoryUse(u) && !nonEscapingDef(u, v))) {
           add = nullptr;
           break;
@@ -183,6 +219,68 @@ static Type dereferencedType(Type ty) {
   if (isa<cudaq::quake::RefType>(ty))
     return cudaq::quake::WireType::get(ty.getContext());
   return cast<cudaq::cc::PointerType>(ty).getElementType();
+}
+
+/// Peel a chain of `quake.subveq`/`quake.relax_size` views off \p veq to find
+/// the underlying veq it is ultimately a view of (an alloca, init_state
+/// result, function/block argument, or any other op result that isn't itself
+/// a further view). \p veq itself is returned unchanged if it isn't a view.
+static Value resolveVeqRoot(Value veq) {
+  while (true) {
+    if (auto sub = veq.getDefiningOp<cudaq::quake::SubVeqOp>()) {
+      veq = sub.getVeq();
+      continue;
+    }
+    if (auto relax = veq.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
+      veq = relax.getInputVec();
+      continue;
+    }
+    return veq;
+  }
+}
+
+/// Walk \p ref's provenance backward — through the `quake.extract_ref` that
+/// produced it and that op's source-veq chain of `quake.subveq`/
+/// `quake.relax_size` views — and compare its ultimate root veq against \p
+/// v's own ultimate root (resolved the same way) to determine whether \p ref
+/// can be proven independent of \p v's qubit range.
+///
+/// Both provenance chains must be resolved to their roots and compared —
+/// not just \p ref's chain searched for the literal value \p v — because
+/// \p ref and \p v may be *siblings* that share a common root without either
+/// being derived from the other (e.g. \p ref extracted directly from a veq
+/// %q, and \p v a `quake.subveq` of that same %q taken independently): \p
+/// v never appears verbatim in \p ref's chain in that case, even though they
+/// plainly alias.
+///
+/// This is intentionally driven backward from a single, already-tracked ref
+/// binding rather than forward from \p v across every use in the function:
+/// the only refs that matter are ones that are currently live bindings in
+/// the block being processed (i.e. already properly scoped to the region
+/// being threaded), and a ref's own provenance chain is unambiguous — unlike
+/// enumerating every downstream use of \p v, which can spuriously implicate
+/// (or, on an unrelated unclassifiable use anywhere in the function, force a
+/// blanket bailout for) refs that have nothing to do with the current
+/// aliasing site.
+///
+/// Returns true only when \p ref's provenance is fully resolved and its root
+/// is a distinct SSA value from \p v's own resolved root — i.e. \p ref is
+/// definitely not derived from \p v. Returns false (can't rule it out, so
+/// the caller must treat \p ref as a possible alias) whenever the roots
+/// match or \p ref bottoms out at something that isn't itself further
+/// resolvable (e.g. \p ref is a quake.wrap_new stand-in — see
+/// reclaimAliasedRef — whose provenance can't be traced back at all).
+static bool definitelyNotDerivedFrom(Value ref, Value v) {
+  // A standalone ref alloca owns an independent qubit: it was never
+  // extracted from any veq, so it can't be derived from v regardless of v's
+  // identity.
+  if (auto *defOp = ref.getDefiningOp())
+    if (isa<cudaq::quake::AllocaOp>(defOp))
+      return true;
+  auto extract = ref.getDefiningOp<cudaq::quake::ExtractRefOp>();
+  if (!extract)
+    return false;
+  return resolveVeqRoot(extract.getVeq()) != resolveVeqRoot(v);
 }
 
 namespace {
@@ -297,7 +395,7 @@ public:
   void addBlock(Block *block) {
     assert(block);
     if (!rMap.count(block)) {
-      rMap.insert({block, DenseMap<MemRef, SSAReg>{}});
+      rMap.insert({block, llvm::MapVector<MemRef, SSAReg>{}});
       liveInMap.insert({block, llvm::MapVector<MemRef, SSAReg>{}});
     }
   }
@@ -320,89 +418,192 @@ public:
     addBinding(block, mr, SSAReg{});
   }
 
+  /// \p ref is an alloca-promoted ref that is about to be erased (its
+  /// defining op is in \p cleanUps), but a downstream op not yet visited may
+  /// still hold \p ref as a raw operand (e.g. a synthetic UnwrapOp inserted
+  /// by convertToQLS). Cancelling \p ref's binding without doing anything
+  /// else would leave that later use dangling once the alloca is erased —
+  /// give \p ref a fresh, live stand-in and redirect every remaining use to
+  /// it before cancelling.
+  ///
+  /// \p wire is consumed by the mint (its qubit identity is handed off to
+  /// the fresh ref), so the fresh ref's own binding must be cancelled too —
+  /// not bound back to \p wire — otherwise a later use of the fresh ref
+  /// would be optimized straight through to \p wire, giving it a second use
+  /// and violating wire linearity. This mirrors the fact that whatever
+  /// mutated the aliased qubit did so entirely in ref-space: \p wire no
+  /// longer represents the qubit's current state, only the fresh ref does.
+  void reclaimAliasedRef(Block *block, OpBuilder &builder, Location loc,
+                         MemRef ref, SSAReg wire) {
+    auto newRef =
+        cudaq::quake::WrapNewOp::create(builder, loc, ref.getType(), wire);
+    ref.replaceAllUsesWith(newRef);
+    cancelBinding(block, newRef);
+    cancelBinding(block, ref);
+  }
+
+  /// Cancel the binding for a single \p ref in \p block: wrap its current
+  /// wire back into the ref (or, if \p ref is an alloca-promoted ref about to
+  /// be erased, give it a fresh live stand-in via reclaimAliasedRef instead)
+  /// and cancel the binding. No-op if \p ref has no active binding.
+  ///
+  /// If \p triggeringOp is non-null and \p ref's current wire is already a
+  /// direct operand of \p triggeringOp, this is a no-op: wrapping that wire
+  /// here would give it a second use (the wrap and the op), violating wire
+  /// linearity — the op itself is about to "consume" that wire.
+  void cancelSingleBinding(Block *block, OpBuilder &builder, Location loc,
+                           SmallPtrSetImpl<Operation *> &cleanUps, MemRef ref,
+                           Operation *triggeringOp) {
+    if (!rMap.count(block))
+      return;
+    auto it = rMap[block].find(ref);
+    if (it == rMap[block].end())
+      return;
+    SSAReg wire = it->second;
+    if (!wire)
+      return;
+    if (triggeringOp && llvm::is_contained(triggeringOp->getOperands(), wire))
+      return;
+
+    // If wire's only use is already a WrapOp targeting this same ref, the
+    // physical ref state is already up to date -- e.g. this binding was
+    // last set by handleDefinition processing a real quake.wrap already
+    // present in the IR (such as the one convertToQLS unconditionally
+    // inserts after a measurement). Emitting another WrapOp here would
+    // consume wire a second time, violating wire linearity, and is
+    // unnecessary: just clear the binding so a later use of ref gets a
+    // fresh unwrap.
+    if (wire.hasOneUse())
+      if (auto existingWrap =
+              dyn_cast<cudaq::quake::WrapOp>(*wire.getUsers().begin()))
+        if (existingWrap.getRefValue() == ref) {
+          cancelBinding(block, ref);
+          return;
+        }
+
+    // Alloca refs in cleanUps are being SSA-promoted; skip the wrap but
+    // give ref a live stand-in before cancelling so subsequent uses get a
+    // fresh binding instead of a dangling operand.
+    if (auto *defOp = ref.getDefiningOp())
+      if (cleanUps.count(defOp)) {
+        reclaimAliasedRef(block, builder, loc, ref, wire);
+        return;
+      }
+
+    auto wrapOp = cudaq::quake::WrapOp::create(builder, loc, wire, ref);
+    cleanUps.insert(wrapOp);
+    cancelBinding(block, ref);
+  }
+
   /// Wrap all active quantum-ref bindings back into their refs and cancel them.
   /// Used when an operation may alias any qubit through a veq whose membership
   /// cannot be precisely determined.
-  ///
-  /// If \p triggeringOp is non-null, any binding whose current wire value is
-  /// already a direct operand of \p triggeringOp is skipped.  Wrapping such a
-  /// wire would give it two uses (the wrap and the op), violating wire
-  /// linearity — the op itself is about to "consume" that wire.
   void wrapAndCancelAllQuantumBindings(Block *block, OpBuilder &builder,
                                        Location loc,
                                        SmallPtrSetImpl<Operation *> &cleanUps,
                                        Operation *triggeringOp = nullptr) {
     if (!rMap.count(block))
       return;
-    SmallVector<std::pair<MemRef, SSAReg>> toCancel;
+    SmallVector<MemRef> toCancel;
     for (auto &[ref, wire] : rMap[block]) {
       if (!wire)
         continue;
       if (!isa<cudaq::quake::RefType>(ref.getType()))
         continue;
-      toCancel.push_back({ref, wire});
+      toCancel.push_back(ref);
     }
-    for (auto [ref, wire] : toCancel) {
-      // Skip bindings whose wire is already consumed by the triggering op.
-      if (triggeringOp && llvm::is_contained(triggeringOp->getOperands(), wire))
+    for (MemRef ref : toCancel)
+      cancelSingleBinding(block, builder, loc, cleanUps, ref, triggeringOp);
+  }
+
+  /// Cancel every active ref binding in \p block whose provenance cannot be
+  /// proven independent of \p v (see definitelyNotDerivedFrom). This is
+  /// naturally scoped to whatever is currently live/tracked in \p block: a
+  /// ref extracted somewhere else in the function that never became a
+  /// binding here is untouched regardless of what veq it came from.
+  void cancelBindingsAliasing(Value v, Block *block, OpBuilder &builder,
+                              Location loc,
+                              SmallPtrSetImpl<Operation *> &cleanUps,
+                              Operation *triggeringOp) {
+    if (!rMap.count(block))
+      return;
+    SmallVector<MemRef> toCancel;
+    for (auto &[ref, wire] : rMap[block]) {
+      if (!wire)
         continue;
-
-      // Alloca refs in cleanUps are being SSA-promoted; skip the wrap but
-      // still cancel so subsequent uses get a fresh binding.
-      if (auto *defOp = ref.getDefiningOp())
-        if (cleanUps.count(defOp)) {
-          cancelBinding(block, ref);
-          continue;
-        }
-
-      auto wrapOp = cudaq::quake::WrapOp::create(builder, loc, wire, ref);
-      cleanUps.insert(wrapOp);
-      cancelBinding(block, ref);
+      if (!isa<cudaq::quake::RefType>(ref.getType()))
+        continue;
+      if (definitelyNotDerivedFrom(ref, v))
+        continue;
+      toCancel.push_back(ref);
     }
+    for (MemRef ref : toCancel)
+      cancelSingleBinding(block, builder, loc, cleanUps, ref, triggeringOp);
   }
 
   /// For each veq value in \p veqsToCancel, wrap any active ref bindings back
-  /// to their refs and cancel them.  When the veq is the result of a
+  /// to their refs and cancel them. When the veq is the result of a
   /// quake.concat whose members are known statically, only the individual ref
-  /// operands of that concat are cancelled; otherwise all active bindings in
-  /// the block are cancelled via wrapAndCancelAllQuantumBindings.
-  void cancelBindings(const SmallPtrSetImpl<Value> &veqsToCancel, Block *block,
+  /// operands of that concat are cancelled. Otherwise, only the currently
+  /// active bindings in \p block whose provenance cannot be proven
+  /// independent of the veq are cancelled (see cancelBindingsAliasing).
+  ///
+  /// \p veqsToCancel is a SetVector: iteration order must be deterministic,
+  /// since it drives the order wrap ops are inserted in.
+  void cancelBindings(const SetVector<Value> &veqsToCancel, Block *block,
                       SmallPtrSetImpl<Operation *> &cleanUps, Operation *op) {
     for (Value v : veqsToCancel) {
       OpBuilder builder(op);
       Location loc = op->getLoc();
-      // A veq defined by a standalone alloca or by an init_state (which
-      // initializes a separate alloca) occupies an independent qubit range
-      // with no overlap with individually tracked ref allocas.  No binding
-      // cancellation is needed for those cases.
-      if (auto *defOp = v.getDefiningOp())
-        if (isa<cudaq::quake::AllocaOp, cudaq::quake::InitializeStateOp>(defOp))
-          continue;
       auto concat = v.getDefiningOp<cudaq::quake::ConcatOp>();
       if (!concat) {
-        wrapAndCancelAllQuantumBindings(block, builder, loc, cleanUps, op);
+        cancelBindingsAliasing(v, block, builder, loc, cleanUps, op);
         continue;
       }
       bool fallback = false;
       for (Value arg : concat.getTargets()) {
         if (fallback)
           break;
+        // A quake.wrap_new result is a stand-in ref minted to let some
+        // other op (e.g. this very concat) consume a memref that couldn't
+        // be used directly — see reclaimAliasedRef and the toReclaim
+        // pattern above. Its binding in rMap is a one-time snapshot that is
+        // never updated as the real, underlying memref's binding evolves,
+        // so cancelling *it* would silently leave the real memref's (now
+        // stale) binding live. There is no way to trace a stand-in back to
+        // the memref it stood in for, so fall back to the conservative
+        // cancel-everything path.
+        if (arg.getDefiningOp<cudaq::quake::WrapNewOp>()) {
+          fallback = true;
+          continue;
+        }
         if (isa<cudaq::quake::RefType>(arg.getType())) {
           SSAReg cur = lookupBinding(block, arg);
           if (cur && !llvm::is_contained(op->getOperands(), cur)) {
             bool argInCleanUps =
                 arg.getDefiningOp() && cleanUps.count(arg.getDefiningOp());
-            if (!argInCleanUps) {
+            if (argInCleanUps) {
+              reclaimAliasedRef(block, builder, loc, arg, cur);
+            } else {
               auto wrapOp =
                   cudaq::quake::WrapOp::create(builder, loc, cur, arg);
               cleanUps.insert(wrapOp);
+              cancelBinding(block, arg);
             }
-            cancelBinding(block, arg);
           }
         } else if (auto veqTy =
                        dyn_cast<cudaq::quake::VeqType>(arg.getType())) {
-          if (!veqTy.hasSpecifiedSize())
+          if (!veqTy.hasSpecifiedSize()) {
             fallback = true;
+          } else {
+            // A specified-size veq member of the concat may itself alias
+            // refs extracted from a different view of the same underlying
+            // storage (e.g. arg is a quake.subveq of some %q, and some
+            // other live ref was extracted directly from %q) -- those
+            // bindings must be invalidated too, exactly as for a veq
+            // operand outside of a concat (see cancelBindingsAliasing).
+            cancelBindingsAliasing(arg, block, builder, loc, cleanUps, op);
+          }
         } else {
           fallback = true;
         }
@@ -658,8 +859,11 @@ private:
   }
 
   /// A map for each block to its bindings from a memory reference to a
-  /// virtual register value.
-  DenseMap<Block *, DenseMap<MemRef, SSAReg>> rMap;
+  /// virtual register value. Insertion-order-preserving so that ops emitted
+  /// while iterating a block's bindings (e.g. wrapAndCancelAllQuantumBindings)
+  /// come out in a deterministic order instead of DenseMap's pointer-hash
+  /// bucket order, which varies run to run.
+  DenseMap<Block *, llvm::MapVector<MemRef, SSAReg>> rMap;
   /// For a CFG, maintain a distinct map for each block of the definitions
   /// that are live-in to each block.
   DenseMap<Block *, llvm::MapVector<MemRef, SSAReg>> liveInMap;
@@ -939,8 +1143,30 @@ public:
     for (auto &region : parent->getRegions())
       for (auto &block : region)
         for (auto &op : block)
-          if (op.getNumRegions())
-            processOpWithRegions(&op, memAnalysis, cleanUps, domOpt, childMap);
+          if (op.getNumRegions()) {
+            Operation *finalOp = processOpWithRegions(
+                &op, memAnalysis, cleanUps, domOpt, childMap);
+            // processOpWithRegions may replace &op with a new operation (when
+            // it has live-outs that need to be appended as new results. &op
+            // itself survives physically in the block (only erased later, via
+            // cleanUps) but is a dead husk from here on: any childMap summary
+            // deposited under the *old* key must be rekeyed to the surviving
+            // op, or the caller's own block walk — which will encounter both
+            // the new and the (still physically present, soon-to-be-erased) old
+            // op as separate entries — would read the summary off the wrong
+            // (dead) operation, whose operand list no longer reflects reality.
+            if (finalOp != &op) {
+              auto it = childMap.find(&op);
+              if (it != childMap.end()) {
+                // Copy the summary out and erase via `it` *before* inserting
+                // under the new key: DenseMap's operator[] may rehash on
+                // insertion, which would invalidate `it`.
+                auto summary = std::move(it->second);
+                childMap.erase(it);
+                childMap[finalOp] = std::move(summary);
+              }
+            }
+          }
   }
 
   /// Process the operation \p parent, which must contain regions, and derive
@@ -951,11 +1177,16 @@ public:
   /// successor blocks. (It is not possible to construct a \em fully pruned SSA
   /// IR in the MLIR design of Ops with Regions as both exits and backedges must
   /// have the exact same signatures regardless of liveness.)
-  void processOpWithRegions(Operation *parent,
-                            const MemoryAnalysis &memAnalysis,
-                            SmallPtrSetImpl<Operation *> &cleanUps,
-                            std::optional<DominanceInfo> &domOpt,
-                            VeqAccessMap &parentMap) {
+  ///
+  /// Returns the operation that should be treated as \p parent's identity
+  /// from here on: \p parent itself, unless it had live-outs that required
+  /// rebuilding it with extra results, in which case the newly built
+  /// replacement is returned instead.
+  Operation *processOpWithRegions(Operation *parent,
+                                  const MemoryAnalysis &memAnalysis,
+                                  SmallPtrSetImpl<Operation *> &cleanUps,
+                                  std::optional<DominanceInfo> &domOpt,
+                                  VeqAccessMap &parentMap) {
     ++numProcessOpWithRegionsCalls;
     auto *ctx = &getContext();
     auto wireTy = cudaq::quake::WireType::get(ctx);
@@ -1027,10 +1258,30 @@ public:
           // `continue` — so it fires even for ops like extract_ref that both
           // use a veq operand and produce a !quake.ref result.
           //
-          // Excluded: quake.concat (assembles refs into a veq without reading
-          // through it) and quake.dealloc (handled separately).
-          if (quantumValues &&
-              !isa<cudaq::quake::ConcatOp, cudaq::quake::DeallocOp>(op)) {
+          // Ops that act like quantum-gate operators (see
+          // actsLikeQuantumOperator) actually dereference a ref and modify
+          // the wire it refers to. A dynamic-index quake.extract_ref is the
+          // other trigger: it doesn't itself mutate anything, but it returns
+          // a ref that may alias any individually-tracked ref in the same
+          // veq, so any such stale binding must be invalidated right here —
+          // waiting for a later op to dereference the extracted ref would be
+          // too late, since that op's own operand is the ref, not the veq,
+          // and so it can't be traced back to the veq it may alias. Every
+          // other op — quake.concat, quake.dealloc, quake.relax_size,
+          // cc.instantiate_callable, cc.callable_closure, etc. — only
+          // manages references/veqs and cannot alias or mutate a qubit we
+          // are tracking, so this conservative cancellation must not fire
+          // for them. The third trigger is any op with regions (cc.loop,
+          // cc.if, cc.scope, ...): the aliasing access may be nested inside
+          // one of its regions rather than be a direct operand of the op
+          // itself, reported back via childMap/parentMap (Source 2 below)
+          // by the recursive processOpWithRegions call that already ran
+          // over its regions. That summary is only ever consumed here, so
+          // an op with regions must always enter this branch to have a
+          // chance to consume it, regardless of what its own operands are.
+          if (quantumValues && (actsLikeQuantumOperator(op) ||
+                                isa<cudaq::quake::ExtractRefOp>(op) ||
+                                op->getNumRegions() > 0)) {
             // Collect veqs whose ref-bindings need to be cancelled.
             // Two sources feed into this set:
             //
@@ -1043,7 +1294,7 @@ public:
             //     call for this op (via externalVeqAccesses).  If any of those
             //     veqs are *also* from outside the current `parent`, propagate
             //     them one level further up; otherwise cancel now.
-            SmallPtrSet<Value, 4> veqsToCancel;
+            SetVector<Value> veqsToCancel;
 
             // Helper: is `v` defined outside of `parent`'s regions?
             auto isFromOutsideParent = [&](Value v) -> bool {
@@ -1062,6 +1313,7 @@ public:
             //       outer-scope ref first imported after this point gets a
             //       fresh unwrap instead of the (potentially stale) live-in.
             bool hadOuterVeq = false;
+            SmallVector<Value, 2> outerVeqs;
             for (Value v : op->getOperands()) {
               if (!isa<cudaq::quake::VeqType>(v.getType()))
                 continue;
@@ -1072,17 +1324,20 @@ public:
                 // Record in parentMap so the outer processOpWithRegions
                 // can cancel the binding at the right scope level.
                 parentMap[parent].push_back(v);
+                outerVeqs.push_back(v);
                 hadOuterVeq = true;
               } else {
                 veqsToCancel.insert(v);
               }
             }
             if (hadOuterVeq) {
-              // Conservative cancel: we don't know which refs the outer veq
-              // contains, so cancel all active bindings in this block.
+              // v is known precisely here (a direct operand), so only refs
+              // whose provenance can't be proven independent of it need to
+              // be invalidated — see cancelBindingsAliasing.
               OpBuilder builder(op);
-              dataFlow.wrapAndCancelAllQuantumBindings(
-                  block, builder, op->getLoc(), cleanUps, op);
+              for (Value v : outerVeqs)
+                dataFlow.cancelBindingsAliasing(v, block, builder, op->getLoc(),
+                                                cleanUps, op);
               aliasForBlock = true;
             }
 
@@ -1091,11 +1346,22 @@ public:
             auto it = childMap.find(op);
             if (it != childMap.end()) {
               for (Value v : it->second) {
-                if (isFromOutsideParent(v))
-                  // Still from above — propagate one more level up.
+                if (isFromOutsideParent(v)) {
+                  // Still from above — propagate one more level up so the
+                  // scope that actually owns v also checks its own
+                  // bindings.
                   parentMap[parent].push_back(v);
-                else
-                  veqsToCancel.insert(v);
+                  aliasForBlock = true;
+                }
+                // Always also attempt cancellation against *this* level's
+                // own bindings, regardless of who owns v: this scope may
+                // have threaded its own local wire state (e.g. a
+                // loop-carried region argument aliased into op's subtree)
+                // that must not survive past this aliasing event either.
+                // Deferring only to the owning scope is not enough — by the
+                // time that scope's own cancellation runs, this scope's
+                // threading has already been built.
+                veqsToCancel.insert(v);
               }
               childMap.erase(it);
             }
@@ -1130,14 +1396,34 @@ public:
             } else {
               OpBuilder builder(ctx);
               builder.setInsertionPoint(op);
+              // Track (memref, freshRef) pairs so the wires captured by op's
+              // ref-typed operands can be reclaimed with an unwrap placed
+              // after op.
+              SmallVector<std::pair<Value, Value>> toReclaim;
               for (auto v : op->getOperands())
                 if (v.getType() == qrefTy)
                   if (auto vBinding = dataFlow.lookupBinding(block, v)) {
-                    cudaq::quake::WrapOp::create(builder, op->getLoc(),
-                                                 vBinding, v);
-                    dataFlow.cancelBinding(block, v);
+                    // v may be an alloca-promoted ref that is about to be
+                    // erased, so op cannot keep using it directly. Bind the
+                    // current wire to a fresh reference for op to consume
+                    // (see quake.wrap_new) and reclaim the wire with an
+                    // unwrap placed after op.
+                    auto newRef = cudaq::quake::WrapNewOp::create(
+                        builder, op->getLoc(), qrefTy, vBinding);
+                    op->replaceUsesOfWith(v, newRef);
+                    toReclaim.emplace_back(v, newRef);
                   }
               builder.setInsertionPointAfter(op);
+              for (auto [v, newRef] : toReclaim) {
+                Value newWire = cudaq::quake::UnwrapOp::create(
+                    builder, op->getLoc(), wireTy, newRef);
+                dataFlow.addBinding(block, v, newWire);
+                // This unwrap's own ref operand is newRef, not v: bind it
+                // too so the walk loop's own re-visit of this synthetic
+                // unwrap (below) resolves to a known def instead of
+                // reporting a spurious "use before def".
+                dataFlow.addBinding(block, newRef, newWire);
+              }
               for (auto r : op->getResults())
                 if (r.getType() == qrefTy) {
                   Value v = cudaq::quake::UnwrapOp::create(
@@ -1208,7 +1494,23 @@ public:
             // Parent is not a function.
             if (!isDescendantOf(parent, memuse)) {
               // `block` is using a value from another scope.
-              if (aliasForBlock) {
+              //
+              // A memAnalysis-member alloca is destined for total
+              // elimination: its every use gets rewritten to a null-wire
+              // thread, and its defining op itself is erased at the end of
+              // the pass (see cleanUps). It must never end up as the literal
+              // operand of a surviving op, so the aliasForBlock path (which
+              // deliberately keeps `useop` — a real, permanent dereference
+              // of memuse — alive in the IR) cannot apply to it: doing so
+              // leaves a dangling reference once the alloca is erased. Fall
+              // through to the normal path instead, which folds useop away
+              // via the same self-correcting replacement (into a null wire)
+              // used for every other member reference.
+              bool memuseIsEliminatedAlloca =
+                  memuse.getDefiningOp() &&
+                  memAnalysis.isMember(memuse.getDefiningOp());
+              if (aliasForBlock && !memuseIsEliminatedAlloca &&
+                  cudaq::quake::isQuantumReferenceType(memuse.getType())) {
                 // A dynamic veq-aliasing event already occurred in this block:
                 // a non-constant extract_ref from a veq defined outside this
                 // scope acts as a barrier — all wire chains must be wrapped
@@ -1290,15 +1592,36 @@ public:
           }
 
           // If op uses a quantum reference, then halt forwarding the unwrap
-          // use chain and leave a wrap dominating op.
-          for (auto v : op->getOperands())
-            if (v.getType() == qrefTy)
-              if (auto vBinding = dataFlow.lookupBinding(block, v)) {
-                OpBuilder builder(op);
-                cudaq::quake::WrapOp::create(builder, op->getLoc(), vBinding,
-                                             v);
-                dataFlow.cancelBinding(block, v);
+          // use chain and leave a wrap dominating op. Since v may be an
+          // alloca-promoted ref that is about to be erased, op cannot keep
+          // using it directly: bind the current wire to a fresh reference
+          // for op to consume (see quake.wrap_new) and reclaim the wire
+          // with an unwrap placed after op.
+          {
+            SmallVector<std::pair<Value, Value>> toReclaim;
+            OpBuilder builder(op);
+            for (auto v : op->getOperands())
+              if (v.getType() == qrefTy)
+                if (auto vBinding = dataFlow.lookupBinding(block, v)) {
+                  auto newRef = cudaq::quake::WrapNewOp::create(
+                      builder, op->getLoc(), qrefTy, vBinding);
+                  op->replaceUsesOfWith(v, newRef);
+                  toReclaim.emplace_back(v, newRef);
+                }
+            if (!toReclaim.empty()) {
+              builder.setInsertionPointAfter(op);
+              for (auto [v, newRef] : toReclaim) {
+                Value newWire = cudaq::quake::UnwrapOp::create(
+                    builder, op->getLoc(), wireTy, newRef);
+                dataFlow.addBinding(block, v, newWire);
+                // This unwrap's own ref operand is newRef, not v: bind it
+                // too so the walk loop's own re-visit of this synthetic
+                // unwrap (below) resolves to a known def instead of
+                // reporting a spurious "use before def".
+                dataFlow.addBinding(block, newRef, newWire);
               }
+            }
+          }
 
         } // end loop over ops
       } // end loop over blocks
@@ -1500,6 +1823,7 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "After threading inter-block:\n"
                             << *parent << "\n\n");
+    return parent;
   }
 
   LogicalResult preconditionChecks() {

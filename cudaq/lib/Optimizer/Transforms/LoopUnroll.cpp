@@ -38,6 +38,12 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+    if (unrollOnlyWireBlockingLoops && unrollOnlyIndexUseLoops) {
+      op->emitOpError("unroll-only-wire-blocking-loops and "
+                      "unroll-only-index-use-loops are mutually exclusive");
+      signalPassFailure();
+      return;
+    }
     auto numLoops = countLoopOps(op);
     unsigned progress = 0;
     if (numLoops) {
@@ -48,7 +54,8 @@ public:
         op.getCanonicalizationPatterns(patterns, ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
-                                         progress, unrollOnlyWireBlockingLoops);
+                                         progress, unrollOnlyWireBlockingLoops,
+                                         unrollOnlyIndexUseLoops);
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
@@ -59,12 +66,14 @@ public:
       } while (progress);
     }
 
+    if (!signalFailure)
+      return;
+
     if (unrollOnlyWireBlockingLoops) {
-      // In the value-semantics opt-in mode, a loop that still accesses quantum
-      // data by a dynamic index or slice (blocking wire conversion) but
-      // survived the unrolling above (e.g. a non-constant trip count) is a
-      // dead end: it can be neither kept in value semantics nor unrolled.
-      // Report each such loop.
+      // In the value-semantics opt-in mode, a loop that still blocks wire
+      // conversion or Pauli-word resolution but survived the unrolling above
+      // (e.g. because its trip count is not constant) is a dead end. Report
+      // each such loop.
       op->walk([&](cudaq::cc::LoopOp loop) {
         if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
           return;
@@ -74,9 +83,31 @@ public:
               "cannot be unrolled (trip count is not a compile-time constant); "
               "it can be neither kept in value semantics nor unrolled");
           signalPassFailure();
+        } else if (loopHasLoopDependentPauliWord(loop)) {
+          loop.emitOpError(
+              "loop-dependent Pauli word cannot be resolved because the loop "
+              "cannot be fully unrolled (trip count is not a compile-time "
+              "constant)");
+          signalPassFailure();
         }
       });
-    } else if (signalFailure) {
+    } else if (unrollOnlyIndexUseLoops) {
+      // In this mode a loop that never reads its induction variable is meant
+      // to stay rolled. An index use loop that survived the unrolling above
+      // (e.g. a non-constant trip count) did not: its iterations are not
+      // identical, so leaving it rolled loses the per-iteration indices.
+      // Report each such loop.
+      op->walk([&](cudaq::cc::LoopOp loop) {
+        if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
+          return;
+        if (loopUsesInductionVariable(loop)) {
+          loop.emitOpError("loop uses its induction variable and cannot be "
+                           "unrolled (trip count is not a compile-time "
+                           "constant or exceeds the iteration threshold)");
+          signalPassFailure();
+        }
+      });
+    } else {
       numLoops = countLoopOps(op);
       if (numLoops) {
         op->emitOpError("did not unroll loops");

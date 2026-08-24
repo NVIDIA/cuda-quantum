@@ -152,3 +152,32 @@ func.func @test_07() {
   quake.return_wire %loop#1 : !quake.wire
   return
 }
+
+// -----
+
+quake.wire_set @wires_08[10]
+
+// This mapper-boundary form is generated from valid C++ when an inner block
+// contains `std::vector<int> indices{0, 1}`. The classical allocation keeps
+// that block's `cc.scope` alive, while the quantum program remains in the
+// surrounding run-entry block. With fatal errors enabled, mapping must reject
+// this layout before partially mapping either block.
+// expected-error@+1 {{mapper requires all borrow_wire operations in a run entry to be in its selected body block}}
+func.func @test_08.run() attributes {quake.cudaq_run = [i1]} {
+  %c0_i32 = arith.constant 0 : i32
+  %c1_i32 = arith.constant 1 : i32
+  %true = arith.constant true
+  %0 = quake.borrow_wire @wires_08[0] : !quake.wire
+  cc.scope {
+    %2 = cc.alloca !cc.array<i32 x 2>
+    %3 = cc.cast %2 : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %c0_i32, %3 : !cc.ptr<i32>
+    %4 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %c1_i32, %4 : !cc.ptr<i32>
+  }
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+  quake.log_output %true : (i1) -> ()
+  quake.return_wire %wires : !quake.wire
+  return
+}

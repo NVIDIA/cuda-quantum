@@ -145,6 +145,65 @@ module {
 // CHECK:           return
 // CHECK:         }
 
+  func.func @parent_dependent_nested_exp_pauli(%words: !cc.sequence<!cc.charspan>) attributes {"cudaq-kernel", no_this} {
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i32 = arith.constant 1 : i32
+    %c2_i32 = arith.constant 2 : i32
+    %theta = arith.constant 1.0 : f64
+    %qubits = quake.alloca !quake.veq<2>
+    %data = cc.sequence_data %words : (!cc.sequence<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+    // UNROLL: this loop resolves the inner trip count and base Pauli index.
+    %0 = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+      %1 = arith.cmpi slt, %arg0, %c2_i32 : i32
+      cc.condition %1(%arg0 : i32)
+    } do {
+    ^bb0(%arg0: i32):
+      %1 = arith.subi %c2_i32, %arg0 : i32
+      // UNROLL: this loop selects the Pauli word at `%arg0 + %arg1`.
+      %2 = cc.loop while ((%arg1 = %c0_i32) -> (i32)) {
+        %3 = arith.cmpi slt, %arg1, %1 : i32
+        cc.condition %3(%arg1 : i32)
+      } do {
+      ^bb0(%arg1: i32):
+        %3 = arith.addi %arg0, %arg1 : i32
+        %4 = cc.cast signed %3 : (i32) -> i64
+        %5 = cc.compute_ptr %data[%4] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.ptr<!cc.charspan>
+        %6 = cc.load %5 : !cc.ptr<!cc.charspan>
+        quake.exp_pauli (%theta) %qubits to %6 : (f64, !quake.veq<2>, !cc.charspan) -> ()
+        cc.continue %arg1 : i32
+      } step {
+      ^bb0(%arg1: i32):
+        %3 = arith.addi %arg1, %c1_i32 : i32
+        cc.continue %3 : i32
+      }
+      cc.continue %arg0 : i32
+    } step {
+    ^bb0(%arg0: i32):
+      %1 = arith.addi %arg0, %c1_i32 : i32
+      cc.continue %1 : i32
+    }
+    return
+  }
+
+// The unrolled Pauli indices are 0, 1, 1. Each exp_pauli must use the matching
+// loaded Pauli word and the same resolved quantum register.
+// CHECK-LABEL:   func.func @parent_dependent_nested_exp_pauli(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.sequence<!cc.charspan>) attributes {"cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[SEQUENCE_DATA_0:.*]] = cc.sequence_data %[[ARG0]] : (!cc.sequence<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[SEQUENCE_DATA_0]] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[CAST_0]] : !cc.ptr<!cc.charspan>
+// CHECK:           quake.exp_pauli (%[[CONSTANT_0]]) %[[ALLOCA_0]] to %[[LOAD_0]] : (f64, !quake.veq<2>, !cc.charspan) -> ()
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[SEQUENCE_DATA_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.charspan>
+// CHECK:           quake.exp_pauli (%[[CONSTANT_0]]) %[[ALLOCA_0]] to %[[LOAD_1]] : (f64, !quake.veq<2>, !cc.charspan) -> ()
+// CHECK:           %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[SEQUENCE_DATA_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           %[[LOAD_2:.*]] = cc.load %[[COMPUTE_PTR_1]] : !cc.ptr<!cc.charspan>
+// CHECK:           quake.exp_pauli (%[[CONSTANT_0]]) %[[ALLOCA_0]] to %[[LOAD_2]] : (f64, !quake.veq<2>, !cc.charspan) -> ()
+// CHECK:           return
+// CHECK:         }
+
   func.func @blocking_dynamic_subveq() attributes {"cudaq-kernel", no_this} {
     %c0_i32 = arith.constant 0 : i32
     %c1_i32 = arith.constant 1 : i32
@@ -185,6 +244,80 @@ module {
 // CHECK:           %[[MZ_0:.*]] = quake.mz %[[SUBVEQ_0]] : (!quake.veq<1>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %[[SUBVEQ_1:.*]] = quake.subveq %[[CONCAT_0]], 1, 1 : (!quake.veq<2>) -> !quake.veq<1>
 // CHECK:           %[[MZ_1:.*]] = quake.mz %[[SUBVEQ_1]] : (!quake.veq<1>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           return
+// CHECK:         }
+
+  func.func @loop_dependent_exp_pauli(%words: !cc.sequence<!cc.charspan>) attributes {"cudaq-kernel", no_this} {
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i32 = arith.constant 1 : i32
+    %c2_i32 = arith.constant 2 : i32
+    %theta = arith.constant 1.0 : f64
+    %qubits = quake.alloca !quake.veq<2>
+    %fixed = quake.alloca !quake.ref
+    // KEEP: this loop operates on a fixed quantum reference.
+    %repeat = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+      %1 = arith.cmpi slt, %arg0, %c2_i32 : i32
+      cc.condition %1(%arg0 : i32)
+    } do {
+    ^bb0(%arg0: i32):
+      quake.x %fixed : (!quake.ref) -> ()
+      cc.continue %arg0 : i32
+    } step {
+    ^bb0(%arg0: i32):
+      %1 = arith.addi %arg0, %c1_i32 : i32
+      cc.continue %1 : i32
+    }
+    %data = cc.sequence_data %words : (!cc.sequence<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+    // UNROLL: this loop selects Pauli words using its induction variable.
+    %0 = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+      %1 = arith.cmpi slt, %arg0, %c2_i32 : i32
+      cc.condition %1(%arg0 : i32)
+    } do {
+    ^bb0(%arg0: i32):
+      %1 = cc.cast signed %arg0 : (i32) -> i64
+      %2 = cc.compute_ptr %data[%1] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.ptr<!cc.charspan>
+      %3 = cc.load %2 : !cc.ptr<!cc.charspan>
+      quake.exp_pauli (%theta) %qubits to %3 : (f64, !quake.veq<2>, !cc.charspan) -> ()
+      cc.continue %arg0 : i32
+    } step {
+    ^bb0(%arg0: i32):
+      %1 = arith.addi %arg0, %c1_i32 : i32
+      cc.continue %1 : i32
+    }
+    return
+  }
+
+// Expect only the loop-dependent Pauli-word loop to unroll so later target
+// decomposition can resolve each word independently. The fixed-reference X
+// loop remains rolled. The unrolled Pauli indices are 0 and 1; each exp_pauli
+// uses the matching loaded Pauli word and the same resolved quantum register.
+// CHECK-LABEL:   func.func @loop_dependent_exp_pauli(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.sequence<!cc.charspan>) attributes {"cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 2 : i32
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i32)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[CONSTANT_2]] : i32
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i32):
+// CHECK:             quake.x %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i32):
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i32
+// CHECK:             cc.continue %[[ADDI_0]] : i32
+// CHECK:           }
+// CHECK:           %[[SEQUENCE_DATA_0:.*]] = cc.sequence_data %[[ARG0]] : (!cc.sequence<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[SEQUENCE_DATA_0]] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[CAST_0]] : !cc.ptr<!cc.charspan>
+// CHECK:           quake.exp_pauli (%[[CONSTANT_3]]) %[[ALLOCA_0]] to %[[LOAD_0]] : (f64, !quake.veq<2>, !cc.charspan) -> ()
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[SEQUENCE_DATA_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.charspan>
+// CHECK:           quake.exp_pauli (%[[CONSTANT_3]]) %[[ALLOCA_0]] to %[[LOAD_1]] : (f64, !quake.veq<2>, !cc.charspan) -> ()
 // CHECK:           return
 // CHECK:         }
 }

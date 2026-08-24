@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -35,12 +34,12 @@ public:
     auto negatedControls = op.getNegatedQubitControls();
     // Unlike phase lowering, this rewrite cannot preserve an unresolved
     // vector control. Check before materializing any scalar extracts.
-    if (cudaq::opt::hasUnresolvedControlVeq(op.getControls()))
+    if (cudaq::quake::hasUnresolvedControlVeq(op.getControls()))
       return failure();
 
-    auto expandedControls = cudaq::opt::expandKnownSizedControlVeqs(
+    auto expandedControls = cudaq::quake::expandKnownSizedControlVeqs(
         rewriter, op.getLoc(), op.getControls(),
-        cudaq::opt::getControlPolarities(op.getControls(), negatedControls));
+        cudaq::quake::getControlPolarities(op.getControls(), negatedControls));
     if (!expandedControls.didExpand)
       return failure();
 
@@ -60,7 +59,6 @@ public:
         expandedControls.controls, op.getTargets(), negatedControlsAttr);
 
     newOp->setAttr(cudaq::runtime::operandSegmentSizes, segmentSizes);
-
     return success();
   }
 };

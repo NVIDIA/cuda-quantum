@@ -258,16 +258,16 @@ def test_unsupported_calls():
 def test_control_float_list_complex_real_access():
     """
     Regression test for a bug in cudaq.control() argument synthesis.
-    
+
     The bug occurs when these three conditions are met:
     1. Using cudaq.control() to call a sub-kernel
     2. The sub-kernel has BOTH float AND list[complex] parameters
     3. The sub-kernel accesses .real on a complex value from the list
-    
-    Error: 'func.call' op operand type mismatch: expected operand type 
+
+    Error: 'func.call' op operand type mismatch: expected operand type
     '!quake.veq<?>', but provided '!quake.veq<N>'
     RuntimeError: Could not successfully apply argument synth.
-    
+
     This pattern is used in the krylov.ipynb notebook.
     """
 

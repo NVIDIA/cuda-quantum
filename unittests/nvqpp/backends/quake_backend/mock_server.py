@@ -73,6 +73,17 @@ def verifyValueSemanticsPayload(decoded_payload):
                 f" `{token}`. The server must receive wireset MLIR.")
 
 
+def verifyExpectedMapping(decoded_payload, entry_func_name):
+    if "mapping" not in entry_func_name:
+        return
+
+    required_tokens = ["@mapped_wireset", "mapping_v2p", "mapping_reorder_idx"]
+    for token in required_tokens:
+        if token not in decoded_payload:
+            raise RuntimeError(
+                f"Mapped kernel `{entry_func_name}` is missing `{token}`.")
+
+
 def verifyExpectedLoopCount(decoded_payload, entry_func_name):
     match = re.search(r"expected_(\d+)_loops?", entry_func_name)
     if not match:
@@ -177,6 +188,7 @@ async def postJob(request: Request):
     if not entry_func_name:
         raise RuntimeError(
             "Remote payload is missing a `cudaq-entrypoint` function.")
+    verifyExpectedMapping(decoded_payload, entry_func_name)
     verifyExpectedLoopCount(decoded_payload, entry_func_name)
 
     # Lower the module to LLVM IR.

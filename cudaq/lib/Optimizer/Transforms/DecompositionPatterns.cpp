@@ -10,7 +10,6 @@
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -485,12 +484,12 @@ struct R1ToRz
           "R1ToRz requires a scalar target to anchor its phase correction");
 
     auto resultTypes =
-        cudaq::opt::getWireResultTypes(rewriter, controls, targets);
+        cudaq::quake::getWireResultTypes(rewriter, controls, targets);
     auto rz = cudaq::quake::RzOp::create(
         rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
         r1Op.getParameters(), controls, targets,
         r1Op.getNegatedQubitControlsAttr());
-    cudaq::opt::threadWireResults(rz, controls, targets);
+    cudaq::quake::threadWireResults(rz, controls, targets);
 
     // Preserve a literal zero so emitPhaseCorrection can omit the correction.
     // Constructing a `0 / 2` first would hide the zero behind an arith.divf
@@ -508,7 +507,7 @@ struct R1ToRz
     controls = std::move(correction.controls);
     targets.back() = correction.anchor;
 
-    rewriter.replaceOp(r1Op, cudaq::opt::getWireValues(controls, targets));
+    rewriter.replaceOp(r1Op, cudaq::quake::getWireValues(controls, targets));
     return success();
   }
 };

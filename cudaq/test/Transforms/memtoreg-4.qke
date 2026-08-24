@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --memtoreg %s | FileCheck %s
+// RUN: cudaq-opt --canonicalize --memtoreg --canonicalize %s | FileCheck --check-prefix=CANON %s
 
 func.func @t() {
   %q0 = quake.alloca !quake.ref
@@ -182,3 +183,217 @@ func.func @t3(%arg0: !quake.veq<?>) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+
+// Example:
+//
+//   for (int b = 0; b < 4; b++)
+//     for (int c = b + 1; c < 4; c++)
+//       x<cudaq::ctrl>(q[b], q[c]);
+//
+// The dynamic extract_ref raises the quantum aliasing barrier for the block,
+// but a veq access cannot alias a stack slot, so both induction variables must
+// still be promoted.
+
+func.func @nested_loop_dynamic_extract() {
+  %c1_i32 = arith.constant 1 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %c4_i32 = arith.constant 4 : i32
+  %0 = quake.alloca !quake.veq<4>
+  cc.scope {
+    %1 = cc.alloca i32
+    cc.store %c0_i32, %1 : !cc.ptr<i32>
+    cc.loop while {
+      %2 = cc.load %1 : !cc.ptr<i32>
+      %3 = arith.cmpi slt, %2, %c4_i32 : i32
+      cc.condition %3
+    } do {
+      cc.scope {
+        %2 = cc.load %1 : !cc.ptr<i32>
+        %3 = arith.addi %2, %c1_i32 : i32
+        %4 = cc.alloca i32
+        cc.store %3, %4 : !cc.ptr<i32>
+        cc.loop while {
+          %5 = cc.load %4 : !cc.ptr<i32>
+          %6 = arith.cmpi slt, %5, %c4_i32 : i32
+          cc.condition %6
+        } do {
+          %5 = cc.load %1 : !cc.ptr<i32>
+          %6 = cc.cast signed %5 : (i32) -> i64
+          %7 = quake.extract_ref %0[%6] : (!quake.veq<4>, i64) -> !quake.ref
+          %8 = cc.load %4 : !cc.ptr<i32>
+          %9 = cc.cast signed %8 : (i32) -> i64
+          %10 = quake.extract_ref %0[%9] : (!quake.veq<4>, i64) -> !quake.ref
+          quake.x [%7] %10 : (!quake.ref, !quake.ref) -> ()
+          cc.continue
+        } step {
+          %5 = cc.load %4 : !cc.ptr<i32>
+          %6 = arith.addi %5, %c1_i32 : i32
+          cc.store %6, %4 : !cc.ptr<i32>
+        }
+      }
+      cc.continue
+    } step {
+      %2 = cc.load %1 : !cc.ptr<i32>
+      %3 = arith.addi %2, %c1_i32 : i32
+      cc.store %3, %1 : !cc.ptr<i32>
+    }
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @nested_loop_dynamic_extract() {
+// CHECK-NOT:       cc.alloca i32
+// CHECK-NOT:       cc.load
+// CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           cc.loop while ((%{{.*}} = %{{.*}}) -> (i32)) {
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[OUTERARG:.*]]: i32):
+// CHECK:             %[[INIT:.*]] = arith.addi %[[OUTERARG]], %{{.*}} : i32
+// CHECK:             cc.loop while ((%{{.*}} = %[[INIT]]) -> (i32)) {
+// CHECK:             } do {
+// CHECK:             ^bb0(%[[INNERARG:.*]]: i32):
+// CHECK:               %[[CO:.*]] = cc.cast signed %[[OUTERARG]] : (i32) -> i64
+// CHECK:               %[[RO:.*]] = quake.extract_ref %[[VEQ]][%[[CO]]]
+// CHECK:               %[[CI:.*]] = cc.cast signed %[[INNERARG]] : (i32) -> i64
+// CHECK:               %[[RI:.*]] = quake.extract_ref %[[VEQ]][%[[CI]]]
+// CHECK:               quake.x
+// CHECK:               cc.continue %[[INNERARG]] : i32
+// CHECK:             }
+// CHECK:             cc.continue %[[OUTERARG]] : i32
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// Regression for a bug where a wire threaded as a cc.loop-carried argument
+// (%arg4, standing in for %1's state) crossed straight from the first
+// quake.x to the second, completely skipping the invalidation that an
+// intervening dynamic-index extract_ref of an *inner* loop (aliasing veq %7,
+// which %1 is a concat member of) must impose. The wire must instead be
+// wrapped back to %1 before the inner loop and the second quake.x must
+// consume a *fresh* unwrap of %1, not the first quake.x's result directly.
+func.func @nested_loop_wire_alias(%arg0: i64, %arg1: i64) {
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i64 = arith.constant 0 : i64
+  %0 = cc.undef i64
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  %3 = quake.concat %1, %2 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %4:2 = cc.loop while ((%arg2 = %c0_i64, %arg3 = %0) -> (i64, i64)) {
+    %5 = arith.cmpi slt, %arg2, %arg0 : i64
+    cc.condition %5(%arg2, %arg3 : i64, i64)
+  } do {
+  ^bb0(%arg2: i64, %arg3: i64):
+    quake.x %1 : (!quake.ref) -> ()
+    %5 = cc.loop while ((%arg4 = %c0_i64) -> (i64)) {
+      %9 = arith.cmpi slt, %arg4, %arg0 : i64
+      cc.condition %9(%arg4 : i64)
+    } do {
+    ^bb0(%arg4: i64):
+      %9 = quake.extract_ref %3[%arg1] : (!quake.veq<2>, i64) -> !quake.ref
+      quake.h %9 : (!quake.ref) -> ()
+      cc.continue %arg4 : i64
+    } step {
+    ^bb0(%arg4: i64):
+      %9 = arith.addi %arg4, %c1_i64 : i64
+      cc.continue %9 : i64
+    } {normalized}
+    %6 = arith.subi %5, %c1_i64 : i64
+    %7 = arith.cmpi eq, %5, %c0_i64 : i64
+    %8 = arith.select %7, %arg3, %6 : i64
+    quake.x %1 : (!quake.ref) -> ()
+    cc.continue %arg2, %8 : i64, i64
+  } step {
+  ^bb0(%arg2: i64, %arg3: i64):
+    %5 = arith.addi %arg2, %c1_i64 : i64
+    cc.continue %5, %arg3 : i64, i64
+  } {normalized}
+  quake.log_output %3 : (!quake.veq<2>) -> () {compilerGenerated}
+  quake.dealloc %1 : !quake.ref
+  quake.dealloc %2 : !quake.ref
+  return
+}
+
+// CANON-LABEL:   func.func @nested_loop_wire_alias(
+// CANON-SAME:      %[[ARG0:.*]]: i64, %[[ARG1:.*]]: i64) {
+// CANON:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CANON:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CANON:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CANON:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CANON:           %{{.*}}:3 = cc.loop while ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}, %[[LIVEIN:.*]] = %[[UNWRAP_0]]) -> (i64, i64, !quake.wire)) {
+// CANON:           } do {
+// CANON:           ^bb0(%{{.*}}: i64, %{{.*}}: i64, %[[LIVEINARG:.*]]: !quake.wire):
+// CANON:             %[[X_0:.*]] = quake.x %[[LIVEINARG]] : (!quake.wire) -> !quake.wire
+// CANON:             quake.wrap %[[X_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CANON:             cc.loop while
+// CANON:             } do {
+// CANON:               %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CANON:               %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CANON:               %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CANON:               quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CANON:             } step {
+// CANON:             }
+// CANON:             %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CANON:             %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CANON:             cc.continue %{{.*}}, %{{.*}}, %[[X_1]] : i64, i64, !quake.wire
+// CANON:           } step {
+// CANON:           }
+// CANON:           quake.log_output %[[CONCAT_0]]
+// CANON:           quake.sink
+// CANON:           return
+// CANON:         }
+
+// Regression for a crash where a memAnalysis-eliminated (non-escaping)
+// alloca (%3, destined to become a null wire) was passed as a control
+// operand of a gate inside a dynamically-aliased loop. The pass must not
+// keep a permanent, literal dereference of such an alloca alive (it is
+// erased at the end of the pass), nor must it lose track of the alloca's
+// binding across an op that gets rebuilt (with extra results) to carry a
+// live-out value past a nested op-with-regions' own aliasing summary.
+func.func @control_operand_alias(%arg0: i64) {
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i64 = arith.constant 0 : i64
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.concat %0, %1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %3 = quake.alloca !quake.ref
+  %4 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+    %5 = arith.cmpi slt, %arg1, %arg0 : i64
+    cc.condition %5(%arg1 : i64)
+  } do {
+  ^bb0(%arg1: i64):
+    %5 = quake.extract_ref %2[%arg1] : (!quake.veq<2>, i64) -> !quake.ref
+    quake.x [%3] %5 : (!quake.ref, !quake.ref) -> ()
+    cc.continue %arg1 : i64
+  } step {
+  ^bb0(%arg1: i64):
+    %5 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %5 : i64
+  } {normalized}
+  quake.log_output %2 : (!quake.veq<2>) -> () {compilerGenerated}
+  quake.log_output %3 : (!quake.ref) -> () {compilerGenerated}
+  quake.dealloc %3 : !quake.ref
+  quake.dealloc %0 : !quake.ref
+  quake.dealloc %1 : !quake.ref
+  return
+}
+
+// CANON-LABEL:   func.func @control_operand_alias(
+// CANON-SAME:      %[[ARG0:.*]]: i64) {
+// CANON:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CANON:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CANON:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CANON:           %[[NULL_0:.*]] = quake.null_wire
+// CANON:           %{{.*}}:2 = cc.loop while ((%[[CNT:.*]] = %{{.*}}, %[[CTRL:.*]] = %[[NULL_0]]) -> (i64, !quake.wire)) {
+// CANON:           } do {
+// CANON:           ^bb0(%[[CNTARG:.*]]: i64, %[[CTRLARG:.*]]: !quake.wire):
+// CANON:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[CNTARG]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CANON:             %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CANON:             %[[X_0:.*]]:2 = quake.x [%[[CTRLARG]]] %[[UNWRAP_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CANON:             quake.wrap %[[X_0]]#1 to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CANON:             cc.continue %{{.*}}, %[[X_0]]#0 : i64, !quake.wire
+// CANON:           } step {
+// CANON:           }
+// CANON:           quake.log_output %[[CONCAT_0]]
+// CANON:           quake.sink
+// CANON:           return
+// CANON:         }

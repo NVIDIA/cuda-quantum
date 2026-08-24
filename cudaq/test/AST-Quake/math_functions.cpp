@@ -16,7 +16,8 @@ struct math_functions {
     cudaq::qubit q;
     double angle = std::sin(theta) + std::cos(theta) + std::tan(theta) +
                    std::asin(theta) + std::acos(theta) + std::atan(theta) +
-                   std::sqrt(theta) + std::exp(theta) + std::log(theta);
+                   std::sqrt(theta) + std::exp(theta) + std::log(theta) +
+                   std::fmod(theta, 2.0);
     rx(angle, q);
   }
 };
@@ -26,7 +27,7 @@ struct math_functions_float {
     cudaq::qubit q;
     float angle = sinf(theta) + cosf(theta) + tanf(theta) + asinf(theta) +
                   acosf(theta) + atanf(theta) + sqrtf(theta) + expf(theta) +
-                  logf(theta);
+                  logf(theta) + fmodf(theta, 2.0f);
     rx(angle, q);
   }
 };
@@ -41,6 +42,7 @@ struct math_functions_float {
 // CHECK-DAG:     math.sqrt
 // CHECK-DAG:     math.exp
 // CHECK-DAG:     math.log
+// CHECK-DAG:     arith.remf
 // CHECK:         quake.rx
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__math_functions_float
@@ -53,4 +55,5 @@ struct math_functions_float {
 // CHECK-DAG:     math.sqrt
 // CHECK-DAG:     math.exp
 // CHECK-DAG:     math.log
+// CHECK-DAG:     arith.remf
 // CHECK:         quake.rx

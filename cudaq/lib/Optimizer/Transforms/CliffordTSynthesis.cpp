@@ -38,8 +38,10 @@ namespace {
 
 struct RotationOptions {
   double epsilon;
-  int32_t diophantineTimeoutMs;
-  int32_t factoringTimeoutMs;
+  int64_t maxFactoringIterations;
+  int64_t maxCandidateIterations;
+  int32_t maxFactoringRestarts;
+  int64_t maxOdgpScanSteps;
   int32_t retryCount;
   std::string onDynamicAngle;
   bool failOnControlledRotation;
@@ -125,18 +127,18 @@ static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
   return cur;
 }
 
-// Compute `base << shift` as an int32_t timeout, saturating at INT32_MAX
-// instead of overflowing. `base` and `shift` are validated non-negative by the
-// pass before this is called, so the only hazard is the retry loop scaling the
-// timeout past what int32_t can hold.
-static int32_t saturatingShlToInt32(int32_t base, int32_t shift) {
-  assert(base >= 0 && shift >= 0 && "timeouts and retry count must be >= 0");
-  constexpr int32_t kMax = std::numeric_limits<int32_t>::max();
-  // Shifting an int32_t by >= 31 always overflows a non-negative base.
-  if (shift >= 31)
-    return kMax;
-  int64_t scaled = static_cast<int64_t>(base) << shift;
-  return static_cast<int32_t>(std::min<int64_t>(scaled, kMax));
+// Compute `base << shift` as a work budget, saturating at INT64_MAX rather
+// than overflowing. Both arguments are validated non-negative by the pass, so
+// the only hazard is the retry loop scaling the budget past int64_t.
+static uint64_t saturatingShl(int64_t base, int32_t shift) {
+  assert(base >= 0 && shift >= 0 && "budgets and retry count must be >= 0");
+  constexpr int64_t kMax = std::numeric_limits<int64_t>::max();
+  // Shifting by >= 63 always overflows a non-negative base.
+  if (shift >= 63)
+    return static_cast<uint64_t>(kMax);
+  if (base > (kMax >> shift))
+    return static_cast<uint64_t>(kMax);
+  return static_cast<uint64_t>(base << shift);
 }
 
 // Resolve (theta, epsilon) to a private helper func that applies the
@@ -171,10 +173,26 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
   cudaq::synth::Real epsilonReal(opts.epsilon);
   llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
   for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
-    circuit = cudaq::synth::gridsynth(
-        thetaReal, epsilonReal,
-        saturatingShlToInt32(opts.diophantineTimeoutMs, attempt),
-        saturatingShlToInt32(opts.factoringTimeoutMs, attempt));
+    // Geometric backoff: attempt N runs at 2^N times the baseline budgets, so
+    // the common case pays the cheap budget and only an angle that actually
+    // failed escalates. Unlike doubling a timeout, attempt N does the same
+    // work on every machine, so which attempt succeeds is a property of the
+    // angle rather than of the host.
+    //
+    // `maxFactoringRestarts` is not scaled. It caps consecutive failed
+    // attempts on one composite, and over 1191 observed restart chains none
+    // exceeded a depth of 3 against a default of 8 (it is already far above
+    // the measured need, so escalating it would not change the outcome). What
+    // ends a hard candidate is the iteration budget, and that does scale.
+    cudaq::synth::GridsynthOptions synthOpts;
+    synthOpts.maxFactoringIterations =
+        saturatingShl(opts.maxFactoringIterations, attempt);
+    synthOpts.maxCandidateIterations =
+        saturatingShl(opts.maxCandidateIterations, attempt);
+    synthOpts.maxFactoringRestarts =
+        static_cast<uint32_t>(opts.maxFactoringRestarts);
+    synthOpts.maxOdgpScanSteps = saturatingShl(opts.maxOdgpScanSteps, attempt);
+    circuit = cudaq::synth::gridsynth(thetaReal, epsilonReal, synthOpts);
     if (llvm::succeeded(circuit))
       break;
   }
@@ -308,8 +326,8 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
     if (llvm::failed(symRef)) {
       op.emitError("clifford-t-synthesis: gridsynth failed for theta=")
           << check.theta << " after " << (opts.retryCount + 1)
-          << " attempts; raise --diophantine-timeout-ms or "
-             "--factoring-timeout-ms";
+          << " attempts; raise --max-factoring-iterations or "
+             "--max-candidate-iterations";
       // The pattern returns failure() so the op is left alone, but the greedy
       // driver treats "no pattern applied" as a normal outcome. Record the
       // error so the pass itself fails instead of reporting success with an
@@ -349,21 +367,25 @@ public:
   void runOnOperation() override {
     LLVM_DEBUG(llvm::dbgs()
                << "clifford-t-synthesis: epsilon=" << epsilon
-               << " diophantine-timeout-ms=" << diophantineTimeoutMs
-               << " factoring-timeout-ms=" << factoringTimeoutMs
-               << " retry-count=" << retryCount << " on-dynamic-angle="
-               << onDynamicAngle << " skip-below=" << skipBelow << '\n');
+               << " max-factoring-iterations=" << maxFactoringIterations
+               << " max-candidate-iterations=" << maxCandidateIterations
+               << " max-factoring-restarts=" << maxFactoringRestarts
+               << " max-odgp-scan-steps=" << maxOdgpScanSteps << " retry-count="
+               << retryCount << " on-dynamic-angle=" << onDynamicAngle
+               << " skip-below=" << skipBelow << '\n');
 
     // Validate the numeric options. gridsynth needs a positive epsilon
-    // (-log2(epsilon) feeds the precision heuristic), and the timeouts/retry
+    // (-log2(epsilon) feeds the precision heuristic), and the budgets/retry
     // count must be non-negative because the retry loop left-shifts the
-    // timeouts by `attempt`.
-    if (!(epsilon > 0.0) || diophantineTimeoutMs < 0 ||
-        factoringTimeoutMs < 0 || retryCount < 0 || skipBelow < 0.0) {
+    // budgets by `attempt`.
+    if (!(epsilon > 0.0) || maxFactoringIterations < 0 ||
+        maxCandidateIterations < 0 || maxFactoringRestarts < 0 ||
+        maxOdgpScanSteps < 0 || retryCount < 0 || skipBelow < 0.0) {
       getOperation().emitError(
           "clifford-t-synthesis: invalid options; require epsilon > 0 and "
-          "non-negative diophantine-timeout-ms, factoring-timeout-ms, "
-          "retry-count, and skip-below.");
+          "non-negative max-factoring-iterations, max-candidate-iterations, "
+          "max-factoring-restarts, max-odgp-scan-steps, retry-count, and "
+          "skip-below.");
       signalPassFailure();
       return;
     }
@@ -375,10 +397,15 @@ public:
         cudaq::synth::details::required_precision(
             cudaq::synth::Real(epsilon.getValue())));
 
-    RotationOptions opts{
-        epsilon,    diophantineTimeoutMs,      factoringTimeoutMs,
-        retryCount, onDynamicAngle.getValue(), failOnControlledRotation,
-        skipBelow};
+    RotationOptions opts{epsilon,
+                         maxFactoringIterations,
+                         maxCandidateIterations,
+                         maxFactoringRestarts,
+                         maxOdgpScanSteps,
+                         retryCount,
+                         onDynamicAngle.getValue(),
+                         failOnControlledRotation,
+                         skipBelow};
 
     MLIRContext *ctx = &getContext();
     SynthState state;

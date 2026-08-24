@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
@@ -43,7 +42,7 @@ inline mlir::Value getSignedAngle(mlir::IRRewriter &rewriter,
 inline llvm::SmallVector<mlir::Value>
 getPhaseReplacements(cudaq::quake::PhaseOp phase, mlir::ValueRange controls,
                      mlir::Value anchor) {
-  auto replacements = getWireValues(controls, {anchor});
+  auto replacements = cudaq::quake::getWireValues(controls, {anchor});
   assert(replacements.size() == phase.getWires().size() &&
          "phase result count does not match its wire operands");
   return replacements;
@@ -72,14 +71,14 @@ emitPhaseCorrection(mlir::OpBuilder &rewriter, mlir::Location location,
         angle && angle.getValue().isZero())
       return result;
 
-  auto resultTypes =
-      getWireResultTypes(rewriter, result.controls, mlir::ValueRange{anchor});
+  auto resultTypes = cudaq::quake::getWireResultTypes(rewriter, result.controls,
+                                                      mlir::ValueRange{anchor});
   auto phaseOp = cudaq::quake::PhaseOp::create(
       rewriter, location, resultTypes, /*is_adj=*/false,
       mlir::ValueRange{phase}, result.controls, mlir::ValueRange{anchor},
       negatedControls);
   llvm::SmallVector<mlir::Value> targets{anchor};
-  threadWireResults(phaseOp, result.controls, targets);
+  cudaq::quake::threadWireResults(phaseOp, result.controls, targets);
   result.anchor = targets.front();
   return result;
 }
