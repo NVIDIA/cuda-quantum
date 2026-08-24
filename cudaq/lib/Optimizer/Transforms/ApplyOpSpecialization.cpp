@@ -17,6 +17,7 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -758,6 +759,160 @@ buildCtrlClosureInstantiation(
   return {result, wrapperAttr};
 }
 
+/// A `cc.loop` and the position of the value in the loop's iteration arguments.
+/// (loop-carried value)
+using LoopCarriedSlot = std::pair<Operation *, unsigned>;
+
+/// Return the slot use passes its value into, if passing it along is all the
+/// use does (a loop's initial argument, or a region terminator forwarding it
+/// around the loop).
+static std::optional<LoopCarriedSlot> forwardedSlot(OpOperand &use) {
+  Operation *user = use.getOwner();
+  unsigned pos = use.getOperandNumber();
+  if (auto loop = dyn_cast<cudaq::cc::LoopOp>(user))
+    return LoopCarriedSlot{loop.getOperation(), pos};
+  auto loop = dyn_cast_or_null<cudaq::cc::LoopOp>(user->getParentOp());
+  if (!loop)
+    return std::nullopt;
+  if (isa<cudaq::cc::ConditionOp>(user)) {
+    if (pos == 0)
+      return std::nullopt;
+    return LoopCarriedSlot{loop.getOperation(), pos - 1};
+  }
+  if (isa<cudaq::cc::ContinueOp, cudaq::cc::BreakOp>(user))
+    return LoopCarriedSlot{loop.getOperation(), pos};
+  return std::nullopt;
+}
+
+/// Collect every value occupying slot pos of loop (the loop's result and
+/// the matching entry block argument of each of its regions).
+static SmallVector<Value> valuesInSlot(cudaq::cc::LoopOp loop, unsigned pos) {
+  SmallVector<Value> values;
+  if (pos < loop.getNumResults())
+    values.push_back(loop.getResult(pos));
+  for (auto *region : loop.getRegions()) {
+    if (region->empty())
+      continue;
+    Block &entry = region->front();
+    if (pos < entry.getNumArguments())
+      values.push_back(entry.getArgument(pos));
+  }
+  return values;
+}
+
+/// Python's scoping rules keep a loop variable alive after its loop, so the
+/// bridge has every `for` loop return its final index (and anything else the
+/// body assigned) for the code below the loop to read. When nothing reads it,
+/// the loop is left carrying a value whose only job is to be passed along,
+/// together with the arithmetic that computes it. A nested loop leaves this
+/// residue in its parent's body.
+///
+/// The residue is harmless everywhere except here. Reversing a block requires
+/// that no classical value produced by an op being moved be read by anything
+/// staying put (see reverseTheOpsInTheBlock), and a dead loop-carried value
+/// reads exactly like a genuine dependence on an earlier loop's result.
+/// Wherever a carried value is dead, thread the loop's own initial value back
+/// around the loop instead, then delete the classical computations that go
+/// dead as a result.
+static void pruneDeadLoopCarriedValues(func::FuncOp func) {
+  SmallVector<cudaq::cc::LoopOp> loops;
+  func.walk([&](cudaq::cc::LoopOp loop) { loops.push_back(loop); });
+  if (loops.empty())
+    return;
+
+  // Reaching the loop-carried values means going through the arithmetic that
+  // computes them, and that arithmetic reads the loop's own block arguments.
+  SmallVector<Value> candidates;
+  auto isPrunableComputation = [](Operation *op) {
+    return op->getNumRegions() == 0 && !op->hasTrait<OpTrait::IsTerminator>() &&
+           !cudaq::opt::hasQuantum(*op) && isMemoryEffectFree(op);
+  };
+  for (auto loop : loops)
+    for (unsigned pos = 0, end = loop.getInitialArgs().size(); pos != end;
+         ++pos)
+      llvm::append_range(candidates, valuesInSlot(loop, pos));
+  func.walk([&](Operation *op) {
+    if (isPrunableComputation(op))
+      llvm::append_range(candidates, op->getResults());
+  });
+
+  // Start from the assumption that every candidate is dead and propagate
+  // liveness until it stops spreading.
+  // A value is live if
+  // 1. it has an opaque use
+  // 2. it is forwarded into a slot already known to be live
+  // 3. it feeds a computation whose own result is already known to be live
+  // Liveness only ever grows and the candidate set is finite, so this
+  // terminates.
+  DenseSet<Value> live;
+  auto slotIsLive = [&](LoopCarriedSlot slot) {
+    auto loop = cast<cudaq::cc::LoopOp>(slot.first);
+    return llvm::any_of(valuesInSlot(loop, slot.second),
+                        [&](Value val) { return live.count(val); });
+  };
+  auto hasLiveUse = [&](Value val) {
+    for (OpOperand &use : val.getUses()) {
+      if (auto forwarded = forwardedSlot(use)) {
+        if (slotIsLive(*forwarded))
+          return true;
+        continue;
+      }
+      Operation *user = use.getOwner();
+      if (!isPrunableComputation(user))
+        return true;
+      if (llvm::any_of(user->getResults(),
+                       [&](Value res) { return live.count(res); }))
+        return true;
+    }
+    return false;
+  };
+  for (bool changed = true; changed;) {
+    changed = false;
+    for (Value val : candidates)
+      if (!live.count(val) && hasLiveUse(val)) {
+        live.insert(val);
+        changed = true;
+      }
+  }
+
+  // Short-circuit each dead slot with the loop's initial value for that slot.
+  // The initial value is an operand of the loop, so it dominates every use we
+  // rewrite.
+  for (auto loop : loops)
+    for (auto [pos, initialArg] : llvm::enumerate(loop.getInitialArgs())) {
+      if (slotIsLive(LoopCarriedSlot{loop.getOperation(), pos}))
+        continue;
+      for (auto *region : loop.getRegions())
+        for (Block &block : *region) {
+          if (!block.hasNoSuccessors())
+            continue;
+          Operation *term = block.getTerminator();
+          if (term->getParentOp() != loop.getOperation())
+            continue;
+          unsigned operandPos =
+              isa<cudaq::cc::ConditionOp>(term) ? pos + 1 : pos;
+          if (isa<cudaq::cc::ConditionOp, cudaq::cc::ContinueOp,
+                  cudaq::cc::BreakOp>(term) &&
+              operandPos < term->getNumOperands())
+            term->setOperand(operandPos, initialArg);
+        }
+    }
+
+  // Delete the classical computations that just went dead.
+  for (bool erased = true; erased;) {
+    erased = false;
+    SmallVector<Operation *> deadOps;
+    func.walk([&](Operation *op) {
+      if (!cudaq::opt::hasQuantum(*op) && isOpTriviallyDead(op))
+        deadOps.push_back(op);
+    });
+    for (auto *op : deadOps) {
+      op->erase();
+      erased = true;
+    }
+  }
+}
+
 namespace {
 /// Replace a quake.apply op with a call to the correct variant function.
 struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
@@ -1404,6 +1559,10 @@ public:
       newFunc->setAttr(cudaq::cc::atomicQuantumRegionAttrName, atomicRegion);
     IRMapping mapping;
     funcBody.cloneInto(&newFunc.getBody(), mapping);
+
+    // Drop loop-carried values that nothing reads before reversing.
+    pruneDeadLoopCarriedValues(newFunc);
+
     if (failed(reverseTheOpsInTheBlock</*checkEmpty=*/true>(
             loc, newFunc.getBody().front().getTerminator(),
             getOpsToInvert(newFunc.getBody().front()), newApplyOps))) {

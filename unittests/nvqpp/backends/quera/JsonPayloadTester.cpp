@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/AnalogHamiltonian.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/platform/quera/QuEraServerHelper.h"
 #include <gtest/gtest.h>
 

@@ -39,9 +39,11 @@ def test_control_kernel():
 # CHECK:           %[[SUBI_1:.*]] = arith.subi %[[VEQ_SIZE_1]], %[[CONSTANT_2]] : i64
 # CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ARG0]]{{\[}}%[[SUBI_1]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:           %[[VEQ_SIZE_2:.*]] = quake.veq_size %[[ARG0]] : (!quake.veq<?>) -> i64
+# CHECK:           %[[CMPI_0:.*]] = arith.cmpi sgt, %[[VEQ_SIZE_2]], %[[CONSTANT_1]] : i64
+# CHECK:           %[[SELECT_0:.*]] = arith.select %[[CMPI_0]], %[[VEQ_SIZE_2]], %[[CONSTANT_1]] : i64
 # CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]]) -> (i64)) {
-# CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[VEQ_SIZE_2]] : i64
-# CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+# CHECK:             %[[CMPI_1:.*]] = arith.cmpi ne, %[[VAL_0]], %[[SELECT_0]] : i64
+# CHECK:             cc.condition %[[CMPI_1]](%[[VAL_0]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
 # CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ARG0]]{{\[}}%[[VAL_1]]] : (!quake.veq<?>, i64) -> !quake.ref
@@ -51,11 +53,13 @@ def test_control_kernel():
 # CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_2]] : i64
 # CHECK:             cc.continue %[[ADDI_0]] : i64
-# CHECK:           } {invariant}
+# CHECK:           } {invariant, normalized}
 # CHECK:           %[[VEQ_SIZE_3:.*]] = quake.veq_size %[[ARG0]] : (!quake.veq<?>) -> i64
+# CHECK:           %[[CMPI_2:.*]] = arith.cmpi sgt, %[[VEQ_SIZE_3]], %[[CONSTANT_1]] : i64
+# CHECK:           %[[SELECT_1:.*]] = arith.select %[[CMPI_2]], %[[VEQ_SIZE_3]], %[[CONSTANT_1]] : i64
 # CHECK:           %[[LOOP_1:.*]] = cc.loop while ((%[[VAL_3:.*]] = %[[CONSTANT_1]]) -> (i64)) {
-# CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_3]], %[[VEQ_SIZE_3]] : i64
-# CHECK:             cc.condition %[[CMPI_1]](%[[VAL_3]] : i64)
+# CHECK:             %[[CMPI_3:.*]] = arith.cmpi ne, %[[VAL_3]], %[[SELECT_1]] : i64
+# CHECK:             cc.condition %[[CMPI_3]](%[[VAL_3]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_4:.*]]: i64):
 # CHECK:             %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ARG0]]{{\[}}%[[VAL_4]]] : (!quake.veq<?>, i64) -> !quake.ref
@@ -65,7 +69,7 @@ def test_control_kernel():
 # CHECK:           ^bb0(%[[VAL_5:.*]]: i64):
 # CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_5]], %[[CONSTANT_2]] : i64
 # CHECK:             cc.continue %[[ADDI_1]] : i64
-# CHECK:           } {invariant}
+# CHECK:           } {invariant, normalized}
 # CHECK:           quake.z {{\[}}%[[SUBVEQ_0]]] %[[EXTRACT_REF_0]] : (!quake.veq<?>, !quake.ref) -> ()
 # CHECK:           %[[VEQ_SIZE_4:.*]] = quake.veq_size %[[ARG0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[CMPI_4:.*]] = arith.cmpi sgt, %[[VEQ_SIZE_4]], %[[CONSTANT_1]] : i64

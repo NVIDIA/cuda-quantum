@@ -83,13 +83,11 @@ func.func @ai_failure_scenario_2(%arg0 : i64, %arg1 : i1) {
 // CHECK:           } else {
 // CHECK:             cc.continue %[[VAL_1:.*]] : !quake.wire
 // CHECK:           }
-// CHECK:           quake.wrap %[[IF_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
 // CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_2]] : (!quake.ref) -> !quake.wire
 // CHECK:           quake.sink %[[UNWRAP_3]] : !quake.wire
 // CHECK:           %[[UNWRAP_4:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
 // CHECK:           quake.sink %[[UNWRAP_4]] : !quake.wire
-// CHECK:           %[[UNWRAP_5:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           quake.sink %[[UNWRAP_5]] : !quake.wire
+// CHECK:           quake.sink %[[IF_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
