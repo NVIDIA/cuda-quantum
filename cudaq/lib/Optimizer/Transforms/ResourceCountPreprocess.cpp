@@ -113,25 +113,13 @@ struct ResourceCountPreprocessPass
         v = unwrap.getRefValue();
         continue;
       }
-      SmallVector<Value> incoming;
-      ValueRange wires;
-      if (auto opi = dyn_cast<cudaq::quake::OperatorInterface>(def)) {
-        wires = opi.getWires();
-        incoming = getIncomingWires(opi.getControls(), opi.getTargets());
-      } else if (auto meas =
-                     dyn_cast<cudaq::quake::MeasurementInterface>(def)) {
-        wires = meas.getWires();
-        incoming = getIncomingWires(ValueRange{}, meas.getTargets());
-      } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(def)) {
-        wires = reset.getWires();
-        incoming = getIncomingWires(ValueRange{}, reset.getTargets());
-      } else {
+      auto flow = cudaq::quake::detail::getThreadedWireFlow(def);
+      if (!flow)
         return v;
-      }
-      auto iter = llvm::find(wires, v);
-      if (iter == wires.end() || incoming.size() != wires.size())
+      auto iter = llvm::find(flow->results, v);
+      if (iter == flow->results.end())
         return v;
-      v = incoming[std::distance(wires.begin(), iter)];
+      v = flow->inputs[std::distance(flow->results.begin(), iter)];
     }
   }
 
@@ -160,20 +148,6 @@ struct ResourceCountPreprocessPass
     return std::nullopt;
   }
 
-  /// Collect the incoming wires of an operation in the order that matches its
-  /// wire results, which is controls first and then targets. Operands that are
-  /// not wires (ref, veq, control) do not thread a wire through the operation
-  /// and thus have no corresponding result.
-  static SmallVector<Value> getIncomingWires(ValueRange controls,
-                                             ValueRange targets) {
-    SmallVector<Value> wires;
-    for (auto range : {controls, targets})
-      for (Value v : range)
-        if (isa<cudaq::quake::WireType>(v.getType()))
-          wires.push_back(v);
-    return wires;
-  }
-
   /// In value (linear) form each wire result of an operation is the outgoing
   /// value of the corresponding incoming wire. Forward the incoming wires to
   /// the uses of the results so the wire chain stays intact once the
@@ -195,9 +169,8 @@ struct ResourceCountPreprocessPass
       // manager Z measurement, then remove it with the other pre-counted ops.
       // The wires it threads are forwarded to its users, as for any other op.
       auto measWires = measurement.getWires();
-      auto incomingWires =
-          getIncomingWires(ValueRange{}, measurement.getTargets());
-      if (incomingWires.size() != measWires.size())
+      auto flow = cudaq::quake::detail::getThreadedWireFlow(op);
+      if (!flow)
         return false;
       for (Value result : op->getResults())
         if (!llvm::is_contained(measWires, result) && !result.use_empty())
@@ -219,7 +192,7 @@ struct ResourceCountPreprocessPass
         llvm::outs() << "Preprocessing " << name << "(0) for " << to_add
                      << " counts\n";
       countGate(name.str(), {}, targetIndices, to_add);
-      forwardWires(incomingWires, measWires);
+      forwardWires(flow->inputs, measWires);
       to_erase.insert(op);
       return true;
     }
@@ -230,8 +203,8 @@ struct ResourceCountPreprocessPass
       return false;
 
     auto wires = opi.getWires();
-    auto incomingWires = getIncomingWires(opi.getControls(), opi.getTargets());
-    if (incomingWires.size() != wires.size())
+    auto flow = cudaq::quake::detail::getThreadedWireFlow(op);
+    if (!flow)
       return false;
 
     auto name = op->getName().stripDialect();
@@ -274,7 +247,7 @@ struct ResourceCountPreprocessPass
                    << " for " << to_add << " counts\n";
 
     countGate(name.str(), controlIndices, targetIndices, to_add);
-    forwardWires(incomingWires, wires);
+    forwardWires(flow->inputs, wires);
     to_erase.insert(op);
     return true;
   }
