@@ -235,6 +235,26 @@ class PhaseStorage {
       }
     }
 
+    auto earlierRz = dyn_cast<cudaq::quake::RzOp>(earlierOp);
+    auto laterRz = dyn_cast<cudaq::quake::RzOp>(laterOp);
+    if (!combineAtEarlier && earlierRz && laterRz &&
+        earlierOp->getBlock() == laterOp->getBlock() &&
+        earlierRz.getControls().empty() && laterRz.getControls().empty() &&
+        !earlierRz.isAdj() && !laterRz.isAdj() &&
+        !laterRz.getNegatedQubitControls() &&
+        laterOp->getDiscardableAttrDictionary().empty()) {
+      Value earlierAngle = earlierOp->getOperand(0);
+      Value laterAngle = laterOp->getOperand(0);
+      auto sumAngle = arith::AddFOp::create(builder, laterOp->getLoc(),
+                                            earlierAngle, laterAngle);
+      laterOp->setOperand(0, sumAngle.getResult());
+      // Retaining the later Rz avoids an adjacent pair of invalid operation
+      // order indices and the deferred whole-block order recomputation.
+      earlierOp->getResult(0).replaceAllUsesWith(earlierIn);
+      earlierOp->erase();
+      return laterOp;
+    }
+
     // Rz + anything, or named-gate combo not landing on a named gate: addf
     Value angle1 = getRotAngleValue(builder, earlier);
     Value angle2 = getRotAngleValue(builder, later);
