@@ -93,9 +93,11 @@ struct ResourceCountPreprocessPass
   /// value (linear) form thread wires through, so a wire result denotes the
   /// same qubit as the incoming wire in the matching position. `unwrap` bridges
   /// from reference form, so continue the search on the reference it wraps.
-  /// A wire entering an invariant loop body continues at the loop's matching
-  /// initial argument. Returns the original value unchanged for anything else,
-  /// including reference form values.
+  /// `to_ctrl` and `from_ctrl` convert between wire and control form without
+  /// changing the qubit, so continue on the value they convert. A wire entering
+  /// an invariant loop body continues at the loop's matching initial argument.
+  /// Returns the original value unchanged for anything else, including
+  /// reference form values.
   Value getWireOrigin(Value v, bool throughLoops = true) {
     while (true) {
       auto *def = v.getDefiningOp();
@@ -113,6 +115,14 @@ struct ResourceCountPreprocessPass
         v = unwrap.getRefValue();
         continue;
       }
+      if (auto toCtrl = dyn_cast<cudaq::quake::ToControlOp>(def)) {
+        v = toCtrl.getQubit();
+        continue;
+      }
+      if (auto fromCtrl = dyn_cast<cudaq::quake::FromControlOp>(def)) {
+        v = fromCtrl.getCtrlbit();
+        continue;
+      }
       auto flow = cudaq::quake::detail::getThreadedWireFlow(def);
       if (!flow)
         return v;
@@ -126,10 +136,15 @@ struct ResourceCountPreprocessPass
   /// Resolve a quake value to a globally unique qubit index.
   std::optional<std::size_t> resolveQubitIndex(Value value) {
     Value v = getWireOrigin(value);
-    // extract_ref from a qvector: base offset + local index.
-    if (auto extractRef = v.getDefiningOp<cudaq::quake::ExtractRefOp>())
+    // extract_ref from a qvector: base offset + local index. The index is
+    // either an attribute or an operand that may be a constant.
+    if (auto extractRef = v.getDefiningOp<cudaq::quake::ExtractRefOp>()) {
       if (extractRef.hasConstantIndex())
         return getVeqBase(extractRef.getVeq()) + extractRef.getConstantIndex();
+      if (auto index =
+              cudaq::opt::factory::maybeValueOfIntConstant(extractRef.getIndex()))
+        return getVeqBase(extractRef.getVeq()) + *index;
+    }
     // Wire semantics: concrete physical index from routing.
     if (auto borrow = v.getDefiningOp<cudaq::quake::BorrowWireOp>())
       return static_cast<std::size_t>(borrow.getIdentity());
@@ -146,6 +161,28 @@ struct ResourceCountPreprocessPass
       return idx;
     }
     return std::nullopt;
+  }
+
+  /// Resolve the qubit indices of `operands` into `out`. Returns false when
+  /// any index does not resolve.
+  bool resolveOperands(ValueRange operands, std::vector<std::size_t> &out) {
+    bool allResolved = true;
+    for (auto val : operands) {
+      // A veq control may be gathered by `concat` (Python list syntax:
+      // x.ctrl([q0, q1], q2)); resolve the qubits it holds.
+      SmallVector<Value> qubits;
+      if (auto concat = val.getDefiningOp<cudaq::quake::ConcatOp>())
+        llvm::append_range(qubits, concat.getTargets());
+      else
+        qubits.push_back(val);
+      for (auto qubit : qubits) {
+        if (auto idx = resolveQubitIndex(qubit))
+          out.push_back(*idx);
+        else
+          allResolved = false;
+      }
+    }
+    return allResolved;
   }
 
   /// In value (linear) form each wire result of an operation is the outgoing
@@ -176,16 +213,11 @@ struct ResourceCountPreprocessPass
         if (!llvm::is_contained(measWires, result) && !result.use_empty())
           return false;
 
+      // A qubit index that does not resolve would be counted against the
+      // wrong qubit. Leave the operation in the IR to be counted at run time.
       std::vector<std::size_t> targetIndices;
-      bool allResolved = true;
-      for (Value target : measurement.getTargets()) {
-        if (auto idx = resolveQubitIndex(target))
-          targetIndices.push_back(*idx);
-        else
-          allResolved = false;
-      }
-      if (!allResolved)
-        targetIndices.clear();
+      if (!resolveOperands(measurement.getTargets(), targetIndices))
+        return false;
 
       auto name = op->getName().stripDialect();
       if (dumpPreprocessed)
@@ -209,37 +241,14 @@ struct ResourceCountPreprocessPass
 
     auto name = op->getName().stripDialect();
 
+    // A qubit index that does not resolve would be counted with the wrong
+    // control count, arity and depth. Leave the operation in the IR to be
+    // counted at run time.
     std::vector<std::size_t> controlIndices, targetIndices;
-    bool allResolved = true;
-
-    // Resolve qubit indices. Operands may be ref (single qubit) or veq
-    // (e.g. from ConcatOp when Python passes a list of controls).
-    auto resolveOperands = [&](auto operands, std::vector<std::size_t> &out) {
-      for (auto val : operands) {
-        if (auto concat =
-                val.template getDefiningOp<cudaq::quake::ConcatOp>()) {
-          for (auto operand : concat.getTargets()) {
-            if (auto idx = resolveQubitIndex(operand))
-              out.push_back(*idx);
-            else
-              allResolved = false;
-          }
-        } else if (auto idx = resolveQubitIndex(val)) {
-          out.push_back(*idx);
-        } else {
-          allResolved = false;
-        }
-      }
-    };
-    resolveOperands(opi.getControls(), controlIndices);
-    resolveOperands(opi.getTargets(), targetIndices);
-
-    // If not all qubit indices resolved, use operand counts for the gate
-    // classification but skip depth tracking (indices are unreliable).
-    if (!allResolved) {
-      controlIndices.clear();
-      targetIndices.clear();
-    }
+    bool resolved = resolveOperands(opi.getControls(), controlIndices);
+    resolved &= resolveOperands(opi.getTargets(), targetIndices);
+    if (!resolved)
+      return false;
 
     if (dumpPreprocessed)
       llvm::outs() << "Preprocessing " << name << "("
