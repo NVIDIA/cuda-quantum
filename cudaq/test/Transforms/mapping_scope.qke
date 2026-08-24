@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --verify-each '--qubit-mapping=device=path(3) placement=identity search=none' %s | FileCheck --check-prefix=PATH %s
+// RUN: cudaq-opt --canonicalize --verify-each '--qubit-mapping=device=path(3) placement=identity search=none' %s | FileCheck --check-prefix=CANON %s
 // RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(3,1) placement=auto search=none' %s | FileCheck --check-prefix=AUTO %s
 // RUN: cudaq-opt --verify-each '--qubit-mapping=device=star(3,1) placement=identity search=sabre' %s | FileCheck --check-prefix=SABRE %s
 // RUN: cudaq-opt '--qubit-mapping=device=path(3) placement=identity search=none' --repair-linear-type %s | FileCheck --check-prefix=LINEAR %s
@@ -42,6 +43,8 @@ quake.wire_set @wires[2147483647]
 // SABRE-SAME:  mapping_v2p = [1, 0, 2]
 // SABRE-NOT:   quake.swap
 // SABRE:       return
+// CANON-LABEL: func.func @atomic_scope_live_lane()
+// CANON-SAME:  mapping_v2p
 func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
   cc.scope {
     %cond = cc.undef i1
@@ -67,5 +70,32 @@ func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
     quake.return_wire %if#0 : !quake.wire
     cc.continue
   }
+  return
+}
+
+// A flat run entry may contain multiple ordinary top-level scopes while its
+// borrowed wires live directly in the function body. The mapper must not
+// mistake either scope for a run wrapper.
+// PATH-LABEL: func.func @flat_run_ordinary_scopes()
+// PATH-SAME:  mapping_v2p
+// PATH:       cc.scope
+// PATH:       cc.scope
+// CANON-LABEL: func.func @flat_run_ordinary_scopes()
+// CANON-SAME:  mapping_v2p
+func.func @flat_run_ordinary_scopes() attributes {quake.cudaq_run = []} {
+  %c0 = arith.constant 0 : i32
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  cc.scope {
+    %slot = cc.alloca i32
+    cc.store %c0, %slot : !cc.ptr<i32>
+    cc.continue
+  }
+  %out:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %gate:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %gate#0, %gate#1 : !quake.wire, !quake.wire
+  }
+  quake.return_wire %out#0 : !quake.wire
+  quake.return_wire %out#1 : !quake.wire
   return
 }

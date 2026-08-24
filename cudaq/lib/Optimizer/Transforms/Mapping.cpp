@@ -2759,17 +2759,31 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     Block *bodyBlock = &blocks.front();
     cudaq::cc::ScopeOp runScope;
     if (isRunEntry) {
-      const auto scopes = bodyBlock->getOps<cudaq::cc::ScopeOp>();
-      if (!scopes.empty()) {
+      auto allBorrowsInBlock = [&](Block *candidate) {
+        return !func.walk([&](cudaq::quake::BorrowWireOp borrowOp) {
+                      return borrowOp->getBlock() == candidate
+                                 ? WalkResult::advance()
+                                 : WalkResult::interrupt();
+                    })
+                    .wasInterrupted();
+      };
+
+      // Canonicalization can erase the run wrapper while retaining ordinary
+      // top-level scopes. Only select a surviving wrapper when the entry block
+      // does not own the borrowed wires.
+      if (!allBorrowsInBlock(bodyBlock)) {
+        const auto scopes = bodyBlock->getOps<cudaq::cc::ScopeOp>();
         if (!llvm::hasSingleElement(scopes)) {
           if (nonComposable) {
             func.emitOpError(
-                "mapper requires a run entry to contain at most one "
-                "top-level cc.scope");
+                "mapper requires a run entry whose borrow_wire operations are "
+                "outside the entry block to contain exactly one top-level "
+                "cc.scope");
             signalPassFailure();
           }
           LLVM_DEBUG(llvm::dbgs()
-                     << "run entry has multiple top-level cc.scope ops\n");
+                     << "run entry borrows are outside its entry block but it "
+                        "does not have exactly one top-level cc.scope\n");
           return;
         }
         auto scope = *scopes.begin();
@@ -2786,15 +2800,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         bodyBlock = &scope.getInitRegion().front();
       }
 
-      // Every borrowed wire must originate in the selected body block. A
-      // borrow elsewhere means the quantum program spans blocks or the
-      // selected `cc.scope` is unrelated, neither of which is safe to map.
-      const auto borrowCheckResult =
-          func.walk([&](cudaq::quake::BorrowWireOp borrowOp) {
-            return borrowOp->getBlock() == bodyBlock ? WalkResult::advance()
-                                                     : WalkResult::interrupt();
-          });
-      if (borrowCheckResult.wasInterrupted()) {
+      // A borrow outside the selected body means the quantum program spans
+      // blocks, which the mapper cannot preserve.
+      if (!allBorrowsInBlock(bodyBlock)) {
         if (nonComposable) {
           func.emitOpError("mapper requires all borrow_wire operations in a "
                            "run entry to be in its selected body block");
