@@ -145,8 +145,8 @@ struct ResourceCountPreprocessPass
     if (auto extractRef = v.getDefiningOp<cudaq::quake::ExtractRefOp>()) {
       if (extractRef.hasConstantIndex())
         return getVeqBase(extractRef.getVeq()) + extractRef.getConstantIndex();
-      if (auto index =
-              cudaq::opt::factory::maybeValueOfIntConstant(extractRef.getIndex()))
+      if (auto index = cudaq::opt::factory::maybeValueOfIntConstant(
+              extractRef.getIndex()))
         return getVeqBase(extractRef.getVeq()) + *index;
     }
     // Wire semantics: a borrowed wire from a wire set.
