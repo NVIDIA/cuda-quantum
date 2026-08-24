@@ -59,7 +59,7 @@ runs:
       id: hash
       shell: bash
       env:
-        CONFIG_PATH: .github/workflows/config/wheel_sources.yml
+        CONFIG_PATH: .github/wheel_sources.yml
         KEY_PREFIX: wheel-index
         PROJECT: ${{ inputs.project }}
         TAG: ${{ inputs.tag }}
