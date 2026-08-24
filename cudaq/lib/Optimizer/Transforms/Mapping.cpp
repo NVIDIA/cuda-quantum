@@ -15,6 +15,7 @@
 #include "cudaq/Support/Device.h"
 #include "cudaq/Support/Handle.h"
 #include "cudaq/Support/Placement.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -2328,6 +2329,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         for (Value res : loopOp->getResults())
           if (isa<cudaq::quake::WireType>(res.getType()))
             finalQubitWire[wireToVirtualQ[res].index] = res;
+      } else if (isa<cudaq::quake::LogOutputOp>(op) &&
+                 cudaq::quake::getQuantumOperands(&op).empty()) {
+        // Scalar output values do not participate in qubit mapping.
+        continue;
       } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
         if (!cudaq::quake::isLinearValueForm(&op)) {
           if (nonComposable) {
@@ -2511,11 +2516,54 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Sanity checks and create a wire to virtual qubit mapping. For a `run`
-    // entry point, descend into the `cc.scope` that wraps the body.
+    // entry point, descend into the `cc.scope` that wraps the body when that
+    // scope has survived canonicalization.
     Block *bodyBlock = &blocks.front();
     if (isRunEntry) {
-      auto scope = *bodyBlock->getOps<cudaq::cc::ScopeOp>().begin();
-      bodyBlock = &scope.getInitRegion().front();
+      const auto scopes = bodyBlock->getOps<cudaq::cc::ScopeOp>();
+      if (!scopes.empty()) {
+        if (!llvm::hasSingleElement(scopes)) {
+          if (nonComposable) {
+            func.emitOpError(
+                "mapper requires a run entry to contain at most one "
+                "top-level cc.scope");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs()
+                     << "run entry has multiple top-level cc.scope ops\n");
+          return;
+        }
+        auto scope = *scopes.begin();
+        if (!scope.getInitRegion().hasOneBlock()) {
+          if (nonComposable) {
+            scope.emitOpError("mapper requires a single-block run entry scope");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs()
+                     << "run entry scope does not have exactly one block\n");
+          return;
+        }
+        bodyBlock = &scope.getInitRegion().front();
+      }
+
+      // Every borrowed wire must originate in the selected body block. A
+      // borrow elsewhere means the quantum program spans blocks or the
+      // selected `cc.scope` is unrelated, neither of which is safe to map.
+      const auto borrowCheckResult =
+          func.walk([&](cudaq::quake::BorrowWireOp borrowOp) {
+            return borrowOp->getBlock() == bodyBlock ? WalkResult::advance()
+                                                     : WalkResult::interrupt();
+          });
+      if (borrowCheckResult.wasInterrupted()) {
+        if (nonComposable) {
+          func.emitOpError("mapper requires all borrow_wire operations in a "
+                           "run entry to be in its selected body block");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs()
+                   << "run entry borrow_wire ops span multiple body blocks\n");
+        return;
+      }
     }
     Block &block = *bodyBlock;
 

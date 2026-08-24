@@ -16,6 +16,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <memory>
 #include <random>
 #include <variant>
 #include <vector>
@@ -47,7 +48,7 @@
 //   6. Combine partial solutions, adjust the residual unit       (Lemma C.16)
 //
 // The only super-polynomial step is integer factoring, handled here via a
-// Pollard-Brent rho heuristic with a caller-supplied timeout.
+// Pollard-Brent rho heuristic bounded by a caller-supplied iteration budget.
 
 #define DEBUG_TYPE "cudaq-synth"
 
@@ -219,19 +220,34 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 // Integer factoring  (Pollard-Brent rho)
 //===----------------------------------------------------------------------===//
 
+/// True once `deadline` has passed. An unset deadline never expires, which is
+/// the default and the only reproducible configuration.
+bool past_deadline(
+    const std::optional<std::chrono::steady_clock::time_point> &deadline) {
+  return deadline && std::chrono::steady_clock::now() >= *deadline;
+}
+
 /// Pollard-Brent rho: return a non-trivial factor of n, or failure if either
-/// the iteration budget L or the wall-clock timeout is exhausted.
+/// the iteration budget or the caller's optional deadline is exhausted.
 ///
-/// Used as the factoring sub-oracle in the Diophantine solver -- the paper
-/// notes this is the only super-polynomial step (sec. 8, Algorithm 7.6 step
-/// 2b). Heuristic; the iteration cap is set from a digit-count power law.
+/// Used as the factoring sub-oracle in the Diophantine solver (Algorithm 7.6
+/// step 2b). The paper leaves this step to a factoring oracle or to "any
+/// classical algorithm" with the effort spent on any one integer capped
+/// (sec. 8.2, and the proof of Proposition 8.11); this budget is that cap.
+/// Heuristic; the iteration limit is set from a digit-count power law.
+///
+/// `iterations_out`, if non-null, accumulates the rho iterations spent here.
 llvm::FailureOr<Integer> find_factor(const Integer &n,
-                                     int32_t factoring_timeout_ms,
+                                     const DiophantineBudget &budget,
+                                     GridsynthStats *stats = nullptr,
+                                     int64_t *iterations_out = nullptr,
                                      int32_t batch_size = 128) {
   CUDAQ_SYNTH_OPEN_SUB("find_factor");
+  if (stats)
+    stats->factoring_calls++;
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "n has " << num_decimal_digits(n)
-             << " digits, timeout=" << factoring_timeout_ms << "ms\n");
+             << "n has " << num_decimal_digits(n) << " digits, max_iterations="
+             << budget.maxFactoringIterations << "\n");
   // Quick trial-division pass: catches every n with a tiny prime factor
   // without spinning up the rho machine. Cast to unsigned long matches the
   // GMP mpz_divisible_ui_p ABI; the values fit losslessly on LP64.
@@ -245,6 +261,8 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   for (uint64_t p : small_primes) {
     if (mpz_divisible_ui_p(n_mpz, static_cast<unsigned long>(p))) {
       if (mpz_cmp_ui(n_mpz, static_cast<unsigned long>(p)) > 0) {
+        if (stats)
+          stats->factoring_successes++;
         CUDAQ_SYNTH_CLOSE_SUCCESS("small prime " + std::to_string(p));
         return Integer(static_cast<int64_t>(p));
       }
@@ -260,6 +278,9 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   size_t digits = num_decimal_digits(n);
   double pow_term = std::pow(10.0, static_cast<double>(digits) / 4.0);
   int64_t L = static_cast<int64_t>(pow_term * 1.1774 + 10.0);
+  // Keep the budget reachable, so the exit below is the budget's rather than
+  // the optional clock's. Giving up early on a hard composite is cheap.
+  L = std::min(L, static_cast<int64_t>(budget.maxFactoringIterations));
 
   GmpRng &rng = global_rng();
   Integer a_int = urand_between(1, n - 1, rng);
@@ -279,13 +300,26 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   mpz_set(y, a_mpz);
 
   int64_t r = 1, k = 0;
-  auto start = std::chrono::steady_clock::now();
 
   auto make_result = [&](mpz_t src) -> llvm::FailureOr<Integer> {
     Integer out;
     mpz_set(out.get_mpz_t(), src);
     return out;
   };
+
+  // Record k however the loop below exits: rho iterations are the
+  // machine-independent measure of what this attempt spent.
+  struct IterationRecorder {
+    GridsynthStats *stats;
+    int64_t *iterations_out;
+    const int64_t &k;
+    ~IterationRecorder() {
+      if (stats)
+        stats->factoring_iterations_total += k;
+      if (iterations_out)
+        *iterations_out += k;
+    }
+  } iteration_recorder{stats, iterations_out, k};
 
   while (true) {
     // Brent phase: save x = y + n so that x - y stays non-negative, then
@@ -328,6 +362,8 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
                 CUDAQ_SYNTH_CLOSE_FAILURE("backtrack collapsed");
                 return llvm::failure();
               }
+              if (stats)
+                stats->factoring_successes++;
               CUDAQ_SYNTH_CLOSE_SUCCESS("Pollard-Brent backtrack");
               return make_result(g);
             }
@@ -335,14 +371,20 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
           CUDAQ_SYNTH_CLOSE_FAILURE("backtrack exhausted");
           return llvm::failure();
         }
+        if (stats)
+          stats->factoring_successes++;
         CUDAQ_SYNTH_CLOSE_SUCCESS("Pollard-Brent rho");
         return make_result(g);
       }
 
-      auto now = std::chrono::steady_clock::now();
-      if (k >= L ||
-          std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
-                  .count() >= factoring_timeout_ms) {
+      // L is the real limit -- derived from the input size and clamped by the
+      // caller's budget, so the same seed does the same work everywhere. The
+      // deadline only fires when a caller asked for one.
+      const bool budget_spent = k >= L;
+      const bool clock_spent = !budget_spent && past_deadline(budget.deadline);
+      if (budget_spent || clock_spent) {
+        if (stats && clock_spent)
+          stats->factoring_wall_clock_exits++;
         LLVM_DEBUG(cudaq::synth::dbgs()
                    << "exhausted budget for " << digits
                    << "-digit number (L=" << L << ", k=" << k << ")\n");
@@ -740,9 +782,8 @@ DiophantineResult adj_decompose_prime_power(const Integer &p,
 /// allows the combination over coprime factors). Returns NoSolution if any
 /// prime power has no decomposition; returns NoSolution on diophantine
 /// timeout since an incomplete factorization cannot guarantee solvability.
-DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
-                                int32_t factoring_timeout_ms,
-                                std::chrono::steady_clock::time_point start) {
+DiophantineResult adj_decompose(Integer n, const DiophantineBudget &budget,
+                                GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("adj_decompose(int)");
   if (n < 0)
     n = -n;
@@ -750,6 +791,11 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
              << "n has " << num_decimal_digits(n) << " digits\n");
   std::vector<Factor> factors = {{n, 1}};
   ZOmega t = ZOmega::from_int(1);
+  // Restart budget for the composite on top of the stack, reset when the top
+  // changes so the bound is per composite, not a running total.
+  Integer retried_p;
+  int retries = 0;
+  int64_t iterations = 0;
   while (!factors.empty()) {
     auto [p, k] = factors.back();
     factors.pop_back();
@@ -760,17 +806,32 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
     }
 
     if (is_need_factoring(t_p)) {
-      llvm::FailureOr<Integer> factor = find_factor(p, factoring_timeout_ms);
+      llvm::FailureOr<Integer> factor =
+          find_factor(p, budget, stats, &iterations);
       if (llvm::failed(factor)) {
-        // Push the unfactored term back and keep going only if there is
-        // still time on the overall diophantine budget.
+        // Push the unfactored term back, and keep going only if both this
+        // composite and the candidate have budget left.
         factors.emplace_back(p, k);
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed =
-            std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
-                .count();
-        if (elapsed >= diophantine_timeout_ms) {
-          CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
+        retries = (p == retried_p) ? retries + 1 : 0;
+        retried_p = p;
+        if (stats && retries > 0)
+          stats->factoring_restarts++;
+        if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
+          if (stats)
+            stats->candidates_restart_limited++;
+          CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
+          return NoSolution{};
+        }
+        if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
+          if (stats)
+            stats->candidates_iteration_limited++;
+          CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
+          return NoSolution{};
+        }
+        if (past_deadline(budget.deadline)) {
+          if (stats)
+            stats->diophantine_wall_clock_exits++;
+          CUDAQ_SYNTH_CLOSE_FAILURE("deadline passed while factoring");
           return NoSolution{};
         }
       } else {
@@ -802,18 +863,16 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
 /// n = gcd(a, b) (where xi = a + b*sqrt(2)), recurse to adj_decompose on n,
 /// and absorb the residual sqrt(2) factor using delta = 1 + omega
 /// (delta * conj(delta) = lambda * sqrt(2) ~ sqrt(2), Remark 3.6).
-DiophantineResult
-adj_decompose_selfassociate(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
-                            int32_t factoring_timeout_ms,
-                            std::chrono::steady_clock::time_point start) {
+DiophantineResult adj_decompose_selfassociate(const ZSqrt2 &xi,
+                                              const DiophantineBudget &budget,
+                                              GridsynthStats *stats) {
   if (xi == ZSqrt2{0})
     return ZOmega::from_int(0);
 
   Integer n = gcd(xi.a(), xi.b());
   ZSqrt2 r = xi / ZSqrt2{n};
 
-  DiophantineResult t1 =
-      adj_decompose(n, diophantine_timeout_ms, factoring_timeout_ms, start);
+  DiophantineResult t1 = adj_decompose(n, budget, stats);
 
   // delta = 1 + omega in the Z[omega] basis is ZOmega(0, 0, 1, 1).
   ZOmega t2 = ((r % ZSqrt2{0, 1}) == ZSqrt2{0}) ? ZOmega(0, 0, 1, 1)
@@ -932,16 +991,19 @@ DiophantineResult adj_decompose_prime_power(const ZSqrt2 &eta,
 /// adj-decompose xi in Z[sqrt(2)] under the assumption that gcd(xi,
 /// conj_sq2(xi)) ~ 1. All prime factors eta of xi then satisfy eta not ~
 /// conj_sq2(eta) -- they are the split primes from Lemma C.11. We
-/// iteratively factor the norm |conj_sq2(eta) * eta| through Pollard-rho,
+/// iteratively factor the norm |conj_sq2(eta) * eta| through Pollard-Brent rho,
 /// adj-decompose each Z[sqrt(2)]-prime power, and combine via Lemma C.19.
-DiophantineResult
-adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
-                          int32_t factoring_timeout_ms,
-                          std::chrono::steady_clock::time_point start) {
+DiophantineResult adj_decompose_selfcoprime(const ZSqrt2 &xi,
+                                            const DiophantineBudget &budget,
+                                            GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("adj_decompose_selfcoprime");
   LLVM_DEBUG(cudaq::synth::dbgs() << "xi=" << xi << '\n');
   std::vector<std::pair<ZSqrt2, Integer>> factors = {{xi, 1}};
   ZOmega t = ZOmega::from_int(1);
+  // Per-composite restart budget, as in adj_decompose above.
+  Integer retried_n;
+  int retries = 0;
+  int64_t iterations = 0;
   while (!factors.empty()) {
     LLVM_DEBUG({
       std::string flist;
@@ -963,15 +1025,30 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
       Integer n = eta.norm();
       if (n < 0)
         n = -n;
-      llvm::FailureOr<Integer> fac_n = find_factor(n, factoring_timeout_ms);
+      llvm::FailureOr<Integer> fac_n =
+          find_factor(n, budget, stats, &iterations);
       if (llvm::failed(fac_n)) {
         factors.emplace_back(eta, k);
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed =
-            std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
-                .count();
-        if (elapsed >= diophantine_timeout_ms) {
-          CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
+        retries = (n == retried_n) ? retries + 1 : 0;
+        retried_n = n;
+        if (stats && retries > 0)
+          stats->factoring_restarts++;
+        if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
+          if (stats)
+            stats->candidates_restart_limited++;
+          CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
+          return NoSolution{};
+        }
+        if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
+          if (stats)
+            stats->candidates_iteration_limited++;
+          CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
+          return NoSolution{};
+        }
+        if (past_deadline(budget.deadline)) {
+          if (stats)
+            stats->diophantine_wall_clock_exits++;
+          CUDAQ_SYNTH_CLOSE_FAILURE("deadline passed while factoring");
           return NoSolution{};
         }
       } else {
@@ -1005,9 +1082,8 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 /// and adj-decomposing each piece independently (Lemma C.19 allows the
 /// independent treatment). Matches Lemma C.23 / Proposition C.24.
 DiophantineResult adj_decompose(const ZSqrt2 &xi,
-                                int32_t diophantine_timeout_ms,
-                                int32_t factoring_timeout_ms,
-                                std::chrono::steady_clock::time_point start) {
+                                const DiophantineBudget &budget,
+                                GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("adj_decompose(ZSqrt2)");
   if (xi == ZSqrt2{0}) {
     CUDAQ_SYNTH_CLOSE_SUCCESS("xi == 0");
@@ -1021,15 +1097,13 @@ DiophantineResult adj_decompose(const ZSqrt2 &xi,
   LLVM_DEBUG(cudaq::synth::dbgs() << "self-associate d=" << d
                                   << ", self-coprime eta=" << eta << '\n');
 
-  DiophantineResult t1 = adj_decompose_selfassociate(
-      d, diophantine_timeout_ms, factoring_timeout_ms, start);
+  DiophantineResult t1 = adj_decompose_selfassociate(d, budget, stats);
   if (is_no_solution(t1)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("self-associate part has no solution");
     return t1;
   }
 
-  DiophantineResult t2 = adj_decompose_selfcoprime(eta, diophantine_timeout_ms,
-                                                   factoring_timeout_ms, start);
+  DiophantineResult t2 = adj_decompose_selfcoprime(eta, budget, stats);
   if (is_no_solution(t2)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("self-coprime part has no solution");
     return t2;
@@ -1054,10 +1128,9 @@ DiophantineResult adj_decompose(const ZSqrt2 &xi,
 /// residual unit u = xi / (conj(t) * t) is doubly positive (since both xi
 /// and conj(t)*t are), so Lemma C.2 gives u = v^2 for some v in Z[sqrt(2)],
 /// and the exact solution is t' = v * t (Lemma C.16).
-DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
-                              int32_t factoring_timeout_ms) {
+DiophantineResult diophantine(const ZSqrt2 &xi, const DiophantineBudget &budget,
+                              GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("diophantine");
-  auto start = std::chrono::steady_clock::now();
   LLVM_DEBUG(cudaq::synth::dbgs() << "xi=" << xi << '\n');
 
   if (xi == ZSqrt2{0}) {
@@ -1072,8 +1145,7 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
     return NoSolution{};
   }
 
-  DiophantineResult t =
-      adj_decompose(xi, diophantine_timeout_ms, factoring_timeout_ms, start);
+  DiophantineResult t = adj_decompose(xi, budget, stats);
   if (!is_success(t)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("adj_decompose failed");
     return t;
@@ -1099,17 +1171,47 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 } // namespace
 
 //===----------------------------------------------------------------------===//
+// Public API: RNG seeding
+//===----------------------------------------------------------------------===//
+
+/// Snapshot of a gmp_randstate_t. GMP offers no assignment, so restoring means
+/// clearing the live state and re-initializing it from this copy.
+struct cudaq::synth::ScopedFactoringRngSeed::SavedState {
+  gmp_randstate_t state;
+
+  explicit SavedState(const gmp_randstate_t &source) {
+    gmp_randinit_set(state, source);
+  }
+
+  ~SavedState() { gmp_randclear(state); }
+
+  SavedState(const SavedState &) = delete;
+  SavedState &operator=(const SavedState &) = delete;
+};
+
+cudaq::synth::ScopedFactoringRngSeed::ScopedFactoringRngSeed(uint64_t seed)
+    : saved(std::make_unique<SavedState>(global_rng().state)) {
+  gmp_randseed_ui(global_rng().state, static_cast<unsigned long>(seed));
+}
+
+cudaq::synth::ScopedFactoringRngSeed::~ScopedFactoringRngSeed() {
+  gmp_randstate_t &live = global_rng().state;
+  gmp_randclear(live);
+  gmp_randinit_set(live, saved->state);
+}
+
+//===----------------------------------------------------------------------===//
 // Public API: D[sqrt(2)] solver   (Theorem 6.2 / Lemma C.25)
 //===----------------------------------------------------------------------===//
 
-llvm::FailureOr<DOmega>
-cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
-                                 int32_t factoring_timeout) {
+llvm::FailureOr<DOmega> cudaq::synth::diophantine_dyadic(
+    const DSqrt2 &xi, const DiophantineBudget &budget, GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("diophantine_dyadic");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(xi.k())
-             << ", dioph_timeout=" << diophantine_timeout
-             << "ms, fact_timeout=" << factoring_timeout << "ms\n");
+             << ", max_factoring_iterations=" << budget.maxFactoringIterations
+             << ", max_candidate_iterations=" << budget.maxCandidateIterations
+             << "\n");
 
   Integer k_div_2 = xi.k() >> 1;
   Integer k_mod_2 = xi.k() & 1;
@@ -1122,8 +1224,7 @@ cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
   //   (a + b*sqrt(2)) * sqrt(2) = (2b + a*sqrt(2)).
   ZSqrt2 arg = k_mod_2 ? (xi.alpha() * ZSqrt2(1, 1)) : xi.alpha();
 
-  DiophantineResult t =
-      diophantine(arg, diophantine_timeout, factoring_timeout);
+  DiophantineResult t = diophantine(arg, budget, stats);
 
   if (!is_success(t)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("no solution for denom_exp=" +
