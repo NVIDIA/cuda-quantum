@@ -28,18 +28,32 @@ struct TargetCodegenPipelineOptions
       llvm::cl::init("")};
 };
 
-struct ConvertToWiresetPipelineOptions
-    : public PassPipelineOptions<ConvertToWiresetPipelineOptions> {
-  PassOptions::Option<std::string> loopUnrollOptions{
-      *this, "cc-loop-unroll-options",
-      llvm::cl::desc("Options forwarded to cc-loop-unroll."),
-      llvm::cl::init("")};
+struct PrepareForWiresetPipelineOptions
+    : public PassPipelineOptions<PrepareForWiresetPipelineOptions> {
+  PassOptions::Option<unsigned> threshold{
+      *this, "maximum-iterations",
+      llvm::cl::desc("Maximum iterations to unroll.")};
+  PassOptions::Option<bool> signalFailure{
+      *this, "signal-failure-if-any-loop-cannot-be-completely-unrolled",
+      llvm::cl::desc("Signal failure if pass can't unroll all loops.")};
+  PassOptions::Option<bool> allowBreak{
+      *this, "allow-early-exit",
+      llvm::cl::desc(
+          "Allow unrolling of loop with early exit (i.e. break statement).")};
+  PassOptions::Option<bool> unrollOnlyWireBlockingLoops{
+      *this, "unroll-only-wire-blocking-loops",
+      llvm::cl::desc(
+          "Unroll only loops that prevent quantum references, slices, or "
+          "exp_pauli operands from being resolved for wire-set lowering.")};
+  PassOptions::Option<bool> addWireset{
+      *this, "add-wireset",
+      llvm::cl::desc("Add a wire set and assign wire indices.")};
 };
 } // namespace
 
-static LogicalResult createConvertToWiresetPipeline(
-    OpPassManager &pm, StringRef loopUnrollOptions,
-    function_ref<LogicalResult(const Twine &)> errorHandler) {
+static void createPrepareForWiresetPipeline(
+    OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
+    bool addWireset) {
   auto &funcPM = pm.nest<func::FuncOp>();
   funcPM.addPass(cudaq::opt::createAddDeallocs());
   funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedLogOutput());
@@ -47,10 +61,7 @@ static LogicalResult createConvertToWiresetPipeline(
   funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   funcPM.addPass(createCanonicalizerPass());
   funcPM.addPass(cudaq::opt::createLoopNormalize());
-  auto loopUnroll = cudaq::opt::createLoopUnroll();
-  if (failed(loopUnroll->initializeOptions(loopUnrollOptions, errorHandler)))
-    return failure();
-  funcPM.addPass(std::move(loopUnroll));
+  funcPM.addPass(cudaq::opt::createLoopUnroll(loopUnrollOptions));
   funcPM.addPass(createCanonicalizerPass());
   funcPM.addPass(createCSEPass());
   // Classically scalarize and promote Pauli words for early exp_pauli
@@ -62,24 +73,29 @@ static LogicalResult createConvertToWiresetPipeline(
   cudaq::opt::addConvertToLinearValues(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createAddWireset());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignWireIndices());
-  return success();
+  if (addWireset) {
+    pm.addPass(cudaq::opt::createAddWireset());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignWireIndices());
+  }
 }
 
-void cudaq::opt::registerConvertToWiresetPipeline() {
-  registerPassPipeline(
-      "convert-to-wireset", "Convert supported Quake IR to wire-set form.",
-      [](OpPassManager &pm, StringRef optionsString,
-         function_ref<LogicalResult(const Twine &)> errorHandler) {
-        ConvertToWiresetPipelineOptions options;
-        if (failed(options.parseFromString(optionsString)))
-          return failure();
-        return createConvertToWiresetPipeline(pm, options.loopUnrollOptions,
-                                              errorHandler);
-      },
-      [](function_ref<void(const mlir::detail::PassOptions &)> optionHandler) {
-        optionHandler(ConvertToWiresetPipelineOptions());
+void cudaq::opt::registerPrepareForWiresetPipeline() {
+  PassPipelineRegistration<PrepareForWiresetPipelineOptions>(
+      "prepare-for-wireset",
+      "Prepare supported Quake IR for wire-set conversion.",
+      [](OpPassManager &pm, const PrepareForWiresetPipelineOptions &opt) {
+        auto setIt = [](auto &to, const auto &from) {
+          if (from.hasValue())
+            to = from;
+        };
+
+        cudaq::opt::LoopUnrollOptions loopUnrollOptions;
+        setIt(loopUnrollOptions.threshold, opt.threshold);
+        setIt(loopUnrollOptions.signalFailure, opt.signalFailure);
+        setIt(loopUnrollOptions.allowBreak, opt.allowBreak);
+        setIt(loopUnrollOptions.unrollOnlyWireBlockingLoops,
+              opt.unrollOnlyWireBlockingLoops);
+        createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);
       });
 }
 
