@@ -57,7 +57,7 @@ def test_ghz():
 # CHECK:           ^bb0(%[[VAL_19:.*]]: i64):
 # CHECK:             %[[VAL_21:.*]] = arith.addi %[[VAL_19]], %[[VAL_2]] : i64
 # CHECK:             cc.continue %[[VAL_21]] : i64
-# CHECK:           } {normalized}
+# CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_5]] : !quake.veq<?>
 # CHECK:           return
 # CHECK:         }
