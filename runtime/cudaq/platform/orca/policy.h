@@ -8,17 +8,17 @@
 
 #pragma once
 
-#include "FermioniqBaseQPU.h"
+#include "common/Future.h"
+#include "common/SampleResult.h"
 
-namespace cudaq {
+namespace cudaq::orca {
 
-/// @brief The FermioniqRestQPU is a subtype of QPU that enables the
-/// execution of CUDA-Q kernels on the Fermioniq simulator via a REST Client.
-class FermioniqRestQPU : public FermioniqBaseQPU {
-public:
-  FermioniqRestQPU() : FermioniqBaseQPU() {}
-  FermioniqRestQPU(FermioniqRestQPU &&) = delete;
-  ~FermioniqRestQPU() override;
+struct sample_policy {
+  static constexpr char name[] = "orca-sample";
+  static constexpr char kernelName[] = "orca_launch";
+  using result_type = cudaq::sample_result;
 };
 
-} // namespace cudaq
+using async_sample_policy = cudaq::async_policy_wrapper<sample_policy>;
+
+} // namespace cudaq::orca

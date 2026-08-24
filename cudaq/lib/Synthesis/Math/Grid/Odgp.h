@@ -12,8 +12,10 @@
 #include "Support/Stepper.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
+#include "cudaq/Synthesis/Synthesis/GridsynthOptions.h"
 
 #include <cmath>
+#include <cstdint>
 #include <mpfr.h>
 #include <optional>
 #include <string>
@@ -58,9 +60,14 @@ namespace cudaq::synth {
 /// Pointer contract: the pointer returned by `next()` (and the reference
 /// returned by `*it`) is valid only until the next call to `next()` / `++it`.
 /// Callers must consume or copy before advancing.
+///
+/// `max_scan_steps` bounds how far the enumeration walks without yielding; see
+/// `GridsynthOptions::maxOdgpScanSteps`. Every stepper below forwards it to
+/// the one it wraps.
 class OdgpStepper : public StepperBase<OdgpStepper, ZSqrt2> {
 public:
-  OdgpStepper(Interval I, Interval J);
+  OdgpStepper(Interval I, Interval J,
+              uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpStepper();
 
   OdgpStepper(const OdgpStepper &) = delete;
@@ -98,6 +105,13 @@ private:
   bool started_ = false;
   bool exhausted_ = false;
 
+  // Steps taken without producing a solution, and their bound. Accumulated
+  // over the stepper's lifetime rather than reset on a yield: the scan
+  // alternates between next() and setup_current_a(), each doing only a few
+  // steps per call, so a per-loop budget would never trip.
+  uint64_t fruitless_steps_ = 0;
+  uint64_t max_scan_steps_;
+
   // Buffer aliased by the pointer returned from next().
   ZSqrt2 last_sol_;
 
@@ -108,6 +122,7 @@ private:
 
   bool setup_current_a();
   void post_yield_update();
+  bool out_of_budget();
   bool b_in_bounds() const;
 
   void cache_interval_bounds(const Interval &I, const Interval &J);
@@ -133,7 +148,9 @@ private:
 class OdgpWithParityStepper
     : public StepperBase<OdgpWithParityStepper, ZSqrt2> {
 public:
-  OdgpWithParityStepper(Interval I, Interval J, ZSqrt2 parity_hint);
+  OdgpWithParityStepper(
+      Interval I, Interval J, ZSqrt2 parity_hint,
+      uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpWithParityStepper();
 
   OdgpWithParityStepper(const OdgpWithParityStepper &) = delete;
@@ -161,7 +178,9 @@ private:
 /// exponents) before being handed to the inner OdgpStepper.
 class OdgpScaledStepper : public StepperBase<OdgpScaledStepper, DSqrt2> {
 public:
-  OdgpScaledStepper(Interval I, Interval J, Integer denom_exp);
+  OdgpScaledStepper(
+      Interval I, Interval J, Integer denom_exp,
+      uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpScaledStepper();
 
   OdgpScaledStepper(const OdgpScaledStepper &) = delete;
@@ -194,8 +213,9 @@ private:
 class OdgpScaledWithParityStepper
     : public StepperBase<OdgpScaledWithParityStepper, DSqrt2> {
 public:
-  OdgpScaledWithParityStepper(Interval I, Interval J, Integer denom_exp,
-                              DSqrt2 parity_hint);
+  OdgpScaledWithParityStepper(
+      Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint,
+      uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpScaledWithParityStepper();
 
   OdgpScaledWithParityStepper(const OdgpScaledWithParityStepper &) = delete;

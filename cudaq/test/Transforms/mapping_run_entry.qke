@@ -1,0 +1,77 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Canonicalization can erase the allocation-free `cc.scope` around a `run`
+// kernel with a scalar return value. Verify mapping handles the resulting flat
+// entry block while preserving support for the scoped form.
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(1) placement=identity search=none' %s | FileCheck %s
+
+module {
+  quake.wire_set @wires[2147483647]
+
+  func.func @bool_return.run() attributes {quake.cudaq_run = [i1]} {
+    %true = arith.constant true
+    %0 = quake.borrow_wire @wires[0] : !quake.wire
+    %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.return_wire %wires : !quake.wire
+    quake.log_output %true : (i1) -> ()
+    return
+  }
+
+  // CHECK-LABEL: func.func @bool_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i1]}
+  // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  // CHECK:         quake.log_output {{.*}} : (i1) -> ()
+
+  func.func @int_return.run() attributes {quake.cudaq_run = [i32]} {
+    %c5_i32 = arith.constant 5 : i32
+    %0 = quake.borrow_wire @wires[0] : !quake.wire
+    %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.return_wire %wires : !quake.wire
+    quake.log_output %c5_i32 : (i32) -> ()
+    return
+  }
+
+  // CHECK-LABEL: func.func @int_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i32]}
+  // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  // CHECK:         quake.log_output {{.*}} : (i32) -> ()
+
+  func.func @float_return.run() attributes {quake.cudaq_run = [f32]} {
+    %cst = arith.constant 1.500000e+00 : f32
+    %0 = quake.borrow_wire @wires[0] : !quake.wire
+    %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.return_wire %wires : !quake.wire
+    quake.log_output %cst : (f32) -> ()
+    return
+  }
+
+  // CHECK-LABEL: func.func @float_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [f32]}
+  // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  // CHECK:         quake.log_output {{.*}} : (f32) -> ()
+
+  func.func @scoped_return.run() attributes {quake.cudaq_run = [i1]} {
+    %true = arith.constant true
+    %0 = cc.scope -> (i1) {
+      %1 = quake.borrow_wire @wires[0] : !quake.wire
+      %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+      %measOut, %wires = quake.mz %2 : (!quake.wire) -> (!quake.measure, !quake.wire)
+      quake.return_wire %wires : !quake.wire
+      cc.continue %true : i1
+    }
+    quake.log_output %0 : (i1) -> ()
+    return
+  }
+
+  // CHECK-LABEL: func.func @scoped_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i1]}
+  // CHECK:         cc.scope
+  // CHECK:           quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  // CHECK:         quake.log_output {{.*}} : (i1) -> ()
+}

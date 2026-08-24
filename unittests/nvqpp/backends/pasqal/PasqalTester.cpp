@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/AnalogHamiltonian.h"
+#include "nlohmann/json.hpp"
 
 const std::string sampleSequence = R"(
 {
