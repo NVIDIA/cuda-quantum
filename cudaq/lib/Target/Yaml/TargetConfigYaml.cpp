@@ -377,6 +377,7 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
     IO &io, cudaq::config::BackendEndConfigEntry &info) {
   io.mapOptional("gen-target-backend", info.GenTargetBackend);
   io.mapOptional("library-mode", info.LibraryMode);
+  io.mapOptional("support-resource-counts", info.SupportResourceCounts);
   io.mapOptional("jit-high-level-pipeline", info.JITHighLevelPipeline);
   io.mapOptional("jit-mid-level-pipeline", info.JITMidLevelPipeline);
   io.mapOptional("jit-low-level-pipeline", info.JITLowLevelPipeline);
