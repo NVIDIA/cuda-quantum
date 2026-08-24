@@ -1,0 +1,35 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: not cudaq-opt --cc-loop-unroll="unroll-only-wire-blocking-loops=true unroll-only-index-use-loops=true" %s 2>&1 | FileCheck %s
+
+// The two selective unrolling modes disagree about which loops to leave
+// rolled, so enabling both is rejected up front.
+
+// CHECK: unroll-only-wire-blocking-loops and unroll-only-index-use-loops are mutually exclusive
+
+func.func @simple() {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c4_i64 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg1, %c4_i64 : i64
+    cc.condition %2(%arg1 : i64)
+  } do {
+  ^bb0(%arg1: i64):
+    %2 = quake.extract_ref %0[%arg1] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %2 : (!quake.ref) -> ()
+    cc.continue %arg1 : i64
+  } step {
+  ^bb0(%arg1: i64):
+    %2 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}

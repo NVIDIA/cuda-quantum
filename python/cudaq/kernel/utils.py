@@ -636,37 +636,6 @@ def mlirTypeFromAnnotation(annotation,
         f" is not a supported type.")
 
 
-def pyInstanceFromName(name: str):
-    if name == 'bool':
-        return bool(False)
-    if name == 'int':
-        return int(0)
-    if name in ['numpy.int8', 'np.int8']:
-        return np.int8(0)
-    if name in ['numpy.int16', 'np.int16']:
-        return np.int16(0)
-    if name in ['numpy.int32', 'np.int32']:
-        return np.int32(0)
-    if name in ['numpy.int64', 'np.int64']:
-        return np.int64(0)
-    if name == 'int':
-        return int(0)
-    if name == 'float':
-        return float(0.0)
-    if name in ['numpy.float32', 'np.float32']:
-        return np.float32(0.0)
-    if name in ['numpy.float64', 'np.float64']:
-        return np.float64(0.0)
-    if name == 'complex':
-        return 0j
-    if name == 'pauli_word':
-        return pauli_word('')
-    if name in ['numpy.complex128', 'np.complex128']:
-        return np.complex128(0.0)
-    if name in ['numpy.complex64', 'np.complex64']:
-        return np.complex64(0.0)
-
-
 def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType in [int, np.int64]:
         return IntegerType.get_signless(64, ctx)

@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // clang-format off
-// RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --verify-diagnostics %s
+// RUN: cudaq-opt --cc-loop-unroll="unroll-only-wire-blocking-loops=true signal-failure-if-any-loop-cannot-be-completely-unrolled=true" --verify-diagnostics %s
 // clang-format on
 
 // Input produced by the real pipeline
