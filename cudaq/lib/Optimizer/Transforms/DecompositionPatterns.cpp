@@ -1862,7 +1862,7 @@ REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, {"rz<adj>", "rz"});
 // quake.rz(ϕ) target
 struct U3ToRotationsType; // forward declare the pattern type, defined in the
 
-                          // macro below
+// macro below
 struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
                                                           cudaq::quake::U3Op> {
   using cudaq::DecompositionPattern<U3ToRotationsType,
@@ -1934,8 +1934,8 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
         rewriter, loc, phase, controls, negatedControls, targets.back());
     targets.back() = correction.anchor;
 
-    rewriter.replaceOp(op,
-                       cudaq::quake::getWireValues(correction.controls, targets));
+    rewriter.replaceOp(
+        op, cudaq::quake::getWireValues(correction.controls, targets));
     return success();
   }
 };
