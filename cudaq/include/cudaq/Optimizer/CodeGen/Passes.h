@@ -78,6 +78,10 @@ void registerToExecutionManagerCCPipeline();
 /// Note: this pipeline \e includes the convert to `QIR API`pipeline.
 void registerCodegenForQIRPipeline();
 
+/// Register the pipeline that prepares supported Quake IR for wire-set
+/// conversion.
+void registerPrepareForWiresetPipeline();
+
 void registerWireSetToProfileQIRPipeline();
 void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
