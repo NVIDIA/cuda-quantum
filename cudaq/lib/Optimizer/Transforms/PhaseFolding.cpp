@@ -130,13 +130,17 @@ class PhaseStorage {
     return std::nullopt;
   }
 
-  // Returns the angle of a Z-axis rotation as an MLIR Value, creating a float
-  // constant for named gates (S/T/Z) or reusing the existing operand for Rz.
+  // Returns the signed angle of a Z-axis rotation as an MLIR Value, creating a
+  // float constant for named gates (S/T/Z) or negating an adjoint Rz operand.
   static Value getRotAngleValue(OpBuilder &builder,
                                 cudaq::quake::OperatorInterface rot) {
     auto *op = rot.getOperation();
-    if (isa<cudaq::quake::RzOp>(op))
-      return op->getOperand(0);
+    if (isa<cudaq::quake::RzOp>(op)) {
+      Value angle = op->getOperand(0);
+      if (rot.isAdj())
+        return arith::NegFOp::create(builder, op->getLoc(), angle).getResult();
+      return angle;
+    }
     double angle;
     if (isa<cudaq::quake::ZOp>(op))
       angle = M_PI;

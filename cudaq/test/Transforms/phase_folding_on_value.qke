@@ -7,6 +7,9 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+// RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
+// RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %t.semantic.qke | \
+// RUN:   CircuitCheck %t.semantic.qke
 
 // Two rotations that share the same phase term across a pair of CNOTs are
 // merged into a single rotation whose angle is the sum of the two.
@@ -214,3 +217,163 @@ func.func @ry_breaker(%a: f64) {
 // CHECK:           %[[VAL_6:.*]]:2 = quake.x {{\[}}%[[VAL_4]]] %[[VAL_5]] :
 // CHECK:           return
 // CHECK:         }
+
+// The two letters in each function name give the chronological adjoint state
+// of the earlier and later Rz operations: N is non-adjoint and A is adjoint.
+// The Rz matrices give Rz<adj>(theta) = Rz(-theta), so folding must add each
+// chronological angle with the sign selected by that operation's adjoint bit.
+
+func.func @dynamic_nn(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %cx:2 = quake.x [%control] %target
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %earlier = quake.rz (%a) %cx#1 : (f64, !quake.wire) -> !quake.wire
+  %later = quake.rz (%b) %earlier : (f64, !quake.wire) -> !quake.wire
+  %used = quake.h %later : (!quake.wire) -> !quake.wire
+  quake.sink %cx#0 : !quake.wire
+  quake.sink %used : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic_nn(
+// CHECK-SAME:                            %[[A:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:                            %[[B:[a-zA-Z0-9_.$-]+]]: f64) {
+// CHECK:           %[[CX:.*]]:2 = quake.x
+// CHECK-NEXT:      %[[SUM:.*]] = arith.addf %[[A]], %[[B]] : f64
+// CHECK-NEXT:      %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[CX]]#1 : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[USED:.*]] = quake.h %[[RZ]] :
+// CHECK-NOT:       quake.rz<adj>
+// CHECK:           return
+
+func.func @dynamic_an(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %cx:2 = quake.x [%control] %target
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %earlier = quake.rz<adj> (%a) %cx#1
+      : (f64, !quake.wire) -> !quake.wire
+  %later = quake.rz (%b) %earlier : (f64, !quake.wire) -> !quake.wire
+  %used = quake.h %later : (!quake.wire) -> !quake.wire
+  quake.sink %cx#0 : !quake.wire
+  quake.sink %used : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic_an(
+// CHECK-SAME:                            %[[A:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:                            %[[B:[a-zA-Z0-9_.$-]+]]: f64) {
+// CHECK:           %[[CX:.*]]:2 = quake.x
+// CHECK-NEXT:      %[[NEG_A:.*]] = arith.negf %[[A]] : f64
+// CHECK-NEXT:      %[[SUM:.*]] = arith.addf %[[NEG_A]], %[[B]] : f64
+// CHECK-NEXT:      %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[CX]]#1 : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[USED:.*]] = quake.h %[[RZ]] :
+// CHECK-NOT:       quake.rz<adj>
+// CHECK:           return
+
+func.func @dynamic_na(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %cx:2 = quake.x [%control] %target
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %earlier = quake.rz (%a) %cx#1 : (f64, !quake.wire) -> !quake.wire
+  %later = quake.rz<adj> (%b) %earlier
+      : (f64, !quake.wire) -> !quake.wire
+  %used = quake.h %later : (!quake.wire) -> !quake.wire
+  quake.sink %cx#0 : !quake.wire
+  quake.sink %used : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic_na(
+// CHECK-SAME:                            %[[A:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:                            %[[B:[a-zA-Z0-9_.$-]+]]: f64) {
+// CHECK:           %[[CX:.*]]:2 = quake.x
+// CHECK-NEXT:      %[[NEG_B:.*]] = arith.negf %[[B]] : f64
+// CHECK-NEXT:      %[[SUM:.*]] = arith.addf %[[A]], %[[NEG_B]] : f64
+// CHECK-NEXT:      %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[CX]]#1 : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[USED:.*]] = quake.h %[[RZ]] :
+// CHECK-NOT:       quake.rz<adj>
+// CHECK:           return
+
+func.func @dynamic_aa(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %cx:2 = quake.x [%control] %target
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %earlier = quake.rz<adj> (%a) %cx#1
+      : (f64, !quake.wire) -> !quake.wire
+  %later = quake.rz<adj> (%b) %earlier
+      : (f64, !quake.wire) -> !quake.wire
+  %used = quake.h %later : (!quake.wire) -> !quake.wire
+  quake.sink %cx#0 : !quake.wire
+  quake.sink %used : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic_aa(
+// CHECK-SAME:                            %[[A:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:                            %[[B:[a-zA-Z0-9_.$-]+]]: f64) {
+// CHECK:           %[[CX:.*]]:2 = quake.x
+// CHECK-NEXT:      %[[NEG_A:.*]] = arith.negf %[[A]] : f64
+// CHECK-NEXT:      %[[NEG_B:.*]] = arith.negf %[[B]] : f64
+// CHECK-NEXT:      %[[SUM:.*]] = arith.addf %[[NEG_A]], %[[NEG_B]] : f64
+// CHECK-NEXT:      %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[CX]]#1 : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[USED:.*]] = quake.h %[[RZ]] :
+// CHECK-NOT:       quake.rz<adj>
+// CHECK:           return
+
+// Constant witnesses make each incorrect signed sum observable to strict
+// unitary comparison after the phase-folding rewrite.
+// SEMANTIC-BEGIN
+
+func.func @semantic_an(%control: !quake.ref, %target: !quake.ref) {
+  %a = arith.constant 3.000000e-01 : f64
+  %b = arith.constant 7.000000e-01 : f64
+  %controlWire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %targetWire = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %cx:2 = quake.x [%controlWire] %targetWire
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %earlier = quake.rz<adj> (%a) %cx#1
+      : (f64, !quake.wire) -> !quake.wire
+  %later = quake.rz (%b) %earlier : (f64, !quake.wire) -> !quake.wire
+  %used = quake.h %later : (!quake.wire) -> !quake.wire
+  quake.wrap %cx#0 to %control : !quake.wire, !quake.ref
+  quake.wrap %used to %target : !quake.wire, !quake.ref
+  return
+}
+
+func.func @semantic_na(%control: !quake.ref, %target: !quake.ref) {
+  %a = arith.constant 3.000000e-01 : f64
+  %b = arith.constant 7.000000e-01 : f64
+  %controlWire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %targetWire = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %cx:2 = quake.x [%controlWire] %targetWire
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %earlier = quake.rz (%a) %cx#1 : (f64, !quake.wire) -> !quake.wire
+  %later = quake.rz<adj> (%b) %earlier
+      : (f64, !quake.wire) -> !quake.wire
+  %used = quake.h %later : (!quake.wire) -> !quake.wire
+  quake.wrap %cx#0 to %control : !quake.wire, !quake.ref
+  quake.wrap %used to %target : !quake.wire, !quake.ref
+  return
+}
+
+func.func @semantic_aa(%control: !quake.ref, %target: !quake.ref) {
+  %a = arith.constant 3.000000e-01 : f64
+  %b = arith.constant 7.000000e-01 : f64
+  %controlWire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %targetWire = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %cx:2 = quake.x [%controlWire] %targetWire
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %earlier = quake.rz<adj> (%a) %cx#1
+      : (f64, !quake.wire) -> !quake.wire
+  %later = quake.rz<adj> (%b) %earlier
+      : (f64, !quake.wire) -> !quake.wire
+  %used = quake.h %later : (!quake.wire) -> !quake.wire
+  quake.wrap %cx#0 to %control : !quake.wire, !quake.ref
+  quake.wrap %used to %target : !quake.wire, !quake.ref
+  return
+}
+
+// SEMANTIC-END
