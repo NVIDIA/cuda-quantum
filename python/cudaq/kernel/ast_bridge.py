@@ -5395,7 +5395,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
                            None if not node.orelse else
-                           lambda _: [self.visit(stmt) for stmt in node.orelse])
+                           lambda _: self.buildScopedBlock(node.orelse))
 
     def visit_BoolOp(self, node):
         """Convert boolean operations into equivalent MLIR operations using the
