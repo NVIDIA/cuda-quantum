@@ -31,6 +31,10 @@ struct ResourceCountPreprocessPass
   using ResourceCountPreprocessBase::ResourceCountPreprocessBase;
   SetVector<Operation *> to_erase;
   DenseMap<Value, std::size_t> qubitIndexMap;
+  /// Borrowed-wire identities are only unique within their wire set, so key
+  /// them by (set name, identity) and hand out indices from the same pool as
+  /// the other qubit origins.
+  DenseMap<std::pair<Attribute, std::int32_t>, std::size_t> borrowIndexMap;
   std::size_t nextQubitIndex = 0;
 
   /// Assign a base qubit index for a qvector Value. For sized veqs, advances
@@ -145,9 +149,15 @@ struct ResourceCountPreprocessPass
               cudaq::opt::factory::maybeValueOfIntConstant(extractRef.getIndex()))
         return getVeqBase(extractRef.getVeq()) + *index;
     }
-    // Wire semantics: concrete physical index from routing.
-    if (auto borrow = v.getDefiningOp<cudaq::quake::BorrowWireOp>())
-      return static_cast<std::size_t>(borrow.getIdentity());
+    // Wire semantics: a borrowed wire from a wire set.
+    if (auto borrow = v.getDefiningOp<cudaq::quake::BorrowWireOp>()) {
+      std::pair<Attribute, std::int32_t> key{borrow.getSetNameAttr(),
+                                             borrow.getIdentity()};
+      auto [entry, inserted] = borrowIndexMap.try_emplace(key, nextQubitIndex);
+      if (inserted)
+        ++nextQubitIndex;
+      return entry->second;
+    }
     // Single-qubit alloca or a virtual null wire: assign a unique index by
     // declaration order.
     if (v.getDefiningOp<cudaq::quake::NullWireOp>() ||
@@ -306,6 +316,7 @@ struct ResourceCountPreprocessPass
 
     to_erase.clear();
     qubitIndexMap.clear();
+    borrowIndexMap.clear();
     nextQubitIndex = 0;
   }
 };

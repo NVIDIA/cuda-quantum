@@ -55,6 +55,38 @@ func.func @k(%v: !quake.veq<?>) attributes {"cudaq-entrypoint", "cudaq-kernel"} 
 }
 )#";
 
+// Borrowed-wire identities are unique only within their wire set, so identity
+// zero of one set is a different qubit than identity zero of another. Both
+// gates run on their own qubit, giving a depth of one.
+static constexpr char twoWireSetsKernel[] = R"#(
+quake.wire_set @set_a[4] attributes {sym_visibility = "private"}
+quake.wire_set @set_b[4] attributes {sym_visibility = "private"}
+func.func @k() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %a = quake.borrow_wire @set_a[0] : !quake.wire
+  %b = quake.borrow_wire @set_b[0] : !quake.wire
+  %a1 = quake.h %a : (!quake.wire) -> !quake.wire
+  %b1 = quake.h %b : (!quake.wire) -> !quake.wire
+  quake.return_wire %a1 : !quake.wire
+  quake.return_wire %b1 : !quake.wire
+  return
+}
+)#";
+
+// A borrowed wire and a virtual null wire are distinct qubits, so neither
+// gate stacks on the other.
+static constexpr char borrowAndNullKernel[] = R"#(
+quake.wire_set @wires[4] attributes {sym_visibility = "private"}
+func.func @k() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %b = quake.borrow_wire @wires[0] : !quake.wire
+  %n = quake.null_wire
+  %b1 = quake.h %b : (!quake.wire) -> !quake.wire
+  %n1 = quake.h %n : (!quake.wire) -> !quake.wire
+  quake.return_wire %b1 : !quake.wire
+  quake.sink %n1 : !quake.wire
+  return
+}
+)#";
+
 static int report(const char *label, const char *source,
                   mlir::MLIRContext *context) {
   auto module = mlir::parseSourceString<mlir::ModuleOp>(source, context);
@@ -92,6 +124,10 @@ int main() {
     return 1;
   if (report("unknown-arity", unknownArityKernel, context.get()))
     return 1;
+  if (report("two-sets", twoWireSetsKernel, context.get()))
+    return 1;
+  if (report("borrow-null", borrowAndNullKernel, context.get()))
+    return 1;
   return 0;
 }
 
@@ -122,3 +158,15 @@ int main() {
 // CHECK: unknown-arity uncontrolled x: 0
 // CHECK: unknown-arity remaining IR:
 // CHECK: quake.x [
+
+// Identity zero in each of the two sets is a distinct qubit.
+// CHECK: two-sets gates: 2
+// CHECK: two-sets h: 2
+// CHECK: two-sets arity 1 gates: 2
+// CHECK: two-sets depth: 1
+
+// The borrowed wire and the null wire are distinct qubits.
+// CHECK: borrow-null gates: 2
+// CHECK: borrow-null h: 2
+// CHECK: borrow-null arity 1 gates: 2
+// CHECK: borrow-null depth: 1
