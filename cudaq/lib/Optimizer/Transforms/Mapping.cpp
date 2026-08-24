@@ -2488,15 +2488,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         signalPassFailure();
         return;
       }
-    // Measurement-dependent behavior is the adaptive shape the mapper cannot
-    // preserve, so use AddMetadata's conservative measurement-dependence
-    // analysis.
+    // Non-run entries defer measurements, so they cannot preserve adaptive
+    // behavior. Run entries keep measurements in place and can preserve
+    // feedback through structured control flow, but measurement-dependent CFG
+    // must still fail here: the multi-block check below is composable and could
+    // otherwise silently leave the function unmapped.
     const auto &measAnalysis =
         getAnalysis<cudaq::quake::detail::QuakeFunctionAnalysis>();
     const auto &measInfo = measAnalysis.getAnalysisInfo();
     auto measIt = measInfo.find(func);
     assert(measIt != measInfo.end() && "missing measurement analysis for func");
-    if (measIt->second.hasConditionalsOnMeasure) {
+    if (measIt->second.hasConditionalsOnMeasure &&
+        (!isRunEntry || blocks.size() > 1)) {
       func.emitOpError(
           "unsupported measurement-dependent behavior: "
           "measurement-dependent control flow, quantum operations, "
