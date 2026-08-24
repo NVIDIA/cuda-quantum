@@ -1194,9 +1194,10 @@ generated Quake dialect headers:</p>
 <span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">CustomPassPlugin.cpp</span><span class="p">)</span>
 <span class="c"># Depends on QuakeDialect TableGen to use the generated `.h.inc` files.</span>
 <span class="nb">add_dependencies</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">QuakeDialect</span><span class="p">)</span>
-<span class="c"># Resolve CUDA-Q and MLIR symbols through the shared plugin boundary. Linking</span>
-<span class="c"># static OptTransforms here would duplicate bundled compiler state in the DSO.</span>
-<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">cudaqMLIR</span><span class="p">)</span>
+<span class="c"># Link no CUDA-Q or MLIR library: cudaq-opt links MLIR/LLVM statically and</span>
+<span class="c"># re-exports it for plugins, so every symbol resolves from the host. Linking</span>
+<span class="c"># libcudaqMLIR would pull a second copy of LLVM's globals into the process and</span>
+<span class="c"># abort on duplicate cl::opt registration.</span>
 </pre></div>
 </div>
 <p>Build that target from a configured CUDA-Q build tree:</p>

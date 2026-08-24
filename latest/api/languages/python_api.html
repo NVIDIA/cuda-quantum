@@ -1238,13 +1238,6 @@ one on first access.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.from_json">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jStr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrideDict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.from_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert a JSON string (as produced by <code class="code docutils literal notranslate"><span class="pre">to_json</span></code>) into a new
-PyKernelDecorator object.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.is_compiled">
 <span class="sig-name descname"><span class="pre">is_compiled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.is_compiled" title="Permalink to this definition">¶</a></dt>
 <dd><p>Whether the kernel has already been compiled.</p>
@@ -1320,22 +1313,6 @@ and/or return values.</p>
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.supports_compilation">
 <span class="sig-name descname"><span class="pre">supports_compilation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.supports_compilation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Whether the kernel can be compiled for the current target.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert <code class="code docutils literal notranslate"><span class="pre">self</span></code> to a JSON-serialized version of the kernel such that
-<code class="code docutils literal notranslate"><span class="pre">from_json</span></code> can reconstruct it elsewhere.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.type_to_str">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">type_to_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.type_to_str" title="Permalink to this definition">¶</a></dt>
-<dd><p>This converts types to strings in a clean JSON-compatible way.
-int -&gt; ‘int’
-list[float] -&gt; ‘list[float]’
-List[float] -&gt; ‘list[float]’</p>
 </dd></dl>
 
 </dd></dl>

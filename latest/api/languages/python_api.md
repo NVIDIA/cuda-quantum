@@ -2083,12 +2083,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     :   Enable translation from [`return`{.code .docutils .literal
         .notranslate}]{.pre} statements to QIR output log
 
-    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[jStr]{.pre}]{.n}*, *[[overrideDict]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.from_json "Permalink to this definition"){.headerlink}
-
-    :   Convert a JSON string (as produced by [`to_json`{.code .docutils
-        .literal .notranslate}]{.pre}) into a new PyKernelDecorator
-        object.
-
     [[is_compiled]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.is_compiled "Permalink to this definition"){.headerlink}
 
     :   Whether the kernel has already been compiled.
@@ -2154,19 +2148,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     [[supports_compilation]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.supports_compilation "Permalink to this definition"){.headerlink}
 
     :   Whether the kernel can be compiled for the current target.
-
-    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert [`self`{.code .docutils .literal .notranslate}]{.pre} to
-        a JSON-serialized version of the kernel such that
-        [`from_json`{.code .docutils .literal .notranslate}]{.pre} can
-        reconstruct it elsewhere.
-
-    *[static]{.pre}[ ]{.w}*[[type_to_str]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[t]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.type_to_str "Permalink to this definition"){.headerlink}
-
-    :   This converts types to strings in a clean JSON-compatible way.
-        int -\> 'int' list\[float\] -\> 'list\[float\]' List\[float\]
-        -\> 'list\[float\]'
 
 ```{=html}
 <!-- -->
