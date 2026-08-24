@@ -31,7 +31,7 @@ concurrency:
 jobs:
   changes:
     name: Check for stable CUDA-Q changes
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       contents: read
       pull-requests: read
@@ -56,7 +56,7 @@ jobs:
     name: Retrieve PR info
     needs: changes
     if: needs.changes.outputs.stable == 'true'
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       pull-requests: read
       contents: read
@@ -75,6 +75,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      # NVIDIA runners may not ship gh.
+      - name: Ensure gh
+        run: |
+          set -eu
+          command -v gh >/dev/null && exit 0
+          S=""; [ "$(id -u)" -eq 0 ] || S=sudo
+          v=2.63.2
+          curl -fsSL "https://github.com/cli/cli/releases/download/v$v/gh_${v}_linux_amd64.tar.gz" | tar -xz -C /tmp
+          $S install -m0755 "/tmp/gh_${v}_linux_amd64/bin/gh" /usr/local/bin/gh
 
       - id: config
         env:
@@ -261,7 +271,7 @@ jobs:
   # (no need to wait for all 14 dependency jobs before any build/test runs).
   config_devdeps:
     name: Configure build (devdeps)
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs: devdeps
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
@@ -278,7 +288,7 @@ jobs:
 
   config_wheeldeps:
     name: Configure build (wheeldeps)
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs: [metadata, wheeldeps]
     if: needs.metadata.outputs.merge_queue_fast != 'true'
     outputs:
@@ -296,7 +306,7 @@ jobs:
 
   config_source_build:
     name: Configure build (source_build)
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs: [metadata, source_build]
     if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     outputs:
@@ -426,7 +436,7 @@ jobs:
   # Fails on `failure` or `cancelled` from any listed job.
   ci_summary:
     name: CI Summary
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       pull-requests: write
       contents: read
@@ -474,13 +484,28 @@ jobs:
             .github/required-checks.yml
           sparse-checkout-cone-mode: false
 
+      # NVIDIA runners may not ship gh/yq.
+      - name: Ensure gh and yq
+        run: |
+          set -eu
+          S=""; [ "$(id -u)" -eq 0 ] || S=sudo
+          if ! command -v yq >/dev/null; then
+            $S curl -fsSL -o /usr/local/bin/yq \
+              https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            $S chmod +x /usr/local/bin/yq
+          fi
+          if ! command -v gh >/dev/null; then
+            v=2.63.2
+            curl -fsSL "https://github.com/cli/cli/releases/download/v$v/gh_${v}_linux_amd64.tar.gz" | tar -xz -C /tmp
+            $S install -m0755 "/tmp/gh_${v}_linux_amd64/bin/gh" /usr/local/bin/gh
+          fi
+
       # Catch the "added a top-level job but forgot to add it to ci_summary.needs"
       # footgun. The aggregator only gates on jobs in its `needs:` list, so any
       # job missing here would silently not block merging.
       - name: Verify ci_summary.needs covers all top-level jobs
         run: |
           set -euo pipefail
-          # yq is preinstalled on ubuntu-latest runners (mikefarah/yq).
           mapfile -t all_jobs < <(yq -r '.jobs | keys | .[]' .github/workflows/ci.yml | sort -u)
           mapfile -t needs_jobs < <(yq -r '.jobs.ci_summary.needs | .[]' .github/workflows/ci.yml | sort -u)
 
@@ -749,7 +774,7 @@ jobs:
 
   clean_up:
     name: Prepare cache clean-up
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs:
       - changes
       - metadata

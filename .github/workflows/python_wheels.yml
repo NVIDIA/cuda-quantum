@@ -214,7 +214,7 @@ jobs:
 
   create_test_config:
     name: Prepare validation
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       contents: read
 
@@ -612,7 +612,7 @@ jobs:
     name: Staging
     needs: [build_wheel]
     if: inputs.create_staging_info
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     permissions:
       contents: read
 
