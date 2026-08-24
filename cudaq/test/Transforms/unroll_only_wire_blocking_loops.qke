@@ -10,7 +10,9 @@
 // RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck %s
 // The loop-unroll options below must be forwarded through prepare-for-wireset and reach cc-loop-unroll.
 // RUN: cudaq-opt --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-wire-blocking-loops=true maximum-iterations=5})' %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-index-use-loops=true maximum-iterations=5})' %s | FileCheck %s
 // RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{unroll-only-wire-blocking-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
+// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{unroll-only-index-use-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE-INDEX-USE %s
 // RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset)' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE-DEFAULTS %s
 // RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-wire-blocking-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE-WIRESET %s
 // RUN: cudaq-opt --cc-loop-unroll --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck --check-prefix=DEFAULT %s
@@ -252,13 +254,16 @@ module {
 // DEFAULT:         }
 }
 
-// Both forwarded options must appear on cc-loop-unroll.
+// The forwarded wire-blocking option must appear on cc-loop-unroll.
 // PIPELINE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=false unroll-only-wire-blocking-loops=true}
 // PIPELINE: decomposition{{.*}}ExpPauliDecomposition
 // PIPELINE-NOT: add-wireset
 // PIPELINE-NOT: assign-wire-indices
 // PIPELINE-NOT: qubit-mapping
 // PIPELINE-NOT: basis=
+
+// The forwarded index-use option must appear on cc-loop-unroll.
+// PIPELINE-INDEX-USE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=true unroll-only-wire-blocking-loops=false}
 
 // PIPELINE-DEFAULTS: cc-loop-unroll{allow-early-exit=false maximum-iterations=50 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=false unroll-only-wire-blocking-loops=false}
 // PIPELINE-DEFAULTS-NOT: add-wireset

@@ -45,6 +45,11 @@ struct PrepareForWiresetPipelineOptions
       llvm::cl::desc(
           "Unroll only loops that prevent quantum references, slices, or "
           "exp_pauli operands from being resolved for wire-set lowering.")};
+  PassOptions::Option<bool> unrollOnlyIndexUseLoops{
+      *this, "unroll-only-index-use-loops",
+      llvm::cl::desc(
+          "Unroll only loops whose induction variable is used in the loop "
+          "body.")};
   PassOptions::Option<bool> addWireset{
       *this, "add-wireset",
       llvm::cl::desc("Add a wire set and assign wire indices.")};
@@ -95,6 +100,8 @@ void cudaq::opt::registerPrepareForWiresetPipeline() {
         setIt(loopUnrollOptions.allowBreak, opt.allowBreak);
         setIt(loopUnrollOptions.unrollOnlyWireBlockingLoops,
               opt.unrollOnlyWireBlockingLoops);
+        setIt(loopUnrollOptions.unrollOnlyIndexUseLoops,
+              opt.unrollOnlyIndexUseLoops);
         createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);
       });
 }
