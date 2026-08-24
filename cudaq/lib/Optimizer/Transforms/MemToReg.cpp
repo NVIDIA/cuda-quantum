@@ -821,9 +821,8 @@ public:
             getBinding(block, std::get<0>(info)) == std::get<1>(info))
           addBinding(block, std::get<0>(info), newReg);
         user->replaceUsesOfWith(std::get<1>(info), newReg);
-        // Other variables bound to this value must follow it to the block
-        // argument, or `x = i` in a loop body gets i's value from before
-        // the loop.
+        // Other variables bound to this value follow it to the block
+        // argument, so `x = i` in a loop body gets this iteration's value.
         updateBindingsOfValue(block, std::get<1>(info), newReg);
       }
     }

@@ -1567,6 +1567,56 @@ class PyASTBridge(ast.NodeVisitor):
             None if orElseBuilder is None else
             (lambda args: orElseBuilder(args[0])))
 
+    def createMonotonicForLoopInMemory(self,
+                                       bodyBuilder,
+                                       startVal,
+                                       stepVal,
+                                       endVal,
+                                       isDecrementing=False,
+                                       orElseBuilder=None):
+        """Create a `for` loop whose counter lives in memory.
+
+        The loop loads the counter to test it and loads/increments/stores it
+        to step. `memtoreg` promotes it to a value later.
+
+        The counter is separate from the Python loop variable, which takes a
+        copy of it each iteration, the way Python takes each value from the
+        iterator.
+        """
+        iTy = self.getIntegerType()
+        assert startVal.type == iTy
+        assert stepVal.type == iTy
+        assert endVal.type == iTy
+
+        condPred = IntegerAttr.get(
+            iTy, 4) if isDecrementing else IntegerAttr.get(iTy, 2)
+
+        # The loop gets its own scope for the counter, so the slot dies with
+        # the loop.
+        scope = cc.ScopeOp([])
+        scopeBlock = Block.create_at_start(scope.initRegion, [])
+        with InsertionPoint(scopeBlock):
+            counter = cc.AllocaOp(cc.PointerType.get(iTy),
+                                  TypeAttr.get(iTy)).result
+            cc.StoreOp(startVal, counter)
+
+            def evalCond(_):
+                return arith.CmpIOp(condPred,
+                                    cc.LoadOp(counter).result, endVal).result
+
+            def evalStep(_):
+                next = arith.AddIOp(cc.LoadOp(counter).result, stepVal).result
+                cc.StoreOp(next, counter)
+                return []
+
+            loop = self.createForLoop(
+                [], lambda _: bodyBuilder(cc.LoadOp(counter).result), [],
+                evalCond, evalStep, None if orElseBuilder is None else
+                (lambda _: orElseBuilder(cc.LoadOp(counter).result)))
+            if not self.hasTerminator(scopeBlock):
+                cc.ContinueOp([])
+        return loop
+
     def createInvariantForLoop(self, bodyBuilder, endVal):
         """Create an invariant loop using the CC dialect."""
 
@@ -5364,14 +5414,17 @@ class PyASTBridge(ast.NodeVisitor):
             self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
-        self.createMonotonicForLoop(
-            lambda iterVar: blockBuilder(iterVar, node.body),
-            startVal=startVal,
-            stepVal=stepVal,
-            endVal=endVal,
-            isDecrementing=isDecrementing,
-            orElseBuilder=None if not node.orelse else
-            lambda iterVar: blockBuilder(iterVar, node.orelse))
+        # `range()` counts on its own; other iterables use the counter as an
+        # index.
+        createLoop = (self.createMonotonicForLoop
+                      if iterable else self.createMonotonicForLoopInMemory)
+        createLoop(lambda iterVar: blockBuilder(iterVar, node.body),
+                   startVal=startVal,
+                   stepVal=stepVal,
+                   endVal=endVal,
+                   isDecrementing=isDecrementing,
+                   orElseBuilder=None if not node.orelse else
+                   lambda iterVar: blockBuilder(iterVar, node.orelse))
 
     def visit_While(self, node):
         """Convert Python while statements into the equivalent CC `LoopOp`."""
