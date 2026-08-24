@@ -151,6 +151,25 @@ class PhaseStorage {
     return cudaq::opt::factory::createF64Constant(op->getLoc(), builder, angle);
   }
 
+  static bool canUpdateLaterRzInPlace(bool combineAtEarlier,
+                                      cudaq::quake::RzOp earlierRz,
+                                      cudaq::quake::RzOp laterRz) {
+    if (combineAtEarlier || !earlierRz || !laterRz)
+      return false;
+
+    // Both raw angles must dominate the later operation. Keep this path to
+    // plain, uncontrolled Rz operations so their operand layout is identical.
+    if (earlierRz->getBlock() != laterRz->getBlock() ||
+        !earlierRz.getControls().empty() || !laterRz.getControls().empty() ||
+        earlierRz.isAdj() || laterRz.isAdj())
+      return false;
+
+    // The generic path creates a fresh Rz. Do not retain properties or
+    // discardable attributes that path would otherwise drop with the old op.
+    return !laterRz.getNegatedQubitControls() &&
+           laterRz->getDiscardableAttrDictionary().empty();
+  }
+
   // Keep chronological order separate from the insertion position so the
   // combined angle can be materialized wherever both operands are available.
   // Returns the new combined op, or nullptr if they cancel to identity.
@@ -241,12 +260,7 @@ class PhaseStorage {
 
     auto earlierRz = dyn_cast<cudaq::quake::RzOp>(earlierOp);
     auto laterRz = dyn_cast<cudaq::quake::RzOp>(laterOp);
-    if (!combineAtEarlier && earlierRz && laterRz &&
-        earlierOp->getBlock() == laterOp->getBlock() &&
-        earlierRz.getControls().empty() && laterRz.getControls().empty() &&
-        !earlierRz.isAdj() && !laterRz.isAdj() &&
-        !laterRz.getNegatedQubitControls() &&
-        laterOp->getDiscardableAttrDictionary().empty()) {
+    if (canUpdateLaterRzInPlace(combineAtEarlier, earlierRz, laterRz)) {
       Value earlierAngle = earlierOp->getOperand(0);
       Value laterAngle = laterOp->getOperand(0);
       auto sumAngle = arith::AddFOp::create(builder, laterOp->getLoc(),
