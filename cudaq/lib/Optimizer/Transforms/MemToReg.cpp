@@ -821,8 +821,22 @@ public:
             getBinding(block, std::get<0>(info)) == std::get<1>(info))
           addBinding(block, std::get<0>(info), newReg);
         user->replaceUsesOfWith(std::get<1>(info), newReg);
+        // Other variables bound to this value must follow it to the block
+        // argument, or `x = i` in a loop body gets i's value from before
+        // the loop.
+        updateBindingsOfValue(block, std::get<1>(info), newReg);
       }
     }
+  }
+
+  /// Point any binding in block that still refers to oldVal at newVal.
+  void updateBindingsOfValue(Block *block, Value oldVal, Value newVal) {
+    auto iter = rMap.find(block);
+    if (iter == rMap.end())
+      return;
+    for (auto &binding : iter->second)
+      if (binding.second == oldVal)
+        binding.second = newVal;
   }
 
   /// Track the memory reference \p mr as being live-out of the parent
