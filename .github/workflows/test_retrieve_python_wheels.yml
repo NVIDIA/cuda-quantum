@@ -1,0 +1,104 @@
+# [do not merge] Test harness for .github/workflows/retrieve_python_wheels.yml.
+#
+# Every other workflow in this repository has been deleted on this branch so
+# that a push only exercises the wheel retrieval path. The three legs below
+# cover each supported value of the reusable workflow's inputs at least once:
+#
+#   leg                     platform      python   cuda    devel   validation
+#   amd64_py311_cu126       linux/amd64   3.11     12.6    yes     yes
+#   amd64_py313_cu130       linux/amd64   3.13     13.0    no      no
+#   arm64_py314_cu130       linux/arm64   3.14     13.0    yes     yes
+
+name: Test retrieve wheels
+
+on:
+  # Self-hosted runners are only available for branches pushed by copy-pr-bot,
+  # which is what the `CI` workflow keys off as well.
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  amd64_py311_cu126:
+    name: Retrieve wheels (amd64, 3.11, 12.6)
+    uses: ./.github/workflows/retrieve_python_wheels.yml
+    secrets: inherit
+    with:
+      platform: linux/amd64
+      python_version: '3.11'
+      cuda_version: '12.6'
+      cache_base: main
+      devel_wheel: true
+      metapackage_sdist: true
+      run_validation: true
+      bundle_wheels: true
+
+  # Minimal leg: no devel wheel and no validation, so a cache hit here should
+  # resolve without starting a single build job.
+  amd64_py313_cu130:
+    name: Retrieve wheels (amd64, 3.13, 13.0)
+    uses: ./.github/workflows/retrieve_python_wheels.yml
+    secrets: inherit
+    with:
+      platform: linux/amd64
+      python_version: '3.13'
+      cuda_version: '13.0'
+      cache_base: main
+      devel_wheel: false
+      metapackage_sdist: false
+      run_validation: false
+      bundle_wheels: false
+
+  arm64_py314_cu130:
+    name: Retrieve wheels (arm64, 3.14, 13.0)
+    uses: ./.github/workflows/retrieve_python_wheels.yml
+    secrets: inherit
+    with:
+      platform: linux/arm64
+      python_version: '3.14'
+      cuda_version: '13.0'
+      cache_base: main
+      devel_wheel: true
+      metapackage_sdist: true
+      run_validation: true
+      bundle_wheels: true
+
+  summary:
+    name: Test summary
+    needs:
+      - amd64_py311_cu126
+      - amd64_py313_cu130
+      - arm64_py314_cu130
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check leg results and outputs
+        env:
+          LEGS: ${{ toJson(needs) }}
+        run: |
+          set -euo pipefail
+          {
+            echo "| Leg | Result | cudaq_version | runtime artifact | devel artifact |"
+            echo "| --- | --- | --- | --- | --- |"
+            jq -r 'to_entries[] | "| \(.key) | \(.value.result) | \(.value.outputs.cudaq_version // "-") | \(.value.outputs.runtime_artifact_name // "-") | \(.value.outputs.devel_artifact_name // "-") |"' <<< "$LEGS"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          failed=$(jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")' <<< "$LEGS")
+          if [ -n "$failed" ]; then
+            echo "Failed legs: $failed"
+            exit 1
+          fi
+
+          # The reusable workflow must always report a version and a runtime
+          # wheel, whether it built them or restored them from cache.
+          missing=$(jq -r '[to_entries[] | select((.value.outputs.cudaq_version // "") == "" or (.value.outputs.runtime_artifact_name // "") == "") | .key] | join(", ")' <<< "$LEGS")
+          if [ -n "$missing" ]; then
+            echo "Legs with missing outputs: $missing"
+            exit 1
+          fi
+          echo "All legs succeeded with populated outputs."
