@@ -2,7 +2,7 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2025 IQM Quantum Computers                                        *
+ * Copyright 2025-2026 IQM Quantum Computers                                   *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -97,7 +97,9 @@ CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
 
   cudaq::ServerMessage response = {
       {{"counts", {{"100", 1000}}},
-       {"measurement_keys", {"m_QB0", "m_QB1", "m_QB2"}}}};
+       {"measurement_keys", {"m_QB1", "m_QB2", "m_QB3"}},
+       {"mkeys2qubit",
+        {{"m_QB1", "QB1"}, {"m_QB2", "QB2"}, {"m_QB3", "QB3"}}}}};
 
   std::string jobIdCopy = jobId;
   auto result = serverHelper->processResults(response, jobIdCopy);
@@ -114,6 +116,47 @@ CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
   EXPECT_EQ(mostFrequent, "001")
       << "IQMServerHelper did not apply reorderIdx from backend config "
       << "(see GitHub issue #4621). Got \"" << mostFrequent << "\".";
+}
+
+// Test ordering of bitstrings according to the measurement_keys returned
+// along with the counts. Test keys without an index number to verify that
+// looking up and sorting by the qubit name works.
+CUDAQ_TEST(IQMTester, reorderBitstringsWithNamedMixedKeys) {
+  auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("iqm");
+  ASSERT_TRUE(serverHelper);
+
+  const std::string jobId = "test-job-id";
+  cudaq::BackendConfig config;
+  config["url"] = "http://localhost:62443";
+  // config["reorderIdx." + jobId] = "[0, 1, 2, 3]"; // not used in this test
+  serverHelper->initialize(config);
+
+  // The measurement keys give names to each bit in the bitstrings. The
+  // mkeys2qubit map is derived from the circuit and tie each name to a qubit.
+  // The backend will sort the bits into the linear order of physical qubits
+  // (QB1, QB2, ...) using both mappings.
+  cudaq::ServerMessage response = {
+      {{"counts", {{"0110", 1000}}},
+       {"measurement_keys", {"three", "one", "four", "two"}},
+       {"mkeys2qubit",
+        {{"one", "QB1"}, {"two", "QB2"}, {"three", "QB3"}, {"four", "QB4"}}}}};
+  // With this configuration the bitstring "0110" will be reordered to "1001".
+
+  std::string jobIdCopy = jobId;
+  auto result = serverHelper->processResults(response, jobIdCopy);
+
+  // After reordering, the dominant bitstring must be "1001".
+  std::string mostFrequent;
+  std::size_t bestCount = 0;
+  for (auto &[bits, n] : result.to_map()) {
+    if (n > bestCount) {
+      bestCount = n;
+      mostFrequent = bits;
+    }
+  }
+  EXPECT_EQ(mostFrequent, "1001")
+      << "Result reordering according to named measurement keys failed. "
+      << "Got \"" << mostFrequent << "\" - Expected \"1001\".";
 }
 
 // Setting an arbitrary string in the IQM_TOKEN environment variable must
