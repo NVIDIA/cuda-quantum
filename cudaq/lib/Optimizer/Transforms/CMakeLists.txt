@@ -84,6 +84,7 @@ add_cudaq_library(OptTransforms
   StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
+  UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
   VerifyNoPhase.cpp
