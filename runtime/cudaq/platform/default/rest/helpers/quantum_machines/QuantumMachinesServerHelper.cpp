@@ -13,7 +13,10 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "llvm/ADT/SmallString.h"
 #include "llvm/Support/Base64.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/raw_ostream.h"
 #include <bitset>
 #include <fstream>
 #include <iostream>
@@ -279,9 +282,9 @@ public:
       CUDAQ_INFO("Backend qubit mapping.");
       return {};
     }
-    std::filesystem::path qpuConfigPath =
-        platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
-    std::string machineconfigFilePath = qpuConfigPath.string();
+    std::string machineconfigFilePath =
+        (platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt")
+            .string();
     if (mappingMode == "local_get_latest") {
       // If mapping is done locally with the latest qpu config from the backend,
       // we need to get the latest qpu config file from the backend and provide
@@ -289,19 +292,49 @@ public:
       // backend and set quantumArchitectureFilePath to its path
       try {
         // Create a RestClient and get the latest qpu config from
-        // backendConfig["url"]+"/v1/config/qubits" from the backend Store the
-        // response in a file in the platformPath / "mapping/quantum_machines"
-        // directory, and set quantumArchitectureFilePath to that file path
+        // backendConfig["url"]+"/v1/config/qubits" from the backend. Store the
+        // response in the target's mapping directory when it is writable, or
+        // fall back to a unique file in the system temporary directory.
         RestClient client;
         auto headers = getHeaders();
-        auto response = client.getRawText(backendConfig["url"],
-                                          "/v1/config/qubits", headers);
-        std::string qpuConfig = response;
+        const auto response = client.getRawText(backendConfig["url"],
+                                                "/v1/config/qubits", headers);
+        const std::string qpuConfig = response;
         CUDAQ_INFO("Updated configuration: {}", qpuConfig);
-        std::filesystem::create_directories(qpuConfigPath.parent_path());
-        std::ofstream outFile(qpuConfigPath);
-        outFile << qpuConfig;
-        outFile.close();
+
+        try {
+          const std::filesystem::path qpuConfigPath = machineconfigFilePath;
+          std::filesystem::create_directories(qpuConfigPath.parent_path());
+          std::ofstream outFile;
+          outFile.exceptions(std::ios::failbit | std::ios::badbit);
+          outFile.open(qpuConfigPath);
+          outFile << qpuConfig;
+          outFile.close();
+        } catch (const std::exception &e) {
+          CUDAQ_INFO("Failed to write the latest QPU configuration to '{}': "
+                     "{}. Falling back to a temporary file.",
+                     machineconfigFilePath, e.what());
+
+          llvm::SmallString<128> temporaryPath;
+          int temporaryFd = -1;
+          if (const auto error = llvm::sys::fs::createTemporaryFile(
+                  "cudaq-quantum-machines", "txt", temporaryFd, temporaryPath))
+            throw std::runtime_error(
+                "Failed to create a temporary QPU configuration file: " +
+                error.message());
+
+          llvm::raw_fd_ostream outFile(temporaryFd, /*shouldClose=*/true);
+          outFile << qpuConfig;
+          outFile.close();
+          if (outFile.has_error()) {
+            const auto errorMessage = outFile.error().message();
+            outFile.clear_error();
+            throw std::runtime_error(
+                "Failed to write the temporary QPU configuration file: " +
+                errorMessage);
+          }
+          machineconfigFilePath = temporaryPath.str().str();
+        }
 
       } catch (const std::exception &e) {
         throw std::runtime_error(
@@ -317,9 +350,9 @@ public:
     // Adjust the qubit-mapping pipeline to use the selected machine
     // configuration file.
     const std::string needle = "qubit-mapping{device=bypass}";
-    const std::string replacement = "qubit-mapping{device=file(" +
+    const std::string replacement = "qubit-mapping{device=file('" +
                                     machineconfigFilePath +
-                                    ") placement=greedy}";
+                                    "') placement=greedy}";
     return {{needle, replacement}};
   }
 };
