@@ -631,3 +631,102 @@ func.func @__nvqpp__mlirgen__function_6(%arg0: i1, %arg1: i32, %arg2: i32, %arg3
 // CHECK:           return
 // CHECK:         }
 
+func.func @__nvqpp__mlirgen__function_7(%arg0: i1) -> i32 {
+  %c4_i64 = arith.constant 4 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i64 = arith.constant 0 : i64
+  %42 = arith.constant 42 : i32
+  %92 = arith.constant 92 : i32
+  %0 = cc.alloca i1
+  cc.store %arg0, %0 : !cc.ptr<i1>
+  %1 = quake.alloca !quake.veq<4>
+  %2 = cc.load %0 : !cc.ptr<i1>
+  cc.if(%2) {
+    cc.unwind_return %42 : i32
+  }
+  quake.x %1 : (!quake.veq<4>) -> ()
+  return %92 : i32
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_7(
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 92 : i32
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 42 : i32
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca i32
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_0]] : !cc.ptr<i32>
+// CHECK:           cc.if(%{{.*}}) {
+// CHECK:             cc.store %{{.*}}, %[[ALLOCA_1]] : !cc.ptr<i8>
+// CHECK:             cc.store %[[CONSTANT_3]], %[[ALLOCA_0]] : !cc.ptr<i32>
+// CHECK:           }
+// CHECK:           %[[LOAD_2:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i32>
+// CHECK:           return %[[LOAD_2]] : i32
+// CHECK:         }
+
+func.func @__nvqpp__mlirgen__function_8(%arg0: i1, %arg1: i32, %arg2: i32) -> i16 {
+  %c1_i32 = arith.constant 1 : i32
+  %42 = arith.constant 42 : i16
+  %92 = arith.constant 92 : i16
+  %c0_i32 = arith.constant 0 : i32
+  %c4_i32 = arith.constant 4 : i32
+  %0 = cc.alloca i1
+  cc.store %arg0, %0 : !cc.ptr<i1>
+  %1 = cc.alloca i32
+  cc.store %arg1, %1 : !cc.ptr<i32>
+  %2 = cc.alloca i32
+  cc.store %arg2, %2 : !cc.ptr<i32>
+  %3 = quake.alloca !quake.veq<4>
+  cc.scope {
+    %4 = cc.load %1 : !cc.ptr<i32>
+    %5 = cc.alloca i32
+    cc.store %4, %5 : !cc.ptr<i32>
+    cc.loop while {
+      %6 = cc.load %5 : !cc.ptr<i32>
+      %7 = cc.load %2 : !cc.ptr<i32>
+      %8 = arith.cmpi ne, %6, %7 : i32
+      cc.condition %8
+    } do {
+      %6 = cc.load %5 : !cc.ptr<i32>
+      %7 = arith.cmpi slt, %6, %c0_i32 : i32
+      cc.if(%7) {
+        cc.unwind_return %42 : i16
+      }
+      %10 = cc.load %5 : !cc.ptr<i32>
+      %11 = cc.cast signed %10 : (i32) -> i64
+      %12 = quake.extract_ref %3[%11] : (!quake.veq<4>, i64) -> !quake.ref
+      quake.x %12 : (!quake.ref) -> ()
+      cc.continue
+    } step {
+      %6 = cc.load %5 : !cc.ptr<i32>
+      %7 = arith.addi %6, %c1_i32 : i32
+      cc.store %7, %5 : !cc.ptr<i32>
+    }
+  }
+  return %92 : i16
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_8(
+// CHECK:           %[[CONSTANT_6:.*]] = arith.constant 92 : i16
+// CHECK:           %[[CONSTANT_7:.*]] = arith.constant 42 : i16
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca i16
+// CHECK:           cc.store %[[CONSTANT_6]], %[[ALLOCA_0]] : !cc.ptr<i16>
+// CHECK:           cc.scope {
+// CHECK:             cc.loop while {
+// CHECK:               cc.if(%[[CMPI_0]]) {
+// CHECK:               %[[IF_0:.*]] = cc.if(%[[CMPI_1]]) -> i1 {
+// CHECK:               cc.if(%[[CMPI_3]]) {
+// CHECK:               cc.condition %[[IF_0]]
+// CHECK:             } do {
+// CHECK:               cc.if(%{{.*}}) {
+// CHECK:                 cc.store %[[CONSTANT_0]], %[[ALLOCA_1]] : !cc.ptr<i8>
+// CHECK:                 cc.store %[[CONSTANT_7]], %[[ALLOCA_0]] : !cc.ptr<i16>
+// CHECK:               cc.if(%{{.*}}) {
+// CHECK:                 %[[EXTRACT_REF_0:.*]] = quake.extract_ref %
+// CHECK:                 quake.x %[[EXTRACT_REF_0]] : (!quake.ref) -> ()
+// CHECK:             } step {
+// CHECK:               cc.if(%{{.*}}) {
+// CHECK:             }
+// CHECK:           }
+// CHECK:           %[[LOAD_11:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i16>
+// CHECK:           return %[[LOAD_11]] : i16
+// CHECK:         }
+

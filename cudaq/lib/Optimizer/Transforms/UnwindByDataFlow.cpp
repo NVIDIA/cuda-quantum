@@ -231,8 +231,9 @@ public:
     {
       IRRewriter rewriter(func);
       for (auto *unwind : llvm::reverse(analysis.unwindOps)) {
-        replaceOpWithSetDFJumpAndIf(rewriter, unwind, dfJump,
-                                    landingPadMap[unwind]);
+        replaceOpWithSetDFJumpAndIf(
+            rewriter, unwind, dfJump,
+            landingPadMap[*analysis.unwindStacks[unwind].rbegin()]);
         ArrayRef<Operation *> stack{
             std::next(analysis.unwindStacks[unwind].begin()),
             analysis.unwindStacks[unwind].end()};
@@ -278,7 +279,7 @@ public:
       }
       vars.push_back(cudaq::cc::AllocaOp::create(rewriter, loc, v.getType()));
     }
-    landingPadMap.insert({unwind, std::move(vars)});
+    landingPadMap.insert({terminus, std::move(vars)});
     return success();
   }
 
@@ -391,8 +392,8 @@ public:
   // replacing the return operation.
   template <typename RetTy, typename FuncLike>
   void fixupReturns(IRRewriter &rewriter, FuncLike func, ValueRange vars) {
-    for (auto &region : func.getRegion())
-      for (Operation &op : region) {
+    for (auto &block : func.getRegion())
+      for (Operation &op : llvm::make_early_inc_range(block)) {
         auto ret = dyn_cast<RetTy>(op);
         if (!ret || ret.getOperands().empty())
           continue;
