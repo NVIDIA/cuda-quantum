@@ -7,12 +7,13 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target qpp-cpu %s -o %t && CUDAQ_TIMING_TAGS=5 %t | FileCheck %s
+// RUN: nvq++ -fno-quantum-optimization --target qpp-cpu %s -o %t && CUDAQ_TIMING_TAGS=5 %t | FileCheck %s
 // clang-format on
 
-// This test performs per-gate timing measurements. The FileCheck criteria is
-// simply "did it run to completion?", but we will do additional timing tests
-// elsewhere.
+// This test performs per-gate timing measurements. Quantum optimization is
+// disabled so all RUN_AVG gate applications execute before timer_stop divides
+// the elapsed time by RUN_AVG. FileCheck validates completion and the resulting
+// aggregate simulator metrics.
 
 #include "nvqir/CircuitSimulator.h"
 #include <cudaq.h>
