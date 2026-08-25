@@ -1,0 +1,91 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=path(5) placement=identity search=none' %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+// Reconstructing the first scope in a block must not invalidate the insertion
+// point used for a later mapper-generated swap.
+// CHECK-LABEL: func.func @nested_scope_then_swap
+// CHECK:       %[[OUTER:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK:         %[[INNER:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire
+// CHECK:         }
+// CHECK:         quake.swap
+// CHECK:         cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire
+// CHECK:       }
+// CHECK:       quake.mz %[[OUTER]]#0
+// CHECK:       quake.mz %[[OUTER]]#1
+// CHECK:       quake.mz %[[OUTER]]#2
+func.func @nested_scope_then_swap() attributes {quake.cudaq_run = []} {
+  cc.scope {
+    %angle = arith.constant 0.0 : f64
+    %q0 = quake.borrow_wire @wires[0] : !quake.wire
+    %q1 = quake.borrow_wire @wires[1] : !quake.wire
+    %q2 = quake.borrow_wire @wires[2] : !quake.wire
+    %outer:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+      %inner:2 = cc.scope -> (!quake.wire, !quake.wire) {
+        %gate:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %rotated = quake.rx (%angle) %gate#0 : (f64, !quake.wire) -> !quake.wire
+        cc.continue %rotated, %gate#1 : !quake.wire, !quake.wire
+      }
+      %gate:2 = quake.x [%q1] %inner#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %rotated = quake.rx (%angle) %gate#0 : (f64, !quake.wire) -> !quake.wire
+      cc.continue %inner#0, %rotated, %gate#1 : !quake.wire, !quake.wire, !quake.wire
+    }
+    quake.return_wire %outer#0 : !quake.wire
+    quake.return_wire %outer#1 : !quake.wire
+    quake.return_wire %outer#2 : !quake.wire
+    cc.continue
+  }
+  return
+}
+
+// Reconstructing sibling scopes must replace, rather than retain, virtual
+// qubit mappings associated with erased scope results.
+// CHECK-LABEL: func.func @sibling_scope_result_mappings
+// CHECK:       %[[FIRST:.*]]:5 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) {
+// CHECK:         cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire
+// CHECK:       }
+// CHECK:       %[[SECOND:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK:         cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire
+// CHECK:       }
+// CHECK:       quake.mz %[[SECOND]]#2
+// CHECK:       quake.mz %[[FIRST]]#3
+// CHECK:       quake.mz %[[SECOND]]#0
+// CHECK:       quake.mz %[[SECOND]]#1
+// CHECK:       quake.mz %[[FIRST]]#2
+func.func @sibling_scope_result_mappings() attributes {quake.cudaq_run = []} {
+  cc.scope {
+    %angle = arith.constant 0.0 : f64
+    %q0 = quake.borrow_wire @wires[0] : !quake.wire
+    %q1 = quake.borrow_wire @wires[1] : !quake.wire
+    %q2 = quake.borrow_wire @wires[2] : !quake.wire
+    %q3 = quake.borrow_wire @wires[3] : !quake.wire
+    %q4 = quake.borrow_wire @wires[4] : !quake.wire
+    %first:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+      %adjacent:2 = quake.x [%q3] %q4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %distant:2 = quake.x [%q0] %adjacent#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %rotated = quake.rx (%angle) %distant#0 : (f64, !quake.wire) -> !quake.wire
+      cc.continue %rotated, %distant#1, %adjacent#1 : !quake.wire, !quake.wire, !quake.wire
+    }
+    %second:2 = cc.scope -> (!quake.wire, !quake.wire) {
+      %gate:2 = quake.x [%q2] %first#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %rotated = quake.rx (%angle) %gate#0 : (f64, !quake.wire) -> !quake.wire
+      cc.continue %rotated, %gate#1 : !quake.wire, !quake.wire
+    }
+    quake.return_wire %first#0 : !quake.wire
+    quake.return_wire %q1 : !quake.wire
+    quake.return_wire %second#0 : !quake.wire
+    quake.return_wire %second#1 : !quake.wire
+    quake.return_wire %first#2 : !quake.wire
+    cc.continue
+  }
+  return
+}

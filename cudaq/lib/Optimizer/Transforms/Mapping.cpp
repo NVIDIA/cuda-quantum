@@ -1892,6 +1892,13 @@ private:
     if (passthroughWires.empty())
       return scope;
 
+    SmallVector<std::optional<cudaq::Placement::VirtualQ>> oldResultVQs;
+    oldResultVQs.reserve(scope->getNumResults());
+    for (Value result : scope->getResults()) {
+      oldResultVQs.push_back(lookupVirtualQ(wireToVirtualQ, result));
+      wireToVirtualQ.erase(result);
+    }
+
     SmallVector<Type> resultTypes(scope.getResultTypes());
     for (Value wire : passthroughWires)
       resultTypes.push_back(wire.getType());
@@ -1904,11 +1911,12 @@ private:
     auto replacement = cast<cudaq::cc::ScopeOp>(builder.create(state));
     replacement.getInitRegion().takeBody(scope.getInitRegion());
 
-    for (auto [oldResult, newResult] : llvm::zip_equal(
+    for (auto [oldResult, newResult, oldVQ] : llvm::zip_equal(
              scope->getResults(),
-             replacement->getResults().take_front(scope->getNumResults()))) {
-      if (auto vq = lookupVirtualQ(wireToVirtualQ, oldResult))
-        wireToVirtualQ.insert({newResult, *vq});
+             replacement->getResults().take_front(scope->getNumResults()),
+             oldResultVQs)) {
+      if (oldVQ)
+        wireToVirtualQ[newResult] = *oldVQ;
       oldResult.replaceAllUsesWith(newResult);
     }
 
@@ -1918,7 +1926,7 @@ private:
     for (auto [result, vq] : llvm::zip_equal(
              replacement->getResults().take_back(passthroughVQs.size()),
              passthroughVQs))
-      wireToVirtualQ.insert({result, vq});
+      wireToVirtualQ[result] = vq;
     scope.erase();
     return replacement;
   }
@@ -2045,10 +2053,14 @@ private:
         }
       } else if (ev.kind == RoutingEvent::Kind::Scope) {
         auto scope = cast<cudaq::cc::ScopeOp>(ev.op);
+        bool scopeAnchorsBuilder =
+            blkBuilder.getInsertionPoint() == scope->getIterator();
         Block &scopeBlock = scope.getInitRegion().front();
         const RoutingResult &scopeResult = blockResults.at(&scopeBlock);
         emitBlock(scopeBlock);
         scope = addScopePassthroughs(scope, scopeResult);
+        if (scopeAnchorsBuilder)
+          blkBuilder.setInsertionPoint(scope);
         auto contOp = cast<cudaq::cc::ContinueOp>(scopeBlock.getTerminator());
         for (auto [index, result] : llvm::enumerate(scope->getResults())) {
           if (!isa<cudaq::quake::WireType>(result.getType()))
@@ -2705,10 +2717,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // `run` entry points wrap their body in a top-level `cc.scope` that the
-    // mapper descends into, and their per-shot results are recorded by index
-    // rather than by global register order, so measurements need not be
-    // deferred to the end and may live inside nested control flow.
+    // `run` entry points may wrap their body in a top-level `cc.scope` that the
+    // mapper descends into. Their per-shot results are recorded by index rather
+    // than by global register order, so measurements need not be deferred to
+    // the end and may live inside nested control flow.
     const bool isRunEntry = func->hasAttr(cudaq::runtime::enableCudaqRun);
 
     // Measurement deferral is only safe for terminal readout. Reject
@@ -2935,11 +2947,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // Reject measurements not directly inside the function — measure order must
-    // be preserved and cannot yet be reconciled across branches or loops. This
-    // does not apply to `run` entry points, whose per-shot output log records
-    // results by measurement rather than by global register order, so skip the
-    // check there.
+    // Reject measurements not directly inside the function — measure order
+    // must be preserved and cannot yet be reconciled across a scope, branch, or
+    // loop. This does not apply to `run` entry points, whose per-shot output
+    // log records results by measurement rather than by global register order,
+    // so skip the check there.
     if (!isRunEntry) {
       auto measureCheckResult =
           func.walk([&](cudaq::quake::MeasurementInterface meas) {
@@ -2947,13 +2959,15 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
               return WalkResult::advance();
             if (nonComposable) {
               meas->emitOpError(
-                  "mapper cannot handle measurements inside branches or loops");
+                  "mapper cannot handle measurements inside a scope, branch, "
+                  "or loop");
               signalPassFailure();
             }
             return WalkResult::interrupt();
           });
       if (measureCheckResult.wasInterrupted()) {
-        LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
+        LLVM_DEBUG(llvm::dbgs()
+                   << "NYI: measurements inside a scope, branch, or loop\n");
         return;
       }
     }

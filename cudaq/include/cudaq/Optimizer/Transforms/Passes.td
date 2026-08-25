@@ -1228,6 +1228,15 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     placements that meet at each control-flow join must be reconciled to a
     single layout so the block after the join has an unambiguous entry.
 
+    When the selected body of a `run` entry is an outer `cc.scope`, the mapper
+    treats that scope as the function-body wrapper and applies the top-level
+    analysis rules to its contents. Other single-block `cc.scope` operations
+    are routed as ordered lexical segments, including nested scopes. The mapper
+    preserves their attributes and classical contents. If routing changes a
+    wire that was captured but not returned, the mapper adds a scope result and
+    threads the wire through the region terminator. Every input wire otherwise
+    consumed inside a scope must already have a corresponding scope result.
+
     Reconciliation is currently done by reverting each predecessor to the
     layout it entered with (its swaps are replayed in reverse before the region
     terminator):
@@ -1247,12 +1256,17 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     The following control flow is not yet supported and is rejected (a hard
     error under `raise-fatal-errors`, otherwise the function is skipped):
 
-    - measurements nested inside a branch or loop, unless the function is a
-      `run` entry point (where results are recorded by index, not order);
+    - measurements nested inside an ordinary scope, branch, or loop, unless the
+      function is a `run` entry point (where results are recorded by index, not
+      order);
     - a mid-circuit measurement whose measured wire feeds a non-terminal user,
       or any measurement-dependent (adaptive) control flow;
     - loops with a multi-block body, a Python `else`, or a `break`;
     - quantum gates in a loop's condition or step region;
+    - ordinary scopes nested inside structured control flow, or structured
+      control flow nested inside an ordinary scope;
+    - multi-block ordinary scopes, or ordinary scopes containing quantum
+      allocations, borrows, or terminal wire operations;
     - more than one block at the function's top level.
   }];
 
