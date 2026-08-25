@@ -18,11 +18,6 @@ if(CUDAQ_ENABLE_CORE)
     add_subdirectory(test)
   endif()
 
-  # The static archives behind libcudaqMLIR, exported under their bare names --
-  # QuakeDialect, CCDialect, cudaq-synth, ... -- the same convention LLVM and
-  # MLIR use for their component libraries, and the names CUDAQ_MLIR_BUNDLED_LIBS
-  # already refers to. A downstream tool that opts into cudaq_use_static_mlir()
-  # links these instead of libcudaqMLIR.
   install(EXPORT cudaq-dev-targets
           FILE CUDAQDevTargets.cmake
           DESTINATION lib/cmake/cudaq

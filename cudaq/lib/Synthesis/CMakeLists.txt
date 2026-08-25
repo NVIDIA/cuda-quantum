@@ -26,18 +26,8 @@ add_cudaq_library(cudaq-synth
   MPFR::mpfr
 )
 
-# The object library MLIR splits out for aggregation compiles the sources but
-# does not inherit the link interface of the library it belongs to, so the
-# GMP/MPFR include directories have to be attached to it directly.
-if(TARGET obj.cudaq-synth)
-  target_link_libraries(obj.cudaq-synth PRIVATE GMP::gmp MPFR::mpfr)
-endif()
-
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(cudaq-synth PUBLIC -Wno-psabi)
-  if(TARGET obj.cudaq-synth)
-    target_compile_options(obj.cudaq-synth PRIVATE -Wno-psabi)
-  endif()
 endif()
 
 target_include_directories(cudaq-synth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

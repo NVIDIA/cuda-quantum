@@ -59,9 +59,32 @@ function(add_cudaq_dialect_doc dialect dialect_namespace)
     -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
+# Replicate all build configs on `${name}` to `obj.${name}`
+function(_cudaq_forward_object_usage_requirements name)
+  if(NOT TARGET obj.${name})
+    return()
+  endif()
+  target_include_directories(obj.${name} SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_INCLUDE_DIRECTORIES>)
+  target_compile_definitions(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_DEFINITIONS>)
+  target_compile_options(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_OPTIONS>)
+endfunction()
+
+# target_link_libraries() for a library created by add_cudaq_library().  This ensures
+# the dependency is also set on obj.<target>, (used to build the `cudaqMLIR` shared library.
+function(cudaq_target_link_libraries target visibility)
+  target_link_libraries(${target} ${visibility} ${ARGN})
+  if(TARGET obj.${target})
+    target_link_libraries(obj.${target} PRIVATE ${ARGN})
+  endif()
+endfunction()
+
 function(add_cudaq_library name)
   add_mlir_library(${ARGV} DISABLE_INSTALL ENABLE_AGGREGATION)
   add_cudaq_library_install(${name})
+  _cudaq_forward_object_usage_requirements(${name})
 endfunction()
 
 # Define `CUDAQ_MLIR_BUNDLED_LIBS_PATH`: the file that lists all bundled MLIR libraries.
@@ -325,10 +348,7 @@ endfunction()
 #
 # <name> will be registered as part of the `cudaq-dev-targets` export set.
 function(add_cudaq_library_install name)
-  install(TARGETS ${name} COMPONENT Development EXPORT cudaq-dev-targets
-          ARCHIVE DESTINATION lib
-          LIBRARY DESTINATION lib
-          RUNTIME DESTINATION bin)
+  install(TARGETS ${name} COMPONENT Development EXPORT cudaq-dev-targets)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_ALL_LIBS ${name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_EXPORTS ${name})
 endfunction()
