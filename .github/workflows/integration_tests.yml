@@ -287,17 +287,6 @@ jobs:
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
           fi
 
-      # The nightly CUDA-Q image does not ship curl or jq, which the provider
-      # setup steps below need.
-      - name: Install CLI prerequisites
-        run: |
-          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          if ! command -v curl > /dev/null || ! command -v jq > /dev/null; then
-            retry apt-get update
-            retry apt-get install -y --no-install-recommends curl jq
-          fi
-        shell: bash
-
       # Provider-specific setup steps
       - name: Setup ${{ matrix.provider }} account
         run: |
