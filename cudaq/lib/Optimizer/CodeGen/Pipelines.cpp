@@ -40,11 +40,11 @@ struct PrepareForWiresetPipelineOptions
       *this, "allow-early-exit",
       llvm::cl::desc(
           "Allow unrolling of loop with early exit (i.e. break statement).")};
-  PassOptions::Option<bool> unrollOnlyWireBlockingLoops{
-      *this, "unroll-only-wire-blocking-loops",
+  PassOptions::Option<bool> unrollOnlyAliasingQuantumAccessLoops{
+      *this, "unroll-only-aliasing-quantum-access-loops",
       llvm::cl::desc(
-          "Unroll only loops that prevent quantum references, slices, or "
-          "exp_pauli operands from being resolved for wire-set lowering.")};
+          "Unroll only loops containing aliasing quantum accesses or "
+          "exp_pauli operands that must be resolved for wire-set lowering.")};
   PassOptions::Option<bool> unrollOnlyIndexUseLoops{
       *this, "unroll-only-index-use-loops",
       llvm::cl::desc(
@@ -98,8 +98,8 @@ void cudaq::opt::registerPrepareForWiresetPipeline() {
         setIt(loopUnrollOptions.threshold, opt.threshold);
         setIt(loopUnrollOptions.signalFailure, opt.signalFailure);
         setIt(loopUnrollOptions.allowBreak, opt.allowBreak);
-        setIt(loopUnrollOptions.unrollOnlyWireBlockingLoops,
-              opt.unrollOnlyWireBlockingLoops);
+        setIt(loopUnrollOptions.unrollOnlyAliasingQuantumAccessLoops,
+              opt.unrollOnlyAliasingQuantumAccessLoops);
         setIt(loopUnrollOptions.unrollOnlyIndexUseLoops,
               opt.unrollOnlyIndexUseLoops);
         createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);

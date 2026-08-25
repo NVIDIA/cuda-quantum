@@ -6,12 +6,12 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: not cudaq-opt --cc-loop-unroll="unroll-only-wire-blocking-loops=true unroll-only-index-use-loops=true" %s 2>&1 | FileCheck %s
+// RUN: not cudaq-opt --cc-loop-unroll="unroll-only-aliasing-quantum-access-loops=true unroll-only-index-use-loops=true" %s 2>&1 | FileCheck %s
 
 // The two selective unrolling modes disagree about which loops to leave
 // rolled, so enabling both is rejected up front.
 
-// CHECK: unroll-only-wire-blocking-loops and unroll-only-index-use-loops are mutually exclusive
+// CHECK: unroll-only-aliasing-quantum-access-loops and unroll-only-index-use-loops are mutually exclusive
 
 func.func @simple() {
   %c0_i64 = arith.constant 0 : i64

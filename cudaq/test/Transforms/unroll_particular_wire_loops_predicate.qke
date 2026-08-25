@@ -7,12 +7,12 @@
 // ========================================================================== //
 
 // clang-format off
-// RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-unroll=unroll-only-aliasing-quantum-access-loops=true --canonicalize %s | FileCheck %s
 // clang-format on
 
 // These predicate-level inputs isolate selective unrolling from the later
-// wire-conversion pipeline. Dynamic quantum data access in a loop body should
-// force that loop to unroll. Classical data access, including loops over
+// wire-conversion pipeline. Aliasing quantum access in a loop body should force
+// that loop to unroll. Classical data access, including loops over
 // measurement-result containers, should not.
 
 module {
@@ -204,7 +204,7 @@ module {
 // CHECK:           return
 // CHECK:         }
 
-  func.func @blocking_dynamic_subveq() attributes {"cudaq-kernel", no_this} {
+  func.func @aliasing_quantum_access_subveq() attributes {"cudaq-kernel", no_this} {
     %c0_i32 = arith.constant 0 : i32
     %c1_i32 = arith.constant 1 : i32
     %c2_i32 = arith.constant 2 : i32
@@ -236,7 +236,7 @@ module {
 
 // Expect the dynamic `subveq` loop to unroll into concrete subveq/mz
 // operations.
-// CHECK-LABEL:   func.func @blocking_dynamic_subveq() attributes {"cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @aliasing_quantum_access_subveq() attributes {"cudaq-kernel", no_this} {
 // CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>

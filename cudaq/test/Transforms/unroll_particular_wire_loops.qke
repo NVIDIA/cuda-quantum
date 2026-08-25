@@ -7,14 +7,14 @@
 // ========================================================================== //
 
 // clang-format off
-// RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-unroll=unroll-only-aliasing-quantum-access-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck %s
 // The loop-unroll options below must be forwarded through prepare-for-wireset and reach cc-loop-unroll.
-// RUN: cudaq-opt --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-wire-blocking-loops=true maximum-iterations=5})' %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true maximum-iterations=5})' %s | FileCheck %s
 // RUN: cudaq-opt --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-index-use-loops=true maximum-iterations=5})' %s | FileCheck %s
-// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{unroll-only-wire-blocking-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
+// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{unroll-only-aliasing-quantum-access-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
 // RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{unroll-only-index-use-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE-INDEX-USE %s
 // RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset)' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE-DEFAULTS %s
-// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-wire-blocking-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE-WIRESET %s
+// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true maximum-iterations=5})' %s -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE-WIRESET %s
 // RUN: cudaq-opt --cc-loop-unroll --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck --check-prefix=DEFAULT %s
 // clang-format on
 
@@ -22,14 +22,15 @@
 // real pipeline (cudaq-quake | cudaq-opt --canonicalize --factor-quantum-alloc
 // --memtoreg). `clean_repeat` applies the same gates to the same qubits each
 // iteration: mem2reg threaded its qubits as !quake.wire loop iter-args, so it is
-// a clean value-semantics loop. `blocking_static` indexes qubits by the
-// induction variable (quake.extract_ref in the loop body), so it still uses
-// reference semantics and blocks wire conversion.
+// a clean value-semantics loop. `aliasing_quantum_access_static` indexes
+// qubits by the induction variable (quake.extract_ref in the loop body), so it
+// still contains aliasing quantum access in reference semantics.
 //
-// With unroll-only-wire-blocking-loops=true the clean loop stays rolled (its qubits
-// become explicit quake.borrow_wire values carried as iter-args) while the
-// blocking loop is unrolled. With the default cc-loop-unroll (DEFAULT) both
-// loops are fully unrolled, i.e. existing behavior is unchanged.
+// With unroll-only-aliasing-quantum-access-loops=true the clean loop stays
+// rolled (its qubits become explicit quake.borrow_wire values carried as
+// iter-args) while the loop containing aliasing quantum access is unrolled.
+// With the default cc-loop-unroll (DEFAULT) both loops are fully unrolled,
+// i.e. existing behavior is unchanged.
 
 module {
   func.func @__nvqpp__mlirgen__function_clean_repeat._Z12clean_repeatv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -118,7 +119,7 @@ module {
 // DEFAULT:           return %[[CMPI_0]] : i1
 // DEFAULT:         }
 
-  func.func @__nvqpp__mlirgen__function_blocking_static._Z15blocking_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  func.func @__nvqpp__mlirgen__function_aliasing_quantum_access_static._Z30aliasing_quantum_access_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %c1_i32 = arith.constant 1 : i32
     %c0_i32 = arith.constant 0 : i32
     %c4_i32 = arith.constant 4 : i32
@@ -185,8 +186,9 @@ module {
     return %32 : i1
   }
 
-// Selective mode: `blocking_static` should be unrolled before wire assignment.
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_blocking_static._Z15blocking_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// Selective mode: `aliasing_quantum_access_static` should be unrolled before
+// wire assignment.
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_aliasing_quantum_access_static._Z30aliasing_quantum_access_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
@@ -219,8 +221,8 @@ module {
 // CHECK:           return %[[CMPI_0]] : i1
 // CHECK:         }
 
-// Default mode: `blocking_static` should also be fully unrolled.
-// DEFAULT-LABEL:   func.func @__nvqpp__mlirgen__function_blocking_static._Z15blocking_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// Default mode: `aliasing_quantum_access_static` should also be fully unrolled.
+// DEFAULT-LABEL:   func.func @__nvqpp__mlirgen__function_aliasing_quantum_access_static._Z30aliasing_quantum_access_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // DEFAULT:           %[[CONSTANT_0:.*]] = arith.constant 0 : i32
 // DEFAULT:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // DEFAULT:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
@@ -254,8 +256,8 @@ module {
 // DEFAULT:         }
 }
 
-// The forwarded wire-blocking option must appear on cc-loop-unroll.
-// PIPELINE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=false unroll-only-wire-blocking-loops=true}
+// The forwarded aliasing-quantum-access option must appear on cc-loop-unroll.
+// PIPELINE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-aliasing-quantum-access-loops=true unroll-only-index-use-loops=false}
 // PIPELINE: decomposition{{.*}}ExpPauliDecomposition
 // PIPELINE-NOT: add-wireset
 // PIPELINE-NOT: assign-wire-indices
@@ -263,9 +265,9 @@ module {
 // PIPELINE-NOT: basis=
 
 // The forwarded index-use option must appear on cc-loop-unroll.
-// PIPELINE-INDEX-USE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=true unroll-only-wire-blocking-loops=false}
+// PIPELINE-INDEX-USE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-aliasing-quantum-access-loops=false unroll-only-index-use-loops=true}
 
-// PIPELINE-DEFAULTS: cc-loop-unroll{allow-early-exit=false maximum-iterations=50 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-index-use-loops=false unroll-only-wire-blocking-loops=false}
+// PIPELINE-DEFAULTS: cc-loop-unroll{allow-early-exit=false maximum-iterations=50 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-aliasing-quantum-access-loops=false unroll-only-index-use-loops=false}
 // PIPELINE-DEFAULTS-NOT: add-wireset
 // PIPELINE-DEFAULTS-NOT: assign-wire-indices
 
