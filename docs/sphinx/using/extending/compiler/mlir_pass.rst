@@ -130,19 +130,15 @@ require general control-flow support. Rewrites may cross the scope boundary
 only when they do not move scoped allocations or their uses, or bypass cleanup
 performed when the scope exits.
 
-A ``cc.scope`` carrying the ``atomic_quantum_region`` unit attribute is not
+A ``cc.scope`` carrying the ``atomic_quantum_region`` unit attribute, is not
 transparent in this way. Canonicalization retains a marked scope even when it
-holds no allocations, so the marker reaches later passes. The qubit-mapping
-pass maps through scopes carrying this attribute as if it were not present.
-When a ``cudaq.run`` entry uses an outer body scope, mapping treats that scope
-as the function-body wrapper and applies its top-level analysis rules.
-Other optimizations may rewrite quantum operations wholly inside or wholly
-outside a marked scope, but must not combine, cancel, or move operations across
-its boundary.
+holds no allocations, so the marker reaches later passes. An optimization may
+rewrite quantum operations wholly inside or wholly outside a marked scope, but
+must not combine, cancel, or move operations across its boundary.
 
-Tests for passes that honor the marked boundary should cover optimization
-within a block, across an ordinary scope, and conservative behavior at both a
-marked scope and an unsupported control-flow boundary.
+Tests should cover optimization within a block, across an ordinary scope, and
+conservative behavior at both a marked scope and an unsupported control-flow
+boundary.
 
 Pipeline integration should keep related quantum optimizations together in a
 value-form portion of the pipeline. A quantum optimization should not require
