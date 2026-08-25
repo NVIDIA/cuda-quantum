@@ -11,56 +11,30 @@
 // sockets: no CUDA, no ibverbs, so these tests run anywhere.
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
+#include "cudaq/realtime/testing/test_utils.h"
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include <thread>
+
+using cudaq::realtime::testing::load_flag;
+using cudaq::realtime::testing::slot_data;
+using cudaq::realtime::testing::store_flag;
+using cudaq::realtime::testing::wait_for_flag;
+using cudaq::realtime::testing::wait_for_flag_clear;
 
 namespace {
 
 constexpr std::size_t kPageSize = 256;
 constexpr unsigned kNumPages = 4;
 
-std::uint64_t loadFlag(std::uint64_t flagsAddr, unsigned slot) {
-  const auto *flags = reinterpret_cast<const std::uint64_t *>(flagsAddr);
-  return __atomic_load_n(&flags[slot], __ATOMIC_ACQUIRE);
-}
-
-void storeFlag(std::uint64_t flagsAddr, unsigned slot, std::uint64_t value) {
-  auto *flags = reinterpret_cast<std::uint64_t *>(flagsAddr);
-  __atomic_store_n(&flags[slot], value, __ATOMIC_RELEASE);
-}
-
+// Every ring in this file has the same stride, so default it; the oversize test
+// passes its own to build a datagram the receiver has to reject.
 std::uint8_t *slotData(std::uint64_t dataAddr, unsigned slot,
-                       std::size_t pageSize = kPageSize) {
-  return reinterpret_cast<std::uint8_t *>(dataAddr) + slot * pageSize;
-}
-
-bool waitForFlag(
-    std::uint64_t flagsAddr, unsigned slot,
-    std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
-  const auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (std::chrono::steady_clock::now() < deadline) {
-    if (loadFlag(flagsAddr, slot) != 0)
-      return true;
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
-  }
-  return false;
-}
-
-bool waitForFlagClear(
-    std::uint64_t flagsAddr, unsigned slot,
-    std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
-  const auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (std::chrono::steady_clock::now() < deadline) {
-    if (loadFlag(flagsAddr, slot) == 0)
-      return true;
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
-  }
-  return false;
+                       std::size_t stride = kPageSize) {
+  return slot_data(dataAddr, slot, stride);
 }
 
 // A bound (service) and connected (caller) transceiver pair over loopback,
@@ -102,7 +76,7 @@ protected:
     std::uint8_t *tx = slotData(callerTxData, slot);
     std::memset(tx, 0, kPageSize);
     std::memcpy(tx, payload.data(), payload.size());
-    storeFlag(callerTxFlags, slot, reinterpret_cast<std::uint64_t>(tx));
+    store_flag(callerTxFlags, slot, reinterpret_cast<std::uint64_t>(tx));
   }
 
   // Consume the service's RX slot: return its payload and recycle the slot
@@ -110,7 +84,7 @@ protected:
   std::string consumeAtService(unsigned slot) {
     std::string payload(
         reinterpret_cast<const char *>(slotData(serviceRxData, slot)));
-    storeFlag(serviceRxFlags, slot, 0);
+    store_flag(serviceRxFlags, slot, 0);
     return payload;
   }
 
@@ -173,11 +147,11 @@ TEST(UdpTransceiverLifecycle, DeliversAcrossAnyInterfaceBind) {
   std::uint8_t *tx = slotData(txData, 0);
   std::memset(tx, 0, kPageSize);
   std::memcpy(tx, "any-if", 6);
-  storeFlag(txFlags, 0, reinterpret_cast<std::uint64_t>(tx));
+  store_flag(txFlags, 0, reinterpret_cast<std::uint64_t>(tx));
 
   const std::uint64_t rxFlags = cpu_udp_get_rx_ring_flag_addr(service);
   const std::uint64_t rxData = cpu_udp_get_rx_ring_data_addr(service);
-  ASSERT_TRUE(waitForFlag(rxFlags, 0));
+  ASSERT_TRUE(wait_for_flag(rxFlags, 0));
   EXPECT_EQ(0, std::memcmp(slotData(rxData, 0), "any-if", 6));
 
   cpu_udp_destroy_transceiver(caller);
@@ -203,18 +177,18 @@ TEST(UdpTransceiverLifecycle, StartRequiresSocketAndCloseIsIdempotent) {
 TEST_F(UdpTransceiverPairTest, DeliversPublishedSlotToServiceRxRing) {
   publishFromCaller(0, "request-0");
 
-  ASSERT_TRUE(waitForFlag(serviceRxFlags, 0));
+  ASSERT_TRUE(wait_for_flag(serviceRxFlags, 0));
   // The RX flag carries the slot's data address, same contract as RoCE.
   EXPECT_EQ(reinterpret_cast<std::uint64_t>(slotData(serviceRxData, 0)),
-            loadFlag(serviceRxFlags, 0));
+            load_flag(serviceRxFlags, 0));
   EXPECT_EQ("request-0", consumeAtService(0));
   // The caller's TX pump recycles the published slot.
-  EXPECT_TRUE(waitForFlagClear(callerTxFlags, 0));
+  EXPECT_TRUE(wait_for_flag_clear(callerTxFlags, 0));
 }
 
 TEST_F(UdpTransceiverPairTest, RoundTripsResponseToCallerRxRing) {
   publishFromCaller(0, "ping");
-  ASSERT_TRUE(waitForFlag(serviceRxFlags, 0));
+  ASSERT_TRUE(wait_for_flag(serviceRxFlags, 0));
   EXPECT_EQ("ping", consumeAtService(0));
 
   // Service answers through its own TX ring; responses go to the source of
@@ -222,11 +196,11 @@ TEST_F(UdpTransceiverPairTest, RoundTripsResponseToCallerRxRing) {
   std::uint8_t *tx = slotData(serviceTxData, 0);
   std::memset(tx, 0, kPageSize);
   std::memcpy(tx, "pong", 4);
-  storeFlag(serviceTxFlags, 0, reinterpret_cast<std::uint64_t>(tx));
+  store_flag(serviceTxFlags, 0, reinterpret_cast<std::uint64_t>(tx));
 
-  ASSERT_TRUE(waitForFlag(callerRxFlags, 0));
+  ASSERT_TRUE(wait_for_flag(callerRxFlags, 0));
   EXPECT_EQ(0, std::memcmp(slotData(callerRxData, 0), "pong", 4));
-  storeFlag(callerRxFlags, 0, 0);
+  store_flag(callerRxFlags, 0, 0);
 }
 
 TEST_F(UdpTransceiverPairTest, FillsRxSlotsInStrictRingOrder) {
@@ -234,7 +208,7 @@ TEST_F(UdpTransceiverPairTest, FillsRxSlotsInStrictRingOrder) {
     const unsigned slot = i % kNumPages;
     const std::string payload = "msg-" + std::to_string(i);
     publishFromCaller(slot, payload);
-    ASSERT_TRUE(waitForFlag(serviceRxFlags, slot)) << "message " << i;
+    ASSERT_TRUE(wait_for_flag(serviceRxFlags, slot)) << "message " << i;
     EXPECT_EQ(payload, consumeAtService(slot)) << "message " << i;
   }
 }
@@ -248,9 +222,9 @@ TEST_F(UdpTransceiverPairTest, ShipsWrappingPublishBurstInFifoOrder) {
   // Advance the caller's TX cursor to the last slot.
   for (unsigned slot = 0; slot < kNumPages - 1; ++slot) {
     publishFromCaller(slot, "warmup-" + std::to_string(slot));
-    ASSERT_TRUE(waitForFlag(serviceRxFlags, slot));
+    ASSERT_TRUE(wait_for_flag(serviceRxFlags, slot));
     consumeAtService(slot);
-    ASSERT_TRUE(waitForFlagClear(callerTxFlags, slot));
+    ASSERT_TRUE(wait_for_flag_clear(callerTxFlags, slot));
   }
 
   // Publish the wrapped slot 0 FIRST while the TX cursor still waits on slot
@@ -261,9 +235,9 @@ TEST_F(UdpTransceiverPairTest, ShipsWrappingPublishBurstInFifoOrder) {
 
   // The service's RX ring assigns slots in arrival order, so the payload
   // arriving first lands in the in-order RX slot kNumPages-1.
-  ASSERT_TRUE(waitForFlag(serviceRxFlags, kNumPages - 1));
+  ASSERT_TRUE(wait_for_flag(serviceRxFlags, kNumPages - 1));
   EXPECT_EQ("first", consumeAtService(kNumPages - 1));
-  ASSERT_TRUE(waitForFlag(serviceRxFlags, 0));
+  ASSERT_TRUE(wait_for_flag(serviceRxFlags, 0));
   EXPECT_EQ("second", consumeAtService(0));
 }
 
@@ -282,12 +256,13 @@ TEST_F(UdpTransceiverPairTest, DropsDatagramsLargerThanOwnStride) {
   const std::uint64_t txData = cpu_udp_get_tx_ring_data_addr(bigCaller);
   std::uint8_t *tx = slotData(txData, 0, 2 * kPageSize);
   std::memset(tx, 0xAB, 2 * kPageSize);
-  storeFlag(txFlags, 0, reinterpret_cast<std::uint64_t>(tx));
+  store_flag(txFlags, 0, reinterpret_cast<std::uint64_t>(tx));
 
   // The oversized datagram was shipped (TX flag recycled) ...
-  ASSERT_TRUE(waitForFlagClear(txFlags, 0));
+  ASSERT_TRUE(wait_for_flag_clear(txFlags, 0));
   // ... but never lands in the service's RX ring.
-  EXPECT_FALSE(waitForFlag(serviceRxFlags, 0, std::chrono::milliseconds(250)));
+  EXPECT_FALSE(
+      wait_for_flag(serviceRxFlags, 0, std::chrono::milliseconds(250)));
 
   cpu_udp_destroy_transceiver(bigCaller);
 }
