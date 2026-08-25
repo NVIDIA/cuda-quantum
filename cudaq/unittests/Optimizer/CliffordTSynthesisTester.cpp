@@ -17,6 +17,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include <algorithm>
@@ -124,25 +125,15 @@ OwningOpRef<ModuleOp> buildRotationModule(MLIRContext *context, Rot gate,
   return OwningOpRef<ModuleOp>(module);
 }
 
-// Operator-norm proxy distance between two 2x2 unitaries, modulo a global
-// phase. Computes sqrt(|det(A - B)|), which tracks the operator norm in the
-// small-error regime. This is weaker than the exact spectral norm in
-// cudaq::synth::rz_approximation_error, but it aligns the global phase, which
-// these tests need: CliffordTSynthesis drops the W (global phase) gates
-// emitted by gridsynth, so a successful synthesis can still differ from the
-// ideal by a phase. The epsilon guarantee itself is covered by GridsynthTest.
+// Operator-norm proxy distance between two 2x2 unitaries. Computes
+// sqrt(|det(A - B)|), which tracks the operator norm in the small-error
+// regime. Gridsynth's epsilon bound covers the phase, and synthesis emits it
+// as a quake.phase.
 double distance(const M2 &A, const M2 &B) {
-  const std::complex<double> inner =
-      std::conj(A.a) * B.a + std::conj(A.b) * B.b + std::conj(A.c) * B.c +
-      std::conj(A.d) * B.d;
-  const double mag = std::abs(inner);
-  const std::complex<double> phase =
-      mag > 0.0 ? inner / mag : std::complex<double>(1.0, 0.0);
-  const M2 Aligned = {phase * A.a, phase * A.b, phase * A.c, phase * A.d};
-  const std::complex<double> e00 = Aligned.a - B.a;
-  const std::complex<double> e01 = Aligned.b - B.b;
-  const std::complex<double> e10 = Aligned.c - B.c;
-  const std::complex<double> e11 = Aligned.d - B.d;
+  const std::complex<double> e00 = A.a - B.a;
+  const std::complex<double> e01 = A.b - B.b;
+  const std::complex<double> e10 = A.c - B.c;
+  const std::complex<double> e11 = A.d - B.d;
   const std::complex<double> det = e00 * e11 - e01 * e10;
   return std::sqrt(std::abs(det));
 }
@@ -158,6 +149,14 @@ void applyOp(Operation &op, ModuleOp module, M2 &U) {
     U = mul(t.isAdj() ? kTdg : kT, U);
   } else if (isa<cudaq::quake::XOp>(&op)) {
     U = mul(kX, U);
+  } else if (auto phase = dyn_cast<cudaq::quake::PhaseOp>(&op)) {
+    FloatAttr attr;
+    ASSERT_TRUE(matchPattern(phase.getParameter(), m_Constant(&attr)))
+        << "phase angle is not a constant";
+    const double angle =
+        phase.isAdj() ? -attr.getValueAsDouble() : attr.getValueAsDouble();
+    const std::complex<double> scalar = std::polar(1.0, angle);
+    U = {scalar * U.a, scalar * U.b, scalar * U.c, scalar * U.d};
   } else if (auto call = dyn_cast<func::CallOp>(&op)) {
     auto callee = dyn_cast_or_null<func::FuncOp>(
         SymbolTable::lookupSymbolIn(module, call.getCalleeAttr()));
@@ -199,7 +198,8 @@ protected:
   std::unique_ptr<MLIRContext> context;
 };
 
-TEST_P(CliffordTSynthesisRotationTest, RoundTripMatchesIdealUpToGlobalPhase) {
+TEST_P(CliffordTSynthesisRotationTest,
+       RoundTripMatchesIdealIncludingGlobalPhase) {
   const auto &param = GetParam();
   auto module = buildRotationModule(context.get(), param.gate, param.theta);
 
@@ -228,11 +228,11 @@ TEST_P(CliffordTSynthesisRotationTest, RoundTripMatchesIdealUpToGlobalPhase) {
 
 INSTANTIATE_TEST_SUITE_P(
     Rotations, CliffordTSynthesisRotationTest,
-    ::testing::Values(RotationCase{Rot::Rz, M_PI / 4.0},
-                      RotationCase{Rot::Rz, M_PI / 3.0},
-                      RotationCase{Rot::Rx, M_PI / 4.0},
-                      RotationCase{Rot::Ry, M_PI / 4.0},
-                      RotationCase{Rot::R1, 2.0 * M_PI / 7.0}),
+    ::testing::Values(
+        RotationCase{Rot::Rz, M_PI / 4.0}, RotationCase{Rot::Rz, M_PI / 3.0},
+        RotationCase{Rot::Rz, 0.3}, RotationCase{Rot::Rz, -M_PI / 5.0},
+        RotationCase{Rot::Rx, M_PI / 4.0}, RotationCase{Rot::Ry, M_PI / 4.0},
+        RotationCase{Rot::R1, 2.0 * M_PI / 7.0}),
     [](const ::testing::TestParamInfo<RotationCase> &info) {
       std::string theta = std::to_string(info.param.theta);
       std::replace(theta.begin(), theta.end(), '.', '_');

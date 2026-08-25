@@ -1,7 +1,7 @@
 # ============================================================================ #
 # Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
-# Copyright 2025 IQM Quantum Computers                                         #
+# Copyright 2025-2026 IQM Quantum Computers                                    #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
@@ -472,6 +472,8 @@ async def get_jobs(job_id: str, request: Request):
             job.result.message if job.result and job.result.message else None,
         "counts_batch":
             job.counts_batch,
+        "metadata":
+            job.metadata,
     }
 
     return results

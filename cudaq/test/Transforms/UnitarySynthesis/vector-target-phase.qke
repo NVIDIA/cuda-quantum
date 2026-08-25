@@ -1,0 +1,44 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A custom one-qubit unitary may legally use !quake.veq<1> as its target.
+// PR6 must materialize its sole scalar element as the PhaseOp anchor.
+// RUN: cudaq-opt --unitary-synthesis --canonicalize %s | FileCheck %s --check-prefix=PHASE
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
+// RUN:   --aggressive-inlining --expand-control-veqs --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s \
+// RUN:   | CircuitCheck %s
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
+// RUN:   --aggressive-inlining --expand-control-veqs --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s \
+// RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+
+module {
+  func.func @controlled_singleton_vector_x() attributes {"cudaq-entrypoint"} {
+    %control = quake.alloca !quake.ref
+    %target = quake.alloca !quake.veq<1>
+    quake.h %control : (!quake.ref) -> ()
+    quake.custom_unitary_constant @x [%control] %target
+        : (!quake.ref, !quake.veq<1>) -> ()
+    return
+  }
+  cc.global constant private @x (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+}
+
+// The generated helper preserves its aggregate interface, but PhaseOp is
+// anchored to its deterministically extracted only element.
+// PHASE-LABEL: func.func private @x.kernel(
+// PHASE-SAME: %[[TARGET:.*]]: !quake.veq<1>) {
+// PHASE: %[[ANCHOR:.*]] = quake.extract_ref %[[TARGET]][0] : (!quake.veq<1>) -> !quake.ref
+// PHASE: quake.phase (%{{.*}}) %[[ANCHOR]] : (f64, !quake.ref) -> ()
+
+// Outer control specialization makes that correction observable, so lowering
+// must retain it as an R1 on the original scalar control.
+// LOWER-LABEL: func.func @controlled_singleton_vector_x
+// LOWER: %[[CONTROL:.*]] = quake.alloca !quake.ref
+// LOWER: quake.r1 (%{{.*}}) %[[CONTROL]] : (f64, !quake.ref) -> ()
