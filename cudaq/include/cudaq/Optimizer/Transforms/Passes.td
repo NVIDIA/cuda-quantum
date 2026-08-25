@@ -194,13 +194,13 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     - Rotation angles are folded to constants - run `ArgumentSynthesis` and
       constant-propagation passes first.
     - Controls and adjoints are materialized - run `ApplyOpSpecialization`
-      first. The omega global-phase contributions are dropped on the
-      assumption that no consumer wraps the kernel with `cudaq::control`
-      after this pass runs.
-      TODO: track and preserve the omega global phase once global-phase
-      support lands in Quake, so that controlled uses of a synthesized
-      kernel remain correct (the phase becomes an observable relative phase
-      under `cudaq::control`).
+      first.
+
+    The omega global phase of each synthesized word is emitted as an
+    uncontrolled `quake.phase` in the helper body, so the helper is exactly
+    equal to the rotation it replaces. Run `lower-phase` afterwards to
+    complete the phase lifecycle; the `cudaq-fault-tolerant-target` pipeline
+    does.
 
     Gridsynth is probabilistic, and its cost grows sharply as `epsilon`
     tightens: roughly 2 ms per distinct rotation at the default 1e-10, but
@@ -1985,6 +1985,36 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
 
   let dependentDialects = ["mlir::cf::ControlFlowDialect",
     "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
+}
+
+def UnwindByDataFlow : Pass<"unwind-by-dataflow", "mlir::func::FuncOp"> {
+  let summary = "Lower unwind control-flow macros to data-flow flag variables.";
+  let description = [{
+    An alternative to `unwind-lowering` that converts `cc.unwind_return`,
+    `cc.unwind_break`, and `cc.unwind_continue` into data-flow form instead of
+    CFG form.  Structured operations (`cc.scope`, `cc.if`, `cc.loop`) are
+    preserved; flag variables threaded through them carry the unwind signal.
+
+    For `cc.unwind_return`: a boolean `returnship` alloca and one alloca per
+    return-value type are created in the function entry block.  Each
+    `cc.unwind_return` is replaced by stores into those allocas.  Working
+    outward through every enclosing structured op, subsequent code is guarded
+    by `cc.if (!returnship) { ... }` until the function body is reached, where
+    an explicit `if (returnship) { func.return (load returnity) }` is inserted.
+    `cc.loop` while-conditions are also ANDed with `!returnship` so the loop
+    exits on the next check.
+
+    For `cc.unwind_break` / `cc.unwind_continue`: per-loop `breakship` /
+    `continueship` flag allocas (and matching value allocas) are created just
+    before the enclosing loop.  Replacement and outward guarding proceed as for
+    return, but propagation stops at the enclosing loop, where a
+    `cc.if (breakship) { cc.break ... }` or `cc.if (continueship) {
+    cc.continue ... }` is appended to the loop body.  Additionally,
+    `continueship` is reset to `false` at the top of the loop body on every
+    iteration so that a continue from one iteration does not affect the next.
+  }];
+  let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
+    "mlir::func::FuncDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

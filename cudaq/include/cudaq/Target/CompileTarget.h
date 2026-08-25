@@ -71,6 +71,13 @@ struct CompileTarget {
   /// Whether device calls are supported by the target.
   bool supportDeviceCalls = false;
 
+  /// Whether the target supports pre-computing resource counts for faster
+  /// resource estimation.
+  ///
+  /// Only used for resource estimation. When set, the compiler will strip out
+  /// all gates outside of control flow and produce gate counts statically.
+  bool supportResourceCounts = true;
+
   /// Whether explicit measurements are supported by the target.
   bool supportExplicitMeasurements = true;
 

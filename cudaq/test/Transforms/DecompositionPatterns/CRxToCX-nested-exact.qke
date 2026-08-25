@@ -35,7 +35,7 @@ func.func private @crx_exact(%inner: !quake.ref, %target: !quake.ref) {
 func.func @nested_crx(%outer: !quake.ref, %inner: !quake.ref,
                       %target: !quake.ref) {
   quake.h %outer : (!quake.ref) -> ()
-  quake.apply @crx_exact [%outer] %inner, %target
+  quake.apply @crx_exact [%outer] (%inner, %target)
       : (!quake.ref, !quake.ref, !quake.ref) -> ()
   quake.h %outer : (!quake.ref) -> ()
   return
