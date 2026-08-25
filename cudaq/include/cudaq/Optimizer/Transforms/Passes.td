@@ -1231,6 +1231,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     placements that meet at each control-flow join must be reconciled to a
     single layout so the block after the join has an unambiguous entry.
 
+    Single-block `cc.scope` operations, including nested scopes, are routed as
+    ordered lexical segments. The mapper preserves their attributes and
+    classical operations, adding passthrough results when routing requires
+    captured wires to leave the scope. Other consumed input wires must already
+    be scope results.
+
+    The selected outer scope of a `run` entry is treated as the function body.
+    It must contain one block, but the restrictions on scope contents below do
+    not apply to it.
+
     Reconciliation is currently done by reverting each predecessor to the
     layout it entered with (its swaps are replayed in reverse before the region
     terminator):
@@ -1250,12 +1260,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     The following control flow is not yet supported and is rejected (a hard
     error under `raise-fatal-errors`, otherwise the function is skipped):
 
-    - measurements nested inside a branch or loop, unless the function is a
-      `run` entry point (where results are recorded by index, not order);
+    - in non-`run` functions, measurements inside a scope, branch, or loop.
     - a mid-circuit measurement whose measured wire feeds a non-terminal user,
-      or any measurement-dependent (adaptive) control flow;
-    - loops with a multi-block body, a Python `else`, or a `break`;
-    - quantum gates in a loop's condition or step region;
+      or measurement-dependent (adaptive) control flow, unless the function is
+      a `run` entry point with structured control flow.
+    - loops with a multi-block body, a Python `else`, or a `break`.
+    - quantum gates in a loop's condition or step region.
+    - a scope inside structured control flow, or structured control flow inside
+      a scope.
+    - multi-block scopes, or scopes containing quantum allocations, borrows, or
+      terminal wire operations.
     - more than one block at the function's top level.
   }];
 
