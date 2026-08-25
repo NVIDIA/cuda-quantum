@@ -449,10 +449,12 @@ public:
       // complicated case.
       // - If the dfJump is continue, then we want to allow the step region (if
       // any) to execute. We also clear the dfJump flag if the while region.
-      auto &stepRegion = loop.getStepRegion();
-      placeDominatedUnderGuard</*noAdvance=*/true,
-                               /*jumpKind=*/JumpKind::Continue>(
-          rewriter, loc, dfJump, &stepRegion.front().front());
+      if (loop.hasStep()) {
+        auto &stepRegion = loop.getStepRegion();
+        placeDominatedUnderGuard</*noAdvance=*/true,
+                                 /*jumpKind=*/JumpKind::Continue>(
+            rewriter, loc, dfJump, &stepRegion.front().front());
+      }
       // - Otherwise the dfJump is break or a return, then we skip the step
       // region, skip the while region, and update the cc.condition op to exit
       // if dfJump is non-zero.
