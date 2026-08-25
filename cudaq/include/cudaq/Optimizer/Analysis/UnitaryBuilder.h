@@ -29,6 +29,14 @@ public:
 
   mlir::LogicalResult build(mlir::func::FuncOp func);
 
+  /// Number of qubits that were projected out of the operator as `ancillas`.
+  std::size_t getNumAncillas() const { return numAncillas; }
+
+  /// True if build() failed because the kernel's `ancillas` were not returned
+  /// to the computational basis state they came in as. This is a property of
+  /// the circuit, not a builder error.
+  bool sawDirtyAncilla() const { return dirtyAncilla; }
+
 private:
   //===--------------------------------------------------------------------===//
   // Visitors
@@ -46,6 +54,11 @@ private:
 
   mlir::LogicalResult getValueAsInt(mlir::Value value, std::size_t &result);
 
+  /// Looks up the qubit identifier at `index` for `value`, emitting an error on
+  /// `op` when the value was never mapped or the index is out of range.
+  mlir::LogicalResult lookupQubit(mlir::Operation *op, mlir::Value value,
+                                  std::size_t index, Qubit &qubit);
+
   std::size_t getNumQubits() {
     return matrix.rows() > 0 ? std::log2(matrix.rows()) : 0;
   }
@@ -56,6 +69,9 @@ private:
   void negatedControls(mlir::ArrayRef<bool> negatedControls,
                        mlir::ArrayRef<Qubit> qubits);
 
+  /// Projects the `ancillas` out of the operator, leaving the action on the
+  /// system qubits alone. numQubits is the number of qubits that came in as
+  /// function arguments, used only when the kernel has no marked `ancillas`.
   mlir::LogicalResult deallocateAncillas(std::size_t numQubits);
 
   //===--------------------------------------------------------------------===//
@@ -68,7 +84,7 @@ private:
                      mlir::ArrayRef<Qubit> qubits);
 
   /// Applies a general single-qubit unitary matrix
-  void applyMatrix(mlir::ArrayRef<Complex> m, mlir::ArrayRef<Qubit> qubits);
+  void applyMatrix(mlir::ArrayRef<Complex> m, Qubit qubit);
 
   /// Applies a general multiple-control, multiple-target unitary matrix
   void applyMatrix(mlir::ArrayRef<Complex> m, unsigned numTargets,
@@ -91,6 +107,15 @@ private:
   /// single qubits and registers, we add single qubits to this map as a vector
   /// of size one.
   mlir::DenseMap<mlir::Value, mlir::SmallVector<Qubit, 4>> qubitMap;
+
+  /// Identifiers of the qubits that came from allocations marked with
+  /// `quake.ancilla`. These can be at any index, in any order.
+  mlir::SmallVector<Qubit, 4> ancillaQubits;
+
+  /// How many qubits deallocateAncillas projected out, and whether it found
+  /// them dirty. See getNumAncillas() and sawDirtyAncilla().
+  std::size_t numAncillas = 0;
+  bool dirtyAncilla = false;
 };
 
 // rtol : Relative tolerance

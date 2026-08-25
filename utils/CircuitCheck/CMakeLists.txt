@@ -10,7 +10,6 @@ include(HandleLLVMOptions)
 
 add_llvm_executable(CircuitCheck
   CircuitCheck.cpp
-  UnitaryBuilder.cpp
 )
 
 target_include_directories(CircuitCheck
@@ -18,6 +17,8 @@ target_include_directories(CircuitCheck
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
+# The UnitaryBuilder engine now lives in the OptAnalysis library. CircuitCheck is
+# one CLI client of it.
 target_link_libraries(CircuitCheck
   PRIVATE
   MLIRArithDialect
@@ -27,4 +28,5 @@ target_link_libraries(CircuitCheck
 
   CCDialect
   QuakeDialect
+  OptAnalysis
 )

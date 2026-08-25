@@ -6,8 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "UnitaryBuilder.h"
+#include "cudaq/Optimizer/Analysis/UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "llvm/ADT/bit.h"
 #include <algorithm>
 #include <numeric>
 
@@ -58,13 +59,32 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 
       for (auto &&[newQuantumOp, quantumOp] :
            llvm::zip(cudaq::quake::getQuantumResults(op),
-                     cudaq::quake::getQuantumOperands(op)))
-        qubitMap.insert({newQuantumOp, qubitMap[quantumOp]});
+                     cudaq::quake::getQuantumOperands(op))) {
+        auto entry = qubitMap.find(quantumOp);
+        if (entry == qubitMap.end()) {
+          optor.emitOpError("Operand has no qubit mapping.");
+          return WalkResult::interrupt();
+        }
+        SmallVector<Qubit, 4> mapped(entry->second);
+        qubitMap.insert({newQuantumOp, std::move(mapped)});
+      }
 
       // When checking mapped circuits, we do a software swap, i.e., just change
-      // the qubit mapping instead of applying the swap operation.
-      if (upToMapping && isa<cudaq::quake::SwapOp>(op)) {
-        std::swap(qubitMap[op->getResult(0)], qubitMap[op->getResult(1)]);
+      // the qubit mapping instead of applying the swap operation. Only an
+      // unconditional swap is a relabeling: a controlled swap acts on part of
+      // the space, so it has to be applied like any other operator.
+      if (upToMapping && isa<cudaq::quake::SwapOp>(op) &&
+          optor.getControls().empty()) {
+        ValueRange results = cudaq::quake::getQuantumResults(op);
+        ValueRange swapped = results.empty() ? ValueRange(optor.getTargets())
+                                             : results.take_back(2);
+        auto lhs = qubitMap.find(swapped[0]);
+        auto rhs = qubitMap.find(swapped[1]);
+        if (lhs == qubitMap.end() || rhs == qubitMap.end()) {
+          optor.emitOpError("Swap target has no qubit mapping.");
+          return WalkResult::interrupt();
+        }
+        std::swap(lhs->second, rhs->second);
       } else {
         if (optor.getNegatedControls())
           negatedControls(*optor.getNegatedControls(), qubits);
@@ -82,6 +102,9 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   });
   if (result.wasInterrupted())
     return failure();
+  // A dirty ancilla is reported through sawDirtyAncilla() rather than as a
+  // diagnostic. It is a property of the circuit that callers turn into a
+  // verdict, not a malformed-input error.
   return deallocateAncillas(numQubits);
 }
 
@@ -90,8 +113,6 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 //===----------------------------------------------------------------------===//
 
 WalkResult UnitaryBuilder::visitExtractOp(cudaq::quake::ExtractRefOp op) {
-  Value veq = op.getVeq();
-  ArrayRef<unsigned> qubits = qubitMap[veq];
   std::size_t index = 0;
   // We need to check whether the index is a "raw" index or not.
   if (op.hasConstantIndex())
@@ -100,15 +121,18 @@ WalkResult UnitaryBuilder::visitExtractOp(cudaq::quake::ExtractRefOp op) {
     op.emitError("Failed to get index as a integer.");
     return WalkResult::interrupt();
   }
-  auto [entry, _] = qubitMap.try_emplace(op.getResult());
-  entry->second.push_back(qubits[index]);
+  Qubit qubit = 0;
+  if (failed(lookupQubit(op, op.getVeq(), index, qubit)))
+    return WalkResult::interrupt();
+  qubitMap.try_emplace(op.getResult()).first->second.push_back(qubit);
   return WalkResult::advance();
 }
 
 WalkResult UnitaryBuilder::visitUnwrapOp(cudaq::quake::UnwrapOp op) {
-  ArrayRef<unsigned> qubits = qubitMap[op.getOperand()];
-  auto [entry, _] = qubitMap.try_emplace(op.getResult());
-  entry->second.push_back(qubits.front());
+  Qubit qubit = 0;
+  if (failed(lookupQubit(op, op.getOperand(), 0, qubit)))
+    return WalkResult::interrupt();
+  qubitMap.try_emplace(op.getResult()).first->second.push_back(qubit);
   return WalkResult::advance();
 }
 
@@ -129,6 +153,8 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
   } else {
     qubits.push_back(getNumQubits());
   }
+  if (cudaq::quake::isAncilla(value.getDefiningOp()))
+    llvm::append_range(ancillaQubits, qubits);
   growMatrix(qubits.size());
   return WalkResult::advance();
 }
@@ -147,15 +173,33 @@ LogicalResult UnitaryBuilder::getValueAsInt(Value value, std::size_t &result) {
   return failure();
 }
 
+LogicalResult UnitaryBuilder::lookupQubit(Operation *op, Value value,
+                                          std::size_t index, Qubit &qubit) {
+  auto entry = qubitMap.find(value);
+  if (entry == qubitMap.end()) {
+    op->emitError("Value has no qubit mapping.");
+    return failure();
+  }
+  if (index >= entry->second.size()) {
+    op->emitError("Qubit index out of range.");
+    return failure();
+  }
+  qubit = entry->second[index];
+  return success();
+}
+
 LogicalResult UnitaryBuilder::getQubits(ValueRange values,
                                         SmallVectorImpl<Qubit> &qubits) {
   for (Value value : values) {
+    auto entry = qubitMap.find(value);
+    if (entry == qubitMap.end() || entry->second.empty())
+      return failure();
     if (auto veq = dyn_cast<cudaq::quake::VeqType>(value.getType())) {
       if (!veq.hasSpecifiedSize())
         return failure();
-      llvm::copy(qubitMap[value], std::back_inserter(qubits));
+      llvm::copy(entry->second, std::back_inserter(qubits));
     } else {
-      qubits.push_back(qubitMap[value][0]);
+      qubits.push_back(entry->second[0]);
     }
   }
   return success();
@@ -169,22 +213,52 @@ void UnitaryBuilder::negatedControls(ArrayRef<bool> negatedControls,
 }
 
 LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
-  if (numQubits == 0 || matrix.rows() == (1 << numQubits))
-    return success();
-  const std::size_t size = (1ULL << numQubits);
-  UMatrix newMatrix = matrix.block(0, 0, size, size);
-  for (std::size_t i = 0; i < (1ULL << (getNumQubits() - numQubits)); ++i)
-    matrix.block(i * size, i * size, size, size).setZero();
-
-  // If the resulting matrix is not zero, we have dirty ancillas.
-  auto applyTolerance = [](cudaq::UnitaryBuilder::UMatrix &m) {
-    m = (1e-12 < m.array().abs()).select(m, 0.0f);
-  };
-  applyTolerance(matrix);
-  if (!matrix.isZero()) {
-    llvm::errs() << "Failed to clean up ancilla qubits.\n";
-    return failure();
+  // Qubit `k` occupies bit `1 << k`, and marked ancillas can sit at any index,
+  // hence the bitmask. Without markers, fall back to the older rule: anything
+  // allocated after the function arguments is scratch.
+  std::size_t ancillaMask = 0;
+  if (!ancillaQubits.empty()) {
+    for (Qubit qubit : ancillaQubits)
+      ancillaMask |= (1ULL << qubit);
+  } else {
+    if (numQubits == 0)
+      return success();
+    for (std::size_t qubit = numQubits, end = getNumQubits(); qubit < end;
+         ++qubit)
+      ancillaMask |= (1ULL << qubit);
   }
+  if (ancillaMask == 0)
+    return success();
+  numAncillas = llvm::popcount(ancillaMask);
+
+  const std::size_t dim = matrix.rows();
+  // The ancillas must be returned to whichever computational basis state they
+  // came in as, i.e. the operator has to be block diagonal in the ancilla
+  // index. Anything that mixes two different ancilla states is a dirty
+  // ancilla.
+  constexpr double tolerance = 1e-12;
+  for (std::size_t col = 0; col < dim; ++col)
+    for (std::size_t row = 0; row < dim; ++row)
+      if ((row & ancillaMask) != (col & ancillaMask) &&
+          std::abs(matrix(row, col)) > tolerance) {
+        dirtyAncilla = true;
+        return failure();
+      }
+
+  // Gather the |ancillas = 0> block. Dropping the ancilla bits preserves the
+  // order of the remaining indices, so collecting them in increasing order
+  // already puts the system qubits back in their own index order.
+  SmallVector<std::size_t> systemIndices;
+  systemIndices.reserve(dim >> llvm::popcount(ancillaMask));
+  for (std::size_t index = 0; index < dim; ++index)
+    if ((index & ancillaMask) == 0)
+      systemIndices.push_back(index);
+
+  const std::size_t size = systemIndices.size();
+  UMatrix newMatrix(size, size);
+  for (std::size_t col = 0; col < size; ++col)
+    for (std::size_t row = 0; row < size; ++row)
+      newMatrix(row, col) = matrix(systemIndices[row], systemIndices[col]);
 
   matrix.swap(newMatrix);
   return success();
@@ -197,7 +271,7 @@ LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
 void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, unsigned numTargets,
                                    ArrayRef<Qubit> qubits) {
   if (qubits.size() == 1u) {
-    applyMatrix(m, qubits);
+    applyMatrix(m, qubits[0]);
     return;
   }
   if (numTargets == 1) {
@@ -294,65 +368,114 @@ static unsigned first_idx(ArrayRef<UnitaryBuilder::Qubit> qubits, unsigned k) {
   return result;
 }
 
-static std::vector<unsigned>
-indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
-         ArrayRef<UnitaryBuilder::Qubit> qubitsSorted, unsigned k) {
-  std::vector<unsigned> result((1 << qubits.size()), 0u);
-  result.at(0) = first_idx(qubitsSorted, k);
+static void indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
+                     ArrayRef<UnitaryBuilder::Qubit> qubitsSorted, unsigned k,
+                     MutableArrayRef<unsigned> result) {
+  result[0] = first_idx(qubitsSorted, k);
   for (unsigned i = 0u, end = qubits.size(); i < end; ++i) {
     unsigned n = (1u << i);
     unsigned bit = (1u << qubits[i]);
     for (std::size_t j = 0; j < n; j++)
-      result.at(n + j) = result.at(j) | bit;
+      result[n + j] = result[j] | bit;
   }
-  return result;
 }
 
-// TODO:  Optimize!  There are ways to specialize for diagonal and anti-diagonal
-// matrices.
-void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, ArrayRef<Qubit> qubits) {
-  auto *m = matrix.data();
-  for (unsigned k = 0u, end = (matrix.size() >> 1u); k < end; ++k) {
-    auto idx = indicies(qubits, qubits, k);
-    auto cache = m[idx.at(0)];
-    m[idx.at(0)] = u[0] * cache + u[2] * m[idx.at(1)];
-    m[idx.at(1)] = u[1] * cache + u[3] * m[idx.at(1)];
+template <typename PairFn>
+static void applyToPairs(ArrayRef<std::complex<double>> u,
+                         std::complex<double> *m, PairFn forEachPair) {
+  using Complex = std::complex<double>;
+
+  if (u[1] == 0. && u[2] == 0.) {
+    if (u[0] == 1.) {
+      forEachPair([&](std::size_t lo, std::size_t hi) { m[hi] *= u[3]; });
+      return;
+    }
+    forEachPair([&](std::size_t lo, std::size_t hi) {
+      m[lo] *= u[0];
+      m[hi] *= u[3];
+    });
+    return;
   }
+
+  if (u[0] == 0. && u[3] == 0.) {
+    if (u[1] == 1. && u[2] == 1.) {
+      forEachPair(
+          [&](std::size_t lo, std::size_t hi) { std::swap(m[lo], m[hi]); });
+      return;
+    }
+    forEachPair([&](std::size_t lo, std::size_t hi) {
+      const Complex cache = m[lo];
+      m[lo] = u[2] * m[hi];
+      m[hi] = u[1] * cache;
+    });
+    return;
+  }
+
+  forEachPair([&](std::size_t lo, std::size_t hi) {
+    const Complex cacheLo = m[lo];
+    const Complex cacheHi = m[hi];
+    m[lo] = u[0] * cacheLo + u[2] * cacheHi;
+    m[hi] = u[1] * cacheLo + u[3] * cacheHi;
+  });
+}
+
+void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, Qubit qubit) {
+  const std::size_t bit = std::size_t{1} << qubit;
+  const std::size_t end = matrix.size();
+
+  // Every index pair the operator combines (one index with `qubit` clear, one
+  // with it set).
+  applyToPairs(u, matrix.data(), [&](auto &&apply) {
+    for (std::size_t base = 0; base < end; base += (bit << 1))
+      for (std::size_t i = base, stop = base + bit; i < stop; ++i)
+        apply(i, i + bit);
+  });
 }
 
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
                                  ArrayRef<Qubit> qubits) {
+  ArrayRef<Qubit> targets = qubits.take_back(numTargets);
+  unsigned controlMask = 0;
+  for (Qubit control : qubits.drop_back(numTargets))
+    controlMask |= (1u << control);
+
   SmallVector<Qubit, 16> qubitsSorted(qubits);
   llvm::sort(qubitsSorted);
 
   auto *m = matrix.data();
   const std::size_t dim = (1u << numTargets);
+  SmallVector<unsigned, 8> idx(dim);
+  SmallVector<Complex, 8> cache(dim);
   for (std::size_t k = 0u, end = (matrix.size() >> qubits.size()); k < end;
        ++k) {
-    auto idx = indicies(qubits, qubitsSorted, k);
-    SmallVector<Complex, 8> cache(dim, 0);
+    indicies(targets, qubitsSorted, k, idx);
+    for (std::size_t i = 0; i < dim; i++)
+      idx[i] |= controlMask;
     for (std::size_t i = 0; i < dim; i++) {
-      cache[i] = m[idx.at(i)];
-      m[idx.at(i)] = 0.;
+      cache[i] = m[idx[i]];
+      m[idx[i]] = 0.;
     }
     for (std::size_t i = 0; i < dim; i++)
       for (std::size_t j = 0; j < dim; j++)
-        m[idx.at(i)] += u[i + dim * j] * cache[j];
+        m[idx[i]] += u[i + dim * j] * cache[j];
   }
 }
 
 void UnitaryBuilder::applyControlledMatrix(ArrayRef<Complex> u,
                                            ArrayRef<Qubit> qubits) {
+  std::size_t controlMask = 0;
+  for (Qubit control : qubits.drop_back())
+    controlMask |= std::size_t{1} << control;
+  const std::size_t targetBit = std::size_t{1} << qubits.back();
+
   SmallVector<Qubit, 16> qubitsSorted(qubits);
   llvm::sort(qubitsSorted);
-  unsigned p0 = (1 << (qubits.size() - 1)) - 1;
-  unsigned p1 = (1 << qubits.size()) - 1;
 
-  auto *m = matrix.data();
-  for (unsigned k = 0u, end = (matrix.size() >> qubits.size()); k < end; ++k) {
-    auto idx = indicies(qubits, qubitsSorted, k);
-    auto cache = m[idx.at(p0)];
-    m[idx.at(p0)] = u[0] * cache + u[2] * m[idx.at(p1)];
-    m[idx.at(p1)] = u[1] * cache + u[3] * m[idx.at(p1)];
-  }
+  applyToPairs(u, matrix.data(), [&](auto &&apply) {
+    for (unsigned k = 0u, end = (matrix.size() >> qubits.size()); k < end;
+         ++k) {
+      const std::size_t i0 = first_idx(qubitsSorted, k) | controlMask;
+      apply(i0, i0 | targetBit);
+    }
+  });
 }

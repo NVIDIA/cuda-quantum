@@ -1,0 +1,53 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(multicontrol-decomposition))' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(multicontrol-decomposition))' %s | CircuitCheck %s
+
+// `multicontrol-decomposition` inserts its ancilla allocations at the top of
+// the entry block, so they precede the kernel's own allocations. In a kernel
+// that allocates its qubits itself the ancillas therefore end up with the
+// *lowest* qubit indices, and in a kernel whose qubits arrive as arguments they
+// end up with the highest. Both are marked, and `UnitaryBuilder` projects them
+// out either way.
+
+// CHECK-LABEL: func.func @mcx_locally_allocated
+// CHECK: quake.alloca !quake.ref {quake.ancilla}
+// CHECK: quake.alloca !quake.ref {quake.ancilla}
+// CHECK: quake.alloca !quake.veq<5>
+func.func @mcx_locally_allocated() {
+  %v = quake.alloca !quake.veq<5>
+  %c0 = quake.extract_ref %v[0] : (!quake.veq<5>) -> !quake.ref
+  %c1 = quake.extract_ref %v[1] : (!quake.veq<5>) -> !quake.ref
+  %c2 = quake.extract_ref %v[2] : (!quake.veq<5>) -> !quake.ref
+  %c3 = quake.extract_ref %v[3] : (!quake.veq<5>) -> !quake.ref
+  %t = quake.extract_ref %v[4] : (!quake.veq<5>) -> !quake.ref
+  quake.x [%c0, %c1, %c2, %c3] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @mcx_argument_qubits
+// CHECK: quake.alloca !quake.ref {quake.ancilla}
+// CHECK: quake.alloca !quake.ref {quake.ancilla}
+func.func @mcx_argument_qubits(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %t: !quake.ref) {
+  quake.x [%c0, %c1, %c2, %c3] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A parametrized operator needs one more ancilla than the X/Z ladder does.
+// CHECK-LABEL: func.func @mcr1_locally_allocated
+func.func @mcr1_locally_allocated() {
+  %angle = arith.constant 0.78539816339744828 : f64
+  %v = quake.alloca !quake.veq<4>
+  %c0 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %c1 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %c2 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %t = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.r1 (%angle) [%c0, %c1, %c2] %t : (f64, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}

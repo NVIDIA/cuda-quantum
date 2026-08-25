@@ -1,0 +1,194 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s | CircuitCheck %s
+// RUN: cudaq-opt --canonicalize %s | CircuitCheck %s
+
+// These kernels are deliberately long: they map enough values into
+// `UnitaryBuilder`'s `qubitMap` to force the underlying `DenseMap` to grow
+// several times in the middle of the walk. Any reference held into the map
+// across an insertion would dangle here.
+
+func.func @wire_map_growth() {
+  %w0_0 = quake.null_wire
+  %w1_0 = quake.null_wire
+  %w2_0 = quake.null_wire
+  %w3_0 = quake.null_wire
+  %w0_1 = quake.h %w0_0 : (!quake.wire) -> !quake.wire
+  %w1_1 = quake.x %w1_0 : (!quake.wire) -> !quake.wire
+  %w2_1 = quake.s %w2_0 : (!quake.wire) -> !quake.wire
+  %w3_1 = quake.t %w3_0 : (!quake.wire) -> !quake.wire
+  %w0_2, %w1_2 = quake.x [%w0_1] %w1_1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_3 = quake.x %w0_2 : (!quake.wire) -> !quake.wire
+  %w1_3 = quake.s %w1_2 : (!quake.wire) -> !quake.wire
+  %w2_2 = quake.t %w2_1 : (!quake.wire) -> !quake.wire
+  %w3_2 = quake.h %w3_1 : (!quake.wire) -> !quake.wire
+  %w1_4, %w2_3 = quake.x [%w1_3] %w2_2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_4 = quake.s %w0_3 : (!quake.wire) -> !quake.wire
+  %w1_5 = quake.t %w1_4 : (!quake.wire) -> !quake.wire
+  %w2_4 = quake.h %w2_3 : (!quake.wire) -> !quake.wire
+  %w3_3 = quake.x %w3_2 : (!quake.wire) -> !quake.wire
+  %w2_5, %w3_4 = quake.x [%w2_4] %w3_3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_5 = quake.t %w0_4 : (!quake.wire) -> !quake.wire
+  %w1_6 = quake.h %w1_5 : (!quake.wire) -> !quake.wire
+  %w2_6 = quake.x %w2_5 : (!quake.wire) -> !quake.wire
+  %w3_5 = quake.s %w3_4 : (!quake.wire) -> !quake.wire
+  %w3_6, %w0_6 = quake.x [%w3_5] %w0_5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_7 = quake.h %w0_6 : (!quake.wire) -> !quake.wire
+  %w1_7 = quake.x %w1_6 : (!quake.wire) -> !quake.wire
+  %w2_7 = quake.s %w2_6 : (!quake.wire) -> !quake.wire
+  %w3_7 = quake.t %w3_6 : (!quake.wire) -> !quake.wire
+  %w0_8, %w1_8 = quake.x [%w0_7] %w1_7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_9 = quake.x %w0_8 : (!quake.wire) -> !quake.wire
+  %w1_9 = quake.s %w1_8 : (!quake.wire) -> !quake.wire
+  %w2_8 = quake.t %w2_7 : (!quake.wire) -> !quake.wire
+  %w3_8 = quake.h %w3_7 : (!quake.wire) -> !quake.wire
+  %w1_10, %w2_9 = quake.x [%w1_9] %w2_8 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_10 = quake.s %w0_9 : (!quake.wire) -> !quake.wire
+  %w1_11 = quake.t %w1_10 : (!quake.wire) -> !quake.wire
+  %w2_10 = quake.h %w2_9 : (!quake.wire) -> !quake.wire
+  %w3_9 = quake.x %w3_8 : (!quake.wire) -> !quake.wire
+  %w2_11, %w3_10 = quake.x [%w2_10] %w3_9 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_11 = quake.t %w0_10 : (!quake.wire) -> !quake.wire
+  %w1_12 = quake.h %w1_11 : (!quake.wire) -> !quake.wire
+  %w2_12 = quake.x %w2_11 : (!quake.wire) -> !quake.wire
+  %w3_11 = quake.s %w3_10 : (!quake.wire) -> !quake.wire
+  %w3_12, %w0_12 = quake.x [%w3_11] %w0_11 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_13 = quake.h %w0_12 : (!quake.wire) -> !quake.wire
+  %w1_13 = quake.x %w1_12 : (!quake.wire) -> !quake.wire
+  %w2_13 = quake.s %w2_12 : (!quake.wire) -> !quake.wire
+  %w3_13 = quake.t %w3_12 : (!quake.wire) -> !quake.wire
+  %w0_14, %w1_14 = quake.x [%w0_13] %w1_13 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_15 = quake.x %w0_14 : (!quake.wire) -> !quake.wire
+  %w1_15 = quake.s %w1_14 : (!quake.wire) -> !quake.wire
+  %w2_14 = quake.t %w2_13 : (!quake.wire) -> !quake.wire
+  %w3_14 = quake.h %w3_13 : (!quake.wire) -> !quake.wire
+  %w1_16, %w2_15 = quake.x [%w1_15] %w2_14 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_16 = quake.s %w0_15 : (!quake.wire) -> !quake.wire
+  %w1_17 = quake.t %w1_16 : (!quake.wire) -> !quake.wire
+  %w2_16 = quake.h %w2_15 : (!quake.wire) -> !quake.wire
+  %w3_15 = quake.x %w3_14 : (!quake.wire) -> !quake.wire
+  %w2_17, %w3_16 = quake.x [%w2_16] %w3_15 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_17 = quake.t %w0_16 : (!quake.wire) -> !quake.wire
+  %w1_18 = quake.h %w1_17 : (!quake.wire) -> !quake.wire
+  %w2_18 = quake.x %w2_17 : (!quake.wire) -> !quake.wire
+  %w3_17 = quake.s %w3_16 : (!quake.wire) -> !quake.wire
+  %w3_18, %w0_18 = quake.x [%w3_17] %w0_17 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_19 = quake.h %w0_18 : (!quake.wire) -> !quake.wire
+  %w1_19 = quake.x %w1_18 : (!quake.wire) -> !quake.wire
+  %w2_19 = quake.s %w2_18 : (!quake.wire) -> !quake.wire
+  %w3_19 = quake.t %w3_18 : (!quake.wire) -> !quake.wire
+  %w0_20, %w1_20 = quake.x [%w0_19] %w1_19 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_21 = quake.x %w0_20 : (!quake.wire) -> !quake.wire
+  %w1_21 = quake.s %w1_20 : (!quake.wire) -> !quake.wire
+  %w2_20 = quake.t %w2_19 : (!quake.wire) -> !quake.wire
+  %w3_20 = quake.h %w3_19 : (!quake.wire) -> !quake.wire
+  %w1_22, %w2_21 = quake.x [%w1_21] %w2_20 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_22 = quake.s %w0_21 : (!quake.wire) -> !quake.wire
+  %w1_23 = quake.t %w1_22 : (!quake.wire) -> !quake.wire
+  %w2_22 = quake.h %w2_21 : (!quake.wire) -> !quake.wire
+  %w3_21 = quake.x %w3_20 : (!quake.wire) -> !quake.wire
+  %w2_23, %w3_22 = quake.x [%w2_22] %w3_21 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %w0_23 = quake.t %w0_22 : (!quake.wire) -> !quake.wire
+  %w1_24 = quake.h %w1_23 : (!quake.wire) -> !quake.wire
+  %w2_24 = quake.x %w2_23 : (!quake.wire) -> !quake.wire
+  %w3_23 = quake.s %w3_22 : (!quake.wire) -> !quake.wire
+  %w3_24, %w0_24 = quake.x [%w3_23] %w0_23 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %w0_24 : !quake.wire
+  quake.sink %w1_24 : !quake.wire
+  quake.sink %w2_24 : !quake.wire
+  quake.sink %w3_24 : !quake.wire
+  return
+}
+
+func.func @ref_map_growth() {
+  %cst = arith.constant 0.78539816339744828 : f64
+  %v = quake.alloca !quake.veq<4>
+  %r0 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %r1 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r0 : (f64, !quake.ref) -> ()
+  quake.x [%r0] %r1 : (!quake.ref, !quake.ref) -> ()
+  %r2 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %r3 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r2 : (f64, !quake.ref) -> ()
+  quake.x [%r2] %r3 : (!quake.ref, !quake.ref) -> ()
+  %r4 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %r5 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r4 : (f64, !quake.ref) -> ()
+  quake.x [%r4] %r5 : (!quake.ref, !quake.ref) -> ()
+  %r6 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  %r7 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r6 : (f64, !quake.ref) -> ()
+  quake.x [%r6] %r7 : (!quake.ref, !quake.ref) -> ()
+  %r8 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %r9 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r8 : (f64, !quake.ref) -> ()
+  quake.x [%r8] %r9 : (!quake.ref, !quake.ref) -> ()
+  %r10 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %r11 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r10 : (f64, !quake.ref) -> ()
+  quake.x [%r10] %r11 : (!quake.ref, !quake.ref) -> ()
+  %r12 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %r13 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r12 : (f64, !quake.ref) -> ()
+  quake.x [%r12] %r13 : (!quake.ref, !quake.ref) -> ()
+  %r14 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  %r15 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r14 : (f64, !quake.ref) -> ()
+  quake.x [%r14] %r15 : (!quake.ref, !quake.ref) -> ()
+  %r16 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %r17 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r16 : (f64, !quake.ref) -> ()
+  quake.x [%r16] %r17 : (!quake.ref, !quake.ref) -> ()
+  %r18 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %r19 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r18 : (f64, !quake.ref) -> ()
+  quake.x [%r18] %r19 : (!quake.ref, !quake.ref) -> ()
+  %r20 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %r21 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r20 : (f64, !quake.ref) -> ()
+  quake.x [%r20] %r21 : (!quake.ref, !quake.ref) -> ()
+  %r22 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  %r23 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r22 : (f64, !quake.ref) -> ()
+  quake.x [%r22] %r23 : (!quake.ref, !quake.ref) -> ()
+  %r24 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %r25 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r24 : (f64, !quake.ref) -> ()
+  quake.x [%r24] %r25 : (!quake.ref, !quake.ref) -> ()
+  %r26 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %r27 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r26 : (f64, !quake.ref) -> ()
+  quake.x [%r26] %r27 : (!quake.ref, !quake.ref) -> ()
+  %r28 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %r29 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r28 : (f64, !quake.ref) -> ()
+  quake.x [%r28] %r29 : (!quake.ref, !quake.ref) -> ()
+  %r30 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  %r31 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r30 : (f64, !quake.ref) -> ()
+  quake.x [%r30] %r31 : (!quake.ref, !quake.ref) -> ()
+  %r32 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %r33 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r32 : (f64, !quake.ref) -> ()
+  quake.x [%r32] %r33 : (!quake.ref, !quake.ref) -> ()
+  %r34 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %r35 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r34 : (f64, !quake.ref) -> ()
+  quake.x [%r34] %r35 : (!quake.ref, !quake.ref) -> ()
+  %r36 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %r37 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r36 : (f64, !quake.ref) -> ()
+  quake.x [%r36] %r37 : (!quake.ref, !quake.ref) -> ()
+  %r38 = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  %r39 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  quake.rz (%cst) %r38 : (f64, !quake.ref) -> ()
+  quake.x [%r38] %r39 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
