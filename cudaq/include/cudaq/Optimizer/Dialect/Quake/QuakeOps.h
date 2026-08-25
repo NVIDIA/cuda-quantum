@@ -89,6 +89,14 @@ struct ScalarWireFlow {
 /// Measurement and reset inputs contain targets in interface order.
 /// Unsupported forms and mismatched input and result shapes return no value.
 std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
+
+/// Return the scalar-wire flow of an operator, measurement, or reset, ignoring
+/// the operands that thread no wire. A `ref`, `veq`, or `control` operand has
+/// no corresponding result, so only the wire operands are paired with the wire
+/// results by position. Unlike `getScalarWireFlow`, this accepts the mixed
+/// forms that arise when some operands are still in reference or control form.
+/// Unsupported forms and mismatched input and result shapes return no value.
+std::optional<ScalarWireFlow> getThreadedWireFlow(mlir::Operation *operation);
 } // namespace detail
 
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
