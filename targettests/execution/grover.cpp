@@ -8,7 +8,6 @@
 
 // clang-format off
 // RUN: nvq++ --target quantinuum --emulate -flegacy-adjoint %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ --target qci --emulate -flegacy-adjoint %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include "cudaq.h"

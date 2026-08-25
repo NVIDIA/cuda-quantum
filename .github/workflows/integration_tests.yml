@@ -24,7 +24,6 @@ on:
           - oqc
           - orca
           - pasqal
-          - qci
           - quantinuum
           - scaleway
           - tii
@@ -197,7 +196,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qbraid", "qci", "quantinuum", "scaleway", "tii"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qbraid", "quantinuum", "scaleway", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -269,9 +268,6 @@ jobs:
                 ;;
               qbraid)
                 filelist="targettests/qbraid/*.cpp docs/sphinx/targets/cpp/qbraid.cpp docs/sphinx/targets/python/qbraid.py"
-                ;;
-              qci)
-                filelist="targettests/qci/*.cpp"
                 ;;
               quantinuum)
                 # Include both legacy Quantinuum and Quantinuum-NG tests
@@ -394,11 +390,6 @@ jobs:
               echo "### Setting up qBraid account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.QBRAID_API_KEY }}"
               echo "QBRAID_API_KEY=${{ secrets.QBRAID_API_KEY }}" >> $GITHUB_ENV
-              ;;
-            qci)
-              echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
-              echo "::add-mask::${{ secrets.QCI_AUTH_TOKEN }}"
-              echo "QCI_AUTH_TOKEN=${{ secrets.QCI_AUTH_TOKEN }}" >> $GITHUB_ENV
               ;;
             quantinuum)
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
@@ -716,24 +707,6 @@ jobs:
                   echo "::warning::Unsupported file type: $filename"
                   echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
                   test_skip_sum=$((test_skip_sum+1))
-                fi
-                ;;
-
-              qci)
-                nvq++ -v $filename --target qci
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
-                  test_status=$?
-                  if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                  else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
-                  fi
-                else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
 
