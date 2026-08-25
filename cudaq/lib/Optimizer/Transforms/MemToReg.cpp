@@ -326,13 +326,17 @@ public:
         for (auto &b : region)
           if (b.hasNoSuccessors())
             regionExitBlocks.push_back(&b);
-        auto *terminator = region.back().getTerminator();
-        if (auto terminatorOp =
-                dyn_cast<RegionBranchTerminatorOpInterface>(terminator))
-          regionOp.getSuccessorRegions(terminatorOp, successors);
-        // Every region has exactly one entry and one or more exits.
-        for (auto *b : regionExitBlocks)
-          for (auto iter : successors) {
+        for (auto *b : regionExitBlocks) {
+          auto *terminator = b->getTerminator();
+          SmallVector<RegionSuccessor> blockSuccessors;
+          if (auto terminatorOp =
+                  dyn_cast<RegionBranchTerminatorOpInterface>(terminator))
+            regionOp.getSuccessorRegions(terminatorOp, blockSuccessors);
+          if (blockSuccessors.empty()) {
+            exitBlocks.insert(b);
+            continue;
+          }
+          for (auto iter : blockSuccessors) {
             auto *succ = iter.getSuccessor();
             if (succ) {
               auto *s = &succ->front();
@@ -341,6 +345,7 @@ public:
               exitBlocks.insert(b);
             }
           }
+        }
       }
     } else {
       for (auto &region : op->getRegions())
