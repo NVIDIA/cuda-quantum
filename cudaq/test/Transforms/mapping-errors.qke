@@ -6,6 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
+// RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' %s -split-input-file -verify-diagnostics
 // RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' --mlir-print-ir-after-failure %s -split-input-file -verify-diagnostics 2>&1 | FileCheck --check-prefix=UNCHANGED %s
 
 // expected-error@+1 {{no borrow_wire ops found in test_00}}
@@ -185,7 +186,7 @@ quake.wire_set @wires_02_scope_measurement[10]
 func.func @test_02_scope_measurement() {
   %0 = quake.borrow_wire @wires_02_scope_measurement[0] : !quake.wire
   %1 = cc.scope -> !quake.wire {
-    // expected-error @+1 {{mapper cannot handle measurements inside a scope, branch, or loop}}
+    // expected-error @+1 {{unsupported mid-circuit measurement}}
     %result, %wire = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
     cc.continue %wire : !quake.wire
   }
