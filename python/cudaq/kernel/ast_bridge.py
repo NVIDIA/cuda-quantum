@@ -5352,7 +5352,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
-        # `range()` counts on its own; other iterables use the counter as an
+        # `range()` counts on its own; other `iterables` use the counter as an
         # index.
         createLoop = (self.createMonotonicForLoop
                       if iterable else self.createMonotonicForLoopInMemory)
