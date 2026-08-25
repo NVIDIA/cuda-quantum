@@ -124,6 +124,12 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
   }
 }
 
+void cudaq::opt::addLowerToCFGAndCleanup(OpPassManager &pm) {
+  cudaq::opt::addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+}
+
 static void
 createCommonTargetCodegenPipeline(OpPassManager &pm,
                                   const TargetCodegenPipelineOptions &options) {
@@ -152,8 +158,6 @@ createCommonTargetCodegenPipeline(OpPassManager &pm,
   // If there was any specialization, we want another round in inlining to
   // inline the apply calls properly.
   cudaq::opt::addAggressiveInlining(pm);
-  cudaq::opt::addLowerToCFG(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -178,6 +182,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
 
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
@@ -311,6 +316,7 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
