@@ -1089,6 +1089,25 @@ public:
   void runOnOperation() override {
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
+
+    // Sanity check. This pass does not support quantum values in wire (SSI)
+    // form.
+    if (module
+            .walk([](Operation *op) {
+              for (auto v : op->getResults())
+                if (cudaq::quake::isLinearType(v.getType()))
+                  return WalkResult::interrupt();
+              return WalkResult::advance();
+            })
+            .wasInterrupted()) {
+      emitWarning(
+          module.getLoc(),
+          "apply-op-specialization does not support quantum values in wire "
+          "(SSI) form; run this pass before memtoreg converts !quake.ref "
+          "values to !quake.wire.");
+      return;
+    }
+
     RewritePatternSet patterns(ctx);
     patterns.insert<FoldCallable>(ctx);
     if (failed(applyPatternsGreedily(module, std::move(patterns))))
