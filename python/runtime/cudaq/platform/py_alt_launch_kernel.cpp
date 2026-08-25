@@ -845,17 +845,6 @@ static bool isCurrentTargetFullQIR() {
          transport == "qir-full" || transport.starts_with("qir-full:");
 }
 
-static void pyAltLaunchAnalogKernel(const std::string &name,
-                                    std::string &programArgs) {
-  if (name.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
-    throw std::runtime_error("Unexpected type of kernel.");
-  auto dynamicResult = cudaq::altLaunchKernel(
-      name.c_str(), cudaq::KernelThunkType(nullptr),
-      (void *)(const_cast<char *>(programArgs.c_str())), programArgs.size(), 0);
-  if (dynamicResult.data_buffer || dynamicResult.size)
-    throw std::runtime_error("Not implemented: support dynamic results");
-}
-
 template <typename T>
 nanobind::object readPyObject(Type ty, char *arg) {
   std::size_t bytes = cudaq::byteSize(ty);
@@ -1372,6 +1361,14 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
           },
           "The MLIR module for this compiled kernel, or None if this module "
           "carries no MLIR artifact.")
+      .def_prop_ro("resource_counts",
+                   [](const cudaq::CompiledModule &cm)
+                       -> std::optional<cudaq::Resources> {
+                     auto counts = cm.getResources();
+                     if (!counts)
+                       return std::nullopt;
+                     return *counts;
+                   })
       .def("__repr__", [](const cudaq::CompiledModule &cm) {
         return "CompiledModule(name='" + cm.getName() + "')";
       });
@@ -1391,9 +1388,6 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
           "Compile (specialize + JIT) a kernel module. Returns a "
           "CompiledModule object that owns the JIT engine.");
-  mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
-          "Launch an analog Hamiltonian simulation kernel with given JSON "
-          "payload.");
 
   mod.def("synthesize", synthesizeKernel, "FIXME: document!");
 

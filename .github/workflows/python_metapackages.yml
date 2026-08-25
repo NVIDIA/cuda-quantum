@@ -20,7 +20,17 @@ on:
       github_commit:
         required: false
         type: string
-        description: Optional argument to set the GitHub commit to use for the build. 
+        description: Optional argument to set the GitHub commit to use for the build.
+      build_deprecated_package:
+        required: false
+        type: boolean
+        default: true
+        description: Also build the deprecated cuda-quantum sdist alongside the cudaq sdist.
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+        description: Run the test_metapackages job after building.
     outputs:
       artifact_name:
         description: "The name of the artifact that contains the built metapackages."
@@ -79,16 +89,18 @@ jobs:
             mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
             rm -rf dist
 
-            echo "Creating README.md for cuda-quantum package"
-            echo "# Welcome to the CUDA-Q Python API" > README.md
-            echo "This package is deprecated and new versions are published under the name \`cudaq\` instead." >> README.md
-            echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
+            if ${{ inputs.build_deprecated_package }}; then
+              echo "Creating README.md for cuda-quantum package"
+              echo "# Welcome to the CUDA-Q Python API" > README.md
+              echo "This package is deprecated and new versions are published under the name \`cudaq\` instead." >> README.md
+              echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
 
-            echo "Building cuda-quantum metapackage ..."
-            sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
-            echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
-            CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
-            mv dist/cuda_quantum-* /tmp/packages/
+              echo "Building cuda-quantum metapackage ..."
+              sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
+              echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
+              CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
+              mv dist/cuda_quantum-* /tmp/packages/
+            fi
 
             echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
@@ -103,6 +115,7 @@ jobs:
   test_metapackages:
     name: Test Python metapackages
     needs: build_metapackages
+    if: inputs.run_tests
     runs-on: ubuntu-latest
     permissions:
       contents: read

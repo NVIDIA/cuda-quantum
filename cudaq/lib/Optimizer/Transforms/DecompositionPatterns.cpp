@@ -10,7 +10,6 @@
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -478,19 +477,18 @@ struct R1ToRz
     // R1 because selecting one arbitrary `veq` element would represent the
     // wrong phase for the _aggregate_ operation.
 
-    if (targets.empty() || !isa<cudaq::quake::RefType, cudaq::quake::WireType>(
-                               targets.back().getType()))
+    if (targets.empty() || !cudaq::opt::isScalarPhaseAnchor(targets.back()))
       return rewriter.notifyMatchFailure(
           r1Op,
           "R1ToRz requires a scalar target to anchor its phase correction");
 
     auto resultTypes =
-        cudaq::opt::getWireResultTypes(rewriter, controls, targets);
+        cudaq::quake::getWireResultTypes(rewriter, controls, targets);
     auto rz = cudaq::quake::RzOp::create(
         rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
         r1Op.getParameters(), controls, targets,
         r1Op.getNegatedQubitControlsAttr());
-    cudaq::opt::threadWireResults(rz, controls, targets);
+    cudaq::quake::threadWireResults(rz, controls, targets);
 
     // Preserve a literal zero so emitPhaseCorrection can omit the correction.
     // Constructing a `0 / 2` first would hide the zero behind an arith.divf
@@ -508,7 +506,7 @@ struct R1ToRz
     controls = std::move(correction.controls);
     targets.back() = correction.anchor;
 
-    rewriter.replaceOp(r1Op, cudaq::opt::getWireValues(controls, targets));
+    rewriter.replaceOp(r1Op, cudaq::quake::getWireValues(controls, targets));
     return success();
   }
 };
@@ -1342,6 +1340,7 @@ REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, {"r1", "phased_rx"});
 // quake.x [control] target
 // quake.ry(θ/2) target
 // quake.rz(-π/2) target
+// quake.phase(-π/4) target // +π/4 for a negative source control
 struct CRxToCXType; // forward declare the pattern type, defined in the macro
                     // below
 struct CRxToCX
@@ -1351,6 +1350,12 @@ struct CRxToCX
 
   LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
+    Value target = op.getTarget();
+    if (!cudaq::opt::isScalarPhaseAnchor(target))
+      return rewriter.notifyMatchFailure(
+          op,
+          "CRxToCX requires a scalar target to anchor its phase correction");
+
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
       return failure();
@@ -1358,8 +1363,8 @@ struct CRxToCX
 
     // Op info
     Location loc = op->getLoc();
-    Value target = op.getTarget();
     auto negControl = false;
+
     auto negatedControls = op.getNegatedQubitControls();
     if (negatedControls)
       negControl = (*negatedControls)[0];
@@ -1384,6 +1389,16 @@ struct CRxToCX
                                          noControls, target);
     qRewriter.create<cudaq::quake::RzOp>(loc, /*isAdj*/ negControl, negPI_2,
                                          noControls, target);
+
+    // Keep this correction uncontrolled. It removes the decomposition's global
+    // phase mismatch. Attaching the source Rx control would introduce a
+    // relative phase and change the controlled-Rx unitary.
+    Value phase =
+        createConstant(loc, negControl ? M_PI_4 : -M_PI_4, angleType, rewriter);
+    // Emit `quake.phase(phase) target`; its empty predicate is deliberate.
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
@@ -1846,7 +1861,8 @@ REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, {"rz<adj>", "rz"});
 // quake.rx(-π/2) target
 // quake.rz(ϕ) target
 struct U3ToRotationsType; // forward declare the pattern type, defined in the
-                          // macro below
+
+// macro below
 struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
                                                           cudaq::quake::U3Op> {
   using cudaq::DecompositionPattern<U3ToRotationsType,
@@ -1865,6 +1881,19 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     Value phi = op.getParameters()[1];
     Value lam = op.getParameters()[2];
 
+    if (!cudaq::opt::isScalarPhaseAnchor(target))
+      return rewriter.notifyMatchFailure(
+          op, "U3ToRotations requires a scalar target to anchor its phase "
+              "correction");
+    if (phi.getType() != lam.getType())
+      return rewriter.notifyMatchFailure(
+          op, "U3ToRotations requires phi and lambda to have the same type");
+
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing 0 + 0 and dividing first would hide it from the helper.
+    const bool hasZeroPhase = matchPattern(phi, m_AnyZeroFloat()) &&
+                              matchPattern(lam, m_AnyZeroFloat());
+
     if (op.isAdj()) {
       theta = arith::NegFOp::create(rewriter, loc, theta);
       // swap the 2nd and 3rd parameter for correctness
@@ -1878,15 +1907,35 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
     Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::RzOp>(loc, lam, controls, target);
-    qRewriter.create<cudaq::quake::RxOp>(loc, pi_2, controls, target);
-    qRewriter.create<cudaq::quake::RzOp>(loc, theta, controls, target);
-    qRewriter.create<cudaq::quake::RxOp>(loc, negPi_2, controls, target);
-    qRewriter.create<cudaq::quake::RzOp>(loc, phi, controls, target);
+    SmallVector<Value> targets{target};
+    auto negatedControls = op.getNegatedQubitControlsAttr();
+    cudaq::quake::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{lam}, controls, targets,
+        negatedControls);
+    cudaq::quake::createAndThreadGate<cudaq::quake::RxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{pi_2}, controls, targets,
+        negatedControls);
+    cudaq::quake::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{theta}, controls, targets,
+        negatedControls);
+    cudaq::quake::createAndThreadGate<cudaq::quake::RxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{negPi_2}, controls, targets,
+        negatedControls);
+    cudaq::quake::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{phi}, controls, targets,
+        negatedControls);
 
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
+    Value phase = op.getParameters()[1];
+    if (!hasZeroPhase) {
+      phase = arith::AddFOp::create(rewriter, loc, phi, lam);
+      phase = createDivF(loc, phase, 2.0, rewriter);
+    }
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, controls, negatedControls, targets.back());
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(
+        op, cudaq::quake::getWireValues(correction.controls, targets));
     return success();
   }
 };

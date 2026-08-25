@@ -113,8 +113,42 @@ typedef struct {
   cudaq_status_t (*launch)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
 
+  // Version 2 fields.
+  cudaq_status_t (*get_cpu_dataplane)(cudaq_realtime_bridge_handle_t,
+                                      cudaq_cpu_dataplane_t *out);
+  cudaq_status_t (*get_endpoint_info)(cudaq_realtime_bridge_handle_t, char *buf,
+                                      size_t buf_len);
+  cudaq_status_t (*get_ring_geometry)(cudaq_realtime_bridge_handle_t,
+                                      uint32_t *out_num_slots,
+                                      uint32_t *out_slot_size);
+
+  // Version 3 field.
+  cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
+                                       const cudaq_function_table_t *table);
+
 } cudaq_realtime_bridge_interface_t;
 ```
+
+### Interface versioning
+
+Set `version` to `CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION`. A provider must be
+built against the headers it runs against: the loader reads the whole struct
+and does not adapt to older layouts. A provider reporting a different value is
+rejected by `cudaq_bridge_create*`, which returns `CUDAQ_ERR_INTERNAL` after
+printing a message naming both versions, so a stale plug-in is identified
+rather than failing in obscure ways. Rebuild the provider whenever this value
+changes.
+
+A provider that does not implement an optional capability sets that entry to
+`NULL`, and the corresponding `cudaq_bridge_get_*` call then returns
+`CUDAQ_ERR_UNSUPPORTED` instead of dispatching into the provider.
+
+`set_function_table` (version 3) hands the provider the same
+`cudaq_function_table_t` the dispatcher receives from
+`cudaq_dispatcher_set_function_table`. Some providers may need the table
+for pre-staging. A transport that does not need the table simply leaves
+the entry `NULL`, and the call then returns `CUDAQ_OK` instead of
+dispatching into the provider.  
 
 At runtime, when a `CUDAQ_PROVIDER_EXTERNAL` is requested in `cudaq_bridge_create`,
 CUDA-Q will retrieve the environment variable `CUDAQ_REALTIME_BRIDGE_LIB`
@@ -224,6 +258,13 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       provider_name_bridge_connect,
       provider_name_bridge_launch,
       provider_name_bridge_disconnect,
+      // Optional capabilities: implement the ones this transport supports and
+      // leave the rest NULL (the matching cudaq_bridge_* call then returns
+      // CUDAQ_ERR_UNSUPPORTED).
+      /*get_cpu_dataplane=*/nullptr,
+      /*get_endpoint_info=*/nullptr,
+      /*get_ring_geometry=*/nullptr,
+      /*set_function_table=*/nullptr,
   };
   return &cudaq_provider_name_bridge_interface;
 }

@@ -15,14 +15,15 @@ func.func @broadcast() {
 }
 
 // CHECK-LABEL:   func.func @broadcast() {
-// CHECK:           %[[VEC:.*]] = quake.alloca !quake.veq<3>
-// CHECK:           %[[R0:.*]] = quake.extract_ref %[[VEC]][0] :
-// CHECK:           quake.h %[[R0]] : (!quake.ref) -> ()
-// CHECK:           %[[R1:.*]] = quake.extract_ref %[[VEC]][1] :
-// CHECK:           quake.h %[[R1]] : (!quake.ref) -> ()
-// CHECK:           %[[R2:.*]] = quake.extract_ref %[[VEC]][2] :
-// CHECK:           quake.h %[[R2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:           return
+// CHECK:         }
 
 // Parameters and adjointness are replicated on each operation.
 func.func @parameters(%angle: f64) {
@@ -32,13 +33,14 @@ func.func @parameters(%angle: f64) {
 }
 
 // CHECK-LABEL:   func.func @parameters(
-// CHECK-SAME:      %[[ANGLE:.*]]: f64) {
-// CHECK:           %[[VEC:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[R0:.*]] = quake.extract_ref %[[VEC]][0] :
-// CHECK:           quake.rx<adj> (%[[ANGLE]]) %[[R0]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[R1:.*]] = quake.extract_ref %[[VEC]][1] :
-// CHECK:           quake.rx<adj> (%[[ANGLE]]) %[[R1]] : (f64, !quake.ref) -> ()
+// CHECK-SAME:       %[[VAL_0:.*]]: f64) {
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_3]] : (f64, !quake.ref) -> ()
 // CHECK:           return
+// CHECK:         }
 
 // Only an uncontrolled operator broadcasts.
 func.func @controlled(%ctrl: !quake.ref) {
@@ -48,10 +50,11 @@ func.func @controlled(%ctrl: !quake.ref) {
 }
 
 // CHECK-LABEL:   func.func @controlled(
-// CHECK-SAME:      %[[CTRL:.*]]: !quake.ref) {
-// CHECK:           %[[VEC:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           quake.z [%[[CTRL]]] %[[VEC]] : (!quake.ref, !quake.veq<2>) -> ()
+// CHECK-SAME:       %[[VAL_0:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.z [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.veq<2>) -> ()
 // CHECK:           return
+// CHECK:         }
 
 // A vector of unknown size cannot be expanded.
 func.func @unsized(%vec: !quake.veq<?>) {
@@ -60,9 +63,10 @@ func.func @unsized(%vec: !quake.veq<?>) {
 }
 
 // CHECK-LABEL:   func.func @unsized(
-// CHECK-SAME:      %[[VEC:.*]]: !quake.veq<?>) {
-// CHECK:           quake.x %[[VEC]] : (!quake.veq<?>) -> ()
+// CHECK-SAME:       %[[VAL_0:.*]]: !quake.veq<?>) {
+// CHECK:           quake.x %[[VAL_0]] : (!quake.veq<?>) -> ()
 // CHECK:           return
+// CHECK:         }
 
 // For a multi-qubit operator a veq target is an operand list, not a broadcast.
 func.func @multi_qubit() {
@@ -73,5 +77,8 @@ func.func @multi_qubit() {
 }
 
 // CHECK-LABEL:   func.func @multi_qubit() {
-// CHECK:           quake.swap %{{.*}}, %{{.*}} : (!quake.veq<2>, !quake.veq<2>) -> ()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.swap %[[VAL_0]], %[[VAL_1]] : (!quake.veq<2>, !quake.veq<2>) -> ()
 // CHECK:           return
+// CHECK:         }

@@ -8,9 +8,8 @@
 // RUN: cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline)' %s | FileCheck %s
 
 // Regression test for the Python AOT pipeline's vector-return handling.
-// `__nvqpp_vectorCopyCtor` must remain a direct call until
-// RunSemanticsHackery creates the `.ruined` run clone and removes the
-// unnecessary heap copy; otherwise malloc/memcpy reaches remote targets.
+// RunSemanticsHackery must remove the heap copy from the generated `.run`
+// clone before the later inliner expands it.
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_copy = "__nvqpp__mlirgen__aot_run_vector_copy_PyKernelEntryPointRewrite"}} {
   func.func @__nvqpp__mlirgen__aot_run_vector_copy() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -25,7 +24,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_co
 
   func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
   func.func private @malloc(i64) -> !cc.ptr<i8>
-  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> attributes {no_inline} {
+  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> {
     %size = arith.muli %arg1, %arg2 : i64
     %heap = func.call @malloc(%size) : (i64) -> !cc.ptr<i8>
     %false = arith.constant false
@@ -35,7 +34,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_co
 }
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy()
-// CHECK: call @__nvqpp_vectorCopyCtor
+// CHECK: call @malloc
+// CHECK: call @llvm.memcpy.p0.p0.i64
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy.run()
 // CHECK-NOT: call @__nvqpp_vectorCopyCtor

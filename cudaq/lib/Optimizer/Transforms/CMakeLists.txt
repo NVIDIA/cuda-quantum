@@ -23,6 +23,7 @@ add_cudaq_library(OptTransforms
   CliffordTSynthesis.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
+  CommutationAwareRewrite.cpp
   ConsolidateBroadcasts.cpp
   ConstantPropagation.cpp
   DeadQuantumElimination.cpp
@@ -50,6 +51,7 @@ add_cudaq_library(OptTransforms
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
+  LoopInductionFusion.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
@@ -84,6 +86,7 @@ add_cudaq_library(OptTransforms
   StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
+  UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
   VerifyNoPhase.cpp
@@ -100,6 +103,7 @@ add_cudaq_library(OptTransforms
     CCDialect
     MLIRIR
     MLIRTransforms
+    OptAnalysis
     OptimBuilder
     QECDialect
     QuakeDialect

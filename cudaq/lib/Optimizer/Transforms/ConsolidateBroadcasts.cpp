@@ -8,7 +8,6 @@
 
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
-#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
@@ -79,7 +78,7 @@ LogicalResult rollLoop(cudaq::cc::LoopOp loop) {
     auto gate = dyn_cast<cudaq::quake::OperatorInterface>(op);
     if (!gate)
       return false;
-    if (!cudaq::opt::isBroadcastOperator(gate))
+    if (!cudaq::quake::isBroadcastOperator(gate))
       return false;
     if (!gate.getControls().empty() || gate.getTargets().size() != 1 ||
         gate.getTargets()[0] != extract.getRef())

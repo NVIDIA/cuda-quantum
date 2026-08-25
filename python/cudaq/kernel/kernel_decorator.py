@@ -8,7 +8,6 @@
 
 import ast
 import inspect
-import json
 import types
 from functools import wraps
 from cudaq.kernel.utils import emitWarning
@@ -460,82 +459,6 @@ class PyKernelDecorator(object):
                             for element in value
                         ]
         return value
-
-    @staticmethod
-    def type_to_str(t):
-        """
-        This converts types to strings in a clean JSON-compatible way.
-        int -> 'int'
-        list[float] -> 'list[float]'
-        List[float] -> 'list[float]'
-        """
-        if hasattr(t, '__origin__') and t.__origin__ is not None:
-            # Handle generic types from typing
-            origin = t.__origin__
-            args = t.__args__
-            args_str = ', '.join(
-                PyKernelDecorator.type_to_str(arg) for arg in args)
-            return f'{origin.__name__}[{args_str}]'
-        elif hasattr(t, '__name__'):
-            return t.__name__
-        else:
-            return str(t)
-
-    def to_json(self):
-        """
-        Convert `self` to a JSON-serialized version of the kernel such that
-        `from_json` can reconstruct it elsewhere.
-        """
-        obj = dict()
-        obj['name'] = self.name
-        obj['location'] = self.location
-        obj['funcSrc'] = self.funcSrc
-        return json.dumps(obj)
-
-    @staticmethod
-    def from_json(jStr, overrideDict=None):
-        """
-        Convert a JSON string (as produced by `to_json`) into a new
-        PyKernelDecorator object.
-        """
-        j = json.loads(jStr)
-        # The serialized form should be a JSON object.
-        if not isinstance(j, dict):
-            raise RuntimeError(
-                "from_json expects a JSON object produced by "
-                "PyKernelDecorator.to_json, but the input deserialized to a "
-                f"JSON {type(j).__name__}.")
-        # `to_json` always emits these three keys.
-        for key in ('funcSrc', 'name', 'location'):
-            if key not in j:
-                raise RuntimeError(
-                    "from_json: serialized PyKernelDecorator is missing the "
-                    f"required key '{key}'.")
-        # `funcSrc` is recompiled as the kernel body and `name` is its
-        # identifier; both should be strings (non-strings would fail deep inside the constructor).
-        if not isinstance(j['funcSrc'], str):
-            raise RuntimeError(
-                "from_json: the 'funcSrc' field must be a string, but got a "
-                f"{type(j['funcSrc']).__name__}.")
-        if not isinstance(j['name'], str):
-            raise RuntimeError(
-                "from_json: the 'name' field must be a string, but got a "
-                f"{type(j['name']).__name__}.")
-        # `location` is null or a `[filename, lineno]` pair. A wrong-typed value
-        # survives construction (compilation is deferred) but later crashes the
-        # diagnostic emitter, so reject it here at the boundary.
-        loc = j['location']
-        if loc is not None and not (isinstance(loc, list) and len(loc) == 2 and
-                                    isinstance(loc[0], str) and
-                                    isinstance(loc[1], int)):
-            raise RuntimeError(
-                "from_json: the 'location' field must be null or a "
-                f"[filename, lineno] pair, but got {repr(loc)}.")
-        return PyKernelDecorator(function=j['funcSrc'],
-                                 verbose=False,
-                                 kernelName=j['name'],
-                                 location=j['location'],
-                                 overrideGlobalScopedVars=overrideDict)
 
     def convertStringsToPauli(self, arg):
         if isinstance(arg, str):

@@ -16,6 +16,7 @@
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/platform/orca/policy.h"
 #include "cudaq/ptsbe/policy.h"
 #include <tuple>
 
@@ -31,7 +32,7 @@ using all_policies =
     std::tuple<sample_policy, async_sample_policy, observe_policy,
                async_observe_policy, run_policy, async_run_policy,
                msm_size_policy, msm_policy, dem_policy, ptsbe::sample_policy,
-               estimate_policy>;
+               estimate_policy, orca::sample_policy, orca::async_sample_policy>;
 
 /// @brief Concept satisfied by any type registered in @c all_policies.
 template <typename Policy>

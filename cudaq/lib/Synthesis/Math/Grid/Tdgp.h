@@ -16,6 +16,7 @@
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -86,7 +87,8 @@ class TdgpStepper : public StepperBase<TdgpStepper, DOmega> {
 public:
   TdgpStepper(Integer k, const ConvexSet &setA, const ConvexSet &setB,
               const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
-              Interval bboxA_y_fattened, Interval bboxB_y_fattened);
+              Interval bboxA_y_fattened, Interval bboxB_y_fattened,
+              uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~TdgpStepper();
 
   TdgpStepper(const TdgpStepper &) = delete;
@@ -108,6 +110,10 @@ private:
   Rectangle bboxB_;
   Interval bboxA_y_fattened_;
   Interval bboxB_y_fattened_;
+
+  // Forwarded to every inner ODGP stepper this one builds (the x-anchor
+  // solve, the beta enumeration, and the per-beta alpha scans).
+  uint64_t max_scan_steps_;
 
   // Line-scan parameters computed in the constructor (after the one-shot
   // x-anchor solve). alpha0_ is the anchor; dx_ is the per-step grid

@@ -130,13 +130,17 @@ class PhaseStorage {
     return std::nullopt;
   }
 
-  // Returns the angle of a Z-axis rotation as an MLIR Value, creating a float
-  // constant for named gates (S/T/Z) or reusing the existing operand for Rz.
+  // Returns the signed angle of a Z-axis rotation as an MLIR Value, creating a
+  // float constant for named gates (S/T/Z) or negating an adjoint Rz operand.
   static Value getRotAngleValue(OpBuilder &builder,
                                 cudaq::quake::OperatorInterface rot) {
     auto *op = rot.getOperation();
-    if (isa<cudaq::quake::RzOp>(op))
-      return op->getOperand(0);
+    if (isa<cudaq::quake::RzOp>(op)) {
+      Value angle = op->getOperand(0);
+      if (rot.isAdj())
+        return arith::NegFOp::create(builder, op->getLoc(), angle).getResult();
+      return angle;
+    }
     double angle;
     if (isa<cudaq::quake::ZOp>(op))
       angle = M_PI;
@@ -145,6 +149,25 @@ class PhaseStorage {
     else
       angle = rot.isAdj() ? -M_PI_4 : M_PI_4;
     return cudaq::opt::factory::createF64Constant(op->getLoc(), builder, angle);
+  }
+
+  static bool canUpdateLaterRzInPlace(bool combineAtEarlier,
+                                      cudaq::quake::RzOp earlierRz,
+                                      cudaq::quake::RzOp laterRz) {
+    if (combineAtEarlier || !earlierRz || !laterRz)
+      return false;
+
+    // Both raw angles must dominate the later operation. Keep this path to
+    // plain, uncontrolled Rz operations so their operand layout is identical.
+    if (earlierRz->getBlock() != laterRz->getBlock() ||
+        !earlierRz.getControls().empty() || !laterRz.getControls().empty() ||
+        earlierRz.isAdj() || laterRz.isAdj())
+      return false;
+
+    // The generic path creates a fresh Rz. Do not retain properties or
+    // discardable attributes that path would otherwise drop with the old op.
+    return !laterRz.getNegatedQubitControls() &&
+           laterRz->getDiscardableAttrDictionary().empty();
   }
 
   // Keep chronological order separate from the insertion position so the
@@ -233,6 +256,21 @@ class PhaseStorage {
             builder, loc, TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
             ValueRange{wireIn}, {}));
       }
+    }
+
+    auto earlierRz = dyn_cast<cudaq::quake::RzOp>(earlierOp);
+    auto laterRz = dyn_cast<cudaq::quake::RzOp>(laterOp);
+    if (canUpdateLaterRzInPlace(combineAtEarlier, earlierRz, laterRz)) {
+      Value earlierAngle = earlierOp->getOperand(0);
+      Value laterAngle = laterOp->getOperand(0);
+      auto sumAngle = arith::AddFOp::create(builder, laterOp->getLoc(),
+                                            earlierAngle, laterAngle);
+      laterOp->setOperand(0, sumAngle.getResult());
+      // Retaining the later Rz avoids an adjacent pair of invalid operation
+      // order indices and the deferred whole-block order recomputation.
+      earlierOp->getResult(0).replaceAllUsesWith(earlierIn);
+      earlierOp->erase();
+      return laterOp;
     }
 
     // Rz + anything, or named-gate combo not landing on a named gate: addf

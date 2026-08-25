@@ -14,12 +14,14 @@
 #include "cudaq/Optimizer/Dialect/Traits.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
+#include <optional>
 
 //===----------------------------------------------------------------------===//
 // Canonicalizer functions.
@@ -87,6 +89,14 @@ struct ScalarWireFlow {
 /// Measurement and reset inputs contain targets in interface order.
 /// Unsupported forms and mismatched input and result shapes return no value.
 std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
+
+/// Return the scalar-wire flow of an operator, measurement, or reset, ignoring
+/// the operands that thread no wire. A `ref`, `veq`, or `control` operand has
+/// no corresponding result, so only the wire operands are paired with the wire
+/// results by position. Unlike `getScalarWireFlow`, this accepts the mixed
+/// forms that arise when some operands are still in reference or control form.
+/// Unsupported forms and mismatched input and result shapes return no value.
+std::optional<ScalarWireFlow> getThreadedWireFlow(mlir::Operation *operation);
 } // namespace detail
 
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
@@ -172,5 +182,83 @@ template <typename OP>
 constexpr bool isMeasure = std::is_same_v<OP, cudaq::quake::MxOp> ||
                            std::is_same_v<OP, cudaq::quake::MyOp> ||
                            std::is_same_v<OP, cudaq::quake::MzOp>;
+
+/// Return true when \p op is a one-target operator for which a `veq` operand
+/// in the target position means "apply this operator to every element of the
+/// vector". Multi-qubit operators (`swap`, `exp_pauli`, custom unitaries) are
+/// excluded: for those a `veq` target is the operand list of a single N-qubit
+/// gate, not a broadcast.
+inline bool isBroadcastOperator(mlir::Operation *op) {
+  return mlir::isa<cudaq::quake::HOp, cudaq::quake::PhasedRxOp,
+                   cudaq::quake::R1Op, cudaq::quake::RxOp, cudaq::quake::RyOp,
+                   cudaq::quake::RzOp, cudaq::quake::SOp, cudaq::quake::TOp,
+                   cudaq::quake::U2Op, cudaq::quake::U3Op, cudaq::quake::XOp,
+                   cudaq::quake::YOp, cudaq::quake::ZOp>(op);
+}
+
+//===----------------------------------------------------------------------===//
+// Control and wire helpers.
+//===----------------------------------------------------------------------===//
+
+/// Return true when any control vector cannot be expanded into a statically
+/// known number of scalar references.
+bool hasUnresolvedControlVeq(mlir::ValueRange controls);
+
+/// Return one polarity per control, where `true` marks a negated control.
+/// Controls without an explicit polarity are positive.
+llvm::SmallVector<bool>
+getControlPolarities(mlir::ValueRange controls,
+                     std::optional<llvm::ArrayRef<bool>> negatedControls = {});
+llvm::SmallVector<bool> getControlPolarities(OperatorInterface op);
+
+/// The controls and polarities resulting from expanding statically sized
+/// vector controls. Controls with unresolved vector sizes remain intact for
+/// callers that can lower them without making the predicate scalar.
+struct ExpandedControlVeqs {
+  llvm::SmallVector<mlir::Value> controls;
+  llvm::SmallVector<bool> polarities;
+  bool didExpand = false;
+};
+
+/// Expand controls with statically known vector sizes into scalar references,
+/// including vectors whose known size is visible through RelaxSizeOp. Unknown
+/// vector controls are preserved for callers that support them.
+ExpandedControlVeqs
+expandKnownSizedControlVeqs(mlir::OpBuilder &builder, mlir::Location location,
+                            mlir::ValueRange controls,
+                            llvm::ArrayRef<bool> polarities);
+
+/// Return the wire result types for a Quake operator with the given controls
+/// and targets. Quake orders wire results by controls first, then targets.
+llvm::SmallVector<mlir::Type> getWireResultTypes(mlir::OpBuilder &builder,
+                                                 mlir::ValueRange controls,
+                                                 mlir::ValueRange targets);
+
+/// Collect the threaded values of a Quake operator's controls and targets in
+/// its wire-result order.
+llvm::SmallVector<mlir::Value> getWireValues(mlir::ValueRange controls,
+                                             mlir::ValueRange targets);
+
+/// Update controls and targets to the corresponding wire results of the
+/// newly created operator op. The ranges must hold the values op was
+/// created with.
+void threadWireResults(OperatorInterface op,
+                       llvm::MutableArrayRef<mlir::Value> controls,
+                       llvm::MutableArrayRef<mlir::Value> targets);
+
+/// Create a Quake gate and update controls and targets to its latest wire
+/// results. Reference operands are returned unchanged.
+template <typename Op>
+inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
+                              mlir::UnitAttr isAdj, mlir::ValueRange parameters,
+                              llvm::MutableArrayRef<mlir::Value> controls,
+                              llvm::MutableArrayRef<mlir::Value> targets,
+                              mlir::DenseBoolArrayAttr negatedControls = {}) {
+  auto resultTypes = getWireResultTypes(builder, controls, targets);
+  auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
+                       controls, targets, negatedControls);
+  threadWireResults(op, controls, targets);
+  return op;
+}
 
 } // namespace cudaq::quake

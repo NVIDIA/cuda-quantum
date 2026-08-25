@@ -268,7 +268,6 @@ endif()
 # Options
 # ==============================================================================
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
-option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)

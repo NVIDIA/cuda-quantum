@@ -56,7 +56,7 @@ module {
 
   // Function to trigger the auto-generation.
   func.func @build_adjoint(%arg0: i1, %arg1: i1, %arg2: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    quake.apply<adj> @__nvqpp__mlirgen__MyKernel %arg0, %arg1, %arg2 : (i1, i1, i32) -> ()
+    quake.apply<adj> @__nvqpp__mlirgen__MyKernel (%arg0, %arg1, %arg2) : (i1, i1, i32) -> ()
     return
   }
 }
