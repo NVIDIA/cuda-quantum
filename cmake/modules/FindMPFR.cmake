@@ -18,6 +18,26 @@ redistributes it under the LGPL v3, which requires that it remain replaceable.
 This module is installed alongside ``CUDAQConfig.cmake``, which uses it to
 re-resolve MPFR for consumers of the exported ``cudaq-synth`` target.
 
+GMP is a hard requirement: ``libmpfr`` is built on ``libgmp`` and ``mpfr.h``
+includes ``gmp.h``, so this module fails unless ``FindGMP`` succeeds too.
+
+Components
+^^^^^^^^^^
+
+``Headers``
+  Require ``mpfr.h`` (and, since it includes ``gmp.h``, the GMP headers) in
+  addition to the library. CUDA-Q redistributes the shared library but not the
+  MPFR headers, so consumers that compile against ``mpfr.h`` (for instance
+  through ``cudaq/Synthesis/Math/Real.h``) must request this component and
+  provide their own MPFR development files.
+
+Imported targets
+^^^^^^^^^^^^^^^^
+
+``MPFR::mpfr``
+  The MPFR shared library, linking ``GMP::gmp`` and carrying the ``mpfr.h``
+  directory as a usage requirement when the headers were found.
+
 Result variables
 ^^^^^^^^^^^^^^^^
 
@@ -26,61 +46,56 @@ Result variables
 
 include(FindPackageHandleStandardArgs)
 
-# CUDAQ_INCLUDE_DIR / CUDAQ_LIBRARY_DIR are set when this module is loaded from
-# CUDAQConfig.cmake, and point at the MPFR the installation was built against.
-# They are hints rather than roots so that MPFR_ROOT still wins in-tree.
+find_package(GMP QUIET)
+
 find_path(MPFR_INCLUDE_DIR
   NAMES mpfr.h
-  HINTS "${CUDAQ_INCLUDE_DIR}"
   DOC "Directory containing mpfr.h")
 
-set(_mpfr_saved_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
-set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_SHARED_LIBRARY_SUFFIX})
-find_library(MPFR_LIBRARY
-  NAMES mpfr
-  HINTS "${CUDAQ_LIBRARY_DIR}"
-  DOC "MPFR shared library")
-set(CMAKE_FIND_LIBRARY_SUFFIXES ${_mpfr_saved_suffixes})
-unset(_mpfr_saved_suffixes)
+block()
+  # Never accept libmpfr.a: only the dynamically linked library may be
+  # redistributed under the terms CUDA-Q relies on.
+  set(CMAKE_FIND_LIBRARY_SUFFIXES "${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  find_library(MPFR_LIBRARY
+    NAMES mpfr
+    HINTS "${CUDAQ_LIBRARY_DIR}"
+    DOC "MPFR shared library")
+endblock()
 
-set(MPFR_VERSION "")
-if(MPFR_INCLUDE_DIR AND EXISTS "${MPFR_INCLUDE_DIR}/mpfr.h")
+unset(MPFR_VERSION)
+if(EXISTS "${MPFR_INCLUDE_DIR}/mpfr.h")
   file(STRINGS "${MPFR_INCLUDE_DIR}/mpfr.h" _mpfr_define
     REGEX "^#define[ \t]+MPFR_VERSION_STRING[ \t]+\"[^\"]+\"")
   if(_mpfr_define MATCHES "\"([^\"]+)\"")
     set(MPFR_VERSION "${CMAKE_MATCH_1}")
   endif()
   unset(_mpfr_define)
-endif()
-
-if(MPFR_INCLUDE_DIR)
-  set(MPFR_Headers_FOUND TRUE)
-else()
-  set(MPFR_Headers_FOUND FALSE)
+  # Anything that includes mpfr.h also needs gmp.h.
+  if(GMP_INCLUDE_DIR)
+    set(MPFR_Headers_FOUND TRUE)
+  endif()
 endif()
 
 find_package_handle_standard_args(MPFR
-  REQUIRED_VARS MPFR_LIBRARY
+  REQUIRED_VARS MPFR_LIBRARY GMP_FOUND
   VERSION_VAR MPFR_VERSION
   HANDLE_COMPONENTS
   REASON_FAILURE_MESSAGE
   "Run scripts/install_prerequisites.sh to build MPFR from source, or install \
 it with your package manager (libmpfr-dev on apt, mpfr on brew) and set \
-MPFR_ROOT or the MPFR_INSTALL_PREFIX environment variable.")
+MPFR_ROOT or the MPFR_INSTALL_PREFIX environment variable. MPFR also needs GMP, \
+which FindGMP reports on separately.")
 
-if(MPFR_FOUND AND NOT TARGET MPFR::mpfr)
-  # mpfr.h includes gmp.h and libmpfr is built on libgmp, so GMP is part of
-  # MPFR's usage requirements.
-  find_package(GMP QUIET)
-  add_library(MPFR::mpfr UNKNOWN IMPORTED)
-  set_target_properties(MPFR::mpfr PROPERTIES IMPORTED_LOCATION "${MPFR_LIBRARY}")
-  if(MPFR_INCLUDE_DIR)
-    set_target_properties(MPFR::mpfr PROPERTIES
-      INTERFACE_INCLUDE_DIRECTORIES "${MPFR_INCLUDE_DIR}")
-  endif()
-  if(TARGET GMP::gmp)
+if(MPFR_FOUND)
+  if(NOT TARGET MPFR::mpfr)
+    add_library(MPFR::mpfr SHARED IMPORTED)
+    set_property(TARGET MPFR::mpfr PROPERTY IMPORTED_LOCATION "${MPFR_LIBRARY}")
     set_property(TARGET MPFR::mpfr APPEND PROPERTY
       INTERFACE_LINK_LIBRARIES GMP::gmp)
+  endif()
+  if(MPFR_INCLUDE_DIR)
+    set_property(TARGET MPFR::mpfr PROPERTY
+      INTERFACE_INCLUDE_DIRECTORIES "${MPFR_INCLUDE_DIR}")
   endif()
 endif()
 

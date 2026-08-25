@@ -32,15 +32,21 @@ endif()
 
 target_include_directories(cudaq-synth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-foreach(_synth_dep IN LISTS GMP_LIBRARIES MPFR_LIBRARIES)
-  get_filename_component(_synth_dep_dir "${_synth_dep}" DIRECTORY)
-  get_filename_component(_synth_dep_name "${_synth_dep}" NAME_WE)
+foreach(_synth_dep IN ITEMS GMP::gmp MPFR::mpfr)
+  get_target_property(_synth_dep_file ${_synth_dep} IMPORTED_LOCATION)
+  get_filename_component(_synth_dep_dir "${_synth_dep_file}" DIRECTORY)
+  get_filename_component(_synth_dep_name "${_synth_dep_file}" NAME_WE)
   if(APPLE)
     file(GLOB _synth_dep_files
       "${_synth_dep_dir}/${_synth_dep_name}.dylib"
       "${_synth_dep_dir}/${_synth_dep_name}.*.dylib")
   else()
     file(GLOB _synth_dep_files "${_synth_dep_dir}/${_synth_dep_name}.so*")
+  endif()
+  if(NOT _synth_dep_files)
+    message(FATAL_ERROR "Found no shared library files to redistribute next to "
+      "${_synth_dep_file}; CUDA-Q must ship ${_synth_dep} to comply with the "
+      "LGPL v3.")
   endif()
   install(FILES ${_synth_dep_files} DESTINATION lib)
 endforeach()
