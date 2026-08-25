@@ -98,6 +98,9 @@ struct BackendEndConfigEntry {
   std::optional<bool> GenTargetBackend;
   /// Enable/disable the library mode if provide.
   std::optional<bool> LibraryMode;
+  /// Whether the target supports pre-computing resource counts for faster
+  /// resource estimation.
+  std::optional<bool> SupportResourceCounts;
   /// IR lowering configuration (hardware REST QPU)
   std::string JITHighLevelPipeline;
   std::string JITMidLevelPipeline;

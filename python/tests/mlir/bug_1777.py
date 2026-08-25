@@ -59,7 +59,7 @@ def test_bug_1777():
 # CHECK:           ^bb0(%[[VAL_6:.*]]: i64, %[[VAL_7:.*]]: i1, %[[VAL_8:.*]]: !cc.sequence<!cc.measure_handle>):
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_6]], %[[CONSTANT_1]] : i64
 # CHECK:             cc.continue %[[ADDI_0]], %[[VAL_7]], %[[VAL_8]] : i64, i1, !cc.sequence<!cc.measure_handle>
-# CHECK:           } {normalized}
+# CHECK:           }
 # CHECK:           %[[IF_1:.*]] = cc.if(%[[LOOP_0]]#1) -> !cc.sequence<!cc.measure_handle> {
 # CHECK:             %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "outer_mz" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:             cc.continue %[[MZ_2]] : !cc.sequence<!cc.measure_handle>

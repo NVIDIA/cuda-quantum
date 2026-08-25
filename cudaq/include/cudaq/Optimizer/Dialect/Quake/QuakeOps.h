@@ -89,6 +89,14 @@ struct ScalarWireFlow {
 /// Measurement and reset inputs contain targets in interface order.
 /// Unsupported forms and mismatched input and result shapes return no value.
 std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
+
+/// Return the scalar-wire flow of an operator, measurement, or reset, ignoring
+/// the operands that thread no wire. A `ref`, `veq`, or `control` operand has
+/// no corresponding result, so only the wire operands are paired with the wire
+/// results by position. Unlike `getScalarWireFlow`, this accepts the mixed
+/// forms that arise when some operands are still in reference or control form.
+/// Unsupported forms and mismatched input and result shapes return no value.
+std::optional<ScalarWireFlow> getThreadedWireFlow(mlir::Operation *operation);
 } // namespace detail
 
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
@@ -224,5 +232,20 @@ llvm::SmallVector<mlir::Value> getWireValues(mlir::ValueRange controls,
 void threadWireResults(OperatorInterface op,
                        llvm::MutableArrayRef<mlir::Value> controls,
                        llvm::MutableArrayRef<mlir::Value> targets);
+
+/// Create a Quake gate and update controls and targets to its latest wire
+/// results. Reference operands are returned unchanged.
+template <typename Op>
+inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
+                              mlir::UnitAttr isAdj, mlir::ValueRange parameters,
+                              llvm::MutableArrayRef<mlir::Value> controls,
+                              llvm::MutableArrayRef<mlir::Value> targets,
+                              mlir::DenseBoolArrayAttr negatedControls = {}) {
+  auto resultTypes = getWireResultTypes(builder, controls, targets);
+  auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
+                       controls, targets, negatedControls);
+  threadWireResults(op, controls, targets);
+  return op;
+}
 
 } // namespace cudaq::quake
