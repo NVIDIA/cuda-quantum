@@ -1892,6 +1892,8 @@ private:
     if (passthroughWires.empty())
       return scope;
 
+    // Snapshot the mappings before erasing their keys. MLIR may reuse an
+    // erased `Value` identity for a later result.
     SmallVector<std::optional<cudaq::Placement::VirtualQ>> oldResultVQs;
     oldResultVQs.reserve(scope->getNumResults());
     for (Value result : scope->getResults()) {
@@ -2053,6 +2055,7 @@ private:
         }
       } else if (ev.kind == RoutingEvent::Kind::Scope) {
         auto scope = cast<cudaq::cc::ScopeOp>(ev.op);
+        // Scope reconstruction may erase the operation anchoring this builder.
         bool scopeAnchorsBuilder =
             blkBuilder.getInsertionPoint() == scope->getIterator();
         Block &scopeBlock = scope.getInitRegion().front();
