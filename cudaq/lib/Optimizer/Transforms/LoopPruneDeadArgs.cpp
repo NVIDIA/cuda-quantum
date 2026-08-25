@@ -214,6 +214,21 @@ void pruneDeadLoopCarriedValues(func::FuncOp func) {
       }
   }
 
+  auto deleteDeadComputations = [&]() {
+    for (bool erased = true; erased;) {
+      erased = false;
+      SmallVector<Operation *> deadOps;
+      func.walk([&](Operation *op) {
+        if (!cudaq::opt::hasQuantum(*op) && isOpTriviallyDead(op))
+          deadOps.push_back(op);
+      });
+      for (auto *op : deadOps) {
+        op->erase();
+        erased = true;
+      }
+    }
+  };
+
   // Short-circuit each dead slot with the loop's initial value for that slot.
   // The initial value is an operand of the loop, so it dominates every use we
   // rewrite.
@@ -237,6 +252,11 @@ void pruneDeadLoopCarriedValues(func::FuncOp func) {
         }
     }
 
+  // Delete the computations the short-circuiting just made dead. This has to
+  // happen before the slots are erased. While a dead slot's block argument
+  // still feeds arithmetic, `canEraseDeadSlots` refuses to drop it.
+  deleteDeadComputations();
+
   // Drop each dead slot from the loop's signature. Erasing an inner loop's
   // slots is what frees up the enclosing loop's, so keep going until nothing
   // more can be dropped.
@@ -257,19 +277,7 @@ void pruneDeadLoopCarriedValues(func::FuncOp func) {
     }
   }
 
-  // Delete the classical computations that just went dead.
-  for (bool erased = true; erased;) {
-    erased = false;
-    SmallVector<Operation *> deadOps;
-    func.walk([&](Operation *op) {
-      if (!cudaq::opt::hasQuantum(*op) && isOpTriviallyDead(op))
-        deadOps.push_back(op);
-    });
-    for (auto *op : deadOps) {
-      op->erase();
-      erased = true;
-    }
-  }
+  deleteDeadComputations();
 }
 
 class LoopPruneDeadArgsPass

@@ -1041,8 +1041,14 @@ def LoopPruneDeadArgs : Pass<"cc-loop-prune-dead-args", "mlir::func::FuncOp"> {
     the loop's own initial value around the loop instead and delete the
     computations that go dead as a result.
 
-    Run this after `memtoreg` and before `cc-loop-normalize`, which rewrites
-    loop control and would otherwise tangle the dead value into it.
+    Run this after `memtoreg`, which is what creates the carried value, and
+    before `apply-op-specialization`. Order relative to `cc-loop-normalize`
+    does not matter.
+
+    MLIR's generic `RegionBranchOpInterface` canonicalization cannot do this
+    job. It erases one dead value at a time, so it drops a slot from some of
+    the loop's regions and not the rest, and the `cc.loop` verifier rejects
+    that. A slot has to go from all four regions and the results at once.
   }];
 }
 

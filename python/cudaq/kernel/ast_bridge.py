@@ -1536,10 +1536,6 @@ class PyASTBridge(ast.NodeVisitor):
         iterator.
         """
         iTy = self.getIntegerType()
-        assert startVal.type == iTy
-        assert stepVal.type == iTy
-        assert endVal.type == iTy
-
         condPred = IntegerAttr.get(
             iTy, 4) if isDecrementing else IntegerAttr.get(iTy, 2)
 

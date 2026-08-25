@@ -1983,7 +1983,6 @@ SmallVector<Region *> cudaq::cc::LoopOp::getLoopRegions() {
 
 OperandRange
 cudaq::cc::LoopOp::getEntrySuccessorOperands(RegionBranchPoint point) {
-  llvm::errs() << "getEntrySuccessorOperands: " << point << "\n";
   assert(!point.isParent() && "invalid index region");
   Operation *pred = point.getTerminatorPredecessorOrNull();
   assert(pred && "must have a terminator");
@@ -2050,7 +2049,20 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
         if (block.hasNoSuccessors())
           terminators.push_back(block.getTerminator());
 
-    // 2. Determine if any arguments are invariant.
+    // 2. Everything below is indexed by slot number. Bail if the lists
+    // disagree on how many slots there are, rather than index out of bounds.
+    const auto numSlots = loop.getInitialArgs().size();
+    for (auto *term : terminators) {
+      if (term->getBlock()->getParent()->front().getNumArguments() != numSlots)
+        return failure();
+      auto forwarded = isa<cudaq::cc::ConditionOp>(term)
+                           ? term->getNumOperands() - 1
+                           : term->getNumOperands();
+      if (forwarded != numSlots)
+        return failure();
+    }
+
+    // 3. Determine if any arguments are invariant.
     SmallVector<bool> invariants;
     bool hasInvariants = false;
     for (auto iter : llvm::enumerate(loop.getInitialArgs())) {
@@ -2076,19 +2088,19 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
       invariants.push_back(isInvar);
     }
 
-    // 3. For each invariant argument replace the uses with the original
+    // 4. For each invariant argument replace the uses with the original
     // invariant value throughout.
     if (hasInvariants) {
       for (auto iter : llvm::enumerate(invariants)) {
         if (iter.value()) {
           auto i = iter.index();
           Value initialVal = loop.getInitialArgs()[i];
-          loop.getResult(i).replaceAllUsesWith(initialVal);
+          rewriter.replaceAllUsesWith(loop.getResult(i), initialVal);
           for (auto *reg : loop.getRegions()) {
             if (reg->empty())
               continue;
             auto &entry = reg->front();
-            entry.getArgument(i).replaceAllUsesWith(initialVal);
+            rewriter.replaceAllUsesWith(entry.getArgument(i), initialVal);
           }
         }
       }

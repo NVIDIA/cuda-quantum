@@ -68,3 +68,36 @@ func.func @live_slot(%n: i32, %q: !quake.veq<?>) -> i32 {
 // CHECK-LABEL:   func.func @live_slot(
 // CHECK:             %[[ADDI:.*]] = arith.addi
 // CHECK:             cc.continue %[[ADDI]], %{{.*}} : i32, i32
+
+// A dead accumulator slot. Its block argument feeds arithmetic in the body, so
+// the slot can only be erased after that arithmetic is gone. One run of the
+// pass must do both.
+func.func @dead_accumulator(%n: i32, %q: !quake.veq<?>) {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  %0:2 = cc.loop while ((%acc = %c0, %i = %c0) -> (i32, i32)) {
+    %c = arith.cmpi slt, %i, %n : i32
+    cc.condition %c(%acc, %i : i32, i32)
+  } do {
+  ^bb0(%acc: i32, %i: i32):
+    %na = arith.addi %acc, %i : i32
+    %x = cc.cast signed %i : (i32) -> i64
+    %r = quake.extract_ref %q[%x] : (!quake.veq<?>, i64) -> !quake.ref
+    quake.h %r : (!quake.ref) -> ()
+    cc.continue %na, %i : i32, i32
+  } step {
+  ^bb0(%acc: i32, %i: i32):
+    %s = arith.addi %i, %c1 : i32
+    cc.continue %acc, %s : i32, i32
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @dead_accumulator(
+// CHECK:           cc.loop while ((%[[IV:.*]] = %{{.*}}) -> (i32)) {
+// CHECK:             cc.condition %{{.*}}(%[[IV]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[BIV:.*]]: i32):
+// CHECK-NOT:         arith.addi %{{.*}}, %[[BIV]] : i32
+// CHECK:             cc.continue %[[BIV]] : i32
+// CHECK:           } step {
