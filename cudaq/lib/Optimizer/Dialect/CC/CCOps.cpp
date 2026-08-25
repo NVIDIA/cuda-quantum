@@ -2269,7 +2269,8 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
     auto &initRegion = scope.getInitRegion();
     auto *initBlock = &initRegion.front();
     for (auto &block : initRegion) {
-      if (auto contOp = dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+      if (auto contOp =
+              dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
         rewriter.setInsertionPointToEnd(&block);
         rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, succBlock,
                                                   contOp.getOperands());
