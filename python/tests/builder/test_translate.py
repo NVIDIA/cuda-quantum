@@ -172,3 +172,30 @@ def test_translate_builder_adjoint_t_openqasm():
     assert "OPENQASM 2.0;" in asm
     body = asm[asm.index('qreg'):]
     assert "tdg var0[0];" in body
+
+
+def test_translate_controlled_swap_keeps_control():
+    """A controlled swap must not lower to an unconditional swap.
+
+    Reported in #5192: the SwapToCX decomposition read only the two targets and
+    emitted three CNOTs between them, so the control was dropped and the
+    exported circuit swapped unconditionally.
+
+    The control has to be |0> for this to be visible. With the control set, a
+    controlled swap and a plain swap agree, which is why the existing
+    SwapToCX.qke test does not catch it: it only covers the uncontrolled case.
+    """
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.x(q[1])
+    kernel.cswap(q[0], q[1], q[2])
+    asm = cudaq.translate(kernel, format="openqasm2")
+
+    body = "\n".join(
+        line for line in asm.splitlines()
+        if line.strip() and not line.strip().startswith(
+            ("//", "OPENQASM", "include", "qreg", "creg"))
+    )
+    assert "var0[0]" in body, (
+        "the control qubit appears in no gate, so the controlled swap was "
+        f"lowered as an unconditional one:\n{body}")
