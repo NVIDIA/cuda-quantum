@@ -150,6 +150,15 @@ else
   echo ":white_check_mark: Successfully ran Python test_app.py"
 fi
 
+# Run representative Python frontend syntax through the remote server.
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/syntax_check.py
+if [ $? -ne 0 ]; then
+  echo ":x: Python syntax_check.py failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully ran Python syntax_check.py"
+fi
+
 # Python loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the Python
 # client preserves cc.loop operations for the nop codegen path.
 CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.py > test_loop_app.py.out 2>&1
