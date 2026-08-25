@@ -1086,27 +1086,28 @@ class ApplySpecializationPass
 public:
   using ApplySpecializationBase::ApplySpecializationBase;
 
+  // Sanity check. This pass does not support quantum values in wire (SSI)
+  // form.
+  static LogicalResult sanityCheck(Operation *o) {
+    if (o->walk([](Operation *op) {
+           for (auto v : op->getResults())
+             if (cudaq::quake::isLinearType(v.getType()))
+               return WalkResult::interrupt();
+           return WalkResult::advance();
+         }).wasInterrupted()) {
+      emitWarning(o->getLoc(),
+                  "apply-op-specialization does not support autogeneration of "
+                  "specialized kernels when the source kernel is already in "
+                  "SSI form; run this pass before memtoreg converts !quake.ref "
+                  "values to !quake.wire.");
+      return failure();
+    }
+    return success();
+  }
+
   void runOnOperation() override {
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
-
-    // Sanity check. This pass does not support quantum values in wire (SSI)
-    // form.
-    if (module
-            .walk([](Operation *op) {
-              for (auto v : op->getResults())
-                if (cudaq::quake::isLinearType(v.getType()))
-                  return WalkResult::interrupt();
-              return WalkResult::advance();
-            })
-            .wasInterrupted()) {
-      emitWarning(
-          module.getLoc(),
-          "apply-op-specialization does not support quantum values in wire "
-          "(SSI) form; run this pass before memtoreg converts !quake.ref "
-          "values to !quake.wire.");
-      return;
-    }
 
     RewritePatternSet patterns(ctx);
     patterns.insert<FoldCallable>(ctx);
@@ -1164,17 +1165,25 @@ public:
       if (func.getBody().empty())
         continue;
 
-      if (variant.needsControlVariant)
+      if (variant.needsControlVariant) {
+        if (failed(sanityCheck(func)))
+          return failure();
         createControlVariantOf(func, newApplyOps);
+      }
       if (variant.needsAdjointVariant) {
         auto fnName = func.getName().str();
+        if (failed(sanityCheck(func)))
+          return failure();
         if (failed(createAdjointVariantOf(
                 func, getAdjVariantFunctionName(fnName), newApplyOps)))
           return failure();
       }
-      if (variant.needsAdjointControlVariant)
+      if (variant.needsAdjointControlVariant) {
+        if (failed(sanityCheck(func)))
+          return failure();
         if (failed(createAdjointControlVariantOf(func, newApplyOps)))
           return failure();
+      }
     }
     return success();
   }
