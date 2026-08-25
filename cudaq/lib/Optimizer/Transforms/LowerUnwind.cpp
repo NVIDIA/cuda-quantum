@@ -370,6 +370,12 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
     assert(iter != infoMap.opParentMap.end());
     bool asPrimitive =
         anyPrimitiveAncestor(infoMap.opParentMap, scope.getOperation());
+    // A break or continue leaving this scope may still have to pass through
+    // the landing pad of an enclosing scope, which owns allocations of its own
+    // to deallocate. Ending the chain here with a `cc.break` or `cc.continue`
+    // is correct only when nothing but the loop itself lies above.
+    bool toLandingPad = asPrimitive || anyScopeAncestor(infoMap.opParentMap,
+                                                        scope.getOperation());
     LLVM_DEBUG(llvm::dbgs() << "replacing scope @" << scope.getLoc() << '\n');
     auto loc = scope.getLoc();
     auto *initBlock = rewriter.getInsertionBlock();
@@ -415,7 +421,7 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
         for (auto a : llvm::reverse(qallocas))
           cudaq::quake::DeallocOp::create(rewriter, a->getLoc(),
                                           adjustedDeallocArg(a));
-        if (asPrimitive) {
+        if (toLandingPad) {
           Block *landingPad = getLandingPad(infoMap, scope).continueBlock;
           cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
         } else {
@@ -429,7 +435,7 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
         for (auto a : llvm::reverse(qallocas))
           cudaq::quake::DeallocOp::create(rewriter, a->getLoc(),
                                           adjustedDeallocArg(a));
-        if (asPrimitive) {
+        if (toLandingPad) {
           Block *landingPad = getLandingPad(infoMap, scope).breakBlock;
           cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
         } else {

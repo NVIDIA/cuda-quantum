@@ -230,3 +230,126 @@ func.func @__nvqpp__mlirgen__3(%arg0: i32) {
 // CHECK:           return
 // CHECK:         }
 
+
+// The unwind sits in a scope of its own, nested inside the `if`, inside the
+// scope that owns the allocation. The jump must thread through the landing pad
+// of every scope on the way out, not just the innermost one, or the allocation
+// is never deallocated on the taken branch.
+
+func.func @__nvqpp__mlirgen__4(%arg0: i32) {
+  %c1_i32 = arith.constant 1 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %0 = cc.alloca i32
+  cc.store %arg0, %0 : !cc.ptr<i32>
+  %1 = quake.alloca !quake.ref
+  cc.scope {
+    %2 = cc.alloca i32
+    cc.store %c0_i32, %2 : !cc.ptr<i32>
+    cc.loop while {
+      %3 = cc.load %2 : !cc.ptr<i32>
+      %4 = cc.load %0 : !cc.ptr<i32>
+      %5 = arith.cmpi slt, %3, %4 : i32
+      cc.condition %5
+    } do {
+      cc.scope {
+        %3 = quake.alloca !quake.ref
+        quake.x %3 : (!quake.ref) -> ()
+        %4 = cc.load %2 : !cc.ptr<i32>
+        %5 = arith.cmpi sgt, %4, %c0_i32 : i32
+        cc.if(%5) {
+          cc.scope {
+            cc.unwind_break
+          }
+        }
+        quake.h %1 : (!quake.ref) -> ()
+      }
+      cc.continue
+    } step {
+      %3 = cc.load %2 : !cc.ptr<i32>
+      %4 = arith.addi %3, %c1_i32 : i32
+      cc.store %4, %2 : !cc.ptr<i32>
+    }
+  }
+  %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__4(
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           cc.scope {
+// CHECK:             cc.loop while {
+// CHECK:             } do {
+// CHECK:               %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
+// CHECK:               quake.x %[[ALLOCA_2]] : (!quake.ref) -> ()
+// CHECK:               cf.cond_br %{{.*}}, ^bb2, ^bb1
+// CHECK:             ^bb1:
+// CHECK:               quake.h %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:               quake.dealloc %[[ALLOCA_2]] : !quake.ref
+// CHECK:               cc.continue
+// CHECK:             ^bb2:
+// CHECK:               quake.dealloc %[[ALLOCA_2]] : !quake.ref
+// CHECK:               cc.break
+// CHECK:             } step {
+// CHECK:             }
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+func.func @__nvqpp__mlirgen__5(%arg0: i32) {
+  %c1_i32 = arith.constant 1 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %0 = cc.alloca i32
+  cc.store %arg0, %0 : !cc.ptr<i32>
+  %1 = quake.alloca !quake.ref
+  cc.scope {
+    %2 = cc.alloca i32
+    cc.store %c0_i32, %2 : !cc.ptr<i32>
+    cc.loop while {
+      %3 = cc.load %2 : !cc.ptr<i32>
+      %4 = cc.load %0 : !cc.ptr<i32>
+      %5 = arith.cmpi slt, %3, %4 : i32
+      cc.condition %5
+    } do {
+      cc.scope {
+        %3 = quake.alloca !quake.ref
+        quake.x %3 : (!quake.ref) -> ()
+        %4 = cc.load %2 : !cc.ptr<i32>
+        %5 = arith.cmpi sgt, %4, %c0_i32 : i32
+        cc.if(%5) {
+          cc.scope {
+            cc.unwind_continue
+          }
+        }
+        quake.h %1 : (!quake.ref) -> ()
+      }
+      cc.continue
+    } step {
+      %3 = cc.load %2 : !cc.ptr<i32>
+      %4 = arith.addi %3, %c1_i32 : i32
+      cc.store %4, %2 : !cc.ptr<i32>
+    }
+  }
+  %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__5(
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           cc.scope {
+// CHECK:             cc.loop while {
+// CHECK:             } do {
+// CHECK:               %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
+// CHECK:               quake.x %[[ALLOCA_2]] : (!quake.ref) -> ()
+// CHECK:               cf.cond_br %{{.*}}, ^bb2, ^bb1
+// CHECK:             ^bb1:
+// CHECK:               quake.h %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:               quake.dealloc %[[ALLOCA_2]] : !quake.ref
+// CHECK:               cc.continue
+// CHECK:             ^bb2:
+// CHECK:               quake.dealloc %[[ALLOCA_2]] : !quake.ref
+// CHECK:               cc.continue
+// CHECK:             } step {
+// CHECK:             }
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }

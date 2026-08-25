@@ -43,14 +43,14 @@ def test_break():
 # CHECK:             %[[VAL_17:.*]] = math.fpowi %[[VAL_16]], %[[VAL_2]] : f64, i64
 # CHECK:             %[[VAL_18:.*]] = arith.addf %[[VAL_16]], %[[VAL_17]] : f64
 # CHECK:             %[[VAL_19:.*]] = arith.cmpf ogt, %[[VAL_18]], %[[VAL_1]] : f64
-# CHECK:             cf.cond_br %[[VAL_19]], ^bb1, ^bb2
+# CHECK:             cf.cond_br %[[VAL_19]], ^bb2, ^bb1
 # CHECK:           ^bb1:
-# CHECK:             cc.break %[[VAL_18]], %[[VAL_14]] : f64, i64
-# CHECK:           ^bb2:
 # CHECK:             %[[VAL_24:.*]] = arith.remui %[[VAL_14]], %[[VAL_6]] : i64
 # CHECK:             %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_24]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_18]]) %[[VAL_25]] : (f64, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_18]], %[[VAL_14]] : f64, i64
+# CHECK:           ^bb2:
+# CHECK:             cc.break %[[VAL_18]], %[[VAL_14]] : f64, i64
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_28:.*]]: f64, %[[VAL_26:.*]]: i64):
 # CHECK:             %[[VAL_29:.*]] = arith.addi %[[VAL_26]], %[[VAL_4]] : i64
