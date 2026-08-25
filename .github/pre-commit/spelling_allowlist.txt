@@ -152,6 +152,7 @@ PythonIRBuilder
 QAOA
 QASM
 QBRAID
+QCI
 QCaaS
 QEC
 QIR
