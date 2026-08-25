@@ -527,6 +527,83 @@ TEST_F(DecompositionPatternsTest, SwapToCXKeepsSingleControl) {
   EXPECT_FALSE(bareGates.contains("x(2)"));
 }
 
+TEST_F(DecompositionPatternsTest, SwapToCXForwardsComplementedControl) {
+  // A complemented control wraps the whole Fredkin sequence in an x pair
+  // acting on the control qubit itself.
+  auto module = createTestModule(context.get(), "swap(1)");
+  cudaq::quake::SwapOp swapOp;
+  module.walk([&](cudaq::quake::SwapOp op) {
+    if (!swapOp)
+      swapOp = op;
+  });
+  ASSERT_TRUE(static_cast<bool>(swapOp.getOperation()));
+  swapOp.setNegatedQubitControls(
+      DenseBoolArrayAttr::get(context.get(), {true}));
+  ASSERT_TRUE(succeeded(applySinglePattern(module, "SwapToCX", {})));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(module), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::XOp>(module), 5u);
+
+  func::FuncOp testFunc;
+  module.walk([&](func::FuncOp op) {
+    if (!testFunc)
+      testFunc = op;
+  });
+  ASSERT_TRUE(static_cast<bool>(testFunc));
+  Value ctrlArg = testFunc.getArgument(0);
+  std::size_t wrappers = 0;
+  module.walk([&](cudaq::quake::XOp xop) {
+    if (!xop.getControls().empty())
+      return;
+    if (xop.getTarget() == ctrlArg)
+      ++wrappers;
+  });
+  EXPECT_EQ(wrappers, 2u);
+}
+
+TEST_F(DecompositionPatternsTest, SwapToCXRejectsUnknownOrMultipleControls) {
+  // More than one control must be left untouched instead of silently
+  // dropping controls. The rewrite driver reports success either way, so
+  // assert on the surviving swap op.
+  auto twoCtrlModule = createTestModule(context.get(), "swap(2)");
+  ASSERT_TRUE(succeeded(applySinglePattern(twoCtrlModule, "SwapToCX", {})));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(twoCtrlModule), 1u);
+
+  // An unsized veq control has an unknown control count and must also be
+  // left untouched.
+  OpBuilder builder(context.get());
+  auto module = ModuleOp::create(builder, builder.getUnknownLoc());
+  builder.setInsertionPointToEnd(module.getBody());
+  auto refType = cudaq::quake::RefType::get(context.get());
+  SmallVector<Type> inputTypes{cudaq::quake::VeqType::getUnsized(context.get()),
+                               refType, refType};
+  auto funcType = builder.getFunctionType(inputTypes, {});
+  auto func = func::FuncOp::create(builder, builder.getUnknownLoc(),
+                                   "test_func", funcType);
+  auto *entry = func.addEntryBlock();
+  builder.setInsertionPointToStart(entry);
+  cudaq::quake::SwapOp::create(
+      builder, builder.getUnknownLoc(), ValueRange{entry->getArgument(0)},
+      ValueRange{entry->getArgument(1), entry->getArgument(2)});
+  ASSERT_TRUE(succeeded(applySinglePattern(module, "SwapToCX", {})));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(module), 1u);
+}
+
+TEST_F(DecompositionPatternsTest, SwapToCXRespectsDisabledControlCounts) {
+  // A basis that already provides a plain swap disables that control count,
+  // so bare swaps survive while the controlled variant still decomposes.
+  std::vector<std::size_t> disabled{0};
+
+  auto bareModule = createTestModule(context.get(), "swap");
+  ASSERT_TRUE(succeeded(applySinglePattern(bareModule, "SwapToCX", disabled)));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(bareModule), 1u);
+
+  auto ctrlModule = createTestModule(context.get(), "swap(1)");
+  ASSERT_TRUE(succeeded(applySinglePattern(ctrlModule, "SwapToCX", disabled)));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(ctrlModule), 0u);
+  auto gates = collectGateTypesInModule(ctrlModule);
+  EXPECT_TRUE(gates.contains("x(2)"));
+}
+
 // Test 4: Verify pattern decompositions produce only physical target gates
 TEST_F(DecompositionPatternsTest,
        DecompositionProducesOnlyPhysicalTargetGates) {

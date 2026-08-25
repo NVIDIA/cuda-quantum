@@ -315,7 +315,9 @@ module {
 // CHECK:           quake.x %[[VAL_73]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_74:.*]] = quake.extract_ref %[[VAL_71]][2] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           quake.x {{\[}}%[[VAL_74]]] %[[VAL_73]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:           quake.x {{\[}}%[[VAL_73]]] %[[VAL_74]] : (!quake.ref, !quake.ref) -> ()
+// The controlled swap lowers to cx b,a; ccx c,a,b; cx b,a; the toffoli in
+// the middle is further decomposed on this basis, so only pin its start.
+// CHECK:           quake.h %[[VAL_74]]
 // CHECK:           quake.x {{\[}}%[[VAL_74]]] %[[VAL_73]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           %[[VAL_75:.*]] = cc.alloca !cc.array<i8 x 3>
 // CHECK:           %[[VAL_76:.*]] = quake.mz %[[VAL_72]] : (!quake.ref) -> !quake.measure

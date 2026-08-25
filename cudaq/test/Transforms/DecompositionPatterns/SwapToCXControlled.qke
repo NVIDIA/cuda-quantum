@@ -1,0 +1,38 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// CircuitCheck is deliberately not used here: its UnitaryBuilder has no
+// controlled multi-target path, so it miscomputes the unitary of a
+// controlled swap on the reference side.
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=SwapToCX})' %s | FileCheck %s
+
+func.func @test_controlled(%qc: !quake.ref, %qa : !quake.ref, %qb : !quake.ref) {
+  quake.swap [%qc] %qa, %qb : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test_controlled
+// CHECK:           quake.x {{\[}}%[[VAL_2:.*]]] %[[VAL_1:.*]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_0:.*]], %[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_2]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// The uncontrolled case must keep the plain three-CNOT lowering.
+func.func @test_bare(%qa: !quake.ref, %qb : !quake.ref) {
+  quake.swap %qa, %qb : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test_bare
+// CHECK:           quake.x {{\[}}%[[VAL_1:.*]]] %[[VAL_0:.*]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }

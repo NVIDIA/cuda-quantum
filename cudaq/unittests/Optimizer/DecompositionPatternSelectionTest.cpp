@@ -468,9 +468,20 @@ TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXToCZ) {
   // SwapToCX is selected once per registered source set: besides the plain
   // swap entry, its single-control entry now also reaches this basis since
   // x(2) decomposes through CCXToCCZ and CCZToCX.
-  std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ",
-                               "SwapToCX", "SwapToCX"};
+  std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ", "SwapToCX",
+                               "SwapToCX"};
   EXPECT_EQ(selectedPatterns, exp);
+}
+
+TEST_F(FullDecompositionPatternSelectionTest,
+       SwapToCXDisablesControlCountsCoveredByTheBasis) {
+  // Registering the controlled variant joins both source sets into an
+  // unbounded swap(n) source, so control counts already present in the
+  // basis are disabled and native swaps are preserved.
+  auto pattern = constructPattern({"swap", "x(1)"}, "SwapToCX");
+
+  std::vector<std::size_t> exp{0};
+  EXPECT_EQ(pattern->getDisabledControlCounts(), llvm::ArrayRef(exp));
 }
 
 // Regression: multi-hop chain where intermediate gates (t, z(2)) are not
