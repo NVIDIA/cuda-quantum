@@ -322,8 +322,13 @@ endfunction()
 
 # Adds a CUDA Quantum dialect library target for installation. This should normally
 # only be called from add_cudaq_library().
+#
+# <name> will be registered as part of the `cudaq-dev-targets` export set.
 function(add_cudaq_library_install name)
-  install(TARGETS ${name} COMPONENT Development EXPORT CUDAQTargets)
+  install(TARGETS ${name} COMPONENT Development EXPORT cudaq-dev-targets
+          ARCHIVE DESTINATION lib
+          LIBRARY DESTINATION lib
+          RUNTIME DESTINATION bin)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_ALL_LIBS ${name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_EXPORTS ${name})
 endfunction()
@@ -356,10 +361,22 @@ function(cudaq_use_static_mlir target)
   set_target_properties(${target} PROPERTIES CUDAQ_MLIR_STATIC ON)
 endfunction()
 
+# Define the CUDAQ dev targets for downstream projects when they exist.
+if(NOT TARGET QuakeDialect
+    AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+endif()
+
 # Define the public alias ``cudaq::MLIR`` for use in downstream projects.
 if(NOT TARGET cudaq::MLIR)
   add_library(cudaq::MLIR INTERFACE IMPORTED GLOBAL)
   set_target_properties(cudaq::MLIR PROPERTIES
     INTERFACE_LINK_LIBRARIES cudaq::cudaqMLIR
   )
+  # Also expose the header files through `cudaq::MLIR`
+  if(CUDAQ_INCLUDE_DIR AND IS_DIRECTORY "${CUDAQ_INCLUDE_DIR}")
+    set_target_properties(cudaq::MLIR PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${CUDAQ_INCLUDE_DIR}"
+    )
+  endif()
 endif()

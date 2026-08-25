@@ -50,6 +50,9 @@ project(cudaq LANGUAGES CXX C)
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
 
+# Use DESTINATION lib for every explicit install() in this project
+set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries (lib)" FORCE)
+
 # Prevent In-source builds
 # ==============================================================================
 # Using the undocumented `CMAKE_DISABLE_IN_SOURCE_BUILDS` and

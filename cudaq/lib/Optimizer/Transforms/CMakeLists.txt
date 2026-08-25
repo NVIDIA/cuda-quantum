@@ -115,8 +115,11 @@ target_include_directories(OptTransforms SYSTEM
 check_registered_mlir_lib(OptTransforms)
 
 target_link_libraries(OptTransforms PRIVATE cudaq-synth)
-target_include_directories(obj.OptTransforms SYSTEM PRIVATE
-  $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
+# The object library compiles the sources but does not inherit the link
+# interface of the library it belongs to; linking it separately gives it the
+# usage requirements of cudaq-synth (its own headers, plus GMP/MPFR) without
+# contributing to any link line.
+target_link_libraries(obj.OptTransforms PRIVATE cudaq-synth)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set_source_files_properties(CliffordTSynthesis.cpp PROPERTIES
     COMPILE_OPTIONS "-Wno-maybe-uninitialized")
