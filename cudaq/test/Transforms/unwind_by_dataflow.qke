@@ -730,3 +730,43 @@ func.func @__nvqpp__mlirgen__function_8(%arg0: i1, %arg1: i32, %arg2: i32) -> i1
 // CHECK:           return %[[LOAD_11]] : i16
 // CHECK:         }
 
+func.func @__nvqpp__mlirgen__function_9(%arg0: i1) -> i32 {
+  %c1_i32 = arith.constant 1 : i32
+  %c4_i32 = arith.constant 4 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %0 = cc.alloca i1
+  cc.store %arg0, %0 : !cc.ptr<i1>
+  %1 = cc.alloca i32
+  cc.store %c0_i32, %1 : !cc.ptr<i32>
+  cc.loop while {
+    %3 = cc.load %1 : !cc.ptr<i32>
+    %4 = arith.cmpi slt, %3, %c4_i32 : i32
+    cc.condition %4
+  } do {
+    %3 = cc.load %0 : !cc.ptr<i1>
+    cc.if(%3) {
+      cc.unwind_return %c1_i32 : i32
+    }
+    cc.continue
+  }
+  %2 = cc.load %1 : !cc.ptr<i32>
+  return %2 : i32
+}
+
+// Structural check only
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_9(
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 4 : i8
+// CHECK-DAG:       %[[ALLOCA_1:.*]] = cc.alloca i8
+// CHECK-DAG:       %[[ALLOCA_2:.*]] = cc.alloca i1
+// CHECK:           cc.loop while {
+// CHECK:             cc.if(%{{.*}}) {
+// CHECK:             %[[IF_0:.*]] = cc.if(%{{.*}}) -> i1 {
+// CHECK:             } else {
+// CHECK:             cc.if(%{{.*}}) {
+// CHECK:             cc.condition
+// CHECK:           } do {
+// CHECK:             cc.if(%{{.*}}) {
+// CHECK:             cc.continue
+// CHECK-NOT:       } step {
+// CHECK:           cc.if(%{{.*}}) {
+// CHECK:           return %{{.*}} : i32
