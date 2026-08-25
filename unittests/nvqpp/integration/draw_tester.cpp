@@ -132,3 +132,23 @@ CUDAQ_TEST(LatexDrawTester, skipsNonGateInstructions) {
 
   EXPECT_EQ(expected_str, cudaq::detail::getLaTeXString(trace));
 }
+
+CUDAQ_TEST(DrawTester, skipsNonGateInstructions) {
+  // Regression test: a measurement in the middle of the trace must not
+  // misalign the instruction indices used by the layers and the boxes.
+  cudaq::Trace trace;
+  trace.appendInstruction("h", {}, {}, {{2, 2}});
+  trace.appendMeasurement("mz", {{2, 2}});
+  trace.appendInstruction("x", {}, {}, {{2, 2}});
+
+  const std::string expected_str =
+      "               \n"
+      "q0 : ──────────\n"
+      "               \n"
+      "q1 : ──────────\n"
+      "     ╭───╮╭───╮\n"
+      "q2 : ┤ h ├┤ x ├\n"
+      "     ╰───╯╰───╯\n";
+
+  EXPECT_EQ(expected_str, cudaq::detail::draw(trace));
+}
