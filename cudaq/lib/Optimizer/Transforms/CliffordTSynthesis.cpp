@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -23,6 +25,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <cmath>
 #include <limits>
 
 namespace cudaq::opt {
@@ -104,6 +107,9 @@ static Value emitCliffordGate(OpBuilder &b, Location loc, Value target) {
 static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
                              const cudaq::synth::Circuit &circuit) {
   Value cur = qubit;
+  // omega = e^{i*pi/4}. W is a scalar, so it commutes with every other gate
+  // and its occurrences collapse into a single correction below.
+  int32_t omegaPower = 0;
   for (auto it = circuit.rbegin(); it != circuit.rend(); ++it) {
     switch (*it) {
     case cudaq::synth::Gate::H:
@@ -119,10 +125,22 @@ static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
       cur = emitCliffordGate<cudaq::quake::XOp>(b, loc, cur);
       break;
     case cudaq::synth::Gate::W:
-      // omega = e^{i*pi/4} global phase - dropped.
-      // TODO: emit this phase once global-phase support lands in Quake.
+      ++omegaPower;
       break;
     }
+  }
+
+  // Gridsynth's epsilon bound is on the circuit including its W gates, so the
+  // phase is part of the approximation.
+  // omega has order 8, and `m * M_PI_4` is the correctly rounded m*pi/4 for
+  // every m in [1, 7].
+  omegaPower %= 8;
+  if (omegaPower != 0) {
+    Value angle =
+        cudaq::opt::factory::createF64Constant(loc, b, omegaPower * M_PI_4);
+    cur = cudaq::opt::emitPhaseCorrection(b, loc, angle, /*controls=*/{},
+                                          /*negatedControls=*/{}, cur)
+              .anchor;
   }
   return cur;
 }
