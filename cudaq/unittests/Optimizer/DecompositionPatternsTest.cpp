@@ -85,7 +85,10 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
   numControls = std::min<size_t>(numControls, 2);
 
   size_t numQubits;
-  if (gateName == "swap" || gateName == "exp_pauli") {
+  if (gateName == "swap") {
+    // Swap needs two targets plus one qubit per control.
+    numQubits = numControls + 2;
+  } else if (gateName == "exp_pauli") {
     assert(numControls == 0);
     // exp_pauli can have any number of qubits, we hardcode to 2 for the test.
     numQubits = 2;
@@ -156,9 +159,10 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
         builder, loc, isAdj, ValueRange{{pi_2, pi_2}}, controls, target);
   } else if (gateName == "swap") {
     // Swap needs 2 targets
-    Value target = entry->getArgument(0);
-    Value target2 = entry->getArgument(1);
-    cudaq::quake::SwapOp::create(builder, loc, ValueRange{target, target2});
+    Value target = entry->getArgument(numControls);
+    Value target2 = entry->getArgument(numControls + 1);
+    cudaq::quake::SwapOp::create(builder, loc, controls,
+                                 ValueRange{target, target2});
   } else if (gateName == "exp_pauli") {
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
@@ -479,6 +483,48 @@ TEST_F(DecompositionPatternsTest, SAndTToR1AcceptDynamicControlsWhenNEnabled) {
   ASSERT_TRUE(succeeded(applySinglePattern(tModule, "TToR1", {})));
   EXPECT_EQ(countOps<cudaq::quake::TOp>(tModule), 0u);
   EXPECT_EQ(countOps<cudaq::quake::R1Op>(tModule), 1u);
+}
+
+TEST_F(DecompositionPatternsTest, SwapToCXKeepsSingleControl) {
+  // A controlled swap is a Fredkin gate: cx b,a; ccx c,a,b; cx b,a.
+  auto module = createTestModule(context.get(), "swap(1)");
+  ASSERT_TRUE(succeeded(applySinglePattern(module, "SwapToCX", {})));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(module), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::XOp>(module), 3u);
+  auto gates = collectGateTypesInModule(module);
+  EXPECT_TRUE(gates.contains("x(1)"));
+  EXPECT_TRUE(gates.contains("x(2)"));
+
+  // The toffoli of the Fredkin decomposition must target the second swap
+  // target with controls {control qubit, first swap target}; targeting any
+  // other wire yields something that is not a cswap.
+  func::FuncOp testFunc;
+  SmallVector<Value> args;
+  module.walk([&](func::FuncOp op) {
+    if (!testFunc)
+      testFunc = op;
+  });
+  ASSERT_TRUE(static_cast<bool>(testFunc));
+  for (auto arg : testFunc.getArguments())
+    args.push_back(arg);
+  std::size_t toffolis = 0;
+  module.walk([&](cudaq::quake::XOp xop) {
+    if (xop.getControls().size() != 2)
+      return;
+    ++toffolis;
+    EXPECT_EQ(xop.getTarget(), args[2]);
+    EXPECT_TRUE(llvm::is_contained(xop.getControls(), args[0]));
+    EXPECT_TRUE(llvm::is_contained(xop.getControls(), args[1]));
+  });
+  EXPECT_EQ(toffolis, 1u);
+
+  // The uncontrolled case must remain a plain sequence of three CNOTs.
+  auto bareModule = createTestModule(context.get(), "swap");
+  ASSERT_TRUE(succeeded(applySinglePattern(bareModule, "SwapToCX", {})));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(bareModule), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::XOp>(bareModule), 3u);
+  auto bareGates = collectGateTypesInModule(bareModule);
+  EXPECT_FALSE(bareGates.contains("x(2)"));
 }
 
 // Test 4: Verify pattern decompositions produce only physical target gates

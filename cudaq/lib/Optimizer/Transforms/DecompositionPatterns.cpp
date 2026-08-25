@@ -582,6 +582,14 @@ REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, {"r1<adj>", "r1"});
 // quake.cnot b, a;
 // quake.cnot a, b;
 // quake.cnot b, a;
+//
+// quake.swap<ctrl> c, a, b
+// ───────────────────────────────────
+// quake.x c;            // only if c is complemented
+// quake.cnot b, a;
+// quake.cnot<ctrl> c, a, b;
+// quake.cnot b, a;
+// quake.x c;            // only if c is complemented
 struct SwapToCXType; // forward declare the pattern type, defined in the macro
                      // below
 struct SwapToCX
@@ -591,22 +599,49 @@ struct SwapToCX
 
   LogicalResult matchAndRewrite(cudaq::quake::SwapOp op,
                                 PatternRewriter &rewriter) const override {
+    auto numControls = cudaq::getKnownNumControls(op);
+    if (!numControls || *numControls > 1 || !isEnabled(*numControls))
+      return failure();
+
     // Op info
     Location loc = op->getLoc();
     Value a = op.getTarget(0);
     Value b = op.getTarget(1);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
-    qRewriter.create<cudaq::quake::XOp>(loc, a, b);
-    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+    if (*numControls == 1) {
+      // This is a Fredkin gate. This decomposition does not support
+      // `quake.control` types.
+      if (containsControlTypes(op))
+        return failure();
+      SmallVector<Value, 1> controls(1);
+      if (failed(checkAndExtractControls(op, controls, rewriter)))
+        return failure();
+      Value c = controls[0];
+      auto negatedControls = op.getNegatedQubitControls();
+      auto negC = negatedControls && (*negatedControls)[0];
+
+      if (negC)
+        qRewriter.create<cudaq::quake::XOp>(loc, c);
+      qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+      SmallVector<Value, 2> ccxControls{c, a};
+      qRewriter.create<cudaq::quake::XOp>(loc, ccxControls, b);
+      qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+      if (negC)
+        qRewriter.create<cudaq::quake::XOp>(loc, c);
+    } else {
+      qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+      qRewriter.create<cudaq::quake::XOp>(loc, a, b);
+      qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+    }
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{a, b});
     rewriter.eraseOp(op);
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SwapToCX, {"swap", "x(1)"});
+REGISTER_DECOMPOSITION_PATTERN(SwapToCX, {"swap", "x(1)"},
+                               {"swap(1)", "x(1)", "x(2)"});
 
 // quake.h control, target
 // ───────────────────────────────────
