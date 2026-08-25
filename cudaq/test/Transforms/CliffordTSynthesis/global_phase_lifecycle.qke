@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(clifford-t-synthesis{epsilon=1e-3},func.func(lower-phase,canonicalize))' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.phase' \
+// RUN:                --implicit-check-not='arith.constant'
+
+// Synthesis emits the omega global phase of the Clifford+T word. The phase is
+// uncontrolled, so lowering erases it and canonicalization drops its angle
+// constant. gridsynth output is stochastic, so we assert only that nothing is
+// left behind.
+
+func.func @rz_inexact() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.3 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func private @__cliffordt_rz_
+// CHECK:         quake.t
+
+// CHECK-LABEL: func.func @rz_inexact
+// CHECK:         quake.alloca
+// CHECK:         call @__cliffordt_rz_

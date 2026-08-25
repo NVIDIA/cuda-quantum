@@ -1,0 +1,40 @@
+name: Compute CUDA-Q version
+description: |
+  Infer cudaq_version from the Git ref (tag, releases/*, or staging/*).
+  Unversioned refs use 0.0.0 with the short git SHA appended.
+inputs:
+  ref_name:
+    description: Git ref name to extract the version from.
+    required: false
+    default: ${{ github.ref_name }}
+  ref_type:
+    description: Git ref type (branch or tag).
+    required: false
+    default: ${{ github.ref_type }}
+outputs:
+  cudaq_version:
+    description: The inferred CUDA-Q version.
+    value: ${{ steps.compute.outputs.cudaq_version }}
+runs:
+  using: composite
+  steps:
+    - name: Compute version
+      id: compute
+      shell: bash
+      env:
+        REF_NAME: ${{ inputs.ref_name }}
+        REF_TYPE: ${{ inputs.ref_type }}
+      run: |
+        is_versioned=false
+        if [[ "$REF_TYPE" == "tag" ]] || [[ "$REF_NAME" == releases/* ]] || [[ "$REF_NAME" == staging/* ]]; then
+          is_versioned=true
+        fi
+
+        if $is_versioned; then
+          cudaq_version=$(echo "$REF_NAME" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" || true)
+        else
+          cudaq_version="0.0.0+${GITHUB_SHA:0:12}"
+        fi
+
+        echo "cudaq_version=$cudaq_version" >> "$GITHUB_OUTPUT"
+        echo "CUDA-Q version: $cudaq_version"

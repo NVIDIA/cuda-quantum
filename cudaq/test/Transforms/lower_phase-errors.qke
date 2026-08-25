@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: not cudaq-opt --lower-phase %s -split-input-file 2>&1 | FileCheck %s
+
+// The exact fallback requires an anchor outside the control predicate.
+// CHECK-COUNT-2: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
+func.func @anchor_aliases_vector_control(%theta: f64,
+                                         %controls: !quake.veq<?>) {
+  %anchor = quake.extract_ref %controls[0]
+      : (!quake.veq<?>) -> !quake.ref
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @concat_control_contains_anchor(%theta: f64,
+                                          %anchor: !quake.ref) {
+  %controls = quake.concat %anchor
+      : (!quake.ref) -> !quake.veq<?>
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}

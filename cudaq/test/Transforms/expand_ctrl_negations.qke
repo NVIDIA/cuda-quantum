@@ -1,0 +1,115 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --expand-control-negations %s | FileCheck %s
+
+func.func @nc_0() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3 = quake.null_wire
+  %4 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %5 = quake.x %3 : (!quake.wire) -> !quake.wire
+  %6:4 = quake.x [%4, %2, %5 neg [false, true, false]] %0 :
+    (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> 
+    (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
+  quake.sink %6#0 : !quake.wire
+  quake.sink %6#1 : !quake.wire
+  quake.sink %6#2 : !quake.wire
+  quake.sink %6#3 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @nc_0() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_3:.*]] = quake.null_wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_1:.*]] = quake.x %[[NULL_WIRE_3]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_2:.*]] = quake.x %[[NULL_WIRE_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_3:.*]]:4 = quake.x {{\[}}%[[X_0]], %[[X_2]], %[[X_1]]] %[[NULL_WIRE_0]] : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[X_4:.*]] = quake.x %[[X_3]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[X_3]]#0 : !quake.wire
+// CHECK:           quake.sink %[[X_4]] : !quake.wire
+// CHECK:           quake.sink %[[X_3]]#2 : !quake.wire
+// CHECK:           quake.sink %[[X_3]]#3 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func @nc_1() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.null_wire
+  %3 = quake.null_wire
+  quake.x %1 : (!quake.ref) -> ()
+  %5 = quake.x %3 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%1, %2, %5 neg [false, true, false]] %0 :
+    (!quake.ref, !quake.wire, !quake.wire, !quake.ref) -> 
+    (!quake.wire, !quake.wire)
+  quake.sink %6#0 : !quake.wire
+  quake.sink %6#1 : !quake.wire
+  quake.dealloc %0 : !quake.ref
+  quake.dealloc %1 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @nc_1() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           quake.x %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:           %[[X_0:.*]] = quake.x %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_1:.*]] = quake.x %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_2:.*]]:2 = quake.x {{\[}}%[[ALLOCA_1]], %[[X_1]], %[[X_0]]] %[[ALLOCA_0]] : (!quake.ref, !quake.wire, !quake.wire, !quake.ref) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_3:.*]] = quake.x %[[X_2]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[X_3]] : !quake.wire
+// CHECK:           quake.sink %[[X_2]]#1 : !quake.wire
+// CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// CHECK:           quake.dealloc %[[ALLOCA_1]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+func.func @nc_2() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  %3 = quake.alloca !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  quake.x %3 : (!quake.ref) -> ()
+  quake.x [%1, %2, %3 neg [true, true, true]] %0 : (!quake.ref, !quake.ref,
+    !quake.ref, !quake.ref) -> ()
+  quake.dealloc %0 : !quake.ref
+  quake.dealloc %3 : !quake.ref
+  quake.dealloc %2 : !quake.ref
+  quake.dealloc %1 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @nc_2() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_3:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.x %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[ALLOCA_3]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[ALLOCA_2]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[ALLOCA_3]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[ALLOCA_1]], %[[ALLOCA_2]], %[[ALLOCA_3]]] %[[ALLOCA_0]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[ALLOCA_2]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[ALLOCA_3]] : (!quake.ref) -> ()
+// CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// CHECK:           quake.dealloc %[[ALLOCA_3]] : !quake.ref
+// CHECK:           quake.dealloc %[[ALLOCA_2]] : !quake.ref
+// CHECK:           quake.dealloc %[[ALLOCA_1]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+

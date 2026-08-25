@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -combine-measurements -canonicalize %s | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+
+module {
+  func.func @bell() attributes {"cudaq-entrypoint"} {
+    %q = quake.alloca !quake.veq<2>
+    %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+    %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+    quake.h %q0 : (!quake.ref) -> ()
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+    return
+  }
+}
+
+// CHECK: OPENQASM 2.0;
+// CHECK: include "qelib1.inc";
+// CHECK: qreg var0[2];
+// CHECK: h var0[0];
+// CHECK: cx var0[0], var0[1];
+// CHECK: creg var3[2];
+// CHECK: measure var0 -> var3;
+// CHECK-NOT: creg

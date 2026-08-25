@@ -1,0 +1,22 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=XToPhasedRx})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=XToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=XToPhasedRx})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=XToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
+
+// The FileCheck part of this test only cares about the sequence of operations.
+// Correcteness is checked by CircuitCheck.
+
+// CHECK-LABEL: func.func @test
+func.func @test(%qubit: !quake.ref) {
+  // CHECK: quake.phased_rx
+  quake.x %qubit : (!quake.ref) -> ()
+  return
+}

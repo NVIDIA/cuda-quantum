@@ -1,0 +1,213 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+import ast
+import inspect
+import textwrap
+from typing import Optional, Type
+
+from .utils import get_function_source_or_raise
+
+
+class FunctionDefVisitor(ast.NodeVisitor):
+    """
+    This visitor will visit the function definition of `kernel_name` and report 
+    type annotations and whether the function has a return statement.
+    """
+
+    arg_annotations: list[(str, Type)]
+    return_annotation: Optional[Type] = None
+    has_return_statement: bool = False
+    found: bool = False
+
+    def __init__(self, kernel_name: str):
+        self.kernel_name: str = kernel_name
+        self.arg_annotations = []
+
+    def visit_FunctionDef(self, node):
+        if node.name == self.kernel_name:
+            self.found = True
+            self.arg_annotations = [
+                (arg.arg, arg.annotation) for arg in node.args.args
+            ]
+            self.return_annotation = node.returns
+            self.has_return_statement = any(
+                isinstance(n, ast.Return) and n.value != None
+                for n in node.body)
+
+    def generic_visit(self, node):
+        if self.found:
+            # skip traversing the rest of the AST once found
+            return
+        super().generic_visit(node)
+
+
+class FindDepFuncsVisitor(ast.NodeVisitor):
+    """
+    Populate a list of function names that have `ast.Call` nodes in them. This
+    only populates functions, not attributes (like `np.sum()`).
+    """
+
+    def __init__(self):
+        self.func_names = set()
+
+    def visit_Call(self, node):
+        if hasattr(node, 'func'):
+            if isinstance(node.func, ast.Name):
+                self.func_names.add(node.func.id)
+
+
+class FetchDepFuncsSourceCode:
+    """
+    For a given function (or lambda), fetch the source code of the function,
+    along with the source code of all the of the recursively nested functions
+    invoked in that function. The main public function is `fetch`.
+    """
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def _isLambda(obj):
+        return hasattr(obj, '__name__') and obj.__name__ == '<lambda>'
+
+    @staticmethod
+    def _getFuncObj(name: str, calling_frame: object):
+        currFrame = calling_frame
+        while currFrame:
+            if name in currFrame.f_locals:
+                if inspect.isfunction(currFrame.f_locals[name]
+                                     ) or FetchDepFuncsSourceCode._isLambda(
+                                         currFrame.f_locals[name]):
+                    return currFrame.f_locals[name]
+            currFrame = currFrame.f_back
+        return None
+
+    @staticmethod
+    def _getChildFuncNames(func_obj: object,
+                           calling_frame: object,
+                           name: str = None,
+                           full_list: list = None,
+                           visit_set: set = None,
+                           nest_level: int = 0) -> list:
+        """
+        Recursively populate a list of function names that are called by a parent
+        `func_obj`. Set all parameters except `func_obj` to `None` for the top-level
+        call to this function.
+        """
+        if full_list is None:
+            full_list = []
+        if visit_set is None:
+            visit_set = set()
+        if not inspect.isfunction(
+                func_obj) and not FetchDepFuncsSourceCode._isLambda(func_obj):
+            return full_list
+        if name is None:
+            name = func_obj.__name__
+
+        src, _ = get_function_source_or_raise(func_obj)
+        tree = ast.parse(src)
+        vis = FindDepFuncsVisitor()
+        visit_set.add(name)
+        vis.visit(tree)
+        for f in vis.func_names:
+            if f not in visit_set:
+                childFuncObj = FetchDepFuncsSourceCode._getFuncObj(
+                    f, calling_frame)
+                if childFuncObj:
+                    FetchDepFuncsSourceCode._getChildFuncNames(
+                        childFuncObj, calling_frame, f, full_list, visit_set,
+                        nest_level + 1)
+        full_list.append(name)
+        return full_list
+
+    @staticmethod
+    def fetch(func_obj: object):
+        """
+        Given an input `func_obj`, fetch the source code of that function, and
+        all the required child functions called by that function. This does not
+        support fetching class attributes/methods.
+        """
+        callingFrame = inspect.currentframe().f_back
+        func_name_list = FetchDepFuncsSourceCode._getChildFuncNames(
+            func_obj, callingFrame)
+        code = ''
+        for funcName in func_name_list:
+            # Get the function source
+            if funcName == func_obj.__name__:
+                this_func_obj = func_obj
+            else:
+                this_func_obj = FetchDepFuncsSourceCode._getFuncObj(
+                    funcName, callingFrame)
+            if this_func_obj is None:
+                continue
+            src, _ = get_function_source_or_raise(this_func_obj)
+
+            code += src + '\n'
+
+        return code
+
+
+class ValidateArgumentAnnotations(ast.NodeVisitor):
+    """
+    Utility visitor for finding argument annotations
+    """
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def visit_FunctionDef(self, node):
+        for arg in node.args.args:
+            if arg.annotation == None:
+                self.bridge.emitFatalError(
+                    'cudaq.kernel functions must have argument type annotations.',
+                    arg)
+
+
+class ValidateReturnStatements(ast.NodeVisitor):
+    """
+    Analyze the AST and ensure that functions with a return-type annotation
+    actually have a return statement in all paths.
+    """
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def visit_FunctionDef(self, node):
+        # skip if un-annotated or explicitly marked as None
+        is_none_ret = (isinstance(node.returns, ast.Constant) and
+                       node.returns.value
+                       is None) or (isinstance(node.returns, ast.Name) and
+                                    node.returns.id == 'None')
+
+        if node.returns is None or is_none_ret:
+            return self.generic_visit(node)
+
+        def all_paths_return(stmts):
+            for stmt in stmts:
+                if isinstance(stmt, ast.Return):
+                    return True
+
+                if isinstance(stmt, ast.If):
+                    if all_paths_return(stmt.body) and all_paths_return(
+                            stmt.orelse):
+                        return True
+
+                if isinstance(stmt, (ast.For, ast.While)):
+                    if all_paths_return(stmt.body) or all_paths_return(
+                            stmt.orelse):
+                        return True
+
+            return False
+
+        if not all_paths_return(node.body):
+            self.bridge.emitFatalError(
+                'cudaq.kernel functions with return type annotations must have a return statement.',
+                node)
+
+        self.generic_visit(node)

@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt \
+// RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
+// RUN:   | FileCheck --implicit-check-not=quake.phase %s
+
+quake.wire_set @phys[3]
+
+func.func @negative_wire_phase()
+    attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %theta = arith.constant 5.000000e-01 : f64
+  %control = quake.borrow_wire @phys[0] : !quake.wire
+  %control_1 = quake.borrow_wire @phys[1] : !quake.wire
+  %anchor = quake.borrow_wire @phys[2] : !quake.wire
+
+  %result:3 = quake.phase (%theta) [%control, %control_1 neg [true, false]] %anchor
+      : (f64, !quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+
+  quake.return_wire %result#0 : !quake.wire
+  quake.return_wire %result#1 : !quake.wire
+  quake.return_wire %result#2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: llvm.func @negative_wire_phase()
+// CHECK: %[[R1_CTL:[a-zA-Z0-9_.$-]+]] = llvm.mlir.addressof @__quantum__qis__r1__ctl : !llvm.ptr
+// CHECK: %[[ONE:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK: %[[THETA:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(5.000000e-01 : f64) : f64
+// CHECK: %[[ZERO:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK: %[[CONTROL:[a-zA-Z0-9_.$-]+]] = llvm.inttoptr %[[ZERO]] : i64 to !llvm.ptr
+// CHECK: %[[TARGET:[a-zA-Z0-9_.$-]+]] = llvm.inttoptr %[[ONE]] : i64 to !llvm.ptr
+// CHECK: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
+// CHECK-NEXT: llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[ONE]], %[[ZERO]], %[[ONE]], %[[ONE]], %[[R1_CTL]], %[[THETA]], %[[CONTROL]], %[[TARGET]])
+// CHECK-NEXT: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
+// CHECK: llvm.return

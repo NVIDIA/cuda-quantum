@@ -1,0 +1,278 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OptUtils.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Support/Version.h"
+#include "cudaq/Todo.h"
+#include "cudaq/Verifier/QIRLLVMIRDialect.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/ErrorOr.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/PrettyStackTrace.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/ToolOutputFile.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
+#include "mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "mlir/IR/AsmState.h"
+#include "mlir/IR/Verifier.h"
+#include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Export.h"
+#include "mlir/Tools/mlir-translate/Translation.h"
+#include "mlir/Transforms/Passes.h"
+
+//===----------------------------------------------------------------------===//
+// Command line options.
+//===----------------------------------------------------------------------===//
+
+static llvm::cl::opt<std::string>
+    inputFilename(llvm::cl::Positional,
+                  llvm::cl::desc("<input quake mlir file>"),
+                  llvm::cl::init("-"), llvm::cl::value_desc("filename"));
+
+static llvm::cl::opt<std::string>
+    outputFilename("o", llvm::cl::desc("Specify output filename"),
+                   llvm::cl::value_desc("filename"), llvm::cl::init("-"));
+
+static llvm::cl::opt<unsigned> optLevel(
+    "opt-level",
+    llvm::cl::desc(
+        "Set the LLVM optimization level. Default is 3. Use 0 to disable."),
+    llvm::cl::value_desc("level"), llvm::cl::init(3));
+
+static llvm::cl::opt<unsigned> sizeLevel(
+    "size-level",
+    llvm::cl::desc("Set the LLVM size optimization level. Default is 0."),
+    llvm::cl::value_desc("level"), llvm::cl::init(0));
+
+static llvm::cl::opt<std::string> convertTo(
+    "convert-to",
+    llvm::cl::desc(
+        "Specify the translation output to be created. [Default: \"qir:0.1\"]"),
+    llvm::cl::value_desc(
+        "Target transport layer format, <name[:version[:suboptions]]>. Valid "
+        "names: \"qir\", \"qir-full\", \"qir-adaptive\", \"qir-base\", "
+        "\"openqasm2\", \"iqm\"."),
+    llvm::cl::init("qir:0.1"));
+
+static llvm::cl::opt<bool> emitLLVM(
+    "emit-llvm",
+    llvm::cl::desc("Emit LLVM IR as the output. If set to false, the "
+                   "translation will terminate with the selected dialect."),
+    llvm::cl::init(true));
+
+static llvm::cl::opt<bool> disableQuantumOptimization(
+    "fdisable-quantum-optimization",
+    llvm::cl::desc("Disable value-semantics quantum optimization passes "
+                   "(quake-simplify, dqe) during QIR code generation."),
+    llvm::cl::init(false));
+
+using namespace mlir;
+
+static void checkErrorCode(const std::error_code &ec) {
+  if (ec) {
+    llvm::errs() << "could not open output file";
+    std::exit(ec.value());
+  }
+}
+
+int main(int argc, char **argv) {
+  // Set the bug report message to indicate users should file issues on
+  // nvidia/cuda-quantum
+  llvm::setBugReportMsg(cudaq::bugReportMsg);
+
+  registerAsmPrinterCLOptions();
+  registerMLIRContextCLOptions();
+  registerPassManagerCLOptions();
+  registerTranslationCLOptions();
+  cudaq::registerAllCLOptions();
+  cudaq::registerAllPasses();
+
+  llvm::cl::ParseCommandLineOptions(argc, argv,
+                                    "quake mlir to llvm ir compiler\n");
+
+  DialectRegistry registry;
+  registry.insert<cudaq::cc::CCDialect, cudaq::quake::QuakeDialect>();
+  cudaq::registerAllDialects(registry);
+  mlir::func::registerInlinerExtension(registry);
+  mlir::LLVM::registerInlinerInterface(registry);
+  registerBuiltinDialectTranslation(registry);
+  registerLLVMDialectTranslation(registry);
+  MLIRContext context(registry);
+  context.loadAllAvailableDialects();
+
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
+      llvm::MemoryBuffer::getFileOrSTDIN(inputFilename);
+  if (std::error_code ec = fileOrErr.getError())
+    cudaq::emitFatalError(UnknownLoc::get(&context),
+                          "Could not open input file: " + ec.message());
+
+  llvm::SourceMgr sourceMgr;
+  sourceMgr.AddNewSourceBuffer(std::move(*fileOrErr), llvm::SMLoc());
+
+  // Render diagnostics with the source line they came from.
+  SourceMgrDiagnosticHandler diagHandler(sourceMgr, &context);
+
+  // Returning failure here hands the diagnostic on to `diagHandler`, which
+  // does the printing.
+  unsigned numErrors = 0;
+  context.getDiagEngine().registerHandler([&](Diagnostic &diag) {
+    if (diag.getSeverity() == DiagnosticSeverity::Error)
+      ++numErrors;
+    return failure();
+  });
+
+  // The offending Op is not appended to each diagnostic. The IR can be fetched
+  // by passing `-mlir-print-ir-after-failure`.
+  context.printOpOnDiagnostic(false);
+
+  // Parse the input mlir.
+  auto module = parseSourceFile<ModuleOp>(sourceMgr, &context);
+  if (!module)
+    return 1;
+
+  PassManager pm(&context);
+  // Apply any generic pass manager command line options and run the pipeline.
+  if (failed(applyPassManagerCLOptions(pm)))
+    return 1;
+
+  std::error_code ec;
+  llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
+  checkErrorCode(ec);
+  auto printModuleAction = [&]() { out.os() << *module << '\n'; };
+  llvm::function_ref<void()> targetAction = printModuleAction;
+  bool targetUsesLlvm = emitLLVM;
+  auto *modOp = module->getOperation();
+  auto modLoc = module->getLoc();
+  // Declare actions here to avoid outer closure going out of scope below.
+  auto iqmAction = [&]() {
+    if (failed(cudaq::translateToIQMJson(modOp, out.os()))) {
+      cudaq::emitFatalError(modLoc, "translation failed");
+      std::exit(1);
+    }
+  };
+  auto qasmAction = [&]() {
+    if (failed(cudaq::translateToOpenQASM(modOp, out.os()))) {
+      cudaq::emitFatalError(modLoc, "translation failed");
+      std::exit(1);
+    }
+  };
+
+  StringRef convertValue = convertTo.getValue();
+  auto convertPair = convertValue.split(':');
+  llvm::StringSwitch<std::function<void()>>(convertPair.first)
+      .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
+             [&]() {
+               bool useValueSemantics =
+                   !disableQuantumOptimization &&
+                   !modOp->hasAttr(cudaq::runtime::disableQuantumOpts);
+               cudaq::opt::addAggressiveInlining(pm);
+               cudaq::opt::createTargetFinalizePipeline(pm);
+               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,
+                                                      useValueSemantics);
+             })
+      .Case("openqasm2",
+            [&]() {
+              targetUsesLlvm = false;
+              cudaq::opt::createTargetFinalizePipeline(pm);
+              cudaq::opt::addPipelineTranslateToOpenQASM(pm);
+              targetAction = qasmAction;
+            })
+      .Case("iqm",
+            [&]() {
+              targetUsesLlvm = false;
+              cudaq::opt::createTargetFinalizePipeline(pm);
+              cudaq::opt::addPipelineTranslateToIQMJson(pm);
+              targetAction = iqmAction;
+            })
+      .Default([&]() {
+        cudaq::emitFatalError(
+            modLoc, "must use convert-to to specify a transport layer");
+        std::exit(1);
+      })();
+
+  if (failed(pm.run(*module)) || numErrors)
+    return 1;
+
+  if (!targetUsesLlvm) {
+    targetAction();
+    out.keep();
+    return 0;
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Everything from here down handles the cases where code generation uses LLVM
+  // to generate the code.
+
+  // Run the deprecated QIR verifier for grins.
+  if (failed(
+          cudaq::verifier::checkQIRLLVMIRDialect(module.get(), convertValue)))
+    cudaq::emitFatalError(module->getLoc(), "Code is not QIR compliant.");
+
+  // Register the translation to LLVM IR with the MLIR context.
+  registerLLVMDialectTranslation(*module->getContext());
+
+  // Convert the module to LLVM IR in a new LLVM IR context.
+  llvm::LLVMContext llvmContext;
+  auto llvmModule = translateModuleToLLVMIR(module.get(), llvmContext);
+  if (!llvmModule)
+    cudaq::emitFatalError(module->getLoc(), "Failed to emit LLVM IR");
+
+  // Initialize LLVM targets.
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+
+  // Create target machine and configure the LLVM Module
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (!tmBuilderOrError) {
+    llvm::errs() << "Could not create JITTargetMachineBuilder\n";
+    std::exit(1);
+  }
+
+  auto tmOrError = tmBuilderOrError->createTargetMachine();
+  if (!tmOrError) {
+    llvm::errs() << "Could not create TargetMachine\n";
+    std::exit(1);
+  }
+
+  ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                  tmOrError.get().get());
+
+  // Optionally run an optimization pipeline over the llvm module.
+  auto optPipeline =
+      cudaq::makeOptimizingTransformer(optLevel, sizeLevel,
+                                       /*targetMachine=*/nullptr);
+  if (auto err = optPipeline(llvmModule.get())) {
+    llvm::errs() << "Failed to optimize LLVM IR " << err << '\n';
+    std::exit(1);
+  }
+
+  // Output the LLVM IR to the output file.
+  if (ec)
+    cudaq::emitFatalError(module->getLoc(),
+                          "Failed to open output file '" + outputFilename);
+
+  out.os() << *llvmModule << "\n";
+  out.keep();
+  return 0;
+}

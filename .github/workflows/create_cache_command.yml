@@ -1,0 +1,200 @@
+on:
+  workflow_dispatch:
+    inputs:
+      pr_url:
+        required: true
+        type: string
+        description: 'The url of the pull_request json object that contains the information about the PR on which the slash command was triggered.'
+      comment_id:
+        required: false
+        type: string
+        description: 'The id of the comment that contains the slash command that triggered this workflow.'
+
+name: Create CI cache
+
+jobs:
+  pr_info:
+    name: Determine PR info
+    runs-on: ubuntu-latest
+
+    outputs:
+      pull_request_number: ${{ steps.pr_info.outputs.pull_request_number }}
+      target_branch: ${{ steps.pr_info.outputs.target_branch }}
+
+    steps:
+      - name: Download PR info
+        id: pr_info
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          pr_info=`retry wget -O - ${{ inputs.pr_url }}`
+          pr_nr=`echo $pr_info | jq -r '.number'`
+          head_label=`echo $pr_info | jq -r '.head.label'`
+          head_sha=`echo $pr_info | jq -r '.head.sha'`
+          base_ref=`echo $pr_info | jq -r '.base.ref'`
+
+          echo "target_branch=$base_ref" >> $GITHUB_OUTPUT
+          echo "source_label=$head_label" >> $GITHUB_OUTPUT
+          echo "source_sha=$head_sha" >> $GITHUB_OUTPUT
+          echo "pull_request_number=$pr_nr" >> $GITHUB_OUTPUT
+
+      - name: Add reaction
+        if: inputs.comment_id
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ inputs.comment_id }}
+          body: |
+            Running workflow from ${{ github.ref_type }} `${{ github.ref_name }}`. The created cache will be owned by that branch.
+            Checking out source code from head `${{ steps.pr_info.outputs.source_label }}` (sha: ${{ steps.pr_info.outputs.source_sha }}).
+          edit-mode: append
+
+  metadata:
+    name: Configure build
+    needs: pr_info
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
+      platform_config: ${{ steps.config.outputs.platforms }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ format('refs/pull/{0}/merge', needs.pr_info.outputs.pull_request_number) }}"
+
+      - id: config
+        run: |
+          platforms="{}"
+          for platform_id in amd64 arm64; do
+            if [ "$platform_id" == "amd64" ]; then minimal_base_image=ghcr.io/nvidia/amd64/almalinux:8
+            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=ghcr.io/nvidia/arm64v8/almalinux:8
+            fi
+            platform={\"$platform_id\":{\"minimal_base_image\":\"$minimal_base_image\"}}
+            platforms=`echo $platforms | jq ". |= . + $platform"`
+          done
+          echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
+
+      - id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
+
+  devdeps_caches:
+    name: Cache dev dependencies
+    needs: [pr_info, metadata]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        toolchain: [llvm, gcc12]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/devdeps.Dockerfile
+      build_args: toolchain=${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
+      create_local_cache: true
+      registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
+      pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
+      checkout_submodules: true
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
+
+  wheeldeps_caches:
+    name: Cache wheel dependencies
+    needs: [pr_info, metadata]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      build_args: |
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=gcc12
+        distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
+      create_local_cache: true
+      registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
+      pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
+
+  source_build_caches:
+    name: Cache source build
+    needs: [pr_info, metadata]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/assets.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
+      build_target: prereqs
+      build_args: |
+        base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=llvm
+      registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
+      checkout_submodules: true
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
+
+  finalize:
+    name: Indicate completion
+    runs-on: ubuntu-latest
+    needs: [devdeps_caches, wheeldeps_caches]
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
+
+    steps:
+      - name: Add reaction to comment
+        if: inputs.comment_id && success()
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ inputs.comment_id }}
+          reactions-edit-mode: append
+          reactions: hooray
+
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
+
+      - run: |
+          set -e
+          key_matrix='${{ steps.read_json.outputs.result }}'
+          keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
+          gh extension install actions/gh-actions-cache
+          for key in $keys; do
+            (gh actions-cache delete $key -R ${{ github.repository }} --confirm && echo "Deleted cache $key") \
+            || echo "Cache $key not found"
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}

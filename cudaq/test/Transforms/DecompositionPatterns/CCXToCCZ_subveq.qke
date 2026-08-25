@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CCXToCCZ})' %s | FileCheck %s
+
+// Regression: CCX with a quake.subveq control (size 2) must have the veq
+// control split into individual ref controls. Otherwise the veq control
+// survives onto the rewritten quake.z and reaches backend emitters that
+// don't handle quake.subveq (e.g. translateToIQMJson).
+
+// CHECK-LABEL: func.func @subveq_control
+func.func @subveq_control() attributes {"cudaq-entrypoint"} {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.subveq %0, 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
+  %2 = quake.extract_ref %0[0] : (!quake.veq<4>) -> !quake.ref
+  // CHECK:      quake.extract_ref %{{.*}} : (!quake.veq<2>, i64) -> !quake.ref
+  // CHECK:      quake.extract_ref %{{.*}} : (!quake.veq<2>, i64) -> !quake.ref
+  // CHECK:      quake.h
+  // CHECK-NEXT: quake.z [%{{.*}}, %{{.*}}] %{{.*}} : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  // CHECK-NEXT: quake.h
+  // CHECK-NOT:  quake.x
+  quake.x [%1] %2 : (!quake.veq<2>, !quake.ref) -> ()
+  return
+}

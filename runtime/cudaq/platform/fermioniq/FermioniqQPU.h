@@ -1,0 +1,65 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "common/BaseRemoteRESTQPU.h"
+#include <optional>
+
+namespace cudaq {
+
+/// @brief The `FermioniqQPU` is a QPU that allows users to
+/// submit kernels to the Fermioniq simulator.
+class FermioniqQPU : public BaseRemoteRESTQPU {
+public:
+  // Overrides the `sample`/`observe` `launchKernel` overloads but inherits
+  // others (eg `launchKernel(dem_policy)`) from `BaseRemoteRESTQPU`.
+  using BaseRemoteRESTQPU::launchKernel;
+
+  ~FermioniqQPU() override;
+
+  virtual bool isRemote() override { return true; }
+
+  /// @brief Return true if locally emulating a remote QPU
+  virtual bool isEmulated() override { return false; }
+
+  /// @brief Set the noise model, only allow this for
+  /// emulation.
+  virtual void setNoiseModel(const cudaq::noise_model *model) override {
+    if (model) {
+      throw std::runtime_error("Noise modeling is not allowed on this backend");
+    }
+  }
+
+  CompileTarget
+  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+    auto target =
+        BaseRemoteRESTQPU::getCompileTarget(skipPipelineSubstitutions);
+    target.supportObservableMeasurements = true;
+    return target;
+  }
+
+  using QPU::launchKernel;
+  sample_result launchKernel(const sample_policy &policy,
+                             const CompiledModule &module,
+                             KernelArgs args) override;
+
+  async_sample_result launchKernel(const async_sample_policy &policy,
+                                   const CompiledModule &module,
+                                   KernelArgs args) override;
+
+  observe_result launchKernel(const observe_policy &policy,
+                              const CompiledModule &module,
+                              KernelArgs args) override;
+
+  async_observe_result launchKernel(const async_observe_policy &policy,
+                                    const CompiledModule &module,
+                                    KernelArgs args) override;
+};
+
+} // namespace cudaq

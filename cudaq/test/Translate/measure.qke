@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --add-dealloc | cudaq-translate --convert-to=qir | FileCheck %s
+
+func.func @test_func2(){
+  %zero = arith.constant 0 : i32
+  %one = arith.constant 1 : i32
+  %two = arith.constant 2 : i32
+  %0 = quake.alloca !quake.veq<?>[%two : i32]
+
+  %qr1 = quake.extract_ref %0[%zero] : (!quake.veq<?>,i32) -> !quake.ref
+  %qr2 = quake.extract_ref %0[%one] : (!quake.veq<?>,i32) -> !quake.ref
+
+  quake.mx %qr1 : (!quake.ref) -> !quake.measure
+  quake.my %qr1 : (!quake.ref) -> !quake.measure
+  return 
+}
+
+// CHECK-LABEL: define void @test_func2() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__qis__mz(ptr %[[VAL_0]])
+// CHECK:         %[[VAL_3:.*]] = tail call ptr @__quantum__qis__mz(ptr %[[VAL_0]])
+// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }
+

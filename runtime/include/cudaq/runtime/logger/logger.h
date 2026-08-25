@@ -1,0 +1,225 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/tracer.h"
+#include <array>
+#include <cstddef>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+
+namespace cudaq {
+
+/// @brief Returns true if `tag` is enabled. Tags are only enabled/disabled at
+/// program startup.
+bool isTimingTagEnabled(int tag);
+
+// Keep all spdlog headers hidden in the implementation file.
+namespace detail {
+// This enum must match spdlog::level enums. This is checked via static_assert
+// in logger.cpp.
+enum class LogLevel { trace, debug, info, warn, error };
+bool should_log(const LogLevel logLevel);
+void trace(const std::string_view msg);
+void info(const std::string_view msg);
+void debug(const std::string_view msg);
+void warn(const std::string_view msg);
+void error(const std::string_view msg);
+std::string pathToFileName(const std::string_view fullFilePath);
+
+// Test/debug helpers. Production callers configure the level via the
+// CUDAQ_LOG_LEVEL environment variable.
+void setLogLevel(LogLevel level);
+LogLevel getLogLevel();
+
+// Flushes any buffered log output. Useful in tests that need to inspect
+// captured stdout immediately after emitting an info/debug message
+// (initializeLogger only enables flush_on(warn)).
+void flushLogs();
+
+void logMessagePacked(LogLevel logLevel, const std::string_view message,
+                      const std::span<const cudaq_fmt::FormatArgument> &args,
+                      const char *fileName, int lineNo);
+
+void logWithTimestampPacked(
+    const std::string_view message,
+    const std::span<const cudaq_fmt::FormatArgument> &args);
+
+template <typename... Args>
+std::string formatMessage(const std::string_view message, Args &&...args) {
+  return cudaq_fmt::format(message, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void logMessage(LogLevel logLevel, const std::string_view message,
+                const char *fileName, int lineNo, Args &&...args) {
+  std::array<cudaq_fmt::FormatArgument, sizeof...(Args)> packedArgs{
+      cudaq_fmt::FormatArgument(std::forward<Args>(args))...};
+  logMessagePacked(logLevel, message,
+                   std::span<const cudaq_fmt::FormatArgument>(
+                       packedArgs.data(), packedArgs.size()),
+                   fileName, lineNo);
+}
+} // namespace detail
+
+/// These types seek to enable automated injection of the source location of the
+/// `cudaq::info()` or `debug()` call. The actual formatting is out-of-line in
+/// logger.cpp so callers do not need to parse `fmt` or `chrono` headers.
+#define CUDAQ_LOGGER_DEDUCTION_STRUCT(NAME)                                    \
+  template <typename... Args>                                                  \
+  struct NAME {                                                                \
+    NAME(const std::string_view message, Args &&...args,                       \
+         const char *fileName = __builtin_FILE(),                              \
+         int lineNo = __builtin_LINE()) {                                      \
+      if (detail::should_log(detail::LogLevel::NAME))                          \
+        detail::logMessage(detail::LogLevel::NAME, message, fileName, lineNo,  \
+                           std::forward<Args>(args)...);                       \
+    }                                                                          \
+  };                                                                           \
+  template <typename... Args>                                                  \
+  NAME(const std::string_view, Args &&...) -> NAME<Args...>;
+
+CUDAQ_LOGGER_DEDUCTION_STRUCT(info);
+CUDAQ_LOGGER_DEDUCTION_STRUCT(warn);
+CUDAQ_LOGGER_DEDUCTION_STRUCT(error);
+
+#ifdef CUDAQ_DEBUG
+CUDAQ_LOGGER_DEDUCTION_STRUCT(debug);
+#else
+// Remove cudaq::debug log messages from Release binaries.
+template <typename... Args>
+void debug(const std::string_view, Args &&...) {}
+#endif
+
+/// @brief Log a message with timestamp.
+// Note 1: This will always log the message regardless of the logging level.
+// Note 2: File and line info is not included in the log line.
+template <typename... Args>
+void log(const std::string_view message, Args &&...args) {
+  std::array<cudaq_fmt::FormatArgument, sizeof...(Args)> packedArgs{
+      cudaq_fmt::FormatArgument(std::forward<Args>(args))...};
+  detail::logWithTimestampPacked(
+      message, std::span<const cudaq_fmt::FormatArgument>(packedArgs.data(),
+                                                          packedArgs.size()));
+}
+
+/// @brief This type is meant to provided quick tracing of function calls.
+/// Instantiate at the beginning of a function and when it goes out of scope at
+/// function end, it will call to the trace function and report the function
+/// name and execution time.
+class ScopedTrace {
+private:
+  SpanHandle handle;
+
+  template <typename... Args>
+  static std::string formatArgsMsg(bool tagFound, Args &&...args) {
+    if constexpr (sizeof...(Args) == 0) {
+      (void)tagFound;
+      return {};
+    } else {
+      std::string argsMsg;
+      if (tagFound) {
+        // Double-escape: cudaq::log() runs the result through fmt::format
+        // a second time, so literal braces must survive both passes.
+        argsMsg = " (args = {{{{";
+        constexpr std::size_t nArgs = sizeof...(Args);
+        for (std::size_t i = 0; i < nArgs; i++)
+          argsMsg += (i != nArgs - 1) ? "{}, " : "{}}}}})";
+      } else {
+        argsMsg = " (args = {{";
+        constexpr std::size_t nArgs = sizeof...(Args);
+        for (std::size_t i = 0; i < nArgs; i++)
+          argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
+      }
+      return detail::formatMessage(argsMsg, std::forward<Args>(args)...);
+    }
+  }
+
+public:
+  /// @brief Public constructor with a context and a timing tag.
+  template <typename... Args>
+  ScopedTrace(TraceContext ctx, const int tag, const std::string &name,
+              Args &&...args) {
+    const bool tagFound = (tag != 0) && cudaq::isTimingTagEnabled(tag);
+    if (!tagFound && !detail::should_log(detail::LogLevel::trace) &&
+        !Tracer::instance().isCaptureEnabled())
+      return;
+    std::string argsMsg = formatArgsMsg(tagFound, std::forward<Args>(args)...);
+    handle = Tracer::instance().beginSpan(ctx, name, tag, argsMsg, "scope");
+  }
+
+  /// @brief Public constructor with a context and no timing tag.
+  template <typename... Args>
+  ScopedTrace(TraceContext ctx, const std::string &name, Args &&...args)
+      : ScopedTrace(ctx, /*tag=*/0, name, std::forward<Args>(args)...) {}
+
+  ~ScopedTrace() { Tracer::instance().endSpan(std::move(handle)); }
+};
+} // namespace cudaq
+
+// The following macros avoid the unnecessary processing cost of argument
+// evaluation and string formation until after the log level check is done.
+#define CUDAQ_LOG_IMPL(LEVEL, msg, ...)                                        \
+  do {                                                                         \
+    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::LEVEL)) {       \
+      ::cudaq::detail::logMessage(::cudaq::detail::LogLevel::LEVEL, msg,       \
+                                  __FILE__,                                    \
+                                  __LINE__ __VA_OPT__(, ) __VA_ARGS__);        \
+    }                                                                          \
+  } while (false)
+
+#define CUDAQ_ERROR_IMPL(msg, ...)                                             \
+  do {                                                                         \
+    ::cudaq::detail::logMessage(::cudaq::detail::LogLevel::error, msg,         \
+                                __FILE__,                                      \
+                                __LINE__ __VA_OPT__(, ) __VA_ARGS__);          \
+    throw std::runtime_error(                                                  \
+        ::cudaq::detail::formatMessage(msg __VA_OPT__(, ) __VA_ARGS__));       \
+  } while (false)
+
+#define CUDAQ_ERROR(...) CUDAQ_ERROR_IMPL(__VA_ARGS__)
+#define CUDAQ_WARN(...) CUDAQ_LOG_IMPL(warn, __VA_ARGS__)
+#define CUDAQ_INFO(...) CUDAQ_LOG_IMPL(info, __VA_ARGS__)
+
+#ifdef CUDAQ_DEBUG
+#define CUDAQ_DBG(...) CUDAQ_LOG_IMPL(debug, __VA_ARGS__)
+#else
+#define CUDAQ_DBG(...)
+#endif
+
+#define ScopedTraceWithContext(...)                                            \
+  cudaq::ScopedTrace trace(cudaq::TraceContext(__builtin_FUNCTION(),           \
+                                               __builtin_FILE(),               \
+                                               __builtin_LINE()),              \
+                           ##__VA_ARGS__)
+
+// Note from Alex:
+// I Want to save the below source for later, we should be able to
+// use std::source_location to do the above, but this
+// only works on GCC for now....
+
+// template <typename... Args>
+// struct info {
+//   info(
+//       const std::string_view message, Args &&...args,
+//       const std::source_location &loc = std::source_location::current()) {
+//     auto msg = fmt::format(fmt::runtime(message), args...);
+//     std::string name = loc.function_name();
+//     auto start = name.find_first_of(" ");
+//     name = name.substr(start + 1, name.find_first_of("(") - start - 1);
+//     std::filesystem::path file = loc.file_name();
+//     msg = "[" + file.filename().string() + ":" + std::to_string(loc.line()) +
+//           "] " + msg;
+//     detail::info(msg);
+//   }
+// };

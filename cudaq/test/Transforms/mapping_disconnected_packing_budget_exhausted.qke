@@ -1,0 +1,47 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Companion to mapping_disconnected_packing_fallback.qke (issue #4878).
+// The feasible {5,4}/{3,2,2,2} packing needs 4 placement attempts to find.
+// Capping the budget below that (island-packing-attempt-budget=3) cuts the
+// search off before it can find the layout OR prove none exists, so the pass
+// reports a distinct, actionable diagnostic pointing at the budget knob rather
+// than the generic "unroutable topology" error. This pins that behavior and
+// keeps it separate from the genuinely-infeasible case.
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=greedy search=none island-packing-attempt-budget=3' %s -verify-diagnostics
+
+quake.wire_set @wires[2147483647]
+
+// expected-error @+1 {{could not find a routable initial layout for disconnected device topology within the island-packing attempt budget of 3 attempts; increase island-packing-attempt-budget to search further}}
+func.func @packing_budget_exhausted() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %v3 = quake.borrow_wire @wires[3] : !quake.wire
+  %v4 = quake.borrow_wire @wires[4] : !quake.wire
+  %v5 = quake.borrow_wire @wires[5] : !quake.wire
+  %v6 = quake.borrow_wire @wires[6] : !quake.wire
+  %v7 = quake.borrow_wire @wires[7] : !quake.wire
+  %v8 = quake.borrow_wire @wires[8] : !quake.wire
+  %a:2 = quake.x [%v0] %v1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#1] %v2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %c:2 = quake.x [%v3] %v4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d:2 = quake.x [%v5] %v6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %e:2 = quake.x [%v7] %v8 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#0 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  quake.return_wire %d#0 : !quake.wire
+  quake.return_wire %d#1 : !quake.wire
+  quake.return_wire %e#0 : !quake.wire
+  quake.return_wire %e#1 : !quake.wire
+  return
+}

@@ -1,0 +1,15 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-no-phase %s -verify-diagnostics
+
+func.func @phase_reached_codegen(%theta: f64, %anchor: !quake.ref) {
+  // expected-error @+1 {{phase bookkeeping must be lowered before code generation}}
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  return
+}

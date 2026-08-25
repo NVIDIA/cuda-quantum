@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: FileCheck %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/braket/braket.yml --check-prefix=YAML
+// RUN: cudaq-opt --pass-pipeline="builtin.module(decomposition{basis=h,rx,ry,rz,x,y,z,x(1)})" %s | cudaq-translate --convert-to=openqasm2 | FileCheck %s --implicit-check-not=sdg --implicit-check-not=tdg
+
+module {
+  func.func @__nvqpp__mlirgen__function_k._Z1kv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %q = quake.alloca !quake.veq<2>
+    %ctrl = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+    %target = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+    quake.s<adj> %target : (!quake.ref) -> ()
+    quake.t<adj> %target : (!quake.ref) -> ()
+    quake.h [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+
+// YAML: decomposition{basis=h,rx,ry,rz,x,y,z,x(1)}
+
+// CHECK:      OPENQASM 2.0;
+// CHECK:      qreg var0[2];
+// CHECK-NEXT: rz(-1.570796e+00) var0[1];
+// CHECK-NEXT: rz(-7.853982e-01) var0[1];

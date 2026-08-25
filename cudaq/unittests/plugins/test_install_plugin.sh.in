@@ -1,0 +1,91 @@
+#!/bin/bash
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Test cudaq-install-plugin: symlink install, copy install, system install,
+# uninstall, list, and validation of invalid plugins.
+
+set -euo pipefail
+
+NVQ="@CMAKE_BINARY_DIR@/bin/nvq++"
+CUDAQ_INSTALL_PLUGIN="@CMAKE_BINARY_DIR@/bin/cudaq-install-plugin"
+TARGET_DIR="@CMAKE_BINARY_DIR@/targets"
+SYSTEM_PLUGINS="${TARGET_DIR}/../plugins"
+
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR" "${SYSTEM_PLUGINS}/b6-system-plugin"' EXIT
+
+INSTALL_DIR="${TMPDIR}/install"
+XDG_DIR="${TMPDIR}/xdg"
+
+# --- Create source plugin directories ---
+mkdir -p "${INSTALL_DIR}/b6-user-plugin/targets" "${INSTALL_DIR}/b6-user-plugin/lib"
+mkdir -p "${INSTALL_DIR}/b6-copy-plugin/targets" "${INSTALL_DIR}/b6-copy-plugin/lib"
+mkdir -p "${INSTALL_DIR}/b6-system-plugin/targets" "${INSTALL_DIR}/b6-system-plugin/lib"
+
+cat > "${INSTALL_DIR}/b6-user-plugin/targets/b6-user-target.yml" <<'EOF'
+name: b6-user-target
+config:
+  library-mode: true
+EOF
+cat > "${INSTALL_DIR}/b6-copy-plugin/targets/b6-copy-target.yml" <<'EOF'
+name: b6-copy-target
+config:
+  library-mode: true
+EOF
+cat > "${INSTALL_DIR}/b6-system-plugin/targets/b6-system-target.yml" <<'EOF'
+name: b6-system-target
+config:
+  library-mode: true
+EOF
+
+# --- Test: Default install creates a symlink ---
+env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" "${INSTALL_DIR}/b6-user-plugin"
+test -L "${XDG_DIR}/cudaq/plugins/b6-user-plugin"
+
+# --- Test: --list shows the user plugin ---
+list_user=$(env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --list)
+echo "$list_user" | grep -qE 'user[[:space:]]+b6-user-plugin'
+
+# --- Test: nvq++ discovers the installed target ---
+nvqpp_list=$(env XDG_DATA_HOME="$XDG_DIR" "$NVQ" --list-targets)
+echo "$nvqpp_list" | grep -q 'b6-user-target'
+
+# --- Test: --copy installs a real copy, not a symlink ---
+env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --copy "${INSTALL_DIR}/b6-copy-plugin"
+test -d "${XDG_DIR}/cudaq/plugins/b6-copy-plugin"
+! test -L "${XDG_DIR}/cudaq/plugins/b6-copy-plugin"
+test -f "${XDG_DIR}/cudaq/plugins/b6-copy-plugin/targets/b6-copy-target.yml"
+
+# --- Test: --system installs to system scope ---
+env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --system "${INSTALL_DIR}/b6-system-plugin"
+test -L "${SYSTEM_PLUGINS}/b6-system-plugin"
+
+# --- Test: --list shows all three plugins ---
+list_both=$(env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --list)
+echo "$list_both" | grep -qE 'user[[:space:]]+b6-user-plugin'
+echo "$list_both" | grep -qE 'user[[:space:]]+b6-copy-plugin'
+echo "$list_both" | grep -qE 'system[[:space:]]+b6-system-plugin'
+
+# --- Test: --uninstall removes user plugin ---
+env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --uninstall b6-user-plugin
+! test -L "${XDG_DIR}/cudaq/plugins/b6-user-plugin"
+
+# --- Test: --uninstall removes system plugin ---
+env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --uninstall b6-system-plugin
+! test -L "${SYSTEM_PLUGINS}/b6-system-plugin"
+
+# --- Test: Invalid plugin (no targets dir) is rejected ---
+mkdir -p "${INSTALL_DIR}/not-a-plugin"
+if env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" "${INSTALL_DIR}/not-a-plugin" 2>"${TMPDIR}/err.txt"; then
+  echo "FAIL: should have rejected plugin without targets directory" >&2
+  exit 1
+fi
+grep -q 'plugin root must contain a targets directory' "${TMPDIR}/err.txt"
+
+echo "PASS: install_plugin"

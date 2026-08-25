@@ -1,0 +1,41 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: 'Matrix outputs - read'
+description: |
+  Aggregate outputs recorded by matrix-outputs-write into a JSON map keyed
+  by output name, then matrix key: fromJson(result).image_hash['amd64-llvm'].
+  Independent, interface-compatible reimplementation of the unmaintained
+  cloudposse/github-action-matrix-outputs-read (Apache-2.0).
+  Requires the repository to be checked out.
+
+inputs:
+  matrix-step-name:
+    required: true
+    description: 'Matrix step name the outputs were recorded under'
+
+outputs:
+  result:
+    description: 'JSON map of output name to a map of matrix key to recorded value'
+    value: ${{ steps.merge.outputs.result }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download matrix outputs
+      uses: actions/download-artifact@v8
+      with:
+        pattern: matrix-outputs-${{ inputs.matrix-step-name }}-*
+        path: ${{ runner.temp }}/matrix-outputs-read/${{ inputs.matrix-step-name }}
+
+    - name: Merge matrix outputs
+      id: merge
+      uses: ./.github/actions/matrix-outputs-read/merge
+      with:
+        matrix-step-name: ${{ inputs.matrix-step-name }}
+        download-path: ${{ runner.temp }}/matrix-outputs-read/${{ inputs.matrix-step-name }}

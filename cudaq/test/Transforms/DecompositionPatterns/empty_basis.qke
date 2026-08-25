@@ -1,0 +1,21 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: not cudaq-opt --decomposition %s 2>&1 | FileCheck %s
+
+// CHECK: warning: Decomposition: 'basis' must be specified
+module {
+  func.func @exp_pauli_without_basis()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %qubits = quake.alloca !quake.veq<2>
+    %angle = arith.constant 5.000000e-01 : f64
+    quake.exp_pauli (%angle) %qubits to "ZZ" : (f64, !quake.veq<2>) -> ()
+    quake.dealloc %qubits : !quake.veq<2>
+    return
+  }
+}

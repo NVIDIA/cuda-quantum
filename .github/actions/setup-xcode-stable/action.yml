@@ -1,0 +1,128 @@
+name: Set up latest stable Xcode
+description: >-
+  Select the newest stable Xcode installed on the macOS runner. Excludes
+  betas and release candidates (matches the "latest-stable" semantics of
+  maxim-lobanov/setup-xcode).
+
+outputs:
+  version:
+    description: Selected Xcode version.
+    value: ${{ steps.select.outputs.version }}
+  build:
+    description: Selected Xcode build number.
+    value: ${{ steps.select.outputs.build }}
+  path:
+    description: Selected Xcode application path.
+    value: ${{ steps.select.outputs.path }}
+  developer-dir:
+    description: Selected Xcode developer directory.
+    value: ${{ steps.select.outputs.developer-dir }}
+
+runs:
+  using: composite
+  steps:
+    - id: select
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # Implements the "latest-stable" selection strategy from
+        # maxim-lobanov/setup-xcode (scan installed Xcode apps, exclude
+        # both betas and release candidates, choose the newest stable),
+        # kept local to avoid external-action allowlist issues.
+        #
+        # Note: LicenseInfo.plist's licenseType is not a reliable signal
+        # for release candidates (Apple commonly sets it to "GM" or
+        # "Release" on RCs, not "Beta"). GitHub-hosted runners do, however,
+        # name pre-release bundles consistently, e.g.
+        #   /Applications/Xcode_<v>_beta_<n>.app
+        #   /Applications/Xcode_<v>_Release_Candidate.app
+        # so we filter on the .app bundle name in addition to the license
+        # type. Without this, an RC's SDK can be selected and its absolute
+        # path baked into cached LLVM CMake imported targets, only to vanish
+        # from the runner image once Apple ships the GA build.
+        selection_file=$(mktemp)
+        python3 > "$selection_file" <<'PY'
+        from pathlib import Path
+        import plistlib
+        import re
+        import sys
+
+        # The "rc" token must be delimited by non-letters on both sides so
+        # it matches "_RC.", "_RC1.", "-rc.", etc. but not substrings of
+        # real words. \b alone is insufficient because "_" is a word char
+        # in Python regex, so "_RC" has no boundary between "_" and "R".
+        PRERELEASE_NAME = re.compile(
+            r"(beta"
+            r"|release[\s_.\-]?candidate"
+            r"|(?<![A-Za-z])rc\d*(?![A-Za-z]))",
+            re.IGNORECASE)
+
+        def semver_key(version):
+            return tuple(int(part) for part in re.findall(r"\d+", version))
+
+        versions = []
+        for app in sorted(Path("/Applications").iterdir()):
+            if not app.is_dir() or app.is_symlink():
+                continue
+            if not re.match(r"^Xcode.*\.app$", app.name):
+                continue
+
+            if PRERELEASE_NAME.search(app.name):
+                print(f"Skipping pre-release Xcode (bundle name): {app.name}",
+                      file=sys.stderr)
+                continue
+
+            version_plist = app / "Contents" / "version.plist"
+            license_plist = app / "Contents" / "Resources" / "LicenseInfo.plist"
+            if not version_plist.exists() or not license_plist.exists():
+                continue
+
+            with version_plist.open("rb") as handle:
+                version_info = plistlib.load(handle)
+            with license_plist.open("rb") as handle:
+                license_info = plistlib.load(handle)
+
+            version = str(version_info.get("CFBundleShortVersionString", ""))
+            build = str(version_info.get("ProductBuildVersion", ""))
+            license_type = str(license_info.get("licenseType", "")).lower()
+            if not version or not license_type:
+                continue
+            if "beta" in license_type:
+                print(f"Skipping pre-release Xcode (license type): {app.name}",
+                      file=sys.stderr)
+                continue
+
+            versions.append((semver_key(version), version, build, str(app)))
+
+        if not versions:
+            print("No stable Xcode installation found in /Applications.", file=sys.stderr)
+            sys.exit(1)
+
+        _, version, build, path = sorted(versions, reverse=True)[0]
+        print(path)
+        print(version)
+        print(build)
+        PY
+
+        xcode_path=$(sed -n '1p' "$selection_file")
+        xcode_version=$(sed -n '2p' "$selection_file")
+        xcode_build=$(sed -n '3p' "$selection_file")
+        rm -f "$selection_file"
+
+        developer_dir="$xcode_path/Contents/Developer"
+        if [ ! -d "$developer_dir" ]; then
+          echo "Could not find Xcode developer directory: $developer_dir"
+          exit 1
+        fi
+
+        sudo xcode-select -s "$developer_dir"
+        echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
+        echo "MD_APPLE_SDK_ROOT=$xcode_path" >> "$GITHUB_ENV"
+
+        echo "path=$xcode_path" >> "$GITHUB_OUTPUT"
+        echo "version=$xcode_version" >> "$GITHUB_OUTPUT"
+        echo "build=$xcode_build" >> "$GITHUB_OUTPUT"
+        echo "developer-dir=$developer_dir" >> "$GITHUB_OUTPUT"
+
+        echo "Selected Xcode $xcode_version ($xcode_build) at $xcode_path"

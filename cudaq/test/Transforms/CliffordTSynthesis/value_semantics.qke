@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
+
+// A rotation in value-semantics (wire) form is synthesized just like the
+// memory-semantics form, except the per-angle helper threads a !quake.wire:
+// it consumes the input wire and returns the final wire, and the rotation site
+// becomes a call that consumes/produces the wire. gridsynth output is
+// stochastic, so we assert only structural invariants.
+
+func.func @rz_wire() {
+  %0 = quake.null_wire
+  %a = arith.constant 0.7853981633974483 : f64
+  %1 = quake.rz (%a) %0 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// The helper is wire-typed end to end and applies dozens of T gates.
+// CHECK-LABEL: func.func private @__cliffordt_rz_wire_
+// CHECK-SAME:      (%{{.*}}: !quake.wire) -> !quake.wire
+// CHECK-COUNT-15: quake.t %{{.*}} : (!quake.wire) -> !quake.wire
+// CHECK:         return %{{.*}} : !quake.wire
+
+// The rotation site is replaced by a call that threads the wire.
+// CHECK-LABEL: func.func @rz_wire
+// CHECK:         %[[W:.*]] = quake.null_wire
+// CHECK:         %[[R:.*]] = call @__cliffordt_rz_wire_{{.*}}(%[[W]]) : (!quake.wire) -> !quake.wire
+// CHECK:         quake.sink %[[R]] : !quake.wire

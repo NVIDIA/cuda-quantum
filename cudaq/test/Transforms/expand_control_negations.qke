@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Verify that `ExpandControlNegations` pass expands negated controls for
+// gates with negative controls specified in the pass, e.g., R1.
+// Allow `quake.phase` ops to survive the pass.
+
+// RUN: cudaq-opt --expand-control-negations %s | FileCheck %s
+
+func.func @expand_gate(%theta: f64, %control: !quake.ref,
+                       %target: !quake.ref) {
+  quake.r1 (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @expand_gate(
+// CHECK: quake.x %[[CONTROL:[a-zA-Z0-9_.$-]+]]
+// CHECK-NEXT: quake.r1 {{.*}}[%[[CONTROL]]] {{.*}}
+// CHECK-NEXT: quake.x %[[CONTROL]]
+
+func.func @defer_phase(%theta: f64, %control: !quake.ref,
+                       %anchor: !quake.ref) {
+  quake.phase (%theta) [%control neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @defer_phase(
+// CHECK-NEXT: quake.phase
+// CHECK-SAME: neg [true]
+// CHECK-NEXT: return

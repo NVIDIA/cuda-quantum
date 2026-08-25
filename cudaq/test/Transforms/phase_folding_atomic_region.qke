@@ -1,0 +1,404 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+
+// An ordinary single-block scope is transparent to phase analysis. The two
+// CNOTs restore the target's phase, so the two S gates have the same phase and
+// combine to Z.
+func.func @fold_named_phases_across_ordinary_scope() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %before = quake.s %target : (!quake.wire) -> !quake.wire
+  %scope = cc.scope -> (!quake.wire) {
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  }
+  %after = quake.s %scope : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @fold_named_phases_across_ordinary_scope() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           }
+// CHECK:           %[[Z_0:.*]] = quake.z %[[SCOPE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// An inner marked scope is a distinct folding domain from its marked parent.
+// Rotations immediately outside and inside the nested boundary must not merge.
+func.func @nested_marked_scopes_do_not_share_phases() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %outer = cc.scope -> (!quake.wire) {
+    %before = quake.s %target : (!quake.wire) -> !quake.wire
+    %inner = cc.scope -> (!quake.wire) {
+      %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %after = quake.s %cx1#1 : (!quake.wire) -> !quake.wire
+      cc.continue %after : !quake.wire
+    } {atomic_quantum_region}
+    cc.continue %inner : !quake.wire
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @nested_marked_scopes_do_not_share_phases() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:               %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[S_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:               %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:               %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:               cc.continue %[[S_1]] : !quake.wire
+// CHECK:             } {atomic_quantum_region}
+// CHECK:             cc.continue %[[SCOPE_1]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           return
+// CHECK:         }
+
+// Sequential marked scopes are separate folding domains even when the second
+// consumes the first scope's result on the same wire path.
+func.func @sibling_marked_scopes_do_not_share_phases() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %first = cc.scope -> (!quake.wire) {
+    %before = quake.s %target : (!quake.wire) -> !quake.wire
+    cc.continue %before : !quake.wire
+  } {atomic_quantum_region}
+  %second = cc.scope -> (!quake.wire) {
+    %cx0:2 = quake.x [%control] %first : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %after = quake.s %cx1#1 : (!quake.wire) -> !quake.wire
+    cc.continue %after : !quake.wire
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @sibling_marked_scopes_do_not_share_phases() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[S_0]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[SCOPE_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[S_1]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           return
+// CHECK:         }
+
+// Dynamic angles may also combine across an ordinary scope when both angle
+// values already dominate the surviving rotation outside the scope.
+func.func @fold_dynamic_phases_across_ordinary_scope(%first: f64,
+                                                     %second: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %before = quake.rz (%first) %target : (f64, !quake.wire) -> !quake.wire
+  %scope = cc.scope -> (!quake.wire) {
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  }
+  %after = quake.rz (%second) %scope : (f64, !quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @fold_dynamic_phases_across_ordinary_scope(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           }
+// CHECK:           %[[ADDF_0:.*]] = arith.addf %[[ARG0]], %[[ARG1]] : f64
+// CHECK:           %[[RZ_0:.*]] = quake.rz (%[[ADDF_0]]) %[[SCOPE_0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// The inner angle cannot escape the scope, but the later angle is a function
+// argument that already dominates the earlier rotation. Combine at the earlier
+// rotation.
+func.func @later_dynamic_angle_folds_at_earlier_rotation(%later: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inner = arith.constant 1.000000e+00 : f64
+    %before = quake.rz (%inner) %target : (f64, !quake.wire) -> !quake.wire
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  }
+  %after = quake.rz (%later) %scope : (f64, !quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @later_dynamic_angle_folds_at_earlier_rotation(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[CONSTANT_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:             %[[ADDF_0:.*]] = arith.addf %[[CONSTANT_0]], %[[ARG0]] : f64
+// CHECK:             %[[RZ_0:.*]] = quake.rz (%[[ADDF_0]]) %[[NULL_WIRE_1]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[RZ_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           }
+// CHECK-NEXT:      return
+// CHECK:         }
+
+// A named gate has no SSA angle dependency, so it can always be combined at
+// the earlier dynamic rotation when that is the legal insertion point.
+func.func @later_named_angle_folds_at_earlier_rotation() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inner = arith.constant 1.000000e+00 : f64
+    %before = quake.rz (%inner) %target : (f64, !quake.wire) -> !quake.wire
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  }
+  %after = quake.s %scope : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @later_named_angle_folds_at_earlier_rotation() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[CONSTANT_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:             %[[CONSTANT_1:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:             %[[ADDF_0:.*]] = arith.addf %[[CONSTANT_0]], %[[CONSTANT_1]] : f64
+// CHECK:             %[[RZ_0:.*]] = quake.rz (%[[ADDF_0]]) %[[NULL_WIRE_1]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[RZ_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           }
+// CHECK-NEXT:      return
+// CHECK:         }
+
+// If each dynamic angle is defined on its own side of the scope boundary,
+// neither rotation is a legal insertion point for their sum. Leave both
+// rotations unchanged.
+func.func @angles_without_a_common_insertion_point_do_not_fold() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inner = arith.constant 1.000000e+00 : f64
+    %before = quake.rz (%inner) %target : (f64, !quake.wire) -> !quake.wire
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  }
+  %later = arith.constant 2.000000e+00 : f64
+  %after = quake.rz (%later) %scope : (f64, !quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @angles_without_a_common_insertion_point_do_not_fold() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[CONSTANT_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:             %[[RZ_0:.*]] = quake.rz (%[[CONSTANT_0]]) %[[NULL_WIRE_1]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[RZ_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           }
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK-NOT:       arith.addf
+// CHECK:           %[[RZ_1:.*]] = quake.rz (%[[CONSTANT_1]]) %[[SCOPE_0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// Backward phase analysis crosses an ordinary scope result through the
+// matching cc.continue operand. The CNOT pair restores the target's phase, so
+// the S gates inside and outside the scope combine to Z.
+func.func @fold_named_phases_backward_through_ordinary_scope() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inside = quake.s %target : (!quake.wire) -> !quake.wire
+    cc.continue %inside : !quake.wire
+  }
+  %cx0:2 = quake.x [%control] %scope : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %outside = quake.s %cx1#1 : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @fold_named_phases_backward_through_ordinary_scope() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             cc.continue %[[NULL_WIRE_1]] : !quake.wire
+// CHECK:           }
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[SCOPE_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[Z_0:.*]] = quake.z %[[X_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// The same backward step must stop when the scope is an atomic quantum
+// region, leaving the inside and outside rotations unchanged.
+func.func @phases_do_not_fold_backward_through_marked_scope() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inside = quake.s %target : (!quake.wire) -> !quake.wire
+    cc.continue %inside : !quake.wire
+  } {atomic_quantum_region}
+  %cx0:2 = quake.x [%control] %scope : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %outside = quake.s %cx1#1 : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @phases_do_not_fold_backward_through_marked_scope() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[S_0]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[SCOPE_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// A marked scope blocks phase folding at its entry. Even though the CNOT pair
+// restores the target's phase, the rotation outside the scope must not combine
+// with the rotation inside it.
+func.func @phases_do_not_fold_across_marked_scope_entry() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %outside = quake.s %target : (!quake.wire) -> !quake.wire
+  %scope = cc.scope -> (!quake.wire) {
+    %cx0:2 = quake.x [%control] %outside : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %inside = quake.s %cx1#1 : (!quake.wire) -> !quake.wire
+    cc.continue %inside : !quake.wire
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @phases_do_not_fold_across_marked_scope_entry() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[S_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[S_1]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           return
+// CHECK:         }
+
+// A marked scope also blocks phase folding at its exit. A rotation inside the
+// scope must not combine with a rotation consuming the scope result.
+func.func @phases_do_not_fold_across_marked_scope_exit() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %inside = quake.s %target : (!quake.wire) -> !quake.wire
+    %cx0:2 = quake.x [%control] %inside : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cx1#1 : !quake.wire
+  } {atomic_quantum_region}
+  %outside = quake.s %scope : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @phases_do_not_fold_across_marked_scope_exit() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[S_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           %[[S_1:.*]] = quake.s %[[SCOPE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// The marker is a boundary, not a request to disable optimization. Rotations
+// wholly inside the marked scope still combine.
+func.func @phases_fold_inside_marked_scope() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %scope = cc.scope -> (!quake.wire) {
+    %before = quake.s %target : (!quake.wire) -> !quake.wire
+    %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %after = quake.s %cx1#1 : (!quake.wire) -> !quake.wire
+    cc.continue %after : !quake.wire
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @phases_fold_inside_marked_scope() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[Z_0:.*]] = quake.z %[[X_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[Z_0]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           return
+// CHECK:         }
+
+// A marked scope on a disjoint wire is not a global pass fence. The outside
+// target wire never crosses the scope, so its two S gates may still combine.
+func.func @disjoint_phases_fold_around_marked_scope() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %disjoint = quake.null_wire
+  %before = quake.s %target : (!quake.wire) -> !quake.wire
+  %cx0:2 = quake.x [%control] %before : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %scope = cc.scope -> (!quake.wire) {
+    %inside = quake.x %disjoint : (!quake.wire) -> !quake.wire
+    cc.continue %inside : !quake.wire
+  } {atomic_quantum_region}
+  %cx1:2 = quake.x [%cx0#0] %cx0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %after = quake.s %cx1#1 : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @disjoint_phases_fold_around_marked_scope() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[X_1:.*]] = quake.x %[[NULL_WIRE_2]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[X_1]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           %[[X_2:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[Z_0:.*]] = quake.z %[[X_2]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           return
+// CHECK:         }

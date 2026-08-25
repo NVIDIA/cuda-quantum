@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: 'CUDA-Q'
+message: 'If you use this software, please cite it as below.'
+authors:
+  - name: "The CUDA-Q development team"
+license: Apache-2.0
+license-url: "https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE"
+repository-code: "https://github.com/NVIDIA/cuda-quantum"
+type: software
+url: "https://github.com/NVIDIA/cuda-quantum"
+# doi: 

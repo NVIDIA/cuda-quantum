@@ -1,0 +1,328 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Tests for the ctrl-closure wrapper approach introduced for quake.apply with
+// controls.  Instead of mutating the callable's type outward, the control refs
+// are captured alongside the original closure data in a new
+// cc.instantiate_callable.  A generated wrapper thunk unpacks them, builds the
+// veq, and calls the ctrl variant of the inner (lifted) function directly.
+//
+// Test 1  – indirect callable (lambda thunk) with a single ref control.
+// Test 2  – direct callee (named symbol) with a single ref control.
+// Test 3  – constant propagation: closure data contains an arith.constant.
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s | \
+// RUN:   FileCheck --check-prefix=CPROP %s
+
+// ---------------------------------------------------------------------------
+// Test 1: indirect callable with controls.
+//
+//   %lambda = cc.instantiate_callable @thunk(%angle)
+//   quake.apply %lambda [%ctrl] (%q)
+//
+// The ctrl-closure wrapper captures (%angle, %ctrl_ref) and calls
+// @lifted.ctrl(%veq, %angle, %q) — no type change on the callable.
+// ---------------------------------------------------------------------------
+
+func.func private @lifted(%angle: f64, %q: !quake.veq<?>) {
+  quake.ry (%angle) %q : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+func.func private @thunk(%self: !cc.callable<(!quake.veq<?>) -> ()>,
+                          %q: !quake.veq<?>) {
+  %0 = cc.callable_closure %self : (!cc.callable<(!quake.veq<?>) -> ()>) -> f64
+  call @lifted(%0, %q) : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+func.func @test_indirect_ctrl(%ctrl: !quake.ref, %q: !quake.veq<?>,
+                               %angle: f64) {
+  %lambda = cc.instantiate_callable @thunk(%angle)
+      : (f64) -> !cc.callable<(!quake.veq<?>) -> ()>
+  quake.apply %lambda [%ctrl] (%q) : (!quake.ref, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func private @lifted_cp.ctrl(
+// CHECK-SAME:    %{{.*}}: !quake.veq<?>, %{{.*}}: f64, %{{.*}}: !quake.veq<?>) {
+// CHECK:         quake.ry (%{{.*}}) [%{{.*}}] %{{.*}} :
+// CHECK:       }
+
+// CHECK-LABEL: func.func private @lifted.ctrl(
+// CHECK-SAME:    %[[CTRLS:.*]]: !quake.veq<?>, %[[ANGLE:.*]]: f64,
+// CHECK-SAME:    %[[Q:.*]]: !quake.veq<?>) {
+// CHECK:         quake.ry (%[[ANGLE]]) [%[[CTRLS]]] %[[Q]] :
+// CHECK:         return
+// CHECK:       }
+
+// CHECK-LABEL: func.func private @kernel.ctrl(
+// CHECK-SAME:    %[[CTRLS:.*]]: !quake.veq<?>, %[[Q:.*]]: !quake.veq<?>,
+// CHECK-SAME:    %[[ANGLE:.*]]: f64) {
+// CHECK:         quake.ry (%[[ANGLE]]) [%[[CTRLS]]] %[[Q]] :
+// CHECK:         return
+// CHECK:       }
+
+// Call site: closure captures (angle, ctrl_ref); callable type is unchanged.
+// CHECK-LABEL: func.func @test_indirect_ctrl(
+// CHECK-SAME:    %[[CTRL:.*]]: !quake.ref, %[[Q:.*]]: !quake.veq<?>,
+// CHECK-SAME:    %[[ANGLE:.*]]: f64) {
+// CHECK:         %[[NEW_CALLABLE:.*]] = cc.instantiate_callable @thunk.ctrl_closurer(%[[ANGLE]], %[[CTRL]])
+// CHECK-SAME:      : (f64, !quake.ref) -> !cc.callable<(!quake.veq<?>) -> ()>
+// CHECK:         call @thunk.ctrl_closurer(%[[NEW_CALLABLE]], %[[Q]])
+// CHECK-SAME:      : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CHECK:         return
+// CHECK:       }
+
+// ---------------------------------------------------------------------------
+// Test 2: direct callee (named symbol) with controls.
+//
+//   quake.apply @kernel [%ctrl] (%q, %angle)
+//
+// The ctrl-closure wrapper captures only %ctrl_ref (no original closure data)
+// and calls @kernel.ctrl(%veq, %q, %angle).
+// ---------------------------------------------------------------------------
+
+func.func @kernel(%q: !quake.veq<?>, %angle: f64) {
+  quake.ry (%angle) %q : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+func.func @test_direct_ctrl(%ctrl: !quake.ref, %q: !quake.veq<?>,
+                             %angle: f64) {
+  quake.apply @kernel [%ctrl] (%q, %angle) : (!quake.ref, !quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @test_direct_ctrl(
+// CHECK-SAME:    %[[CTRL:.*]]: !quake.ref, %[[Q:.*]]: !quake.veq<?>,
+// CHECK-SAME:    %[[ANGLE:.*]]: f64) {
+// CHECK:         %[[NEW_CALLABLE:.*]] = cc.instantiate_callable @kernel.ctrl_closurer(%[[CTRL]])
+// CHECK-SAME:      : (!quake.ref) -> !cc.callable<(!quake.veq<?>, f64) -> ()>
+// CHECK:         call @kernel.ctrl_closurer(%[[NEW_CALLABLE]], %[[Q]], %[[ANGLE]])
+// CHECK-SAME:      : (!cc.callable<(!quake.veq<?>, f64) -> ()>, !quake.veq<?>, f64) -> ()
+// CHECK:         return
+// CHECK:       }
+
+// Wrapper for direct callee: closure is just the ctrl ref (no original data).
+// CHECK-LABEL: func.func private @kernel.ctrl_closurer(
+// CHECK-SAME:    %[[SELF:.*]]: !cc.callable<(!quake.veq<?>, f64) -> ()>,
+// CHECK-SAME:    %[[Q:.*]]: !quake.veq<?>, %[[ANGLE:.*]]: f64) {
+// CHECK:         %[[CREF:.*]] = cc.callable_closure %[[SELF]]
+// CHECK-SAME:      : (!cc.callable<(!quake.veq<?>, f64) -> ()>) -> !quake.ref
+// CHECK:         %[[VEQ:.*]] = quake.concat %[[CREF]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:         call @kernel.ctrl(%[[VEQ]], %[[Q]], %[[ANGLE]])
+// CHECK-SAME:      : (!quake.veq<?>, !quake.veq<?>, f64) -> ()
+// CHECK:         return
+// CHECK:       }
+
+// The wrapper thunk: captures (f64 angle, !quake.ref ctrl_ref) in its closure.
+// External callable type is !cc.callable<(!quake.veq<?>) -> ()> — unchanged.
+// @thunk is itself self-referential (its own closure carries the angle), so
+// the wrapper does not call @lifted.ctrl directly: it rebuilds a self
+// instantiation of @thunk.ctrl carrying the angle and calls @thunk.ctrl,
+// which unpacks that same angle itself before forwarding to @lifted.ctrl.
+// CHECK-LABEL: func.func private @thunk.ctrl_closurer(
+// CHECK-SAME:    %[[SELF:.*]]: !cc.callable<(!quake.veq<?>) -> ()>,
+// CHECK-SAME:    %[[Q:.*]]: !quake.veq<?>) {
+// CHECK:         %[[UNPACK:.*]]:2 = cc.callable_closure %[[SELF]]
+// CHECK-SAME:      : (!cc.callable<(!quake.veq<?>) -> ()>) -> (f64, !quake.ref)
+// CHECK:         %[[VEQ:.*]] = quake.concat %[[UNPACK]]#1 : (!quake.ref) -> !quake.veq<?>
+// CHECK:         %[[INNER_SELF:.*]] = cc.instantiate_callable @thunk.ctrl(%[[UNPACK]]#0)
+// CHECK-SAME:      : (f64) -> !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>
+// CHECK:         call @thunk.ctrl(%[[VEQ]], %[[INNER_SELF]], %[[Q]])
+// CHECK-SAME:      : (!quake.veq<?>, !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CHECK:         return
+// CHECK:       }
+
+// ---------------------------------------------------------------------------
+// Test 3: constant propagation — closure data contains an arith.constant.
+//
+//   %cst = arith.constant 1.5
+//   %lambda = cc.instantiate_callable @thunk_cp(%cst)
+//   quake.apply %lambda [%ctrl] (%q)
+//
+// @thunk_cp is self-referential, so — as in Test 1 — the outer apply becomes
+// a call through @thunk_cp.ctrl_closurer, which rebuilds a self instantiation
+// of @thunk_cp.ctrl carrying the angle. With constant-prop=1, that angle
+// (found in the self-referential closure data, not a flat argument) is
+// baked directly into a secondary-indexed clone @thunk_cp.ctrl.0, which the
+// wrapper then targets instead of @thunk_cp.ctrl. The external callable type
+// and the call site args are unchanged.
+// ---------------------------------------------------------------------------
+
+func.func private @lifted_cp(%angle: f64, %q: !quake.veq<?>) {
+  quake.ry (%angle) %q : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+func.func private @thunk_cp(%self: !cc.callable<(!quake.veq<?>) -> ()>,
+                              %q: !quake.veq<?>) {
+  %0 = cc.callable_closure %self : (!cc.callable<(!quake.veq<?>) -> ()>) -> f64
+  call @lifted_cp(%0, %q) : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+func.func @test_const_prop(%ctrl: !quake.ref, %q: !quake.veq<?>) {
+  %cst = arith.constant 1.500000e+00 : f64
+  %lambda = cc.instantiate_callable @thunk_cp(%cst)
+      : (f64) -> !cc.callable<(!quake.veq<?>) -> ()>
+  quake.apply %lambda [%ctrl] (%q) : (!quake.ref, !quake.veq<?>) -> ()
+  return
+}
+
+// CPROP-LABEL:   func.func private @lifted_cp.ctrl(
+// CPROP:           quake.ry (%
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @lifted.ctrl(
+// CPROP:           quake.ry (%
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @thunk_cp.ctrl(
+// CPROP-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// CPROP-SAME:      %[[ARG1:.*]]: !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG2:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG1]] : (!cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>) -> f64
+// CPROP:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @lifted_cp.ctrl_closurev(%[[ARG0]]) : (!quake.veq<?>) -> !cc.callable<(f64, !quake.veq<?>) -> ()>
+// CPROP:           call @lifted_cp.ctrl_closurev(%[[INSTANTIATE_CALLABLE_0]], %[[CALLABLE_CLOSURE_0]], %[[ARG2]]) : (!cc.callable<(f64, !quake.veq<?>) -> ()>, f64, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @kernel.ctrl(
+// CPROP:           quake.ry (%
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @thunk.ctrl(
+// CPROP-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// CPROP-SAME:      %[[ARG1:.*]]: !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG2:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG1]] : (!cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>) -> f64
+// CPROP:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @lifted.ctrl_closurev(%[[ARG0]]) : (!quake.veq<?>) -> !cc.callable<(f64, !quake.veq<?>) -> ()>
+// CPROP:           call @lifted.ctrl_closurev(%[[INSTANTIATE_CALLABLE_0]], %[[CALLABLE_CLOSURE_0]], %[[ARG2]]) : (!cc.callable<(f64, !quake.veq<?>) -> ()>, f64, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @lifted(
+// CPROP:           quake.ry (%
+
+// CPROP-LABEL:   func.func private @thunk(
+// CPROP-SAME:      %[[ARG0:.*]]: !cc.callable<(!quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG1:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG0]] : (!cc.callable<(!quake.veq<?>) -> ()>) -> f64
+// CPROP:           call @lifted(%[[CALLABLE_CLOSURE_0]], %[[ARG1]]) : (f64, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func @test_indirect_ctrl(
+// CPROP-SAME:      %[[ARG0:.*]]: !quake.ref,
+// CPROP-SAME:      %[[ARG1:.*]]: !quake.veq<?>,
+// CPROP-SAME:      %[[ARG2:.*]]: f64) {
+// CPROP:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @thunk.ctrl_closurer(%[[ARG2]], %[[ARG0]]) : (f64, !quake.ref) -> !cc.callable<(!quake.veq<?>) -> ()>
+// CPROP:           call @thunk.ctrl_closurer(%[[INSTANTIATE_CALLABLE_0]], %[[ARG1]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func @kernel(
+// CPROP:           quake.ry (%
+
+// CPROP-LABEL:   func.func @test_direct_ctrl(
+// CPROP-SAME:      %[[ARG0:.*]]: !quake.ref, %[[ARG1:.*]]: !quake.veq<?>,
+// CPROP-SAME:      %[[ARG2:.*]]: f64) {
+// CPROP:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @kernel.ctrl_closurer(%[[ARG0]]) : (!quake.ref) -> !cc.callable<(!quake.veq<?>, f64) -> ()>
+// CPROP:           call @kernel.ctrl_closurer(%[[INSTANTIATE_CALLABLE_0]], %[[ARG1]], %[[ARG2]]) : (!cc.callable<(!quake.veq<?>, f64) -> ()>, !quake.veq<?>, f64) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @lifted_cp(
+// CPROP:           quake.ry (
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @thunk_cp(
+// CPROP-SAME:      %[[ARG0:.*]]: !cc.callable<(!quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG1:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG0]] : (!cc.callable<(!quake.veq<?>) -> ()>) -> f64
+// CPROP:           call @lifted_cp(%[[CALLABLE_CLOSURE_0]], %[[ARG1]]) : (f64, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func @test_const_prop(
+// CPROP-SAME:      %[[ARG0:.*]]: !quake.ref,
+// CPROP-SAME:      %[[ARG1:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CONSTANT_0:.*]] = arith.constant 1.500000e+00 : f64
+// CPROP:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @thunk_cp.ctrl_closurer(%[[CONSTANT_0]], %[[ARG0]]) : (f64, !quake.ref) -> !cc.callable<(!quake.veq<?>) -> ()>
+// CPROP:           call @thunk_cp.ctrl_closurer(%[[INSTANTIATE_CALLABLE_0]], %[[ARG1]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// Self-referential closure data (the angle) is not a flat argument, so its
+// constant is baked directly into a specialized clone of @thunk_cp.ctrl —
+// not into @lifted_cp.ctrl — which the wrapper below then targets instead.
+// CPROP-LABEL:   func.func private @thunk_cp.ctrl.0(
+// CPROP-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// CPROP-SAME:      %[[ARG1:.*]]: !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG2:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CONSTANT_0:.*]] = arith.constant 1.500000e+00 : f64
+// CPROP:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @lifted_cp.ctrl_closurev(%[[ARG0]]) : (!quake.veq<?>) -> !cc.callable<(f64, !quake.veq<?>) -> ()>
+// CPROP:           call @lifted_cp.ctrl_closurev(%[[INSTANTIATE_CALLABLE_0]], %[[CONSTANT_0]], %[[ARG2]]) : (!cc.callable<(f64, !quake.veq<?>) -> ()>, f64, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @thunk_cp.ctrl_closurer(
+// CPROP-SAME:      %[[ARG0:.*]]: !cc.callable<(!quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG1:.*]]: !quake.veq<?>) {
+// CPROP:           %[[UNPACK:.*]]:2 = cc.callable_closure %[[ARG0]] : (!cc.callable<(!quake.veq<?>) -> ()>) -> (f64, !quake.ref)
+// CPROP:           %[[CONCAT_0:.*]] = quake.concat %[[UNPACK]]#1 : (!quake.ref) -> !quake.veq<?>
+// CPROP:           %[[INNER_SELF:.*]] = cc.instantiate_callable @thunk_cp.ctrl.0(%[[UNPACK]]#0) : (f64) -> !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>
+// CPROP:           call @thunk_cp.ctrl.0(%[[CONCAT_0]], %[[INNER_SELF]], %[[ARG1]]) : (!quake.veq<?>, !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @kernel.ctrl_closurer(
+// CPROP-SAME:      %[[ARG0:.*]]: !cc.callable<(!quake.veq<?>, f64) -> ()>,
+// CPROP-SAME:      %[[ARG1:.*]]: !quake.veq<?>,
+// CPROP-SAME:      %[[ARG2:.*]]: f64) {
+// CPROP:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG0]] : (!cc.callable<(!quake.veq<?>, f64) -> ()>) -> !quake.ref
+// CPROP:           %[[CONCAT_0:.*]] = quake.concat %[[CALLABLE_CLOSURE_0]] : (!quake.ref) -> !quake.veq<?>
+// CPROP:           call @kernel.ctrl(%[[CONCAT_0]], %[[ARG1]], %[[ARG2]]) : (!quake.veq<?>, !quake.veq<?>, f64) -> ()
+
+// CPROP-LABEL:   func.func private @thunk.ctrl_closurer(
+// CPROP-SAME:      %[[ARG0:.*]]: !cc.callable<(!quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG1:.*]]: !quake.veq<?>) {
+// CPROP:           %[[UNPACK:.*]]:2 = cc.callable_closure %[[ARG0]] : (!cc.callable<(!quake.veq<?>) -> ()>) -> (f64, !quake.ref)
+// CPROP:           %[[CONCAT_0:.*]] = quake.concat %[[UNPACK]]#1 : (!quake.ref) -> !quake.veq<?>
+// CPROP:           %[[INNER_SELF:.*]] = cc.instantiate_callable @thunk.ctrl(%[[UNPACK]]#0) : (f64) -> !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>
+// CPROP:           call @thunk.ctrl(%[[CONCAT_0]], %[[INNER_SELF]], %[[ARG1]]) : (!quake.veq<?>, !cc.callable<(!quake.veq<?>, !quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @lifted.ctrl_closurev(
+// CPROP-SAME:      %[[ARG0:.*]]: !cc.callable<(f64, !quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG1:.*]]: f64,
+// CPROP-SAME:      %[[ARG2:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG0]] : (!cc.callable<(f64, !quake.veq<?>) -> ()>) -> !quake.veq<?>
+// CPROP:           %[[CONCAT_0:.*]] = quake.concat %[[CALLABLE_CLOSURE_0]] : (!quake.veq<?>) -> !quake.veq<?>
+// CPROP:           call @lifted.ctrl(%[[CONCAT_0]], %[[ARG1]], %[[ARG2]]) : (!quake.veq<?>, f64, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+
+// CPROP-LABEL:   func.func private @lifted_cp.ctrl_closurev(
+// CPROP-SAME:      %[[ARG0:.*]]: !cc.callable<(f64, !quake.veq<?>) -> ()>,
+// CPROP-SAME:      %[[ARG1:.*]]: f64,
+// CPROP-SAME:      %[[ARG2:.*]]: !quake.veq<?>) {
+// CPROP:           %[[CALLABLE_CLOSURE_0:.*]] = cc.callable_closure %[[ARG0]] : (!cc.callable<(f64, !quake.veq<?>) -> ()>) -> !quake.veq<?>
+// CPROP:           %[[CONCAT_0:.*]] = quake.concat %[[CALLABLE_CLOSURE_0]] : (!quake.veq<?>) -> !quake.veq<?>
+// CPROP:           call @lifted_cp.ctrl(%[[CONCAT_0]], %[[ARG1]], %[[ARG2]]) : (!quake.veq<?>, f64, !quake.veq<?>) -> ()
+// CPROP:           return
+// CPROP:         }
+

@@ -1,0 +1,43 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s | cudaq-translate | FileCheck %s
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_fancyCnot._Z9fancyCnotRN5cudaq5quditILm2EEES2_ = "_Z9fancyCnotRN5cudaq5quditILm2EEES2_", __nvqpp__mlirgen__function_toffoli._Z7toffoliv = "_Z7toffoliv"}} {
+  func.func private @__nvqpp__mlirgen__function_fancyCnot._Z9fancyCnotRN5cudaq5quditILm2EEES2_.ctrl(%arg0: !quake.veq<?>, %arg1: !quake.ref, %arg2: !quake.ref) {
+    quake.x [%arg0, %arg1] %arg2 : (!quake.veq<?>, !quake.ref, !quake.ref) -> ()
+    return
+  }
+  func.func @__nvqpp__mlirgen__function_toffoli._Z7toffoliv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %0 = quake.alloca !quake.veq<3>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+    %2 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+    %4 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+    %5 = quake.concat %1 : (!quake.ref) -> !quake.veq<?>
+    call @__nvqpp__mlirgen__function_fancyCnot._Z9fancyCnotRN5cudaq5quditILm2EEES2_.ctrl(%5, %3, %4) : (!quake.veq<?>, !quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__function_toffoli
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
+// CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_0]])
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_0]], ptr %[[VAL_1]], ptr %[[VAL_2]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_0]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_1]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_2]])
+// CHECK:         ret void
+// CHECK:       }
+
+
