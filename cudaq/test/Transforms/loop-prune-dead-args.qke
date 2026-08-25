@@ -1,0 +1,70 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-prune-dead-args %s | FileCheck %s
+
+// Slot 0 is carried around the loop and never read. The body computes it from
+// the loop's own induction value, which is what makes the loop unreversible.
+// The pass drops the slot and the arithmetic that fed it.
+
+func.func @dead_slot(%n: i32, %q: !quake.veq<?>) {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  %u = cc.undef i32
+  %0:2 = cc.loop while ((%arg0 = %u, %arg1 = %c0) -> (i32, i32)) {
+    %c = arith.cmpi slt, %arg1, %n : i32
+    cc.condition %c(%arg0, %arg1 : i32, i32)
+  } do {
+  ^bb0(%arg0: i32, %arg1: i32):
+    %i = cc.cast signed %arg1 : (i32) -> i64
+    %r = quake.extract_ref %q[%i] : (!quake.veq<?>, i64) -> !quake.ref
+    quake.h %r : (!quake.ref) -> ()
+    %v = arith.addi %arg1, %c1 : i32
+    cc.continue %v, %arg1 : i32, i32
+  } step {
+  ^bb0(%arg0: i32, %arg1: i32):
+    %s = arith.addi %arg1, %c1 : i32
+    cc.continue %arg0, %s : i32, i32
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @dead_slot(
+// CHECK-NOT:       cc.undef
+// CHECK:           cc.loop while ((%[[IV:.*]] = %{{.*}}) -> (i32)) {
+// CHECK:             cc.condition %{{.*}}(%[[IV]] : i32)
+// CHECK:           } do {
+// CHECK:             quake.h
+// CHECK:             cc.continue %{{.*}} : i32
+// CHECK:           } step {
+// CHECK:           }
+
+// A slot the code below the loop reads is left alone.
+
+func.func @live_slot(%n: i32, %q: !quake.veq<?>) -> i32 {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  %u = cc.undef i32
+  %0:2 = cc.loop while ((%arg0 = %u, %arg1 = %c0) -> (i32, i32)) {
+    %c = arith.cmpi slt, %arg1, %n : i32
+    cc.condition %c(%arg0, %arg1 : i32, i32)
+  } do {
+  ^bb0(%arg0: i32, %arg1: i32):
+    %v = arith.addi %arg1, %c1 : i32
+    cc.continue %v, %arg1 : i32, i32
+  } step {
+  ^bb0(%arg0: i32, %arg1: i32):
+    %s = arith.addi %arg1, %c1 : i32
+    cc.continue %arg0, %s : i32, i32
+  }
+  return %0#0 : i32
+}
+
+// CHECK-LABEL:   func.func @live_slot(
+// CHECK:             %[[ADDI:.*]] = arith.addi
+// CHECK:             cc.continue %[[ADDI]], %{{.*}} : i32, i32

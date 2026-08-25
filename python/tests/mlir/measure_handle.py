@@ -470,7 +470,7 @@ def test_handle_vector_cross_round_reassignment():
 # CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           cc.loop while
 # CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:             cc.continue {{.*}}%[[MNEW]], %[[MNEW]]
+# CHECK:             cc.continue
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 

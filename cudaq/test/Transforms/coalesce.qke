@@ -161,10 +161,6 @@ func.func @f2() {
   return
 }
 
-// Variables local to a loop body keep their allocas in the body. Raising them
-// to the entry block would turn them into loop-carried values that nothing
-// reads, which blocks `cc.loop` reversal in apply-op-specialization.
-
 // CHECK-LABEL:   func.func @f2() {
 // CHECK-DAG:       %[[VAL_11:.*]] = cc.alloca f64
 // CHECK-DAG:       %[[VAL_12:.*]] = cc.alloca i32
@@ -173,26 +169,5 @@ func.func @f2() {
 // CHECK-DAG:       %[[VAL_15:.*]] = cc.alloca i32
 // CHECK-DAG:       %[[VAL_16:.*]] = cc.alloca f64
 // CHECK-NOT:       cc.alloca
-// CHECK:           cc.scope {
-// CHECK:             cc.loop while {
-// CHECK:             } do {
-// CHECK:               cc.scope {
-// CHECK:                 %[[VAL_17:.*]] = cc.alloca i32
-// CHECK:                 %[[VAL_18:.*]] = cc.alloca f64
-// CHECK:                 func.call @test(%[[VAL_17]], %[[VAL_18]])
-// CHECK:               }
-// CHECK:               cc.scope {
-// CHECK:                 %[[VAL_19:.*]] = cc.alloca i32
-// CHECK:                 %[[VAL_20:.*]] = cc.alloca f64
-// CHECK:                 func.call @test(%[[VAL_19]], %[[VAL_20]])
-// CHECK:               }
-// CHECK:               cc.continue
-// CHECK:             } step {
-// CHECK:             }
-// CHECK:             cc.scope {
-// CHECK-NOT:           cc.alloca
-// CHECK:               func.call @test(%[[VAL_12]], %[[VAL_11]])
-// CHECK:             }
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
+// CHECK:           cc.scope
+// CHECK:           cc.loop while

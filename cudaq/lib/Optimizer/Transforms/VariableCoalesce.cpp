@@ -23,22 +23,6 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-/// A variable allocated inside a loop gets fresh storage on each iteration.
-/// Raising it to the entry block replaces that with a single slot that
-/// persists across iterations, which forces `memtoreg` to thread the variable
-/// around the loop as a loop-carried value whether or not anything reads it.
-/// Dead values like those defeat `cc.loop` reversal in the
-/// apply-op-specialization pass, so such a variable is left where it is.
-static bool isNestedInLoop(Operation *op) {
-  for (auto *p = op->getParentOp(); p; p = p->getParentOp()) {
-    if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp, ModuleOp>(p))
-      break;
-    if (isa<cudaq::cc::LoopOp>(p))
-      return true;
-  }
-  return false;
-}
-
 struct AllocationAnalysis {
   explicit AllocationAnalysis(Operation *op, bool hoistOnly)
       : hoistOnly(hoistOnly) {
@@ -88,8 +72,6 @@ private:
         return WalkResult::advance();
       auto *parent = alloc->getParentOp();
       if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(parent))
-        return WalkResult::advance();
-      if (isNestedInLoop(alloc))
         return WalkResult::advance();
       if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(parent)) {
         varsToMove.insert(alloc);

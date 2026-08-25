@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --pass-pipeline='builtin.module(func.func(variable-coalesce,canonicalize,memtoreg{classical=1 quantum=0},canonicalize,cc-loop-normalize,cc-loop-induction-fusion),apply-op-specialization)' %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(func.func(variable-coalesce,canonicalize,memtoreg{classical=1 quantum=0},canonicalize,cc-loop-prune-dead-args,cc-loop-normalize,cc-loop-induction-fusion),apply-op-specialization)' %s | FileCheck %s
 
 // Regression test for issue #5223. Taking the adjoint of a kernel with a nested
 // loop. The inner loop's induction variable `j` is local to the outer loop's
@@ -90,10 +90,10 @@ func.func @entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   return
 }
 
-// The reversed body runs `r1` before `h`, and the forward loops each carry a
-// single iteration argument (the induction variable). A `j` raised to the
-// entry block would show up here as a second, unread iteration argument on both
-// loops, and reversal would fail outright.
+// The reversed body runs `r1` before `h`. `j` and `angle` are allocated in the
+// entry block, so both loops carry them as iteration arguments that nothing
+// reads. `cc-loop-prune-dead-args` drops those slots, leaving each loop with
+// just its induction variable, and that is what makes the loops reversible.
 
 // CHECK-LABEL:   func.func private @qft.adj(
 // CHECK:           cc.loop while
@@ -102,6 +102,7 @@ func.func @entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:             quake.h
 
 // CHECK-LABEL:   func.func @qft(
+// CHECK-NOT:       cc.undef
 // CHECK:           cc.loop while ((%[[I:.*]] = %{{.*}}) -> (i32)) {
 // CHECK:             quake.h
 // CHECK:             cc.loop while ((%[[J:.*]] = %{{.*}}) -> (i32)) {
