@@ -297,9 +297,8 @@ public:
         // fall back to a unique file in the system temporary directory.
         RestClient client;
         auto headers = getHeaders();
-        const auto response = client.getRawText(backendConfig["url"],
-                                                "/v1/config/qubits", headers);
-        const std::string qpuConfig = response;
+        const auto qpuConfig = client.getRawText(
+            backendConfig["url"], "/v1/config/qubits", headers);
         CUDAQ_INFO("Updated configuration: {}", qpuConfig);
 
         try {
