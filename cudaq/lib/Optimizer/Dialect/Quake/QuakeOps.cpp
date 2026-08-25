@@ -171,6 +171,29 @@ ValueRange cudaq::quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
 }
 
+/// Collect the quantum operands that may thread a wire, controls before
+/// targets, together with the wire results they map onto.
+static std::optional<cudaq::quake::detail::ScalarWireFlow>
+getWireFlowOperands(Operation *operation) {
+  cudaq::quake::detail::ScalarWireFlow flow;
+  if (auto quantumOperator =
+          dyn_cast<cudaq::quake::OperatorInterface>(operation)) {
+    llvm::append_range(flow.inputs, quantumOperator.getControls());
+    llvm::append_range(flow.inputs, quantumOperator.getTargets());
+    llvm::append_range(flow.results, quantumOperator.getWires());
+  } else if (auto measurement =
+                 dyn_cast<cudaq::quake::MeasurementInterface>(operation)) {
+    llvm::append_range(flow.inputs, measurement.getTargets());
+    llvm::append_range(flow.results, measurement.getWires());
+  } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(operation)) {
+    flow.inputs.push_back(reset.getTargets());
+    llvm::append_range(flow.results, reset.getWires());
+  } else {
+    return std::nullopt;
+  }
+  return flow;
+}
+
 std::optional<cudaq::quake::detail::ScalarWireFlow>
 cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
   if (operation->getNumRegions() != 0 || operation->getNumSuccessors() != 0)
@@ -178,27 +201,29 @@ cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
   if (!isMemoryEffectFree(operation))
     return std::nullopt;
 
-  ScalarWireFlow flow;
-  if (auto quantumOperator = dyn_cast<OperatorInterface>(operation)) {
-    llvm::append_range(flow.inputs, quantumOperator.getControls());
-    llvm::append_range(flow.inputs, quantumOperator.getTargets());
-    llvm::append_range(flow.results, quantumOperator.getWires());
-  } else if (auto measurement = dyn_cast<MeasurementInterface>(operation)) {
-    llvm::append_range(flow.inputs, measurement.getTargets());
-    llvm::append_range(flow.results, measurement.getWires());
-  } else if (auto reset = dyn_cast<ResetOp>(operation)) {
-    flow.inputs.push_back(reset.getTargets());
-    llvm::append_range(flow.results, reset.getWires());
-  } else {
+  auto flow = getWireFlowOperands(operation);
+  if (!flow)
     return std::nullopt;
-  }
 
   auto isScalarWire = [](Value value) {
     return isa<WireType>(value.getType());
   };
-  if (flow.inputs.size() != flow.results.size() ||
-      !llvm::all_of(flow.inputs, isScalarWire) ||
-      !llvm::all_of(flow.results, isScalarWire))
+  if (flow->inputs.size() != flow->results.size() ||
+      !llvm::all_of(flow->inputs, isScalarWire) ||
+      !llvm::all_of(flow->results, isScalarWire))
+    return std::nullopt;
+  return flow;
+}
+
+std::optional<cudaq::quake::detail::ScalarWireFlow>
+cudaq::quake::detail::getThreadedWireFlow(Operation *operation) {
+  auto flow = getWireFlowOperands(operation);
+  if (!flow)
+    return std::nullopt;
+
+  llvm::erase_if(flow->inputs,
+                 [](Value value) { return !isa<WireType>(value.getType()); });
+  if (flow->inputs.size() != flow->results.size())
     return std::nullopt;
   return flow;
 }

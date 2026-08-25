@@ -342,6 +342,97 @@ func.func @nested_loop_wire_alias(%arg0: i64, %arg1: i64) {
 // CANON:           return
 // CANON:         }
 
+// A dynamic extract is an aliasing barrier. The following fixed use imports
+// the outer ref into the physical entry block of a cc.scope. Since cc.scope has
+// NoRegionArguments, MemToReg must capture the promoted wire directly rather
+// than create an entry block argument.
+func.func @scope_entry_alias(%idx: i64) {
+  %r = quake.alloca !quake.ref
+  %v = quake.concat %r : (!quake.ref) -> !quake.veq<1>
+  quake.y %r : (!quake.ref) -> ()
+  cc.scope {
+    %q = quake.extract_ref %v[%idx] : (!quake.veq<1>, i64) -> !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    quake.x %r : (!quake.ref) -> ()
+    cc.continue
+  } {atomic_quantum_region}
+  quake.dealloc %r : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @scope_entry_alias(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[UNWRAP_0]] : (!quake.wire) -> !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.veq<1>
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[Y_0:.*]] = quake.y %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[Y_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<1>, i64) -> !quake.ref
+// CHECK:             %[[UNWRAP_2:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:             %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_3]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[X_0]] : !quake.wire
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           quake.sink %[[SCOPE_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// A cc.scope entry block cannot take arguments, but its internal CFG blocks
+// may. MemToReg must write the body's incoming wire back to the ref before the
+// dynamic extract, then thread the updated wire to the join block's fixed use.
+func.func @scope_internal_alias(%idx: i64) {
+  %c0 = arith.constant 0 : i64
+  %r = quake.alloca !quake.ref
+  %v = quake.concat %r : (!quake.ref) -> !quake.veq<1>
+  quake.y %r : (!quake.ref) -> ()
+  cc.scope {
+    %cond = arith.cmpi ugt, %idx, %c0 : i64
+    cf.cond_br %cond, ^exit, ^body
+  ^body:
+    %q = quake.extract_ref %v[%idx] : (!quake.veq<1>, i64) -> !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    quake.x %r : (!quake.ref) -> ()
+    cf.br ^exit
+  ^exit:
+    quake.z %r : (!quake.ref) -> ()
+    cc.continue
+  } {atomic_quantum_region}
+  quake.dealloc %r : !quake.ref
+  return
+}
+
+// CANON-LABEL:   func.func @scope_internal_alias(
+// CANON-SAME:      %[[ARG0:.*]]: i64) {
+// CANON:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CANON:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CANON:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]] : (!quake.ref) -> !quake.veq<1>
+// CANON:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CANON:           %[[Y_0:.*]] = quake.y %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CANON:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CANON:             %[[CMPI_0:.*]] = arith.cmpi ugt, %[[ARG0]], %[[CONSTANT_0]] : i64
+// CANON:             cf.cond_br %[[CMPI_0]], ^bb2(%[[Y_0]] : !quake.wire), ^bb1(%[[Y_0]] : !quake.wire)
+// CANON:           ^bb1(%[[VAL_0:.*]]: !quake.wire):
+// CANON:             quake.wrap %[[VAL_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CANON:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<1>, i64) -> !quake.ref
+// CANON:             %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CANON:             %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CANON:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CANON:             %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CANON:             %[[X_0:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CANON:             cf.br ^bb2(%[[X_0]] : !quake.wire)
+// CANON:           ^bb2(%[[VAL_1:.*]]: !quake.wire):
+// CANON:             %[[Z_0:.*]] = quake.z %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CANON:             cc.continue %[[Z_0]] : !quake.wire
+// CANON:           } {atomic_quantum_region}
+// CANON:           quake.sink %[[SCOPE_0]] : !quake.wire
+// CANON:           return
+// CANON:         }
+
 // Regression for a crash where a memAnalysis-eliminated (non-escaping)
 // alloca (%3, destined to become a null wire) was passed as a control
 // operand of a gate inside a dynamically-aliased loop. The pass must not

@@ -425,10 +425,15 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
-  if (options.emitResourceCounts) {
+  bool emitResourceCounts =
+      options.emitResourceCounts && target.supportResourceCounts;
+  if (emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (succeeded(result))
       resourceCounts = std::move(*result);
+  } else if (options.emitResourceCounts) {
+    CUDAQ_INFO(
+        "Skipping counting resources from IR as target does not support it.");
   }
 
   std::vector<std::size_t> mapping_reorder_idx;
@@ -510,7 +515,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  bool needJit = emulate || options.emitResourceCounts || options.emitJit;
+  bool needJit = emulate || emitResourceCounts || options.emitJit;
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
