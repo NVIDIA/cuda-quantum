@@ -1262,7 +1262,8 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
 
     - in non-`run` functions, measurements inside a scope, branch, or loop.
     - a mid-circuit measurement whose measured wire feeds a non-terminal user,
-      or any measurement-dependent (adaptive) control flow.
+      or measurement-dependent (adaptive) control flow, unless the function is
+      a `run` entry point with structured control flow.
     - loops with a multi-block body, a Python `else`, or a `break`.
     - quantum gates in a loop's condition or step region.
     - a scope inside structured control flow, or structured control flow inside
