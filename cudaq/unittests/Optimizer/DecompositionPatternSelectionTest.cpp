@@ -465,7 +465,11 @@ TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXToCZ) {
   std::vector<std::string> targetBasis{"h", "t", "z(1)"};
   auto selectedPatterns = selectPatterns(targetBasis);
 
-  std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ", "SwapToCX"};
+  // SwapToCX is selected once per registered source set: besides the plain
+  // swap entry, its single-control entry now also reaches this basis since
+  // x(2) decomposes through CCXToCCZ and CCZToCX.
+  std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ",
+                               "SwapToCX", "SwapToCX"};
   EXPECT_EQ(selectedPatterns, exp);
 }
 
