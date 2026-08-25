@@ -9,6 +9,9 @@
 // RUN: cudaq-opt \
 // RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
 // RUN:   | FileCheck --implicit-check-not=quake.phase %s
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
+// RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
 
 quake.wire_set @phys[3]
 
@@ -29,6 +32,20 @@ func.func @negative_wire_phase()
   return
 }
 
+func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %wire = quake.borrow_wire @phys[0] : !quake.wire
+  %forward = cc.scope -> (!quake.wire) {
+    %next = quake.h %wire : (!quake.wire) -> !quake.wire
+    cc.continue %next : !quake.wire
+  } {atomic_quantum_region}
+  %inverse = cc.scope -> (!quake.wire) {
+    %next = quake.h %forward : (!quake.wire) -> !quake.wire
+    cc.continue %next : !quake.wire
+  } {atomic_quantum_region}
+  quake.return_wire %inverse : !quake.wire
+  return
+}
+
 // CHECK-LABEL: llvm.func @negative_wire_phase()
 // CHECK: %[[R1_CTL:[a-zA-Z0-9_.$-]+]] = llvm.mlir.addressof @__quantum__qis__r1__ctl : !llvm.ptr
 // CHECK: %[[ONE:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(1 : i64) : i64
@@ -40,3 +57,23 @@ func.func @negative_wire_phase()
 // CHECK-NEXT: llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[ONE]], %[[ZERO]], %[[ONE]], %[[ONE]], %[[R1_CTL]], %[[THETA]], %[[CONTROL]], %[[TARGET]])
 // CHECK-NEXT: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
 // CHECK: llvm.return
+
+// CHECK-LABEL: llvm.func @atomic_wire_regions()
+// CHECK: llvm.call @__quantum__qis__h__body
+// CHECK-NEXT: llvm.call @__quantum__qis__h__body
+// CHECK: llvm.return
+
+// PIPELINE-NOT: convert-to-cfg
+// PIPELINE-NOT: stack-frame-prealloc
+// PIPELINE: verify-no-phase
+// PIPELINE-NEXT: convert-to-cfg-prep,
+// PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: convert-to-cfg
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: stack-frame-prealloc
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: canonicalize
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: wireset-to-profile-qir-prep,
