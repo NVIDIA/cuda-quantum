@@ -141,14 +141,16 @@ CUDAQ_TEST(DrawTester, skipsNonGateInstructions) {
   trace.appendMeasurement("mz", {{2, 2}});
   trace.appendInstruction("x", {}, {}, {{2, 2}});
 
-  const std::string expected_str =
-      "               \n"
-      "q0 : ──────────\n"
-      "               \n"
-      "q1 : ──────────\n"
-      "     ╭───╮╭───╮\n"
-      "q2 : ┤ h ├┤ x ├\n"
-      "     ╰───╯╰───╯\n";
+  // clang-format off
+  const std::string expected_str = R"(               
+q0 : ──────────
+               
+q1 : ──────────
+     ╭───╮╭───╮
+q2 : ┤ h ├┤ x ├
+     ╰───╯╰───╯
+)";
+  // clang-format on
 
   EXPECT_EQ(expected_str, cudaq::detail::draw(trace));
 }
