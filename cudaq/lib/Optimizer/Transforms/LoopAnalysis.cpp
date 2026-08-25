@@ -847,6 +847,19 @@ cudaq::opt::getSecondaryInductions(cudaq::cc::LoopOp loop,
     if (i == primaryIdx)
       continue;
 
+    // The else region runs once, on normal loop exit, so a value it recomputes
+    // has no closed form in terms of the primary. Only fuse `i` if the else
+    // region passes it through untouched.
+    if (loop.hasPythonElse()) {
+      Block &elseEntry = loop.getElseRegion().front();
+      if (i >= elseEntry.getNumArguments())
+        continue;
+      LoopRegionSite elseSite{&loop.getElseRegion(), /*isWhile=*/false};
+      Value carried = getCarriedValue(elseSite, i);
+      if (!carried || carried != elseEntry.getArgument(i))
+        continue;
+    }
+
     Value stepVal;
     bool isAdd = false;
     bool isPrimaryAlias = false;

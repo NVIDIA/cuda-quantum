@@ -360,8 +360,23 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
       iterationOpers[*components->induction] = nextIterCount;
       setIterationOpers(contBlock->getArguments());
     }
+    // The else region runs once, when the loop ends without a break, so it
+    // goes between the last iteration and the exit block. Break edges branch
+    // to endBlock directly, which is what skips it.
+    Block *exitTarget = endBlock;
+    if (loop.hasPythonElse()) {
+      rewriter.cloneRegionBefore(loop.getElseRegion(), endBlock);
+      exitTarget = insBlock->getNextNode();
+      for (Block *b = exitTarget; b != endBlock; b = b->getNextNode())
+        if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(b->getTerminator())) {
+          auto termOpers = cont.getOperands();
+          rewriter.setInsertionPoint(cont);
+          rewriter.replaceOpWithNewOp<cf::BranchOp>(cont, endBlock, termOpers);
+        }
+      rewriter.setInsertionPointToEnd(insBlock);
+    }
     [[maybe_unused]] auto lastBranch =
-        cf::BranchOp::create(rewriter, loc, endBlock, iterationOpers);
+        cf::BranchOp::create(rewriter, loc, exitTarget, iterationOpers);
     rewriter.replaceOp(loop, endBlock->getArguments());
 
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
