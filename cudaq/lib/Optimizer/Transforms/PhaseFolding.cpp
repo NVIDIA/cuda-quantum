@@ -17,7 +17,6 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/Passes.h"
-#include <cstdint>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_PHASEFOLDING
@@ -117,41 +116,31 @@ public:
 struct RotationGroup {
   SmallVector<cudaq::quake::OperatorInterface> rotations;
   Operation *anchor = nullptr;
-  std::int64_t namedQuarterTurns = 0;
+  int namedQuarterTurns = 0;
   bool hasDynamicRotation = false;
 };
 
 /// Deferred rotation groups for one subcircuit.
 using FoldPlan = SmallVector<RotationGroup>;
 
-static std::optional<std::int64_t>
-getQuarterPiUnits(cudaq::quake::OperatorInterface rotation) {
-  auto *op = rotation.getOperation();
-  if (isa<cudaq::quake::ZOp>(op))
-    return 4;
-  if (isa<cudaq::quake::SOp>(op))
-    return rotation.isAdj() ? -2 : 2;
-  if (isa<cudaq::quake::TOp>(op))
-    return rotation.isAdj() ? -1 : 1;
-  return std::nullopt;
-}
-
-static unsigned normalizeQuarterTurns(std::int64_t units) {
-  auto normalized = units % 8;
-  if (normalized < 0)
-    normalized += 8;
-  return normalized;
-}
-
-static std::int64_t getSignedQuarterTurns(std::int64_t units) {
-  auto normalized = normalizeQuarterTurns(units);
-  return normalized > 4 ? normalized - 8 : normalized;
-}
-
 class PhaseStorage {
   DenseMap<PhaseKey, unsigned, PhaseKeyInfo> phaseToGroup;
   SmallVector<RotationGroup> groups;
   DominanceInfo &domInfo;
+
+  // Returns the angle of a named Z-axis gate as a multiple of pi/4 (mod 8),
+  // or nullopt for quake.rz (angle not statically known as a named gate).
+  static std::optional<int>
+  getQuarterPiUnits(cudaq::quake::OperatorInterface rotation) {
+    auto *op = rotation.getOperation();
+    if (isa<cudaq::quake::ZOp>(op))
+      return 4;
+    if (isa<cudaq::quake::SOp>(op))
+      return rotation.isAdj() ? 6 : 2;
+    if (isa<cudaq::quake::TOp>(op))
+      return rotation.isAdj() ? 7 : 1;
+    return std::nullopt;
+  }
 
   bool canUseRotationAt(cudaq::quake::OperatorInterface rotation,
                         Operation *insertionPoint) {
@@ -214,14 +203,13 @@ public:
 
     group.rotations.push_back(rotation);
     if (quarterTurns)
-      group.namedQuarterTurns += *quarterTurns;
+      group.namedQuarterTurns = (group.namedQuarterTurns + *quarterTurns) & 7;
     else
       group.hasDynamicRotation = true;
 
     // End exact named-gate cancellations here. A later rotation starts a new
     // group instead of materializing an unnecessary zero-angle sum.
-    if (!group.hasDynamicRotation &&
-        normalizeQuarterTurns(group.namedQuarterTurns) == 0)
+    if (!group.hasDynamicRotation && group.namedQuarterTurns == 0)
       phaseToGroup.erase(it);
   }
 
@@ -285,7 +273,9 @@ static Operation *createNamedRotation(OpBuilder &builder, Location loc,
 static Value materializeMixedAngle(OpBuilder &builder,
                                    const RotationGroup &group) {
   Value angle;
-  auto namedUnits = getSignedQuarterTurns(group.namedQuarterTurns);
+  auto namedUnits = group.namedQuarterTurns;
+  if (namedUnits > 4)
+    namedUnits -= 8;
   bool emittedNamedAngle = false;
 
   for (auto rotation : group.rotations) {
@@ -313,9 +303,6 @@ static Value materializeMixedAngle(OpBuilder &builder,
 }
 
 static void applyRotationGroup(RotationGroup &group) {
-  if (group.rotations.size() < 2)
-    return;
-
   auto anchor = cast<cudaq::quake::OperatorInterface>(group.anchor);
   OpBuilder builder(group.anchor);
   auto loc = group.anchor->getLoc();
@@ -328,8 +315,8 @@ static void applyRotationGroup(RotationGroup &group) {
         builder, loc, TypeRange{wireTy}, false, ValueRange{angle}, ValueRange{},
         ValueRange{wireIn}, {});
   } else {
-    replacement = createNamedRotation(
-        builder, loc, wireIn, normalizeQuarterTurns(group.namedQuarterTurns));
+    replacement =
+        createNamedRotation(builder, loc, wireIn, group.namedQuarterTurns);
   }
   Value replacementWire = replacement ? replacement->getResult(0) : wireIn;
   group.anchor->getResult(0).replaceAllUsesWith(replacementWire);
