@@ -45,11 +45,13 @@ struct CommutationAwareRewriteStatistics {
 /// branched.
 ///
 /// The search expects block-local linear-wire Quake. Candidate endpoints are
-/// use-def frontier heads on the anchor's own wires. Physical block order
-/// audits every intervening operation and selects the latest head when the
-/// frontier is split. A frontier head that the consumer declines must have a
+/// use-def frontier heads on the anchor's own wires. The search begins with a
+/// block-order scan, including the latest head when the frontier is split. Once
+/// analysis is required, it uses ordered per-qubit interaction streams when
+/// every anchor wire has a known identity. Otherwise it continues the
+/// block-order scan. A frontier head that the consumer declines must have a
 /// pairwise commutation proof with the anchor before the frontier advances.
-/// Every other intervening scalar-wire operation requires either that pairwise
+/// Every other enumerated scalar-wire operation requires either that pairwise
 /// proof or a disjoint-support proof. Fresh local identity sources may be
 /// crossed structurally because they cannot alias an existing logical qubit.
 /// Other identity boundaries require a disjoint-support proof.
