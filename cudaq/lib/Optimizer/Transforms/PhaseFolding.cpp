@@ -112,6 +112,8 @@ public:
   }
 };
 
+/// Compatible rotations and the original operation where their replacement
+/// can be materialized after analysis.
 struct RotationGroup {
   SmallVector<cudaq::quake::OperatorInterface> rotations;
   Operation *anchor = nullptr;
@@ -119,6 +121,7 @@ struct RotationGroup {
   bool hasDynamicRotation = false;
 };
 
+/// Deferred rotation groups for one subcircuit.
 using FoldPlan = SmallVector<RotationGroup>;
 
 static std::optional<std::int64_t>
