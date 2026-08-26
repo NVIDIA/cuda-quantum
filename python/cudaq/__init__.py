@@ -15,6 +15,39 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy
 
+# ============================================================================ #
+# Enable logging to match the CUDAQ_LOG_LEVEL environment variable.
+# ============================================================================ #
+if os.environ.get("CUDAQ_LOG_LEVEL", ""):
+    import logging
+    logger = logging.getLogger("cudaq")
+
+    level = os.environ["CUDAQ_LOG_LEVEL"].upper()
+    if level == "DEBUG":
+        logger.setLevel(logging.DEBUG)
+    elif level == "INFO":
+        logger.setLevel(logging.INFO)
+    elif level == "WARNING":
+        logger.setLevel(logging.WARNING)
+    elif level == "ERROR":
+        logger.setLevel(logging.ERROR)
+    else:
+        print(f"Unrecognized CUDAQ_LOG_LEVEL={level}, defaulting to INFO")
+        logger.setLevel(logging.INFO)
+
+    # Attach a console handler so CUDA-Q log messages are visible when run.
+    if not any(
+            isinstance(handler, logging.StreamHandler)
+            for handler in logger.handlers):
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(
+            logging.Formatter(
+                fmt=
+                "[%(asctime)s] [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            ))
+        logger.addHandler(console_handler)
+
 from ._metadata import cuda_major
 from ._packages import get_library_path
 
