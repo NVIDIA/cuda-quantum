@@ -67,6 +67,9 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
 
   const auto &backendConfig =
       targetConfig.BackendConfig.value_or(defaultConfig);
+  if (!backendConfig.AOTUnwindMode.empty())
+    target.pipelineConfig.aotUnwindMode = backendConfig.AOTUnwindMode;
+
   auto prepPipeline = [&](const std::string &stage,
                           const std::string &stageName) {
     std::string pipeline = stage;
@@ -128,5 +131,5 @@ std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
   return cudaq::detail::hashVal(
       pc.overridePassPipeline, pc.highLevelPipeline, pc.midLevelPipeline,
       pc.lowLevelPipeline, pc.codegenTranslation, pc.postCodeGenPasses,
-      pc.disableQubitMapping, pc.replaceStateWithKernel);
+      pc.aotUnwindMode, pc.disableQubitMapping, pc.replaceStateWithKernel);
 }

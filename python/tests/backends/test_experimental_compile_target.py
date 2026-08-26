@@ -218,6 +218,15 @@ def test_support_conditionals_on_measure_results():
 # ---------------------------------------------------------------------------- #
 
 
+def test_pipeline_config_aot_unwind_mode():
+    config = PipelineConfig()
+    assert config.aot_unwind_mode == "cfg"
+    config.aot_unwind_mode = "none"
+    assert config.aot_unwind_mode == "none"
+    set_compile_target(CompileTarget(config))
+    assert cudaq_runtime.get_aot_unwind_mode() == "none"
+
+
 def test_pipeline_config_equality_and_hash():
     a = PipelineConfig()
     b = PipelineConfig()

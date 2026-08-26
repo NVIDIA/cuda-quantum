@@ -44,6 +44,10 @@ struct CompileTarget {
     /// Optional pass pipeline to run after code generation.
     std::string postCodeGenPasses;
 
+    /// How the AOT pipeline handles unwind operations. The `none` mode causes
+    /// compilation to fail if unwind operations remain in the IR.
+    std::string aotUnwindMode = "cfg";
+
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
 

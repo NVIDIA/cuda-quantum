@@ -578,6 +578,7 @@ ENABLE_ARRAY_CONVERSION=true
 ENABLE_VARIABLE_COALESCE=true
 ENABLE_LEGACY_ADJOINT=false
 ENABLE_UNWIND_LOWERING=true
+AOT_UNWIND_MODE=cfg
 ENABLE_DEVICE_CODE_LOADER=true
 ENABLE_REALTIME_LOWERING=false
 ENABLE_KERNEL_EXECUTION=true
@@ -1029,8 +1030,21 @@ if ${ENABLE_VARIABLE_COALESCE}; then
 	OPT_PASSES="func.func(variable-coalesce)"
 fi
 if ${ENABLE_UNWIND_LOWERING}; then
-	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering)")
+	case "${AOT_UNWIND_MODE}" in
+	cfg)
+		RUN_OPT=true
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering)")
+		;;
+	dataflow)
+		RUN_OPT=true
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-by-dataflow)")
+		;;
+	none)
+		;;
+	*)
+		error_exit "Invalid AOT unwind mode: (${AOT_UNWIND_MODE})"
+		;;
+	esac
 fi
 if ${ENABLE_INJECT_IMPLICIT_OUTPUT}; then
 	RUN_OPT=true
@@ -1071,9 +1085,15 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 	fi
 fi
 if ${ENABLE_AGGRESSIVE_INLINE}; then
+	AGGRESSIVE_INLINE_OPTIONS=
+	# Do not let aggressive-inlining lower unwind operations after the AOT
+	# unwind stage deliberately left them in the IR.
+	if [[ "${AOT_UNWIND_MODE}" == "none" ]] || [[ "${ENABLE_UNWIND_LOWERING}" == "false" ]]; then
+		AGGRESSIVE_INLINE_OPTIONS="{lower-unwind=false}"
+	fi
 	RUN_OPT=true
 	if ${DO_LINK}; then
-		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-inlining")
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-inlining${AGGRESSIVE_INLINE_OPTIONS}")
 	else
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline")
 	fi

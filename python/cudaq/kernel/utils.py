@@ -45,6 +45,11 @@ boundaryDiagnostic = (
     "entry-point kernels must discriminate first")
 
 
+def getAOTPassPipeline():
+    mode = cudaq_runtime.get_aot_unwind_mode()
+    return f"builtin.module(aot-prep-pipeline{{unwind-mode={mode}}})"
+
+
 def containsMeasureHandle(ty, _seen=None):
     """Return True iff ``ty`` is ``!cc.measure_handle`` or transitively
     contains one. The walk stops at callable / function-type boundaries: a

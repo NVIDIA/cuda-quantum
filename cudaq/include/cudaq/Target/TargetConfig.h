@@ -105,6 +105,10 @@ struct BackendEndConfigEntry {
   std::string JITHighLevelPipeline;
   std::string JITMidLevelPipeline;
   std::string JITLowLevelPipeline;
+  /// How the AOT pipeline handles unwind operations: `cfg`, `dataflow`,
+  /// `none`. The `none` mode performs no unwind lowering, causing compilation
+  /// to fail if unwind operations remain in the IR.
+  std::string AOTUnwindMode;
   /// Exact cudaq-opt passes for pseudo-targets
   std::string TargetPassPipeline;
   /// Codegen emission configuration (hardware REST QPU)

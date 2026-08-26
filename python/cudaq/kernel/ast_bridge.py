@@ -34,7 +34,7 @@ from .kernel_signature import KernelSignature
 from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
-                    getMLIRContext, is_recovered_value_ok,
+                    getAOTPassPipeline, getMLIRContext, is_recovered_value_ok,
                     recover_annotation_of_or_none, recover_value_of_or_none,
                     cudaq__unique_attr_name, mlirTryCreateStructType)
 
@@ -6267,8 +6267,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     # The `cudaq.pipeline.aot` span is the marker tooling uses to identify
     # pass events as AOT-pipeline (paired with `cudaq.pipeline.jit` emitted
     # from `QPU.cpp` `lower_to_qir_llvm`).
-    pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
-                           context=bridge.ctx)
+    pm = PassManager.parse(getAOTPassPipeline(), context=bridge.ctx)
     try:
         with trace.span("cudaq.pipeline.aot"):
             cudaq_runtime.runPassManager(pm, bridge.module)

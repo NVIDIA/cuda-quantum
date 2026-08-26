@@ -35,7 +35,7 @@ SERVER_EXECUTION_PIPELINE = (
     "func.func("
     "memtoreg,canonicalize,cc-loop-normalize,"
     "cc-loop-unroll{maximum-iterations=1024 "
-    "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
+    "signal-failure-if-any-loop-cannot-be-completely-unrolled=false "
     "allow-early-exit=true},"
     "canonicalize"
     "),"
@@ -193,8 +193,9 @@ def verifyModule(module, stage):
 def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
     # The client/server contract is checked before this point. The client has
     # already run the target JIT pipeline through `wireset` assignment. For
-    # execution, the mock server fully unrolls the submitted value-semantic IR
-    # and lowers the `wireset` directly to QIR.
+    # execution, the mock server unrolls eligible value-semantic loops, lowers
+    # residual structured classical control flow, and lowers the `wireset`
+    # directly to QIR.
     pm = PassManager.parse(SERVER_EXECUTION_PIPELINE, context=ctx)
     try:
         pm.run(recovered_mod.operation)

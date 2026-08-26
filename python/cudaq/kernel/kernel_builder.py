@@ -34,10 +34,10 @@ from .common.givens import givens_builder
 from .kernel_decorator import DecoratorCapture, LinkedKernelCapture, isa_kernel_decorator
 from .quake_value import QuakeValue
 from .utils import (boundaryDiagnostic, containsMeasureHandle, emitFatalError,
-                    emitWarning, nvqppPrefix, getMLIRContext, recover_func_op,
-                    mlirTypeToPyType, cudaq__unique_attr_name,
-                    mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    globalRegisteredOperations)
+                    emitWarning, nvqppPrefix, getAOTPassPipeline,
+                    getMLIRContext, recover_func_op, mlirTypeToPyType,
+                    cudaq__unique_attr_name, mlirTypeFromPyType,
+                    emitErrorIfInvalidPauli, globalRegisteredOperations)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -1739,8 +1739,7 @@ class PyKernel(object):
         if not hasattr(self, 'qkeModule'):
             self.qkeModule = cudaq_runtime.cloneModule(self.module)
             ctx = getMLIRContext()
-            pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
-                                   context=ctx)
+            pm = PassManager.parse(getAOTPassPipeline(), context=ctx)
             try:
                 with trace.span("cudaq.pipeline.aot"):
                     cudaq_runtime.runPassManager(pm, self.qkeModule)

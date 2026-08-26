@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=dataflow})' %s 2>&1 | FileCheck %s --check-prefix=DATAFLOW
+// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=cfg})' %s 2>&1 | FileCheck %s --check-prefix=CFG
+// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=none})' %s 2>&1 | FileCheck %s --check-prefix=NONE
+// RUN: not cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=invalid})' %s 2>&1 | FileCheck %s --check-prefix=INVALID
+// RUN: not cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=none},lower-to-cfg)' %s 2>&1 | FileCheck %s --check-prefix=NONE-ERROR
+
+module {
+  func.func @early_return(%arg0: i1) -> i32 {
+    %c1 = arith.constant 1 : i32
+    cc.if(%arg0) {
+      cc.unwind_return %c1 : i32
+    }
+    %c0 = arith.constant 0 : i32
+    return %c0 : i32
+  }
+}
+
+// DATAFLOW: Pass Manager with 28 passes:
+// DATAFLOW: variable-coalesce
+// DATAFLOW: unwind-by-dataflow
+// DATAFLOW: canonicalize
+
+// CFG: Pass Manager with 28 passes:
+// CFG: variable-coalesce
+// CFG: unwind-lowering
+// CFG: canonicalize
+
+// NONE: Pass Manager with 26 passes:
+// NONE-NOT: unwind-lowering
+// NONE-NOT: unwind-by-dataflow
+// NONE: get-concrete-matrix
+
+
+// INVALID: Cannot find option named 'invalid'
+// NONE-ERROR: error: 'cc.unwind_return' op

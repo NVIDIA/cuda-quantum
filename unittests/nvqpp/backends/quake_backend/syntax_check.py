@@ -13,6 +13,10 @@ import cudaq
 
 cudaq.set_target("quake_fake")
 
+# The fake server recognizes the `syntax_check_` prefix and only validates the
+# submitted IR for these kernels. It does not lower or execute them, so this
+# file tests frontend syntax coverage rather than runtime results.
+
 
 @cudaq.kernel
 def syntax_check_quantum_control() -> bool:
@@ -123,38 +127,30 @@ def syntax_check_float_to_int(value: float) -> int:
 
 
 @cudaq.kernel
-def syntax_check_for_return(condition: bool) -> int:
-    if condition:
-        for i in range(6):
-            if i == 0:
-                return 1
-            else:
-                return -1
-    else:
-        return -1
+def syntax_check_for_search(target: int) -> int:
+    found = -1
+    for i in range(6):
+        if i == target:
+            found = i
+    return found
 
 
 @cudaq.kernel
-def syntax_check_while_return(condition: bool) -> int:
-    if condition:
-        i = 0
-        while i < 6:
-            if i == 0:
-                return 1
-            else:
-                return -1
-            i = i + 1
-    else:
-        return -1
+def syntax_check_while_return(target: int) -> int:
+    i = 0
+    while i < 6:
+        if i == target:
+            return i
+        i += 1
+    return -1
 
 
 @cudaq.kernel
-def syntax_check_while_comparisons() -> int:
-    value = 3
-    while value >= 0:
-        value -= 1
-    while value <= 10:
-        value += 1
+def syntax_check_while_comparisons(value: int) -> int:
+    while value >= 10:
+        value -= 20
+    while value <= -10:
+        value += 20
     return value
 
 
@@ -189,9 +185,9 @@ def syntax_check():
     check_translation(syntax_check_int_to_float, -2)
     check_translation(syntax_check_float_to_int, -1.2)
 
-    check_translation(syntax_check_for_return, True)
-    check_translation(syntax_check_while_return, True)
-    check_translation(syntax_check_while_comparisons)
+    check_translation(syntax_check_for_search, 4)
+    check_translation(syntax_check_while_return, 4)
+    check_translation(syntax_check_while_comparisons, 25)
 
 
 try:

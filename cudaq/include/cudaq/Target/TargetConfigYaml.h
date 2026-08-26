@@ -52,6 +52,8 @@ struct MappingTraits<cudaq::config::ConditionalBuildConfig> {
 template <>
 struct MappingTraits<cudaq::config::BackendEndConfigEntry> {
   static void mapping(IO &io, cudaq::config::BackendEndConfigEntry &info);
+  static std::string validate(IO &io,
+                              cudaq::config::BackendEndConfigEntry &info);
 };
 template <>
 struct MappingTraits<cudaq::config::BackendFeatureMap> {

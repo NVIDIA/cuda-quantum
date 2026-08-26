@@ -62,6 +62,22 @@ else
   fi
 fi
 
+# Structured unwind regression test.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_unwind_app.cpp -o test_unwind_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_unwind_app"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_unwind_app with nvq++"
+  ./test_unwind_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_unwind_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_unwind_app"
+  fi
+fi
+
 # Scalar-return test with client-side qubit mapping enabled explicitly.
 PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --mapping-file @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mapping_device.txt @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_mapping_app.cpp -o test_mapping_app
 if [ $? -ne 0 ]; then
@@ -148,6 +164,15 @@ if [ $? -ne 0 ]; then
   test_err_sum=$((test_err_sum+1))
 else
   echo ":white_check_mark: Successfully ran Python test_app.py"
+fi
+
+# Structured unwind regression through the Python AOT path.
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_unwind_app.py
+if [ $? -ne 0 ]; then
+  echo ":x: Python test_unwind_app.py failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully ran Python test_unwind_app.py"
 fi
 
 # Run representative Python frontend syntax through the remote server.

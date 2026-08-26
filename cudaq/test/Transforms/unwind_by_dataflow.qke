@@ -756,8 +756,10 @@ func.func @__nvqpp__mlirgen__function_9(%arg0: i1) -> i32 {
 // Structural check only
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_9(
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant 4 : i8
-// CHECK-DAG:       %[[ALLOCA_1:.*]] = cc.alloca i8
-// CHECK-DAG:       %[[ALLOCA_2:.*]] = cc.alloca i1
+// CHECK-DAG:       %[[NO_JUMP:.*]] = arith.constant 0 : i8
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca i8
+// CHECK-NEXT:      cc.store %[[NO_JUMP]], %[[ALLOCA_1]] : !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_2:.*]] = cc.alloca i1
 // CHECK:           cc.loop while {
 // CHECK:             cc.if(%{{.*}}) {
 // CHECK:             %[[IF_0:.*]] = cc.if(%{{.*}}) -> i1 {

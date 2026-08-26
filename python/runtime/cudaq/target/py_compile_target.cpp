@@ -29,7 +29,8 @@ pipelineConfigRepr(const cudaq::CompileTarget::PipelineConfig &pc) {
        << ", mid_level_pipeline=" << reprStr(pc.midLevelPipeline)
        << ", low_level_pipeline=" << reprStr(pc.lowLevelPipeline)
        << ", codegen_translation=" << reprStr(pc.codegenTranslation)
-       << ", post_code_gen_passes=" << reprStr(pc.postCodeGenPasses);
+       << ", post_code_gen_passes=" << reprStr(pc.postCodeGenPasses)
+       << ", aot_unwind_mode=" << reprStr(pc.aotUnwindMode);
   }
   os << ")";
   return os.str();
@@ -54,6 +55,7 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       .def_rw("low_level_pipeline", &PipelineConfig::lowLevelPipeline)
       .def_rw("codegen_translation", &PipelineConfig::codegenTranslation)
       .def_rw("post_code_gen_passes", &PipelineConfig::postCodeGenPasses)
+      .def_rw("aot_unwind_mode", &PipelineConfig::aotUnwindMode)
       .def_rw("disable_qubit_mapping", &PipelineConfig::disableQubitMapping)
       .def(nanobind::self == nanobind::self)
       .def("__hash__", std::hash<PipelineConfig>())
@@ -106,4 +108,9 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       nanobind::arg("target"),
       "Compile kernels with the given `CompileTarget` instead of the one the "
       "active target's QPU provides.");
+
+  mod.def("get_aot_unwind_mode", []() {
+    return cudaq::get_compile_target(cudaq::other_policies{})
+        .pipelineConfig.aotUnwindMode;
+  });
 }

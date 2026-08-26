@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfigYaml.h"
 #ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
@@ -70,6 +71,22 @@ config:
   library-mode: true
 )");
   EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
+}
+
+TEST(TargetConfigTester, configuresAOTUnwindMode) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+name: unwind-mode-test
+description: AOT unwind mode test
+config:
+  unwind-mode: dataflow
+)");
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  EXPECT_EQ(config.BackendConfig->AOTUnwindMode, "dataflow");
+  const auto compileTarget = cudaq::CompileTarget::createFromConfig(config, {});
+  EXPECT_EQ(compileTarget.pipelineConfig.aotUnwindMode, "dataflow");
+  EXPECT_NE(cudaq::config::processRuntimeArgs(config, {})
+                .find("AOT_UNWIND_MODE=\"dataflow\""),
+            std::string::npos);
 }
 
 TEST(TargetConfigTester, missingTargetConfigThrows) {
