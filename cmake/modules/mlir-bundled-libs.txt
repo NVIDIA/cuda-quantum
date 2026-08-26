@@ -21,6 +21,7 @@ OptTransforms
 OptCodeGen
 OptimBuilder
 OptAnalysis
+cudaq-synth
 
 # Core IR + support
 MLIRIR
@@ -44,12 +45,14 @@ MLIRTransforms
 MLIRPluginsLib
 
 # Common op/type interfaces a custom dialect or pass builds on
+MLIRBytecodeOpInterface
 MLIRCallInterfaces
 MLIRCastInterfaces
 MLIRControlFlowInterfaces
 MLIRDataLayoutInterfaces
 MLIRFunctionInterfaces
 MLIRInferTypeOpInterface
+MLIRLoopLikeInterface
 MLIRSideEffectInterfaces
 
 # Foundational building-block dialects most custom dialects/lowerings reuse
@@ -62,6 +65,7 @@ MLIRSCFDialect
 MLIRComplexDialect
 MLIRMathDialect
 MLIRLLVMDialect
+MLIRUBDialect
 MLIROpenMPDialect
 MLIROpenACCDialect
 
