@@ -6,12 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
-// RUN: ( cudaq-quake %s || true ) 2>&1 | FileCheck %s --implicit-check-not="Cannot operate on a qudit with Levels != 2" --implicit-check-not="no matching function for call to 'qubitToQuditInfo'" --implicit-check-not="no matching function for call to 'qubitIsNegative'"
-
-// CHECK-COUNT-8: static assertion failed{{.*}}Cannot apply a quantum operation to a const qubit.
-// CHECK: C++ source has errors. nvq++ cannot proceed.
-// clang-format on
+// Diagnostic verification treats the expected Clang errors as success, so
+// cudaq-quake continues Quake AST traversal on the invalid AST. Ignore the
+// resulting secondary traversal errors.
+// RUN: cudaq-quake -verify -Xcudaq -Xclang \
+// RUN:   -Xcudaq -verify-ignore-unexpected=error %s -o /dev/null
 
 #include <cudaq.h>
 
@@ -19,6 +18,8 @@ struct for_in_vector {
   auto operator()() __qpu__ {
     cudaq::qvector q(2);
     for (const auto &qubit : q) {
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       x(qubit);
       x(qubit);
     }
@@ -29,6 +30,8 @@ struct parameterized_gate {
   auto operator()() __qpu__ {
     cudaq::qvector q(1);
     for (const auto &qubit : q)
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       rx(0.5, qubit);
   }
 };
@@ -37,6 +40,8 @@ struct u3_gate {
   auto operator()() __qpu__ {
     cudaq::qvector q(1);
     for (const auto &qubit : q)
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       u3(0.1, 0.2, 0.3, qubit);
   }
 };
@@ -46,6 +51,8 @@ struct swap_gate {
     cudaq::qubit target;
     cudaq::qvector q(1);
     for (const auto &qubit : q)
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       swap(qubit, target);
   }
 };
@@ -55,6 +62,8 @@ struct controlled_gate {
     cudaq::qubit target;
     cudaq::qvector q(1);
     for (const auto &qubit : q)
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       x<cudaq::ctrl>(qubit, target);
   }
 };
@@ -64,6 +73,8 @@ struct controlled_parameterized_gate {
     cudaq::qubit control;
     cudaq::qvector q(1);
     for (const auto &qubit : q)
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       rx<cudaq::ctrl>(0.5, control, qubit);
   }
 };
@@ -74,6 +85,8 @@ struct controlled_u3_gate {
     cudaq::qubit target;
     cudaq::qvector q(1);
     for (const auto &qubit : q)
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       u3<cudaq::ctrl>(0.1, 0.2, 0.3, control, qubit, target);
   }
 };
@@ -84,6 +97,8 @@ struct controlled_swap_gate {
     cudaq::qubit target;
     cudaq::qvector q(1);
     for (const auto &qubit : q)
+      // expected-error@* {{Cannot apply a quantum operation to a const qubit.}}
+      // expected-note@+1 {{in instantiation of function template}}
       swap<cudaq::ctrl>(control, qubit, target);
   }
 };
