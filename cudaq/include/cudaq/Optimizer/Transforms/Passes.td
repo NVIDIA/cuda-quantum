@@ -1433,9 +1433,7 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     * A NOT gate inverts the phase for a qubit by (un)setting a flag.
     * A CNOT gate sets the phase of the target to the exclusive sum of the
       phase variables in the phases for the control and target qubits.
-    * Compatible Z-axis rotations at the same phase are combined after analysis.
-      Named gates are combined exactly; groups containing `quake.rz` become one
-      `quake.rz`. Mixing the two may change only the circuit's global phase.
+    * Compatible Z-axis rotations at the same phase are combined.
 
     Operates on `!quake.wire` SSA values. Traverses def-use chains directly.
   }];
