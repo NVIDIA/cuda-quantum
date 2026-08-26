@@ -1,0 +1,26 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+[build-system]
+requires = ["nanobind>=2.12.0,<3", "scikit-build-core>=0.10"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cudaq-mlir-extension-example"
+version = "0.1.0"
+description = "Minimal out-of-tree CUDA-Q MLIR extension used to validate cudaq-devel"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["cudaq"]
+
+[project.entry-points."cudaq.mlir_dialects"]
+trivial = "cudaq_mlir_extension:register_dialects"
+
+[tool.scikit-build]
+cmake.source-dir = "."
+wheel.packages = ["cudaq_mlir_extension"]
+install.components = ["TrivialMLIRPythonModules"]

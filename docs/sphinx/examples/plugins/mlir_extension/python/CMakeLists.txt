@@ -23,6 +23,14 @@ add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq_mlir_extension.mlir.")
 
 declare_mlir_python_sources(TrivialMLIRPythonSources)
 
+declare_mlir_python_sources(TrivialMLIRPythonPackage
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq_mlir_extension"
+  ADD_TO_PARENT TrivialMLIRPythonSources
+  SOURCES
+    __init__.py
+    mlir/__init__.py
+    mlir/_mlir_libs/__init__.py)
+
 declare_mlir_python_extension(TrivialMLIRPythonSources.Extension
   MODULE_NAME _mlirExtension
   ADD_TO_PARENT TrivialMLIRPythonSources

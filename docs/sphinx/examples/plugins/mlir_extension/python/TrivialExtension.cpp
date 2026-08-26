@@ -15,6 +15,8 @@
 #include "Trivial/TrivialDialect.h"
 #include "Trivial/TrivialPasses.h"
 
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "mlir/CAPI/IR.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
@@ -26,6 +28,10 @@ using namespace mlir;
 NB_MODULE(_mlirExtension, m) {
   m.doc() = "Minimal out-of-tree CUDA-Q MLIR Python extension used to validate "
             "the cudaq-devel wheel.";
+
+  m.def("register_dialects", [](MlirDialectRegistry registry) {
+    unwrap(registry)->insert<trivial::TrivialDialect>();
+  });
 
   m.def("run_trivial_pass", []() {
     MLIRContext context;
