@@ -16,6 +16,37 @@ WARNING: There are currently no checks in place to ensure that the compile targe
 and runtime endpoint are compatible. If mis-configured, the behavior is undefined
 and the user will most likely run into confusing runtime errors.
 
+### Custom targets
+
+A custom target pairs both halves and installs them together with
+`cudaq.set_target`. Build one by subclassing or instantiating
+`cudaq._experimental.CustomTarget` and pass it to `cudaq.set_target`:
+
+```python
+import cudaq
+from dataclasses import dataclass, field
+
+from cudaq._experimental import CompileTarget, CustomTarget, RuntimeEndpoint
+
+
+class MyEndpoint(RuntimeEndpoint):
+    def sample(self, module, args, **kwargs):
+        return cudaq.SampleResult({"00": kwargs["shots_count"]})
+
+
+@dataclass
+class MyCustomTarget(CustomTarget):
+    runtime_endpoint: RuntimeEndpoint = field(default_factory=MyEndpoint)
+    compile_target: CompileTarget = field(default_factory=CompileTarget)
+
+
+cudaq.set_target(MyCustomTarget())
+```
+
+Only instances of `cudaq._experimental.CustomTarget` (or a subclass) are
+accepted by this overload. Duck-typed objects with the same attributes are
+rejected so that using the experimental API is an explicit opt-in.
+
 ### Compile targets
 
 A compile target owns the MLIR pass pipelines, the code generation settings and

@@ -262,7 +262,40 @@ OptimizationResult = cudaq_runtime.OptimizationResult
 # Runtime Functions
 __version__ = cudaq_runtime.__version__
 initialize_cudaq = cudaq_runtime.initialize_cudaq
-set_target = cudaq_runtime.set_target
+
+
+def set_target(target, **extra_config):
+    """Set the backend used for CUDA-Q kernel execution.
+
+    Can provide optional, target-specific configuration data via Python `kwargs`.
+
+    Args:
+      target: The CUDA-Q target, specified as a recognized target name (``str``)
+        or a :class:`cudaq.Target` instance. Support for
+        instances of :class:`cudaq._experimental.CustomTarget` is experimental.
+      **extra_config: Target-specific configuration for the named-target
+        overload.
+
+    Raises:
+      TypeError: For unsupported target types or keyword arguments.
+    """
+    from cudaq._experimental import CustomTarget
+    from cudaq._experimental import set_compile_target, set_runtime_endpoint
+
+    if isinstance(target, CustomTarget):
+        if extra_config:
+            raise TypeError(
+                "cudaq.set_target() does not accept keyword arguments when "
+                "target is a cudaq._experimental.CustomTarget.")
+        set_compile_target(target.compile_target)
+        set_runtime_endpoint(target.runtime_endpoint)
+        return target
+    elif isinstance(target, Target) or isinstance(target, str):
+        return cudaq_runtime.set_target(target, **extra_config)
+
+    raise TypeError(f"Unsupported target type: {type(target)}")
+
+
 reset_target = cudaq_runtime.reset_target
 has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
