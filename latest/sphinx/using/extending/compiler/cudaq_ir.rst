@@ -112,6 +112,12 @@ The command produces:
 
 .. :spellcheck-enable:
 
+Mapped Quake IR
+^^^^^^^^^^^^^^^
+
+The mapping pass emits Mapped Quake IR, in which kernels borrow device wires
+from ``@mapped_wireset``.
+
 CC
 --
 

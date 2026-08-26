@@ -1120,7 +1120,8 @@ Note, the credential line will be deleted in the updated configuration file.</p>
 </pre></div>
 </div>
 <p>Users can also login and get the keys manually using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># You may need to run: `apt-get update &amp;&amp; apt-get install curl jq`</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># curl and jq are preinstalled in the CUDA-Q container. Elsewhere, you may</span>
+<span class="c1"># need to run: `apt-get update &amp;&amp; apt-get install curl jq`</span>
 curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>--user<span class="w"> </span><span class="s2">"&lt;username&gt;:&lt;password&gt;"</span><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Content-Type: application/json"</span><span class="w"> </span><span class="se">\</span>
 https://api.anyon.cloud:5000/login<span class="w"> </span>&gt;<span class="w"> </span>credentials.json
 <span class="nv">id_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'."id_token"'</span><span class="sb">`</span>

@@ -2076,6 +2076,13 @@ The command produces:
 :::
 :::
 :::
+
+::: {#mapped-quake-ir .section}
+#### Mapped Quake IR[¶](#mapped-quake-ir "Permalink to this heading"){.headerlink}
+
+The mapping pass emits Mapped Quake IR, in which kernels borrow device
+wires from [`@mapped_wireset`{.docutils .literal .notranslate}]{.pre}.
+:::
 :::
 
 ::: {#cc .section}

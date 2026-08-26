@@ -1183,7 +1183,8 @@ C++ or Python. Quantinuum requires a credential configuration file.
 The configuration file can be generated as follows, replacing
 the <code class="docutils literal notranslate"><span class="pre">email</span></code> and <code class="docutils literal notranslate"><span class="pre">credentials</span></code> in the first line with your Quantinuum
 account details.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># You may need to run: `apt-get update &amp;&amp; apt-get install curl`</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># curl is preinstalled in the CUDA-Q container. Elsewhere, you may need to</span>
+<span class="c1"># run: `apt-get update &amp;&amp; apt-get install curl`</span>
 curl<span class="w"> </span>-c<span class="w"> </span><span class="nv">$HOME</span>/.quantinuum_cookies.txt<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://nexus.quantinuum.com/auth/login<span class="w"> </span><span class="se">\</span>
 -H<span class="w"> </span><span class="s2">"Content-Type: application/json"</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">'{ "email":"&lt;your_alias&gt;@email.com","password":"&lt;your_password&gt;" }'</span><span class="w"> </span>&gt;/dev/null
 awk<span class="w"> </span><span class="s1">'$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}'</span><span class="w"> </span><span class="nv">$HOME</span>/.quantinuum_cookies.txt<span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$HOME</span>/.quantinuum_config

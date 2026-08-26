@@ -1961,7 +1961,8 @@ commands:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    # You may need to run: `apt-get update && apt-get install curl jq`
+    # curl and jq are preinstalled in the CUDA-Q container. Elsewhere, you may
+    # need to run: `apt-get update && apt-get install curl jq`
     curl -X POST --user "<username>:<password>"  -H "Content-Type: application/json" \
     https://api.anyon.cloud:5000/login > credentials.json
     id_token=`cat credentials.json | jq -r '."id_token"'`
