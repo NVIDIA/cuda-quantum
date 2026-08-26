@@ -386,7 +386,7 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
-      build_devel_wheel: ${{ matrix.platform == 'amd64' && matrix.python_version == '3.11' && matrix.cuda_version == '13.0' }}
+      build_devel_wheel: ${{ matrix.python_version == '3.11' && matrix.cuda_version == '13.0' }}
 
   python_metapackages:
     name: Create Python metapackages

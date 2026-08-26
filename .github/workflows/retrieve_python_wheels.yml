@@ -90,6 +90,12 @@ on:
       devel_artifact_name:
         description: "Artifact name of the devel wheel (built or restored), if requested."
         value: ${{ jobs.build.outputs.devel_artifact_name || jobs.resolve.outputs.devel_artifact_name }}
+      metapackage_artifact_name:
+        description: "Artifact name of the cudaq metapackage."
+        value: ${{ jobs.metapackage.outputs.artifact_name }}
+      bundle_artifact_name:
+        description: "Artifact name of the combined all-wheels bundle."
+        value: "all-wheels-${{ jobs.resolve.outputs.wheel_platform }}-py${{ inputs.python_version }}"
     secrets:
       DOCKERHUB_USERNAME:
         required: false

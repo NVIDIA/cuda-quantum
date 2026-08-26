@@ -47,3 +47,18 @@ Add `MyNewLib` to `cmake/modules/mlir-bundled-libs.txt` under the CUDA-Q section
 
 If the library needs additional upstream MLIR symbols, add the corresponding
 `MLIR*` target to the MLIR/LLVM section of that file.
+
+### Usage requirements and object libraries
+
+`add_cudaq_library` produces `obj.<lib>` targets, used for aggregation into
+`libcudaqMLIR.so`. LLVM forwards only `INCLUDE_DIRECTORIES` to the object
+library.
+
+To ensure dependencies are correctly reflected in the object library, use
+`cudaq_target_link_libraries()` instead of `target_link_libraries()` when
+adding dependencies after having used `add_cudaq_library`:
+
+```cmake
+add_cudaq_library(MyNewLib ...)
+cudaq_target_link_libraries(MyNewLib PRIVATE SomeOtherLib)
+```
