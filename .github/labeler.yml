@@ -92,3 +92,10 @@ build:
       - docker/**
       - scripts/**
       - CMakeLists.txt
+
+CI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/**
+      - .pre-commit-config.yaml
+      - .licenserc.yaml
