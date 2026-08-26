@@ -1,7 +1,7 @@
 name: Wheel cache lookup
 description: |
   Restore the wheel index entry for a cache key and confirm the recorded
-  artifact is still alive.
+  artifact is still alive and downloadable.
 
 inputs:
   key:
@@ -61,13 +61,22 @@ runs:
           run_id=$(jq -r '.run_id // empty' "$ENTRY_FILE")
           artifact_id=$(jq -r '.artifact_id // empty' "$ENTRY_FILE")
           artifact_name=$(jq -r '.artifact_name // empty' "$ENTRY_FILE")
-          if [ -n "$artifact_id" ]; then
-            expired=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" \
-              --jq '.expired' 2>/dev/null || echo true)
-            if [ "$expired" = "false" ]; then
-              hit=true
+          if [ -n "$run_id" ] && [ -n "$artifact_name" ]; then
+            # Retrieve artifact by name rather than ID to handle name shadowing.
+            newest=$(gh api --method GET \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" \
+              -f "name=$artifact_name" \
+              --jq '[.artifacts[]] | max_by(.id) | select(.expired == false) | .id' \
+              2>/dev/null || true)
+            if [ -z "$newest" ]; then
+              echo "Index hit but no live artifact named $artifact_name in run $run_id."
             else
-              echo "Index hit but artifact $artifact_id is expired or missing."
+              if [ "$newest" != "$artifact_id" ]; then
+                echo "::warning::Artifact $artifact_id ($artifact_name) is shadowed by " \
+                  "a newer artifact; downloading $newest instead."
+                artifact_id="$newest"
+              fi
+              hit=true
             fi
           fi
         fi
