@@ -324,11 +324,11 @@ func.func @insert_sigma(%arg: i64) {
 // CHECK-SAME:      %[[ARG0:.*]]: i64) {
 // CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ER0:.*]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop while ((%[[VAL_0:.*]] = %[[H_0]], %[[VAL_1:.*]] = %{{.*}}) -> (!quake.wire, i64)) {
+// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop while ((%[[VAL_0:.*]] = %{{.*}}, %[[VAL_1:.*]] = %[[H_0]]) -> (i64, !quake.wire)) {
 // CHECK:           } do {
 // CHECK:             %[[IF_0:.*]] = cc.if(%{{.*}}) -> !quake.wire {
 // CHECK:               %{{.*}}:2 = quake.x
-// CHECK:           quake.wrap %[[LOOP_0]]#0 to %[[ER0]] : !quake.wire, !quake.ref
+// CHECK:           quake.wrap %[[LOOP_0]]#1 to %[[ER0]] : !quake.wire, !quake.ref
 
 func.func @insert_sigma_cfg(%arg0: i64) {
   %0 = quake.alloca !quake.veq<3>

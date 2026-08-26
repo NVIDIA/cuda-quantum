@@ -17,7 +17,6 @@
 /// load/store form (QLS), is required and performed.
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
@@ -26,6 +25,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 #include <deque>
+#include <numeric>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MEMTOREG
@@ -309,6 +309,15 @@ public:
   using SSAReg = Value; // A value that is an SSA virtual register.
 
   explicit RegionDataFlow(Operation *op) {
+    // Snapshot every block's argument count as it stood before this function
+    // does anything. This may run any number of times, so whatever arguments
+    // preexisted must stay exactly where they are; only arguments we add here
+    // are free to be reordered for cross-region consistency (see
+    // canonicalizeArgumentOrder).
+    for (auto &region : op->getRegions())
+      for (auto &b : region)
+        originalArgCount[&b] = b.getNumArguments();
+
     // Stitch together the control-flow across op's regions.
     SmallPtrSet<Block *, 2> entryBlocks;
     SmallPtrSet<Block *, 2> exitBlocks;
@@ -341,6 +350,9 @@ public:
             if (succ) {
               auto *s = &succ->front();
               reverseCFG[s].insert(b);
+              // b's terminator forwards a single operand list to both intra-op
+              // successors as results to the parent op.
+              exitSiblingSuccessors[b].push_back(s);
             } else {
               exitBlocks.insert(b);
             }
@@ -383,6 +395,11 @@ public:
   bool isExitBlock(Block *block) { return llvm::is_contained(exitCFG, block); }
 
   SmallVector<Block *> &getExitBlocks() { return exitCFG; }
+
+  SmallVector<Block *> *getExitSiblingSuccessors(Block *block) {
+    auto it = exitSiblingSuccessors.find(block);
+    return it == exitSiblingSuccessors.end() ? nullptr : &it->second;
+  }
 
   SmallVector<Block *> &getPredecessors(Block *block) {
     if (backwardCFG.count(block))
@@ -725,6 +742,88 @@ public:
     return offset;
   }
 
+  // After the initial per-region scan, each region of a multi-region parent
+  // has independently assigned its own block arguments to whatever memrefs it
+  // locally references. A region-branch terminator forwards a single operand
+  // list across regions that must agree on slot order. Just select a region as
+  // the canonical and physically permute every other region's block arguments
+  // to match it, remapping their uses accordingly.
+  void canonicalizeArgumentOrder(Operation *parent) {
+    if (entryCFG.empty())
+      return;
+    Block *entry = entryCFG.front();
+    SmallVector<MemRef> entryOrder(entry->getNumArguments(), MemRef{});
+    getLiveInToBlock(entryOrder, entry);
+    DenseMap<MemRef, unsigned> canonicalIndex;
+    for (auto [i, mr] : llvm::enumerate(entryOrder))
+      if (mr)
+        canonicalIndex[mr] = i;
+
+    for (auto &region : parent->getRegions()) {
+      if (region.empty())
+        continue;
+      Block *block = &region.front();
+      if (block == entry || block->getNumArguments() < 2)
+        continue;
+      SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
+      getLiveInToBlock(order, block);
+      SmallVector<unsigned> perm(order.size());
+      std::iota(perm.begin(), perm.end(), 0);
+      unsigned prefix = originalArgCount.lookup(block);
+      llvm::stable_sort(perm, [&](unsigned a, unsigned b) {
+        bool aPrefix = a < prefix;
+        bool bPrefix = b < prefix;
+        if (aPrefix != bPrefix)
+          return aPrefix;
+        if (aPrefix)
+          return a < b;
+        auto ai = canonicalIndex.find(order[a]);
+        auto bi = canonicalIndex.find(order[b]);
+        bool aKnown = ai != canonicalIndex.end();
+        bool bKnown = bi != canonicalIndex.end();
+        if (aKnown != bKnown)
+          return aKnown;
+        if (aKnown)
+          return ai->second < bi->second;
+        return false;
+      });
+      bool identity = true;
+      for (unsigned i = 0; i < perm.size(); ++i)
+        if (perm[i] != i) {
+          identity = false;
+          break;
+        }
+      if (identity)
+        continue;
+
+      // Physically permute: append new arguments in the target order, RAUW
+      // the old arguments to point at them, then erase the old arguments.
+      unsigned oldCount = block->getNumArguments();
+      SmallVector<BlockArgument> newArgs;
+      for (auto idx : perm) {
+        auto oldArg = block->getArgument(idx);
+        newArgs.push_back(
+            block->addArgument(oldArg.getType(), oldArg.getLoc()));
+      }
+      for (unsigned i = 0; i < perm.size(); ++i)
+        block->getArgument(perm[i]).replaceAllUsesWith(newArgs[i]);
+      block->eraseArguments(0, oldCount);
+
+      // rMap/liveInMap for this block currently key some entries to the old
+      // (now dead) argument Values; repoint them at the new ones.
+      for (unsigned i = 0; i < perm.size(); ++i) {
+        MemRef mr = order[perm[i]];
+        if (!mr)
+          continue;
+        if (liveInMap[block].count(mr))
+          liveInMap[block][mr] = newArgs[i];
+        if (rMap.count(block) && rMap[block].count(mr) &&
+            isa<BlockArgument>(rMap[block][mr]))
+          rMap[block][mr] = newArgs[i];
+      }
+    }
+  }
+
   std::optional<SSAReg> hasLiveInToBlock(Block *block, MemRef mr) {
     assert(block && mr);
     auto iter = liveInMap.find(block);
@@ -813,6 +912,15 @@ public:
       for (auto memref : liveOutSet) {
         if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
           continue;
+        // block landed in blockSet because some memref's promoted value has
+        // a user here. If this memref was already threaded into block as a
+        // genuine live-in, it must be left alone: the "unsafe" call below
+        // always appends a fresh argument, so calling it again here would leave
+        // that first, already-live argument orphaned (unused, uncounted)
+        // instead of overwriting it.
+        if (auto it = liveInMap[block].find(memref);
+            it != liveInMap[block].end() && it->second != promotedDefs[memref])
+          continue;
         unsafeAddLiveInToBlock(block, memref);
       }
       worklist.push_back(block);
@@ -895,6 +1003,17 @@ private:
   /// regions and thus must be returned as results. The parent cannot be a
   /// function.
   SetVector<MemRef> liveOutSet;
+
+  /// For a block whose terminator forwards one operand list to both a real
+  /// region successor and (on another edge) the parent op's results (e.g.
+  /// `cc.condition`), maps that block to the real successor block(s) whose
+  /// own established per-memref argument order the terminator's forwarded
+  /// operands must agree with.
+  DenseMap<Block *, SmallVector<Block *>> exitSiblingSuccessors;
+
+  /// Each block's argument count as it stood before this pass added
+  /// anything -- see the RegionDataFlow constructor.
+  DenseMap<Block *, unsigned> originalArgCount;
 
   SmallVector<Block *> entryCFG;
   SmallVector<Block *> exitCFG;
@@ -1217,6 +1336,15 @@ public:
         cudaq::cc::ContinueOp::create(builder, ifOp.getLoc());
       }
     }
+
+    // Precompute, once, every memref that's the target of a cc.store
+    // anywhere within `parent`'s regions. `handleUse` (below) needs this to
+    // decide whether an external-scope load requires cross-region live-in
+    // threading.
+    DenseSet<Value> writtenWithinParent;
+    parent->walk([&](cudaq::cc::StoreOp store) {
+      writtenWithinParent.insert(store.getPtrvalue());
+    });
 
     // 1. If any operations held by the blocks of \p parent contain regions,
     // recursively process those operations. This establishes the value
@@ -1554,12 +1682,27 @@ public:
                 // useop stays in the IR (not replaced, not in cleanUps).
                 return;
               }
-              // Normal path: create a promoted value that dominates parent and
-              // thread it in as a live-in block argument.
-              auto newUseopVal = dataFlow.createPromotedValue(parent, memuse);
-              dataFlow.addBinding(block, memuse, newUseopVal);
-              dataFlow.addLiveInToBlock(block, memuse, newUseopVal);
-              useop.replaceAllUsesWith(newUseopVal);
+              // Normal path: memuse is live-in to `parent` from outside. If
+              // `parent` doesn't support real region arguments, or `memuse` is
+              // never written anywhere inside `parent`, fall back to a single
+              // promoted value reused everywhere. Otherwise thread it as a
+              // genuine live-in block argument instead, with no fixed value,
+              // and let the live-in/worklist machinery (steps 3-4) resolve the
+              // correct per-block value, including revisiting sibling regions
+              // when a later-discovered live-in requires it.
+              if (neverTakesRegionArguments(parent) ||
+                  (onlyTakesLinearTypeArguments(parent) &&
+                   !cudaq::quake::isQuantumReferenceType(memuse.getType())) ||
+                  !writtenWithinParent.contains(memuse)) {
+                auto newUseopVal = dataFlow.createPromotedValue(parent, memuse);
+                dataFlow.addBinding(block, memuse, newUseopVal);
+                dataFlow.addLiveInToBlock(block, memuse, newUseopVal);
+                useop.replaceAllUsesWith(newUseopVal);
+              } else {
+                auto newDef = dataFlow.addLiveInToBlock(block, memuse);
+                dataFlow.addBinding(block, memuse, newDef);
+                useop.replaceAllUsesWith(newDef);
+              }
               cleanUps.insert(useop);
               return;
             }
@@ -1665,6 +1808,16 @@ public:
     // parent and replace uses of promoted defs with block arguments.
     dataFlow.updatePromotedDefs(parent, worklist);
 
+    // 3.5. Steps 2 and 3 each independently assigned block arguments to
+    // whatever regions needed them (region-local uses in step 2; the
+    // liveOutSet-ordered sweep across every block that references a
+    // promoted def in step 3) -- with no coordination between regions. But a
+    // region-branch terminator forwards a single operand list across regions
+    // that must agree on slot order. Bring every region's argument order in
+    // line with the entry region's order now that all such arguments have been
+    // created.
+    dataFlow.canonicalizeArgumentOrder(parent);
+
     LLVM_DEBUG({
       llvm::dbgs() << "After fixing up promoted loads:\n"
                    << *parent << "\nPromotions:\n";
@@ -1722,8 +1875,11 @@ public:
               worklist.push_back(succ);
               auto sigma = dataFlow.maybeAddLiveInToBlock(succ, liveOut);
               OpBuilder builder(&succ->front());
-              cudaq::quake::WrapOp::create(builder, term->getLoc(), sigma,
-                                           liveOut);
+              auto sigmaWrap = cudaq::quake::WrapOp::create(
+                  builder, term->getLoc(), sigma, liveOut);
+              // liveOut (the ref) may itself be dead and already destined
+              // for cleanUps
+              cleanUps.insert(sigmaWrap);
             }
           }
         }
@@ -1772,9 +1928,37 @@ public:
     };
 
     auto updateExitTerminator = [&](Block *block, auto &bindings) {
-      return updateTerminator(
-          block->getTerminator(), nullptr,
-          llvm::make_range(bindings.begin(), bindings.end()));
+      // block's terminator may forward this same operand list to a real sibling
+      // successor. That sibling may already have its own per-memref argument
+      // order established (from the initial scan of its region), and since both
+      // edges share one physical operand list, the operands appended here for
+      // the parent's results must land in the same relative order as that
+      // sibling's arguments. We must reorder bindings to match before
+      // threading.
+      using MemRef = RegionDataFlow::MemRef;
+      SmallVector<MemRef> ordered(bindings.begin(), bindings.end());
+      if (auto *siblings = dataFlow.getExitSiblingSuccessors(block))
+        if (!siblings->empty()) {
+          Block *sibling = siblings->front();
+          SmallVector<MemRef> siblingOrder(sibling->getNumArguments(),
+                                           MemRef{});
+          dataFlow.getLiveInToBlock(siblingOrder, sibling);
+          DenseMap<MemRef, unsigned> argNum;
+          for (auto [i, mr] : llvm::enumerate(siblingOrder))
+            if (mr)
+              argNum[mr] = i;
+          llvm::stable_sort(ordered, [&](MemRef a, MemRef b) {
+            auto ai = argNum.find(a);
+            auto bi = argNum.find(b);
+            bool aKnown = ai != argNum.end();
+            bool bKnown = bi != argNum.end();
+            if (aKnown != bKnown)
+              return aKnown;
+            return aKnown && ai->second < bi->second;
+          });
+        }
+      return updateTerminator(block->getTerminator(), nullptr,
+                              llvm::make_range(ordered.begin(), ordered.end()));
     };
 
     SmallPtrSet<Block *, 8> blocksVisited;
@@ -1814,6 +1998,39 @@ public:
     if (dataFlow.hasLiveOutOfParent()) {
       // Get all the new results to append.
       auto allDefs = dataFlow.getLiveOutOfParent();
+      auto &entryBlocks = dataFlow.getEntryBlocks();
+      if (entryBlocks.size() == 1 &&
+          allDefs.size() == dataFlow.getLiveInArgs().size()) {
+        using MemRef = RegionDataFlow::MemRef;
+        using SSAReg = RegionDataFlow::SSAReg;
+        Block *entry = entryBlocks.front();
+        SmallVector<MemRef> entryOrder(entry->getNumArguments(), MemRef{});
+        dataFlow.getLiveInToBlock(entryOrder, entry);
+        DenseMap<MemRef, unsigned> argNum;
+        for (auto [i, mr] : llvm::enumerate(entryOrder))
+          if (mr)
+            argNum[mr] = i;
+        SmallVector<unsigned> indices(allDefs.size());
+        std::iota(indices.begin(), indices.end(), 0);
+        llvm::stable_sort(indices, [&](unsigned a, unsigned b) {
+          auto ai = argNum.find(allDefs[a]);
+          auto bi = argNum.find(allDefs[b]);
+          bool aKnown = ai != argNum.end();
+          bool bKnown = bi != argNum.end();
+          if (aKnown != bKnown)
+            return aKnown;
+          return aKnown && ai->second < bi->second;
+        });
+        SmallVector<MemRef> newAllDefs;
+        SmallVector<SSAReg> newLiveInArgs;
+        auto &liveInArgsVec = dataFlow.getLiveInArgs();
+        for (auto idx : indices) {
+          newAllDefs.push_back(allDefs[idx]);
+          newLiveInArgs.push_back(liveInArgsVec[idx]);
+        }
+        allDefs = newAllDefs;
+        liveInArgsVec = newLiveInArgs;
+      }
 
       // Replace parent with a copy.
       SmallVector<Type> resultTypes(parent->getResultTypes());
