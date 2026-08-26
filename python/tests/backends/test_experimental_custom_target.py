@@ -66,7 +66,7 @@ def compiled_quake_ops(kernel, target):
 
     def walk(op):
         ops.append((op.name, len(op.operands)))
-        return WalkResult.ADVANCE()
+        return WalkResult.ADVANCE
 
     cudaq.set_target(target)
     cudaq.sample(kernel, shots_count=1)
@@ -84,7 +84,10 @@ def test_set_target_accepts_custom_target_subclass():
 
     assert result["00"] == 7
     assert len(target.runtime_endpoint.calls) == 1
-    assert target.runtime_endpoint.calls[0] == ("sample", {"shots_count": 7})
+    assert target.runtime_endpoint.calls[0] == ("sample", {
+        "shots_count": 7,
+        "explicit_measurements": False
+    })
 
 
 def test_set_target_accepts_direct_custom_target_instance():
