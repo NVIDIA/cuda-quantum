@@ -658,8 +658,10 @@ struct R1ToU3
     Location loc = r1Op->getLoc();
     Value zero = createConstant(loc, 0.0, rewriter.getF64Type(), rewriter);
     std::array<Value, 3> parameters = {zero, zero, r1Op.getParameters()[0]};
-    rewriter.replaceOpWithNewOp<cudaq::quake::U3Op>(
+    auto negatedControls = r1Op.getNegatedQubitControls();
+    auto u3Op = rewriter.replaceOpWithNewOp<cudaq::quake::U3Op>(
         r1Op, r1Op.isAdj(), parameters, r1Op.getControls(), r1Op.getTargets());
+    u3Op.setNegatedQubitControls(negatedControls);
     return success();
   }
 };
@@ -716,22 +718,54 @@ struct SwapToCX
 
   LogicalResult matchAndRewrite(cudaq::quake::SwapOp op,
                                 PatternRewriter &rewriter) const override {
+    auto numControls = cudaq::getKnownNumControls(op);
+    if (!isEnabled(numControls) || !numControls || *numControls > 1)
+      return failure();
+
     // Op info
     Location loc = op->getLoc();
+    SmallVector<Value> controls(op.getControls());
     Value a = op.getTarget(0);
     Value b = op.getTarget(1);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
-    qRewriter.create<cudaq::quake::XOp>(loc, a, b);
-    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+    if (*numControls == 0) {
+      qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+      qRewriter.create<cudaq::quake::XOp>(loc, a, b);
+      qRewriter.create<cudaq::quake::XOp>(loc, b, a);
 
-    qRewriter.selectWiresAndReplaceUses(op, ValueRange{a, b});
+      qRewriter.selectWiresAndReplaceUses(op, ValueRange{a, b});
+      rewriter.eraseOp(op);
+      return success();
+    }
+
+    auto negatedControls = op.getNegatedQubitControls();
+    const bool negControl = negatedControls && (*negatedControls)[0];
+    // A control value cannot be temporarily toggled as a target.
+    if (negControl && containsControlTypes(op))
+      return failure();
+
+    // Fredkin = CX(b, a); CCX(c, a, b); CX(b, a). Normalize a negative
+    // source control around that exact positive-control implementation.
+    if (negControl)
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
+    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+    SmallVector<Value> ccxControls{controls.front(), a};
+    qRewriter.create<cudaq::quake::XOp>(loc, ccxControls, b);
+    controls.front() = ccxControls.front();
+    a = ccxControls.back();
+    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+    if (negControl)
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
+
+    SmallVector<Value> replacementValues{controls.front(), a, b};
+    qRewriter.selectWiresAndReplaceUses(op, replacementValues);
     rewriter.eraseOp(op);
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SwapToCX, {"swap", "x(1)"});
+REGISTER_DECOMPOSITION_PATTERN(SwapToCX, {"swap", "x(1)"},
+                               {"swap(1)", "x(1)", "x(2)"});
 
 // quake.h control, target
 // ───────────────────────────────────
@@ -753,22 +787,31 @@ struct CHToCX
                                 PatternRewriter &rewriter) const override {
     if (failed(checkNumControls(op, 1)))
       return failure();
+    auto negatedControls = op.getNegatedQubitControls();
+    const bool negControl = negatedControls && (*negatedControls)[0];
+    // A `quake.control` value cannot be temporarily toggled as a target.
+    if (negControl && containsControlTypes(op))
+      return failure();
 
     // Op info
     Location loc = op->getLoc();
-    Value control = op.getControls()[0];
+    SmallVector<Value> controls(op.getControls());
     Value target = op.getTarget();
 
     QuakeOperatorCreator qRewriter(rewriter);
+    if (negControl)
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
     qRewriter.create<cudaq::quake::SOp>(loc, target);
     qRewriter.create<cudaq::quake::HOp>(loc, target);
     qRewriter.create<cudaq::quake::TOp>(loc, target);
-    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls, target);
     qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/true, target);
     qRewriter.create<cudaq::quake::HOp>(loc, target);
     qRewriter.create<cudaq::quake::SOp>(loc, /*isAdj=*/true, target);
+    if (negControl)
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
 
-    qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -865,7 +908,9 @@ struct SToR1
     SmallVector<Value> controls(op.getControls());
     Value target = op.getTarget();
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
+    auto r1 =
+        qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
+    r1.setNegatedQubitControls(op.getNegatedQubitControls());
 
     if (numControls.has_value() && *numControls == 0)
       qRewriter.selectWiresAndReplaceUses(op, target);
@@ -966,7 +1011,9 @@ struct TToR1
     SmallVector<Value> controls(op.getControls());
     Value target = op.getTarget();
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
+    auto r1 =
+        qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
+    r1.setNegatedQubitControls(op.getNegatedQubitControls());
 
     if (numControls.has_value() && *numControls == 0)
       qRewriter.selectWiresAndReplaceUses(op, target);
@@ -1180,11 +1227,17 @@ struct CYToCX
     Location loc = op->getLoc();
     Value target = op.getTarget();
     SmallVector<Value> controls = op.getControls();
+    auto negatedControls = op.getNegatedQubitControls();
+    const bool negControl = negatedControls && (*negatedControls)[0];
 
     QuakeOperatorCreator qRewriter(rewriter);
+    if (negControl)
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
     qRewriter.create<cudaq::quake::SOp>(loc, /*isAdj=*/true, target);
     qRewriter.create<cudaq::quake::XOp>(loc, controls, target);
     qRewriter.create<cudaq::quake::SOp>(loc, target);
+    if (negControl)
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);

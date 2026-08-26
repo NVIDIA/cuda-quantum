@@ -200,18 +200,43 @@ void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, unsigned numTargets,
     applyMatrix(m, qubits);
     return;
   }
-  if (numTargets == 1) {
-    applyControlledMatrix(m, qubits);
-    return;
-  }
-  // Multi-target gate. `OperatorInterface` matrices index the first target as
-  // the most-significant qubit, whereas the index math in `applyMatrix` treats
+
+  // `OperatorInterface` matrices index the first target as the
+  // most-significant qubit, whereas the index math in `applyMatrix` treats
   // its first qubit as least-significant. Reverse the target qubits (the
   // trailing `numTargets` operands; any controls come first and keep their
   // order) to reconcile the two conventions.
   SmallVector<Qubit, 16> reordered(qubits.begin(), qubits.end());
   std::reverse(reordered.end() - numTargets, reordered.end());
-  applyMatrix(m, numTargets, reordered);
+
+  const unsigned numControls = qubits.size() - numTargets;
+  if (numControls == 0) {
+    applyMatrix(m, numTargets, reordered);
+    return;
+  }
+
+  // Expand the operator into a controlled matrix before applying it. This is
+  // necessary for multi-target operations such as controlled `quake.swap`:
+  // applying their base matrix directly would treat controls as targets.
+  const std::size_t targetDim = 1ULL << numTargets;
+  const std::size_t dim = 1ULL << qubits.size();
+  const std::size_t controlMask = (1ULL << numControls) - 1;
+  SmallVector<Complex, 64> controlledMatrix(dim * dim, 0.);
+  for (std::size_t input = 0; input < dim; ++input) {
+    if ((input & controlMask) != controlMask) {
+      controlledMatrix[input + dim * input] = 1.;
+      continue;
+    }
+
+    const std::size_t targetInput = input >> numControls;
+    for (std::size_t targetOutput = 0; targetOutput < targetDim;
+         ++targetOutput) {
+      const std::size_t output = (targetOutput << numControls) | controlMask;
+      controlledMatrix[output + dim * input] =
+          m[targetOutput + targetDim * targetInput];
+    }
+  }
+  applyMatrix(controlledMatrix, qubits.size(), reordered);
 }
 
 void UnitaryBuilder::growMatrix(unsigned numQubits) {
