@@ -8,14 +8,10 @@
 
 // Direct source predicates must be copied to all replacement gates and to the
 // phase correction. Both the explicit form and its late lowering are exact.
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s \
-// RUN:   | FileCheck %s --check-prefix=PHASE
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s \
-// RUN:   | CircuitCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s \
-// RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase ('
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s \
-// RUN:   | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | FileCheck %s --check-prefix=PHASE
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase ('
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | CircuitCheck %s
 
 func.func @positive(%control: !quake.ref, %target: !quake.ref) {
   %theta = arith.constant 4.560000e-01 : f64

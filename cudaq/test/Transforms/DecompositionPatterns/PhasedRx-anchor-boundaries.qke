@@ -8,8 +8,7 @@
 
 // A phase-corrected decomposition must retain an aggregate source target: a
 // PhaseOp cannot use a !quake.veq as its scalar anchor.
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,SToPhasedRx,TToPhasedRx,XToPhasedRx,YToPhasedRx,ZToPhasedRx,R1ToPhasedRx})' %s \
-// RUN:   | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,SToPhasedRx,TToPhasedRx,XToPhasedRx,YToPhasedRx,ZToPhasedRx,R1ToPhasedRx})' %s | FileCheck %s
 
 func.func @h_without_scalar_anchor(%targets: !quake.veq<2>) {
   quake.h %targets : (!quake.veq<2>) -> ()

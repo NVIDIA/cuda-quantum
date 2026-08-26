@@ -8,10 +8,8 @@
 
 // Normal graph selection uses the exact R1-to-PhasedRx rewrite. PhaseOp is an
 // intrinsically legal intermediate and is not named in the target basis.
-// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=phased_rx(1)})' %s \
-// RUN:   | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=phased_rx(1)})' %s \
-// RUN:   | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=phased_rx(1)})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=phased_rx(1)})' %s | CircuitCheck %s
 
 func.func @controlled(%control: !quake.ref, %target: !quake.ref) {
   %theta = arith.constant 9.870000e-01 : f64

@@ -6,8 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s \
-// RUN:   | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | FileCheck %s
 
 func.func @negative_adjoint_wire(%control: !quake.wire,
                                  %target: !quake.wire)
