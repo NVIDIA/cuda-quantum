@@ -38,8 +38,8 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
-    if (unrollOnlyWireBlockingLoops && unrollOnlyIndexUseLoops) {
-      op->emitOpError("unroll-only-wire-blocking-loops and "
+    if (unrollOnlyAliasingQuantumAccessLoops && unrollOnlyIndexUseLoops) {
+      op->emitOpError("unroll-only-aliasing-quantum-access-loops and "
                       "unroll-only-index-use-loops are mutually exclusive");
       signalPassFailure();
       return;
@@ -52,10 +52,10 @@ public:
         dialect->getCanonicalizationPatterns(patterns);
       for (RegisteredOperationName op : ctx->getRegisteredOperations())
         op.getCanonicalizationPatterns(patterns, ctx);
-      patterns.insert<UnrollCountedLoop>(ctx, threshold,
-                                         /*signalFailure=*/false, allowBreak,
-                                         progress, unrollOnlyWireBlockingLoops,
-                                         unrollOnlyIndexUseLoops);
+      patterns.insert<UnrollCountedLoop>(
+          ctx, threshold,
+          /*signalFailure=*/false, allowBreak, progress,
+          unrollOnlyAliasingQuantumAccessLoops, unrollOnlyIndexUseLoops);
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
@@ -69,19 +69,20 @@ public:
     if (!signalFailure)
       return;
 
-    if (unrollOnlyWireBlockingLoops) {
-      // In the value-semantics opt-in mode, a loop that still blocks wire
-      // conversion or Pauli-word resolution but survived the unrolling above
-      // (e.g. because its trip count is not constant) is a dead end. Report
-      // each such loop.
+    if (unrollOnlyAliasingQuantumAccessLoops) {
+      // In the value-semantics opt-in mode, a loop that still contains
+      // aliasing quantum access or an unresolved Pauli word after the
+      // unrolling above (e.g. because its trip count is not constant) is a
+      // dead end. Report each such loop.
       op->walk([&](cudaq::cc::LoopOp loop) {
         if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
           return;
-        if (loopBlocksWireConversion(loop)) {
+        if (loopHasAliasingQuantumAccess(loop)) {
           loop.emitOpError(
-              "loop accesses quantum data by a dynamic index or slice and "
-              "cannot be unrolled (trip count is not a compile-time constant); "
-              "it can be neither kept in value semantics nor unrolled");
+              "loop contains aliasing quantum access through a dynamic index "
+              "or slice and cannot be unrolled (trip count is not a "
+              "compile-time constant); it can be neither kept in value "
+              "semantics nor unrolled");
           signalPassFailure();
         } else if (loopHasLoopDependentPauliWord(loop)) {
           loop.emitOpError(

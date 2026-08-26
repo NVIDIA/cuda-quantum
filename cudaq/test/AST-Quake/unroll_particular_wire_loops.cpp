@@ -11,7 +11,7 @@
 // mem2reg/loop-normalization cleanup from the standard prep pipeline, the
 // target high-level measurement expansion, then the mid-level selective unroll
 // and the single full quantum mem2reg that produces wires for assign-wire-indices.
-// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --expand-measurements --cc-loop-unroll=unroll-only-wire-blocking-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --expand-measurements --cc-loop-unroll=unroll-only-aliasing-quantum-access-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -53,9 +53,9 @@ __qpu__ bool keeps_wire_compatible_loop() {
 // CHECK:           return
 // clang-format on
 
-// Loops that index quantum data by the induction variable block wire
-// conversion, so they are unrolled.
-__qpu__ bool unrolls_wire_blocking_loop() {
+// A loop that indexes quantum data by the induction variable contains aliasing
+// quantum access, so it is unrolled before wire conversion.
+__qpu__ bool unrolls_loop_with_aliasing_quantum_access() {
   cudaq::qvector q(3);
   // Expected to unroll: the induction variable indexes quantum data.
   for (int i = 0; i < 3; i++) {
@@ -65,7 +65,7 @@ __qpu__ bool unrolls_wire_blocking_loop() {
 }
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unrolls_wire_blocking_loop
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unrolls_loop_with_aliasing_quantum_access
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       quake.alloca
 // CHECK-NOT:       quake.unwrap

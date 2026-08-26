@@ -1064,14 +1064,15 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     as when generating a QIR base profile. A quantum circuit requires all loops
     be completely unrolled.
 
-    The unroll-only-wire-blocking-loops option opts in to selective unrolling
-    for wire-set lowering. Quantum references and slices must be statically
-    resolved. An `exp_pauli` also requires both its quantum register and Pauli
-    word to be resolved. Loops that block any of these resolutions are
-    unrolled; other counted loops remain rolled. A required loop that cannot be
-    unrolled (e.g. a non-constant trip count) is reported as an error. This
-    option defaults to false, leaving the pass behavior unchanged for existing
-    pipelines.
+    The unroll-only-aliasing-quantum-access-loops option opts in to selective
+    unrolling for wire-set lowering. Quantum references and slices accessed
+    through dynamic indices are aliasing quantum accesses and must be
+    statically resolved. An `exp_pauli` also requires both its quantum register
+    and Pauli word to be resolved. Loops containing these accesses or operands
+    are unrolled; other counted loops remain rolled. A required loop that
+    cannot be unrolled (e.g. a non-constant trip count) is reported as an
+    error. This option defaults to false, leaving the pass behavior unchanged
+    for existing pipelines.
 
     The unroll-only-index-use-loops option unrolls only index use loops:
     loops whose induction variable is used in the loop body. A loop that
@@ -1095,10 +1096,11 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
       "Allow unrolling of loop with early exit (i.e. break statement).">,
-    Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
-      "bool", /*default=*/"false",
-      "Unroll only loops that prevent quantum references, slices, or "
-      "exp_pauli operands from being resolved for wire-set lowering.">,
+    Option<"unrollOnlyAliasingQuantumAccessLoops",
+      "unroll-only-aliasing-quantum-access-loops", "bool",
+      /*default=*/"false",
+      "Unroll only loops containing aliasing quantum accesses or exp_pauli "
+      "operands that must be resolved for wire-set lowering.">,
     Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
       /*default=*/"false",
       "Unroll only index use loops, i.e. loops whose induction variable is "
@@ -1215,6 +1217,9 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
+    The mapping pass emits Mapped Quake IR, in which kernels borrow device wires
+    from `@mapped_wireset`.
+
     Note 1: this pass requires strictly value semantics (in the form of wire
     sets) for any quantum operations. It will throw an error if any memory
     reference semantics are present on quantum operations.
@@ -1262,7 +1267,8 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
 
     - in non-`run` functions, measurements inside a scope, branch, or loop.
     - a mid-circuit measurement whose measured wire feeds a non-terminal user,
-      or any measurement-dependent (adaptive) control flow.
+      or measurement-dependent (adaptive) control flow, unless the function is
+      a `run` entry point with structured control flow.
     - loops with a multi-block body, a Python `else`, or a `break`.
     - quantum gates in a loop's condition or step region.
     - a scope inside structured control flow, or structured control flow inside
@@ -1427,9 +1433,7 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     * A NOT gate inverts the phase for a qubit by (un)setting a flag.
     * A CNOT gate sets the phase of the target to the exclusive sum of the
       phase variables in the phases for the control and target qubits.
-    * If multiple `rz` ops are found at the same phase, they will be combined
-      by replacing the rotation angle of the latter occurring op with the sum of
-      the rotation angles of both ops, and removing the prior op.
+    * Compatible Z-axis rotations at the same phase are combined.
 
     Operates on `!quake.wire` SSA values. Traverses def-use chains directly.
   }];
