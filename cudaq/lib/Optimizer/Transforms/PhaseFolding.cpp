@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -270,12 +271,17 @@ static Operation *createNamedRotation(OpBuilder &builder, Location loc,
   llvm_unreachable("quarter turns must be reduced modulo eight");
 }
 
-static Value materializeMixedAngle(OpBuilder &builder,
-                                   const RotationGroup &group) {
-  Value angle;
+static int getSignedNamedQuarterTurns(const RotationGroup &group) {
   auto namedUnits = group.namedQuarterTurns;
   if (namedUnits > 4)
     namedUnits -= 8;
+  return namedUnits;
+}
+
+static Value materializeMixedAngle(OpBuilder &builder,
+                                   const RotationGroup &group) {
+  Value angle;
+  auto namedUnits = getSignedNamedQuarterTurns(group);
   bool emittedNamedAngle = false;
 
   for (auto rotation : group.rotations) {
@@ -319,6 +325,17 @@ static void applyRotationGroup(RotationGroup &group) {
         createNamedRotation(builder, loc, wireIn, group.namedQuarterTurns);
   }
   Value replacementWire = replacement ? replacement->getResult(0) : wireIn;
+  if (group.hasDynamicRotation && group.namedQuarterTurns != 0) {
+    // A named phase rotation P(phi) equals exp(i phi/2) Rz(phi).
+    // Preserve that scalar when its angle is folded into the Rz.
+    Value correction = cudaq::opt::factory::createF64Constant(
+        loc, builder, getSignedNamedQuarterTurns(group) * M_PI_4 / 2.0);
+    replacementWire =
+        cudaq::opt::emitPhaseCorrection(builder, loc, correction,
+                                        /*controls=*/{},
+                                        /*negatedControls=*/{}, replacementWire)
+            .anchor;
+  }
   group.anchor->getResult(0).replaceAllUsesWith(replacementWire);
   for (auto it = group.rotations.rbegin(); it != group.rotations.rend(); ++it) {
     Operation *rotationOp = it->getOperation();
@@ -670,6 +687,8 @@ public:
 ///   - Single-qubit NOT (quake.x, uncontrolled): inverts a wire's phase.
 ///   - CNOT (quake.x, single control): XORs control phase into target phase.
 ///   - Swap (quake.swap): exchanges the phases of two wires.
+///   - Uncontrolled scalar phase corrections (quake.phase): preserve the
+///     wire's phase.
 ///   - Z-axis rotations (quake.rz, quake.s, quake.t, quake.z, and their
 ///     adjoints), uncontrolled: rotation candidates for merging.
 /// All other ops (H, Y, Rx, Ry, R1, ...) terminate the subcircuit.
@@ -718,6 +737,8 @@ class PhaseFoldingPass
         Phase p = getWirePhase(opi.getTarget(0));
         store.addRotation(opi, p);
         wirePhase[op->getResult(0)] = p;
+      } else if (auto phase = dyn_cast<cudaq::quake::PhaseOp>(op)) {
+        wirePhase[phase->getResult(0)] = getWirePhase(phase.getTarget(0));
       } else if (auto swap = dyn_cast<cudaq::quake::SwapOp>(op)) {
         Phase p0 = getWirePhase(swap.getTarget(0));
         Phase p1 = getWirePhase(swap.getTarget(1));

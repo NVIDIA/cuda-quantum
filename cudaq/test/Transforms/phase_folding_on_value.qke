@@ -7,10 +7,11 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+// RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" \
+// RUN:   --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s --check-prefix=TWICE
 // RUN: sed -n '/INTEGRATION-BEGIN$/,/INTEGRATION-END$/p' %s > %t.integration.qke
-// Mixed named and parameterized rotations are equivalent up to global phase.
 // RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %t.integration.qke | \
-// RUN:   CircuitCheck --up-to-global-phase %t.integration.qke
+// RUN:   CircuitCheck %t.integration.qke
 
 // Two rotations that share the same phase term across a pair of CNOTs are
 // merged into a single rotation whose angle is the sum of the two.
@@ -103,6 +104,10 @@ func.func @rz_folding_integration(
 // CHECK-NEXT:      %[[SUM2:.*]] = arith.addf %[[SUM1]], %[[C]] : f64
 // CHECK-NEXT:      %[[SUM3:.*]] = arith.addf %[[SUM2]], %[[D]] : f64
 // CHECK-NEXT:      %[[RZ:.*]] = quake.rz (%[[SUM3]]) %[[CX0]]#1 :
+// CHECK-NEXT:      %[[CORRECTION:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK-NEXT:      %[[PHASE:.*]] = quake.phase (%[[CORRECTION]]) %[[RZ]] :
+// CHECK-NEXT:      %[[USED:.*]] = quake.h %[[PHASE]] :
+// CHECK-NEXT:      quake.wrap %[[USED]]
 // CHECK-NOT:       test.marker
 // CHECK:           %[[NEGATED_WIRE:.*]] = quake.unwrap
 // CHECK-NEXT:      %[[NEGATED_CX:.*]]:2 = quake.x
@@ -124,6 +129,34 @@ func.func @rz_folding_integration(
 // CHECK-NEXT:      return
 
 // INTEGRATION-END
+
+// A phase correction preserves the wire's Boolean phase on a repeated run.
+
+func.func @phase_correction_is_transparent_on_rerun(
+    %before: f64, %controlAngle: f64, %targetAngle: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %rz = quake.rz (%before) %target : (f64, !quake.wire) -> !quake.wire
+  %s = quake.s %rz : (!quake.wire) -> !quake.wire
+  %cx:2 = quake.x [%control] %s
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %controlRz = quake.rz (%controlAngle) %cx#0
+      : (f64, !quake.wire) -> !quake.wire
+  %targetRz = quake.rz (%targetAngle) %cx#1
+      : (f64, !quake.wire) -> !quake.wire
+  quake.sink %controlRz : !quake.wire
+  quake.sink %targetRz : !quake.wire
+  return
+}
+
+// TWICE-LABEL: func.func @phase_correction_is_transparent_on_rerun(
+// TWICE-SAME:      %{{.*}}: f64, %[[CONTROL_ANGLE:.*]]: f64, %[[TARGET_ANGLE:.*]]: f64)
+// TWICE:         %[[PHASE:.*]] = quake.phase
+// TWICE-NEXT:    %[[CX:.*]]:2 = quake.x {{\[}}%{{.*}}] %[[PHASE]]
+// TWICE-NEXT:    %[[CONTROL_RZ:.*]] = quake.rz (%[[CONTROL_ANGLE]]) %[[CX]]#0
+// TWICE-NEXT:    %[[TARGET_RZ:.*]] = quake.rz (%[[TARGET_ANGLE]]) %[[CX]]#1
+// TWICE-NEXT:    quake.sink %[[CONTROL_RZ]]
+// TWICE-NEXT:    quake.sink %[[TARGET_RZ]]
 
 // A swap exchanges the phases carried by the two wires, so rotations on either
 // side of it are still recognized as sharing a phase term and merged.
