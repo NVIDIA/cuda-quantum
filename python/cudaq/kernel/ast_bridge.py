@@ -432,54 +432,6 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
-        # `for` loop targets that are used nowhere outside their loop, keyed on
-        # `id(<ast.For node>)`
-        self.loopLocalTargets = {}
-        self.sinkAllocaNames = set()
-
-    def __analyzeLoopLocalTargets(self, statements, argNames):
-        """Record, for each `for` loop in `statements`, which of its target
-        variables never occur outside that loop.
-
-        Python keeps a loop variable alive after its loop, so by default the
-        storage for one is allocated in the function's entry block. That is
-        needed only when something below the loop can still read it; a variable
-        that no code outside the loop mentions can live in the loop body
-        instead. Keeping it there matters because `memtoreg` promotes an
-        entry-block slot into a value carried by every enclosing loop, whether
-        or not anything reads it, and those dead loop-carried values defeat
-        `cc.loop` reversal in the apply-op-specialization pass.
-        """
-        forNodes = [
-            n for stmt in statements for n in ast.walk(stmt)
-            if isinstance(n, ast.For)
-        ]
-        if not forNodes:
-            return
-        allNames = [
-            n for stmt in statements for n in ast.walk(stmt)
-            if isinstance(n, ast.Name)
-        ]
-        for forNode in forNodes:
-            if forNode.orelse:
-                continue
-            targets = {
-                t.id
-                for t in ast.walk(forNode.target)
-                if isinstance(t, ast.Name)
-            }
-            targets -= set(argNames)
-            if not targets:
-                continue
-            insideLoop = {id(n) for n in ast.walk(forNode)}
-            usedOutside = {
-                n.id
-                for n in allNames
-                if n.id in targets and id(n) not in insideLoop
-            }
-            local = targets - usedOutside
-            if local:
-                self.loopLocalTargets[id(forNode)] = local
 
     def isCudaqName(self, name):
         """Return True if `name` is 'cudaq' or a known alias for the cudaq
@@ -910,6 +862,23 @@ class PyASTBridge(ast.NodeVisitor):
         """Return True if the current insertion point is within an if statement
         then or else block."""
         return self.inIfStmtBlockStack > 0
+
+    def buildScopedBlock(self, stmts):
+        """Emit `stmts` inside a `cc.scope`.
+
+        A qubit allocated in a compound statement must be freed when that
+        statement ends. `cc.scope` marks that point and `add-deallocs` puts the
+        `quake.dealloc` there. Scopes with nothing to free are removed by
+        canonicalization, so this costs nothing when there is no allocation.
+        """
+        scope = cc.ScopeOp([])
+        scopeBlock = Block.create_at_start(scope.initRegion, [])
+        with InsertionPoint(scopeBlock):
+            self.symbolTable.beginBlock()
+            [self.visit(b) for b in stmts]
+            if not self.hasTerminator(scopeBlock):
+                cc.ContinueOp([])
+            self.symbolTable.endBlock()
 
     def hasTerminator(self, block):
         """Return True if the given Block has a Terminator operation."""
@@ -1550,6 +1519,52 @@ class PyASTBridge(ast.NodeVisitor):
             None if orElseBuilder is None else
             (lambda args: orElseBuilder(args[0])))
 
+    def createMonotonicForLoopInMemory(self,
+                                       bodyBuilder,
+                                       startVal,
+                                       stepVal,
+                                       endVal,
+                                       isDecrementing=False,
+                                       orElseBuilder=None):
+        """Create a `for` loop whose counter lives in memory.
+
+        The loop loads the counter to test it and loads/increments/stores it
+        to step. `memtoreg` promotes it to a value later.
+
+        The counter is separate from the Python loop variable, which takes a
+        copy of it each iteration, the way Python takes each value from the
+        iterator.
+        """
+        iTy = self.getIntegerType()
+        condPred = IntegerAttr.get(
+            iTy, 4) if isDecrementing else IntegerAttr.get(iTy, 2)
+
+        # The loop gets its own scope for the counter, so the slot dies with
+        # the loop.
+        scope = cc.ScopeOp([])
+        scopeBlock = Block.create_at_start(scope.initRegion, [])
+        with InsertionPoint(scopeBlock):
+            counter = cc.AllocaOp(cc.PointerType.get(iTy),
+                                  TypeAttr.get(iTy)).result
+            cc.StoreOp(startVal, counter)
+
+            def evalCond(_):
+                return arith.CmpIOp(condPred,
+                                    cc.LoadOp(counter).result, endVal).result
+
+            def evalStep(_):
+                next = arith.AddIOp(cc.LoadOp(counter).result, stepVal).result
+                cc.StoreOp(next, counter)
+                return []
+
+            loop = self.createForLoop(
+                [], lambda _: bodyBuilder(cc.LoadOp(counter).result), [],
+                evalCond, evalStep, None if orElseBuilder is None else
+                (lambda _: orElseBuilder(cc.LoadOp(counter).result)))
+            if not self.hasTerminator(scopeBlock):
+                cc.ContinueOp([])
+        return loop
+
     def createInvariantForLoop(self, bodyBuilder, endVal):
         """Create an invariant loop using the CC dialect."""
 
@@ -2098,8 +2113,6 @@ class PyASTBridge(ast.NodeVisitor):
                 # errors on assignments that may lead to unexpected behavior
                 # (i.e. behavior not following expected Python behavior).
                 self.buildingFunctionBody = True
-                self.__analyzeLoopLocalTargets(
-                    node.body, [arg.arg for arg in node.args.args])
                 with trace.span("ast_bridge.visit_function_body",
                                 statement_count=len(node.body)):
                     for n in node.body:
@@ -2465,12 +2478,9 @@ class PyASTBridge(ast.NodeVisitor):
                 if storeAsVal or cc.PointerType.isinstance(value.type):
                     return target, value
 
-                # A variable that outlives the block it is assigned in needs
-                # its storage in the function's entry block.
-                allocaBlock = (InsertionPoint.current.block
-                               if target.id in self.sinkAllocaNames else
-                               self.symbolTable.scopeRoot)
-                with InsertionPoint.at_block_begin(allocaBlock):
+                # A Python local lives for the whole function, so its
+                # storage goes in the entry block.
+                with InsertionPoint.at_block_begin(self.symbolTable.scopeRoot):
                     address = cc.AllocaOp(cc.PointerType.get(value.type),
                                           TypeAttr.get(value.type)).result
                 cc.StoreOp(value, address)
@@ -5327,8 +5337,6 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 self.emitFatalError('{} iterable type not supported.', node)
 
-        loopLocal = self.loopLocalTargets.get(id(node), set())
-
         def blockBuilder(iterVar, stmts):
             self.symbolTable.beginBlock()
             values = getValues(iterVar)
@@ -5336,25 +5344,21 @@ class PyASTBridge(ast.NodeVisitor):
             # iteration variable(s) to have consistent behavior.
             assignNode = ast.Assign(targets=[node.target], value=values)
             assignNode.lineno = node.lineno
-            outerSink = self.sinkAllocaNames
-            self.sinkAllocaNames = {
-                name for name in loopLocal if name not in self.symbolTable
-            }
-            try:
-                self.visit(assignNode)
-            finally:
-                self.sinkAllocaNames = outerSink
-            [self.visit(b) for b in stmts]
+            self.visit(assignNode)
+            self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
-        self.createMonotonicForLoop(
-            lambda iterVar: blockBuilder(iterVar, node.body),
-            startVal=startVal,
-            stepVal=stepVal,
-            endVal=endVal,
-            isDecrementing=isDecrementing,
-            orElseBuilder=None if not node.orelse else
-            lambda iterVar: blockBuilder(iterVar, node.orelse))
+        # `range()` counts on its own; other `iterables` use the counter as an
+        # index.
+        createLoop = (self.createMonotonicForLoop
+                      if iterable else self.createMonotonicForLoopInMemory)
+        createLoop(lambda iterVar: blockBuilder(iterVar, node.body),
+                   startVal=startVal,
+                   stepVal=stepVal,
+                   endVal=endVal,
+                   isDecrementing=isDecrementing,
+                   orElseBuilder=None if not node.orelse else
+                   lambda iterVar: blockBuilder(iterVar, node.orelse))
 
     def visit_While(self, node):
         """Convert Python while statements into the equivalent CC `LoopOp`."""
@@ -5373,12 +5377,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         def blockBuilder(iterVar):
             self.symbolTable.beginBlock()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             self.symbolTable.endBlock()
 
         self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
                            None if not node.orelse else
-                           lambda _: [self.visit(stmt) for stmt in node.orelse])
+                           lambda _: self.buildScopedBlock(node.orelse))
 
     def visit_BoolOp(self, node):
         """Convert boolean operations into equivalent MLIR operations using the
@@ -5638,24 +5642,20 @@ class PyASTBridge(ast.NodeVisitor):
         ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
         with InsertionPoint(thenBlock):
-            self.symbolTable.beginBlock()
             self.pushIfStmtBlockStack()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             if not self.hasTerminator(thenBlock):
                 cc.ContinueOp([])
             self.popIfStmtBlockStack()
-            self.symbolTable.endBlock()
 
         if len(node.orelse) > 0:
             elseBlock = Block.create_at_start(ifOp.elseRegion, [])
             with InsertionPoint(elseBlock):
-                self.symbolTable.beginBlock()
                 self.pushIfStmtBlockStack()
-                [self.visit(b) for b in node.orelse]
+                self.buildScopedBlock(node.orelse)
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp([])
                 self.popIfStmtBlockStack()
-                self.symbolTable.endBlock()
 
     def visit_Return(self, node):
 

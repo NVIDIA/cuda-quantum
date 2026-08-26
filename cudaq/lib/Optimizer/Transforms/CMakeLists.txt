@@ -51,6 +51,7 @@ add_cudaq_library(OptTransforms
   LoopAnalysis.cpp
   LoopInductionFusion.cpp
   LoopNormalize.cpp
+  LoopPruneDeadArgs.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
   LowerPhase.cpp

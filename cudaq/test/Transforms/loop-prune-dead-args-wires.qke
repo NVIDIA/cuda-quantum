@@ -1,0 +1,76 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-prune-dead-args %s | FileCheck %s
+
+// The pass must never drop a loop slot that carries a wire. Every borrowed
+// wire is returned, so a wire slot is always consumed and always live.
+
+quake.wire_set @wires[2147483647]
+
+// A wire gated inside the body and consumed after the loop.
+func.func @wire_live() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %loop = cc.loop while ((%w = %0) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    %out = quake.h %bw : (!quake.wire) -> !quake.wire
+    cc.continue %out : !quake.wire
+  }
+  quake.return_wire %loop : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @wire_live()
+// CHECK:           cc.loop while ((%{{.*}} = %{{.*}}) -> (!quake.wire)) {
+// CHECK:           quake.return_wire
+
+// Two wires threaded through one loop, both gated in the body, both returned.
+func.func @wire_mixed() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %loop:2 = cc.loop while ((%a = %0, %b = %1) -> (!quake.wire, !quake.wire)) {
+    cc.condition %cond (%a, %b : !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%ba : !quake.wire, %bb : !quake.wire):
+    %o:2 = quake.x [%ba] %bb : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %o#0, %o#1 : !quake.wire, !quake.wire
+  }
+  quake.return_wire %loop#0 : !quake.wire
+  quake.return_wire %loop#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @wire_mixed()
+// CHECK:           cc.loop while ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}) -> (!quake.wire, !quake.wire)) {
+
+// %1 is threaded through untouched. It is invariant but not dead, because the
+// loop result is returned, so the slot must survive.
+func.func @wire_invariant_but_returned() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %loop:2 = cc.loop while ((%a = %0, %b = %1) -> (!quake.wire, !quake.wire)) {
+    cc.condition %cond (%a, %b : !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%ba : !quake.wire, %bb : !quake.wire):
+    %h = quake.h %ba : (!quake.wire) -> !quake.wire
+    cc.continue %h, %bb : !quake.wire, !quake.wire
+  }
+  quake.return_wire %loop#0 : !quake.wire
+  quake.return_wire %loop#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @wire_invariant_but_returned()
+// CHECK-COUNT-2:   quake.borrow_wire
+// CHECK:           cc.loop while
+// CHECK-COUNT-2:   quake.return_wire
