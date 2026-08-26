@@ -710,6 +710,9 @@ static void registerToIQMJsonTranslation() {
 
 static std::once_flag mlir_init_flag;
 static MLIRContext *mlirContext;
+static cudaq_internal::compiler::DialectRegistrationHook
+    g_dialectRegistrationHook = nullptr;
+
 static std::unique_ptr<MLIRContext> createMLIRContext() {
   // Per-context initialization
   DialectRegistry registry;
@@ -719,6 +722,8 @@ static std::unique_ptr<MLIRContext> createMLIRContext() {
   mlir::LLVM::registerInlinerInterface(registry);
   registerBuiltinDialectTranslation(registry);
   registerLLVMDialectTranslation(registry);
+  if (g_dialectRegistrationHook)
+    g_dialectRegistrationHook(registry);
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
   return context;
@@ -806,6 +811,17 @@ static cudaq_internal::compiler::RunPassManagerHook g_runPassManagerHook =
 
 void cudaq_internal::compiler::setRunPassManagerHook(RunPassManagerHook hook) {
   g_runPassManagerHook = hook ? hook : &defaultRunPassManager;
+}
+
+void cudaq_internal::compiler::setDialectRegistrationHook(
+    DialectRegistrationHook hook) {
+  g_dialectRegistrationHook = hook;
+  if (!hook || !mlirContext)
+    return;
+  DialectRegistry registry;
+  hook(registry);
+  mlirContext->appendDialectRegistry(registry);
+  mlirContext->loadAllAvailableDialects();
 }
 
 void cudaq_internal::compiler::initializeLangMLIR() {
