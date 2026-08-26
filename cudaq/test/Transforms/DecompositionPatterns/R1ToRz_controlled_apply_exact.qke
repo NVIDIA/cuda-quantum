@@ -17,21 +17,15 @@
 // Exercise the behavior expansion end to end: decomposition runs before the
 // control is materialized, then strict matrix comparison verifies the phase
 // remains exact both before and after its late lowering.
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
-// RUN:   --expand-control-veqs --cse --canonicalize %s > %t.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
-// RUN:   --expand-control-veqs --cse --canonicalize %t.decomposed > %t.phase
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %s > %t.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.decomposed > %t.phase
 // RUN: FileCheck %s --check-prefix=PHASE < %t.phase
 // RUN: CircuitCheck --input=%t.phase %t.source
 // RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.basis > %t.basis.phase
 // RUN: FileCheck %s --check-prefix=PHASE < %t.basis.phase
 // RUN: CircuitCheck --input=%t.basis.phase %t.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
-// RUN:   --expand-control-veqs --cse --normalize-phase-placement --lower-phase \
-// RUN:   --canonicalize --verify-no-phase %s > %t.lower.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
-// RUN:   --expand-control-veqs --cse --normalize-phase-placement --lower-phase \
-// RUN:   --canonicalize --verify-no-phase %t.decomposed > %t.lower
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s > %t.lower.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.decomposed > %t.lower
 // RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.lower
 // RUN: CircuitCheck --input=%t.lower %t.lower.source
 // RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.basis > %t.basis.lower
