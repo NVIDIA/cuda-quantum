@@ -1089,14 +1089,15 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     as when generating a QIR base profile. A quantum circuit requires all loops
     be completely unrolled.
 
-    The unroll-only-wire-blocking-loops option opts in to selective unrolling
-    for wire-set lowering. Quantum references and slices must be statically
-    resolved. An `exp_pauli` also requires both its quantum register and Pauli
-    word to be resolved. Loops that block any of these resolutions are
-    unrolled; other counted loops remain rolled. A required loop that cannot be
-    unrolled (e.g. a non-constant trip count) is reported as an error. This
-    option defaults to false, leaving the pass behavior unchanged for existing
-    pipelines.
+    The unroll-only-aliasing-quantum-access-loops option opts in to selective
+    unrolling for wire-set lowering. Quantum references and slices accessed
+    through dynamic indices are aliasing quantum accesses and must be
+    statically resolved. An `exp_pauli` also requires both its quantum register
+    and Pauli word to be resolved. Loops containing these accesses or operands
+    are unrolled; other counted loops remain rolled. A required loop that
+    cannot be unrolled (e.g. a non-constant trip count) is reported as an
+    error. This option defaults to false, leaving the pass behavior unchanged
+    for existing pipelines.
 
     The unroll-only-index-use-loops option unrolls only index use loops:
     loops whose induction variable is used in the loop body. A loop that
@@ -1120,10 +1121,11 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
       "Allow unrolling of loop with early exit (i.e. break statement).">,
-    Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
-      "bool", /*default=*/"false",
-      "Unroll only loops that prevent quantum references, slices, or "
-      "exp_pauli operands from being resolved for wire-set lowering.">,
+    Option<"unrollOnlyAliasingQuantumAccessLoops",
+      "unroll-only-aliasing-quantum-access-loops", "bool",
+      /*default=*/"false",
+      "Unroll only loops containing aliasing quantum accesses or exp_pauli "
+      "operands that must be resolved for wire-set lowering.">,
     Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
       /*default=*/"false",
       "Unroll only index use loops, i.e. loops whose induction variable is "
@@ -1239,6 +1241,9 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     Some backends cannot support any-to-any multi-qubit operations, so this pass
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
+
+    The mapping pass emits Mapped Quake IR, in which kernels borrow device wires
+    from `@mapped_wireset`.
 
     Note 1: this pass requires strictly value semantics (in the form of wire
     sets) for any quantum operations. It will throw an error if any memory

@@ -10,7 +10,7 @@
 // Starting from C++, mimic the relevant JIT shape and check that
 // parent-dependent nested loops over quantum data are unrolled before wire
 // assignment.
-// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --expand-measurements --cc-loop-unroll=unroll-only-wire-blocking-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --expand-measurements --cc-loop-unroll=unroll-only-aliasing-quantum-access-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -181,7 +181,8 @@ __qpu__ std::vector<bool> grandparent_bound_separator() {
 }
 
 // The grandparent-dependent separator case should unroll the outer and inner
-// loops while preserving the non-blocking middle loop as fixed-wire loops.
+// loops while preserving the middle loop without aliasing quantum access as a
+// fixed-wire loop.
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_grandparent_bound_separator._Z27grandparent_bound_separatorv() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}

@@ -40,11 +40,11 @@ struct PrepareForWiresetPipelineOptions
       *this, "allow-early-exit",
       llvm::cl::desc(
           "Allow unrolling of loop with early exit (i.e. break statement).")};
-  PassOptions::Option<bool> unrollOnlyWireBlockingLoops{
-      *this, "unroll-only-wire-blocking-loops",
+  PassOptions::Option<bool> unrollOnlyAliasingQuantumAccessLoops{
+      *this, "unroll-only-aliasing-quantum-access-loops",
       llvm::cl::desc(
-          "Unroll only loops that prevent quantum references, slices, or "
-          "exp_pauli operands from being resolved for wire-set lowering.")};
+          "Unroll only loops containing aliasing quantum accesses or "
+          "exp_pauli operands that must be resolved for wire-set lowering.")};
   PassOptions::Option<bool> unrollOnlyIndexUseLoops{
       *this, "unroll-only-index-use-loops",
       llvm::cl::desc(
@@ -98,8 +98,8 @@ void cudaq::opt::registerPrepareForWiresetPipeline() {
         setIt(loopUnrollOptions.threshold, opt.threshold);
         setIt(loopUnrollOptions.signalFailure, opt.signalFailure);
         setIt(loopUnrollOptions.allowBreak, opt.allowBreak);
-        setIt(loopUnrollOptions.unrollOnlyWireBlockingLoops,
-              opt.unrollOnlyWireBlockingLoops);
+        setIt(loopUnrollOptions.unrollOnlyAliasingQuantumAccessLoops,
+              opt.unrollOnlyAliasingQuantumAccessLoops);
         setIt(loopUnrollOptions.unrollOnlyIndexUseLoops,
               opt.unrollOnlyIndexUseLoops);
         createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);
@@ -122,6 +122,12 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
     [[maybe_unused]] auto droppedOnTheFloor = emitOptionalError(
         {}, "convert to QIR must be given a valid specification to use.");
   }
+}
+
+void cudaq::opt::addLowerToCFGAndCleanup(OpPassManager &pm) {
+  cudaq::opt::addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
 
 static void
@@ -152,8 +158,6 @@ createCommonTargetCodegenPipeline(OpPassManager &pm,
   // If there was any specialization, we want another round in inlining to
   // inline the apply calls properly.
   cudaq::opt::addAggressiveInlining(pm);
-  cudaq::opt::addLowerToCFG(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -178,6 +182,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
 
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
@@ -311,6 +316,7 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
