@@ -8,8 +8,7 @@
 
 // The phase correction is the final owner of a wire target, so the source
 // result must be replaced with the PhaseOp wire result.
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx})' %s \
-// RUN:   | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx})' %s | FileCheck %s
 
 func.func @wire(%target: !quake.wire) -> !quake.wire
     attributes {"cudaq-entrypoint"} {
