@@ -2049,20 +2049,7 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
         if (block.hasNoSuccessors())
           terminators.push_back(block.getTerminator());
 
-    // 2. Everything below is indexed by slot number. Bail if the lists
-    // disagree on how many slots there are, rather than index out of bounds.
-    const auto numSlots = loop.getInitialArgs().size();
-    for (auto *term : terminators) {
-      if (term->getBlock()->getParent()->front().getNumArguments() != numSlots)
-        return failure();
-      auto forwarded = isa<cudaq::cc::ConditionOp>(term)
-                           ? term->getNumOperands() - 1
-                           : term->getNumOperands();
-      if (forwarded != numSlots)
-        return failure();
-    }
-
-    // 3. Determine if any arguments are invariant.
+    // 2. Determine if any arguments are invariant.
     SmallVector<bool> invariants;
     bool hasInvariants = false;
     for (auto iter : llvm::enumerate(loop.getInitialArgs())) {
@@ -2088,19 +2075,19 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
       invariants.push_back(isInvar);
     }
 
-    // 4. For each invariant argument replace the uses with the original
+    // 3. For each invariant argument replace the uses with the original
     // invariant value throughout.
     if (hasInvariants) {
       for (auto iter : llvm::enumerate(invariants)) {
         if (iter.value()) {
           auto i = iter.index();
           Value initialVal = loop.getInitialArgs()[i];
-          rewriter.replaceAllUsesWith(loop.getResult(i), initialVal);
+          loop.getResult(i).replaceAllUsesWith(initialVal);
           for (auto *reg : loop.getRegions()) {
             if (reg->empty())
               continue;
             auto &entry = reg->front();
-            rewriter.replaceAllUsesWith(entry.getArgument(i), initialVal);
+            entry.getArgument(i).replaceAllUsesWith(initialVal);
           }
         }
       }
