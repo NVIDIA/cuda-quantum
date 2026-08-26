@@ -12,11 +12,10 @@
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
 #include "cudaq/realtime/testing/test_utils.h"
-#include <gtest/gtest.h>
-
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <gtest/gtest.h>
 #include <string>
 
 using cudaq::realtime::testing::load_flag;

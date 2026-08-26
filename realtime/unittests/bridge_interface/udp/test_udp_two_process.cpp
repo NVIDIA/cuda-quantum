@@ -50,13 +50,11 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/testing/server_process.h"
 #include "cudaq/realtime/testing/test_utils.h"
-
-#include <gtest/gtest.h>
-
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <gtest/gtest.h>
 #include <string>
 #include <string_view>
 #include <vector>

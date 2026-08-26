@@ -45,20 +45,19 @@
 ///   const std::string line = server.stopAndReadLine("..._PROCESSED", 5s);
 /// \endcode
 
-#include <fcntl.h>
-#include <poll.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
 #include <cerrno>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <fcntl.h>
 #include <map>
+#include <poll.h>
+#include <signal.h>
 #include <sstream>
 #include <string>
+#include <sys/wait.h>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 namespace cudaq::realtime::testing {
