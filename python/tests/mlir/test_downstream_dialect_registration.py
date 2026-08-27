@@ -7,6 +7,8 @@
 # ============================================================================ #
 """Tests for downstream MLIR dialect registration via entry points."""
 
+# RUN: PYTHONPATH=../../ pytest -rP %s
+
 from unittest.mock import MagicMock, patch
 
 from cudaq.mlir._mlir_libs import _site_initialize_1

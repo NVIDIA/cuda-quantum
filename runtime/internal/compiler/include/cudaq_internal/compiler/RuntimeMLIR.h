@@ -127,8 +127,8 @@ using RunPassManagerHook = mlir::LogicalResult (*)(mlir::PassManager &,
                                                    mlir::Operation *);
 void setRunPassManagerHook(RunPassManagerHook hook);
 
-/// Hook to register dialects from downstream extensions into CUDA-Q's
-/// `MLIRContext`s.
+/// Hook to register dialects from downstream extensions into the
+/// `MLIRContext`s created by CUDA-Q.
 using DialectRegistrationHook = void (*)(mlir::DialectRegistry &);
 void setDialectRegistrationHook(DialectRegistrationHook hook);
 
