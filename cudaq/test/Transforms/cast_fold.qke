@@ -422,11 +422,8 @@ func.func @castAndTest () {
   }
 
 // CHECK:   func.func @castAndTest() {
-// CHECK:     %true = arith.constant true
 // CHECK:     %0 = quake.alloca !quake.ref
-// CHECK:     cc.if(%true) {
-// CHECK:       quake.x %0 : (!quake.ref) -> ()
-// CHECK:     }
+// CHECK:     quake.x %0 : (!quake.ref) -> ()
 // CHECK:     return
 // CHECK:   }
 

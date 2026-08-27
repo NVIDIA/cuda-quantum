@@ -2504,103 +2504,116 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
   using Base = OpRewritePattern<cudaq::cc::IfOp>;
   using Base::Base;
 
-  // This rewrite will determine if the condition is constant. If it is, then it
-  // will elide the true or false region completely, depending on the constant's
-  // value. For cc.if ops with results, it inlines the surviving region and
-  // replaces the results with the cc.continue operands.
+  // This rewrite will determine if the condition is constant. If it is, then
+  // the dead region is elided and the surviving region is spliced into the
+  // parent op in place of the cc.if. Any results are replaced with the operands
+  // of the region's cc.continue terminators.
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
-    auto cond = ifOp.getCondition();
-    auto con = cond.getDefiningOp<arith::ConstantIntOp>();
+    auto con = ifOp.getCondition().getDefiningOp<arith::ConstantIntOp>();
     if (!con)
       return failure();
-    auto val = con.value();
     auto loc = ifOp.getLoc();
+    Region &region = con.value() ? ifOp.getThenRegion() : ifOp.getElseRegion();
 
-    // Handle cc.if with results by inlining the surviving region.
-    if (!ifOp.getResults().empty()) {
-      Region *survivingRegion = nullptr;
-      if (val) {
-        // Condition is true: use then region.
-        survivingRegion = &ifOp.getThenRegion();
-      } else {
-        // Condition is false: use else region if it exists.
-        if (ifOp.getElseRegion().empty()) {
-          // No else region and condition is false - this shouldn't happen for
-          // a well-formed cc.if with results, but handle it gracefully.
-          return failure();
-        }
-        survivingRegion = &ifOp.getElseRegion();
-      }
+    // An absent else region means there is nothing left to execute. (The
+    // verifier requires an else region whenever the cc.if has results.)
+    if (region.empty()) {
+      rewriter.eraseOp(ifOp);
+      return success();
+    }
 
-      // The surviving region should have a single block ending in cc.continue.
-      if (survivingRegion->empty())
-        return failure();
+    // An unwind op requires a structured parent op, so leave the cc.if in place
+    // if inlining the region would reparent one. (Unwinds are removed by the
+    // lower-unwind pass, after which this pattern will apply.)
+    if (region
+            .walk([](Operation *op) {
+              return isa<cudaq::cc::UnwindReturnOp, cudaq::cc::UnwindBreakOp,
+                         cudaq::cc::UnwindContinueOp>(op)
+                         ? WalkResult::interrupt()
+                         : WalkResult::advance();
+            })
+            .wasInterrupted())
+      return failure();
 
-      // Collect results from all cc.continue ops and inline the region.
-      // For a proper cc.if with results, there should be exactly one path
-      // through each region ending in cc.continue.
-      SmallVector<Value> results;
-      Block &entryBlock = survivingRegion->front();
-
-      // Find the terminator cc.continue to get the result values.
-      // We need to walk all blocks because there might be nested control flow.
-      for (Block &block : *survivingRegion) {
-        if (auto contOp =
-                dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
-          // For single-block regions, just grab the operands.
-          if (survivingRegion->hasOneBlock()) {
-            results = llvm::to_vector(contOp.getOperands());
-            rewriter.eraseOp(contOp);
-            break;
-          }
-        }
-      }
-
-      // If we couldn't find a simple single-block case, fall back to creating
-      // a new cc.if with only the surviving region.
-      if (results.empty() || results.size() != ifOp.getNumResults()) {
-        auto truth = arith::ConstantIntOp::create(rewriter, loc, 1, 1);
-        rewriter.replaceOpWithNewOp<cudaq::cc::IfOp>(
-            ifOp, ifOp.getResultTypes(), truth,
-            [&](OpBuilder &, Location, Region &region) {
-              region.takeBody(*survivingRegion);
-            });
-        return success();
-      }
-
-      // Inline the surviving region's block before the cc.if, replacing
-      // block arguments with the cc.if's linear args.
-      rewriter.inlineBlockBefore(&entryBlock, ifOp, ifOp.getLinearArgs());
+    // Simple case: a single block, which must end with a cc.continue. Splice
+    // the block in place of the cc.if.
+    if (region.hasOneBlock()) {
+      auto *block = &region.front();
+      auto contOp = cast<cudaq::cc::ContinueOp>(block->getTerminator());
+      auto results = llvm::to_vector(contOp.getOperands());
+      rewriter.eraseOp(contOp);
+      rewriter.inlineBlockBefore(block, ifOp, ifOp.getLinearArgs());
       rewriter.replaceOp(ifOp, results);
       return success();
     }
 
-    // Original logic for cc.if without results.
-    auto truth = arith::ConstantIntOp::create(rewriter, loc, 1, 1);
-    Region *newRegion = nullptr;
-    if (val) {
-      // The else block, if any, is dead.
-      if (ifOp.getElseRegion().empty())
-        return failure();
-      newRegion = &ifOp.getThenRegion();
-    } else {
-      // The then block is dead.
-      newRegion = &ifOp.getElseRegion();
-      if (newRegion->empty()) {
-        // If there was no else, then build an empty dummy Region.
-        OpBuilder::InsertionGuard guard(rewriter);
-        Block *block = new Block();
-        rewriter.setInsertionPointToEnd(block);
-        cudaq::cc::ContinueOp::create(rewriter, loc);
-        newRegion->push_back(block);
-      }
+    // General case: the region has multiple exits, so split the parent block at
+    // the cc.if and stitch the region in with branches.
+    auto *ifBlock = rewriter.getInsertionBlock();
+    auto *splitBlock =
+        rewriter.splitBlock(ifBlock, rewriter.getInsertionPoint());
+    Block *succBlock = splitBlock;
+    if (ifOp.getNumResults()) {
+      succBlock = rewriter.createBlock(
+          splitBlock, ifOp.getResultTypes(),
+          SmallVector<Location>(ifOp.getNumResults(), loc));
+      cf::BranchOp::create(rewriter, loc, splitBlock);
     }
-    rewriter.replaceOpWithNewOp<cudaq::cc::IfOp>(
-        ifOp, ifOp.getResultTypes(), truth,
-        [&](OpBuilder &, Location, Region &region) {
-          region.takeBody(*newRegion);
-        });
+    auto *entryBlock = &region.front();
+    for (auto &block : region)
+      if (auto contOp =
+              dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+        rewriter.setInsertionPointToEnd(&block);
+        rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, succBlock,
+                                                  contOp.getOperands());
+      }
+    rewriter.inlineRegionBefore(region, succBlock);
+    rewriter.setInsertionPointToEnd(ifBlock);
+    cf::BranchOp::create(rewriter, loc, entryBlock, ifOp.getLinearArgs());
+    rewriter.replaceOp(ifOp, succBlock->getArguments());
+    return success();
+  }
+};
+
+struct KillIfWithNoOpArms : public OpRewritePattern<cudaq::cc::IfOp> {
+  using Base = OpRewritePattern<cudaq::cc::IfOp>;
+  using Base::Base;
+
+  // Both arms of the cc.if do nothing but forward the very same values, so the
+  // condition has no bearing on the results and the op can be erased. (A cc.if
+  // with no results is left to dead code elimination.)
+  LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
+                                PatternRewriter &rewriter) const override {
+    if (ifOp.getResults().empty())
+      return failure();
+
+    // If the region is a single block that does nothing but forward values to
+    // the parent op, return those values. An entry block argument is mapped
+    // back to the corresponding linear argument of the cc.if.
+    auto noOpArm =
+        [&ifOp](Region &region) -> std::optional<SmallVector<Value>> {
+      if (!region.hasOneBlock())
+        return std::nullopt;
+      Block &block = region.front();
+      auto contOp = dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator());
+      if (!contOp || !block.without_terminator().empty())
+        return std::nullopt;
+      SmallVector<Value> results;
+      for (auto val : contOp.getOperands()) {
+        auto arg = dyn_cast<BlockArgument>(val);
+        results.push_back(arg && arg.getOwner() == &block
+                              ? ifOp.getLinearArgs()[arg.getArgNumber()]
+                              : val);
+      }
+      return results;
+    };
+    auto thenVals = noOpArm(ifOp.getThenRegion());
+    auto elseVals = noOpArm(ifOp.getElseRegion());
+    if (!thenVals || !elseVals ||
+        ArrayRef<Value>(*thenVals) != ArrayRef<Value>(*elseVals))
+      return failure();
+    rewriter.replaceOp(ifOp, *thenVals);
     return success();
   }
 };
@@ -2608,7 +2621,7 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
 
 void cudaq::cc::IfOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<KillRegionIfConstant>(context);
+  patterns.add<KillRegionIfConstant, KillIfWithNoOpArms>(context);
 }
 
 //===----------------------------------------------------------------------===//
