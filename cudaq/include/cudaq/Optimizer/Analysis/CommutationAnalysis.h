@@ -31,7 +31,7 @@ class CommutationAwareRewriteListener;
 namespace cudaq::quake::detail {
 
 class QubitIdentityAnalysis;
-class LogicalQubitInteractionIndex;
+class LogicalQubitOperationIndex;
 
 /// The outcome of a commutation query.
 enum class commutation_status { commutes, does_not_commute, indeterminate };
@@ -172,8 +172,6 @@ public:
   bool canCommute(mlir::Operation *lhs, mlir::Operation *rhs);
 
 private:
-  enum class prior_interaction_walk_result { unavailable, conclusive };
-
   using OperationPair = std::pair<mlir::Operation *, mlir::Operation *>;
 
   /// Return true when every control and target role has a distinct known
@@ -199,38 +197,40 @@ private:
   static bool
   collectScopeWireCaptures(mlir::Operation *operation,
                            llvm::SmallVectorImpl<mlir::Value> &captures);
-  /// Visit indexed interactions at or before `inclusiveUpperBound` in
-  /// descending block order. `unavailable` instructs the caller to continue
-  /// the block-order scan. `conclusive` means traversal exhausted the segment,
-  /// reached its boundary, or the visitor ended the search.
-  prior_interaction_walk_result
-  walkPriorInteractions(mlir::Operation *anchor,
-                        mlir::Operation *inclusiveUpperBound,
-                        llvm::function_ref<bool(mlir::Operation *)> visitor);
+  /// Try to finish the remaining search using operations indexed by the
+  /// anchor's logical qubits. Visit operations at or before
+  /// `inclusiveUpperBound` in descending block order. Return true when the
+  /// visitor ends the search, the current segment is exhausted, or a segment
+  /// boundary prevents further traversal. Return false when the caller must
+  /// continue with the block-order scan.
+  bool
+  tryWalkPriorOperations(mlir::Operation *anchor,
+                         mlir::Operation *inclusiveUpperBound,
+                         llvm::function_ref<bool(mlir::Operation *)> visitor);
   /// Register a newly inserted scalar-wire operation only when every input
   /// identity is known. A classical-only insertion succeeds without changing
   /// identity state only when it is not call-like, owns no regions, and is
   /// memory-effect-free. Return false for every other insertion.
   bool registerIdentityPreservingOperation(mlir::Operation *operation);
   /// Validate an identity-preserving replacement, clear cached relations, and
-  /// maintain or discard the interaction index.
+  /// maintain or discard the operation index.
   bool prepareIdentityPreservingReplacement(mlir::Operation *operation,
                                             mlir::ValueRange replacement,
                                             mlir::Operation *replacementOp);
   /// Clear cached pairwise relations without changing ordered search state.
   void clearCachedRelations();
-  /// Clear cached relations, remove the operation from the interaction index,
+  /// Clear cached relations, remove the operation from the operation index,
   /// then erase its result identities.
   void eraseOperation(mlir::Operation *operation);
 
   mlir::Block *block;
   std::unique_ptr<QubitIdentityAnalysis> qubitIdentity;
-  std::unique_ptr<LogicalQubitInteractionIndex> interactionIndex;
+  std::unique_ptr<LogicalQubitOperationIndex> operationIndex;
   llvm::DenseMap<OperationPair, CommutationResult> cache;
 
   friend class cudaq::opt::CommutationAwareRewriteMatcher;
   friend class cudaq::opt::detail::CommutationAwareRewriteListener;
-  friend class LogicalQubitInteractionIndex;
+  friend class LogicalQubitOperationIndex;
 };
 
 } // namespace cudaq::quake::detail

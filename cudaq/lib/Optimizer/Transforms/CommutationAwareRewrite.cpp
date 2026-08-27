@@ -512,7 +512,7 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
   // Check nearby frontier heads and ignorable operations before building the
   // index. Once analysis is needed, indexed traversal skips operations on
   // unrelated known qubits when it is available.
-  bool indexUnavailable = false;
+  bool useBlockOrderScan = false;
   for (Operation *candidate = anchor->getPrevNode(); candidate;) {
     if (!processCandidate(candidate))
       return match;
@@ -520,13 +520,12 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
     Operation *inclusiveUpperBound = candidate->getPrevNode();
     if (!inclusiveUpperBound)
       return nullptr;
-    if (analysis && !indexUnavailable) {
-      auto walkResult = analysis->walkPriorInteractions(
+    if (analysis && !useBlockOrderScan) {
+      bool searchFinished = analysis->tryWalkPriorOperations(
           anchor, inclusiveUpperBound, processCandidate);
-      if (walkResult == cudaq::quake::detail::CommutationAnalysis::
-                            prior_interaction_walk_result::conclusive)
+      if (searchFinished)
         return match;
-      indexUnavailable = true;
+      useBlockOrderScan = true;
     }
     candidate = inclusiveUpperBound;
   }

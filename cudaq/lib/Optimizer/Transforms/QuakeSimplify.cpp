@@ -836,7 +836,8 @@ public:
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
     auto *ctx = &getContext();
     Region &region = getOperation()->getRegion(0);
-    // Each simplification run gets a fresh matcher and interaction index.
+    // Each simplification run gets a fresh matcher and logical-qubit operation
+    // index.
     auto simplify = [&]() {
       cudaq::opt::CommutationAwareRewriteDriver driver(*ctx, config);
       auto &patterns = driver.get_patterns();
@@ -871,7 +872,7 @@ public:
     if (rotationsToCliffordT) {
       // Legalization expands one rotation into several gates. Keeping it out
       // of the commutation-aware simplification loop avoids rebuilding the
-      // interaction index after every expansion.
+      // logical-qubit operation index after every expansion.
 
       // First combine rotations so legalization only sees those that remain.
       if (failed(simplify())) {
