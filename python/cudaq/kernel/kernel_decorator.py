@@ -233,7 +233,7 @@ class PyKernelDecorator(object):
     @ensure_compiled
     def qkeModule(self):
         """
-        An AOT Quake MLIR representation for the current compile target.
+        An `AOT` Quake MLIR representation for the current compile target.
         """
         return self._cached_qkeModule
 
