@@ -268,6 +268,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     auto *insBlock = rewriter.getInsertionBlock();
     auto insPos = rewriter.getInsertionPoint();
     auto *endBlock = rewriter.splitBlock(insBlock, insPos);
+    auto *startBlock = insBlock;
     auto argTys = loop.getResultTypes();
     SmallVector<Location> argLocs(argTys.size(), loop.getLoc());
     endBlock->addArguments(argTys, argLocs);
@@ -382,6 +383,19 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
                lastBranch->getParentOfType<func::FuncOp>().dump());
+
+    // Merge the chain of blocks here head-first, as the greedy pattern
+    // rewriter exhibits quadratic slowdown when it does the merging.
+    // Stop at any blocks with multiple predecessors for later processing.
+    while (auto br = dyn_cast<cf::BranchOp>(startBlock->getTerminator())) {
+      Block *succ = br.getDest();
+      if (succ == endBlock || !succ->getSinglePredecessor())
+        break;
+      SmallVector<Value> brArgs(br.getDestOperands());
+      rewriter.eraseOp(br);
+      rewriter.mergeBlocks(succ, startBlock, brArgs);
+    }
+
     progress++;
     return success();
   }
