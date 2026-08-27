@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --cc-loop-peeling %s | FileCheck %s
+// RUN: cudaq-opt --memtoreg %s | FileCheck --check-prefix=CHECK-MEMTOREG %s
 
 func.func @peel_do_while() {
   %c1_i32 = arith.constant 1 : i32
@@ -90,6 +91,28 @@ func.func @peel_do_while() {
 // CHECK:           return
 // CHECK:         }
 
+// This regression-tests a `cc.loop do { } while { }` (post_condition=true,
+// so `do` is the entry region, not `while`) where the linear-type-argument
+// canonicalization used to physically permute a block's arguments before
+// updating the data-flow bookkeeping that still referenced them, crashing on
+// the dangling reference. See MemToReg.cpp's canonicalizeArgumentOrder.
+// CHECK-MEMTOREG-LABEL:   func.func @peel_do_while() {
+// CHECK-MEMTOREG:           %[[LOOP_0:.*]]:2 = cc.loop do ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}) -> (i32, i1)) {
+// CHECK-MEMTOREG:             cc.continue %{{.*}}, %{{.*}} : i32, i1
+// CHECK-MEMTOREG:           } while {
+// CHECK-MEMTOREG:           ^bb0(%[[ARG0:.*]]: i32, %[[ARG1:.*]]: i1):
+// CHECK-MEMTOREG:             %[[CMPI_0:.*]] = arith.cmpi eq, %[[ARG1]], %{{.*}} : i1
+// CHECK-MEMTOREG:             %[[IF_0:.*]] = cc.if(%[[CMPI_0]]) -> i1 {
+// CHECK-MEMTOREG:               cc.continue %{{.*}} : i1
+// CHECK-MEMTOREG:             } else {
+// CHECK-MEMTOREG:               %[[CMPI_1:.*]] = arith.cmpi ult, %[[ARG0]], %{{.*}} : i32
+// CHECK-MEMTOREG:               cc.continue %[[CMPI_1]] : i1
+// CHECK-MEMTOREG:             }
+// CHECK-MEMTOREG:             cc.condition %[[IF_0]](%[[ARG0]], %[[ARG1]] : i32, i1)
+// CHECK-MEMTOREG:           }
+// CHECK-MEMTOREG:           return
+// CHECK-MEMTOREG:         }
+
 func.func @peel_do_while_with_args() {
   %c10_i32 = arith.constant 10 : i32
   %c0_i32 = arith.constant 0 : i32
@@ -156,4 +179,22 @@ func.func @peel_do_while_with_args() {
 // CHECK:           quake.dealloc %[[VAL_4]] : !quake.veq<10>
 // CHECK:           return
 // CHECK:         }
+
+// CHECK-MEMTOREG-LABEL:   func.func @peel_do_while_with_args() {
+// CHECK-MEMTOREG:           %[[LOOP_1:.*]]:2 = cc.loop do ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}) -> (i32, i1)) {
+// CHECK-MEMTOREG:             cc.continue %{{.*}}, %{{.*}} : i32, i1
+// CHECK-MEMTOREG:           } while {
+// CHECK-MEMTOREG:           ^bb0(%[[ARG2:.*]]: i32, %[[ARG3:.*]]: i1):
+// CHECK-MEMTOREG:             %[[CMPI_2:.*]] = arith.cmpi eq, %[[ARG3]], %{{.*}} : i1
+// CHECK-MEMTOREG:             %[[IF_1:.*]] = cc.if(%[[CMPI_2]]) -> i1 {
+// CHECK-MEMTOREG:               cc.continue %{{.*}} : i1
+// CHECK-MEMTOREG:             } else {
+// CHECK-MEMTOREG:               %[[CMPI_3:.*]] = arith.cmpi ult, %[[ARG2]], %{{.*}} : i32
+// CHECK-MEMTOREG:               cc.continue %[[CMPI_3]] : i1
+// CHECK-MEMTOREG:             }
+// CHECK-MEMTOREG:             cc.condition %[[IF_1]](%[[ARG2]], %[[ARG3]] : i32, i1)
+// CHECK-MEMTOREG:           }
+// CHECK-MEMTOREG:           quake.dealloc %{{.*}} : !quake.veq<10>
+// CHECK-MEMTOREG:           return
+// CHECK-MEMTOREG:         }
 

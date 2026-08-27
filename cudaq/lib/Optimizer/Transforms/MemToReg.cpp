@@ -751,76 +751,114 @@ public:
   void canonicalizeArgumentOrder(Operation *parent) {
     if (entryCFG.empty())
       return;
-    Block *entry = entryCFG.front();
-    SmallVector<MemRef> entryOrder(entry->getNumArguments(), MemRef{});
-    getLiveInToBlock(entryOrder, entry);
-    DenseMap<MemRef, unsigned> canonicalIndex;
-    for (auto [i, mr] : llvm::enumerate(entryOrder))
-      if (mr)
-        canonicalIndex[mr] = i;
+    const bool noRegionArguments = neverTakesRegionArguments(parent);
+    if (noRegionArguments)
+      return;
+    const bool onlyLinearTypes = onlyTakesLinearTypeArguments(parent);
 
+    // Build a canonical order for the whole of the op's regions.
+    SmallVector<MemRef> canonicalOrder;
+    DenseSet<MemRef> seen;
+    auto addFromBlock = [&](Block *block) {
+      SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
+      getLiveInToBlock(order, block);
+      for (auto mr : order)
+        if (mr && seen.insert(mr).second)
+          canonicalOrder.push_back(mr);
+    };
+    addFromBlock(entryCFG.front());
     for (auto &region : parent->getRegions()) {
       if (region.empty())
         continue;
       Block *block = &region.front();
-      if (block == entry || block->getNumArguments() < 2)
-        continue;
-      SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
-      getLiveInToBlock(order, block);
-      SmallVector<unsigned> perm(order.size());
-      std::iota(perm.begin(), perm.end(), 0);
-      unsigned prefix = originalArgCount.lookup(block);
-      llvm::stable_sort(perm, [&](unsigned a, unsigned b) {
-        bool aPrefix = a < prefix;
-        bool bPrefix = b < prefix;
-        if (aPrefix != bPrefix)
-          return aPrefix;
-        if (aPrefix)
-          return a < b;
-        auto ai = canonicalIndex.find(order[a]);
-        auto bi = canonicalIndex.find(order[b]);
-        bool aKnown = ai != canonicalIndex.end();
-        bool bKnown = bi != canonicalIndex.end();
-        if (aKnown != bKnown)
-          return aKnown;
-        if (aKnown)
-          return ai->second < bi->second;
-        return false;
+      if (block != entryCFG.front())
+        addFromBlock(block);
+    }
+    for (auto mr : liveOutSet)
+      if (seen.insert(mr).second)
+        canonicalOrder.push_back(mr);
+    if (onlyLinearTypes)
+      llvm::erase_if(canonicalOrder, [](MemRef mr) {
+        return !cudaq::quake::isQuantumReferenceType(mr.getType());
       });
+    if (canonicalOrder.empty())
+      return;
+
+    LLVM_DEBUG(llvm::dbgs() << "canonicalizeArgumentOrder: canonicalOrder=[";
+               for (auto mr : canonicalOrder) mr.dump(); llvm::dbgs() << "]\n");
+    for (auto &region : parent->getRegions()) {
+      if (!region.empty())
+        unifyBlockArguments(&region.front(), canonicalOrder);
+    }
+  }
+
+  // Ensure block arguments are in a canonicalOrder.
+  void unifyBlockArguments(Block *block, ArrayRef<MemRef> canonicalOrder) {
+    unsigned prefix = originalArgCount.lookup(block);
+    SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
+    getLiveInToBlock(order, block);
+
+    if (order.size() - prefix == canonicalOrder.size()) {
       bool identity = true;
-      for (unsigned i = 0; i < perm.size(); ++i)
-        if (perm[i] != i) {
+      for (unsigned i = 0; i < canonicalOrder.size(); ++i)
+        if (order[prefix + i] != canonicalOrder[i]) {
           identity = false;
           break;
         }
       if (identity)
+        return;
+    }
+
+    DenseMap<MemRef, unsigned> canonicalPos;
+    for (auto [i, mr] : llvm::enumerate(canonicalOrder))
+      canonicalPos[mr] = i;
+
+    unsigned oldCount = block->getNumArguments();
+    SmallVector<BlockArgument> newArgs;
+    for (auto mr : canonicalOrder)
+      newArgs.push_back(
+          block->addArgument(dereferencedType(mr.getType()), mr.getLoc()));
+
+    // Map each of block's current suffix arguments (added before this pass
+    // touched anything vs. this pass's own earlier additions -- either way,
+    // about to be erased) to the new argument replacing it.
+    DenseMap<Value, Value> oldToNew;
+    for (unsigned i = prefix; i < oldCount; ++i) {
+      MemRef mr = order[i];
+      if (!mr)
         continue;
+      auto it = canonicalPos.find(mr);
+      assert(it != canonicalPos.end() &&
+             "canonicalOrder must be a superset of every region's own order");
+      oldToNew[block->getArgument(i)] = newArgs[it->second];
+    }
 
-      // Physically permute: append new arguments in the target order, RAUW
-      // the old arguments to point at them, then erase the old arguments.
-      unsigned oldCount = block->getNumArguments();
-      SmallVector<BlockArgument> newArgs;
-      for (auto idx : perm) {
-        auto oldArg = block->getArgument(idx);
-        newArgs.push_back(
-            block->addArgument(oldArg.getType(), oldArg.getLoc()));
-      }
-      for (unsigned i = 0; i < perm.size(); ++i)
-        block->getArgument(perm[i]).replaceAllUsesWith(newArgs[i]);
-      block->eraseArguments(0, oldCount);
+    // RAUW every real IR use of an old suffix argument.
+    for (auto [oldVal, newVal] : oldToNew)
+      oldVal.replaceAllUsesWith(newVal);
 
-      // rMap/liveInMap for this block currently key some entries to the old
-      // (now dead) argument Values; repoint them at the new ones.
-      for (unsigned i = 0; i < perm.size(); ++i) {
-        MemRef mr = order[perm[i]];
-        if (!mr)
-          continue;
-        if (liveInMap[block].count(mr))
-          liveInMap[block][mr] = newArgs[i];
-        if (rMap.count(block) && rMap[block].count(mr) &&
-            isa<BlockArgument>(rMap[block][mr]))
-          rMap[block][mr] = newArgs[i];
-      }
+    // A different memref's binding may itself alias one of these old arguments,
+    // because its genuinely correct value happens to equal one.
+    if (rMap.count(block))
+      for (auto &[mr, val] : rMap[block])
+        if (auto it = oldToNew.find(val); it != oldToNew.end())
+          val = it->second;
+    if (liveInMap.count(block))
+      for (auto &[mr, val] : liveInMap[block])
+        if (auto it = oldToNew.find(val); it != oldToNew.end())
+          val = it->second;
+
+    block->eraseArguments(prefix, oldCount - prefix);
+
+    // Establish liveInMap/rMap for every canonical memref at its new
+    // position, including ones block never referenced before (the
+    // pass-through case: its own value, for the duration of this block, is
+    // simply whatever comes in).
+    for (unsigned i = 0; i < canonicalOrder.size(); ++i) {
+      MemRef mr = canonicalOrder[i];
+      liveInMap[block][mr] = newArgs[i];
+      if (!rMap.count(block) || !rMap[block].count(mr))
+        rMap[block][mr] = newArgs[i];
     }
   }
 
@@ -835,10 +873,10 @@ public:
     return {};
   }
 
-  /// Promote the memory dereference \p memuse to immediately before the parent
-  /// operation. This allows uses within the regions of the parent to use the
-  /// new dominating dereference. These will be converted to live-in arguments
-  /// if the op takes region arguments.
+  // Promote the memory dereference \p memuse to immediately before the parent
+  // operation. This allows uses within the regions of the parent to use the
+  // new dominating dereference. These will be converted to live-in arguments
+  // if the op takes region arguments.
   SSAReg createPromotedValue(Operation *parent, Value memref) {
     if (promotedDefs.count(memref))
       return promotedDefs[memref];
@@ -1628,7 +1666,7 @@ public:
             if (isFunctionEntryBlock(block)) {
               // This is a function's entry block. This use can't come before a
               // def in a valid program. Raise an error.
-              operRef.emitError("use before def in function");
+              operRef.emitError(DEBUG_TYPE ": use before def in function");
               signalPassFailure();
               return;
             }
@@ -1921,6 +1959,15 @@ public:
           dataFlow.addBinding(block, liveOut, newVal);
           addTerminatorArgument(term, target, newVal, liveOut);
         } else {
+          // Cannot live-in a value from the ether. Give an error.
+          if (isFunctionEntryBlock(block) &&
+              !dataFlow.hasLiveInToBlock(block, liveOut)) {
+            emitError(term->getLoc(), DEBUG_TYPE
+                      ": cannot promote a value that would require threading a "
+                      "new live-in past the function entry block");
+            signalPassFailure();
+            return;
+          }
           auto newArg = dataFlow.maybeAddLiveInToBlock(block, liveOut);
           addTerminatorArgument(term, target, newArg, liveOut);
         }
@@ -2101,7 +2148,7 @@ public:
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
-      emitError(func.getLoc(), "error converting to QLS form\n");
+      emitError(func.getLoc(), DEBUG_TYPE ": error converting to QLS form\n");
       signalPassFailure();
       return failure();
     }
