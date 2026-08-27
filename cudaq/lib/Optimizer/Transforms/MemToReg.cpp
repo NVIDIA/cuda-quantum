@@ -1982,28 +1982,35 @@ public:
       // the parent's results must land in the same relative order as that
       // sibling's arguments. We must reorder bindings to match before
       // threading.
+      //
+      // If block has no such sibling (e.g. a Python `else` block's cc.continue,
+      // which is the sole edge out of the else region straight to the parent
+      // op's results), fall back to block's own canonicalized argument order.
+      // canonicalizeArgumentOrder already unified every region's entry block
+      // to one shared slot-per-memref order, so block's own live-ins are just
+      // as valid an ordering key as a sibling's would be.
       using MemRef = RegionDataFlow::MemRef;
       SmallVector<MemRef> ordered(bindings.begin(), bindings.end());
+      Block *orderSource = block;
       if (auto *siblings = dataFlow.getExitSiblingSuccessors(block))
-        if (!siblings->empty()) {
-          Block *sibling = siblings->front();
-          SmallVector<MemRef> siblingOrder(sibling->getNumArguments(),
+        if (!siblings->empty())
+          orderSource = siblings->front();
+      SmallVector<MemRef> orderSourceOrder(orderSource->getNumArguments(),
                                            MemRef{});
-          dataFlow.getLiveInToBlock(siblingOrder, sibling);
-          DenseMap<MemRef, unsigned> argNum;
-          for (auto [i, mr] : llvm::enumerate(siblingOrder))
-            if (mr)
-              argNum[mr] = i;
-          llvm::stable_sort(ordered, [&](MemRef a, MemRef b) {
-            auto ai = argNum.find(a);
-            auto bi = argNum.find(b);
-            bool aKnown = ai != argNum.end();
-            bool bKnown = bi != argNum.end();
-            if (aKnown != bKnown)
-              return aKnown;
-            return aKnown && ai->second < bi->second;
-          });
-        }
+      dataFlow.getLiveInToBlock(orderSourceOrder, orderSource);
+      DenseMap<MemRef, unsigned> argNum;
+      for (auto [i, mr] : llvm::enumerate(orderSourceOrder))
+        if (mr)
+          argNum[mr] = i;
+      llvm::stable_sort(ordered, [&](MemRef a, MemRef b) {
+        auto ai = argNum.find(a);
+        auto bi = argNum.find(b);
+        bool aKnown = ai != argNum.end();
+        bool bKnown = bi != argNum.end();
+        if (aKnown != bKnown)
+          return aKnown;
+        return aKnown && ai->second < bi->second;
+      });
       return updateTerminator(block->getTerminator(), nullptr,
                               llvm::make_range(ordered.begin(), ordered.end()));
     };
