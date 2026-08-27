@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=h,t,z(1)})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=h,t,z(1)})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=h,t,z(1)})' %s | CircuitCheck %s
 
 
 // CHECK-LABEL: func.func @ccx

@@ -465,7 +465,10 @@ TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXToCZ) {
   std::vector<std::string> targetBasis{"h", "t", "z(1)"};
   auto selectedPatterns = selectPatterns(targetBasis);
 
-  std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ", "SwapToCX"};
+  // One entry is selected for each supported SwapToCX source variant:
+  // uncontrolled Swap and one-control Swap.
+  std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ", "SwapToCX",
+                               "SwapToCX"};
   EXPECT_EQ(selectedPatterns, exp);
 }
 
