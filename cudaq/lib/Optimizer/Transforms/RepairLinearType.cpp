@@ -79,8 +79,10 @@ public:
         //   %85 = quake.unwrap %35 : (!quake.ref) -> !quake.wire
         //   %86 = quake.baz %85 : (!quake.wire) -> !quake.wire
 
-        SmallVector<Operation *> origUsers{result.getUsers().begin(),
-                                           result.getUsers().end()};
+        SmallVector<Operation *> origUses;
+        for (OpOperand &use : result.getUses())
+        origUses.push_back(&use);
+          
         OpBuilder builder(ctx);
         builder.setInsertionPointAfter(op);
         Type resTy = convertToRefTy(result.getType());
@@ -92,13 +94,12 @@ public:
 
         // Update all the original users with an unwrap of the new ref.
         auto wireTy = cudaq::quake::WireType::get(ctx);
-        for (auto *user : origUsers) {
+        for (OpOperand *use : origUses) {
+          Operation *user = use->getOwner();
           builder.setInsertionPoint(user);
-          auto unwrap =
-              cudaq::quake::UnwrapOp::create(builder, loc, wireTy, wrap);
-          result.replaceUsesWithIf(
-              unwrap, [&](OpOperand &use) { return use.getOwner() == user; });
-        }
+          auto unwrap = cudaq::quake::UnwrapOp::create(builder, loc, wireTy, wrap);
+          use->set(unwrap);
+         }
 
         if (!result.hasOneUse()) {
           op->emitOpError("Failed to be restored to a linear-type");
