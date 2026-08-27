@@ -585,11 +585,9 @@ REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, {"r1<adj>", "r1"});
 //
 // quake.swap [c] a, b
 // ───────────────────────────────────
-// quake.x c;            // only if c is complemented
 // quake.x [b] a;
-// quake.x [c, a] b;
+// quake.x [c, a] b;    // c is negated iff the swap control was negated
 // quake.x [b] a;
-// quake.x c;            // only if c is complemented
 struct SwapToCXType; // forward declare the pattern type, defined in the macro
                      // below
 struct SwapToCX
@@ -618,24 +616,29 @@ struct SwapToCX
       if (failed(checkAndExtractControls(op, controls, rewriter)))
         return failure();
       Value c = controls[0];
-      auto negatedControls = op.getNegatedQubitControls();
-      auto negC = negatedControls && (*negatedControls)[0];
 
-      if (negC)
-        qRewriter.create<cudaq::quake::XOp>(loc, c);
       qRewriter.create<cudaq::quake::XOp>(loc, b, a);
       SmallVector<Value, 2> ccxControls{c, a};
-      qRewriter.create<cudaq::quake::XOp>(loc, ccxControls, b);
+      auto ccxOp = qRewriter.create<cudaq::quake::XOp>(loc, ccxControls, b);
+      // The outer cnots do not touch the control qubit, so a complemented
+      // swap control is equivalent to complementing the toffoli's first
+      // control. Let expand-control-negations materialize it downstream.
+      if (auto swapNegations = op.getNegatedQubitControls()) {
+        // One flag per control operand is required; pad for target a.
+        SmallVector<bool> flags{(*swapNegations)[0], false};
+        ccxOp.setNegatedQubitControls(
+            DenseBoolArrayAttr::get(rewriter.getContext(), flags));
+      }
       qRewriter.create<cudaq::quake::XOp>(loc, b, a);
-      if (negC)
-        qRewriter.create<cudaq::quake::XOp>(loc, c);
+
+      // The wires are ordered controls first, then targets.
+      qRewriter.selectWiresAndReplaceUses(op, ValueRange{ccxControls[0], a, b});
     } else {
       qRewriter.create<cudaq::quake::XOp>(loc, b, a);
       qRewriter.create<cudaq::quake::XOp>(loc, a, b);
       qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+      qRewriter.selectWiresAndReplaceUses(op, ValueRange{a, b});
     }
-
-    qRewriter.selectWiresAndReplaceUses(op, ValueRange{a, b});
     rewriter.eraseOp(op);
     return success();
   }

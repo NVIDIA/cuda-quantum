@@ -24,6 +24,19 @@ func.func @test_controlled(%qc: !quake.ref, %qa : !quake.ref, %qb : !quake.ref) 
 // CHECK:           return
 // CHECK:         }
 
+// A complemented control becomes a negated first control on the toffoli.
+func.func @test_complemented(%qc: !quake.ref, %qa : !quake.ref, %qb : !quake.ref) {
+  quake.swap [%qc neg [true]] %qa, %qb : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test_complemented(
+// CHECK:           quake.x {{\[}}%[[B_VAL:.*]]] %[[A_VAL:.*]] : (!quake.ref, !quake.ref) -> ()
+// CHECK-NEXT:      quake.x {{\[}}%[[C_VAL:.*]], %[[A_VAL]] neg {{\[}}true, false{{\]}}{{\]}} %[[B_VAL]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK-NEXT:      quake.x {{\[}}%[[B_VAL]]] %[[A_VAL]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
 // The uncontrolled case must keep the plain three-CNOT lowering.
 func.func @test_bare(%qa: !quake.ref, %qb : !quake.ref) {
   quake.swap %qa, %qb : (!quake.ref, !quake.ref) -> ()

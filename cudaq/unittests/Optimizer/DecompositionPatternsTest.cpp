@@ -528,8 +528,9 @@ TEST_F(DecompositionPatternsTest, SwapToCXKeepsSingleControl) {
 }
 
 TEST_F(DecompositionPatternsTest, SwapToCXForwardsComplementedControl) {
-  // A complemented control wraps the whole Fredkin sequence in an x pair
-  // acting on the control qubit itself.
+  // A complemented swap control becomes a complemented first control on the
+  // toffoli of the Fredkin decomposition instead of an x pair around the
+  // whole sequence.
   auto module = createTestModule(context.get(), "swap(1)");
   cudaq::quake::SwapOp swapOp;
   module.walk([&](cudaq::quake::SwapOp op) {
@@ -541,7 +542,7 @@ TEST_F(DecompositionPatternsTest, SwapToCXForwardsComplementedControl) {
       DenseBoolArrayAttr::get(context.get(), {true}));
   ASSERT_TRUE(succeeded(applySinglePattern(module, "SwapToCX", {})));
   EXPECT_EQ(countOps<cudaq::quake::SwapOp>(module), 0u);
-  EXPECT_EQ(countOps<cudaq::quake::XOp>(module), 5u);
+  EXPECT_EQ(countOps<cudaq::quake::XOp>(module), 3u);
 
   func::FuncOp testFunc;
   module.walk([&](func::FuncOp op) {
@@ -550,14 +551,17 @@ TEST_F(DecompositionPatternsTest, SwapToCXForwardsComplementedControl) {
   });
   ASSERT_TRUE(static_cast<bool>(testFunc));
   Value ctrlArg = testFunc.getArgument(0);
-  std::size_t wrappers = 0;
+  std::size_t toffolis = 0;
   module.walk([&](cudaq::quake::XOp xop) {
-    if (!xop.getControls().empty())
+    if (xop.getControls().size() != 2)
       return;
-    if (xop.getTarget() == ctrlArg)
-      ++wrappers;
+    ++toffolis;
+    auto negated = xop.getNegatedQubitControls();
+    ASSERT_TRUE(negated.has_value());
+    EXPECT_TRUE((*negated)[0]);
+    EXPECT_EQ(xop.getControls()[0], ctrlArg);
   });
-  EXPECT_EQ(wrappers, 2u);
+  EXPECT_EQ(toffolis, 1u);
 }
 
 TEST_F(DecompositionPatternsTest, SwapToCXRejectsUnknownOrMultipleControls) {
