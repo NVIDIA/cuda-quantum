@@ -385,7 +385,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
                lastBranch->getParentOfType<func::FuncOp>().dump());
 
     // Merge the chain of blocks here head-first, as the greedy pattern
-    // rewriter exhibits quadratic slowdown merging into canonical form.
+    // rewriter exhibits quadratic slowdown when it does the merging.
     // Stop at any blocks with multiple predecessors for later processing.
     while (auto br = dyn_cast<cf::BranchOp>(startBlock->getTerminator())) {
       Block *succ = br.getDest();
