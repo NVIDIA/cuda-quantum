@@ -171,13 +171,12 @@ public:
                                          newUpper, wideZero);
     }
     // 3) Rewrite the comparison (!=) and step operations (+1).
-    // getCompareInduction() returns the *other* operand of the original
-    // comparison (i.e. whatever `compareValue`, now folded into newUpper,
-    // was being compared against). That operand may itself be a widened
-    // (cast) copy of the induction rather than the induction's own `ty`, so
-    // promote whichever of v1/newUpper is narrower to match the other
-    // instead of assuming either one's type.
-    Value v1 = c.getCompareInduction();
+    // The addend and scale from a linear comparison expression have already
+    // been folded into newUpper. Compare the normalized induction directly
+    // with that iteration count. Reusing the original expression here would
+    // apply its addend or scale twice.
+    rewriter.setInsertionPoint(cmpOp);
+    Value v1 = c.isLinearExpr() ? c.linearInduction : c.getCompareInduction();
     if (v1.getType() != newUpper.getType()) {
       if (widerOf(v1.getType(), newUpper.getType()) == v1.getType())
         newUpper = promote(newUpper);
@@ -185,7 +184,6 @@ public:
         v1 = cudaq::cc::CastOp::create(rewriter, loc, newUpper.getType(), v1,
                                        cudaq::cc::CastOpMode::Signed);
     }
-    rewriter.setInsertionPoint(cmpOp);
     Value newCmp = arith::CmpIOp::create(
         rewriter, cmpOp.getLoc(), arith::CmpIPredicate::ne, v1, newUpper);
     cmpOp->replaceAllUsesWith(ValueRange{newCmp});
