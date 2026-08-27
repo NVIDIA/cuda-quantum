@@ -479,13 +479,18 @@ class PyASTBridge(ast.NodeVisitor):
                 n for n in allNames
                 if n.id in targets and id(n) not in insideLoop
             ]
-            reboundOutside = {
-                n.id for n in outside if not isinstance(n.ctx, ast.Load)
-            }
+            # Only a binding before a read can make that read well-defined.
+            position = lambda n: (n.lineno, n.col_offset)
+            loopEnd = (forNode.end_lineno, forNode.end_col_offset)
+            boundSoFar = set()
             escaping = {}
-            for n in outside:
-                if isinstance(n.ctx, ast.Load) and n.id not in reboundOutside:
-                    escaping.setdefault(n.id, n)
+            for n in sorted(outside, key=position):
+                if not isinstance(n.ctx, ast.Load):
+                    boundSoFar.add(n.id)
+                    continue
+                if n.id in boundSoFar or position(n) < loopEnd:
+                    continue
+                escaping.setdefault(n.id, n)
             if escaping:
                 self.loopEscapingTargets[id(forNode)] = escaping
             if forNode.orelse:
@@ -5927,10 +5932,15 @@ class PyASTBridge(ast.NodeVisitor):
                     "qubit", node)
 
         if isinstance(node.op, ast.USub):
-            # Make our lives easier for -1 used in variable subscript extraction
-            if isinstance(node.operand,
-                          ast.Constant) and node.operand.value == 1:
-                self.pushValue(self.getConstantInt(-1))
+            # Fold a negated integer literal into a single constant.
+            if isinstance(node.operand, ast.Constant) and isinstance(
+                    node.operand.value,
+                    int) and not isinstance(node.operand.value, bool):
+                self.pushValue(
+                    self.getConstantInt(
+                        -node.operand.value,
+                        IntegerType(operand.type).width
+                        if IntegerType.isinstance(operand.type) else 64))
                 return
 
             if F64Type.isinstance(operand.type):

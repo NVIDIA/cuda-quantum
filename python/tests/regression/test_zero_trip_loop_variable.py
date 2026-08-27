@@ -172,3 +172,32 @@ def test_loop_local_variable_is_unaffected():
 
     assert kernel(0) == 0
     assert kernel(3) == 3
+
+
+def test_rebinding_after_the_read_is_rejected():
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(n: int) -> int:
+            q = cudaq.qvector(3)
+            for i in range(n):
+                h(q[i])
+            x(q[i % 3])
+            i = 1
+            return i
+
+        kernel.compile()
+
+    assert kDiagnostic in str(e.value)
+
+
+def test_negative_literal_bounds_are_accepted():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        for i in range(-3, 0):
+            h(q[i + 3])
+        x(q[(i + 3) % 3])
+
+    kernel.compile()
