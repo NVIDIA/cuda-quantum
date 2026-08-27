@@ -220,7 +220,7 @@ def test_loop_with_args():
     assert d["rx"] == 3
     assert d["h"] == 1
 
-    cudaq.set_target("qci", emulate=True)
+    cudaq.set_target("quantinuum", emulate=True)
     counts = cudaq.estimate_resources(caller, 3, [4.0, 5.0, 6.0])
     assert counts.count("rx") == 3
     assert counts.count("h") == 1

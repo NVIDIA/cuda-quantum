@@ -55,6 +55,7 @@ struct LoopComponents {
   bool negatedAddend = false;   // b is -b; b is subtracted.
   bool reciprocalScale = false; // m is 1/m; m is a divisor.
   bool minusOneMult = false;    // -1 * m; from b - m * i
+  mlir::Value linearInduction;  // i after casts, before m and b
   mlir::Value addendValue;      // b value
   mlir::Value scaleValue;       // m value
 };

@@ -6237,6 +6237,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     cudaqAliases = kwargs.get('cudaqAliases', None)
     disable_quantum_optimization = kwargs.get('disable_quantum_optimization',
                                               False)
+    atomic_quantum_region = kwargs.get('atomic_quantum_region', False)
 
     # Build the AOT Quake Module for this kernel. Wrapped in a single span so
     # the tracer can separate Python-AST-to-MLIR construction from the AOT
@@ -6257,6 +6258,9 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         with trace.span("ast_bridge.validate_return_statements"):
             ValidateReturnStatements(bridge).visit(astModule)
         bridge.visit(astModule)
+        if atomic_quantum_region:
+            bridge.kernelFuncOp.attributes.__setitem__(
+                'atomic_quantum_region', UnitAttr.get(context=bridge.ctx))
 
     # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
     # so `TracePassInstrumentation` is installed (matching the JIT-side

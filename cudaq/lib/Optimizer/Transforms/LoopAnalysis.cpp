@@ -184,6 +184,7 @@ static BlockArgument getLinearExpr(Value expr,
     auto vl = peelCastOps(va);
     if (auto ba = dyn_cast<BlockArgument>(vl);
         ba && isLoopInvariant(vb, loop)) {
+      result.linearInduction = va;
       saved = vb;
       return ba;
     }
@@ -763,11 +764,23 @@ cudaq::opt::getLoopComponents(cudaq::cc::LoopOp loop) {
   // TODO: A possible extension is to detect \em{conditionally iterated} loops
   // and open those up to further analysis and transformations such as loop
   // unrolling.
-  if (getLinearExpr(cmpOp.getLhs(), result, loop) ==
-      whileEntry.getArgument(*result.induction))
+  auto matchAndSetLinearExpr = [&](Value value) {
+    auto candidate = result;
+    candidate.negatedAddend = false;
+    candidate.reciprocalScale = false;
+    candidate.minusOneMult = false;
+    candidate.linearInduction = {};
+    candidate.addendValue = {};
+    candidate.scaleValue = {};
+    if (getLinearExpr(value, candidate, loop) !=
+        whileEntry.getArgument(*result.induction))
+      return false;
+    result = candidate;
+    return true;
+  };
+  if (matchAndSetLinearExpr(cmpOp.getLhs()))
     result.compareValue = cmpOp.getRhs();
-  else if (getLinearExpr(cmpOp.getRhs(), result, loop) ==
-           whileEntry.getArgument(*result.induction))
+  else if (matchAndSetLinearExpr(cmpOp.getRhs()))
     result.compareValue = cmpOp.getLhs();
   else
     return {};

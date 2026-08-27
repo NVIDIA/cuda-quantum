@@ -50,6 +50,56 @@ can take quantum types as input.
     @cudaq.kernel()
     def my_first_pure_device_kernel(qubits : cudaq.qview):
        ... quantum code ... 
+
+Atomic quantum regions
+======================
+
+Mark a pure-device kernel as an atomic quantum region when each invocation
+must remain an optimization boundary. Quantum operations can be optimized
+within the invoked kernel and within its caller. An optimization must not
+combine, cancel, or move operations across the invocation boundary.
+
+.. tab:: C++
+
+  .. code-block:: cpp
+
+    void atomic_h(cudaq::qubit &qubit)
+        __qpu__ __atomic_quantum_region__ {
+      h(qubit);
+    }
+
+    void caller() __qpu__ {
+      cudaq::qubit qubit;
+      atomic_h(qubit);
+      cudaq::adjoint(atomic_h, qubit);
+    }
+
+.. tab:: Python
+
+  .. code-block:: python
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def atomic_h(qubit: cudaq.qubit):
+        h(qubit)
+
+    @cudaq.kernel
+    def caller():
+        qubit = cudaq.qubit()
+        atomic_h(qubit)
+        cudaq.adjoint(atomic_h, qubit)
+
+For the Python builder frontend, call ``atomic_quantum_region()`` before
+composing the helper into another builder.
+
+.. code-block:: python
+
+    atomic_h, qubit = cudaq.make_kernel(cudaq.qubit)
+    atomic_h.atomic_quantum_region()
+    atomic_h.h(qubit)
+
+    caller = cudaq.make_kernel()
+    qubit = caller.qalloc()
+    caller.apply_call(atomic_h, qubit)
     
 **[4]** Quantum kernel function bodies are programmed in a subset of the parent classical language. 
 Kernels can be composed of the following: 
