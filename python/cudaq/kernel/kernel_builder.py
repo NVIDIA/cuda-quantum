@@ -1730,6 +1730,18 @@ class PyKernel(object):
         self.module.operation.attributes.__setitem__(
             'quake.noOptimization', UnitAttr.get(context=self.ctx))
 
+    def atomic_quantum_region(self):
+        """
+        Mark each invocation of this kernel as an atomic quantum region.
+
+        Call this method before composing the kernel into another builder.
+        Quantum operations can be optimized within an invocation, but not
+        across its boundary.
+        """
+        self.clearCache()
+        self.funcOp.attributes.__setitem__('atomic_quantum_region',
+                                           UnitAttr.get(context=self.ctx))
+
     @trace.traced
     def compile(self):
         """
