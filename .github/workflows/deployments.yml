@@ -566,6 +566,10 @@ jobs:
 
     environment: ghcr-deployment
 
+    # The secrets context is unavailable in a step-level if, so mirror it to env.
+    env:
+      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -588,11 +592,12 @@ jobs:
           password: ${{ github.token }}
 
       - name: Log in to NGC
+        if: env.NGC_CREDENTIALS != ''
         uses: docker/login-action@v4
         with:
           registry: nvcr.io
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_CREDENTIALS }}
+          password: ${{ env.NGC_CREDENTIALS }}
 
       - name: metadata for jobs
         id: metadata
@@ -678,7 +683,7 @@ jobs:
 
           is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
           has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
-          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
+          push_to_ngc=`${{ secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
 
           echo "push to NGC? $push_to_ngc"
 

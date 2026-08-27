@@ -1,0 +1,57 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-unroll --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-normalize --cc-loop-induction-fusion %s | \
+// RUN:   FileCheck --check-prefix=FUSE %s
+
+// A for/else. The else block runs when the loop ends without a break, so this
+// returns 3 + 10.
+
+func.func @for_else() -> i64 {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c3 = arith.constant 3 : i64
+  %c10 = arith.constant 10 : i64
+  %0:2 = cc.loop while ((%acc = %c0, %i = %c0) -> (i64, i64)) {
+    %c = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %c(%acc, %i : i64, i64)
+  } do {
+  ^bb0(%acc: i64, %i: i64):
+    %a = arith.addi %acc, %c1 : i64
+    cc.continue %a, %i : i64, i64
+  } step {
+  ^bb0(%acc: i64, %i: i64):
+    %s = arith.addi %i, %c1 : i64
+    cc.continue %acc, %s : i64, i64
+  } else {
+  ^bb0(%acc: i64, %i: i64):
+    %e = arith.addi %acc, %c10 : i64
+    cc.continue %e, %i : i64, i64
+  }
+  return %0#0 : i64
+}
+
+// Unrolling must emit the else region.
+
+// CHECK-LABEL:   func.func @for_else() -> i64 {
+// CHECK:           %[[VAL:.*]] = arith.constant 13 : i64
+// CHECK:           return %[[VAL]] : i64
+// CHECK:         }
+
+// `acc` steps by one per iteration like the induction variable, so it looks
+// like a secondary induction. It must not be fused away, because the else
+// region gives it a different value.
+
+// FUSE-LABEL:   func.func @for_else() -> i64 {
+// FUSE:           cc.loop while ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}) -> (i64, i64)) {
+// FUSE:           } else {
+// FUSE:           ^bb0(%[[ACC:.*]]: i64, %{{.*}}: i64):
+// FUSE:             %[[SUM:.*]] = arith.addi %[[ACC]], %{{.*}} : i64
+// FUSE:             cc.continue %[[SUM]], %{{.*}} : i64, i64
+// FUSE:           }

@@ -9,7 +9,7 @@ src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/ba
 />
 
 <img align="left"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publishing.yml/badge.svg?branch=main"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/validation.yml/badge.svg?branch=main"
 />
 
 <img align="left"
