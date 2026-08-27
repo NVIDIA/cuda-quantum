@@ -228,6 +228,7 @@ YAML
 ZZ
 Zener
 accessor
+accessors
 acknowledgement
 adaptor
 adaptors
