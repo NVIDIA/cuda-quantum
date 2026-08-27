@@ -79,7 +79,7 @@ public:
         //   %85 = quake.unwrap %35 : (!quake.ref) -> !quake.wire
         //   %86 = quake.baz %85 : (!quake.wire) -> !quake.wire
 
-        SmallVector<Operation *> origUses;
+        SmallVector<OpOperand *> origUses;
         for (OpOperand &use : result.getUses())
         origUses.push_back(&use);
           
