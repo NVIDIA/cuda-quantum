@@ -130,7 +130,16 @@ class PyKernelDecorator(object):
                  signature=None,
                  location=None,
                  overrideGlobalScopedVars=None,
-                 decorator=None):
+                 decorator=None,
+                 *,
+                 atomic_quantum_region=False):
+
+        # Initialize the destructor-visible cache before validating arguments;
+        # Python may finalize a partially constructed object when validation
+        # raises.
+        self._cached_qkeModule = None
+        if not isinstance(atomic_quantum_region, bool):
+            raise TypeError("atomic_quantum_region must be a bool")
 
         self.location = location
         self.signature = signature
@@ -138,11 +147,10 @@ class PyKernelDecorator(object):
         self.name = kernelName
         self.verbose = verbose
         self.disable_quantum_optimization = disable_quantum_optimization
-        # Caches the `qkeModule` property once compiled
-        self._cached_qkeModule = None
         # Track the `AOT` pipeline used to compile `_cached_qkeModule` so target
         # changes cannot reuse a module compiled with an incompatible pipeline.
         self._cached_aot_pipeline_hash = None
+        self._atomic_quantum_region = atomic_quantum_region
         self.defFrame = _recover_defining_frame()
         # Whether we are currently resolving arguments to self. Used to detect
         # (and prevent) recursive kernel calls.
@@ -172,6 +180,7 @@ class PyKernelDecorator(object):
                 # shallow copy attributes from `decorator`
                 self.uniqueId = decorator.uniqueId
                 self.uniqName = decorator.uniqName
+                self._atomic_quantum_region = decorator.atomic_quantum_region
             else:
                 self.uniqueId = int(kernelName.split("..0x")[1], 16)
                 self.uniqName = kernelName
@@ -217,7 +226,7 @@ class PyKernelDecorator(object):
 
     def __del__(self):
         # explicitly call `del` on the MLIR `ModuleOp` wrappers.
-        if self._cached_qkeModule:
+        if getattr(self, '_cached_qkeModule', None):
             del self._cached_qkeModule
 
     @property
@@ -227,6 +236,11 @@ class PyKernelDecorator(object):
         An AOT Quake MLIR representation for the current compile target.
         """
         return self._cached_qkeModule
+
+    @property
+    def atomic_quantum_region(self):
+        """Whether each invocation is an atomic quantum region."""
+        return self._atomic_quantum_region
 
     def signatureWithCallables(self):
         """
@@ -296,7 +310,8 @@ class PyKernelDecorator(object):
             kernelName=self.name,
             kernelModuleName=self.kernelModuleName,
             cudaqAliases=getattr(self, 'cudaqAliases', None),
-            disable_quantum_optimization=self.disable_quantum_optimization)
+            disable_quantum_optimization=self.disable_quantum_optimization,
+            atomic_quantum_region=self.atomic_quantum_region)
         self._cached_aot_pipeline_hash = aot_pipeline_hash
 
         # recursively compile any captured kernels if required
@@ -709,10 +724,12 @@ def kernel(function=None, **kwargs):
     programmers leverage to indicate the following function is a CUDA-Q kernel
     and should be compile and executed on an available quantum coprocessor.
 
-    Verbose logging can be enabled via `verbose=True`. 
+    Verbose logging can be enabled via `verbose=True`. Set
+    `atomic_quantum_region=True` to preserve the boundary around each kernel
+    invocation from cross-boundary quantum optimization.
     """
     if function:
-        return PyKernelDecorator(function)
+        return PyKernelDecorator(function, **kwargs)
     else:
 
         def wrapper(function):

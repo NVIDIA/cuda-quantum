@@ -312,6 +312,13 @@ def set_target(target, **extra_config):
     Raises:
       TypeError: For unsupported target types or keyword arguments.
     """
+    if isinstance(target, Target) or isinstance(target, str):
+        # The overwhelmingly common case: a named target. Resolve it without
+        # ever importing cudaq._experimental, so that module being
+        # unavailable (e.g. not staged into an incremental build) can't
+        # break ordinary target selection.
+        return cudaq_runtime.set_target(target, **extra_config)
+
     from cudaq._experimental import CustomTarget
     from cudaq._experimental import set_compile_target, set_runtime_endpoint
 
@@ -323,8 +330,6 @@ def set_target(target, **extra_config):
         set_compile_target(target.compile_target)
         set_runtime_endpoint(target.runtime_endpoint)
         return target
-    elif isinstance(target, Target) or isinstance(target, str):
-        return cudaq_runtime.set_target(target, **extra_config)
 
     raise TypeError(f"Unsupported target type: {type(target)}")
 

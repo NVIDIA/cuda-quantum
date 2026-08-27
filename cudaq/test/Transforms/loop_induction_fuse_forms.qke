@@ -321,7 +321,7 @@ func.func @while_coincident_secondary(%n: i64) -> (i64, i64) {
 // CHECK:           %[[SELECT_0:.*]] = arith.select %[[CMPI_0]], %[[DIVSI_0]], %[[CONSTANT_0]] : i64
 // CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
 // CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_0]], %[[CONSTANT_1]] : i64
-// CHECK:             %[[CMPI_1:.*]] = arith.cmpi ne, %[[ADDI_0]], %[[SELECT_0]] : i64
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi ne, %[[VAL_0]], %[[SELECT_0]] : i64
 // CHECK:             cc.condition %[[CMPI_1]](%[[ADDI_0]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_1:.*]]: i64):

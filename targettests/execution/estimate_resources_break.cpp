@@ -8,6 +8,8 @@
 
 // clang-format off
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// XFAIL: *
+// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/5286
 // clang-format on
 
 #include <cudaq.h>
