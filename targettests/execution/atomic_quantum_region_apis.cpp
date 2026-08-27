@@ -83,17 +83,6 @@ struct measured_plain_round_trip {
   }
 };
 
-static std::size_t countOccurrences(const std::string &text,
-                                    const std::string &token) {
-  std::size_t count = 0;
-  std::size_t position = 0;
-  while ((position = text.find(token, position)) != std::string::npos) {
-    ++count;
-    position += token.size();
-  }
-  return count;
-}
-
 int main() {
   constexpr std::size_t shots = 10;
 
