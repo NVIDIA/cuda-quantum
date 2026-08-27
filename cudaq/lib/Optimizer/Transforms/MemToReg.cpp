@@ -1695,26 +1695,30 @@ public:
                 // a non-constant extract_ref from a veq defined outside this
                 // scope acts as a barrier — all wire chains must be wrapped
                 // back to their refs, and subsequent uses get a fresh unwrap.
-                // Preserve the incoming state across the aliasing barrier. An
-                // entry block owned by an op with NoRegionArguments captures
-                // the dominating promoted value directly. An internal block
-                // of such an op instead threads a live-in argument and writes
-                // it back to the reference before the barrier. Other parents
-                // consume their live-in as an op operand. The binding after
-                // the barrier is the fresh useop (unwrap), so the gate sees
-                // the current reference state.
+                // The binding after the barrier is the fresh useop (unwrap),
+                // so the gate sees the current reference state.
+                //
+                // That is only correct if memuse's *memory* actually holds
+                // the current state at the barrier. For a memref live-in
+                // from an outer scope that is nothing the barrier itself can
+                // establish: the value may still be in flight in an outer
+                // wire chain that was never wrapped back (cancelBindings only
+                // wraps bindings live in *this* block, and memuse has none
+                // here yet). So thread the incoming state in as a live-in and
+                // write it back to the reference before the barrier.
+                //
+                // The sole exception is an entry block owned by an op with
+                // NoRegionArguments, which cannot take a block argument and
+                // instead captures the dominating promoted value directly.
                 auto promoted = dataFlow.createPromotedValue(parent, memuse);
-                if (neverTakesRegionArguments(parent)) {
-                  if (block->isEntryBlock()) {
-                    dataFlow.addLiveInToBlock(block, memuse, promoted);
-                  } else {
-                    auto liveIn = dataFlow.addLiveInToBlock(block, memuse);
-                    OpBuilder builder(&block->front());
-                    cudaq::quake::WrapOp::create(builder, useop.getLoc(),
-                                                 liveIn, memuse);
-                  }
+                if (neverTakesRegionArguments(parent) &&
+                    block->isEntryBlock()) {
+                  dataFlow.addLiveInToBlock(block, memuse, promoted);
                 } else {
-                  dataFlow.addLiveInToBlock(block, memuse);
+                  auto liveIn = dataFlow.addLiveInToBlock(block, memuse);
+                  OpBuilder builder(&block->front());
+                  cudaq::quake::WrapOp::create(builder, useop.getLoc(), liveIn,
+                                               memuse);
                 }
                 dataFlow.addBinding(block, memuse, useop);
                 // useop stays in the IR (not replaced, not in cleanUps).
