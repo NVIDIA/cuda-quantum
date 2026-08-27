@@ -1712,6 +1712,8 @@ class PyKernel(object):
     def clearCache(self):
         if hasattr(self, 'qkeModule'):
             del self.qkeModule
+        if hasattr(self, '_cached_aot_pipeline_hash'):
+            del self._cached_aot_pipeline_hash
         if hasattr(self, '_compiled_module_cache'):
             del self._compiled_module_cache
 
@@ -1736,7 +1738,11 @@ class PyKernel(object):
         A `PyKernel` can be dynamically extended up until it is reified to be
         used in a launch scenario. We reify the kernel as-is here.
         """
-        if not hasattr(self, 'qkeModule'):
+        # Track the AOT pipeline used to compile `qkeModule` so target changes
+        # cannot reuse a module compiled with an incompatible pipeline.
+        aot_pipeline_hash = cudaq_runtime.get_aot_pipeline_hash()
+        if (not hasattr(self, 'qkeModule') or getattr(
+                self, '_cached_aot_pipeline_hash', None) != aot_pipeline_hash):
             self.qkeModule = cudaq_runtime.cloneModule(self.module)
             ctx = getMLIRContext()
             pm = PassManager.parse(getAOTPassPipeline(), context=ctx)
@@ -1749,6 +1755,7 @@ class PyKernel(object):
             self.qkeModule.operation.attributes.__setitem__(
                 cudaq__unique_attr_name,
                 StringAttr.get(self.uniqName, context=ctx))
+            self._cached_aot_pipeline_hash = aot_pipeline_hash
 
     def __call__(self, *args):
         """

@@ -113,4 +113,9 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
     return cudaq::get_compile_target(cudaq::other_policies{})
         .pipelineConfig.aotUnwindMode;
   });
+
+  mod.def("get_aot_pipeline_hash", []() {
+    return std::hash<PipelineConfig>()(
+        cudaq::get_compile_target(cudaq::other_policies{}).pipelineConfig);
+  });
 }

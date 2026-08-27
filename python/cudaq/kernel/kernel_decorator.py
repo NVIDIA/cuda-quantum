@@ -140,6 +140,9 @@ class PyKernelDecorator(object):
         self.disable_quantum_optimization = disable_quantum_optimization
         # Caches the `qkeModule` property once compiled
         self._cached_qkeModule = None
+        # Track the AOT pipeline used to compile `_cached_qkeModule` so target
+        # changes cannot reuse a module compiled with an incompatible pipeline.
+        self._cached_aot_pipeline_hash = None
         self.defFrame = _recover_defining_frame()
         # Whether we are currently resolving arguments to self. Used to detect
         # (and prevent) recursive kernel calls.
@@ -174,6 +177,8 @@ class PyKernelDecorator(object):
                 self.uniqName = kernelName
 
             self._cached_qkeModule = module
+            self._cached_aot_pipeline_hash = (
+                cudaq_runtime.get_aot_pipeline_hash())
             self.astModule = None
             self.signature = KernelSignature.parse_from_mlir(
                 self.qkeModule, self.uniqName)
@@ -219,7 +224,7 @@ class PyKernelDecorator(object):
     @ensure_compiled
     def qkeModule(self):
         """
-        A target independent Quake MLIR representation of the kernel.
+        An AOT Quake MLIR representation for the current compile target.
         """
         return self._cached_qkeModule
 
@@ -251,12 +256,14 @@ class PyKernelDecorator(object):
         """
         Ensure that the kernel is compiled.
         """
-        if self._cached_qkeModule is None:
+        if not self.is_compiled():
             self.compile()
 
     def is_compiled(self):
         """Whether the kernel has already been compiled."""
-        return self._cached_qkeModule is not None
+        return (self._cached_qkeModule is not None and
+                self._cached_aot_pipeline_hash
+                == cudaq_runtime.get_aot_pipeline_hash())
 
     def supports_compilation(self):
         """Whether the kernel can be compiled for the current target."""
@@ -278,6 +285,7 @@ class PyKernelDecorator(object):
                 f"'{cudaq_runtime.get_target().name}' does not support "
                 f"compilation")
 
+        aot_pipeline_hash = cudaq_runtime.get_aot_pipeline_hash()
         self._cached_qkeModule = compile_to_mlir(
             id(self),
             self.astModule,
@@ -289,6 +297,7 @@ class PyKernelDecorator(object):
             kernelModuleName=self.kernelModuleName,
             cudaqAliases=getattr(self, 'cudaqAliases', None),
             disable_quantum_optimization=self.disable_quantum_optimization)
+        self._cached_aot_pipeline_hash = aot_pipeline_hash
 
         # recursively compile any captured kernels if required
         for captured_arg in self.signature.captured_args:

@@ -227,6 +227,28 @@ def test_pipeline_config_aot_unwind_mode():
     assert cudaq_runtime.get_aot_unwind_mode() == "none"
 
 
+def test_aot_module_cache_tracks_pipeline_config():
+
+    @cudaq.kernel
+    def early_return(return_early: bool) -> int:
+        if return_early:
+            return 1
+        return 0
+
+    builder = cudaq.make_kernel()
+    cfg_decorator_module = early_return.qkeModule
+    builder.compile()
+    cfg_builder_module = builder.qkeModule
+
+    config = PipelineConfig()
+    config.aot_unwind_mode = "dataflow"
+    set_compile_target(CompileTarget(config))
+
+    assert early_return.qkeModule is not cfg_decorator_module
+    builder.compile()
+    assert builder.qkeModule is not cfg_builder_module
+
+
 def test_pipeline_config_equality_and_hash():
     a = PipelineConfig()
     b = PipelineConfig()
