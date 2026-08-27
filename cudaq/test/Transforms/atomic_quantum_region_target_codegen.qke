@@ -1,0 +1,77 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(decomposition{basis=h,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements))' %s | cudaq-translate --convert-to=openqasm2 | FileCheck --check-prefix=QASM %s
+// RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(func.func(erase-implicit-output),oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=path(3)},func.func(regtomem),lower-wireset-to-profile-qir{convert-to=qir-base})' %s | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(func.func(erase-implicit-output),anyon-cgate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=path(3)},func.func(regtomem),lower-wireset-to-profile-qir{convert-to=qir-adaptive})' %s | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(func.func(erase-implicit-output),iqm-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=path(3)},func.func(delay-measurements),func.func(cse,normalize-phase-placement,lower-phase,canonicalize),iqm-gate-set-mapping,lower-to-cfg,func.func(regtomem))' %s | cudaq-translate --convert-to=iqm | FileCheck --check-prefix=IQM %s
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/anyon/anyon.yml
+// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/braket/braket.yml
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/infleqtion/infleqtion.yml
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/oqc/oqc.yml
+// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/qbraid/qbraid.yml
+// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/scaleway/scaleway.yml
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/tii/tii.yml
+// RUN: FileCheck --check-prefix=IQM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/iqm/iqm.yml
+
+func.func @atomic_round_trip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+  cc.scope {
+    quake.h %q0 : (!quake.ref) -> ()
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  } {atomic_quantum_region}
+  cc.scope {
+    quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    quake.h %q0 : (!quake.ref) -> ()
+  } {atomic_quantum_region}
+  %m0 = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
+  %m1 = quake.mz %q1 : (!quake.ref) -> !cc.measure_handle
+  %m2 = quake.mz %q2 : (!quake.ref) -> !cc.measure_handle
+  return
+}
+
+// QASM:      qreg var0[3];
+// QASM-NEXT: h var0[0];
+// QASM-NEXT: cx var0[0], var0[1];
+// QASM-NEXT: cx var0[1], var0[2];
+// QASM-NEXT: cx var0[1], var0[2];
+// QASM-NEXT: cx var0[0], var0[1];
+// QASM-NEXT: h var0[0];
+// QASM:      measure var0
+
+// QIR-LABEL: llvm.func @atomic_round_trip()
+// QIR:       llvm.call @__quantum__qis__h__body
+// QIR-COUNT-4: llvm.call @__quantum__qis__cnot__body
+// QIR:       llvm.call @__quantum__qis__h__body
+// QIR-COUNT-3: llvm.call @__quantum__qis__mz__body
+
+// IQM-DAG: "name": "prx"
+// IQM-DAG: "name": "prx"
+// IQM-DAG: "name": "cz"
+// IQM-DAG: "name": "cz"
+// IQM-DAG: "name": "cz"
+// IQM-DAG: "name": "cz"
+// IQM-DAG: "name": "measure"
+// IQM-DAG: "name": "measure"
+// IQM-DAG: "name": "measure"
+// IQM:     "name": "atomic_round_trip"
+
+// NO-EARLY-CFG:     jit-mid-level-pipeline:
+// NO-EARLY-CFG-NOT: lower-to-cfg
+
+// QASM-YAML:      jit-mid-level-pipeline: "decomposition
+// QASM-YAML-SAME: canonicalize,combine-measurements)"
+// QASM-YAML-NOT:  lower-to-cfg
+
+// IQM-YAML:      jit-mid-level-pipeline: "func.func(erase-implicit-output),iqm-gate-set-mapping
+// IQM-YAML-SAME: iqm-gate-set-mapping,lower-to-cfg,func.func(regtomem)"

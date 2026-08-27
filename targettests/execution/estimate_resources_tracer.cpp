@@ -15,10 +15,15 @@
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
 // RUN: nvq++ -DCASE3 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN: nvq++ -DCASE4 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
 // RUN: nvq++ --target quantinuum --emulate -DCASE1 %s -o %t && \
 // RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
 // RUN: nvq++ --target quantinuum --emulate -DCASE2 %s -o %t && \
 // RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
+// RUN: nvq++ --target quantinuum --emulate -DCASE4 %s -o %t && \
+// RUN:   CUDAQ_LOG_LEVEL=info %t | \
+// RUN:   FileCheck %s --check-prefixes=CHECK,EMULATE-ATOMIC
 
 // We don't run CASE3 with emulation on because compilation takes several
 // minutes
@@ -39,6 +44,11 @@
 // EMULATE: JIT high level:
 // EMULATE: Pass pipeline for
 // EMULATE-NOT: Applying x with 1 controls
+
+// EMULATE-ATOMIC: JIT high level:
+// EMULATE-ATOMIC: Pass pipeline for
+// EMULATE-ATOMIC: Applying h with 0 controls
+// EMULATE-ATOMIC: Applying x with 1 controls
 
 #include <cassert>
 #include <cudaq.h>
@@ -122,6 +132,36 @@ int main() {
   auto totalOps = resources.count();
   assert(totalOps == numLayers * numQubits * 1.5);
 
+  return 0;
+}
+
+#elif CASE4
+
+struct atomic_workload {
+  void operator()(cudaq::qview<> q) __qpu__ __atomic_quantum_region__ {
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+    x<cudaq::ctrl>(q[1], q[2]);
+  }
+};
+
+struct atomic_round_trip {
+  void operator()() __qpu__ {
+    cudaq::qvector q(3);
+    atomic_workload{}(q);
+    cudaq::adjoint(atomic_workload{}, q);
+    mz(q);
+  }
+};
+
+int main() {
+  auto resources = cudaq::estimate_resources(atomic_round_trip{});
+  assert(resources.count("h") == 2);
+  assert(resources.count_controls("x", /*controls*/ 1) == 4);
+  assert(resources.count("mz") == 3);
+  assert(resources.getNumQubits() == 3);
+  assert(resources.getCircuitDepth() == 7);
+  assert(resources.getMultiQubitDepth() == 4);
   return 0;
 }
 
