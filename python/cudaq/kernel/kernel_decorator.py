@@ -140,7 +140,7 @@ class PyKernelDecorator(object):
         self.disable_quantum_optimization = disable_quantum_optimization
         # Caches the `qkeModule` property once compiled
         self._cached_qkeModule = None
-        # Track the AOT pipeline used to compile `_cached_qkeModule` so target
+        # Track the `AOT` pipeline used to compile `_cached_qkeModule` so target
         # changes cannot reuse a module compiled with an incompatible pipeline.
         self._cached_aot_pipeline_hash = None
         self.defFrame = _recover_defining_frame()
