@@ -632,6 +632,61 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  realtime_artifacts:
+    name: Realtime installers
+    needs: metadata
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+
+    outputs:
+      has_realtime_installers: ${{ steps.fetch.outputs.has_realtime_installers }}
+
+    steps:
+      - name: Fetch realtime installers from Deployments run
+        id: fetch
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          artifacts_url="${{ needs.metadata.outputs.artifacts_url }}"
+          if [ -z "$artifacts_url" ]; then
+            echo "No artifacts URL available."
+            echo "has_realtime_installers=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          has_realtime_installers=false
+          mkdir -p installers
+
+          while IFS= read -r artifact; do
+            name=$(echo "$artifact" | jq -r '.name')
+            url=$(echo "$artifact" | jq -r '.url')
+
+            if [[ "$name" == install_cuda_quantum_realtime_* ]]; then
+              echo "Downloading realtime installer: $name"
+              retry gh api "$url" > "${name}.zip"
+              unzip "${name}.zip" -d installers/
+              rm "${name}.zip"
+              has_realtime_installers=true
+            fi
+          done <<< "$(echo "$artifacts" | jq -c '.')"
+
+          echo "has_realtime_installers=$has_realtime_installers" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Re-upload under a single name so create_release can pull them with one
+      # download step (they are built in Deployments, i.e. a different run).
+      - name: Upload realtime installers
+        if: steps.fetch.outputs.has_realtime_installers == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: realtime-installers
+          path: installers/
+          retention-days: 1
+          if-no-files-found: error
+
   installer_validation:
     name: Installer validation
     needs: [metadata, cudaq_installers]
@@ -1049,7 +1104,7 @@ jobs:
     name: CUDA-Q Release (draft)
     # Validation jobs stay in needs so the draft runs after them, but the if:
     # does not require them to pass.
-    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
+    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
     # Draft on a requested release title; tolerate validation flakes but require
     # the build jobs (nothing to attach otherwise).
     if: >-
@@ -1077,6 +1132,13 @@ jobs:
         with:
           pattern: '*-wheels'
           path: wheelhouse
+
+      - name: Download CUDA-Q Realtime installer
+        if: needs.realtime_artifacts.outputs.has_realtime_installers == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: realtime-installers
+          path: installers
 
       - name: Download CUDA-Q metapackages
         uses: actions/download-artifact@v8
@@ -1126,6 +1188,13 @@ jobs:
           if [ "$validation_ok" != true ]; then
             echo "::warning::Release draft created despite one or more validation failures."
             rel_notes+="<br/>:warning: Created despite one or more validation failures; review the Validation run before publishing."
+          fi
+
+          # Realtime installers are built in Deployments, so a gap there would
+          # otherwise cut a release without them and go unnoticed.
+          if [ "${{ needs.realtime_artifacts.outputs.has_realtime_installers }}" != "true" ]; then
+            echo "::warning::No realtime installers found in the deployment run."
+            rel_notes+="<br/>:warning: No realtime installers were attached; check the Deployments run."
           fi
 
           gh release create $release_id --title $release_id -R ${{ github.repository }} \
