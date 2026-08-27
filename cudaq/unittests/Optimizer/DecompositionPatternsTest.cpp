@@ -84,10 +84,9 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
   // Limit the number of controls to 2
   numControls = std::min<size_t>(numControls, 2);
 
-  size_t numQubits;
   const auto numTargets =
       (gateName == "swap" || gateName == "exp_pauli") ? 2 : 1;
-  const auto numQubits = numControls + numTargets;
+  size_t numQubits = numControls + numTargets;
 
   OpBuilder builder(context);
   auto module = ModuleOp::create(builder, builder.getUnknownLoc());
