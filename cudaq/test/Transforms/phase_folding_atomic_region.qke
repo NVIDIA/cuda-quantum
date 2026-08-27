@@ -191,7 +191,9 @@ func.func @later_named_angle_folds_at_earlier_rotation() {
 // CHECK:             %[[CONSTANT_1:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:             %[[ADDF_0:.*]] = arith.addf %[[CONSTANT_0]], %[[CONSTANT_1]] : f64
 // CHECK:             %[[RZ_0:.*]] = quake.rz (%[[ADDF_0]]) %[[NULL_WIRE_1]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[RZ_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[CONSTANT_2:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK:             %[[PHASE_0:.*]] = quake.phase (%[[CONSTANT_2]]) %[[RZ_0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[PHASE_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
 // CHECK:           }

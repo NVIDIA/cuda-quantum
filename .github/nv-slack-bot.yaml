@@ -1,16 +1,16 @@
 $schema: https://public.gha-runners.nvidia.com/nv-slack-bot/schemas/config-v1.json
 enabled: true
 notifications:
-  - name: "Publishing workflow failed"
+  - name: "Validation workflow failed"
     event: workflow_run
     slack:
       nvidia:
         channels:
           - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
-    match: workflow_run.name = "Publishing" and workflow_run.conclusion = "failure"
+    match: workflow_run.name = "Validation" and workflow_run.conclusion = "failure"
     message:
       body: |
-        <{{url}}|Publishing workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+        <{{url}}|Validation workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
       vars:
         url: workflow_run.html_url
         branch: workflow_run.head_branch

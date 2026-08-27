@@ -911,6 +911,23 @@ class PyASTBridge(ast.NodeVisitor):
         then or else block."""
         return self.inIfStmtBlockStack > 0
 
+    def buildScopedBlock(self, stmts):
+        """Emit `stmts` inside a `cc.scope`.
+
+        A qubit allocated in a compound statement must be freed when that
+        statement ends. `cc.scope` marks that point and `add-deallocs` puts the
+        `quake.dealloc` there. Scopes with nothing to free are removed by
+        canonicalization, so this costs nothing when there is no allocation.
+        """
+        scope = cc.ScopeOp([])
+        scopeBlock = Block.create_at_start(scope.initRegion, [])
+        with InsertionPoint(scopeBlock):
+            self.symbolTable.beginBlock()
+            [self.visit(b) for b in stmts]
+            if not self.hasTerminator(scopeBlock):
+                cc.ContinueOp([])
+            self.symbolTable.endBlock()
+
     def hasTerminator(self, block):
         """Return True if the given Block has a Terminator operation."""
         return cudaq_runtime.blockHasTerminator(block)
@@ -5344,7 +5361,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(assignNode)
             finally:
                 self.sinkAllocaNames = outerSink
-            [self.visit(b) for b in stmts]
+            self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
         self.createMonotonicForLoop(
@@ -5373,12 +5390,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         def blockBuilder(iterVar):
             self.symbolTable.beginBlock()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             self.symbolTable.endBlock()
 
         self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
                            None if not node.orelse else
-                           lambda _: [self.visit(stmt) for stmt in node.orelse])
+                           lambda _: self.buildScopedBlock(node.orelse))
 
     def visit_BoolOp(self, node):
         """Convert boolean operations into equivalent MLIR operations using the
@@ -5638,24 +5655,20 @@ class PyASTBridge(ast.NodeVisitor):
         ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
         with InsertionPoint(thenBlock):
-            self.symbolTable.beginBlock()
             self.pushIfStmtBlockStack()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             if not self.hasTerminator(thenBlock):
                 cc.ContinueOp([])
             self.popIfStmtBlockStack()
-            self.symbolTable.endBlock()
 
         if len(node.orelse) > 0:
             elseBlock = Block.create_at_start(ifOp.elseRegion, [])
             with InsertionPoint(elseBlock):
-                self.symbolTable.beginBlock()
                 self.pushIfStmtBlockStack()
-                [self.visit(b) for b in node.orelse]
+                self.buildScopedBlock(node.orelse)
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp([])
                 self.popIfStmtBlockStack()
-                self.symbolTable.endBlock()
 
     def visit_Return(self, node):
 
@@ -6237,6 +6250,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     cudaqAliases = kwargs.get('cudaqAliases', None)
     disable_quantum_optimization = kwargs.get('disable_quantum_optimization',
                                               False)
+    atomic_quantum_region = kwargs.get('atomic_quantum_region', False)
 
     # Build the AOT Quake Module for this kernel. Wrapped in a single span so
     # the tracer can separate Python-AST-to-MLIR construction from the AOT
@@ -6257,6 +6271,9 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         with trace.span("ast_bridge.validate_return_statements"):
             ValidateReturnStatements(bridge).visit(astModule)
         bridge.visit(astModule)
+        if atomic_quantum_region:
+            bridge.kernelFuncOp.attributes.__setitem__(
+                'atomic_quantum_region', UnitAttr.get(context=bridge.ctx))
 
     # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
     # so `TracePassInstrumentation` is installed (matching the JIT-side

@@ -8,31 +8,30 @@
 
 // RUN: cudaq-opt --add-dealloc %s | FileCheck %s
 
-module {
-  func.func @__nvqpp__mlirgen__FromState() {
-    %c4 = arith.constant 4 : index
-    %c1 = arith.constant 1 : index
-    %c0 = arith.constant 0 : index
-    %0 = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
-    %1 = quake.alloca !quake.veq<4>
-    %2 = quake.init_state %1, %0 : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
-    %3 = cc.loop while ((%arg0 = %c0) -> (index)) {
-      %4 = arith.cmpi slt, %arg0, %c4 : index
-      cc.condition %4(%arg0 : index)
-    } do {
-    ^bb0(%arg0: index):
-      %4 = quake.extract_ref %2[%arg0] : (!quake.veq<4>, index) -> !quake.ref
-      quake.h %4 : (!quake.ref) -> ()
-      cc.continue %arg0 : index
-    } step {
-    ^bb0(%arg0: index):
-      %4 = arith.addi %arg0, %c1 : index
-      cc.continue %4 : index
-    } {invariant}
-    return
-  }
-  cc.global constant private @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4>
+func.func @__nvqpp__mlirgen__FromState() {
+  %c4 = arith.constant 4 : index
+  %c1 = arith.constant 1 : index
+  %c0 = arith.constant 0 : index
+  %0 = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
+  %1 = quake.alloca !quake.veq<4>
+  %2 = quake.init_state %1, %0 : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+  %3 = cc.loop while ((%arg0 = %c0) -> (index)) {
+    %4 = arith.cmpi slt, %arg0, %c4 : index
+    cc.condition %4(%arg0 : index)
+  } do {
+  ^bb0(%arg0: index):
+    %4 = quake.extract_ref %2[%arg0] : (!quake.veq<4>, index) -> !quake.ref
+    quake.h %4 : (!quake.ref) -> ()
+    cc.continue %arg0 : index
+  } step {
+  ^bb0(%arg0: index):
+    %4 = arith.addi %arg0, %c1 : index
+    cc.continue %4 : index
+  } {invariant}
+  return
 }
+
+cc.global constant private @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__FromState() {
 // CHECK:           %[[VAL_3:.*]] = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
@@ -41,5 +40,58 @@ module {
 // CHECK:           quake.dealloc %[[VAL_5]] : !quake.veq<4>
 // CHECK:           return
 // CHECK:         }
-// CHECK:         cc.global constant private @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4>
+// CHECK:         cc.global constant private @__nvqpp__rodata_init_0
+
+
+// Issue 5296
+func.func @already_sunk() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.concat %0, %1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %r = quake.extract_ref %2[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %r : (!quake.ref) -> ()
+  %3 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
+  quake.sink %3 : !quake.wire
+  %4 = quake.unwrap %1 : (!quake.ref) -> !quake.wire
+  quake.sink %4 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @already_sunk() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_7:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_7]] : !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.unwrap %[[VAL_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_8]] : !quake.wire
+// CHECK-NOT:       quake.dealloc
+// CHECK:           return
+// CHECK:         }
+
+// Issue 5296
+func.func @one_sunk_one_not() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %2 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  quake.h %1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @one_sunk_one_not() {
+// CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_9]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_11:.*]] = quake.unwrap %[[VAL_9]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_11]] : !quake.wire
+// CHECK:           quake.h %[[VAL_10]] : (!quake.ref) -> ()
+// CHECK:           quake.dealloc %[[VAL_10]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+
 
