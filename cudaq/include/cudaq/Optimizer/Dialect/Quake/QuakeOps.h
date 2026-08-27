@@ -306,4 +306,22 @@ inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
   return op;
 }
 
+/// used to unwrap `!quake.control` from `quake.from_control`
+inline mlir::Value unwrapFromControlVal(mlir::Value value) {
+  while (auto fromControl = value.getDefiningOp<cudaq::quake::FromControlOp>())
+    value = fromControl.getCtrlbit();
+  return value;
+}
+
+/// take input `veq` and find it's defining op
+inline mlir::Value getKnownAllocaVeq(mlir::Value veq) {
+  if (auto relax = veq.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    veq = relax.getInputVec();
+
+  if (!veq.getDefiningOp<cudaq::quake::AllocaOp>())
+    return {};
+
+  return veq;
+}
+
 } // namespace cudaq::quake

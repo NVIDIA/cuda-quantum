@@ -58,16 +58,54 @@ inline void collectPhaseAnchorRoots(mlir::Value value,
   roots.push_back(value);
 }
 
-/// Return whether two values may share an IR-visible quantum root.
-inline bool phaseOperandsMayShareRoot(mlir::Value first, mlir::Value second) {
-  llvm::SmallVector<mlir::Value> firstRoots;
-  llvm::SmallVector<mlir::Value> secondRoots;
+static bool areProvablyDistinctPhaseRefs(mlir::Value first,
+                                         mlir::Value second) {
+  // if control types, get a ref type instead
+  first = cudaq::quake::unwrapFromControlVal(first);
+  second = cudaq::quake::unwrapFromControlVal(second);
+
+  // if `quake.extract_ref`, grab the `veq` that it came from
+  auto firstExtract = first.getDefiningOp<cudaq::quake::ExtractRefOp>();
+  auto secondExtract = second.getDefiningOp<cudaq::quake::ExtractRefOp>();
+
+  // if you can't verify the source (e.g., came from an argument) or one of the
+  // veqs is dynamically sized, no alias
+  if (!firstExtract || !secondExtract || !firstExtract.hasConstantIndex() ||
+      !secondExtract.hasConstantIndex()) {
+    return false;
+  }
+
+  if (firstExtract.getConstantIndex() == secondExtract.getConstantIndex())
+    return false;
+
+  auto firstVeq = cudaq::quake::getKnownAllocaVeq(firstExtract.getVeq());
+  auto secondVeq = cudaq::quake::getKnownAllocaVeq(secondExtract.getVeq());
+
+  return firstVeq && firstVeq == secondVeq;
+}
+
+static bool phaseValuesMayShareRoot(mlir::Value first, mlir::Value second) {
+  llvm::SmallVector<mlir::Value, 4> firstRoots;
+  llvm::SmallVector<mlir::Value, 4> secondRoots;
+
   collectPhaseAnchorRoots(first, firstRoots);
   collectPhaseAnchorRoots(second, secondRoots);
-  for (mlir::Value firstRoot : firstRoots)
-    for (mlir::Value secondRoot : secondRoots)
-      if (firstRoot == secondRoot)
+
+  return llvm::any_of(firstRoots, [&](mlir::Value root) {
+    return llvm::is_contained(secondRoots, root);
+  });
+}
+
+static bool phaseOperandsMayShareRoot(mlir::ValueRange first,
+                                      mlir::ValueRange second) {
+  for (mlir::Value lhs : first)
+    for (mlir::Value rhs : second) {
+      if (areProvablyDistinctPhaseRefs(lhs, rhs))
+        continue;
+      if (phaseValuesMayShareRoot(lhs, rhs))
         return true;
+    }
+
   return false;
 }
 
