@@ -364,7 +364,7 @@ void cudaq::opt::createPythonAOTPipeline(OpPassManager &pm,
 
 static void registerPythonAOTPipeline() {
   PassPipelineRegistration<PythonAOTOptions>(
-      "aot-prep-pipeline",
+      "python-aot-pipeline",
       "Pipeline to lower code for simulation or JIT compilation.",
       [](OpPassManager &pm, const PythonAOTOptions &options) {
         ::createPythonAOTPipeline(pm, options);

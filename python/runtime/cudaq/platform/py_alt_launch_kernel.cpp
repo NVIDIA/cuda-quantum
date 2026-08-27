@@ -1074,8 +1074,8 @@ nanobind::object cudaq::marshal_and_launch_module(
     std::shared_ptr<detail::CompiledModuleCache> cache) {
   // Marker span identifying every nested pass / scoped trace as part of the
   // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
-  // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
-  // attribute pass events to AOT vs JIT.
+  // python-aot-pipeline in compile_to_mlir; tooling reads the trace ancestry
+  // to attribute pass events to AOT vs JIT.
   //
   // This site is the funnel for kernel-call / sample / observe /
   // estimate_resources execution paths: each ultimately calls

@@ -5,7 +5,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline)' %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(python-aot-pipeline)' %s \
+// RUN:   | FileCheck %s
 
 // Regression test for the Python AOT pipeline's vector-return handling.
 // RunSemanticsHackery must remove the heap copy from the generated `.run`

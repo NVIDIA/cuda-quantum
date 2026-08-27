@@ -287,8 +287,11 @@ cudaq::config::parseTargetConfig(std::string yamlContent,
   auto substitutedYamlContent =
       cudaq::config::substitutePluginRoot(std::move(yamlContent), pluginRoot);
   cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(substitutedYamlContent.c_str());
-  Input >> config;
+  llvm::yaml::Input input(substitutedYamlContent.c_str());
+  input >> config;
+  if (const auto error = input.error())
+    throw std::runtime_error("Invalid target configuration: " +
+                             error.message());
   return config;
 }
 

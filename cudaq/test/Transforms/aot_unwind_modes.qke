@@ -5,11 +5,21 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=dataflow})' %s 2>&1 | FileCheck %s --check-prefix=DATAFLOW
-// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=cfg})' %s 2>&1 | FileCheck %s --check-prefix=CFG
-// RUN: cudaq-opt --dump-pass-pipeline --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=none})' %s 2>&1 | FileCheck %s --check-prefix=NONE
-// RUN: not cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=invalid})' %s 2>&1 | FileCheck %s --check-prefix=INVALID
-// RUN: not cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline{unwind-mode=none},lower-to-cfg)' %s 2>&1 | FileCheck %s --check-prefix=NONE-ERROR
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   --pass-pipeline='builtin.module(python-aot-pipeline{unwind-mode=dataflow})' \
+// RUN:   %s 2>&1 | FileCheck %s --check-prefix=DATAFLOW
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   --pass-pipeline='builtin.module(python-aot-pipeline{unwind-mode=cfg})' \
+// RUN:   %s 2>&1 | FileCheck %s --check-prefix=CFG
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   --pass-pipeline='builtin.module(python-aot-pipeline{unwind-mode=none})' \
+// RUN:   %s 2>&1 | FileCheck %s --check-prefix=NONE
+// RUN: not cudaq-opt \
+// RUN:   --pass-pipeline='builtin.module(python-aot-pipeline{unwind-mode=invalid})' \
+// RUN:   %s 2>&1 | FileCheck %s --check-prefix=INVALID
+// RUN: not cudaq-opt \
+// RUN:   --pass-pipeline='builtin.module(python-aot-pipeline{unwind-mode=none},lower-to-cfg)' \
+// RUN:   %s 2>&1 | FileCheck %s --check-prefix=NONE-ERROR
 
 module {
   func.func @early_return(%arg0: i1) -> i32 {

@@ -89,6 +89,16 @@ config:
             std::string::npos);
 }
 
+TEST(TargetConfigTester, rejectsInvalidAOTUnwindMode) {
+  EXPECT_THROW((void)cudaq::config::parseTargetConfig(R"(
+name: unwind-mode-test
+description: Invalid AOT unwind mode test
+config:
+  unwind-mode: invalid
+)"),
+               std::runtime_error);
+}
+
 TEST(TargetConfigTester, missingTargetConfigThrows) {
   const auto missingPath = std::filesystem::temp_directory_path() /
                            "cudaq-missing-target-config.yml";

@@ -47,7 +47,7 @@ boundaryDiagnostic = (
 
 def getAOTPassPipeline():
     mode = cudaq_runtime.get_aot_unwind_mode()
-    return f"builtin.module(aot-prep-pipeline{{unwind-mode={mode}}})"
+    return f"builtin.module(python-aot-pipeline{{unwind-mode={mode}}})"
 
 
 def containsMeasureHandle(ty, _seen=None):
