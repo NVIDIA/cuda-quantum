@@ -384,14 +384,9 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
                lastBranch->getParentOfType<func::FuncOp>().dump());
 
-    // Merge the chain of blocks just created back into the block the loop was
-    // in. Done here, head-first, this is linear in the trip count: every step
-    // inlines exactly one iteration's worth of ops. Leaving the chain for the
-    // canonicalizer to collapse is quadratic instead, because the greedy
-    // driver pops newly created blocks in reverse and so merges tail-first,
-    // re-inlining a block that grew on the previous merge. Blocks with more
-    // than one predecessor (break edges, the exit block) stop the merge and
-    // are left to the canonicalizer.
+    // Merge the chain of blocks here head-first, as the greedy pattern
+    // rewriter exhibits quadratic slowdown merging into canonical form.
+    // Stop at any blocks with multiple predecessors for later processing.
     while (auto br = dyn_cast<cf::BranchOp>(startBlock->getTerminator())) {
       Block *succ = br.getDest();
       if (succ == endBlock || !succ->getSinglePredecessor())
