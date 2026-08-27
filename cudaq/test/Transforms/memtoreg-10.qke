@@ -1,0 +1,46 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize --memtoreg --canonicalize %s | FileCheck %s
+
+// Regression for a verifier error where the cc.if's appended results and its
+// regions' cc.continue operands disagreed on slot order. cc.if carries the
+// LinearTypeArgs trait, so only the wire can become a region block argument;
+// the promoted i32 is results-only. The live-out order (which fixes the result
+// list) and the canonicalized block argument order (which fixed the terminator
+// operands) must therefore be one and the same order.
+func.func @if_mixed_promotion(%c: i1, %k: i32) {
+  %q = quake.alloca !quake.ref
+  %m = cc.alloca i32
+  cc.if (%c) {
+    %v = cc.load %m : !cc.ptr<i32>
+    cc.store %k, %m : !cc.ptr<i32>
+    quake.x %q : (!quake.ref) -> ()
+  }
+  quake.y %q : (!quake.ref) -> ()
+  %f = cc.load %m : !cc.ptr<i32>
+  quake.log_output %f : (i32) -> () {compilerGenerated}
+  quake.dealloc %q : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @if_mixed_promotion(
+// CHECK-SAME:      %[[COND:.*]]: i1, %[[K:.*]]: i32) {
+// CHECK:           %[[NULL_0:.*]] = quake.null_wire
+// CHECK:           %[[UNDEF_0:.*]] = cc.undef i32
+// CHECK:           %[[IF_0:.*]]:2 = cc.if(%[[COND]]) ((%[[ARG:.*]] = %[[NULL_0]])) -> (!quake.wire, i32) {
+// CHECK:             %[[X_0:.*]] = quake.x %[[ARG]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[X_0]], %[[K]] : !quake.wire, i32
+// CHECK:           } else {
+// CHECK:             cc.continue %[[ARG]], %[[UNDEF_0]] : !quake.wire, i32
+// CHECK:           }
+// CHECK:           %[[Y_0:.*]] = quake.y %[[IF_0]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           quake.log_output %[[IF_0]]#1 : (i32) -> () {compilerGenerated}
+// CHECK:           quake.sink %[[Y_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }

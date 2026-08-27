@@ -25,7 +25,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 #include <deque>
-#include <numeric>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MEMTOREG
@@ -350,9 +349,6 @@ public:
             if (succ) {
               auto *s = &succ->front();
               reverseCFG[s].insert(b);
-              // b's terminator forwards a single operand list to both intra-op
-              // successors as results to the parent op.
-              exitSiblingSuccessors[b].push_back(s);
             } else {
               exitBlocks.insert(b);
             }
@@ -395,11 +391,6 @@ public:
   bool isExitBlock(Block *block) { return llvm::is_contained(exitCFG, block); }
 
   SmallVector<Block *> &getExitBlocks() { return exitCFG; }
-
-  SmallVector<Block *> *getExitSiblingSuccessors(Block *block) {
-    auto it = exitSiblingSuccessors.find(block);
-    return it == exitSiblingSuccessors.end() ? nullptr : &it->second;
-  }
 
   SmallVector<Block *> &getPredecessors(Block *block) {
     if (backwardCFG.count(block))
@@ -790,6 +781,42 @@ public:
       if (!region.empty())
         unifyBlockArguments(&region.front(), canonicalOrder);
     }
+    reorderLiveOut(canonicalOrder, onlyLinearTypes);
+  }
+
+  // The live-out set fixes the parent's appended result order and the operand
+  // order of every exit terminator, both of which must agree with the block
+  // arguments just canonicalized. Permute it to match canonicalOrder. memrefs
+  // with no block argument (classical ones, under LinearTypeArgs) keep their
+  // relative order and follow.
+  void reorderLiveOut(ArrayRef<MemRef> canonicalOrder, bool onlyLinearTypes) {
+    if (liveOutSet.empty())
+      return;
+    DenseMap<MemRef, unsigned> canonicalPos;
+    for (auto [i, mr] : llvm::enumerate(canonicalOrder))
+      canonicalPos[mr] = i;
+    SmallVector<MemRef> ordered(liveOutSet.begin(), liveOutSet.end());
+    llvm::stable_sort(ordered, [&](MemRef a, MemRef b) {
+      auto ai = canonicalPos.find(a);
+      auto bi = canonicalPos.find(b);
+      bool aKnown = ai != canonicalPos.end();
+      bool bKnown = bi != canonicalPos.end();
+      if (aKnown != bKnown)
+        return aKnown;
+      return aKnown && ai->second < bi->second;
+    });
+    liveOutSet.clear();
+    for (auto mr : ordered)
+      liveOutSet.insert(mr);
+
+    // Rebuild liveInArgs, which was built from liveOutSet's previous order.
+    liveInArgs.clear();
+    for (auto liveOut : liveOutSet) {
+      assert(promotedDefs.count(liveOut));
+      if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
+        continue;
+      liveInArgs.push_back(promotedDefs[liveOut]);
+    }
   }
 
   // Ensure block arguments are in a canonicalOrder.
@@ -1041,13 +1068,6 @@ private:
   /// regions and thus must be returned as results. The parent cannot be a
   /// function.
   SetVector<MemRef> liveOutSet;
-
-  /// For a block whose terminator forwards one operand list to both a real
-  /// region successor and (on another edge) the parent op's results (e.g.
-  /// `cc.condition`), maps that block to the real successor block(s) whose
-  /// own established per-memref argument order the terminator's forwarded
-  /// operands must agree with.
-  DenseMap<Block *, SmallVector<Block *>> exitSiblingSuccessors;
 
   /// Each block's argument count as it stood before this pass added
   /// anything -- see the RegionDataFlow constructor.
@@ -1979,44 +1999,9 @@ public:
     };
 
     auto updateExitTerminator = [&](Block *block, auto &bindings) {
-      // block's terminator may forward this same operand list to a real sibling
-      // successor. That sibling may already have its own per-memref argument
-      // order established (from the initial scan of its region), and since both
-      // edges share one physical operand list, the operands appended here for
-      // the parent's results must land in the same relative order as that
-      // sibling's arguments. We must reorder bindings to match before
-      // threading.
-      //
-      // If block has no such sibling (e.g. a Python `else` block's cc.continue,
-      // which is the sole edge out of the else region straight to the parent
-      // op's results), fall back to block's own canonicalized argument order.
-      // canonicalizeArgumentOrder already unified every region's entry block
-      // to one shared slot-per-memref order, so block's own live-ins are just
-      // as valid an ordering key as a sibling's would be.
-      using MemRef = RegionDataFlow::MemRef;
-      SmallVector<MemRef> ordered(bindings.begin(), bindings.end());
-      Block *orderSource = block;
-      if (auto *siblings = dataFlow.getExitSiblingSuccessors(block))
-        if (!siblings->empty())
-          orderSource = siblings->front();
-      SmallVector<MemRef> orderSourceOrder(orderSource->getNumArguments(),
-                                           MemRef{});
-      dataFlow.getLiveInToBlock(orderSourceOrder, orderSource);
-      DenseMap<MemRef, unsigned> argNum;
-      for (auto [i, mr] : llvm::enumerate(orderSourceOrder))
-        if (mr)
-          argNum[mr] = i;
-      llvm::stable_sort(ordered, [&](MemRef a, MemRef b) {
-        auto ai = argNum.find(a);
-        auto bi = argNum.find(b);
-        bool aKnown = ai != argNum.end();
-        bool bKnown = bi != argNum.end();
-        if (aKnown != bKnown)
-          return aKnown;
-        return aKnown && ai->second < bi->second;
-      });
-      return updateTerminator(block->getTerminator(), nullptr,
-                              llvm::make_range(ordered.begin(), ordered.end()));
+      return updateTerminator(
+          block->getTerminator(), nullptr,
+          llvm::make_range(bindings.begin(), bindings.end()));
     };
 
     SmallPtrSet<Block *, 8> blocksVisited;
@@ -2056,39 +2041,6 @@ public:
     if (dataFlow.hasLiveOutOfParent()) {
       // Get all the new results to append.
       auto allDefs = dataFlow.getLiveOutOfParent();
-      auto &entryBlocks = dataFlow.getEntryBlocks();
-      if (entryBlocks.size() == 1 &&
-          allDefs.size() == dataFlow.getLiveInArgs().size()) {
-        using MemRef = RegionDataFlow::MemRef;
-        using SSAReg = RegionDataFlow::SSAReg;
-        Block *entry = entryBlocks.front();
-        SmallVector<MemRef> entryOrder(entry->getNumArguments(), MemRef{});
-        dataFlow.getLiveInToBlock(entryOrder, entry);
-        DenseMap<MemRef, unsigned> argNum;
-        for (auto [i, mr] : llvm::enumerate(entryOrder))
-          if (mr)
-            argNum[mr] = i;
-        SmallVector<unsigned> indices(allDefs.size());
-        std::iota(indices.begin(), indices.end(), 0);
-        llvm::stable_sort(indices, [&](unsigned a, unsigned b) {
-          auto ai = argNum.find(allDefs[a]);
-          auto bi = argNum.find(allDefs[b]);
-          bool aKnown = ai != argNum.end();
-          bool bKnown = bi != argNum.end();
-          if (aKnown != bKnown)
-            return aKnown;
-          return aKnown && ai->second < bi->second;
-        });
-        SmallVector<MemRef> newAllDefs;
-        SmallVector<SSAReg> newLiveInArgs;
-        auto &liveInArgsVec = dataFlow.getLiveInArgs();
-        for (auto idx : indices) {
-          newAllDefs.push_back(allDefs[idx]);
-          newLiveInArgs.push_back(liveInArgsVec[idx]);
-        }
-        allDefs = newAllDefs;
-        liveInArgsVec = newLiveInArgs;
-      }
 
       // Replace parent with a copy.
       SmallVector<Type> resultTypes(parent->getResultTypes());
