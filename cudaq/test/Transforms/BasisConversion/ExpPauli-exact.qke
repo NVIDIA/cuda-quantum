@@ -12,28 +12,130 @@
 // policy path.
 // RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=rx,h,x(1),rz})' %s | FileCheck %s
 
-func.func @identity(%theta: f64, %target: !quake.ref) {
-  quake.exp_pauli (%theta) %target to "I" : (f64, !quake.ref) -> ()
+func.func @identity(%theta: f64, %target: !quake.veq<1>) {
+  quake.exp_pauli (%theta) %target to "I" : (f64, !quake.veq<1>) -> ()
   return
 }
 
 // CHECK-LABEL: func.func @identity(
-// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.ref
-// CHECK: quake.phase (%[[THETA]]) %[[TARGET]] : (f64, !quake.ref) -> ()
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.veq<1>
+// CHECK: %[[IDENTITY_INDEX:.*]] = arith.constant 0 : i64
+// CHECK: %[[IDENTITY_ANCHOR:.*]] = quake.extract_ref %[[TARGET]][%[[IDENTITY_INDEX]]] : (!quake.veq<1>, i64) -> !quake.ref
+// CHECK: quake.phase (%[[THETA]]) %[[IDENTITY_ANCHOR]] : (f64, !quake.ref) -> ()
 // CHECK-NOT: quake.exp_pauli
 // CHECK: return
 
-func.func @nonidentity(%theta: f64, %target: !quake.ref) {
-  quake.exp_pauli (%theta) %target to "X" : (f64, !quake.ref) -> ()
+func.func @nonidentity(%theta: f64, %target: !quake.veq<1>) {
+  quake.exp_pauli (%theta) %target to "X" : (f64, !quake.veq<1>) -> ()
   return
 }
 
 // CHECK-LABEL: func.func @nonidentity(
-// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.ref
-// CHECK: quake.h %[[TARGET]] : (!quake.ref) -> ()
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.veq<1>
+// CHECK: %[[NONIDENTITY_INDEX:.*]] = arith.constant 0 : i64
+// CHECK: %[[NONIDENTITY_TARGET:.*]] = quake.extract_ref %[[TARGET]][%[[NONIDENTITY_INDEX]]] : (!quake.veq<1>, i64) -> !quake.ref
+// CHECK: quake.h %[[NONIDENTITY_TARGET]] : (!quake.ref) -> ()
 // CHECK: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f64
 // CHECK: %[[ROTATION:.*]] = arith.mulf %[[NEG_TWO]], %[[THETA]] : f64
-// CHECK: quake.rz (%[[ROTATION]]) %[[TARGET]] : (f64, !quake.ref) -> ()
-// CHECK: quake.h %[[TARGET]] : (!quake.ref) -> ()
+// CHECK: quake.rz (%[[ROTATION]]) %[[NONIDENTITY_TARGET]] : (f64, !quake.ref) -> ()
+// CHECK: %[[NONIDENTITY_RETURN_INDEX:.*]] = arith.constant 0 : i64
+// CHECK: %[[NONIDENTITY_RETURN:.*]] = quake.extract_ref %[[TARGET]][%[[NONIDENTITY_RETURN_INDEX]]] : (!quake.veq<1>, i64) -> !quake.ref
+// CHECK: quake.h %[[NONIDENTITY_RETURN]] : (!quake.ref) -> ()
 // CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+func.func @should_not_alias1(%th: f64) {
+  %0 = quake.alloca !quake.veq<2>
+  %c = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %q = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.exp_pauli (%th) [%c] %q to "I" : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @should_not_alias1(
+// CHECK: %[[VEQ:.*]] = quake.alloca !quake.veq<2>
+// CHECK: %[[CONTROL:.*]] = quake.extract_ref %[[VEQ]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK: %[[ANCHOR:.*]] = quake.extract_ref %[[VEQ]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK: quake.phase (%{{.*}}) [%[[CONTROL]]] %[[ANCHOR]] : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+// getKnownAllocaVeq must look through relax_size before comparing extracts.
+func.func @should_not_alias_relaxed(%th: f64) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.relax_size %0 : (!quake.veq<2>) -> !quake.veq<?>
+  %c = quake.extract_ref %1[0] : (!quake.veq<?>) -> !quake.ref
+  %q = quake.extract_ref %1[1] : (!quake.veq<?>) -> !quake.ref
+  quake.exp_pauli (%th) [%c] %q to "I" : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @should_not_alias_relaxed(
+// CHECK: %[[RELAXED_VEQ:.*]] = quake.relax_size %{{.*}} : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK: %[[RELAXED_CONTROL:.*]] = quake.extract_ref %[[RELAXED_VEQ]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK: %[[RELAXED_ANCHOR:.*]] = quake.extract_ref %[[RELAXED_VEQ]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK: quake.phase (%{{.*}}) [%[[RELAXED_CONTROL]]] %[[RELAXED_ANCHOR]] : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+// The same proof is required between every pair in a multi-control predicate.
+func.func @should_not_alias_multiple_controls(%th: f64) {
+  %0 = quake.alloca !quake.veq<3>
+  %c0 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+  %c1 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+  %q = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+  quake.exp_pauli (%th) [%c0, %c1] %q to "I" : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @should_not_alias_multiple_controls(
+// CHECK: %[[MULTI_VEQ:.*]] = quake.alloca !quake.veq<3>
+// CHECK: %[[CONTROL0:.*]] = quake.extract_ref %[[MULTI_VEQ]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK: %[[CONTROL1:.*]] = quake.extract_ref %[[MULTI_VEQ]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK: %[[MULTI_ANCHOR:.*]] = quake.extract_ref %[[MULTI_VEQ]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK: quake.phase (%{{.*}}) [%[[CONTROL0]], %[[CONTROL1]]] %[[MULTI_ANCHOR]] : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+// A candidate that aliases a control is skipped in favor of a distinct target.
+func.func @selects_distinct_anchor(%th: f64) {
+  %0 = quake.alloca !quake.veq<2>
+  %c = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %q = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.exp_pauli (%th) [%c] %c, %q to "II" : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @selects_distinct_anchor(
+// CHECK: %[[SELECT_VEQ:.*]] = quake.alloca !quake.veq<2>
+// CHECK: %[[SELECT_CONTROL:.*]] = quake.extract_ref %[[SELECT_VEQ]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK: %[[SELECT_ANCHOR:.*]] = quake.extract_ref %[[SELECT_VEQ]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK: quake.phase (%{{.*}}) [%[[SELECT_CONTROL]]] %[[SELECT_ANCHOR]] : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+// Dynamic and identical indices remain conservative: they cannot prove that
+// the control and anchor designate different qubits.
+func.func @may_alias_dynamic_index(%th: f64, %index: i64) {
+  %0 = quake.alloca !quake.veq<2>
+  %c = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %q = quake.extract_ref %0[%index] : (!quake.veq<2>, i64) -> !quake.ref
+  quake.exp_pauli (%th) [%c] %q to "I" : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @may_alias_dynamic_index(
+// CHECK: quake.exp_pauli (%{{.*}}) [%{{.*}}] %{{.*}} to "I"
+// CHECK: return
+
+func.func @may_alias_same_index(%th: f64) {
+  %0 = quake.alloca !quake.veq<2>
+  %c = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %q = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  quake.exp_pauli (%th) [%c] %q to "I" : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @may_alias_same_index(
+// CHECK: quake.exp_pauli (%{{.*}}) [%{{.*}}] %{{.*}} to "I"
 // CHECK: return
