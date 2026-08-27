@@ -583,12 +583,12 @@ REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, {"r1<adj>", "r1"});
 // quake.cnot a, b;
 // quake.cnot b, a;
 //
-// quake.swap<ctrl> c, a, b
+// quake.swap [c] a, b
 // ───────────────────────────────────
 // quake.x c;            // only if c is complemented
-// quake.cnot b, a;
-// quake.cnot<ctrl> c, a, b;
-// quake.cnot b, a;
+// quake.x [b] a;
+// quake.x [c, a] b;
+// quake.x [b] a;
 // quake.x c;            // only if c is complemented
 struct SwapToCXType; // forward declare the pattern type, defined in the macro
                      // below
