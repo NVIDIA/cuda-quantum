@@ -305,7 +305,7 @@ def set_target(target, **extra_config):
     Args:
       target: The CUDA-Q target, specified as a recognized target name (``str``)
         or a :class:`cudaq.Target` instance. Support for
-        instances of :class:`cudaq._experimental.CustomTarget` is experimental.
+        instances of ``cudaq._experimental.CustomTarget`` is experimental.
       **extra_config: Target-specific configuration for the named-target
         overload.
 
