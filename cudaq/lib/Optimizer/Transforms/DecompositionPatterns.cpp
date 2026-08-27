@@ -629,10 +629,11 @@ struct SwapToCX
         ccxOp.setNegatedQubitControls(
             DenseBoolArrayAttr::get(rewriter.getContext(), flags));
       }
-      qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+      qRewriter.create<cudaq::quake::XOp>(loc, b, ccxControls[1]);
 
       // The wires are ordered controls first, then targets.
-      qRewriter.selectWiresAndReplaceUses(op, ValueRange{ccxControls[0], a, b});
+      qRewriter.selectWiresAndReplaceUses(
+          op, ValueRange{ccxControls[0], ccxControls[1], b});
     } else {
       qRewriter.create<cudaq::quake::XOp>(loc, b, a);
       qRewriter.create<cudaq::quake::XOp>(loc, a, b);

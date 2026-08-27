@@ -527,6 +527,54 @@ TEST_F(DecompositionPatternsTest, SwapToCXKeepsSingleControl) {
   EXPECT_FALSE(bareGates.contains("x(2)"));
 }
 
+TEST_F(DecompositionPatternsTest, SwapToCXThreadsWireOperands) {
+  // Under wire semantics each rewritten gate must consume its predecessor's
+  // output wires, and the original op's results are replaced by the
+  // toffoli's control wire and the final wires of the two targets.
+  OpBuilder builder(context.get());
+  auto module = ModuleOp::create(builder, builder.getUnknownLoc());
+  builder.setInsertionPointToEnd(module.getBody());
+  auto wireTy = cudaq::quake::WireType::get(context.get());
+  SmallVector<Type> wireTypes{wireTy, wireTy, wireTy};
+  auto funcType = builder.getFunctionType(wireTypes, wireTypes);
+  auto func = func::FuncOp::create(builder, builder.getUnknownLoc(),
+                                   "test_func", funcType);
+  auto *entry = func.addEntryBlock();
+  builder.setInsertionPointToStart(entry);
+  Value c = entry->getArgument(0);
+  Value a = entry->getArgument(1);
+  Value b = entry->getArgument(2);
+  auto swapOp = builder.create<cudaq::quake::SwapOp>(
+      builder.getUnknownLoc(), wireTypes, /*is_adj=*/false, ValueRange{},
+      ValueRange{c}, ValueRange{a, b}, DenseBoolArrayAttr{});
+  builder.create<func::ReturnOp>(builder.getUnknownLoc(), swapOp.getResults());
+  ASSERT_TRUE(succeeded(applySinglePattern(module, "SwapToCX", {})));
+  EXPECT_EQ(countOps<cudaq::quake::SwapOp>(module), 0u);
+
+  SmallVector<cudaq::quake::XOp> xs;
+  func::ReturnOp ret;
+  module.walk([&](cudaq::quake::XOp xop) { xs.push_back(xop); });
+  module.walk([&](func::ReturnOp op) { ret = op; });
+  ASSERT_EQ(xs.size(), 3u);
+  auto &cx0 = xs[0];
+  auto &ccx = xs[1];
+  auto &cx1 = xs[2];
+  ASSERT_EQ(cx0.getControls().size(), 1u);
+  ASSERT_EQ(ccx.getControls().size(), 2u);
+  ASSERT_EQ(cx1.getControls().size(), 1u);
+  EXPECT_EQ(cx0.getControls()[0], b);
+  EXPECT_EQ(cx0.getTarget(), a);
+  EXPECT_EQ(ccx.getControls()[0], c);
+  EXPECT_EQ(ccx.getControls()[1], cx0.getResult(1));
+  EXPECT_EQ(ccx.getTarget(), cx0.getResult(0));
+  EXPECT_EQ(cx1.getControls()[0], ccx.getResult(2));
+  EXPECT_EQ(cx1.getTarget(), ccx.getResult(1));
+  ASSERT_TRUE(static_cast<bool>(ret));
+  EXPECT_EQ(ret.getOperands()[0], ccx.getResult(0));
+  EXPECT_EQ(ret.getOperands()[1], cx1.getResult(1));
+  EXPECT_EQ(ret.getOperands()[2], cx1.getResult(0));
+}
+
 TEST_F(DecompositionPatternsTest, SwapToCXForwardsComplementedControl) {
   // A complemented swap control becomes a complemented first control on the
   // toffoli of the Fredkin decomposition instead of an x pair around the
