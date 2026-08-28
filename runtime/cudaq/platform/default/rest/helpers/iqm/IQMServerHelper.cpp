@@ -290,6 +290,9 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     // to fetch them separately.
     ServerMessage counts_batch;
     try {
+      if (!getJobResponse.contains("counts_batch")) {
+        throw std::runtime_error("counts_batch field missing in results");
+      }
       counts_batch = getJobResponse["counts_batch"];
       if (counts_batch.is_null() || counts_batch.empty() ||
           counts_batch.type() != nlohmann::json::value_t::array ||
