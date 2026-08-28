@@ -194,6 +194,18 @@ public:
     if (analysis.empty())
       return true;
 
+    // Seed the greedy driver with only the operations that this rewrite owns.
+    // Include typed roots in nested regions because they may use an allocation
+    // from this region and must be revisited when that allocation is replaced.
+    SmallVector<Operation *> candidates;
+    region.walk<WalkOrder::PreOrder>([&](Operation *op) {
+      if (isa<cudaq::quake::AllocaOp, cudaq::quake::ExtractRefOp,
+              cudaq::quake::GetMemberOp, cudaq::quake::SubVeqOp,
+              cudaq::quake::ConcatOp>(op))
+        candidates.push_back(op);
+      return WalkResult::advance();
+    });
+
     // 2. Combine all the allocas into a single alloca at the top of the region.
     auto *entryBlock = &region.front();
     auto *ctx = &getContext();
@@ -206,14 +218,9 @@ public:
     // 3. Greedily replace the uses of the original alloca ops with uses of
     // partitions of the new alloca op. Replace subveq of subveq with a single
     // new subveq. Replace extract from subveq with extract from original
-    // veq. AllocaPat only matches ops literally in analysis.allocations (this
-    // call's own, region-scoped list), so it is harmless to always root the
-    // driver at the pass's own top-level function rather than region's
-    // owning op: a cc.scope/cc.create_lambda is not IsolatedFromAbove (it may
-    // reference values from its enclosing region), so applyPatternsGreedily
-    // cannot be rooted there directly, but the func::FuncOp always is and the
-    // driver already walks every nested region regardless of where it's
-    // rooted.
+    // veq. Generated extract, subveq, concat, and member operations remain
+    // eligible because they may enable further canonicalization. Unrelated
+    // existing operations in the region must not enter the worklist.
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
@@ -221,7 +228,11 @@ public:
       cudaq::quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
       cudaq::quake::SubVeqOp::getCanonicalizationPatterns(patterns, ctx);
       cudaq::quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
-      if (failed(applyPatternsGreedily(getOperation(), std::move(patterns)))) {
+      GreedyRewriteConfig config;
+      config.setScope(&region).setStrictness(
+          GreedyRewriteStrictness::ExistingAndNewOps);
+      if (failed(applyOpPatternsGreedily(candidates, std::move(patterns),
+                                         config))) {
         region.getParentOp()->emitOpError(
             "combining alloca, subveq, and extract ops failed");
         signalPassFailure();
