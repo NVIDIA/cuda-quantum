@@ -278,9 +278,6 @@ latest
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -770,9 +767,6 @@ latest
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
-                .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
@@ -1402,6 +1396,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -2508,7 +2505,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![28c4b1887bdc48989f179f95d75c75a8](../../_images/speedup.png){.no-scaled-link
+![105ef0bfa4e94929aca0eb737e8f2e1c](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2522,9 +2519,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![780b6698ee62446d83f28e5cc299cb69](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![df06883669a54197b17bbc1206273a96](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![87bc597b4bbf489686a4c66d157026fa](../../_images/efficiency.jpeg){.no-scaled-link
+![014b87c6d2e3412586633dfe5e73366a](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

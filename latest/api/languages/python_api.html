@@ -245,7 +245,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -508,7 +507,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -843,7 +841,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -1178,7 +1179,7 @@ MLIR function using the Quake dialect.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">PyKernelDecorator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defer_compilation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_quantum_optimization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernelName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrideGlobalScopedVars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decorator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">PyKernelDecorator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defer_compilation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_quantum_optimization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernelName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrideGlobalScopedVars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decorator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_quantum_region</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator" title="Permalink to this definition">¶</a></dt>
 <dd><p>The <code class="code docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code> serves as a standard Python decorator that takes
 the decorated function as input. The function AST is parsed and converted to
 a Quake MLIR representation. This is passed on to the CUDAQ runtime for
@@ -1197,6 +1198,12 @@ to machine code will occur here.</p>
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.__str__">
 <span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.__str__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a string representation for this kernel as MLIR.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.atomic_quantum_region">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">atomic_quantum_region</span></span><a class="headerlink" href="#cudaq.PyKernelDecorator.atomic_quantum_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether each invocation is an atomic quantum region.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1323,7 +1330,9 @@ and/or return values.</p>
 <dd><p>The <code class="code docutils literal notranslate"><span class="pre">cudaq.kernel</span></code> represents the CUDA-Q language function attribute that
 programmers leverage to indicate the following function is a CUDA-Q kernel
 and should be compile and executed on an available quantum coprocessor.</p>
-<p>Verbose logging can be enabled via <code class="code docutils literal notranslate"><span class="pre">verbose=True</span></code>.</p>
+<p>Verbose logging can be enabled via <code class="code docutils literal notranslate"><span class="pre">verbose=True</span></code>. Set
+<code class="code docutils literal notranslate"><span class="pre">atomic_quantum_region=True</span></code> to preserve the boundary around each kernel
+invocation from cross-boundary quantum optimization.</p>
 </dd></dl>
 
 </section>
@@ -1955,18 +1964,23 @@ the call and lowers it to a vector form <code class="docutils literal notranslat
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.set_target">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Target" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span></dt>
-<dd><p>Overloaded function.</p>
-<ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">set_target(arg0:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target,</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code></p></li>
-</ol>
-<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> to be used for CUDA-Q kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
-<ol class="arabic simple" start="2">
-<li><p><code class="docutils literal notranslate"><span class="pre">set_target(arg0:</span> <span class="pre">str,</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code></p></li>
-</ol>
-<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with given name to be used for CUDA-Q kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the backend used for CUDA-Q kernel execution.</p>
+<p>Can provide optional, target-specific configuration data via Python <code class="code docutils literal notranslate"><span class="pre">kwargs</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The CUDA-Q target, specified as a recognized target name (<code class="docutils literal notranslate"><span class="pre">str</span></code>)
+or a <a class="reference internal" href="#cudaq.Target" title="cudaq.Target"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.Target</span></code></a> instance. Support for
+instances of <code class="docutils literal notranslate"><span class="pre">cudaq._experimental.CustomTarget</span></code> is experimental.</p></li>
+<li><p><strong>**extra_config</strong> – Target-specific configuration for the named-target
+overload.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – For unsupported target types or keyword arguments.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">

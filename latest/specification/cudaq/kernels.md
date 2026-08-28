@@ -278,9 +278,6 @@ latest
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -796,9 +793,6 @@ latest
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
-                .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
@@ -1415,6 +1409,8 @@ latest
                 .notranslate}]{.pre}](operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum Kernels](#){.current .reference .internal}
+            -   [6.1. Atomic quantum
+                regions](#atomic-quantum-regions){.reference .internal}
         -   [7. Sub-circuit Synthesis](synthesis.html){.reference
             .internal}
         -   [8. Control Flow](control_flow.html){.reference .internal}
@@ -2021,6 +2017,70 @@ Python
 :::
 :::
 
+::: {#atomic-quantum-regions .section}
+## [6.1. ]{.section-number}Atomic quantum regions[¶](#atomic-quantum-regions "Permalink to this heading"){.headerlink}
+
+Mark a pure-device kernel as an atomic quantum region when each
+invocation must remain an optimization boundary. Quantum operations can
+be optimized within the invoked kernel and within its caller. An
+optimization must not combine, cancel, or move operations across the
+invocation boundary.
+
+::: {.tab-set .docutils}
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    void atomic_h(cudaq::qubit &qubit)
+        __qpu__ __atomic_quantum_region__ {
+      h(qubit);
+    }
+
+    void caller() __qpu__ {
+      cudaq::qubit qubit;
+      atomic_h(qubit);
+      cudaq::adjoint(atomic_h, qubit);
+    }
+:::
+:::
+:::
+
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel(atomic_quantum_region=True)
+    def atomic_h(qubit: cudaq.qubit):
+        h(qubit)
+
+    @cudaq.kernel
+    def caller():
+        qubit = cudaq.qubit()
+        atomic_h(qubit)
+        cudaq.adjoint(atomic_h, qubit)
+:::
+:::
+:::
+:::
+
+For the Python builder frontend, call
+[`atomic_quantum_region()`{.docutils .literal .notranslate}]{.pre}
+before composing the helper into another builder.
+
+::: {.highlight-python .notranslate}
+::: highlight
+    atomic_h, qubit = cudaq.make_kernel(cudaq.qubit)
+    atomic_h.atomic_quantum_region()
+    atomic_h.h(qubit)
+
+    caller = cudaq.make_kernel()
+    qubit = caller.qalloc()
+    caller.apply_call(atomic_h, qubit)
+:::
+:::
+
 **\[4\]** Quantum kernel function bodies are programmed in a subset of
 the parent classical language. Kernels can be composed of the following:
 
@@ -2451,6 +2511,7 @@ CUDA-Q kernel inputs can also be
 This approach enables the development of generic libraries of quantum
 algorithms that are parameterized on sub-units of the global circuit
 representation.
+:::
 :::
 :::
 :::

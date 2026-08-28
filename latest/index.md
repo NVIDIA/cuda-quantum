@@ -273,9 +273,6 @@ latest
             .internal}
         -   [Quantinuum](using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](using/examples/hardware_providers.html#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum
             Machines](using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -782,9 +779,6 @@ latest
             -   [IQM](using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](using/backends/hardware/superconducting.html#oqc){.reference
-                .internal}
-            -   [Quantum Circuits,
-                Inc.](using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
             -   [TII](using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
@@ -1400,6 +1394,9 @@ latest
         -   [6. Quantum
             Kernels](specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1960,6 +1957,21 @@ find documentation for all released versions
 acceleration in heterogeneous computing architectures available in C++
 and Python.
 
+::: {#research-preview-pulse-level-programming .section}
+## Research Preview: Pulse-Level Programming[¶](#research-preview-pulse-level-programming "Permalink to this heading"){.headerlink}
+
+CUDA-Q pulse is a new research-preview package for programming at the
+pulse level. It provides a Python kernel DSL, pulse and operator
+dialects, compiler passes, and an experimental GPU execution path.
+Because it is a research preview, its APIs and behavior may change
+incompatibly or be removed without notice, and it is not a
+product-supported CUDA-Q feature.
+
+See the [CUDA-Q pulse
+README](https://github.com/NVIDIA/cuda-quantum/blob/feature/pulse/pulse/README.md){.reference
+.external} for a quick example, build instructions, and the current
+scope and limitations.
+
 ::: {.toctree-wrapper .compound}
 [Contents]{.caption-text}
 
@@ -2117,6 +2129,7 @@ and Python.
         .internal}
     -   [Quantum Operations](api/default_ops.html){.reference .internal}
 -   [Other Versions](versions.html){.reference .internal}
+:::
 :::
 :::
 :::

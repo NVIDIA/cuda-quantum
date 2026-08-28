@@ -245,7 +245,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -508,7 +507,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -843,7 +841,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -1108,9 +1109,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="1ddad6fc12724b7183b79b7cc47c80ca" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="c9ac930e3ea144dcb54ef085a9af35ef" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="1cefb48d445147b0a033b550710e3389" src="../../_images/gatefusion.png" /></p>
+<p><img alt="676bb904f419463b873e6ed3d5e39492" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 

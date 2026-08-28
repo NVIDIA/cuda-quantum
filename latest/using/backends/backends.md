@@ -268,9 +268,6 @@ latest
             .internal}
         -   [Quantinuum](../examples/hardware_providers.html#quantinuum){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../examples/hardware_providers.html#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum
             Machines](../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -769,9 +766,6 @@ latest
             -   [IQM](hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](hardware/superconducting.html#oqc){.reference
-                .internal}
-            -   [Quantum Circuits,
-                Inc.](hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
             -   [TII](hardware/superconducting.html#tii){.reference
                 .internal}
@@ -1378,6 +1372,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -2001,9 +1998,6 @@ available in CUDA-Q.
         -   [IQM](hardware/superconducting.html#iqm){.reference
             .internal}
         -   [OQC](hardware/superconducting.html#oqc){.reference
-            .internal}
-        -   [Quantum Circuits,
-            Inc.](hardware/superconducting.html#quantum-circuits-inc){.reference
             .internal}
         -   [TII](hardware/superconducting.html#tii){.reference
             .internal}

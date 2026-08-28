@@ -278,9 +278,6 @@ latest
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -796,9 +793,6 @@ latest
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
-                .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
@@ -1428,6 +1422,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -2029,7 +2026,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[defer_compilation]{.pre}]{.n}[[=]{.pre}]{.o}[[True]{.pre}]{.default_value}*, *[[disable_quantum_optimization]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[decorator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[defer_compilation]{.pre}]{.n}[[=]{.pre}]{.o}[[True]{.pre}]{.default_value}*, *[[disable_quantum_optimization]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[decorator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*]{.pre}]{.o}*, *[[atomic_quantum_region]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
 
 :   The [`PyKernelDecorator`{.code .docutils .literal
     .notranslate}]{.pre} serves as a standard Python decorator that
@@ -2051,6 +2048,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     [[\_\_str\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__str__ "Permalink to this definition"){.headerlink}
 
     :   Return a string representation for this kernel as MLIR.
+
+    *[property]{.pre}[ ]{.w}*[[atomic_quantum_region]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernelDecorator.atomic_quantum_region "Permalink to this definition"){.headerlink}
+
+    :   Whether each invocation is an atomic quantum region.
 
     [[beta_reduction]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[isEntryPoint]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.beta_reduction "Permalink to this definition"){.headerlink}
 
@@ -2161,7 +2162,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     should be compile and executed on an available quantum coprocessor.
 
     Verbose logging can be enabled via [`verbose=True`{.code .docutils
-    .literal .notranslate}]{.pre}.
+    .literal .notranslate}]{.pre}. Set
+    [`atomic_quantum_region=True`{.code .docutils .literal
+    .notranslate}]{.pre} to preserve the boundary around each kernel
+    invocation from cross-boundary quantum optimization.
 :::
 
 ::: {#kernel-execution .section}
@@ -3277,44 +3281,30 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}]{.n}*, *[[/]{.pre}]{.o}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}\
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
 
-:   Overloaded function.
+:   Set the backend used for CUDA-Q kernel execution.
 
-    1.  [`set_target(arg0:`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target,`{.docutils
-        .literal .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`/,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`**kwargs)`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`->`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`None`{.docutils .literal .notranslate}]{.pre}
+    Can provide optional, target-specific configuration data via Python
+    [`kwargs`{.code .docutils .literal .notranslate}]{.pre}.
 
-    Set the [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} to be used for CUDA-Q kernel execution. Can
-    provide optional, target-specific configuration data via Python
-    kwargs.
+    Parameters[:]{.colon}
 
-    2.  [`set_target(arg0:`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`str,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`/,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`**kwargs)`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`->`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`None`{.docutils .literal .notranslate}]{.pre}
+    :   -   **target** -- The CUDA-Q target, specified as a recognized
+            target name ([`str`{.docutils .literal .notranslate}]{.pre})
+            or a [[`cudaq.Target`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.Target "cudaq.Target"){.reference
+            .internal} instance. Support for instances of
+            [`cudaq._experimental.CustomTarget`{.docutils .literal
+            .notranslate}]{.pre} is experimental.
 
-    Set the [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} with given name to be used for CUDA-Q kernel
-    execution. Can provide optional, target-specific configuration data
-    via Python kwargs.
+        -   **\*\*extra_config** -- Target-specific configuration for
+            the named-target overload.
+
+    Raises[:]{.colon}
+
+    :   [**TypeError**](https://docs.python.org/3/library/exceptions.html#TypeError "(in Python v3.14)"){.reference
+        .external} -- For unsupported target types or keyword arguments.
 
 ```{=html}
 <!-- -->

@@ -270,9 +270,6 @@ latest
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -785,9 +782,6 @@ latest
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
-                .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
@@ -1417,6 +1411,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1995,14 +1992,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![1ddad6fc12724b7183b79b7cc47c80ca](../../_images/gate-fuse.png)
+![c9ac930e3ea144dcb54ef085a9af35ef](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![1cefb48d445147b0a033b550710e3389](../../_images/gatefusion.png)
+![676bb904f419463b873e6ed3d5e39492](../../_images/gatefusion.png)
 :::
 :::
 :::

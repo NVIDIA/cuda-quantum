@@ -245,7 +245,6 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -508,7 +507,6 @@
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -843,7 +841,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -1143,7 +1144,7 @@ able to use it without any further installation steps.</p>
 <p>If you want to perform multi-GPU simulations, additional components must be
 installed. We recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do
 so. If you are not already using Conda, you can install a minimal version
-following <a class="reference external" href="https://docs.anaconda.com/miniconda/">miniconda instructions here</a>.
+following <a class="reference external" href="https://docs.anaconda.com/miniconda/">Miniconda instructions here</a>.
 The following commands will create and activate a complete environment for
 CUDA-Q with all its dependencies:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=12.4.0 # set this variable to version 12.x or 13.x</span>
@@ -1157,7 +1158,7 @@ CUDA-Q with all its dependencies:</p>
 <span class="go">source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activate_custom_mpi.sh</span>
 </pre></div>
 </div>
-<p><strong>Warning (conda-forge)</strong>: Installing <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> from the <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> channel on recent versions of Python can lead to segmentation faults.
+<p><strong>Warning (<code class="docutils literal notranslate"><span class="pre">conda-forge</span></code>)</strong>: Installing <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> from the <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> channel on recent versions of Python can lead to segmentation faults.
 If you see such errors, please switch to one of the Python versions 3.11.10 or 3.12.7 as per the issue
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/2999">#2999</a> or <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/3104">#3104</a>.</p>
 <p>You must configure MPI by setting the following environment variables:</p>

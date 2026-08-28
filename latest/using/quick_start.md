@@ -260,9 +260,6 @@ latest
             .internal}
         -   [Quantinuum](examples/hardware_providers.html#quantinuum){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](examples/hardware_providers.html#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum
             Machines](examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -767,9 +764,6 @@ latest
             -   [IQM](backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](backends/hardware/superconducting.html#oqc){.reference
-                .internal}
-            -   [Quantum Circuits,
-                Inc.](backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
             -   [TII](backends/hardware/superconducting.html#tii){.reference
                 .internal}
@@ -1367,6 +1361,9 @@ latest
         -   [6. Quantum
             Kernels](../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1990,7 +1987,7 @@ If you want to perform multi-GPU simulations, additional components must
 be installed. We recommend using
 [Conda](https://docs.conda.io/en/latest/){.reference .external} to do
 so. If you are not already using Conda, you can install a minimal
-version following [miniconda instructions
+version following [Miniconda instructions
 here](https://docs.anaconda.com/miniconda/){.reference .external}. The
 following commands will create and activate a complete environment for
 CUDA-Q with all its dependencies:
@@ -2009,11 +2006,12 @@ CUDA-Q with all its dependencies:
 :::
 :::
 
-**Warning (conda-forge)**: Installing [`cudaq`{.docutils .literal
-.notranslate}]{.pre} from the [`conda-forge`{.docutils .literal
-.notranslate}]{.pre} channel on recent versions of Python can lead to
-segmentation faults. If you see such errors, please switch to one of the
-Python versions 3.11.10 or 3.12.7 as per the issue
+**Warning ([`conda-forge`{.docutils .literal .notranslate}]{.pre})**:
+Installing [`cudaq`{.docutils .literal .notranslate}]{.pre} from the
+[`conda-forge`{.docutils .literal .notranslate}]{.pre} channel on recent
+versions of Python can lead to segmentation faults. If you see such
+errors, please switch to one of the Python versions 3.11.10 or 3.12.7 as
+per the issue
 [#2999](https://github.com/NVIDIA/cuda-quantum/issues/2999){.reference
 .external} or
 [#3104](https://github.com/NVIDIA/cuda-quantum/issues/3104){.reference
