@@ -27,8 +27,7 @@ static Op createParameterizedGate(IRRewriter &rewriter, Location location,
                                   Value parameter, ValueRange controls,
                                   Value target,
                                   DenseBoolArrayAttr negatedControls = {}) {
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(rewriter, controls, {target});
+  auto resultTypes = cudaq::quake::getWireResultTypes(controls, {target});
   return Op::create(rewriter, location, resultTypes, /*is_adj=*/false,
                     ValueRange{parameter}, controls, ValueRange{target},
                     negatedControls);
@@ -36,8 +35,7 @@ static Op createParameterizedGate(IRRewriter &rewriter, Location location,
 
 static cudaq::quake::XOp createXGate(IRRewriter &rewriter, Location location,
                                      Value target) {
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(rewriter, ValueRange{}, {target});
+  auto resultTypes = cudaq::quake::getWireResultTypes(ValueRange{}, {target});
   return cudaq::quake::XOp::create(rewriter, location, resultTypes,
                                    /*is_adj=*/false, ValueRange{}, ValueRange{},
                                    ValueRange{target}, DenseBoolArrayAttr{});
@@ -181,7 +179,8 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   // as R1's scalar target. The anchored identity is exact on the full active
   // control branch and preserves the complete ordered predicate.
   for (Value control : predicate.controls)
-    if (cudaq::opt::mayPhaseAnchorAliasControl(phase.getTarget(), control)) {
+    if (cudaq::opt::mayAliasForPhaseAnchorFallback(phase.getTarget(), control,
+                                                   phase.getOperation())) {
       phase.emitOpError(
           "cannot lower with an anchor that aliases a control operand");
       return failure();
