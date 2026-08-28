@@ -2061,8 +2061,8 @@ def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
 def VerifyAtomicQuantumRegions :
     Pass<"verify-atomic-quantum-regions", "mlir::ModuleOp"> {
   let summary =
-      "Check that an atomic quantum region denotes a unitary by rejecting "
-      "measurements and qubit allocations in the region";
+      "Reject measurement operations and qubit allocations inside an atomic "
+      "quantum region";
   let description = [{
     This pass rejects measurement operations and qubit allocations in marked
     `cc.scope` operations and in functions carrying the

@@ -25,6 +25,8 @@ func.func @marked_allocations() attributes {atomic_quantum_region, "cudaq-entryp
   %q = quake.alloca !quake.ref
   // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
   %r = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
+  %s = quake.alloca !quake.struq<!quake.ref, !quake.veq<2>>
   return
 }
 

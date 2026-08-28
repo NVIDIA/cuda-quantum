@@ -168,7 +168,7 @@ public:
 
   void verify() { verifyOperation(module, /*insideAtomicRegion=*/false); }
 
-  bool foundViolation() const { return passFailed; }
+  bool hasViolations() const { return passFailed; }
 
 private:
   static bool startsAtomicRegion(Operation *op) {
@@ -207,10 +207,7 @@ private:
     // This pass runs on reference semantics, before the conversion that turns
     // allocations into `quake.null_wire` and `quake.borrow_wire`.
     auto allocation = dyn_cast<cudaq::quake::AllocaOp>(op);
-    if (!allocation ||
-        !isa<cudaq::quake::RefType, cudaq::quake::VeqType>(
-            allocation.getType()) ||
-        !shouldReport(op, reportedAllocationLocations))
+    if (!allocation || !shouldReport(op, reportedAllocationLocations))
       return;
     allocation.emitOpError(
         "qubit allocations are not supported inside an atomic quantum region; "
@@ -275,7 +272,7 @@ public:
   void runOnOperation() override {
     AtomicQuantumRegionVerifier verifier(getOperation());
     verifier.verify();
-    if (verifier.foundViolation())
+    if (verifier.hasViolations())
       signalPassFailure();
   }
 };
