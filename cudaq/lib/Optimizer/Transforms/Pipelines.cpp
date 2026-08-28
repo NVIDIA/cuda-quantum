@@ -297,6 +297,7 @@ void cudaq::opt::registerJITPipelines() {
 static void createPythonAOTPipeline(OpPassManager &pm,
                                     const PythonAOTOptions &options) {
   // NB: This pipeline should be kept in synch with the pipeline in nvq++.
+  pm.addPass(cudaq::opt::createVerifyAtomicQuantumRegions());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

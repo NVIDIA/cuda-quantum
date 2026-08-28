@@ -1127,6 +1127,10 @@ if [ ! -z "$TARGET_PASS_PIPELINE" ]; then
 	OPT_PASSES="$TARGET_PASS_PIPELINE"
 fi
 
+if ${RUN_OPT}; then
+	OPT_PASSES="verify-atomic-quantum-regions,${OPT_PASSES}"
+fi
+
 OPT_PASSES="builtin.module(${OPT_PASSES})"
 
 if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
