@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
@@ -19,6 +20,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CONVERTTODIRECTCALLS
 #define GEN_PASS_DEF_CHECKKERNELCALLS
+#define GEN_PASS_DEF_VERIFYATOMICQUANTUMREGIONS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -155,6 +157,129 @@ public:
   }
 };
 
+/// Reject qubit allocations and measurements in an atomic quantum region.
+/// A region is entered in two shapes and both are checked.
+/// `ConvertToDirectCalls` materializes a marked `cc.scope` at each call site of
+/// a marked kernel. A marked kernel launched directly as the entry point has no
+/// call site, so only the attribute on its `func.func` identifies it.
+class AtomicQuantumRegionVerifier {
+public:
+  explicit AtomicQuantumRegionVerifier(ModuleOp module) : module(module) {}
+
+  void verify() { verifyOperation(module, /*insideAtomicRegion=*/false); }
+
+  bool foundViolation() const { return passFailed; }
+
+private:
+  static bool startsAtomicRegion(Operation *op) {
+    if (auto function = dyn_cast<func::FuncOp>(op))
+      return function->hasAttr(cudaq::cc::atomicQuantumRegionAttrName);
+    if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op))
+      return scope.getAtomicQuantumRegionAttr() != nullptr;
+    return false;
+  }
+
+  /// Report an operation at most once, and report at most one operation per
+  /// source location. Inlining copies a violating callee into every marked
+  /// caller and leaves the original definition in place, so a single line of
+  /// user source becomes several violating operations.
+  bool shouldReport(Operation *op,
+                    llvm::SmallDenseSet<Location> &reportedSourceLocations) {
+    if (!reportedOperations.insert(op).second)
+      return false;
+    if (auto sourceLoc = op->getLoc()->findInstanceOf<FileLineColLoc>())
+      return reportedSourceLocations.insert(sourceLoc).second;
+    return true;
+  }
+
+  void verifyForbiddenOperation(Operation *op) {
+    if (isa<cudaq::quake::MeasurementInterface>(op)) {
+      if (!shouldReport(op, reportedMeasurementLocations))
+        return;
+      op->emitOpError(
+          "measurement operations are not supported inside an atomic quantum "
+          "region; measure outside the region");
+      passFailed = true;
+      return;
+    }
+
+    // Note: `quake.alloca` is the only qubit allocation form reachable here.
+    // This pass runs on reference semantics, before the conversion that turns
+    // allocations into `quake.null_wire` and `quake.borrow_wire`.
+    auto allocation = dyn_cast<cudaq::quake::AllocaOp>(op);
+    if (!allocation ||
+        !isa<cudaq::quake::RefType, cudaq::quake::VeqType>(
+            allocation.getType()) ||
+        !shouldReport(op, reportedAllocationLocations))
+      return;
+    allocation.emitOpError(
+        "qubit allocations are not supported inside an atomic quantum region; "
+        "allocate in the caller and pass the qubits as arguments");
+    passFailed = true;
+  }
+
+  /// Descend into a callee that the inliner left behind so a marked kernel
+  /// cannot hide a violation in an ordinary helper. `verifiedCallees` bounds
+  /// the traversal: a recursive or mutually recursive `cc.noinline_call` chain
+  /// would not terminate otherwise. A callee with no body is not checked. It
+  /// may be defined in another translation unit, and the link step runs this
+  /// pass again on the merged module.
+  void verifyCallee(Operation *call, FlatSymbolRefAttr calleeAttr) {
+    if (!calleeAttr)
+      return;
+    auto callee =
+        SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(call, calleeAttr);
+    if (!callee || callee.isDeclaration() ||
+        !verifiedCallees.insert(callee.getOperation()).second)
+      return;
+    verifyOperation(callee, /*insideAtomicRegion=*/true);
+  }
+
+  void verifyResidualCall(Operation *op) {
+    if (auto call = dyn_cast<func::CallOp>(op)) {
+      verifyCallee(op, call.getCalleeAttr());
+      return;
+    }
+    if (auto call = dyn_cast<cudaq::cc::NoInlineCallOp>(op))
+      verifyCallee(op, call.getCalleeAttr());
+  }
+
+  /// Regions nest but never reopen, so `insideAtomicRegion` only ever gets set.
+  void verifyOperation(Operation *op, bool insideAtomicRegion) {
+    insideAtomicRegion |= startsAtomicRegion(op);
+    if (insideAtomicRegion) {
+      verifyForbiddenOperation(op);
+      verifyResidualCall(op);
+    }
+
+    for (Region &region : op->getRegions())
+      for (Block &block : region)
+        for (Operation &nested : block)
+          verifyOperation(&nested, insideAtomicRegion);
+  }
+
+  ModuleOp module;
+  bool passFailed = false;
+  llvm::DenseSet<Operation *> reportedOperations;
+  llvm::DenseSet<Operation *> verifiedCallees;
+  llvm::SmallDenseSet<Location> reportedAllocationLocations;
+  llvm::SmallDenseSet<Location> reportedMeasurementLocations;
+};
+
+class VerifyAtomicQuantumRegions
+    : public cudaq::opt::impl::VerifyAtomicQuantumRegionsBase<
+          VerifyAtomicQuantumRegions> {
+public:
+  using VerifyAtomicQuantumRegionsBase::VerifyAtomicQuantumRegionsBase;
+
+  void runOnOperation() override {
+    AtomicQuantumRegionVerifier verifier(getOperation());
+    verifier.verify();
+    if (verifier.foundViolation())
+      signalPassFailure();
+  }
+};
+
 } // namespace
 
 static void defaultInlinerOptPipeline(OpPassManager &pm) {}
@@ -163,7 +288,8 @@ static void defaultInlinerOptPipeline(OpPassManager &pm) {}
 /// 1) Lower unwind control flow before creating call-site scopes.
 /// 2) Convert calls between kernels to direct calls (on the QPU).
 /// 3) Aggressively inline all calls.
-/// 4) Detect if kernel inlining has failed and left behind calls to kernels.
+/// 4) Reject measurements and qubit allocations in atomic quantum regions.
+/// 5) Detect if kernel inlining has failed and left behind calls to kernels.
 /// Such a failure is most likely a sign that there is a cycle in the call
 /// graph. [This check is a bad idea: this should be deferred to final codegen
 /// when translating the final Quake IR.]
@@ -172,6 +298,7 @@ void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
+  pm.addPass(cudaq::opt::createVerifyAtomicQuantumRegions());
   if (fatalChecks)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createCheckKernelCalls());
   // Cleanup after inlining. We want to remove any copies between buffers for
