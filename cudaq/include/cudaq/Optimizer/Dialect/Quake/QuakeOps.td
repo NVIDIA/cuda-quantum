@@ -1635,6 +1635,19 @@ def PhaseOp : OneTargetParamOp<"phase", [Rotation]> {
     represented unitary. Producers must choose an anchor outside the control
     predicate so that an exact anchored lowering remains available for
     non-scalar controls.
+
+    Matrix representation:
+    ```
+    Phase(phi) = | exp(i phi)      0     |
+                 |     0      exp(i phi) |
+    ```
+
+    Circuit symbol (the displayed wire is the ordering and wire-flow anchor):
+    ```
+     ┌──────────┐
+    ─┤ Phase(φ) ├─
+     └──────────┘
+    ```
   }];
 
   let hasCanonicalizer = 1;
