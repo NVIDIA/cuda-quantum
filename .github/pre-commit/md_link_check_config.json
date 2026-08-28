@@ -11,7 +11,7 @@
         }
       },
       {
-        "urls": ["https://www.quantum-machines.co/", "https://quantumcircuits.com/"],
+        "urls": ["https://quantumcircuits.com/"],
         "headers": {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
           "Accept-Language": "en-US,en;q=0.9"
@@ -34,6 +34,10 @@
       {
         "_comment": "Cloudflare blocks programmatic clients (TLS fingerprint, not UA); no header workaround possible. Verified with curl + lychee + markdown-link-check across multiple UAs.",
         "pattern": "^https://en\\.cppreference\\.com/"
+      },
+      {
+        "_comment": "Cloudflare bot protection returns an intermittent 403 to CI runners (`server: cloudflare`). It is not deterministic: the nightly link check passed on 2026-08-27 and failed on 2026-08-28. The browser User-Agent previously set for this URL does not reliably help, since the scoring is per-client/IP rather than User-Agent based.",
+        "pattern": "^https://www\\.quantum-machines\\.co/"
       },
       {
         "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"
