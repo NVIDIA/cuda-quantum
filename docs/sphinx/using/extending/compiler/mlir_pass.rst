@@ -206,6 +206,9 @@ conditions.
 Choose the MLIR transformation mechanism
 ========================================
 
+Return early when a pass can cheaply determine that it has no work to do,
+especially on large circuits.
+
 Use an operation's fold hook or canonicalization patterns for a local canonical
 form that is valid whenever the operation appears. For example, the
 ``cc.cast`` canonicalizer removes a cast when its operand and result have the
