@@ -122,16 +122,19 @@ func.func @relaxed_negative_vector_reference(%theta: f64,
   return
 }
 
-// An unresolved control vector uses the exact anchored R1/Rz fallback.
+// An unresolved control vector with a provably distinct local anchor uses the
+// exact anchored R1/Rz fallback.
 // CHECK-LABEL: func.func @vector_fallback_reference(
-// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[SIZE:[a-zA-Z0-9_.$-]+]]: i32
+// CHECK: %[[CONTROLS:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[SIZE]] : i32{{\]}}
+// CHECK-NEXT: %[[ANCHOR:.*]] = quake.alloca !quake.ref
 // CHECK: %[[VECTOR_NEG:.*]] = arith.negf %[[THETA]] : f64
 // CHECK-COUNT-2: quake.r1 (%[[THETA]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
 // CHECK-COUNT-2: quake.rz (%[[VECTOR_NEG]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
 // CHECK-NOT: quake.phase
-func.func @vector_fallback_reference(%theta: f64,
-                                     %controls: !quake.veq<?>,
-                                     %anchor: !quake.ref) {
+func.func @vector_fallback_reference(%theta: f64, %size: i32) {
+  %controls = quake.alloca !quake.veq<?>[%size : i32]
+  %anchor = quake.alloca !quake.ref
   quake.phase (%theta) [%controls] %anchor
       : (f64, !quake.veq<?>, !quake.ref) -> ()
   return
@@ -229,18 +232,62 @@ func.func @vector_fallback_wire(%theta: f64,
   return
 }
 
+// A gate result inherits a fresh null wire's disjoint provenance, so an
+// unresolved vector predicate can still use the anchored fallback.
+// CHECK-LABEL: func.func @vector_fallback_threaded_fresh_wire(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK: %[[THREADED:.*]] = quake.x %[[ANCHOR]]
+// CHECK: quake.r1 (%[[THETA]]) {{\[}}%[[CONTROLS]]{{\]}} %[[THREADED]]
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink
+func.func @vector_fallback_threaded_fresh_wire(%theta: f64,
+                                               %controls: !quake.veq<?>) {
+  %anchor = quake.null_wire
+  %threaded_anchor = quake.x %anchor : (!quake.wire) -> !quake.wire
+  %result = quake.phase (%theta) [%controls] %threaded_anchor
+      : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire
+  quake.sink %result : !quake.wire
+  return
+}
+
+// A wrap fed by a wire from the same reference preserves a local anchor's
+// disjoint provenance.
+// CHECK-LABEL: func.func @vector_fallback_self_wrapped_anchor(
+// CHECK-SAME: %[[SELF_THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[SELF_SIZE:[a-zA-Z0-9_.$-]+]]: i32
+// CHECK: %[[SELF_CONTROLS:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[SELF_SIZE]] : i32{{\]}}
+// CHECK-NEXT: %[[SELF_ANCHOR:.*]] = quake.alloca !quake.ref
+// CHECK: %[[SELF_WIRE:.*]] = quake.unwrap %[[SELF_ANCHOR]] : (!quake.ref) -> !quake.wire
+// CHECK: %[[SELF_UPDATED:.*]] = quake.x %[[SELF_WIRE]] : (!quake.wire) -> !quake.wire
+// CHECK: quake.wrap %[[SELF_UPDATED]] to %[[SELF_ANCHOR]] : !quake.wire, !quake.ref
+// CHECK: quake.r1 (%[[SELF_THETA]]) {{\[}}%[[SELF_CONTROLS]]{{\]}} %[[SELF_ANCHOR]]
+// CHECK-NOT: quake.phase
+func.func @vector_fallback_self_wrapped_anchor(%theta: f64, %size: i32) {
+  %controls = quake.alloca !quake.veq<?>[%size : i32]
+  %anchor = quake.alloca !quake.ref
+  %wire = quake.unwrap %anchor : (!quake.ref) -> !quake.wire
+  %updated = quake.x %wire : (!quake.wire) -> !quake.wire
+  quake.wrap %updated to %anchor : !quake.wire, !quake.ref
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
 // Avoiding explicit angle doubling keeps the aggregate fallback finite even at
 // the largest representable source angle.
 // CHECK-LABEL: func.func @max_f32_vector_fallback(
-// CHECK-SAME: %[[MAX_CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[MAX_ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK-SAME: %[[MAX_SIZE:[a-zA-Z0-9_.$-]+]]: i32
+// CHECK: %[[MAX_CONTROLS:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[MAX_SIZE]] : i32{{\]}}
+// CHECK-NEXT: %[[MAX_ANCHOR:.*]] = quake.alloca !quake.ref
 // CHECK: %[[MAX_ANGLE:[a-zA-Z0-9_.$-]+]] = arith.constant
 // CHECK-NOT: arith.mulf
 // CHECK: %[[MAX_NEG:[a-zA-Z0-9_.$-]+]] = arith.negf %[[MAX_ANGLE]] : f32
 // CHECK-COUNT-2: quake.r1 (%[[MAX_ANGLE]]) {{\[}}%[[MAX_CONTROLS]]{{\]}} %[[MAX_ANCHOR]]
 // CHECK-COUNT-2: quake.rz (%[[MAX_NEG]]) {{\[}}%[[MAX_CONTROLS]]{{\]}} %[[MAX_ANCHOR]]
 // CHECK-NOT: quake.phase
-func.func @max_f32_vector_fallback(%controls: !quake.veq<?>,
-                                   %anchor: !quake.ref) {
+func.func @max_f32_vector_fallback(%size: i32) {
+  %controls = quake.alloca !quake.veq<?>[%size : i32]
+  %anchor = quake.alloca !quake.ref
   %angle = arith.constant 3.4028234663852886e+38 : f32
   quake.phase (%angle) [%controls] %anchor
       : (f32, !quake.veq<?>, !quake.ref) -> ()
