@@ -1082,20 +1082,23 @@ static bool haveMatchingPhasePolarities(cudaq::quake::PhaseOp first,
   if (firstControls.size() != secondControls.size())
     return false;
 
-  auto firstNegations = first.getNegatedQubitControls();
-  auto secondNegations = second.getNegatedQubitControls();
-  for (std::size_t i = 0, e = firstControls.size(); i != e; ++i) {
-    bool firstIsNegated = firstNegations && (*firstNegations)[i];
-    bool secondIsNegated = secondNegations && (*secondNegations)[i];
-    if (firstIsNegated != secondIsNegated)
+  auto firstPolarities = cudaq::quake::getControlPolarities(
+      firstControls, first.getNegatedQubitControls());
+  auto secondPolarities = cudaq::quake::getControlPolarities(
+      secondControls, second.getNegatedQubitControls());
+  for (auto [firstPolarity, secondPolarity] :
+       llvm::zip(firstPolarities, secondPolarities))
+    if (firstPolarity != secondPolarity)
       return false;
-  }
   return true;
 }
 
-/// Check that all operands on the second operation are either the corresponding
-/// wire result from the first, or the identical non-wire operand. Wire results
-/// are ordered by controls followed by targets.
+/// Return true if `second` directly threads the quantum dataflow from `first`.
+/// Corresponding controls and targets must either be the same non-wire value
+/// or both be wires. In the latter case, `second` must consume `first`'s wire
+/// results in controls-then-targets order. Those results must have no other
+/// uses, so that the merge can erase `first` safely. Parameters are handled
+/// separately by the merge pattern.
 static bool isDirectlyThreadedPhase(cudaq::quake::PhaseOp first,
                                     cudaq::quake::PhaseOp second) {
   auto firstControls = first.getControls();
@@ -1106,32 +1109,53 @@ static bool isDirectlyThreadedPhase(cudaq::quake::PhaseOp first,
       firstTargets.size() != secondTargets.size())
     return false;
 
-  unsigned resultIndex = 0;
-  auto matchesOperand = [&](Value firstOperand, Value secondOperand) {
-    if (isa<cudaq::quake::WireType>(firstOperand.getType())) {
-      if (!isa<cudaq::quake::WireType>(secondOperand.getType()) ||
-          resultIndex >= first.getNumResults() ||
-          secondOperand != first.getResult(resultIndex))
-        return false;
-      ++resultIndex;
-      return true;
-    }
-    return !isa<cudaq::quake::WireType>(secondOperand.getType()) &&
-           firstOperand == secondOperand;
+  auto haveMatchingOperandKinds = [](Value firstOperand, Value secondOperand) {
+    bool firstIsWire = isa<cudaq::quake::WireType>(firstOperand.getType());
+    bool secondIsWire = isa<cudaq::quake::WireType>(secondOperand.getType());
+    return firstIsWire == secondIsWire &&
+           (firstIsWire || firstOperand == secondOperand);
   };
+  auto haveMatchingOperands = [&](ValueRange firstOperands,
+                                  ValueRange secondOperands) {
+    return llvm::all_of(
+        llvm::zip(firstOperands, secondOperands), [&](auto operands) {
+          auto [firstOperand, secondOperand] = operands;
+          return haveMatchingOperandKinds(firstOperand, secondOperand);
+        });
+  };
+  if (!haveMatchingOperands(firstControls, secondControls) ||
+      !haveMatchingOperands(firstTargets, secondTargets))
+    return false;
 
-  for (auto [firstControl, secondControl] :
-       llvm::zip(firstControls, secondControls))
-    if (!matchesOperand(firstControl, secondControl))
-      return false;
-  for (auto [firstTarget, secondTarget] :
-       llvm::zip(firstTargets, secondTargets))
-    if (!matchesOperand(firstTarget, secondTarget))
-      return false;
-  return resultIndex == first.getNumResults() &&
-         llvm::all_of(first.getWires(),
+  auto firstFlow = cudaq::quake::detail::getThreadedWireFlow(first);
+  if (!firstFlow)
+    return false;
+  auto secondWires = cudaq::quake::getWireValues(secondControls, secondTargets);
+  return llvm::equal(firstFlow->results, secondWires) &&
+         llvm::all_of(firstFlow->results,
                       [](Value wire) { return wire.hasOneUse(); });
 }
+
+struct AdjustAdjointPhasePattern
+    : public OpRewritePattern<cudaq::quake::PhaseOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::PhaseOp phase,
+                                PatternRewriter &rewriter) const override {
+    if (!phase.isAdj())
+      return failure();
+
+    auto negatedAngle =
+        arith::NegFOp::create(rewriter, phase.getLoc(), phase.getParameter());
+    auto dict = phase->getDiscardableAttrDictionary();
+    auto newPhase = rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
+        phase, phase.getResultTypes(), UnitAttr{}, ValueRange{negatedAngle},
+        phase.getControls(), phase.getTargets(),
+        phase.getNegatedQubitControlsAttr());
+    newPhase->setDiscardableAttrs(std::move(dict));
+    return success();
+  }
+};
 
 struct EraseZeroPhasePattern : public OpRewritePattern<cudaq::quake::PhaseOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -1149,9 +1173,9 @@ struct EraseZeroPhasePattern : public OpRewritePattern<cudaq::quake::PhaseOp> {
     if (!remainder.isFinite())
       return failure();
 
-    llvm::APFloat twoPi(
-        remainder.getSemantics(),
-        "6.283185307179586476925286766559005768394338798750211641949889");
+    llvm::APFloat pi(remainder.getSemantics(), llvm::numbers::pis);
+    llvm::APFloat twoPi(pi);
+    twoPi.add(pi, llvm::APFloat::rmNearestTiesToEven);
 
     // Reducing in the source semantics alone can misclassify enormous values:
     // a rounded 2*pi approximation multiplied by a large power of two has an
@@ -1191,7 +1215,15 @@ struct MergeAdjacentPhasePattern
 
   LogicalResult matchAndRewrite(cudaq::quake::PhaseOp phase,
                                 PatternRewriter &rewriter) const override {
-    auto *previous = phase->getPrevNode();
+    Operation *previous = phase->getPrevNode();
+    // Adjoint normalization materializes a negation immediately before the
+    // phase. It has no quantum effect, so it does not break adjacency when it
+    // defines this phase's parameter.
+    if (previous) {
+      if (auto negatedAngle = dyn_cast<arith::NegFOp>(previous);
+          negatedAngle && phase.getParameter() == negatedAngle.getResult())
+        previous = previous->getPrevNode();
+    }
     if (!previous)
       return failure();
     auto input = dyn_cast<cudaq::quake::PhaseOp>(previous);
@@ -1201,26 +1233,16 @@ struct MergeAdjacentPhasePattern
 
     auto firstAngle = input.getParameter();
     auto secondAngle = phase.getParameter();
-    if (firstAngle.getType() != secondAngle.getType())
+    if (input.isAdj() || phase.isAdj() ||
+        firstAngle.getType() != secondAngle.getType())
       return failure();
 
     auto loc = phase.getLoc();
-    auto adjoint = phase.getIsAdjAttr();
-    Value mergedAngle;
-    if (input.isAdj() == phase.isAdj()) {
-      mergedAngle =
-          arith::AddFOp::create(rewriter, loc, firstAngle, secondAngle);
-    } else if (input.isAdj()) {
-      mergedAngle =
-          arith::SubFOp::create(rewriter, loc, secondAngle, firstAngle);
-    } else {
-      adjoint = input.getIsAdjAttr();
-      mergedAngle =
-          arith::SubFOp::create(rewriter, loc, firstAngle, secondAngle);
-    }
+    auto mergedAngle =
+        arith::AddFOp::create(rewriter, loc, firstAngle, secondAngle);
 
     rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
-        phase, phase.getResultTypes(), adjoint, ValueRange{mergedAngle},
+        phase, phase.getResultTypes(), UnitAttr{}, ValueRange{mergedAngle},
         input.getControls(), input.getTargets(),
         input.getNegatedQubitControlsAttr());
     rewriter.eraseOp(input);
