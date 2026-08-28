@@ -2058,6 +2058,22 @@ def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
   ];
 }
 
+def VerifyAtomicQuantumRegions :
+    Pass<"verify-atomic-quantum-regions", "mlir::ModuleOp"> {
+  let summary =
+      "Reject measurement operations and qubit allocations inside an atomic "
+      "quantum region";
+  let description = [{
+    This pass rejects measurement operations and qubit allocations in marked
+    `cc.scope` operations and in functions carrying the
+    `atomic_quantum_region` attribute.
+    This pass must run after aggressive inlining, so that operations reached
+    only through a callee are checked as well. It must also run before the
+    conversion to value semantics, where a qubit allocation stops being a
+    `quake.alloca`.
+  }];
+}
+
 def VerifyNoPhase : Pass<"verify-no-phase", "mlir::ModuleOp"> {
   let summary =
       "Verify that phase bookkeeping was eliminated before code generation";

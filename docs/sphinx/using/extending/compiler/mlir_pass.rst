@@ -136,6 +136,11 @@ holds no allocations, so the marker reaches later passes. An optimization may
 rewrite quantum operations wholly inside or wholly outside a marked scope, but
 must not combine, cancel, or move operations across its boundary.
 
+The aggressive-inlining pipeline rejects Quake measurement operations and
+quantum allocations in a marked scope or marked function. Passes that run
+before this check must preserve the marker and call structure. Later passes
+must not move measurements or user qubit allocations into a marked scope.
+
 Tests should cover optimization within a block, across an ordinary scope, and
 conservative behavior at both a marked scope and an unsupported control-flow
 boundary.
