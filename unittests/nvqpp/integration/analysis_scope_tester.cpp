@@ -23,12 +23,15 @@ bool alwaysFalse() { return false; }
 
 CUDAQ_TEST(AnalysisScopeTester, isActiveDuringLifetime) {
   EXPECT_FALSE(AnalysisScope::is_active());
+  EXPECT_FALSE(nvqir::resource_counter::is_active());
   {
     auto s = nvqir::resource_counter::make_scope(alwaysFalse);
     EXPECT_TRUE(AnalysisScope::is_active());
+    EXPECT_TRUE(nvqir::resource_counter::is_active());
     EXPECT_EQ(s.name(), "resource_counter");
   }
   EXPECT_FALSE(AnalysisScope::is_active());
+  EXPECT_FALSE(nvqir::resource_counter::is_active());
 }
 
 CUDAQ_TEST(AnalysisScopeTester, nestedThrows) {
@@ -80,6 +83,7 @@ CUDAQ_TEST(AnalysisScopeTester, prepopulateRejectsForeignScope) {
   ASSERT_NE(backendSim, nvqir::getResourceCounterSimulator());
 
   AnalysisScope s{"backend_scope", *backendSim, {}};
+  EXPECT_FALSE(nvqir::resource_counter::is_active());
   cudaq::Resources counts;
   counts.appendInstruction("h", 0);
   EXPECT_ANY_THROW(nvqir::resource_counter::prepopulate(std::move(counts)));
