@@ -43,6 +43,7 @@ for file in $cmakelists; do
   cp "$file"{,.tmp}
 done
 
+
 go install github.com/apache/skywalking-eyes/cmd/license-eye@latest
 # Use GOPATH if set, otherwise default to ~/go (Go's default)
 "${GOPATH:-$HOME/go}/bin/license-eye" header $command
