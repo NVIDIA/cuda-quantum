@@ -607,8 +607,7 @@ struct R1ToRz
           r1Op,
           "R1ToRz requires a scalar target to anchor its phase correction");
 
-    auto resultTypes =
-        cudaq::quake::getWireResultTypes(rewriter, controls, targets);
+    auto resultTypes = cudaq::quake::getWireResultTypes(controls, targets);
     auto rz = cudaq::quake::RzOp::create(
         rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
         r1Op.getParameters(), controls, targets,

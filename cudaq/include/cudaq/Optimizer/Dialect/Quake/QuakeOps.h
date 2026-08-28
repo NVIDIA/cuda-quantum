@@ -273,10 +273,9 @@ expandKnownSizedControlVeqs(mlir::OpBuilder &builder, mlir::Location location,
                             mlir::ValueRange controls,
                             llvm::ArrayRef<bool> polarities);
 
-/// Return the wire result types for a Quake operator with the given controls
-/// and targets. Quake orders wire results by controls first, then targets.
-llvm::SmallVector<mlir::Type> getWireResultTypes(mlir::OpBuilder &builder,
-                                                 mlir::ValueRange controls,
+/// Return the types of a Quake operator's wire operands in wire-result order:
+/// controls first, then targets.
+llvm::SmallVector<mlir::Type> getWireResultTypes(mlir::ValueRange controls,
                                                  mlir::ValueRange targets);
 
 /// Collect the threaded values of a Quake operator's controls and targets in
@@ -299,7 +298,7 @@ inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
                               llvm::MutableArrayRef<mlir::Value> controls,
                               llvm::MutableArrayRef<mlir::Value> targets,
                               mlir::DenseBoolArrayAttr negatedControls = {}) {
-  auto resultTypes = getWireResultTypes(builder, controls, targets);
+  auto resultTypes = getWireResultTypes(controls, targets);
   auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
                        controls, targets, negatedControls);
   threadWireResults(op, controls, targets);
