@@ -66,27 +66,26 @@ func.func @structured_phase_caller(%theta: f64, %condition: i1,
 
 // A recursively controlled phase must preserve the phase predicate in the
 // specialized recursive variant.
-func.func private @recursive_phase(%theta: f64, %recurse: i1,
-                                   %anchor: !quake.ref) {
+func.func private @recursive_phase(%theta: f64, %recurse: i1) {
+  %anchor = quake.alloca !quake.ref
   quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
   cc.if(%recurse) {
-    quake.apply @recursive_phase(%theta, %recurse, %anchor)
-        : (f64, i1, !quake.ref) -> ()
+    quake.apply @recursive_phase(%theta, %recurse) : (f64, i1) -> ()
   }
   return
 }
 
 func.func @recursive_phase_caller(%theta: f64, %recurse: i1,
-                                  %outer: !quake.ref,
-                                  %anchor: !quake.ref) {
-  quake.apply @recursive_phase [%outer] (%theta, %recurse, %anchor)
-      : (!quake.ref, f64, i1, !quake.ref) -> ()
+                                  %outer: !quake.ref) {
+  quake.apply @recursive_phase [%outer] (%theta, %recurse)
+      : (!quake.ref, f64, i1) -> ()
   return
 }
 
 // CHECK-LABEL: func.func private @recursive_phase.ctrl(
 // CHECK-SAME:    %[[CTRL:.*]]: !quake.veq<?>, %[[THETA:.*]]: f64,
-// CHECK-SAME:    %{{.*}}: i1, %[[ANCHOR:.*]]: !quake.ref) {
+// CHECK-SAME:    %{{.*}}: i1) {
+// CHECK:         %[[ANCHOR:.*]] = quake.alloca !quake.ref
 // CHECK:         quake.phase (%[[THETA]]) {{\[}}%[[CTRL]]{{\]}} %[[ANCHOR]]
 // CHECK:         cc.if
 // CHECK:         call @recursive_phase.ctrl

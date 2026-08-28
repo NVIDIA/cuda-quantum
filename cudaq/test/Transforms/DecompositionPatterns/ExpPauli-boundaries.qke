@@ -140,16 +140,17 @@ func.func @controlled_nonidentity_wire() attributes {"cudaq-entrypoint"} {
 // CHECK: return
 
 func.func @dynamic_vector_control_with_separate_anchor(%theta: f64,
-                                                       %controls: !quake.veq<?>,
-                                                       %anchor: !quake.ref) {
+                                                       %controls: !quake.veq<?>) {
+  %anchor = quake.alloca !quake.ref
   quake.exp_pauli<adj> (%theta) [%controls neg [true]] %anchor to "I"
       : (f64, !quake.veq<?>, !quake.ref) -> ()
   return
 }
 
 // CHECK-LABEL: func.func @dynamic_vector_control_with_separate_anchor(
+// CHECK: %[[ANCHOR:.*]] = quake.alloca !quake.ref
 // CHECK: %[[NEG:.*]] = arith.negf %{{.*}} : f64
-// CHECK: quake.phase (%[[NEG]]) {{\[}}%{{.*}} neg [true]{{\]}} %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
+// CHECK: quake.phase (%[[NEG]]) {{\[}}%{{.*}} neg [true]{{\]}} %[[ANCHOR]] : (f64, !quake.veq<?>, !quake.ref) -> ()
 // CHECK-NOT: quake.exp_pauli
 // CHECK: return
 
