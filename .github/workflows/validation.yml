@@ -574,6 +574,9 @@ jobs:
         id: fetch
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # Redirect inside retry() so a retry truncates instead of appending.
+          download() { gh api "$1" > "$2"; }
+
           artifacts_url="${{ needs.metadata.outputs.artifacts_url }}"
           if [ -z "$artifacts_url" ]; then
             echo "No artifacts URL available."
@@ -582,32 +585,35 @@ jobs:
             exit 0
           fi
 
-          artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          # Keep the list off stdin: unzip eats it when it prompts.
+          retry gh api "$artifacts_url" --paginate \
+            -q '.artifacts[] | {name: .name, url: .archive_download_url}' \
+            | jq -c '.' > /tmp/macos_artifacts.jsonl
 
           has_macos_wheels=false
           has_macos_installer=false
           mkdir -p wheels installer
 
           while IFS= read -r artifact; do
-            name=$(echo "$artifact" | jq -r '.name')
-            url=$(echo "$artifact" | jq -r '.url')
+            name=$(jq -r '.name' <<< "$artifact")
+            url=$(jq -r '.url' <<< "$artifact")
 
             if [[ "$name" == pycudaq-*-darwin-arm64 ]]; then
               python_version=$(echo "$name" | sed 's/pycudaq-\(.*\)-darwin-arm64/\1/')
               echo "Downloading macOS wheel: $name (Python $python_version)"
-              retry gh api "$url" > "${name}.zip"
-              unzip "${name}.zip" -d wheels/
-              rm "${name}.zip"
+              retry download "$url" "/tmp/${name}.zip"
+              unzip -o "/tmp/${name}.zip" -d wheels/ < /dev/null
+              rm "/tmp/${name}.zip"
               has_macos_wheels=true
 
             elif [[ "$name" == cudaq-arm64-darwin-installer-* ]]; then
               echo "Downloading macOS installer: $name"
-              retry gh api "$url" > "${name}.zip"
-              unzip "${name}.zip" -d installer/
-              rm "${name}.zip"
+              retry download "$url" "/tmp/${name}.zip"
+              unzip -o "/tmp/${name}.zip" -d installer/ < /dev/null
+              rm "/tmp/${name}.zip"
               has_macos_installer=true
             fi
-          done <<< "$(echo "$artifacts" | jq -c '.')"
+          done < /tmp/macos_artifacts.jsonl
 
           echo "has_macos_wheels=$has_macos_wheels" >> $GITHUB_OUTPUT
           echo "has_macos_installer=$has_macos_installer" >> $GITHUB_OUTPUT
@@ -646,7 +652,11 @@ jobs:
       - name: Fetch realtime installers from Deployments run
         id: fetch
         run: |
+          set -euo pipefail
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # Redirect inside retry() so a retry truncates instead of appending.
+          download() { gh api "$1" > "$2"; }
+
           artifacts_url="${{ needs.metadata.outputs.artifacts_url }}"
           if [ -z "$artifacts_url" ]; then
             echo "No artifacts URL available."
@@ -654,25 +664,36 @@ jobs:
             exit 0
           fi
 
-          artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          # Keep the list off stdin: unzip eats it when it prompts.
+          retry gh api "$artifacts_url" --paginate \
+            -q '.artifacts[] | select(.name | startswith("install_cuda_quantum_realtime_")) | {name: .name, url: .archive_download_url}' \
+            | jq -c '.' > /tmp/realtime_artifacts.jsonl
 
-          has_realtime_installers=false
           mkdir -p installers
+          count=0
 
           while IFS= read -r artifact; do
-            name=$(echo "$artifact" | jq -r '.name')
-            url=$(echo "$artifact" | jq -r '.url')
+            name=$(jq -r '.name' <<< "$artifact")
+            url=$(jq -r '.url' <<< "$artifact")
+            echo "Downloading realtime installer: $name"
+            retry download "$url" "/tmp/${name}.zip"
+            # Installer only; the buildx provenance.json collides across artifacts.
+            unzip -o "/tmp/${name}.zip" 'install_cuda_quantum_realtime_*' -d installers/ < /dev/null
+            rm "/tmp/${name}.zip"
+            count=$((count + 1))
+          done < /tmp/realtime_artifacts.jsonl
 
-            if [[ "$name" == install_cuda_quantum_realtime_* ]]; then
-              echo "Downloading realtime installer: $name"
-              retry gh api "$url" > "${name}.zip"
-              unzip "${name}.zip" -d installers/
-              rm "${name}.zip"
-              has_realtime_installers=true
-            fi
-          done <<< "$(echo "$artifacts" | jq -c '.')"
-
-          echo "has_realtime_installers=$has_realtime_installers" >> $GITHUB_OUTPUT
+          echo "Fetched $count realtime installer artifact(s)."
+          if [ "$count" -gt 0 ]; then
+            ls -l installers/
+            echo "has_realtime_installers=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_realtime_installers=false" >> $GITHUB_OUTPUT
+          fi
+          # Deployments builds amd64/arm64 x cu12.6/cu13.0.
+          if [ "$count" -gt 0 ] && [ "$count" -lt 4 ]; then
+            echo "::warning::Expected 4 realtime installers, found $count."
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -1134,7 +1155,9 @@ jobs:
           path: wheelhouse
 
       - name: Download CUDA-Q Realtime installer
-        if: needs.realtime_artifacts.outputs.has_realtime_installers == 'true'
+        if: >-
+          needs.realtime_artifacts.result == 'success'
+          && needs.realtime_artifacts.outputs.has_realtime_installers == 'true'
         uses: actions/download-artifact@v8
         with:
           name: realtime-installers
@@ -1190,11 +1213,16 @@ jobs:
             rel_notes+="<br/>:warning: Created despite one or more validation failures; review the Validation run before publishing."
           fi
 
-          # Realtime installers are built in Deployments, so a gap there would
-          # otherwise cut a release without them and go unnoticed.
-          if [ "${{ needs.realtime_artifacts.outputs.has_realtime_installers }}" != "true" ]; then
+          # Count staged files, not the upstream flag: realtime installers come
+          # from Deployments, so a gap there would ship silently.
+          realtime_count=$(ls -1 install_cuda_quantum_realtime_* 2>/dev/null | wc -l)
+          echo "Realtime installers staged for upload: $realtime_count"
+          if [ "$realtime_count" -eq 0 ]; then
             echo "::warning::No realtime installers found in the deployment run."
             rel_notes+="<br/>:warning: No realtime installers were attached; check the Deployments run."
+          elif [ "$realtime_count" -lt 4 ]; then
+            echo "::warning::Only $realtime_count of 4 realtime installers were attached."
+            rel_notes+="<br/>:warning: Only $realtime_count of 4 realtime installers were attached; check the Deployments run."
           fi
 
           gh release create $release_id --title $release_id -R ${{ github.repository }} \
