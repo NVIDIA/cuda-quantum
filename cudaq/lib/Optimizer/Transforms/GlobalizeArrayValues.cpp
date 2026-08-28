@@ -329,8 +329,8 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     ModuleOp module = getOperation();
-    if (!cudaq::opt::containsAnyOperation<cudaq::cc::ConstantArrayOp,
-                                          cudaq::cc::ReifySpanOp>(
+    if (!cudaq::opt::containsAnyOperationOfType<cudaq::cc::ConstantArrayOp,
+                                                cudaq::cc::ReifySpanOp>(
             module.getOperation()))
       return;
 

@@ -35,7 +35,7 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto func = getOperation();
-    if (!cudaq::opt::containsAnyOperation<cudaq::cc::AllocaOp>(
+    if (!cudaq::opt::containsAnyOperationOfType<cudaq::cc::AllocaOp>(
             func.getOperation()))
       return;
     DominanceInfo domInfo(func);

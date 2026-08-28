@@ -26,7 +26,7 @@
 
 namespace cudaq::opt {
 template <typename... OpTypes>
-bool containsAnyOperation(mlir::Operation *root) {
+bool containsAnyOperationOfType(mlir::Operation *root) {
   return root
       ->walk([](mlir::Operation *operation) {
         return llvm::isa<OpTypes...>(operation) ? mlir::WalkResult::interrupt()

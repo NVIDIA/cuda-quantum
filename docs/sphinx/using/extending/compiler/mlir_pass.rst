@@ -206,9 +206,6 @@ conditions.
 Choose the MLIR transformation mechanism
 ========================================
 
-Return early when a pass can cheaply determine that it has no work to do,
-especially on large circuits.
-
 Use an operation's fold hook or canonicalization patterns for a local canonical
 form that is valid whenever the operation appears. For example, the
 ``cc.cast`` canonicalizer removes a cast when its operand and result have the
@@ -235,6 +232,35 @@ central type switch. Use a dedicated operation pass when the work must be
 scheduled in a pipeline, expose options, emit diagnostics, or coordinate a
 bounded set of rewrites, conversions, and analyses. These mechanisms are often
 components of the pass rather than alternatives to it.
+
+Pass performance
+================
+
+When developing a pass, benchmark it on inputs of increasing size to understand
+how its run time scales. Measure the pass on its own and in the compiler
+pipelines that use it. The following practices can help keep pass time under
+control:
+
+- **Avoid unnecessary work.** For example, ``Operation::walk`` with
+  ``WalkResult::interrupt`` can stop when it finds a known root operation.
+  ``applyOpPatternsGreedily`` can limit the initial ``worklist`` to candidate
+  operations when doing so preserves the required rewrite behavior.
+
+- **Choose a rewrite driver that matches the transformation.**
+  ``walkAndApplyPatterns`` can suit independent rewrites that need only one
+  visit. ``applyPatternsGreedily`` is appropriate when rewrites expose further
+  matches or the pass relies on folding or region simplification.
+
+- **Reduce repeated traversal and bookkeeping.** Use SSA use-def chains, local
+  indexes, or batched analysis when a pass would otherwise scan the same IR for
+  each candidate. When mutation invalidates information needed by later
+  queries, collect decisions before applying rewrites. Use data structures that
+  make the pass's common operations inexpensive.
+
+Use ``--mlir-timing`` and CUDA-Q compiler traces to identify slow passes. If a
+pass has several stages, add focused trace spans to find where time is spent.
+Test inputs with different sizes and numbers of matching operations, verify that
+the output is unchanged, and check the effect on full compiler time.
 
 Implement and register a built-in pass
 ======================================

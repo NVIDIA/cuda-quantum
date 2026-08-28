@@ -223,7 +223,7 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     func::FuncOp func = getOperation();
-    if (!cudaq::opt::containsAnyOperation<cudaq::cc::LoadOp>(
+    if (!cudaq::opt::containsAnyOperationOfType<cudaq::cc::LoadOp>(
             func.getOperation()))
       return;
     RewritePatternSet patterns(ctx);
