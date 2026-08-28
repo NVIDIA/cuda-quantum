@@ -194,9 +194,10 @@ public:
     if (analysis.empty())
       return true;
 
-    // Seed the greedy driver with only the operations that this rewrite owns.
-    // Include typed roots in nested regions because they may use an allocation
-    // from this region and must be revisited when that allocation is replaced.
+    // These patterns only apply to allocations and the operations that form
+    // views of them, so avoid adding the rest of the function to the rewrite
+    // worklist. Keep nested candidates because they may refer to an allocation
+    // from this region and need another rewrite after it is replaced.
     SmallVector<Operation *> candidates;
     region.walk<WalkOrder::PreOrder>([&](Operation *op) {
       if (isa<cudaq::quake::AllocaOp, cudaq::quake::ExtractRefOp,
