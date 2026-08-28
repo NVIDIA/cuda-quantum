@@ -281,15 +281,23 @@ jobs:
         shell: bash
         run: |
           status_sum=0 && set +e # Allow script to keep going through errors
-          for ex in `find /home/cudaq/examples/other/distributed/ -name '*.cpp'`; do
+          # C++ examples keep their cpp/ prefix under /home/cudaq/examples.
+          mpi_examples=/home/cudaq/examples/cpp/other/distributed
+          if [ ! -d "$mpi_examples" ]; then
+            echo "::error::MPI examples directory not found: $mpi_examples"
+            exit 1
+          fi
+          found=0
+          for ex in `find "$mpi_examples" -name '*.cpp'`; do
+            found=$((found+1))
+            filename=$(basename -- "$ex")
             # Set CUDAQ_ENABLE_MPI_EXAMPLE to activate these examples.
             nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex
             status=$?
             if [ $status -eq 0 ]; then
-              # Run with mpiexec
-              mpiexec --allow-run-as-root -np 4 ./a.out
+              # --oversubscribe: OpenMPI sizes slots by physical cores.
+              mpiexec --allow-run-as-root --oversubscribe -np 4 ./a.out
               status=$?
-              filename=$(basename -- "$ex")
               if [ $status -eq 0 ]; then
                 echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
               else
@@ -301,6 +309,11 @@ jobs:
               status_sum=$((status_sum+1))
             fi
           done
+          # An empty sweep used to pass silently; treat it as a failure.
+          if [ "$found" -eq 0 ]; then
+            echo "::error::No MPI examples found under $mpi_examples"
+            exit 1
+          fi
           set -e # Re-enable exit code error checking
           if [ ! $status_sum -eq 0 ]; then
             echo "::error::$status_sum examples failed; see step summary for a list of failures."
@@ -949,10 +962,47 @@ jobs:
               fi
           done
 
-          # Also need to test dynamics
+          # Also need to test dynamics; the example script became notebooks in #2900.
           echo "Running with target dynamics"
-          retry python3 -m pip install matplotlib
-          python3 docs/sphinx/examples/python/dynamics/qubit_dynamics.py
+          cat > /tmp/dynamics_validation.py <<'PYEOF'
+          import numpy as np
+          import cupy as cp
+          import cudaq
+          from cudaq import spin, Schedule, RungeKuttaIntegrator
+
+          cudaq.set_target("dynamics")
+
+          # Single qubit under H = omega * sigma_x, so <sigma_z>(t) = cos(2*omega*t).
+          omega = 2 * np.pi * 0.1
+          hamiltonian = omega * spin.x(0)
+          dimensions = {0: 2}
+          rho0 = cudaq.State.from_data(
+              cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+          steps = np.linspace(0, 10, 101)
+
+          result = cudaq.evolve(
+              hamiltonian,
+              dimensions,
+              Schedule(steps, ["time"]),
+              rho0,
+              observables=[spin.y(0), spin.z(0)],
+              collapse_operators=[],
+              store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+              integrator=RungeKuttaIntegrator())
+
+          z = np.array([ev[1].expectation() for ev in result.expectation_values()])
+          expected = np.cos(2 * omega * steps)
+          err = np.max(np.abs(z - expected))
+          print(f"steps={len(z)} max|<z>-cos(2*omega*t)|={err:.3e}")
+          assert len(z) == len(steps), "unexpected number of intermediate results"
+          assert err < 1e-3, f"dynamics evolution deviates from analytic solution: {err}"
+          print("dynamics smoke test PASSED")
+          PYEOF
+          python3 /tmp/dynamics_validation.py
+          if [ $? -ne 0 ]; then
+              echo -e "\e[01;31mPython trivial test for dynamics failed.\e[0m" >&2
+              status_sum=$((status_sum+1))
+          fi
 
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
