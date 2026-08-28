@@ -444,6 +444,11 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     func::FuncOp func = getOperation();
+    if (!cudaq::opt::containsAnyOperation<cudaq::quake::InitializeStateOp,
+                                          cudaq::quake::GetNumberOfQubitsOp,
+                                          cudaq::quake::DeleteStateOp>(
+            func.getOperation()))
+      return;
 
     LLVM_DEBUG(llvm::dbgs() << "Function before state preparation:\n"
                             << func << "\n\n");

@@ -140,6 +140,9 @@ public:
   using PyFrontendCleanupBase::PyFrontendCleanupBase;
 
   void runOnOperation() override {
+    if (!cudaq::opt::containsAnyOperation<cudaq::quake::VeqSizeOp>(
+            getOperation().getOperation()))
+      return;
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.add<HoistVeqSizeThroughIfPattern>(ctx);

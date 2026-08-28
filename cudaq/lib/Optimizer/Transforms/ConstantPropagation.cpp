@@ -223,6 +223,9 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     func::FuncOp func = getOperation();
+    if (!cudaq::opt::containsAnyOperation<cudaq::cc::LoadOp>(
+            func.getOperation()))
+      return;
     RewritePatternSet patterns(ctx);
     patterns.insert<ForwardSingleDimensionData, ForwardConstSubArray>(ctx);
 

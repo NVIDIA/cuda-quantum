@@ -79,6 +79,9 @@ public:
   using GetConcreteMatrixBase::GetConcreteMatrixBase;
 
   void runOnOperation() override {
+    if (!cudaq::opt::containsAnyOperation<cudaq::quake::CustomUnitaryCallOp>(
+            getOperation().getOperation()))
+      return;
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<CustomUnitaryPattern>(ctx);

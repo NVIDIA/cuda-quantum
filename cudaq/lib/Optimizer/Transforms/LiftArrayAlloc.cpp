@@ -35,6 +35,9 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto func = getOperation();
+    if (!cudaq::opt::containsAnyOperation<cudaq::cc::AllocaOp>(
+            func.getOperation()))
+      return;
     DominanceInfo domInfo(func);
     StringRef funcName = func.getName();
     RewritePatternSet patterns(ctx);

@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/Support/Casting.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
@@ -19,8 +20,21 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
+#include "mlir/IR/Visitors.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
+
+namespace cudaq::opt {
+template <typename... OpTypes>
+bool containsAnyOperation(mlir::Operation *root) {
+  return root
+      ->walk([](mlir::Operation *operation) {
+        return llvm::isa<OpTypes...>(operation) ? mlir::WalkResult::interrupt()
+                                                : mlir::WalkResult::advance();
+      })
+      .wasInterrupted();
+}
+} // namespace cudaq::opt
 
 #define GATE_OPS(MACRO)                                                        \
   MACRO(XOp), MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(SOp), MACRO(TOp),      \

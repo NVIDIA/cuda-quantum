@@ -329,6 +329,10 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     ModuleOp module = getOperation();
+    if (!cudaq::opt::containsAnyOperation<cudaq::cc::ConstantArrayOp,
+                                          cudaq::cc::ReifySpanOp>(
+            module.getOperation()))
+      return;
 
     // Make the unchecked assumption that a ConstArrayOp was added by the
     // LiftArrayAlloc pass. This assumption means that the backing store of the
