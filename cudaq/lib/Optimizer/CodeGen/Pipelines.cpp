@@ -60,6 +60,7 @@ static void createPrepareForWiresetPipeline(
     OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
     bool addWireset) {
   auto &funcPM = pm.nest<func::FuncOp>();
+  funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
   funcPM.addPass(cudaq::opt::createAddDeallocs());
   funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedLogOutput());
   funcPM.addPass(cudaq::opt::createExpandControlVeqs());

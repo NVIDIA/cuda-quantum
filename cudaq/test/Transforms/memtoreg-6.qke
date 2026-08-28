@@ -324,11 +324,25 @@ func.func @insert_sigma(%arg: i64) {
 // CHECK-SAME:      %[[ARG0:.*]]: i64) {
 // CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ER0:.*]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop while ((%[[VAL_0:.*]] = %[[H_0]], %[[VAL_1:.*]] = %{{.*}}) -> (!quake.wire, i64)) {
+// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop while ((%[[VAL_0:.*]] = %{{.*}}, %[[VAL_1:.*]] = %[[H_0]]) -> (i64, !quake.wire)) {
 // CHECK:           } do {
-// CHECK:             %[[IF_0:.*]] = cc.if(%{{.*}}) -> !quake.wire {
-// CHECK:               %{{.*}}:2 = quake.x
-// CHECK:           quake.wrap %[[LOOP_0]]#0 to %[[ER0]] : !quake.wire, !quake.ref
+// CHECK:           ^bb0(%{{.*}}: i64, %[[DO_WIRE:.*]]: !quake.wire):
+// CHECK:             %[[IF_0:.*]] = cc.if(%{{.*}}) ((%[[IF_WIRE:.*]] = %[[DO_WIRE]])) -> !quake.wire {
+// The incoming wire must be written back to the reference before the aliasing
+// barrier, and the gate's control must be the unwrap that reads it back. If
+// %[[IF_WIRE]] is instead left dead here, every gate applied to this qubit so
+// far (the quake.h above, plus prior iterations) is silently discarded.
+// CHECK:               quake.wrap %[[IF_WIRE]] to %[[ER0]] : !quake.wire, !quake.ref
+// CHECK:               %[[ER1:.*]] = quake.extract_ref %{{.*}} : (!quake.veq<3>, i64) -> !quake.ref
+// CHECK:               %[[TARG:.*]] = quake.unwrap %[[ER1]] : (!quake.ref) -> !quake.wire
+// CHECK:               %[[CTRL:.*]] = quake.unwrap %[[ER0]] : (!quake.ref) -> !quake.wire
+// CHECK:               %[[X_0:.*]]:2 = quake.x {{\[}}%[[CTRL]]] %[[TARG]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:               quake.wrap %[[X_0]]#1 to %[[ER1]] : !quake.wire, !quake.ref
+// CHECK:               cc.continue %[[X_0]]#0 : !quake.wire
+// CHECK:             } else {
+// CHECK:               cc.continue %[[IF_WIRE]] : !quake.wire
+// CHECK:             }
+// CHECK:           quake.wrap %[[LOOP_0]]#1 to %[[ER0]] : !quake.wire, !quake.ref
 
 func.func @insert_sigma_cfg(%arg0: i64) {
   %0 = quake.alloca !quake.veq<3>

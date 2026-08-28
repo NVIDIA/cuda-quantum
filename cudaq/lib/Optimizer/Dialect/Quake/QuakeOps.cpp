@@ -1676,6 +1676,25 @@ LogicalResult cudaq::quake::LogOutputOp::verify() {
 // Control and wire helpers
 //===----------------------------------------------------------------------===//
 
+bool cudaq::quake::isScalarQubitTarget(Value target) {
+  return isa<cudaq::quake::RefType, cudaq::quake::WireType>(target.getType());
+}
+
+std::optional<cudaq::quake::StaticQubitTarget>
+cudaq::quake::findLastStaticQubitTarget(ValueRange targets) {
+  return findLastStaticQubitTarget(
+      targets, [](const StaticQubitTarget &) { return true; });
+}
+
+Value cudaq::quake::materializeStaticQubitTarget(
+    OpBuilder &builder, Location location, const StaticQubitTarget &target) {
+  if (!target.elementIndex)
+    return target.source;
+  return cudaq::quake::ExtractRefOp::create(builder, location, target.source,
+                                            *target.elementIndex)
+      .getResult();
+}
+
 bool cudaq::quake::hasUnresolvedControlVeq(ValueRange controls) {
   return llvm::any_of(controls, [](Value control) {
     return isa<cudaq::quake::VeqType>(control.getType()) &&

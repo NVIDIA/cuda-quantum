@@ -182,6 +182,50 @@ def test_atomic_quantum_region_builder_contract():
     assert "atomic_quantum_region" in str(marked_after_compile.qkeModule)
 
 
+def test_atomic_quantum_region_builder_preserves_entangling_workload():
+
+    def make_workload(atomic):
+        workload, q0, q1, q2 = cudaq.make_kernel(cudaq.qubit, cudaq.qubit,
+                                                 cudaq.qubit)
+        if atomic:
+            workload.atomic_quantum_region()
+        workload.h(q0)
+        workload.cx(q0, q1)
+        workload.cx(q1, q2)
+        return workload
+
+    def make_round_trip(workload):
+        round_trip = cudaq.make_kernel()
+        qubits = round_trip.qalloc(3)
+        round_trip.apply_call(workload, qubits[0], qubits[1], qubits[2])
+        round_trip.adjoint(workload, qubits[0], qubits[1], qubits[2])
+        return round_trip
+
+    ordinary = make_round_trip(make_workload(False))
+    atomic = make_round_trip(make_workload(True))
+
+    assert cudaq.draw(ordinary) == ""
+    atomic_drawing = cudaq.draw(atomic)
+    assert atomic_drawing.count("┤ h ├") == 2
+    assert atomic_drawing.count("┤ x ├") == 4
+
+    pauli_x = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=np.complex128)
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("x",
+                                cudaq.KrausChannel([np.kron(pauli_x, pauli_x)]),
+                                num_controls=1)
+
+    cudaq.set_target("density-matrix-cpu")
+    shots = 8
+    ordinary_counts = cudaq.sample(ordinary,
+                                   shots_count=shots,
+                                   noise_model=noise)
+    atomic_counts = cudaq.sample(atomic, shots_count=shots, noise_model=noise)
+    assert ordinary_counts.count("000") == shots
+    assert atomic_counts.count("011") == shots
+    cudaq.reset_target()
+
+
 def test_atomic_quantum_region_sync_execution_apis():
     shots = 8
     counts = cudaq.sample(atomic_round_trip, shots_count=shots)

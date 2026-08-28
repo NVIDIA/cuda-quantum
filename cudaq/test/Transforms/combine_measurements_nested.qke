@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -combine-measurements -verify-diagnostics %s
+
+// combine-measurements analyzes top-level measurements. Reject nested
+// measurements until the pass supports them rather than assigning incorrect
+// output offsets during its recursive rewrite.
+func.func @nested_measurement() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  cc.scope {
+    %local = cc.alloca i64
+    // expected-error@+1 {{combine-measurements requires measurements to be top-level in the function}}
+    %m0 = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
+  }
+  %m1 = quake.mz %q1 : (!quake.ref) -> !cc.measure_handle
+  return
+}
