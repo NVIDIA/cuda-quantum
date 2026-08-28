@@ -281,15 +281,23 @@ jobs:
         shell: bash
         run: |
           status_sum=0 && set +e # Allow script to keep going through errors
-          for ex in `find /home/cudaq/examples/other/distributed/ -name '*.cpp'`; do
+          # C++ examples keep their cpp/ prefix under /home/cudaq/examples.
+          mpi_examples=/home/cudaq/examples/cpp/other/distributed
+          if [ ! -d "$mpi_examples" ]; then
+            echo "::error::MPI examples directory not found: $mpi_examples"
+            exit 1
+          fi
+          found=0
+          for ex in `find "$mpi_examples" -name '*.cpp'`; do
+            found=$((found+1))
+            filename=$(basename -- "$ex")
             # Set CUDAQ_ENABLE_MPI_EXAMPLE to activate these examples.
             nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex
             status=$?
             if [ $status -eq 0 ]; then
-              # Run with mpiexec
-              mpiexec --allow-run-as-root -np 4 ./a.out
+              # --oversubscribe: OpenMPI sizes slots by physical cores.
+              mpiexec --allow-run-as-root --oversubscribe -np 4 ./a.out
               status=$?
-              filename=$(basename -- "$ex")
               if [ $status -eq 0 ]; then
                 echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
               else
@@ -301,6 +309,11 @@ jobs:
               status_sum=$((status_sum+1))
             fi
           done
+          # An empty sweep used to pass silently; treat it as a failure.
+          if [ "$found" -eq 0 ]; then
+            echo "::error::No MPI examples found under $mpi_examples"
+            exit 1
+          fi
           set -e # Re-enable exit code error checking
           if [ ! $status_sum -eq 0 ]; then
             echo "::error::$status_sum examples failed; see step summary for a list of failures."
@@ -574,6 +587,9 @@ jobs:
         id: fetch
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # Redirect inside retry() so a retry truncates instead of appending.
+          download() { gh api "$1" > "$2"; }
+
           artifacts_url="${{ needs.metadata.outputs.artifacts_url }}"
           if [ -z "$artifacts_url" ]; then
             echo "No artifacts URL available."
@@ -582,32 +598,35 @@ jobs:
             exit 0
           fi
 
-          artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          # Keep the list off stdin: unzip eats it when it prompts.
+          retry gh api "$artifacts_url" --paginate \
+            -q '.artifacts[] | {name: .name, url: .archive_download_url}' \
+            | jq -c '.' > /tmp/macos_artifacts.jsonl
 
           has_macos_wheels=false
           has_macos_installer=false
           mkdir -p wheels installer
 
           while IFS= read -r artifact; do
-            name=$(echo "$artifact" | jq -r '.name')
-            url=$(echo "$artifact" | jq -r '.url')
+            name=$(jq -r '.name' <<< "$artifact")
+            url=$(jq -r '.url' <<< "$artifact")
 
             if [[ "$name" == pycudaq-*-darwin-arm64 ]]; then
               python_version=$(echo "$name" | sed 's/pycudaq-\(.*\)-darwin-arm64/\1/')
               echo "Downloading macOS wheel: $name (Python $python_version)"
-              retry gh api "$url" > "${name}.zip"
-              unzip "${name}.zip" -d wheels/
-              rm "${name}.zip"
+              retry download "$url" "/tmp/${name}.zip"
+              unzip -o "/tmp/${name}.zip" -d wheels/ < /dev/null
+              rm "/tmp/${name}.zip"
               has_macos_wheels=true
 
             elif [[ "$name" == cudaq-arm64-darwin-installer-* ]]; then
               echo "Downloading macOS installer: $name"
-              retry gh api "$url" > "${name}.zip"
-              unzip "${name}.zip" -d installer/
-              rm "${name}.zip"
+              retry download "$url" "/tmp/${name}.zip"
+              unzip -o "/tmp/${name}.zip" -d installer/ < /dev/null
+              rm "/tmp/${name}.zip"
               has_macos_installer=true
             fi
-          done <<< "$(echo "$artifacts" | jq -c '.')"
+          done < /tmp/macos_artifacts.jsonl
 
           echo "has_macos_wheels=$has_macos_wheels" >> $GITHUB_OUTPUT
           echo "has_macos_installer=$has_macos_installer" >> $GITHUB_OUTPUT
@@ -629,6 +648,76 @@ jobs:
         with:
           name: darwin-arm64-installer
           path: installer/
+          retention-days: 1
+          if-no-files-found: error
+
+  realtime_artifacts:
+    name: Realtime installers
+    needs: metadata
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+
+    outputs:
+      has_realtime_installers: ${{ steps.fetch.outputs.has_realtime_installers }}
+
+    steps:
+      - name: Fetch realtime installers from Deployments run
+        id: fetch
+        run: |
+          set -euo pipefail
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # Redirect inside retry() so a retry truncates instead of appending.
+          download() { gh api "$1" > "$2"; }
+
+          artifacts_url="${{ needs.metadata.outputs.artifacts_url }}"
+          if [ -z "$artifacts_url" ]; then
+            echo "No artifacts URL available."
+            echo "has_realtime_installers=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Keep the list off stdin: unzip eats it when it prompts.
+          retry gh api "$artifacts_url" --paginate \
+            -q '.artifacts[] | select(.name | startswith("install_cuda_quantum_realtime_")) | {name: .name, url: .archive_download_url}' \
+            | jq -c '.' > /tmp/realtime_artifacts.jsonl
+
+          mkdir -p installers
+          count=0
+
+          while IFS= read -r artifact; do
+            name=$(jq -r '.name' <<< "$artifact")
+            url=$(jq -r '.url' <<< "$artifact")
+            echo "Downloading realtime installer: $name"
+            retry download "$url" "/tmp/${name}.zip"
+            # Installer only; the buildx provenance.json collides across artifacts.
+            unzip -o "/tmp/${name}.zip" 'install_cuda_quantum_realtime_*' -d installers/ < /dev/null
+            rm "/tmp/${name}.zip"
+            count=$((count + 1))
+          done < /tmp/realtime_artifacts.jsonl
+
+          echo "Fetched $count realtime installer artifact(s)."
+          if [ "$count" -gt 0 ]; then
+            ls -l installers/
+            echo "has_realtime_installers=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_realtime_installers=false" >> $GITHUB_OUTPUT
+          fi
+          # Deployments builds amd64/arm64 x cu12.6/cu13.0.
+          if [ "$count" -gt 0 ] && [ "$count" -lt 4 ]; then
+            echo "::warning::Expected 4 realtime installers, found $count."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Re-upload under a single name so create_release can pull them with one
+      # download step (they are built in Deployments, i.e. a different run).
+      - name: Upload realtime installers
+        if: steps.fetch.outputs.has_realtime_installers == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: realtime-installers
+          path: installers/
           retention-days: 1
           if-no-files-found: error
 
@@ -873,10 +962,47 @@ jobs:
               fi
           done
 
-          # Also need to test dynamics
+          # Also need to test dynamics; the example script became notebooks in #2900.
           echo "Running with target dynamics"
-          retry python3 -m pip install matplotlib
-          python3 docs/sphinx/examples/python/dynamics/qubit_dynamics.py
+          cat > /tmp/dynamics_validation.py <<'PYEOF'
+          import numpy as np
+          import cupy as cp
+          import cudaq
+          from cudaq import spin, Schedule, RungeKuttaIntegrator
+
+          cudaq.set_target("dynamics")
+
+          # Single qubit under H = omega * sigma_x, so <sigma_z>(t) = cos(2*omega*t).
+          omega = 2 * np.pi * 0.1
+          hamiltonian = omega * spin.x(0)
+          dimensions = {0: 2}
+          rho0 = cudaq.State.from_data(
+              cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+          steps = np.linspace(0, 10, 101)
+
+          result = cudaq.evolve(
+              hamiltonian,
+              dimensions,
+              Schedule(steps, ["time"]),
+              rho0,
+              observables=[spin.y(0), spin.z(0)],
+              collapse_operators=[],
+              store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+              integrator=RungeKuttaIntegrator())
+
+          z = np.array([ev[1].expectation() for ev in result.expectation_values()])
+          expected = np.cos(2 * omega * steps)
+          err = np.max(np.abs(z - expected))
+          print(f"steps={len(z)} max|<z>-cos(2*omega*t)|={err:.3e}")
+          assert len(z) == len(steps), "unexpected number of intermediate results"
+          assert err < 1e-3, f"dynamics evolution deviates from analytic solution: {err}"
+          print("dynamics smoke test PASSED")
+          PYEOF
+          python3 /tmp/dynamics_validation.py
+          if [ $? -ne 0 ]; then
+              echo -e "\e[01;31mPython trivial test for dynamics failed.\e[0m" >&2
+              status_sum=$((status_sum+1))
+          fi
 
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
@@ -1049,7 +1175,7 @@ jobs:
     name: CUDA-Q Release (draft)
     # Validation jobs stay in needs so the draft runs after them, but the if:
     # does not require them to pass.
-    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
+    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
     # Draft on a requested release title; tolerate validation flakes but require
     # the build jobs (nothing to attach otherwise).
     if: >-
@@ -1077,6 +1203,15 @@ jobs:
         with:
           pattern: '*-wheels'
           path: wheelhouse
+
+      - name: Download CUDA-Q Realtime installer
+        if: >-
+          needs.realtime_artifacts.result == 'success'
+          && needs.realtime_artifacts.outputs.has_realtime_installers == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: realtime-installers
+          path: installers
 
       - name: Download CUDA-Q metapackages
         uses: actions/download-artifact@v8
@@ -1126,6 +1261,18 @@ jobs:
           if [ "$validation_ok" != true ]; then
             echo "::warning::Release draft created despite one or more validation failures."
             rel_notes+="<br/>:warning: Created despite one or more validation failures; review the Validation run before publishing."
+          fi
+
+          # Count staged files, not the upstream flag: realtime installers come
+          # from Deployments, so a gap there would ship silently.
+          realtime_count=$(ls -1 install_cuda_quantum_realtime_* 2>/dev/null | wc -l)
+          echo "Realtime installers staged for upload: $realtime_count"
+          if [ "$realtime_count" -eq 0 ]; then
+            echo "::warning::No realtime installers found in the deployment run."
+            rel_notes+="<br/>:warning: No realtime installers were attached; check the Deployments run."
+          elif [ "$realtime_count" -lt 4 ]; then
+            echo "::warning::Only $realtime_count of 4 realtime installers were attached."
+            rel_notes+="<br/>:warning: Only $realtime_count of 4 realtime installers were attached; check the Deployments run."
           fi
 
           gh release create $release_id --title $release_id -R ${{ github.repository }} \

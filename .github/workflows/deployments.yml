@@ -869,6 +869,26 @@ jobs:
       environment: ghcr-deployment
       run_validation: false # validation runs in the Validation workflow
 
+  realtime_binaries:
+    name: Create CUDA Quantum Realtime installer
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && ! inputs.devcontainer_only
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/realtime_prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ matrix.platform }}
+      cuda_version: ${{ matrix.cuda_version }}
+      environment: ghcr-deployment
+
   macos_ci:
     name: macOS CI
     needs: metadata
@@ -884,7 +904,7 @@ jobs:
   # Deployments; this job is the opt-in path for manual dispatches.
   trigger_validation:
     name: Trigger Validation
-    needs: [summary, python_wheels, binaries]
+    needs: [summary, python_wheels, binaries, realtime_binaries]
     if: inputs.run_validation_after
     runs-on: ubuntu-latest
     permissions:

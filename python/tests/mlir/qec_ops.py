@@ -283,11 +283,11 @@ def test_rep_code_d3():
 # CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[UNDEF_2:.*]] = cc.undef !cc.measure_handle
 # CHECK:           %[[UNDEF_3:.*]] = cc.undef !cc.measure_handle
-# CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_4:.*]] = %[[UNDEF_2]], %[[VAL_5:.*]] = %[[UNDEF_3]], %[[VAL_0:.*]] = %[[CONSTANT_1]]) -> (!cc.measure_handle, !cc.measure_handle, i64)) {
+# CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]], %[[VAL_4:.*]] = %[[UNDEF_2]], %[[VAL_5:.*]] = %[[UNDEF_3]]) -> (i64, !cc.measure_handle, !cc.measure_handle)) {
 # CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[ARG0]] : i64
-# CHECK:             cc.condition %[[CMPI_0]](%[[VAL_4]], %[[VAL_5]], %[[VAL_0]] : !cc.measure_handle, !cc.measure_handle, i64)
+# CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_4]], %[[VAL_5]] : i64, !cc.measure_handle, !cc.measure_handle)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_10:.*]]: !cc.measure_handle, %[[VAL_11:.*]]: !cc.measure_handle, %[[VAL_6:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_6:.*]]: i64, %[[VAL_10:.*]]: !cc.measure_handle, %[[VAL_11:.*]]: !cc.measure_handle):
 # CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<3>) -> !quake.ref
 # CHECK:             quake.x {{\[}}%[[EXTRACT_REF_0]]] %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
@@ -305,11 +305,11 @@ def test_rep_code_d3():
 # CHECK:               qec.detector %[[VAL_11]], %[[MZ_1]] : !cc.measure_handle, !cc.measure_handle
 # CHECK:             } else {
 # CHECK:             }
-# CHECK:             cc.continue %[[MZ_0]], %[[MZ_1]], %[[VAL_6]] : !cc.measure_handle, !cc.measure_handle, i64
+# CHECK:             cc.continue %[[VAL_6]], %[[MZ_0]], %[[MZ_1]] : i64, !cc.measure_handle, !cc.measure_handle
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_16:.*]]: !cc.measure_handle, %[[VAL_17:.*]]: !cc.measure_handle, %[[VAL_12:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_16:.*]]: !cc.measure_handle, %[[VAL_17:.*]]: !cc.measure_handle):
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_12]], %[[CONSTANT_0]] : i64
-# CHECK:             cc.continue %[[VAL_16]], %[[VAL_17]], %[[ADDI_0]] : !cc.measure_handle, !cc.measure_handle, i64
+# CHECK:             cc.continue %[[ADDI_0]], %[[VAL_16]], %[[VAL_17]] : i64, !cc.measure_handle, !cc.measure_handle
 # CHECK:           }
 # CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "readout" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           qec.observable %[[MZ_2]] : !cc.sequence<!cc.measure_handle>

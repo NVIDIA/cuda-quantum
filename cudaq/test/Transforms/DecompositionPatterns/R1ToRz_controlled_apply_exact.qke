@@ -1,0 +1,69 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Final Stage 4 removes the module-wide controlled-apply guard only because
+// R1ToRz now preserves its residue as quake.phase until specialization adds
+// the caller's predicate.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{basis=rz})' %s > %t.decomposed
+// RUN: FileCheck %s --check-prefix=DECOMP < %t.decomposed
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=rz})' %s > %t.basis
+// RUN: FileCheck %s --check-prefix=BASIS < %t.basis
+
+// Exercise the behavior expansion end to end: decomposition runs before the
+// control is materialized, then strict matrix comparison verifies the phase
+// remains exact both before and after its late lowering.
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %s > %t.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.decomposed > %t.phase
+// RUN: FileCheck %s --check-prefix=PHASE < %t.phase
+// RUN: CircuitCheck --input=%t.phase %t.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.basis > %t.basis.phase
+// RUN: FileCheck %s --check-prefix=PHASE < %t.basis.phase
+// RUN: CircuitCheck --input=%t.basis.phase %t.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s > %t.lower.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.decomposed > %t.lower
+// RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.lower
+// RUN: CircuitCheck --input=%t.lower %t.lower.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.basis > %t.basis.lower
+// RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.basis.lower
+// RUN: CircuitCheck --input=%t.basis.lower %t.lower.source
+
+func.func private @phase_producer(%theta: f64, %target: !quake.ref) {
+  quake.r1 (%theta) %target : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @controlled_caller(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 3.700000e-01 : f64
+  quake.apply @phase_producer [%control] (%theta, %target)
+      : (!quake.ref, f64, !quake.ref) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func private @phase_producer(
+// DECOMP-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.ref
+// DECOMP: quake.rz (%[[THETA]]) %[[TARGET]]
+// DECOMP: %[[HALF:.*]] = arith.divf %[[THETA]], %{{.*}} : f64
+// DECOMP: quake.phase (%[[HALF]]) %[[TARGET]] : (f64, !quake.ref) -> ()
+// DECOMP-NOT: quake.r1
+// DECOMP: return
+
+// BASIS-LABEL: func.func private @phase_producer(
+// BASIS-SAME: %[[BASIS_THETA:.*]]: f64, %[[BASIS_TARGET:.*]]: !quake.ref
+// BASIS: quake.rz (%[[BASIS_THETA]]) %[[BASIS_TARGET]]
+// BASIS: %[[BASIS_HALF:.*]] = arith.divf %[[BASIS_THETA]], %{{.*}} : f64
+// BASIS: quake.phase (%[[BASIS_HALF]]) %[[BASIS_TARGET]] : (f64, !quake.ref) -> ()
+// BASIS-NOT: quake.r1
+// BASIS: return
+
+// PHASE-LABEL: func.func @controlled_caller
+// PHASE: quake.rz {{.*}} {{\[}}%{{.*}}{{\]}} %{{.*}}
+// PHASE: quake.phase {{.*}} {{\[}}%{{.*}}{{\]}} %{{.*}}
+
+// LOWER-LABEL: func.func @controlled_caller
+// LOWER: quake.rz
+// LOWER: quake.r1

@@ -60,6 +60,7 @@ static void createPrepareForWiresetPipeline(
     OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
     bool addWireset) {
   auto &funcPM = pm.nest<func::FuncOp>();
+  funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
   funcPM.addPass(cudaq::opt::createAddDeallocs());
   funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedLogOutput());
   funcPM.addPass(cudaq::opt::createExpandControlVeqs());
@@ -69,6 +70,12 @@ static void createPrepareForWiresetPipeline(
   funcPM.addPass(cudaq::opt::createLoopUnroll(loopUnrollOptions));
   funcPM.addPass(createCanonicalizerPass());
   funcPM.addPass(createCSEPass());
+  // Fold constant array element reads now that the loop is unrolled and the
+  // indices are constants. Kernels that interpret a captured gate array reach
+  // memtoreg with a dynamic `quake.extract_ref` index otherwise, and the
+  // register cannot be promoted to wires.
+  funcPM.addPass(cudaq::opt::createConstantPropagation());
+  funcPM.addPass(createCanonicalizerPass());
   // Classically scalarize and promote Pauli words for early exp_pauli
   // decomposition because quantum mem2reg cannot handle that operation.
   funcPM.addPass(cudaq::opt::createSROA());

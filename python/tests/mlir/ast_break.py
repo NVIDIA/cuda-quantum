@@ -35,11 +35,11 @@ def test_break():
 # CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i64
 # CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 4 : i64
 # CHECK-DAG:       %[[VAL_8:.*]] = quake.alloca !quake.veq<4>
-# CHECK:           %[[VAL_9:.*]]:2 = cc.loop while ((%[[VAL_12:.*]] = %[[VAL_0]], %[[VAL_10:.*]] = %[[VAL_5]]) -> (f64, i64)) {
+# CHECK:           %[[VAL_9:.*]]:2 = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_5]], %[[VAL_12:.*]] = %[[VAL_0]]) -> (i64, f64)) {
 # CHECK:             %[[VAL_13:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_3]] : i64
-# CHECK:             cc.condition %[[VAL_13]](%[[VAL_12]], %[[VAL_10]] : f64, i64)
+# CHECK:             cc.condition %[[VAL_13]](%[[VAL_10]], %[[VAL_12]] : i64, f64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_16:.*]]: f64, %[[VAL_14:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_14:.*]]: i64, %[[VAL_16:.*]]: f64):
 # CHECK:             %[[VAL_17:.*]] = math.fpowi %[[VAL_16]], %[[VAL_2]] : f64, i64
 # CHECK:             %[[VAL_18:.*]] = arith.addf %[[VAL_16]], %[[VAL_17]] : f64
 # CHECK:             %[[VAL_19:.*]] = arith.cmpf ogt, %[[VAL_18]], %[[VAL_1]] : f64
@@ -48,13 +48,13 @@ def test_break():
 # CHECK:             %[[VAL_24:.*]] = arith.remui %[[VAL_14]], %[[VAL_6]] : i64
 # CHECK:             %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_24]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_18]]) %[[VAL_25]] : (f64, !quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_18]], %[[VAL_14]] : f64, i64
+# CHECK:             cc.continue %[[VAL_14]], %[[VAL_18]] : i64, f64
 # CHECK:           ^bb2:
-# CHECK:             cc.break %[[VAL_18]], %[[VAL_14]] : f64, i64
+# CHECK:             cc.break %[[VAL_14]], %[[VAL_18]] : i64, f64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_28:.*]]: f64, %[[VAL_26:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_26:.*]]: i64, %[[VAL_28:.*]]: f64):
 # CHECK:             %[[VAL_29:.*]] = arith.addi %[[VAL_26]], %[[VAL_4]] : i64
-# CHECK:             cc.continue %[[VAL_28]], %[[VAL_29]] : f64, i64
+# CHECK:             cc.continue %[[VAL_29]], %[[VAL_28]] : i64, f64
 # CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_8]] : !quake.veq<4>
 # CHECK:           return

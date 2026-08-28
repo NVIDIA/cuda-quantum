@@ -22,7 +22,7 @@ config:
   # FakeQuakeServerHelper replaces %QUAKE_EMULATE_SUFFIX% with "" for remote
   # execution, yielding the exact low-level pipeline "symbol-dce". For local
   # emulation it replaces the suffix with the necessary emulation passes for local execution.
-  jit-high-level-pipeline: "func.func(add-measurements),expand-measurements"
+  jit-high-level-pipeline: "func.func(add-measurements)"
   jit-mid-level-pipeline: "prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true},qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
   jit-low-level-pipeline: "symbol-dce%QUAKE_EMULATE_SUFFIX%"
   # Tell the rest-qpu that we are simply dumping CUDA-Q MLIR code.
