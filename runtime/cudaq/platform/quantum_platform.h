@@ -172,7 +172,7 @@ public:
   bool is_emulated(std::size_t qpu_id = 0) const;
 
   /// @brief Return true if the QPU consumes JIT-compiled artifacts.
-  bool needs_jit(std::size_t qpu_id = 0) const;
+  bool supports_jit(std::size_t qpu_id = 0) const;
 
   /// @brief Set the noise model for @p qpu_id on this platform.
   void set_noise(const noise_model *model, std::size_t qpu_id = 0);

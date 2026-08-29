@@ -267,10 +267,10 @@ bool quantum_platform::is_emulated(std::size_t qpu_id) const {
   return platformQPUs[qpu_id]->isEmulated();
 }
 
-bool quantum_platform::needs_jit(std::size_t qpu_id) const {
+bool quantum_platform::supports_jit(std::size_t qpu_id) const {
   validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
   if (hasRuntimeEndpointOverride(qpu_id))
-    return runtimeEndpoints[qpu_id]->needsJit;
+    return runtimeEndpoints[qpu_id]->supportsJit;
   // A QPU always consumes the JIT artifact.
   return true;
 }

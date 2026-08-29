@@ -96,18 +96,18 @@ class RuntimeEndpoint(Protocol):
     print(ep.is_simulator)  # True
     print(ep.is_remote)    # False
     print(ep.is_emulated)  # False
-    print(ep.needs_jit)    # True
+    print(ep.supports_jit) # True
     ```
 
-    Set ``needs_jit = False`` if the endpoint consumes the ``CompiledModule``'s
-    MLIR artifact itself. The runtime then skips local code generation,
-    which is otherwise built and discarded.
+    Set ``supports_jit = False`` if the endpoint consumes the
+    ``CompiledModule``'s MLIR artifact itself. The runtime then skips local
+    code generation, which is otherwise built and discarded.
     """
 
     is_simulator: bool = True
     is_remote: bool = False
     is_emulated: bool = False
-    needs_jit: bool = True
+    supports_jit: bool = True
 
 
 @runtime_checkable

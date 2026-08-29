@@ -38,8 +38,8 @@ inline bool is_emulated_platform() {
 }
 
 /// @brief Return true if the quantum platform consumes JIT-compiled artifacts.
-inline bool platform_needs_jit() {
-  return getQuantumPlatformInternal()->needs_jit();
+inline bool platform_supports_jit() {
+  return getQuantumPlatformInternal()->supports_jit();
 }
 
 /// @brief Return true if the quantum platform is a simulator.
