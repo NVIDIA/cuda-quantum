@@ -2067,15 +2067,15 @@ def VerifyAtomicQuantumRegions :
     This pass rejects measurement operations and qubit allocations inside a
     marked `cc.scope` and inside a function carrying the
     `atomic_quantum_region` attribute. It follows a call whose callee it can
-    resolve, so a marked kernel cannot hide a violation in a helper.
+    resolve. It does not follow a `quake.apply`.
 
-    When it runs before inlining, the pass reports at the location of the user
-    source that produced the operation, and the intact call graph lets it report
-    a violation that a marked kernel reaches through a helper.
+    When it runs before inlining, the pass covers a violation written in a
+    marked kernel and a violation in a helper that the kernel calls. Every
+    operation still carries the location of the user source that produced it,
+    so the diagnostic names that line.
 
-    When it runs after inlining, the pass sees the callees it could not resolve
-    earlier: a definition that arrived from another translation unit, and a
-    specialization that `apply-op-specialization` had not created yet.
+    When it runs after inlining and `apply-op-specialization`, the pass also
+    checks the kernels it could not reach earlier.
 
     Run the pass before the conversion to value semantics, where a qubit
     allocation stops being a `quake.alloca`.
