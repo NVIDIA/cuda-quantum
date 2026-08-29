@@ -2064,13 +2064,21 @@ def VerifyAtomicQuantumRegions :
       "Reject measurement operations and qubit allocations inside an atomic "
       "quantum region";
   let description = [{
-    This pass rejects measurement operations and qubit allocations in marked
-    `cc.scope` operations and in functions carrying the
-    `atomic_quantum_region` attribute.
-    This pass must run after aggressive inlining, so that operations reached
-    only through a callee are checked as well. It must also run before the
-    conversion to value semantics, where a qubit allocation stops being a
-    `quake.alloca`.
+    This pass rejects measurement operations and qubit allocations inside a
+    marked `cc.scope` and inside a function carrying the
+    `atomic_quantum_region` attribute. It follows a call whose callee it can
+    resolve. It does not follow a `quake.apply`.
+
+    When it runs before inlining, the pass covers a violation written in a
+    marked kernel and a violation in a helper that the kernel calls. Every
+    operation still carries the location of the user source that produced it,
+    so the diagnostic names that line.
+
+    When it runs after inlining and `apply-op-specialization`, the pass also
+    checks the kernels it could not reach earlier.
+
+    Run the pass before the conversion to value semantics, where a qubit
+    allocation stops being a `quake.alloca`.
   }];
 }
 

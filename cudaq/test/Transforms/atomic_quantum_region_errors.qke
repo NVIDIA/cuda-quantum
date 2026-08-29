@@ -6,6 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
+// RUN: cudaq-opt --verify-atomic-quantum-regions --split-input-file --verify-diagnostics %s
 // RUN: cudaq-opt --aggressive-inlining --split-input-file --verify-diagnostics %s
 
 func.func @marked_measurements(%q: !quake.ref) attributes {atomic_quantum_region, "cudaq-entrypoint"} {
