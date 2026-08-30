@@ -135,6 +135,22 @@ func.func @normalize_adjoint_reference(%a: f64, %control: !quake.ref,
   return
 }
 
+// Adjoint phase with negated controls
+// CHECK-LABEL:   func.func @normalize_adjoint_reference_with_neg_control(
+// CHECK-SAME:      %[[ARG0:.*]]: f64,
+// CHECK-SAME:      %[[ARG1:.*]]: !quake.ref,
+// CHECK-SAME:      %[[ARG2:.*]]: !quake.ref) {
+// CHECK:           %[[NEGF_0:.*]] = arith.negf %[[ARG0]] : f64
+// CHECK:           quake.phase (%[[NEGF_0]]) {{\[}}%[[ARG1]] neg [true]] %[[ARG2]] : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+func.func @normalize_adjoint_reference_with_neg_control(%a: f64, %control: !quake.ref,
+                                       %anchor: !quake.ref) {
+  quake.phase<adj> (%a) [%control neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
 // In wire form, every operand of the second phase is the corresponding result
 // of the first phase. The merged operation starts from the original wires and
 //
