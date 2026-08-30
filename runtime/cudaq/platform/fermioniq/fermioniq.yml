@@ -17,6 +17,10 @@ config:
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the fermioniq-qpu library to the link list
   link-libs: ["-lcudaq-fermioniq-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-fermioniq-qpu"]
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "fermioniq-gate-set-mapping"
   # Tell the rest-qpu that we are generating QIR.

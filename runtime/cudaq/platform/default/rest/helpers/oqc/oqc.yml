@@ -17,6 +17,10 @@ config:
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-rest-qpu"]
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "func.func(erase-implicit-output),oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)"
