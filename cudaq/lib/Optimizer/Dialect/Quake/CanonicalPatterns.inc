@@ -793,11 +793,7 @@ static bool haveMatchingPhasePolarities(cudaq::quake::PhaseOp first,
       firstControls, first.getNegatedQubitControls());
   auto secondPolarities = cudaq::quake::getControlPolarities(
       secondControls, second.getNegatedQubitControls());
-  for (auto [firstPolarity, secondPolarity] :
-       llvm::zip(firstPolarities, secondPolarities))
-    if (firstPolarity != secondPolarity)
-      return false;
-  return true;
+  return llvm::equal(firstPolarities, secondPolarities);
 }
 
 /// Return true if `second` directly threads the quantum dataflow from `first`.
