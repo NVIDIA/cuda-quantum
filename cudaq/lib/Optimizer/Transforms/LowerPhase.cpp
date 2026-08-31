@@ -179,8 +179,8 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   // as R1's scalar target. The anchored identity is exact on the full active
   // control branch and preserves the complete ordered predicate.
   for (Value control : predicate.controls)
-    if (cudaq::opt::mayAliasForPhaseAnchorFallback(phase.getTarget(), control,
-                                                   phase.getOperation())) {
+    if (cudaq::opt::phaseFallbackAnchorMayAliasControl(
+            phase.getTarget(), control, phase.getOperation())) {
       phase.emitOpError(
           "cannot lower with an anchor that aliases a control operand");
       return failure();

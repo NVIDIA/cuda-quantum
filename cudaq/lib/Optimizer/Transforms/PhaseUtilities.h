@@ -287,9 +287,9 @@ inline void collectPhaseAnchorFallbackRoots(
 
 /// Return whether an anchor and control may overlap when the phase lowering
 /// must use the anchor as the target of its R1/Rz fallback sequence.
-inline bool mayAliasForPhaseAnchorFallback(mlir::Value anchor,
-                                           mlir::Value control,
-                                           mlir::Operation *at) {
+inline bool phaseFallbackAnchorMayAliasControl(mlir::Value anchor,
+                                               mlir::Value control,
+                                               mlir::Operation *at) {
   // A prior non-self wrap can invalidate a syntactic distinctness proof.
   if (mayHaveReboundPhaseRoot(anchor, at) ||
       mayHaveReboundPhaseRoot(control, at))
