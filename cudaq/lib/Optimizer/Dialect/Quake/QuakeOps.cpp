@@ -171,6 +171,29 @@ ValueRange cudaq::quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
 }
 
+/// Collect the quantum operands that may thread a wire, controls before
+/// targets, together with the wire results they map onto.
+static std::optional<cudaq::quake::detail::ScalarWireFlow>
+getWireFlowOperands(Operation *operation) {
+  cudaq::quake::detail::ScalarWireFlow flow;
+  if (auto quantumOperator =
+          dyn_cast<cudaq::quake::OperatorInterface>(operation)) {
+    llvm::append_range(flow.inputs, quantumOperator.getControls());
+    llvm::append_range(flow.inputs, quantumOperator.getTargets());
+    llvm::append_range(flow.results, quantumOperator.getWires());
+  } else if (auto measurement =
+                 dyn_cast<cudaq::quake::MeasurementInterface>(operation)) {
+    llvm::append_range(flow.inputs, measurement.getTargets());
+    llvm::append_range(flow.results, measurement.getWires());
+  } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(operation)) {
+    flow.inputs.push_back(reset.getTargets());
+    llvm::append_range(flow.results, reset.getWires());
+  } else {
+    return std::nullopt;
+  }
+  return flow;
+}
+
 std::optional<cudaq::quake::detail::ScalarWireFlow>
 cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
   if (operation->getNumRegions() != 0 || operation->getNumSuccessors() != 0)
@@ -178,27 +201,29 @@ cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
   if (!isMemoryEffectFree(operation))
     return std::nullopt;
 
-  ScalarWireFlow flow;
-  if (auto quantumOperator = dyn_cast<OperatorInterface>(operation)) {
-    llvm::append_range(flow.inputs, quantumOperator.getControls());
-    llvm::append_range(flow.inputs, quantumOperator.getTargets());
-    llvm::append_range(flow.results, quantumOperator.getWires());
-  } else if (auto measurement = dyn_cast<MeasurementInterface>(operation)) {
-    llvm::append_range(flow.inputs, measurement.getTargets());
-    llvm::append_range(flow.results, measurement.getWires());
-  } else if (auto reset = dyn_cast<ResetOp>(operation)) {
-    flow.inputs.push_back(reset.getTargets());
-    llvm::append_range(flow.results, reset.getWires());
-  } else {
+  auto flow = getWireFlowOperands(operation);
+  if (!flow)
     return std::nullopt;
-  }
 
   auto isScalarWire = [](Value value) {
     return isa<WireType>(value.getType());
   };
-  if (flow.inputs.size() != flow.results.size() ||
-      !llvm::all_of(flow.inputs, isScalarWire) ||
-      !llvm::all_of(flow.results, isScalarWire))
+  if (flow->inputs.size() != flow->results.size() ||
+      !llvm::all_of(flow->inputs, isScalarWire) ||
+      !llvm::all_of(flow->results, isScalarWire))
+    return std::nullopt;
+  return flow;
+}
+
+std::optional<cudaq::quake::detail::ScalarWireFlow>
+cudaq::quake::detail::getThreadedWireFlow(Operation *operation) {
+  auto flow = getWireFlowOperands(operation);
+  if (!flow)
+    return std::nullopt;
+
+  llvm::erase_if(flow->inputs,
+                 [](Value value) { return !isa<WireType>(value.getType()); });
+  if (flow->inputs.size() != flow->results.size())
     return std::nullopt;
   return flow;
 }
@@ -1645,6 +1670,128 @@ LogicalResult cudaq::quake::LogOutputOp::verify() {
     return emitOpError("result types must mirror wire/cable operand types "
                        "in left-to-right order");
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// Control and wire helpers
+//===----------------------------------------------------------------------===//
+
+bool cudaq::quake::isScalarQubitTarget(Value target) {
+  return isa<cudaq::quake::RefType, cudaq::quake::WireType>(target.getType());
+}
+
+std::optional<cudaq::quake::StaticQubitTarget>
+cudaq::quake::findLastStaticQubitTarget(ValueRange targets) {
+  return findLastStaticQubitTarget(
+      targets, [](const StaticQubitTarget &) { return true; });
+}
+
+Value cudaq::quake::materializeStaticQubitTarget(
+    OpBuilder &builder, Location location, const StaticQubitTarget &target) {
+  if (!target.elementIndex)
+    return target.source;
+  return cudaq::quake::ExtractRefOp::create(builder, location, target.source,
+                                            *target.elementIndex)
+      .getResult();
+}
+
+bool cudaq::quake::hasUnresolvedControlVeq(ValueRange controls) {
+  return llvm::any_of(controls, [](Value control) {
+    return isa<cudaq::quake::VeqType>(control.getType()) &&
+           !cudaq::quake::getVeqSize(control);
+  });
+}
+
+SmallVector<bool> cudaq::quake::getControlPolarities(
+    ValueRange controls, std::optional<llvm::ArrayRef<bool>> negatedControls) {
+  SmallVector<bool> polarities(controls.size(), false);
+  if (negatedControls)
+    for (auto [index, value] : llvm::enumerate(*negatedControls))
+      polarities[index] = value;
+  return polarities;
+}
+
+SmallVector<bool>
+cudaq::quake::getControlPolarities(cudaq::quake::OperatorInterface op) {
+  return cudaq::quake::getControlPolarities(op.getControls(),
+                                            op.getNegatedControls());
+}
+
+cudaq::quake::ExpandedControlVeqs
+cudaq::quake::expandKnownSizedControlVeqs(OpBuilder &builder, Location location,
+                                          ValueRange controls,
+                                          llvm::ArrayRef<bool> polarities) {
+  assert(controls.size() == polarities.size() &&
+         "every control must have a corresponding polarity");
+
+  ExpandedControlVeqs expanded;
+  for (auto [index, control] : llvm::enumerate(controls)) {
+    if (!isa<cudaq::quake::VeqType>(control.getType())) {
+      expanded.controls.push_back(control);
+      expanded.polarities.push_back(polarities[index]);
+      continue;
+    }
+
+    auto size = cudaq::quake::getVeqSize(control);
+    if (!size) {
+      expanded.controls.push_back(control);
+      expanded.polarities.push_back(polarities[index]);
+      continue;
+    }
+
+    // extract_ref requires the sized source of a relaxed vector.
+    Value vector = control;
+    if (auto relax = control.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+      vector = relax.getInputVec();
+    for (std::size_t i = 0; i < *size; ++i) {
+      expanded.controls.push_back(
+          cudaq::quake::ExtractRefOp::create(builder, location, vector, i));
+      expanded.polarities.push_back(polarities[index]);
+    }
+    expanded.didExpand = true;
+  }
+  return expanded;
+}
+
+SmallVector<Type> cudaq::quake::getWireResultTypes(OpBuilder &builder,
+                                                   ValueRange controls,
+                                                   ValueRange targets) {
+  auto wireType = cudaq::quake::WireType::get(builder.getContext());
+  SmallVector<Type> resultTypes;
+  for (Value control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      resultTypes.push_back(wireType);
+  for (Value target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      resultTypes.push_back(wireType);
+  return resultTypes;
+}
+
+SmallVector<Value> cudaq::quake::getWireValues(ValueRange controls,
+                                               ValueRange targets) {
+  SmallVector<Value> values;
+  for (Value control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      values.push_back(control);
+  for (Value target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      values.push_back(target);
+  return values;
+}
+
+void cudaq::quake::threadWireResults(cudaq::quake::OperatorInterface op,
+                                     llvm::MutableArrayRef<Value> controls,
+                                     llvm::MutableArrayRef<Value> targets) {
+  ValueRange wires = op.getWires();
+  unsigned result = 0;
+  for (Value &control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      control = wires[result++];
+  for (Value &target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      target = wires[result++];
+  assert(result == wires.size() &&
+         "gate result count does not match its wire operands");
 }
 
 //===----------------------------------------------------------------------===//

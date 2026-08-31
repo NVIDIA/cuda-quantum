@@ -140,6 +140,14 @@ public:
                                            const CompiledModule &module,
                                            KernelArgs args);
 
+  virtual orca::sample_policy::result_type
+  launchKernel(const orca::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
+  virtual orca::async_sample_policy::result_type
+  launchKernel(const orca::async_sample_policy &policy,
+               const CompiledModule &module, KernelArgs args);
+
   virtual observe_result launchKernel(const observe_policy &policy,
                                       const CompiledModule &module,
                                       KernelArgs args);

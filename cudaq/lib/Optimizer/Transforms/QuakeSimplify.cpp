@@ -642,9 +642,9 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "must have the same number of controls\n");
       return failure();
     }
-    auto polarities = cudaq::opt::getControlPolarities(qop);
-    if (polarities != cudaq::opt::getControlPolarities(prev0) ||
-        polarities != cudaq::opt::getControlPolarities(prev)) {
+    auto polarities = cudaq::quake::getControlPolarities(qop);
+    if (polarities != cudaq::quake::getControlPolarities(prev0) ||
+        polarities != cudaq::quake::getControlPolarities(prev)) {
       LLVM_DEBUG(llvm::dbgs() << "control polarities must be the same\n");
       return failure();
     }
@@ -685,8 +685,8 @@ public:
         rewriter, qop.getLoc(), qop.getResultTypes(), prev0.getIsAdjAttr(),
         ValueRange{}, replacementControls, replacementTargets,
         prev.getNegatedQubitControlsAttr());
-    cudaq::opt::threadWireResults(replacement, replacementControls,
-                                  replacementTargets);
+    cudaq::quake::threadWireResults(replacement, replacementControls,
+                                    replacementTargets);
 
     if (!prev0.isAdj()) {
       Value pi = cudaq::opt::factory::createPiConstant(qop.getLoc(), rewriter,
@@ -698,8 +698,8 @@ public:
       replacementTargets.back() = correction.anchor;
     }
 
-    rewriter.replaceOp(qop, cudaq::opt::getWireValues(replacementControls,
-                                                      replacementTargets));
+    rewriter.replaceOp(qop, cudaq::quake::getWireValues(replacementControls,
+                                                        replacementTargets));
     rewriter.eraseOp(prev0);
     rewriter.eraseOp(prev);
     ++stat;
@@ -835,38 +835,64 @@ public:
     GreedyRewriteConfig config;
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
     auto *ctx = &getContext();
-    cudaq::opt::CommutationAwareRewriteDriver driver(*ctx, config);
-    auto &patterns = driver.get_patterns();
-    patterns.add<EraseDoubleReset, EraseResetSink>(ctx, numResetsErased);
-    patterns.add<ReduceYSX>(ctx, numReduceYSXRewrites);
-    auto &matcher = driver.get_matcher();
+    Region &region = getOperation()->getRegion(0);
+    // Each simplification run gets a fresh matcher and logical-qubit operation
+    // index.
+    auto simplify = [&]() {
+      cudaq::opt::CommutationAwareRewriteDriver driver(*ctx, config);
+      auto &patterns = driver.get_patterns();
+      patterns.add<EraseDoubleReset, EraseResetSink>(ctx, numResetsErased);
+      patterns.add<ReduceYSX>(ctx, numReduceYSXRewrites);
+      auto &matcher = driver.get_matcher();
 
-    patterns.add<PhasedRxCombine, RotationCombine<cudaq::quake::R1Op>,
-                 RotationCombine<cudaq::quake::RxOp>,
-                 RotationCombine<cudaq::quake::RyOp>,
-                 RotationCombine<cudaq::quake::RzOp>>(
-        ctx, matcher, threshold, numZeroRotationsEliminated,
-        numRotationsCombined);
-    patterns.add<DiscretePhaseFold<cudaq::quake::SOp, cudaq::quake::ZOp>>(
-        ctx, matcher, numDoubleSRewrites);
-    patterns.add<DiscretePhaseFold<cudaq::quake::TOp, cudaq::quake::SOp>>(
-        ctx, matcher, numDoubleTRewrites);
-    patterns.add<InverseElimination<cudaq::quake::HOp>,
-                 InverseElimination<cudaq::quake::SwapOp>,
-                 InverseElimination<cudaq::quake::XOp>,
-                 InverseElimination<cudaq::quake::YOp>,
-                 InverseElimination<cudaq::quake::ZOp>>(
-        ctx, matcher, numHermitianEliminations);
-    patterns.add<InverseElimination<cudaq::quake::SOp,
-                                    InversePairKind::OppositeAdjoints>,
-                 InverseElimination<cudaq::quake::TOp,
-                                    InversePairKind::OppositeAdjoints>>(
-        ctx, matcher, numAdjointEliminations);
-    if (rotationsToCliffordT)
-      populateRotationsToCliffordTPatterns(patterns, cliffordTEpsilon,
-                                           numCliffordTRotations);
+      patterns.add<PhasedRxCombine, RotationCombine<cudaq::quake::R1Op>,
+                   RotationCombine<cudaq::quake::RxOp>,
+                   RotationCombine<cudaq::quake::RyOp>,
+                   RotationCombine<cudaq::quake::RzOp>>(
+          ctx, matcher, threshold, numZeroRotationsEliminated,
+          numRotationsCombined);
+      patterns.add<DiscretePhaseFold<cudaq::quake::SOp, cudaq::quake::ZOp>>(
+          ctx, matcher, numDoubleSRewrites);
+      patterns.add<DiscretePhaseFold<cudaq::quake::TOp, cudaq::quake::SOp>>(
+          ctx, matcher, numDoubleTRewrites);
+      patterns.add<InverseElimination<cudaq::quake::HOp>,
+                   InverseElimination<cudaq::quake::SwapOp>,
+                   InverseElimination<cudaq::quake::XOp>,
+                   InverseElimination<cudaq::quake::YOp>,
+                   InverseElimination<cudaq::quake::ZOp>>(
+          ctx, matcher, numHermitianEliminations);
+      patterns.add<InverseElimination<cudaq::quake::SOp,
+                                      InversePairKind::OppositeAdjoints>,
+                   InverseElimination<cudaq::quake::TOp,
+                                      InversePairKind::OppositeAdjoints>>(
+          ctx, matcher, numAdjointEliminations);
+      return driver.run(region);
+    };
 
-    if (failed(driver.run(getOperation()->getRegion(0))))
+    if (rotationsToCliffordT) {
+      // Legalization expands one rotation into several gates. Keeping it out
+      // of the commutation-aware simplification loop avoids rebuilding the
+      // logical-qubit operation index after every expansion.
+
+      // First combine rotations so legalization only sees those that remain.
+      if (failed(simplify())) {
+        signalPassFailure();
+        return;
+      }
+
+      RewritePatternSet legalizationPatterns(ctx);
+      populateRotationsToCliffordTPatterns(
+          legalizationPatterns, cliffordTEpsilon, numCliffordTRotations);
+      if (failed(applyPatternsGreedily(region, std::move(legalizationPatterns),
+                                       config))) {
+        signalPassFailure();
+        return;
+      }
+    }
+
+    // Clean up gates created by legalization with a fresh simplification run.
+    // Without legalization, this is the pass's only simplification run.
+    if (failed(simplify()))
       signalPassFailure();
   }
 };

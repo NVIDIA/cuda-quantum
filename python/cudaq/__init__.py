@@ -15,6 +15,39 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy
 
+# ============================================================================ #
+# Enable logging to match the CUDAQ_LOG_LEVEL environment variable.
+# ============================================================================ #
+if os.environ.get("CUDAQ_LOG_LEVEL", ""):
+    import logging
+    logger = logging.getLogger("cudaq")
+
+    level = os.environ["CUDAQ_LOG_LEVEL"].upper()
+    if level == "DEBUG":
+        logger.setLevel(logging.DEBUG)
+    elif level == "INFO":
+        logger.setLevel(logging.INFO)
+    elif level == "WARNING":
+        logger.setLevel(logging.WARNING)
+    elif level == "ERROR":
+        logger.setLevel(logging.ERROR)
+    else:
+        print(f"Unrecognized CUDAQ_LOG_LEVEL={level}, defaulting to INFO")
+        logger.setLevel(logging.INFO)
+
+    # Attach a console handler so CUDA-Q log messages are visible when run.
+    if not any(
+            isinstance(handler, logging.StreamHandler)
+            for handler in logger.handlers):
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(
+            logging.Formatter(
+                fmt=
+                "[%(asctime)s] [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            ))
+        logger.addHandler(console_handler)
+
 from ._metadata import cuda_major
 from ._packages import get_library_path
 
@@ -262,7 +295,45 @@ OptimizationResult = cudaq_runtime.OptimizationResult
 # Runtime Functions
 __version__ = cudaq_runtime.__version__
 initialize_cudaq = cudaq_runtime.initialize_cudaq
-set_target = cudaq_runtime.set_target
+
+
+def set_target(target, **extra_config):
+    """Set the backend used for CUDA-Q kernel execution.
+
+    Can provide optional, target-specific configuration data via Python `kwargs`.
+
+    Args:
+      target: The CUDA-Q target, specified as a recognized target name (``str``)
+        or a :class:`cudaq.Target` instance. Support for
+        instances of ``cudaq._experimental.CustomTarget`` is experimental.
+      **extra_config: Target-specific configuration for the named-target
+        overload.
+
+    Raises:
+      TypeError: For unsupported target types or keyword arguments.
+    """
+    if isinstance(target, Target) or isinstance(target, str):
+        # The overwhelmingly common case: a named target. Resolve it without
+        # ever importing cudaq._experimental, so that module being
+        # unavailable (e.g. not staged into an incremental build) can't
+        # break ordinary target selection.
+        return cudaq_runtime.set_target(target, **extra_config)
+
+    from cudaq._experimental import CustomTarget
+    from cudaq._experimental import set_compile_target, set_runtime_endpoint
+
+    if isinstance(target, CustomTarget):
+        if extra_config:
+            raise TypeError(
+                "cudaq.set_target() does not accept keyword arguments when "
+                "target is a cudaq._experimental.CustomTarget.")
+        set_compile_target(target.compile_target)
+        set_runtime_endpoint(target.runtime_endpoint)
+        return target
+
+    raise TypeError(f"Unsupported target type: {type(target)}")
+
+
 reset_target = cudaq_runtime.reset_target
 has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target

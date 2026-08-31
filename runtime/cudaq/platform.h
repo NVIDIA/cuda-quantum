@@ -37,14 +37,20 @@ inline bool is_emulated_platform() {
   return getQuantumPlatformInternal()->is_emulated();
 }
 
+/// @brief Return true if the quantum platform consumes JIT-compiled artifacts.
+inline bool platform_supports_jit() {
+  return getQuantumPlatformInternal()->supports_jit();
+}
+
 /// @brief Return true if the quantum platform is a simulator.
 inline bool is_simulator_platform() {
   return getQuantumPlatformInternal()->is_simulator();
 }
 
 template <typename Policy>
-cudaq::CompileTarget get_compile_target(const Policy &policy) {
-  return getQuantumPlatformInternal()->getCompileTarget(policy);
+cudaq::CompileTarget get_compile_target(const Policy &policy,
+                                        std::size_t qpu_id = 0) {
+  return getQuantumPlatformInternal()->getCompileTarget(policy, qpu_id);
 }
 
 /// Get the default compile target configuration for the given platform

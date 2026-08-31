@@ -9,7 +9,7 @@
 // clang-format off
 // Starting from C++, expand whole-register controls before the wire-assignment
 // pipeline so value-semantic quantum code reaches indexed wires.
-// RUN: cudaq-quake %s | cudaq-opt --expand-control-veqs --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --expand-measurements --cc-loop-unroll=unroll-only-wire-blocking-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --expand-control-veqs --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --expand-measurements --cc-loop-unroll=unroll-only-aliasing-quantum-access-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

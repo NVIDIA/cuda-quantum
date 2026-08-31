@@ -227,6 +227,19 @@ public:
     func::FuncOp func = getOperation();
     OpBuilder builder(func);
 
+    auto nestedMeasurement = func.walk([&](cudaq::quake::MzOp measure) {
+      if (measure->getParentOp() == func.getOperation())
+        return WalkResult::advance();
+      measure.emitError(
+          "combine-measurements requires measurements to be top-level in the "
+          "function");
+      return WalkResult::interrupt();
+    });
+    if (nestedMeasurement.wasInterrupted()) {
+      signalPassFailure();
+      return;
+    }
+
     LLVM_DEBUG(llvm::dbgs() << "Function before combining measurements:\n"
                             << func << "\n\n");
 

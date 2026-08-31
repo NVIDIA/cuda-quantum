@@ -6,7 +6,12 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+// RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+// RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" \
+// RUN:   --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s --check-prefix=TWICE
+// RUN: sed -n '/INTEGRATION-BEGIN$/,/INTEGRATION-END$/p' %s > %t.integration.qke
+// RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %t.integration.qke | \
+// RUN:   CircuitCheck %t.integration.qke
 
 // Two rotations that share the same phase term across a pair of CNOTs are
 // merged into a single rotation whose angle is the sum of the two.
@@ -37,6 +42,121 @@ func.func @merge_across_cnots(%angle: f64) {
 // CHECK:           %[[VAL_9:.*]]:2 = quake.x {{\[}}%[[VAL_8]]] %[[VAL_6]] :
 // CHECK:           return
 // CHECK:         }
+
+// One integration case exercises mixed named and dynamic rotations, attributed
+// rotations, and both adjoint operand positions.
+// INTEGRATION-BEGIN
+
+func.func @rz_folding_integration(
+    %control: !quake.ref, %target: !quake.ref, %negatedTarget: !quake.ref,
+    %adjointTarget: !quake.ref) {
+  %a = arith.constant 1.000000e-01 : f64
+  %b = arith.constant 2.000000e-01 : f64
+  %c = arith.constant 3.000000e-01 : f64
+  %d = arith.constant 4.000000e-01 : f64
+
+  %controlWire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %targetWire = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %cx0:2 = quake.x [%controlWire] %targetWire
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %rz0 = quake.rz (%a) %cx0#1 : (f64, !quake.wire) -> !quake.wire
+  %s0 = quake.s %rz0 : (!quake.wire) -> !quake.wire
+  %rz1 = quake.rz (%b) %s0 : (f64, !quake.wire) -> !quake.wire
+  %rz2 = quake.rz (%c) %rz1 : (f64, !quake.wire) -> !quake.wire
+  %rz3 = quake.rz (%d) %rz2
+      : (f64, !quake.wire) -> !quake.wire {test.marker}
+  %used = quake.h %rz3 : (!quake.wire) -> !quake.wire
+  quake.wrap %used to %target : !quake.wire, !quake.ref
+
+  %negatedWire = quake.unwrap %negatedTarget : (!quake.ref) -> !quake.wire
+  %negatedCx:2 = quake.x [%cx0#0] %negatedWire
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %negatedRz0 = quake.rz (%a) %negatedCx#1
+      : (f64, !quake.wire) -> !quake.wire
+  %negatedRz1 = quake.rz (%b) [neg []] %negatedRz0
+      : (f64, !quake.wire) -> !quake.wire
+  %negatedUsed = quake.h %negatedRz1 : (!quake.wire) -> !quake.wire
+  quake.wrap %negatedUsed to %negatedTarget : !quake.wire, !quake.ref
+
+  %adjointWire = quake.unwrap %adjointTarget : (!quake.ref) -> !quake.wire
+  %adjCx:2 = quake.x [%negatedCx#0] %adjointWire
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %adj0 = quake.rz<adj> (%a) %adjCx#1
+      : (f64, !quake.wire) -> !quake.wire
+  %adj1 = quake.rz (%b) %adj0 : (f64, !quake.wire) -> !quake.wire
+  %adj2 = quake.rz<adj> (%c) %adj1
+      : (f64, !quake.wire) -> !quake.wire
+  %adjUsed = quake.h %adj2 : (!quake.wire) -> !quake.wire
+  quake.wrap %adjCx#0 to %control : !quake.wire, !quake.ref
+  quake.wrap %adjUsed to %adjointTarget : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @rz_folding_integration(
+// CHECK:           %[[A:.*]] = arith.constant 1.000000e-01 : f64
+// CHECK-NEXT:      %[[B:.*]] = arith.constant 2.000000e-01 : f64
+// CHECK-NEXT:      %[[C:.*]] = arith.constant 3.000000e-01 : f64
+// CHECK-NEXT:      %[[D:.*]] = arith.constant 4.000000e-01 : f64
+// CHECK:           %[[CX0:.*]]:2 = quake.x
+// CHECK-NEXT:      %[[S_ANGLE:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK-NEXT:      %[[SUM0:.*]] = arith.addf %[[A]], %[[S_ANGLE]] : f64
+// CHECK-NEXT:      %[[SUM1:.*]] = arith.addf %[[SUM0]], %[[B]] : f64
+// CHECK-NEXT:      %[[SUM2:.*]] = arith.addf %[[SUM1]], %[[C]] : f64
+// CHECK-NEXT:      %[[SUM3:.*]] = arith.addf %[[SUM2]], %[[D]] : f64
+// CHECK-NEXT:      %[[RZ:.*]] = quake.rz (%[[SUM3]]) %[[CX0]]#1 :
+// CHECK-NEXT:      %[[CORRECTION:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK-NEXT:      %[[PHASE:.*]] = quake.phase (%[[CORRECTION]]) %[[RZ]] :
+// CHECK-NEXT:      %[[USED:.*]] = quake.h %[[PHASE]] :
+// CHECK-NEXT:      quake.wrap %[[USED]]
+// CHECK-NOT:       test.marker
+// CHECK:           %[[NEGATED_WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:      %[[NEGATED_CX:.*]]:2 = quake.x
+// CHECK-NEXT:      %[[NEGATED_SUM:.*]] = arith.addf %[[A]], %[[B]] : f64
+// CHECK-NEXT:      %[[NEGATED_RZ:.*]] = quake.rz (%[[NEGATED_SUM]]) %[[NEGATED_CX]]#1 :
+// CHECK-NOT:       neg [
+// CHECK-NEXT:      %[[NEGATED_USED:.*]] = quake.h %[[NEGATED_RZ]] :
+// CHECK-NEXT:      quake.wrap %[[NEGATED_USED]]
+// CHECK:           %[[ADJ_WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:      %[[ADJ_CX:.*]]:2 = quake.x
+// CHECK-NEXT:      %[[NEG_A:.*]] = arith.negf %[[A]] : f64
+// CHECK-NEXT:      %[[SUM_AB:.*]] = arith.addf %[[NEG_A]], %[[B]] : f64
+// CHECK-NEXT:      %[[NEG_C:.*]] = arith.negf %[[C]] : f64
+// CHECK-NEXT:      %[[ADJ_SUM:.*]] = arith.addf %[[SUM_AB]], %[[NEG_C]] : f64
+// CHECK-NEXT:      %[[ADJ_RZ:.*]] = quake.rz (%[[ADJ_SUM]]) %[[ADJ_CX]]#1 :
+// CHECK-NEXT:      %[[ADJ_USED:.*]] = quake.h %[[ADJ_RZ]] :
+// CHECK-NEXT:      quake.wrap %[[ADJ_CX]]#0
+// CHECK-NEXT:      quake.wrap %[[ADJ_USED]]
+// CHECK-NEXT:      return
+
+// INTEGRATION-END
+
+// A phase correction preserves the wire's Boolean phase on a repeated run.
+
+func.func @phase_correction_is_transparent_on_rerun(
+    %before: f64, %controlAngle: f64, %targetAngle: f64) {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %rz = quake.rz (%before) %target : (f64, !quake.wire) -> !quake.wire
+  %s = quake.s %rz : (!quake.wire) -> !quake.wire
+  %cx:2 = quake.x [%control] %s
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %controlRz = quake.rz (%controlAngle) %cx#0
+      : (f64, !quake.wire) -> !quake.wire
+  %targetRz = quake.rz (%targetAngle) %cx#1
+      : (f64, !quake.wire) -> !quake.wire
+  quake.sink %controlRz : !quake.wire
+  quake.sink %targetRz : !quake.wire
+  return
+}
+
+// TWICE-LABEL: func.func @phase_correction_is_transparent_on_rerun(
+// TWICE-SAME:      %{{.*}}: f64, %[[CONTROL_ANGLE:.*]]: f64, %[[TARGET_ANGLE:.*]]: f64)
+// TWICE:         %[[PHASE:.*]] = quake.phase
+// TWICE-NEXT:    %[[CX:.*]]:2 = quake.x {{\[}}%{{.*}}] %[[PHASE]]
+// TWICE-NEXT:    %[[CONTROL_RZ:.*]] = quake.rz (%[[CONTROL_ANGLE]]) %[[CX]]#0
+// TWICE-NEXT:    %[[TARGET_RZ:.*]] = quake.rz (%[[TARGET_ANGLE]]) %[[CX]]#1
+// TWICE-NEXT:    quake.sink %[[CONTROL_RZ]]
+// TWICE-NEXT:    quake.sink %[[TARGET_RZ]]
 
 // A swap exchanges the phases carried by the two wires, so rotations on either
 // side of it are still recognized as sharing a phase term and merged.

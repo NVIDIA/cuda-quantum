@@ -17,4 +17,9 @@ if(CUDAQ_ENABLE_CORE)
   if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     add_subdirectory(test)
   endif()
+
+  install(EXPORT cudaq-dev-targets
+          FILE CUDAQDevTargets.cmake
+          DESTINATION lib/cmake/cudaq
+          COMPONENT Development)
 endif()

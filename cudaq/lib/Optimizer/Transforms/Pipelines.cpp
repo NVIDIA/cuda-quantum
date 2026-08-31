@@ -118,7 +118,6 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
@@ -205,6 +204,11 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   ctsOpts.epsilon = epsilon;
   ctsOpts.failOnControlledRotation = failOnControlledRotation;
   pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
+  // Synthesis emits the omega global phase of each Clifford+T word. It is
+  // uncontrolled here, so lowering erases it. This is the one point where the
+  // phase is discarded, and it happens after the IR that carried it is final.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
   cudaq::opt::DecompositionOptions decOpts;
   decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
   pm.addPass(cudaq::opt::createDecomposition(decOpts));
@@ -293,6 +297,7 @@ void cudaq::opt::registerJITPipelines() {
 static void createPythonAOTPipeline(OpPassManager &pm,
                                     const PythonAOTOptions &options) {
   // NB: This pipeline should be kept in synch with the pipeline in nvq++.
+  pm.addPass(cudaq::opt::createVerifyAtomicQuantumRegions());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -301,10 +306,6 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  // Apply specialization must see the quantum operations directly. Inlining
-  // first prevents quantum func.call operations from being left uncontrolled
-  // in generated control or adjoint variants.
-  cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization());

@@ -50,6 +50,10 @@ project(cudaq LANGUAGES CXX C)
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
 
+# Always install to `lib`. This avoids the `lib` vs `lib64` mismatch depending
+# on distribution.
+set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries (lib)" FORCE)
+
 # Prevent In-source builds
 # ==============================================================================
 # Using the undocumented `CMAKE_DISABLE_IN_SOURCE_BUILDS` and
@@ -163,11 +167,6 @@ elseif (CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND NOT CMAKE_SYSTEM_NAME STREQUAL "L
   set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector." FORCE)
 endif()
 
-# Enable Quantum Circuits, Inc. (QCI) target by default.
-if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
-  set(CUDAQ_ENABLE_QCI_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
-endif()
-
 # Enable TII target by default.
 if (NOT DEFINED CUDAQ_ENABLE_TII_BACKEND)
   set(CUDAQ_ENABLE_TII_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the TII target.")
@@ -268,7 +267,6 @@ endif()
 # Options
 # ==============================================================================
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
-option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)

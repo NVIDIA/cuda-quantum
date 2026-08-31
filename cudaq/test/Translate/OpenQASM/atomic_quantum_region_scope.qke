@@ -1,0 +1,27 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=openqasm2 %s | FileCheck %s
+
+// Models a retained atomic helper that returns a classical rotation parameter
+// after inlining. The terminal OpenQASM pipeline must resolve the scope result
+// before translation.
+func.func @scope_result() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.ref
+  %half = arith.constant 5.000000e-01 : f64
+  %theta = cc.scope -> (f64) {
+    quake.h %q : (!quake.ref) -> ()
+    cc.continue %half : f64
+  } {atomic_quantum_region}
+  quake.rx (%theta) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK: qreg var0[1];
+// CHECK-NEXT: h var0[0];
+// CHECK-NEXT: rx(5.000000e-01) var0[0];

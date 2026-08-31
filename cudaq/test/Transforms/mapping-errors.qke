@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' %s -split-input-file -verify-diagnostics
+// RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' --mlir-print-ir-after-failure %s -split-input-file -verify-diagnostics 2>&1 | FileCheck --check-prefix=UNCHANGED %s
 
 // expected-error@+1 {{no borrow_wire ops found in test_00}}
 func.func @test_00() {
@@ -51,6 +52,145 @@ func.func @test_02() {
   %2 = quake.alloca !quake.ref
   %3 = quake.alloca !quake.ref
   quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_alloc[10]
+
+func.func @test_02_scope_alloc() {
+  %0 = quake.borrow_wire @wires_02_scope_alloc[0] : !quake.wire
+  // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside a scope}}
+  cc.scope {
+    %1 = quake.alloca !quake.ref
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_borrow[10]
+
+func.func @test_02_scope_borrow() {
+  %0 = quake.borrow_wire @wires_02_scope_borrow[0] : !quake.wire
+  // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside a scope}}
+  cc.scope {
+    %1 = quake.borrow_wire @wires_02_scope_borrow[1] : !quake.wire
+    quake.sink %1 : !quake.wire
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_exit[10]
+
+func.func @test_02_scope_return() {
+  %0 = quake.borrow_wire @wires_02_scope_exit[0] : !quake.wire
+  cc.scope {
+    // expected-error @+1 {{mapper cannot handle terminal wire operations inside a scope}}
+    cc.scope {
+      quake.return_wire %0 : !quake.wire
+      cc.continue
+    }
+    cc.continue
+  }
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_drop[10]
+
+// UNCHANGED-LABEL: func.func @test_02_scope_drop
+// UNCHANGED:       quake.borrow_wire @wires_02_scope_drop[0]
+// UNCHANGED:       cc.scope -> (!quake.wire)
+// UNCHANGED:       quake.return_wire
+func.func @test_02_scope_drop() {
+  %0 = quake.borrow_wire @wires_02_scope_drop[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_02_scope_drop[1] : !quake.wire
+  // expected-error @+1 {{mapper requires a scope result for every wire consumed in the scope}}
+  %2 = cc.scope -> !quake.wire {
+    %3:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %3#0 : !quake.wire
+  }
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_cfg[10]
+
+func.func @test_02_scope_cfg() {
+  %0 = quake.borrow_wire @wires_02_scope_cfg[0] : !quake.wire
+  // expected-error @+1 {{mapper can only handle single-block scopes}}
+  cc.scope {
+    cf.br ^bb1
+  ^bb1:
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_loop_step[10]
+
+func.func @test_02_scope_loop_step() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires_02_scope_loop_step[0] : !quake.wire
+  cc.loop while {
+    cc.condition %cond
+  } do {
+    cc.continue
+  } step {
+    // expected-error @+1 {{mapper cannot handle scopes nested inside structured control flow}}
+    cc.scope {
+      cc.continue
+    }
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_contains_control_flow[10]
+
+func.func @test_02_scope_contains_control_flow() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires_02_scope_contains_control_flow[0] : !quake.wire
+  cc.scope {
+    // expected-error @+1 {{mapper cannot handle structured control flow inside a scope}}
+    cc.if (%cond) {
+      cc.continue
+    }
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_measurement[10]
+
+func.func @test_02_scope_measurement() {
+  %0 = quake.borrow_wire @wires_02_scope_measurement[0] : !quake.wire
+  %1 = cc.scope -> !quake.wire {
+    // expected-error @+1 {{unsupported mid-circuit measurement}}
+    %result, %wire = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    cc.continue %wire : !quake.wire
+  }
+  quake.return_wire %1 : !quake.wire
   return
 }
 
@@ -150,5 +290,23 @@ func.func @test_07() {
   }
   quake.return_wire %loop#0 : !quake.wire
   quake.return_wire %loop#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_08[10]
+
+// The mapper cannot choose one body when borrowed wires span the run entry and
+// its wrapper scope.
+// expected-error@+1 {{mapper requires all borrow_wire operations in a run entry to be in its selected body block}}
+func.func @test_08.run() attributes {quake.cudaq_run = [i1]} {
+  %0 = quake.borrow_wire @wires_08[0] : !quake.wire
+  cc.scope {
+    %1 = quake.borrow_wire @wires_08[1] : !quake.wire
+    quake.return_wire %1 : !quake.wire
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
   return
 }
