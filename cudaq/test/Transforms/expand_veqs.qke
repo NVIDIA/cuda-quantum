@@ -86,6 +86,22 @@ func.func @mixed_control_polarities() {
 // CHECK-NEXT:    %[[VECTOR_CONTROL_1:.*]] = quake.extract_ref %[[VECTOR]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK-NEXT:    quake.x [%[[LEFT]], %[[VECTOR_CONTROL_0]], %[[VECTOR_CONTROL_1]], %[[RIGHT]] neg [true, false, false, true]] %[[MIXED_TARGET]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
 
+func.func @mixed_sized_and_unresolved_controls(%count: i64) {
+  %sized = quake.alloca !quake.veq<1>
+  %unresolved = quake.alloca !quake.veq<?>[%count : i64]
+  %target = quake.alloca !quake.ref
+  quake.x [%sized, %unresolved neg [true, false]] %target : (!quake.veq<1>, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @mixed_sized_and_unresolved_controls(
+// CHECK-SAME:      %[[COUNT:.*]]: i64) {
+// CHECK:           %[[SIZED:.*]] = quake.alloca !quake.veq<1>
+// CHECK-NEXT:      %[[UNRESOLVED:.*]] = quake.alloca !quake.veq<?>[%[[COUNT]] : i64]
+// CHECK:           %[[TARGET:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[SIZED_CONTROL:.*]] = quake.extract_ref %[[SIZED]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK-NEXT:      quake.x [%[[SIZED_CONTROL]], %[[UNRESOLVED]] neg [true, false]] %[[TARGET]] : (!quake.ref, !quake.veq<?>, !quake.ref) -> ()
+
 func.func @preserve_wire_result() {
   %controls = quake.alloca !quake.veq<2>
   %target = quake.null_wire
