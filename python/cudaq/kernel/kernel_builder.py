@@ -1756,9 +1756,9 @@ class PyKernel(object):
             try:
                 with trace.span("cudaq.pipeline.aot"):
                     cudaq_runtime.runPassManager(pm, self.qkeModule)
-            except:
+            except Exception as e:
                 raise RuntimeError("could not compile code for '" +
-                                   self.uniqName + "'.")
+                                   self.uniqName + "'.\n" + str(e)) from e
             self.qkeModule.operation.attributes.__setitem__(
                 cudaq__unique_attr_name,
                 StringAttr.get(self.uniqName, context=ctx))

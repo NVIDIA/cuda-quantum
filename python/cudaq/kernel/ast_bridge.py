@@ -6276,8 +6276,9 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     try:
         with trace.span("cudaq.pipeline.aot"):
             cudaq_runtime.runPassManager(pm, bridge.module)
-    except:
-        raise RuntimeError(f"could not compile code for '{bridge.name}'.")
+    except Exception as e:
+        raise RuntimeError(
+            f"could not compile code for '{bridge.name}'.\n{e}") from e
 
     bridge.module.operation.attributes.__setitem__(
         cudaq__unique_attr_name, StringAttr.get(bridge.name,

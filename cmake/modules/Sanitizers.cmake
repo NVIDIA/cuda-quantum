@@ -18,6 +18,12 @@
 # -fno-omit-frame-pointer: Preserves frame pointers for better stack traces
 # -fno-optimize-sibling-calls: Disables tail call optimization for accurate stack traces
 # -fsanitize-address-use-after-scope: Detects use-after-scope bugs (Clang only)
+#
+# The flags are applied to C and C++ only. nvcc rejects them as its own options
+# and would need them forwarded with -Xcompiler, which instruments just the host
+# half of a .cu file; device code cannot be covered by ASan/UBSan at all (use
+# compute-sanitizer for that). Mixing instrumented and uninstrumented
+# translation units is supported by both sanitizers.
 
 include_guard()
 
@@ -46,15 +52,11 @@ function(cudaq_enable_sanitizers)
   # Sanitizer link flags
   set(SANITIZER_LINK_FLAGS -fsanitize=address,undefined)
 
-  # Convert list to space-separated string for CMAKE_*_FLAGS variables
-  # list(JOIN SANITIZER_COMPILE_FLAGS " " SANITIZER_COMPILE_FLAGS_STR)
-  # list(JOIN SANITIZER_LINK_FLAGS " " SANITIZER_LINK_FLAGS_STR)
-
   message(STATUS "  Sanitizer compile flags: ${SANITIZER_COMPILE_FLAGS}")
   message(STATUS "  Sanitizer link flags: ${SANITIZER_LINK_FLAGS}")
 
   # Apply flags globally using add_compile_options and add_link_options
   # These affect all targets defined after this point
-  add_compile_options(${SANITIZER_COMPILE_FLAGS})
-  add_link_options(${SANITIZER_LINK_FLAGS})
+  add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:${SANITIZER_COMPILE_FLAGS}>")
+  add_link_options("$<$<LINK_LANGUAGE:C,CXX>:${SANITIZER_LINK_FLAGS}>")
 endfunction()
