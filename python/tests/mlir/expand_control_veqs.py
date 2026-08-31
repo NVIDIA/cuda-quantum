@@ -15,8 +15,10 @@ from cudaq.mlir.passmanager import PassManager
 def test_expand_mixed_sized_and_unresolved_controls():
     ir = """
 module {
-  func.func @mixed_controls(%unresolved: !quake.veq<?>) {
+  func.func @mixed_controls() {
     %sized = quake.alloca !quake.veq<1>
+    %count = arith.constant 16 : i64
+    %unresolved = quake.alloca !quake.veq<?>[%count : i64]
     %target = quake.alloca !quake.ref
     quake.x [%sized, %unresolved] %target : (!quake.veq<1>, !quake.veq<?>, !quake.ref) -> ()
     return
