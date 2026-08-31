@@ -15,6 +15,13 @@
 /// ordering the RoCE recv-WQE path provides); the TX thread ships any
 /// published TX slot (tx_flag[slot] == slot data address) to the peer as one
 /// full-stride datagram and clears the flag.
+///
+/// Unified mode (cpu_udp_set_unified) replaces both threads with two hooks the
+/// caller pumps from its own thread -- rxPoll/txPublish below -- for consumers
+/// that already own a dispatch loop and do not want a second one. Everything
+/// else is shared with the threaded shape: the same rings, the same socket, the
+/// same peer learning, the same oversize policy. See udp_wrapper.h's "Unified
+/// mode" section for the two ways the ring contract differs.
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/cpu_relax.h"
@@ -134,13 +141,91 @@ public:
     return true;
   }
 
+  // Must precede start(), which is what it changes. Refused once running: the
+  // pump threads and the hooks would then be contending for the same socket
+  // and the same slots.
+  bool setUnified(bool enable) {
+    if (running)
+      return false;
+    unified = enable;
+    return true;
+  }
+
   bool start() {
     if (fd < 0 || running)
       return false;
     running = true;
+    // Unified: the caller's thread is the data plane, so there is nothing to
+    // spawn. Still marked running, so close() and the misuse guards below
+    // behave identically in both shapes.
+    if (unified)
+      return true;
     rx_thread = std::thread([this] { rxLoop(); });
     tx_thread = std::thread([this] { txLoop(); });
     return true;
+  }
+
+  // Non-blocking RX for the unified shape. Returns true and sets *out_slot when
+  // a datagram has been placed at rx_data + slot * page_size -- the exact
+  // address the consumer derives for itself, since this shape carries no
+  // address in a flag.
+  //
+  // rx_flags is deliberately untouched: in this shape nothing ever clears an rx
+  // flag, so setting one would wedge that slot permanently. Occupancy is
+  // tracked through tx_flags alone.
+  bool rxPoll(std::uint32_t *out_slot) {
+    if (!unified || !out_slot || fd < 0)
+      return false;
+
+    // Back-pressure: a response is still in flight for this slot (a running
+    // GRAPH_LAUNCH graph), so its RX half cannot be reused yet. Checked before
+    // the recv so the datagram stays queued in the socket rather than being
+    // consumed with nowhere to put it.
+    if (load_flag(&tx_flags[next_rx_slot]) != 0)
+      return false;
+
+    std::uint8_t *rx_slot = rx_data + next_rx_slot * page_size;
+    sockaddr_in from{};
+    socklen_t fromlen = sizeof(from);
+    // Straight into the slot, no staging copy. MSG_TRUNC still reports the
+    // datagram's true length even though at most page_size bytes were copied,
+    // which is what keeps the oversize check below honest.
+    const ssize_t got =
+        ::recvfrom(fd, rx_slot, page_size, MSG_DONTWAIT | MSG_TRUNC,
+                   reinterpret_cast<sockaddr *>(&from), &fromlen);
+    if (got <= 0)
+      return false; // EAGAIN: nothing ready
+    if (static_cast<std::size_t>(got) > page_size) {
+      warnOversizeOnce(got);
+      // The slot keeps a truncated prefix, which is harmless: it was never
+      // reported, so nothing can read it, and the next poll on this slot
+      // overwrites it.
+      return false;
+    }
+    std::memset(rx_slot + got, 0, page_size - static_cast<std::size_t>(got));
+
+    // No peer_mutex here, and none needed: in this shape there are no pump
+    // threads, and both hooks run on the consumer's one dispatch thread.
+    peer_addr = from;
+    have_peer = true;
+    *out_slot = next_rx_slot;
+    next_rx_slot = (next_rx_slot + 1) % num_pages;
+    return true;
+  }
+
+  // Ship one TX slot to the most recent inbound peer as one full-stride
+  // datagram. Slot-addressed rather than FIFO, so responses may be published in
+  // any order -- unlike txLoop, whose cursor imposes publish order.
+  //
+  // Does NOT touch tx_flags: in this shape the consumer (dispatcher and graph
+  // engine) owns them, and txLoop's clear-after-send has no counterpart here.
+  bool txPublish(std::uint32_t slot) {
+    if (!unified || fd < 0 || slot >= num_pages || !have_peer)
+      return false;
+    const std::uint8_t *tx_slot = tx_data + slot * page_size;
+    return ::sendto(fd, tx_slot, page_size, 0,
+                    reinterpret_cast<const sockaddr *>(&peer_addr),
+                    sizeof(peer_addr)) == static_cast<ssize_t>(page_size);
   }
 
   void close() {
@@ -168,11 +253,24 @@ private:
     fd = ::socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0)
       return false;
-    // Bounded recv wait so rxLoop can observe shutdown.
+    // Bounded recv wait so rxLoop can observe shutdown. Irrelevant in unified
+    // mode, whose recv is MSG_DONTWAIT.
     const timeval rx_poll_interval{0, 100000}; // 100 ms
     ::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &rx_poll_interval,
                  sizeof(rx_poll_interval));
     return true;
+  }
+
+  // Shared by both shapes: a stride mismatch drops EVERY request, which
+  // otherwise looks like a silent hang upstream, so it is worth one loud line -
+  // but only one.
+  void warnOversizeOnce(ssize_t got) {
+    if (!oversize_warned.exchange(true))
+      std::fprintf(stderr,
+                   "[cudaq-udp-transport] dropping %zd-byte datagram: "
+                   "exceeds this end's page_size (%zu); both ends must "
+                   "use the same slot stride (further drops not logged)\n",
+                   got, page_size);
   }
 
   // One inbound datagram -> one RX slot, in strict ring order. Back-pressure
@@ -190,14 +288,7 @@ private:
       if (got <= 0)
         continue; // timeout/EINTR: re-check `running`
       if (static_cast<std::size_t>(got) > page_size) {
-        // Stride mismatch with the peer; drop. Warn once -- a mismatch drops
-        // EVERY request, which otherwise looks like a silent hang upstream.
-        if (!oversize_warned.exchange(true))
-          std::fprintf(stderr,
-                       "[cudaq-udp-transport] dropping %zd-byte datagram: "
-                       "exceeds this end's page_size (%zu); both ends must "
-                       "use the same slot stride (further drops not logged)\n",
-                       got, page_size);
+        warnOversizeOnce(got); // stride mismatch with the peer; drop
         continue;
       }
 
@@ -269,6 +360,12 @@ private:
   std::uint16_t local_port = 0;
   std::atomic<bool> running{false};
   std::atomic<bool> oversize_warned{false};
+  // Set before start() and never written again, so the hot paths can read it
+  // without synchronization.
+  bool unified = false;
+  // rxPoll's ring cursor -- rxLoop's equivalent is a local, since only one of
+  // the two shapes ever runs. Plain unsigned: the one dispatch thread owns it.
+  unsigned next_rx_slot = 0;
   std::thread rx_thread;
   std::thread tx_thread;
   std::mutex peer_mutex;
@@ -333,8 +430,20 @@ uint16_t cpu_udp_get_port(cpu_udp_transceiver_t handle) {
   return handle ? cast(handle)->port() : 0;
 }
 
+int cpu_udp_set_unified(cpu_udp_transceiver_t handle, int unified) {
+  return handle && cast(handle)->setUnified(unified != 0) ? 1 : 0;
+}
+
 int cpu_udp_start(cpu_udp_transceiver_t handle) {
   return handle && cast(handle)->start() ? 1 : 0;
+}
+
+int cpu_udp_rx_poll(cpu_udp_transceiver_t handle, uint32_t *out_slot) {
+  return handle && cast(handle)->rxPoll(out_slot) ? 1 : 0;
+}
+
+int cpu_udp_tx_publish(cpu_udp_transceiver_t handle, uint32_t slot) {
+  return handle && cast(handle)->txPublish(slot) ? 1 : 0;
 }
 
 void cpu_udp_close(cpu_udp_transceiver_t handle) {
