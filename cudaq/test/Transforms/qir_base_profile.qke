@@ -154,6 +154,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_35]], %[[VAL_37]]) {ResultIndex = 3 : i64, registerName = "r00003"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
+// CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__quantum__rt__qubit_allocate() -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array(i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
@@ -186,7 +187,6 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:         func.func private @__quantum__qis__exp_pauli__ctl(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
 // CHECK:         func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
 // CHECK:         func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
-// CHECK:         llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__quantum__qis__h__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__x__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__y__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)

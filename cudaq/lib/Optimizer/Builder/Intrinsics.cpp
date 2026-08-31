@@ -687,6 +687,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
+    {cudaq::opt::NVQIRGeneralizedInvokeAny, {}, R"#(
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
+)#"},
+
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
     //                    resultOffset, vectorArgPtrs)
     {cudaq::runtime::launchKernelHybridFuncName, {}, R"#(
@@ -717,7 +721,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // subtargets (full, base profle, or adaptive profile).
     // These include qubit allocation and management, control variants of the
     // gates, some one offs, and control form invocation helper routines.
-    {"qir_common", {cudaq::opt::QISTrap}, R"#(
+    {"qir_common",
+     {cudaq::opt::QISTrap, cudaq::opt::NVQIRGeneralizedInvokeAny},
+     R"#(
   func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
   func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
@@ -762,7 +768,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__logical_observable(!cc.ptr<!qir_result>, i64, i64)
   func.func private @__quantum__qis__pair_detectors(!cc.ptr<!qir_result>, i64, !cc.ptr<!qir_result>, i64)
 
-  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
   llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
 )#"},
 
