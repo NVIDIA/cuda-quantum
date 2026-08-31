@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -447,7 +448,8 @@ protected:
   // subcircuit; would be nice to turn them into local arguments instead
   SetVector<Value> termination_points;
   SetVector<Value> anchor_points;
-  SetVector<Value> seen;
+  // Only membership matters here. DenseSet avoids SetVector's linear erase.
+  DenseSet<Value> seen;
   DenseMap<Value, Value> scope_result_to_continue_operand;
 
   bool isTerminationPoint(Operation *op) {
@@ -574,8 +576,8 @@ protected:
       if (seen.contains(next))
         continue;
       calculateSubcircuitForQubitForward(next);
-      // Remove next from seen for working backwards
-      seen.remove(next);
+      // Revisit the anchor when walking backward.
+      seen.erase(next);
       calculateSubcircuitForQubitBackward(next);
     }
   }
