@@ -839,7 +839,6 @@ public:
     // Each simplification run gets a fresh matcher and logical-qubit operation
     // index.
     auto simplify = [&]() {
-      ++numSimplificationRuns;
       cudaq::opt::CommutationAwareRewriteDriver driver(*ctx, config);
       auto &patterns = driver.get_patterns();
       patterns.add<EraseDoubleReset, EraseResetSink>(ctx, numResetsErased);
@@ -884,13 +883,13 @@ public:
       RewritePatternSet legalizationPatterns(ctx);
       populateRotationsToCliffordTPatterns(
           legalizationPatterns, cliffordTEpsilon, numCliffordTRotations);
-      bool legalizationChanged = false;
+      bool legalizationStageChanged = false;
       if (failed(applyPatternsGreedily(region, std::move(legalizationPatterns),
-                                       config, &legalizationChanged))) {
+                                       config, &legalizationStageChanged))) {
         signalPassFailure();
         return;
       }
-      if (!legalizationChanged)
+      if (!legalizationStageChanged)
         return;
     }
 
