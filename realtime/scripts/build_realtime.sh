@@ -43,7 +43,7 @@
 #                                   given after -- overrides both.
 #   CUDAQ_REALTIME_BUILD_TESTS      Build the unit tests. Defaults to ON.
 #   CUDAQ_REALTIME_BUILD_EXAMPLES   Build the examples. Defaults to OFF.
-#   HSB_ROOT                     Holoscan Sensor Bridge source checkout.
+#   HSB_ROOT                        Holoscan Sensor Bridge source checkout.
 #                                   HSB tools are enabled when it exists.
 #                                   Defaults to $HOME/cudaq/holoscan-sensor-bridge;
 #                                   set it to the empty string to never enable them.
@@ -123,8 +123,8 @@ OPTIND=$__optind__
 install_prefix=${CUDAQ_REALTIME_INSTALL_PREFIX:-${CUDAQ_INSTALL_PREFIX:-$HOME/.cudaq_realtime}}
 
 # HSB tools need a built holoscan-sensor-bridge tree; enable them if we find one.
-# An explicitly empty HSB_SRC_DIR opts out of the search.
-hsb_src_dir=${HSB_SRC_DIR-/tmp/holoscan-sensor-bridge}
+# An explicitly empty HSB_ROOT opts out of the search.
+hsb_src_dir=${HSB_ROOT-/tmp/holoscan-sensor-bridge}
 hsb_cmake_args=(-DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=OFF)
 if [ -n "$hsb_src_dir" ] && [ -d "$hsb_src_dir" ]; then
   echo "Holoscan Sensor Bridge detected in $hsb_src_dir. Enabling HSB tools."
