@@ -4697,9 +4697,11 @@ class PyASTBridge(ast.NodeVisitor):
             if (cc.SequenceType.isinstance(orig_iterable_type) or
                     quake.VeqType.isinstance(orig_iterable_type)):
                 i64Ty = self.getIntegerType()
+                i1Ty = self.getIntegerType(1)
                 veqTy = self.getVeqType()
-                c0 = self.getConstantInt(0)
                 c1 = self.getConstantInt(1)
+                falseVal = self.getConstantInt(0, 1)
+                trueVal = self.getConstantInt(1, 1)
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
                 veq1_ty = quake.VeqType.get(1, context=self.ctx)
 
@@ -4714,86 +4716,68 @@ class PyASTBridge(ast.NodeVisitor):
                     return cc.LoadOp(elem_addr).result
 
                 def bodyBuilder(args):
-                    i, curr_veq = args[0], args[1]
+                    # `found` tracks whether a real qubit has been placed in
+                    # the accumulator yet. Until it has, `curr_veq` is just
+                    # the initial poison seed and is *never read* by this
+                    # body: a matching element always *replaces* it (a
+                    # fresh `veq<1>`), never concatenates onto it. Only once
+                    # `found` is true does a later match grow the (now
+                    # real) accumulator via `quake.concat`. A `!quake.veq<0>`
+                    # has no valid semantics, so it must never be an operand
+                    # to a concat -- it may only ever be the final, unread
+                    # result of a search that found nothing at all.
+                    i, found, curr_veq = args[0], args[1], args[2]
                     idx_val = extractElem(i)
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    if hasFilter:
-                        cond = evalFilter()
-                        ifOp = cc.IfOp([veqTy], cond, [])
-                        thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-                        with InsertionPoint(thenBlock):
-                            self.visit(node.elt)
-                            ref = self.popValue()
-                            appended = quake.ConcatOp(veqTy,
-                                                      [curr_veq, ref]).result
-                            cc.ContinueOp([appended])
-                        elseBlock = Block.create_at_start(ifOp.elseRegion, [])
-                        with InsertionPoint(elseBlock):
-                            cc.ContinueOp([curr_veq])
-                        new_veq = ifOp.result
-                    else:
+                    cond = evalFilter() if hasFilter else trueVal
+                    ifCond = cc.IfOp([i1Ty, veqTy], cond, [])
+                    condThen = Block.create_at_start(ifCond.thenRegion, [])
+                    with InsertionPoint(condThen):
                         self.visit(node.elt)
                         ref = self.popValue()
-                        new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
-                    self.symbolTable.endBlock()
-                    cc.ContinueOp([i, new_veq])
-
-                # Check if the source iterable is empty. If so, return a
-                # poison `veq<0>`. Otherwise peel the first element to form a
-                # `veq<1>` seed so the loop never starts from a `veq<0> alloca`
-                # (which has no valid semantics).
-                isEmpty = arith.CmpIOp(IntegerAttr.get(i64Ty, 0), iterableSize,
-                                       c0).result
-                ifEmptyOp = cc.IfOp([veqTy], isEmpty, [])
-                emptyBlock = Block.create_at_start(ifEmptyOp.thenRegion, [])
-                with InsertionPoint(emptyBlock):
-                    poison = cc.PoisonOp(empty_veq_ty)
-                    cc.ContinueOp(
-                        [quake.RelaxSizeOp(veqTy, poison.result).result])
-
-                nonEmptyBlock = Block.create_at_start(ifEmptyOp.elseRegion, [])
-                with InsertionPoint(nonEmptyBlock):
-                    # Peel element 0 to form the initial `veq<1>` seed.
-                    idx_val_0 = extractElem(c0)
-                    self.symbolTable.beginBlock()
-                    self.__deconstructAssignment(node.generators[0].target,
-                                                 idx_val_0)
-                    if hasFilter:
-                        cond0 = evalFilter()
-                        ifFilter0 = cc.IfOp([veqTy], cond0, [])
-                        thenBlock0 = Block.create_at_start(
-                            ifFilter0.thenRegion, [])
-                        with InsertionPoint(thenBlock0):
-                            self.visit(node.elt)
-                            ref0 = self.popValue()
-                            veq1 = quake.ConcatOp(veq1_ty, [ref0]).result
+                        ifFound = cc.IfOp([veqTy], found, [])
+                        foundThen = Block.create_at_start(
+                            ifFound.thenRegion, [])
+                        with InsertionPoint(foundThen):
+                            grown = quake.ConcatOp(veqTy,
+                                                   [curr_veq, ref]).result
+                            cc.ContinueOp([grown])
+                        foundElse = Block.create_at_start(
+                            ifFound.elseRegion, [])
+                        with InsertionPoint(foundElse):
+                            veq1 = quake.ConcatOp(veq1_ty, [ref]).result
                             cc.ContinueOp(
                                 [quake.RelaxSizeOp(veqTy, veq1).result])
-                        elseBlock0 = Block.create_at_start(
-                            ifFilter0.elseRegion, [])
-                        with InsertionPoint(elseBlock0):
-                            poison0 = cc.PoisonOp(empty_veq_ty)
-                            cc.ContinueOp([
-                                quake.RelaxSizeOp(veqTy, poison0.result).result
-                            ])
-                        init_seed = ifFilter0.result
-                    else:
-                        self.visit(node.elt)
-                        ref0 = self.popValue()
-                        veq1 = quake.ConcatOp(veq1_ty, [ref0]).result
-                        init_seed = quake.RelaxSizeOp(veqTy, veq1).result
+                        cc.ContinueOp([trueVal, ifFound.result])
+                    condElse = Block.create_at_start(ifCond.elseRegion, [])
+                    with InsertionPoint(condElse):
+                        cc.ContinueOp([found, curr_veq])
                     self.symbolTable.endBlock()
+                    cc.ContinueOp([i, ifCond.results[0], ifCond.results[1]])
 
-                    loop = self.createForLoop(
-                        [i64Ty, veqTy], bodyBuilder, [c1, init_seed],
-                        lambda args: arith.CmpIOp(IntegerAttr.get(
-                            i64Ty, 2), args[0], iterableSize).result, lambda
-                        args: [arith.AddIOp(args[0], c1).result, args[1]])
-                    cc.ContinueOp([loop.results[1]])
+                # Seed the accumulator with poison: there is no sound
+                # zero-length `!quake.veq` to allocate and grow. The loop
+                # above only ever *replaces* this seed (with a real
+                # `veq<1>`) the first time a matching element is found; it
+                # is never grown from. If no element ever matches -- an
+                # empty source iterable, or a filter that rejects every
+                # element -- the poison seed survives as the final,
+                # unread-by-this-lowering result. Using that result (e.g.
+                # applying a gate to it) is then a bug in the user's kernel,
+                # not something this lowering can paper over.
+                poison = cc.PoisonOp(empty_veq_ty)
+                init_seed = quake.RelaxSizeOp(veqTy, poison.result).result
 
-                self.pushValue(ifEmptyOp.result)
+                loop = self.createForLoop(
+                    [i64Ty, i1Ty, veqTy], bodyBuilder,
+                    [self.getConstantInt(0), falseVal, init_seed],
+                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
+                        0], iterableSize).result, lambda args:
+                    [arith.AddIOp(args[0], c1).result, args[1], args[2]])
+
+                self.pushValue(loop.results[2])
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",

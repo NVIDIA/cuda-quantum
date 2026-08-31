@@ -172,3 +172,13 @@ func.func @log_output_erase_all_empty_veq_args(%e0: !quake.veq<0>,
 // CHECK-LABEL: func.func @log_output_erase_all_empty_veq_args(
 // CHECK-NOT:     quake.log_output
 // CHECK:         return
+
+// There are no qubits to free in an empty veq, so the dealloc is dead.
+func.func @erase_empty_veq_dealloc(%e: !quake.veq<0>) {
+  quake.dealloc %e : !quake.veq<0>
+  return
+}
+
+// CHECK-LABEL: func.func @erase_empty_veq_dealloc(
+// CHECK-NOT:     quake.dealloc
+// CHECK:         return

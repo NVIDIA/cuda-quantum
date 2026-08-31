@@ -332,6 +332,11 @@ cudaq::quake::InitializeStateOp cudaq::quake::AllocaOp::getInitializedState() {
   return {};
 }
 
+void cudaq::quake::DeallocOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseEmptyVeqDeallocPattern>(context);
+}
+
 //===----------------------------------------------------------------------===//
 // Apply
 //===----------------------------------------------------------------------===//

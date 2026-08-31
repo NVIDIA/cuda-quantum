@@ -159,6 +159,24 @@ static bool isEmptyVeqType(Value value) {
   return veqTy && veqTy.hasSpecifiedSize() && veqTy.getSize() == 0;
 }
 
+// quake.dealloc %empty : !quake.veq<0>
+// ─────────────────────────────────────
+// removed
+//
+// There are no qubits to free, so the op is dead.
+struct EraseEmptyVeqDeallocPattern
+    : public OpRewritePattern<cudaq::quake::DeallocOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::DeallocOp dealloc,
+                                PatternRewriter &rewriter) const override {
+    if (!isEmptyVeqType(dealloc.getReference()))
+      return failure();
+    rewriter.eraseOp(dealloc);
+    return success();
+  }
+};
+
 // quake.x [%c, %empty] %t : (!quake.ref, !quake.veq<0>, !quake.ref) -> ()
 // ─────────────────────────────────────────────────────────────────────
 // quake.x [%c] %t : (!quake.ref, !quake.ref) -> ()

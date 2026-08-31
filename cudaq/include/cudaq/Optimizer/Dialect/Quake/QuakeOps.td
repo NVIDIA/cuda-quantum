@@ -162,6 +162,8 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
   let assemblyFormat = [{
     $reference `:` qualified(type($reference)) attr-dict
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 //===----------------------------------------------------------------------===//
