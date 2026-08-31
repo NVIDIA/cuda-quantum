@@ -10,31 +10,48 @@
 /// @brief Service half of the realtime two-process tests: a dispatcher serving
 ///        the `rpc_increment` HOST_CALL handler over any bridge provider.
 ///
+/// Also meant to be read.  This is the shortest complete path from "I have a
+/// bridge provider" to "I am serving RPCs", so the numbered steps in `main` are
+/// the reference: they are the whole API sequence, in order, with nothing
+/// hidden behind a helper.  Copy them.
+///
 /// Transport-agnostic by construction.  Every transport is reached through the
 /// same bridge vtable (bridge_interface.h), and each provider owns its own
 /// bring-up -- udp binds a socket in create(), cpu_roce does the full TCP
 /// rendezvous plus QP/rkey swap across create()/connect() -- so there is no
-/// per-transport code here.  `--transport=` names the provider library and
-/// every unrecognized argument is forwarded to it verbatim, which is how
-/// `--port=`, `--device=`, `--local-ip=`, `--qp_config=`, `--peer-ip=`,
-/// `--remote-qp=`, `--num-slots=` and `--slot-size=` reach the provider that
-/// understands them.  Providers ignore arguments they do not recognize, by
-/// contract, so forwarding the whole command line is safe.
+/// per-transport code here.
+///
+/// TWO COMMAND LINES, ONE ARGV
+///
+///     cudaq-realtime-test-server [server options] [-- bridge options]
+///
+/// `--` is the boundary: before it are this server's options, after it are the
+/// bridge's, forwarded verbatim and never read here.  That is how `--port=`,
+/// `--device=`, `--local-ip=`, `--qp_config=`, `--peer-ip=`, `--remote-qp=`,
+/// `--num-slots=`, `--slot-size=`, `--unified` and `--pinned-rings` reach the
+/// provider that understands them, without this file knowing any of them exist.
+/// Sharing one namespace was tried: everything unrecognized was forwarded and
+/// providers ignore what they do not know, so a misspelled option of OURS was
+/// swallowed and served the default.  The split is what lets this server reject
+/// its own typos.
+///
+/// THE SHAPE TAKES A TOKEN ON EACH SIDE OF THE `--`
+///
+///     --dispatch=ring                          (and no --unified)
+///     --dispatch=unified  --  ... --unified
+///
+/// `--dispatch=` wires THIS SERVER: `ring` means the dispatcher polls the
+/// provider's ring buffer while the provider moves bytes to the wire on its own
+/// threads; `unified` means one loop does RX, dispatch and TX, driving the
+/// transport through the provider's rx_poll/tx_publish hooks.  A provider
+/// parses its own arguments in create() and cannot see this flag, so it needs
+/// its own for the same shape.
 ///
 /// ORDERING RULE: the READY line is printed BEFORE cudaq_bridge_connect().
 /// A rendezvous transport blocks in connect() until the caller dials in, while
 /// the caller waits for READY before dialing -- announcing after connecting
 /// would deadlock the pair.  Providers are built for this order: endpoint info
 /// is valid as soon as create() returns.
-///
-/// Two dispatch shapes are wired through the three functions below, so a shape
-/// is one command-line token rather than a second binary:
-///   --dispatch=ring     dispatcher polls the provider's ring buffer while the
-///                       provider's own pump threads move bytes to the wire.
-///   --dispatch=unified  dispatcher drives the transport itself through the
-///                       provider's rx_poll/tx_publish hooks and the provider
-///                       starts no threads.  Fails cleanly with UNSUPPORTED
-///                       against a provider whose get_cpu_dataplane is NULL.
 ///
 /// Handshake, both parsed by cudaq::realtime::testing::ServerProcess:
 ///   CUDAQ_REALTIME_SERVER_READY <provider key=value...> dispatch=<shape>
@@ -63,16 +80,15 @@ setup_rpc_increment_function_table_host(cudaq_function_entry_t *h_entries);
 
 namespace {
 
-enum class Shape { Ring, Unified };
-
-const char *shape_name(Shape shape) {
-  return shape == Shape::Unified ? "unified" : "ring";
-}
-
 struct ServerConfig {
   std::string transport = "udp";
-  Shape shape = Shape::Ring;
+  bool unified = false;
   int timeout_sec = 60;
+  // The bridge's own command line: the tokens after `--`, forwarded verbatim
+  // and never interpreted here.  Points into main's argv, which outlives
+  // create().
+  int bridge_argc = 0;
+  char **bridge_argv = nullptr;
 };
 
 std::atomic<int> g_shutdown{0};
@@ -85,19 +101,26 @@ bool starts_with(const std::string &s, const char *prefix) {
 
 void print_usage(const char *program) {
   std::cout
-      << "Usage: " << program << " [options] [provider options]\n\n"
+      << "Usage: " << program << " [server options] [-- bridge options]\n\n"
       << "Serves the rpc_increment HOST_CALL handler over any bridge "
          "provider.\n\n"
-      << "Options:\n"
+      << "Server options (before --):\n"
       << "  --transport=NAME    provider to load: a bare name resolved to\n"
       << "                      libcudaq-realtime-bridge-<name>.so (udp,\n"
       << "                      cpu_roce, ...) or a path to a provider .so\n"
       << "                      [default udp]\n"
       << "  --dispatch=SHAPE    ring | unified            [default ring]\n"
+      << "                      wires THIS SERVER only; the bridge needs its\n"
+      << "                      own flag for the same shape (udp: --unified)\n"
       << "  --timeout=N         run timeout in seconds    [default 60]\n\n"
-      << "All other options are forwarded to the provider, e.g. --port=N,\n"
-      << "--num-slots=N, --slot-size=N, --device=NAME, --local-ip=ADDR,\n"
-      << "--qp_config=MODE, --peer-ip=ADDR, --remote-qp=N.\n";
+      << "Bridge options (after --) are forwarded verbatim and never read\n"
+      << "here, e.g. --port=N, --num-slots=N, --slot-size=N, --unified,\n"
+      << "--pinned-rings, --device=NAME, --local-ip=ADDR, --qp_config=MODE,\n"
+      << "--peer-ip=ADDR, --remote-qp=N.\n\n"
+      << "Examples:\n"
+      << "  " << program << " --transport=udp --dispatch=ring -- --port=0\n"
+      << "  " << program
+      << " --transport=udp --dispatch=unified -- --port=0 --unified\n";
 }
 
 // Ring geometry is queried from the provider rather than parsed here, so the
@@ -109,23 +132,27 @@ bool parse_args(int argc, char **argv, ServerConfig &cfg, bool &help) {
       help = true;
       return false;
     }
+    // `--` ends our options; the rest is the bridge's, untouched, including
+    // tokens that look like ours.
+    if (a == "--") {
+      cfg.bridge_argv = argv + i + 1;
+      cfg.bridge_argc = argc - i - 1;
+      return true;
+    }
     try {
       if (starts_with(a, "--transport="))
         cfg.transport = a.substr(12);
-      else if (starts_with(a, "--dispatch=")) {
-        const std::string shape = a.substr(11);
-        if (shape == "ring")
-          cfg.shape = Shape::Ring;
-        else if (shape == "unified")
-          cfg.shape = Shape::Unified;
-        else {
-          std::cerr << "ERROR: unknown --dispatch=" << shape
-                    << " (expected ring or unified)" << std::endl;
-          return false;
-        }
-      } else if (starts_with(a, "--timeout="))
+      else if (a == "--dispatch=ring")
+        cfg.unified = false;
+      else if (a == "--dispatch=unified")
+        cfg.unified = true;
+      else if (starts_with(a, "--timeout="))
         cfg.timeout_sec = std::stoi(a.substr(10));
-      // Everything else belongs to the provider; forwarded untouched.
+      else {
+        std::cerr << "ERROR: unknown server option '" << a
+                  << "'; bridge options go after '--'" << std::endl;
+        return false;
+      }
     } catch (const std::exception &) {
       std::cerr << "ERROR: bad numeric value in '" << a << "'" << std::endl;
       return false;
@@ -157,56 +184,6 @@ std::string resolve_provider_lib(const std::string &transport) {
 #endif
   return soname; // fall back to the dynamic loader's search path
 }
-
-//===----------------------------------------------------------------------===//
-// The shape seam: the only three shape-aware functions in this file.
-//===----------------------------------------------------------------------===//
-
-// Transport context the dispatcher is wired to.  The unified data-plane is
-// held by pointer inside the dispatcher, so this must outlive it (declared
-// before the dispatcher in main, destroyed after).
-struct ShapeState {
-  cudaq_ringbuffer_t ring{};
-  cudaq_cpu_dataplane_t dataplane{};
-};
-
-// (1) Read at cudaq_dispatcher_create time.
-void configure_shape(Shape shape, cudaq_dispatcher_config_t &dcfg) {
-  if (shape == Shape::Unified) {
-    // The unified loop keeps the per-slot TX markers (its publish hook reads
-    // them to tell a running graph from a finished one), so skip_tx_markers
-    // stays 0; the dispatcher overrides it regardless.
-    dcfg.kernel_type = CUDAQ_KERNEL_UNIFIED;
-    return;
-  }
-  dcfg.kernel_type = CUDAQ_KERNEL_REGULAR;
-  // The provider's TX pump owns the wire and treats any non-zero flag as a
-  // slot address, so the in-flight sentinel must not be written.
-  dcfg.skip_tx_markers = 1;
-}
-
-// (2) Called after create, before start.
-cudaq_status_t wire_shape(Shape shape, cudaq_realtime_bridge_handle_t bridge,
-                          cudaq_dispatcher_t *dispatcher, ShapeState &state) {
-  if (shape == Shape::Unified) {
-    const cudaq_status_t status =
-        cudaq_bridge_get_cpu_dataplane(bridge, &state.dataplane);
-    if (status != CUDAQ_OK)
-      return status;
-    return cudaq_dispatcher_set_cpu_dataplane(dispatcher, &state.dataplane);
-  }
-  const cudaq_status_t status =
-      cudaq_bridge_get_transport_context(bridge, RING_BUFFER, &state.ring);
-  if (status != CUDAQ_OK)
-    return status;
-  return cudaq_dispatcher_set_ringbuffer(dispatcher, &state.ring);
-}
-
-// (3) Unified drives the transport from the dispatcher's own thread; starting
-// the provider's pump threads as well would race its hooks for the rings.
-bool needs_bridge_launch(Shape shape) { return shape != Shape::Unified; }
-
-//===----------------------------------------------------------------------===//
 
 // Reverse-order teardown, so any early `return 1` releases the transport too.
 // The dispatcher goes first: its loop reads the provider's rings (and under
@@ -245,19 +222,26 @@ int main(int argc, char **argv) {
     }
     return 1;
   }
+  const char *shape = cfg.unified ? "unified" : "ring";
 
   std::signal(SIGINT, on_signal);
   std::signal(SIGTERM, on_signal);
 
-  // Declared before the resources so it outlives the dispatcher that points
-  // into it (see ShapeState).
-  ShapeState state;
+  // Declared up here, and not down at [4] where it is filled, because
+  // cudaq_dispatcher_set_cpu_dataplane RETAINS THIS POINTER -- the loop
+  // dereferences it on every iteration.  Before `res` for the same reason: its
+  // destructor stops the dispatcher, which has to happen while the struct the
+  // dispatcher is reading is still alive.  The ring buffer needs none of this
+  // and stays local to its branch: set_ringbuffer copies.
+  cudaq_cpu_dataplane_t dataplane{};
   ServerResources res;
 
-  // [1] Load the provider and let it parse our whole command line.
+  // [1] Load the provider and hand it its own command line -- the tokens after
+  //     `--`, verbatim, and nothing of ours.
   const std::string library = resolve_provider_lib(cfg.transport);
-  if (cudaq_bridge_create_from_library(&res.bridge, library.c_str(), argc,
-                                       argv) != CUDAQ_OK) {
+  if (cudaq_bridge_create_from_library(&res.bridge, library.c_str(),
+                                       cfg.bridge_argc,
+                                       cfg.bridge_argv) != CUDAQ_OK) {
     std::cerr << "ERROR: cannot create a bridge from '" << library
               << "' (--transport=" << cfg.transport << ")" << std::endl;
     return 1;
@@ -285,6 +269,7 @@ int main(int argc, char **argv) {
   }
 
   // [3] Dispatcher: HOST path, HOST_CALL mode, geometry from the transport.
+  //     One of the two places the shape appears.
   if (cudaq_dispatch_manager_create(&res.manager) != CUDAQ_OK) {
     std::cerr << "ERROR: cudaq_dispatch_manager_create failed" << std::endl;
     return 1;
@@ -294,24 +279,71 @@ int main(int argc, char **argv) {
   dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
   dcfg.num_slots = num_slots;
   dcfg.slot_size = slot_size;
-  configure_shape(cfg.shape, dcfg);
+  dcfg.kernel_type = cfg.unified ? CUDAQ_KERNEL_UNIFIED : CUDAQ_KERNEL_REGULAR;
+  // Ring shape only: the provider's TX pump owns the wire and treats any
+  // non-zero flag as a slot address, so the in-flight sentinel must not be
+  // written.  The unified loop needs that sentinel (its publish hook reads it
+  // to tell a running graph from a finished one) and forces this to 0 anyway.
+  dcfg.skip_tx_markers = cfg.unified ? 0 : 1;
   if (cudaq_dispatcher_create(res.manager, &dcfg, &res.dispatcher) !=
       CUDAQ_OK) {
     std::cerr << "ERROR: cudaq_dispatcher_create failed" << std::endl;
     return 1;
   }
 
-  // [4] Wire the transport to the dispatcher (shape-dependent).
-  const cudaq_status_t wired =
-      wire_shape(cfg.shape, res.bridge, res.dispatcher, state);
-  if (wired != CUDAQ_OK) {
-    std::cerr << "ERROR: cannot wire --dispatch=" << shape_name(cfg.shape)
-              << " to provider '" << library << "': "
-              << (wired == CUDAQ_ERR_UNSUPPORTED
-                      ? "the provider does not support this shape"
-                      : "wiring failed")
-              << std::endl;
-    return 1;
+  // [4] Wire the transport to the dispatcher: a ring the dispatcher polls, or
+  //     the two hooks it drives itself.  The other place the shape appears, and
+  //     the one that catches a shape the provider is not serving.
+  if (cfg.unified) {
+    cudaq_unified_dispatch_ctx_t unified_dispatch{};
+    if (cudaq_bridge_get_transport_context(res.bridge, UNIFIED,
+                                           &unified_dispatch) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to get unified dispatch context" << std::endl;
+      return 1;
+    }
+    if (unified_dispatch.launch_fn != nullptr &&
+        unified_dispatch.transport_ctx != nullptr &&
+        dcfg.dispatch_path == CUDAQ_DISPATCH_PATH_DEVICE) {
+      // Legacy path: the bridge provides the dispatch call.
+      if (cudaq_dispatcher_set_unified_launch(
+              res.dispatcher, unified_dispatch.launch_fn,
+              unified_dispatch.transport_ctx) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set unified launch function"
+                  << std::endl;
+        return 1;
+      }
+    } else {
+      if (cudaq_bridge_get_cpu_dataplane(res.bridge, &dataplane) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to get CPU dataplane" << std::endl;
+        return 1;
+      }
+      if (cudaq_dispatcher_set_cpu_dataplane(res.dispatcher, &dataplane) !=
+          CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set CPU dataplane" << std::endl;
+        return 1;
+      }
+    }
+  } else {
+    cudaq_ringbuffer_t ring{};
+    if (cudaq_bridge_get_transport_context(res.bridge, RING_BUFFER, &ring) !=
+        CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to get ring buffer context" << std::endl;
+      return 1;
+    }
+    if (cudaq_dispatcher_set_ringbuffer(res.dispatcher, &ring) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set ring buffer" << std::endl;
+      return 1;
+    }
+
+    // Legacy path: the dispatching call is provided externally.
+    if (dcfg.dispatch_path == CUDAQ_DISPATCH_PATH_DEVICE) {
+      if (cudaq_dispatcher_set_launch_fn(
+              res.dispatcher, &cudaq_launch_dispatch_kernel_regular) !=
+          CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set launch function" << std::endl;
+        return 1;
+      }
+    }
   }
 
   // [5] Function table: the single host-side increment handler.
@@ -345,7 +377,7 @@ int main(int argc, char **argv) {
   //     through so the harness needs no per-transport parsing.  std::endl
   //     flushes, which matters because stdout is a pipe here.
   std::cout << "CUDAQ_REALTIME_SERVER_READY " << endpoint
-            << " dispatch=" << shape_name(cfg.shape) << " slots=" << num_slots
+            << " dispatch=" << shape << " slots=" << num_slots
             << " slot_size=" << slot_size << std::endl;
 
   // [8] Connect: a no-op for connectionless transports, a blocking wait for
@@ -355,10 +387,11 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // [9] Start the provider's pump threads last, once the dispatcher is
-  //     already polling.
-  if (needs_bridge_launch(cfg.shape) &&
-      cudaq_bridge_launch(res.bridge) != CUDAQ_OK) {
+  // [9] Hand the provider its go-ahead, last, once the dispatcher is already
+  //     polling.  Unconditional: a transport with nothing to start under this
+  //     shape (udp under --unified, whose loop is ours) does nothing here,
+  //     which is its business rather than ours to predict.
+  if (cudaq_bridge_launch(res.bridge) != CUDAQ_OK) {
     std::cerr << "ERROR: cudaq_bridge_launch failed" << std::endl;
     return 1;
   }

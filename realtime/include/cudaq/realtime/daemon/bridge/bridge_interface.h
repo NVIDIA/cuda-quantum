@@ -37,9 +37,14 @@ typedef enum {
 
 } cudaq_realtime_transport_provider_t;
 
+/// Transport shapes a provider may serve.  A provider answers
+/// `get_transport_context` for the one it is configured for and refuses the
+/// other; see cudaq_bridge_get_transport_context for that contract.
 typedef enum {
-  RING_BUFFER = 0, // Ring buffer context (for GpuRoceTransceiver provider)
-  UNIFIED = 1,     /// Unified transport context  for unified dispatch
+  RING_BUFFER = 0, /// Rings the consumer polls, filled by the transport's own
+                   /// RX/TX path (threads or kernels)
+  UNIFIED = 1,     /// One loop does RX, dispatch and TX; the context says whose
+                   /// loop it is
 } cudaq_realtime_transport_context_t;
 
 /// Result of a non-blocking RX poll on the ringbuffer dataplane.
@@ -148,8 +153,9 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 /// @brief Destroy the transport bridge and release all associated resources.
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 
-/// @brief Retrieve the transport context for the given bridge.
-/// This could be a ring buffer or unified context.
+/// @brief Retrieve the transport context for the given bridge: a
+/// `cudaq_ringbuffer_t` for RING_BUFFER, a `cudaq_unified_dispatch_ctx_t` for
+/// UNIFIED.
 cudaq_status_t cudaq_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t bridge,
     cudaq_realtime_transport_context_t context_type, void *out_context);
