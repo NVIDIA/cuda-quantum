@@ -624,11 +624,13 @@ struct WireSetToProfileQIRPrepPass
         ctx, TypeRange{builder.getI64Type(), i8PtrTy, qbTy, qbTy}, TypeRange{});
     createNewDecl(cudaq::opt::NVQIRInvokeWithControlBits, invokeCtrlTy);
 
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::NVQIRGeneralizedInvokeAny, LLVM::LLVMVoidType::get(ctx),
-        {builder.getI64Type(), builder.getI64Type(), builder.getI64Type(),
-         builder.getI64Type(), cudaq::opt::factory::getPointerType(ctx)},
-        op, /*isVar=*/true);
+    cudaq::IRBuilder irBuilder(builder);
+    if (failed(irBuilder.loadIntrinsic(
+            op, cudaq::opt::NVQIRGeneralizedInvokeAny))) {
+      op.emitError("could not load generalized invoke intrinsic.");
+      signalPassFailure();
+      return;
+    }
 
     unsigned counter = 0;
     op.walk([&](cudaq::quake::MzOp meas) {

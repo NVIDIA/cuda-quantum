@@ -63,6 +63,7 @@ func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 // CHECK-NEXT: llvm.call @__quantum__qis__h__body
 // CHECK: llvm.return
 
+// CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // PIPELINE-NOT: convert-to-cfg
 // PIPELINE-NOT: stack-frame-prealloc
 // PIPELINE: convert-to-cfg-prep,
