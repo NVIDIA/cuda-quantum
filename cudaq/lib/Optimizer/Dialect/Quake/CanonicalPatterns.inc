@@ -312,20 +312,21 @@ struct ConcatNoOpPattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
     // or
     // concat ref -> ref
     auto qubitsToConcat = concat.getTargets();
-    if (qubitsToConcat.size() > 1)
+    if (qubitsToConcat.size() != 1)
       return failure();
 
     // We only want to handle veq -> veq here.
-    if (isa<cudaq::quake::RefType>(qubitsToConcat.front().getType())) {
+    auto argTy = qubitsToConcat.front().getType();
+    auto *ctx = rewriter.getContext();
+    auto refTy = cudaq::quake::RefType::get(ctx);
+    if (argTy == refTy)
       return failure();
-    }
 
     // Do not handle anything where we don't know the sizes.
+    auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto retTy = concat.getResult().getType();
-    if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(retTy))
-      if (!veqTy.hasSpecifiedSize())
-        // This could be a folded quake.relax_size op.
-        return failure();
+    if (retTy == unsizedVeqTy || argTy != retTy)
+      return failure();
 
     rewriter.replaceOp(concat, qubitsToConcat);
     return success();
@@ -709,51 +710,6 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
     if (auto unwrap =
             wrap.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>())
       rewriter.eraseOp(wrap);
-    return success();
-  }
-};
-
-template <typename OP>
-struct MergeRotationPattern : public OpRewritePattern<OP> {
-  using Base = OpRewritePattern<OP>;
-  using Base::Base;
-
-  LogicalResult matchAndRewrite(OP rotate,
-                                PatternRewriter &rewriter) const override {
-    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
-    if (rotate.getTarget(0).getType() != wireTy ||
-        !rotate.getControls().empty())
-      return failure();
-    assert(!rotate.getNegatedQubitControls());
-    auto input = rotate.getTarget(0).template getDefiningOp<OP>();
-    if (!input || !input.getControls().empty())
-      return failure();
-    assert(!input.getNegatedQubitControls());
-
-    // At this point, we have
-    //   %input  = quake.rotate %angle1, %wire
-    //   %rotate = quake.rotate %angle2, %input
-    // Replace those ops with
-    //   %new    = quake.rotate (%angle1 + %angle2), %wire
-    auto loc = rotate.getLoc();
-    auto angle1 = input.getParameter(0);
-    auto angle2 = rotate.getParameter(0);
-    if (angle1.getType() != angle2.getType())
-      return failure();
-    auto adjAttr = rotate.getIsAdjAttr();
-    auto newAngle = [&]() -> Value {
-      if (input.isAdj() == rotate.isAdj())
-        return arith::AddFOp::create(rewriter, loc, angle1, angle2);
-      // One is adjoint, so it should be subtracted from the other.
-      if (input.isAdj())
-        return arith::SubFOp::create(rewriter, loc, angle2, angle1);
-      adjAttr = input.getIsAdjAttr();
-      return arith::SubFOp::create(rewriter, loc, angle1, angle2);
-    }();
-    rewriter.replaceOpWithNewOp<OP>(rotate, rotate.getResultTypes(), adjAttr,
-                                    ValueRange{newAngle}, ValueRange{},
-                                    ValueRange{input.getTarget(0)},
-                                    rotate.getNegatedQubitControlsAttr());
     return success();
   }
 };

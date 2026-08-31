@@ -1,0 +1,84 @@
+name: Check changed paths
+description: |
+  Check whether the change under test touches any of the given path prefixes.
+  Replaces trigger-level `paths:` filters, which see the push's before..after
+  diff (polluted by copy-pr-bot rebases) and are unsupported on merge_group
+  events. Diffs the PR against its merge base (push) or the merge group
+  against its base (merge_group). Fails open on errors or truncated lists.
+  Requires `gh` and a token with contents:read and pull-requests:read.
+inputs:
+  paths:
+    description: Newline-separated list of path prefixes to match against changed files.
+    required: true
+  token:
+    description: Token used for GitHub API queries.
+    required: false
+    default: ${{ github.token }}
+outputs:
+  matched:
+    description: "'true' if any changed file starts with one of the given prefixes, otherwise 'false'"
+    value: ${{ steps.check.outputs.matched }}
+runs:
+  using: composite
+  steps:
+    - name: Compare changed files against path prefixes
+      id: check
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PATH_PREFIXES: ${{ inputs.paths }}
+        EVENT_NAME: ${{ github.event_name }}
+        REF_NAME: ${{ github.ref_name }}
+        REPO: ${{ github.repository }}
+        MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+        MERGE_GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
+      run: |
+        matched=""
+        files=""
+        case "$EVENT_NAME" in
+          push)
+            if [[ "$REF_NAME" =~ ^pull-request/([0-9]+)$ ]]; then
+              pr="${BASH_REMATCH[1]}"
+              # Diff the PR against its merge base, not the push range.
+              if files=$(gh api --paginate "repos/${REPO}/pulls/${pr}/files?per_page=100" --jq '.[].filename'); then
+                # The API stops listing files at 3000; treat that as truncated.
+                if [ "$(grep -c . <<< "$files")" -ge 3000 ]; then matched=true; fi
+              else
+                matched=true
+              fi
+            else
+              # Direct push to a non-PR branch: run everything.
+              matched=true
+            fi
+            ;;
+          merge_group)
+            # Diff the merge group against the target branch it was built on.
+            if files=$(gh api "repos/${REPO}/compare/${MERGE_GROUP_BASE}...${MERGE_GROUP_HEAD}" --jq '.files[].filename'); then
+              # The compare API lists at most 300 files; treat a full list as truncated.
+              if [ "$(grep -c . <<< "$files")" -ge 300 ]; then matched=true; fi
+            else
+              matched=true
+            fi
+            ;;
+          *)
+            # workflow_dispatch, schedule, etc.: run everything.
+            matched=true
+            ;;
+        esac
+        if [ -z "$matched" ]; then
+          matched=false
+          readarray -t prefixes <<< "$PATH_PREFIXES"
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            for prefix in "${prefixes[@]}"; do
+              [ -z "$prefix" ] && continue
+              if [[ "$file" == "$prefix"* ]]; then
+                echo "Matched changed file: $file (prefix: $prefix)"
+                matched=true
+                break 2
+              fi
+            done
+          done <<< "$files"
+        fi
+        echo "matched=$matched" >> "$GITHUB_OUTPUT"
+        echo "check-changed-paths: event=$EVENT_NAME matched=$matched"

@@ -719,15 +719,46 @@ class ASTBridgeAction : public clang::ASTFrontendAction {
 public:
   using MangledKernelNamesMap = cudaq::MangledKernelNamesMap;
 
-  /// Constructor.
+  /// Options controlling emission of a Makefile-syntax dependency file (the
+  /// GNU-style -MD/-MMD/-MT/-MF information). nvq++ lowers __qpu__ kernels
+  /// through cudaq-quake instead of a plain clang -c, so this action -- the one
+  /// place that runs a preprocessor over the input for both the MLIR-only and
+  /// the LLVM-IR (CudaQAction-composed) paths -- is where header dependencies
+  /// are recorded. See attachDependencyFileGenerator().
+  struct DependencyFileOptions {
+    /// Path to write the dependency file to (the -MF value). When empty,
+    /// dependency-file generation is disabled.
+    std::string outputFile;
+    /// Target name(s) for the emitted rule (the -MT values).
+    std::vector<std::string> targets;
+    /// Whether to include system headers (-MD) or omit them (-MMD).
+    bool includeSystemHeaders = false;
+    /// Canonical on-disk path of the main input file. clang::tooling maps the
+    /// source to a virtual file named after the (bare) input spelling, so the
+    /// dependency generator would otherwise record the main file under a
+    /// non-existent relative name. When set, that entry is rewritten to this
+    /// path so the emitted rule's prerequisite matches the real source.
+    std::string mainFileRealPath;
+  };
+
+  /// Constructor. \p depOpts is stored by reference and so must outlive this
+  /// action (in cudaq-quake it is a local in main() that outlives the
+  /// synchronous tool run); pass a default-constructed value to disable
+  /// dependency-file generation.
   ASTBridgeAction(mlir::OwningOpRef<mlir::ModuleOp> &_module,
-                  MangledKernelNamesMap &cxx_mangled)
-      : module(_module), cxx_mangled_kernel_names(cxx_mangled) {}
+                  MangledKernelNamesMap &cxx_mangled,
+                  const DependencyFileOptions &depOpts)
+      : dependencyFileOptions(depOpts), module(_module),
+        cxx_mangled_kernel_names(cxx_mangled) {}
 
   /// Instantiate the ASTBridgeConsumer for this ASTFrontendAction.
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &compiler,
                     llvm::StringRef inFile) override {
+    // Collect header dependencies during the preprocessor pass this consumer
+    // is about to drive. This runs for both the standalone MLIR path and the
+    // LLVM-IR path (where CudaQAction forwards to this same CreateASTConsumer).
+    attachDependencyFileGenerator(compiler);
     return std::make_unique<ASTBridgeConsumer>(compiler, module,
                                                cxx_mangled_kernel_names);
   }
@@ -804,6 +835,15 @@ public:
     // operation
     static bool isCustomOpGenerator(const clang::FunctionDecl *decl);
   };
+
+private:
+  /// Attach clang's DependencyFileGenerator to \p ci's preprocessor when
+  /// dependencyFileOptions is non-empty. The generator writes the dependency
+  /// file when the preprocessor reaches the end of the main file; no extra
+  /// object is emitted.
+  void attachDependencyFileGenerator(clang::CompilerInstance &ci);
+
+  const DependencyFileOptions &dependencyFileOptions;
 
 protected:
   // The MLIR Module we are building up

@@ -57,7 +57,8 @@ def QEC_ObservableOp : QECOp<"observable"> {
   let description = [{
     Declares a logical observable as a binary sum of measurement results.
     Operands may be individual `!cc.measure_handle` values or a
-    `!cc.stdvec<!cc.measure_handle>` collection.
+    `!cc.stdvec<!cc.measure_handle>` collection. The optional observable index
+    defaults to 0.
   }];
   let arguments = (ins
     Variadic<AnyTypeOf<[cc_MeasureHandleType,

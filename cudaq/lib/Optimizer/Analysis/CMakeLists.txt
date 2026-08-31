@@ -13,3 +13,5 @@ add_cudaq_library(OptAnalysis
     CCDialect
     QuakeDialect
 )
+
+check_registered_mlir_lib(OptAnalysis)

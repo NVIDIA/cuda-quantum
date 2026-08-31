@@ -200,15 +200,6 @@ PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
   return result;
 }
 
-PTSBEExecutionData
-buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
-                               const noise_model &noiseModel) {
-  PTSBEExecutionData trace;
-
-  trace.instructions = buildPTSBETrace(kernelTrace, noiseModel);
-  return trace;
-}
-
 void populateExecutionDataTrajectories(
     PTSBEExecutionData &executionData,
     std::vector<cudaq::KrausTrajectory> trajectories,

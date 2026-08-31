@@ -35,11 +35,10 @@ def _detail_check_conditionals_on_measure(kernel):
 def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
-    Runs `kernel` under the internal `"dem"` execution context, captures
-    the recorded circuit from the backend, and returns Stim's standard
-    `.dem` text via `stim::DetectorErrorModel::str()`. The active CUDA-Q
-    target is unaffected; the analysis simulator is an internal,
-    thread-local override.
+    Runs `kernel` under `dem_policy` with a thread-local Stim analysis
+    scope, then returns Stim's standard `.dem` text via
+    `stim::DetectorErrorModel::str()`. The active CUDA-Q target is
+    unaffected.
 
     Args:
       kernel (:class:`Kernel`): The :class:`Kernel` to analyze.
@@ -93,17 +92,17 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(*args)
-    result = cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
-                                                noise_model, dem_kwargs,
-                                                *processedArgs)
+    policy = cudaq_runtime.DemPolicy(decorator.uniqName, noise_model,
+                                     dem_kwargs)
+    result = cudaq_runtime.launch_dem(policy, lambda: decorator(*args))
 
-    if not dem_kwargs.get("return_measurement_matrices", False):
+    if not policy.return_measurement_matrices:
         return result
 
     import numpy as np
     import scipy.sparse as sp
 
+    # Positional 4-tuple order is the shared contract with `launch_dem`.
     dem_text, num_measurements, det_rows, obs_rows = result
 
     def _make_csr(rows, num_cols):

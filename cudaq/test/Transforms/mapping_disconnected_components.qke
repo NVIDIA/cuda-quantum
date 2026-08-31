@@ -8,7 +8,8 @@
 
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_components.txt) placement=auto search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_components.txt) placement=auto search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_components.txt) placement=greedy'   %s 2>&1 | FileCheck --check-prefix=GREEDY %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_components.txt) placement=greedy search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_components.txt) placement=greedy search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_components.txt) placement=identity' %s 2>&1 | FileCheck --check-prefix=IDENTITY %s
 
 quake.wire_set @wires[2147483647]
@@ -44,5 +45,4 @@ func.func @component_swapped() {
 // CHECK:           %[[X_3:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_2]]] %[[BORROW_WIRE_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[X_4:.*]]:2 = quake.x {{\[}}%[[X_3]]#1] %[[BORROW_WIRE_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 
-// GREEDY: could not find a routable initial layout for disconnected device topology
 // IDENTITY: cannot place two-qubit interaction between virtual qubits 2 and 3 on disconnected device topology

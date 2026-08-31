@@ -8,9 +8,6 @@
 
 add_executable(test_record RecordParserTester.cpp)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_record PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
 target_include_directories(test_record PRIVATE ..)
 target_link_libraries(test_record
   PRIVATE
@@ -20,4 +17,4 @@ target_link_libraries(test_record
     gtest_main
     cudaq-platform-default)
 
-gtest_discover_tests(test_record DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_record DISCOVERY_TIMEOUT 120)

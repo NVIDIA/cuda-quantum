@@ -54,32 +54,6 @@ protected:
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
 
-  [[nodiscard]] static KernelThunkResultType
-  runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
-
-  /// @brief Re-throw an exception the kernel deferred during execution, if any.
-  /// Subclasses must call this immediately after invoking a kernel, from the
-  /// C++ frame above the JIT/AOT boundary. It exists because on some platforms
-  /// (macOS arm64) a C++ exception cannot unwind through a JIT-compiled kernel
-  /// frame; the simulator records the error on the execution context instead of
-  /// throwing across that boundary (see
-  /// ExecutionContext::deferredKernelException). No-op when nothing was
-  /// deferred.
-  static void rethrowDeferredKernelException();
-
-  /// @brief RAII marker for the window in which a JIT/AOT-compiled kernel frame
-  /// is executing. While alive it sets `ExecutionContext::inKernelLaunch` on
-  /// the active context, so the simulator defers (rather than throws)
-  /// exceptions that would otherwise have to unwind through the kernel frame.
-  /// Launchers wrap the raw kernel invocation in this scope and call
-  /// rethrowDeferredKernelException() immediately afterwards.
-  struct InKernelLaunchScope {
-    InKernelLaunchScope();
-    ~InKernelLaunchScope();
-    InKernelLaunchScope(const InKernelLaunchScope &) = delete;
-    InKernelLaunchScope &operator=(const InKernelLaunchScope &) = delete;
-  };
-
 public:
   /// The constructor, initializes the execution queue
   QPU() : execution_queue(std::make_unique<QuantumExecutionQueue>()) {}
@@ -173,9 +147,33 @@ public:
                                       const CompiledModule &module,
                                       KernelArgs args);
 
+  virtual run_result launchKernel(const run_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
+  virtual async_run_policy::result_type
+  launchKernel(const async_run_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
+  virtual msm_dimensions launchKernel(const msm_size_policy &policy,
+                                      const CompiledModule &module,
+                                      KernelArgs args);
+
+  virtual msm_result launchKernel(const msm_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
   virtual async_observe_result launchKernel(const async_observe_policy &policy,
                                             const CompiledModule &module,
                                             KernelArgs args);
+
+  virtual dem_result launchKernel(const dem_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
+  virtual ptsbe::sample_policy::result_type
+  launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
 
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
@@ -183,12 +181,22 @@ public:
   /// Get the compile target of the QPU for the given policy.
   ///
   /// By default, fall back to other_policies compile target.
-  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  [[nodiscard]] virtual CompileTarget
   getCompileTarget(const sample_policy &policy);
-  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  [[nodiscard]] virtual CompileTarget
   getCompileTarget(const observe_policy &policy);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const run_policy &policy);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const msm_size_policy &policy);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const msm_policy &policy);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const dem_policy &policy);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const ptsbe::sample_policy &policy);
   // Overload for currently unsupported policies (to be removed).
-  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  [[nodiscard]] virtual CompileTarget
   getCompileTarget(const other_policies &policy, ExecutionContext *context);
 
   /// @brief Notify the QPU that a new random seed value is set.

@@ -19,6 +19,8 @@
 #   and run this script from the home directory.
 #   Check the logged output.
 
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Auto-setup if running from repo root (detected by presence of docs/sphinx/examples)
 # This allows running validation directly from the repo without manual setup.
 if [ -d "docs/sphinx/examples" ]; then
@@ -198,10 +200,29 @@ echo "Testing backends:"
 echo "$requested_backends"
 echo
 
-if $missing_backend || [ "$available_backends" == "" ]; 
+if $missing_backend || [ "$available_backends" == "" ];
 then
     echo "Abort due to missing backend configuration."
-    exit 1 
+    exit 1
+fi
+
+echo "============================="
+echo "==   License Compliance   =="
+echo "============================="
+
+# GMP and MPFR are redistributed with CUDA-Q under the LGPL v3; verify the
+# properties the redistribution relies on (license texts shipped, dynamic
+# linking only, libraries replaceable).
+let "samples+=1"
+if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+    if bash "$this_file_dir/validate_license_compliance.sh"; then
+        let "passed+=1"
+    else
+        let "failed+=1"
+    fi
+else
+    echo -e "\e[01;31mError: validate_license_compliance.sh not found in $this_file_dir.\e[0m" >&2
+    let "failed+=1"
 fi
 
 # Long-running tests
@@ -217,9 +238,12 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+# Plugin sources are libraries or test infrastructure rather than standalone
+# examples; each plugin validates them through its dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -277,7 +301,6 @@ do
         get_target_options() {
             case "$1" in
                 nvidia) echo "fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu" ;;
-                nvidia-legacy) echo "fp32 fp64 fp32,mqpu fp64,mqpu" ;;
                 tensornet) echo "fp32 fp64" ;;
                 tensornet-mps) echo "fp32 fp64" ;;
                 *) echo "" ;;
@@ -433,8 +456,11 @@ dynamics_backend_skipped_examples=(\
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
+# Plugin Python files are packaging or test infrastructure and are validated by
+# each plugin's dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-for ex in `find examples/ targets/ -name '*.py' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ targets/ -name '*.py' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -543,7 +569,12 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     echo "Installing Jupyter kernel infrastructure..."
     # Only install what's needed to register the kernel
     pip install --upgrade pip -q
-    pip install jupyter ipykernel notebook -q
+    notebook_requirements="$this_script_dir/../requirements.txt"
+    if [ -f "$notebook_requirements" ]; then
+        pip install jupyter ipykernel -r "$notebook_requirements" -q
+    else
+        pip install jupyter ipykernel notebook -q
+    fi
     
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages

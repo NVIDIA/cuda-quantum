@@ -45,15 +45,18 @@ inline bool isQuantumReferenceType(mlir::Type ty) {
   return isNonStruqReferenceType(ty) || mlir::isa<cudaq::quake::StruqType>(ty);
 }
 
-/// A quake wire type is a linear type.
+/// Quake's wire and cable types are linear types.
 inline bool isLinearType(mlir::Type ty) {
   return mlir::isa<cudaq::quake::WireType, cudaq::quake::CableType>(ty);
 }
 
+/// All linear types and the ControlType are quantum value types.
 inline bool isQuantumValueType(mlir::Type ty) {
   return isLinearType(ty) || mlir::isa<cudaq::quake::ControlType>(ty);
 }
 
+/// \returns true if and only if \p ty is a reference type and it has a constant
+/// number of quantum references.
 bool isConstantQuantumRefType(mlir::Type ty);
 
 /// Get the number of references in \p ty. \p ty must be a reference type.

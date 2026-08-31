@@ -12,6 +12,7 @@ add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
         FactoryMergeModuleTest.cpp
         DecompositionPatternsTest.cpp
         DecompositionPatternSelectionTest.cpp
+        CliffordTSynthesisTester.cpp
     INCLUDES
         ${CMAKE_SOURCE_DIR}/runtime
         ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms
@@ -69,6 +70,7 @@ add_cudaq_unittest("test_quake_synth" "quake-synth"
         cudaq-builder
         cudaq-common
         cudaq-platform-default
+        cudaqMLIR
         nvqir-qpp 
         nvqir
         cudaq-em-default

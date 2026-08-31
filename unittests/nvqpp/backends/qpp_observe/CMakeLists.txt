@@ -33,4 +33,4 @@ add_backend_unittest_executable(test_observe_backend
   cudaq-em-default
   )
 target_compile_definitions(test_observe_backend PRIVATE CUDAQ_LIBRARY_MODE)
-gtest_discover_tests(test_observe_backend DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_observe_backend DISCOVERY_TIMEOUT 120)

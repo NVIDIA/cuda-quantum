@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import sys, os
+import math
 
 import pytest
 import numpy as np
@@ -75,6 +76,8 @@ def test_simple_sampling_qpe():
                 cudaq.control(oracle, [countingQubits[i]], stateRegister)
         iqft(countingQubits)
         mz(countingQubits)
+        # FIXME: The next line is a workaround for a bug
+        ry(12 * math.pi, stateRegister)  # keep stateRegister live
 
     cudaq.set_random_seed(13)
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
@@ -205,6 +208,70 @@ def test_sample_async():
     future = cudaq.sample_async(kernel0, 5, qpu_id=0)
     sample_result = future.get()
     assert '1' in sample_result and len(sample_result) == 1
+
+
+def test_conditional_bare_return():
+
+    @cudaq.kernel
+    def kernel(skip: bool):
+        q = cudaq.qubit()
+        ry(12 * math.pi, q)
+        if skip:
+            return
+        x(q)
+
+    counts = cudaq.sample(kernel, True, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, False, shots_count=100)
+    assert '1' in counts and len(counts) == 1
+
+
+def test_composite_conditional_bare_return():
+
+    @cudaq.kernel
+    def kernel(value: int):
+        q = cudaq.qubit()
+        if value != 1 and value != 2:
+            return
+        x(q)
+
+    counts = cudaq.sample(kernel, 0, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+    for value in [1, 2]:
+        counts = cudaq.sample(kernel, value, shots_count=100)
+        assert '1' in counts and len(counts) == 1
+
+
+def test_bare_return_in_loop():
+
+    @cudaq.kernel
+    def kernel(n: int):
+        q = cudaq.qubit()
+        for i in range(n):
+            if i == 2:
+                return
+            x(q)
+
+    counts = cudaq.sample(kernel, 1, shots_count=100)
+    assert '1' in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, 3, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+
+def test_function_scope_bare_return():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        ry(12 * math.pi, q)
+        return
+        x(q)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert '0' in counts and len(counts) == 1
 
 
 # leave for gdb debugging

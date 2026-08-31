@@ -93,15 +93,6 @@ static cudaq::spin_op_term generate_cudaq_spin(int64_t id, int64_t num_qubits,
   return result;
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 TEST(SpinOpTester, checkConstruction) {
   cudaq::spin_op op = cudaq::spin_op::x(10);
   EXPECT_EQ(1, op.num_qubits());
@@ -153,31 +144,6 @@ TEST(SpinOpTester, checkAddition) {
   auto subtracted = cudaq::spin_op::x(0) - cudaq::spin_op::y(2);
 }
 
-TEST(SpinOpTester, checkBug178) {
-
-  cudaq::spin_op op = 1.0 + 2.0 * cudaq::spin_op::x(0);
-  auto [bsf, coeffs] = op.get_raw_data();
-
-  std::vector<std::vector<bool>> expected{std::vector<bool>(2),
-                                          std::vector<bool>{1, 0}};
-  cudaq::spin_op exp(expected, {1., 2.});
-  EXPECT_EQ(op, exp);
-  EXPECT_EQ(2, op.num_terms());
-  EXPECT_EQ(2, exp.num_terms());
-  auto op_it = op.begin();
-  auto exp_it = exp.begin();
-  EXPECT_EQ(*op_it++, *exp_it++);
-  EXPECT_EQ(*op_it++, *exp_it++);
-  EXPECT_EQ(op_it, op.end());
-  EXPECT_EQ(exp_it, exp.end());
-  EXPECT_EQ(op, exp);
-
-  EXPECT_TRUE(std::find(expected.begin(), expected.end(), bsf[0]) !=
-              expected.end());
-  EXPECT_TRUE(std::find(expected.begin(), expected.end(), bsf[1]) !=
-              expected.end());
-}
-
 TEST(SpinOpTester, checkMultiplication) {
   for (int num_qubits = 1; num_qubits <= 4; ++num_qubits) {
     int64_t num_words = std::pow(4, num_qubits);
@@ -194,7 +160,7 @@ TEST(SpinOpTester, checkMultiplication) {
         auto result_spin = a_spin * b_spin;
 
         // Check result
-        EXPECT_EQ(generate_pauli_string(result), result_spin.to_string(false));
+        EXPECT_EQ(generate_pauli_string(result), result_spin.get_pauli_word());
         EXPECT_EQ(phase, result_spin.get_coefficient());
       }
     }
@@ -372,10 +338,3 @@ TEST(SpinOpTester, checkMultiDiagConversionSpin) {
     }
   }
 }
-
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif

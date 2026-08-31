@@ -1197,6 +1197,17 @@ struct WrapOpErase : public OpConversionPattern<cudaq::quake::WrapOp> {
   }
 };
 
+struct WrapNewOpErase : public OpConversionPattern<cudaq::quake::WrapNewOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::WrapNewOp wrap, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOp(wrap, adaptor.getWireValue());
+    return success();
+  }
+};
+
 struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -1327,7 +1338,7 @@ struct ExpPauliOpPattern
   matchAndRewrite(cudaq::quake::ExpPauliOp pauli, Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = pauli.getLoc();
-    // Make sure that apply-control-negations pass was run.
+    // Make sure that expand-control-negations pass was run.
     if (adaptor.getNegatedQubitControls())
       return pauli->emitOpError("negated control qubits not allowed.");
     SmallVector<Value> controls;
@@ -1648,21 +1659,20 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
 
   // If we see a `quake.apply` operation at this point, something has gone wrong
   // and we were unable to autogenerate the function that we should be calling.
-  // Reaching codegen means the kernel is fully processed, so a lingering apply
-  // is unambiguously unlowerable (e.g. its callee was only forward-declared and
-  // never supplied a body; see issue #4268). Emit a diagnostic here, then
-  // replace the apply with a trap and the results with poison values so the IR
-  // remains well formed.
   LogicalResult
   matchAndRewrite(cudaq::quake::ApplyOp apply, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     if (auto callee = apply.getCallee())
-      apply.emitError("could not generate the specialized form of kernel '")
+      apply.emitWarning("could not generate the specialized form of kernel '")
           << callee->getRootReference().getValue()
-          << "'; its body was not available (it may be only forward-declared)";
+          << "'; its body was either unavailable (it may be only "
+             "forward-declared) or could not be inverted. Executing this code "
+             "path will trap";
     else
-      apply.emitError("could not generate the specialized form of an applied "
-                      "kernel; its body was not available");
+      apply.emitWarning(
+          "could not generate the specialized form of an applied kernel; its "
+          "body was either unavailable or could not be inverted. Executing "
+          "this code path will trap");
     auto loc = apply.getLoc();
     Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
     func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
@@ -1675,6 +1685,33 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
     rewriter.replaceOp(apply, values);
     return success();
   }
+};
+
+struct CustomUnitaryCallOpTrap
+    : public OpConversionPattern<cudaq::quake::CustomUnitaryCallOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::CustomUnitaryCallOp custom, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (reported.insert(custom.getGenerator().getRootReference()).second)
+      custom.emitError(
+          "custom operation was not lowered to a constant unitary matrix. Code "
+          "generation requires a constant matrix from the array-conversion / "
+          "get-concrete-matrix pipeline (skipped by nvq++ "
+          "'-fno-array-conversion', or failed to materialize a constant)");
+    auto loc = custom.getLoc();
+    Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+    func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
+                         ValueRange{zero});
+    SmallVector<Value> values;
+    for (auto r : custom.getResults())
+      values.push_back(cudaq::cc::PoisonOp::create(rewriter, loc, r.getType()));
+    rewriter.replaceOp(custom, values);
+    return success();
+  }
+
+  mutable llvm::SmallDenseSet<StringAttr> reported;
 };
 
 struct CallByRefOpRewrite
@@ -1810,7 +1847,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     };
     auto qirFunctionName = M::quakeToFuncName(op);
 
-    // Make sure that apply-control-negations pass was run.
+    // Make sure that expand-control-negations pass was run.
     if (adaptor.getNegatedQubitControls())
       return op.emitOpError("negated control qubits not allowed.");
 
@@ -2246,10 +2283,10 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, GetMemberOpRewrite,
-                  MakeStruqOpRewrite, ReturnOpPattern, RelaxSizeOpErase,
-                  UnwrapOpErase, VeqSizeOpRewrite, WrapOpErase>(typeConverter,
-                                                                ctx);
+  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, CustomUnitaryCallOpTrap,
+                  GetMemberOpRewrite, MakeStruqOpRewrite, ReturnOpPattern,
+                  RelaxSizeOpErase, UnwrapOpErase, VeqSizeOpRewrite,
+                  WrapOpErase, WrapNewOpErase>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2846,9 +2883,11 @@ struct QuakeToQIRAPIPrepPass
     {
       auto *ctx = &getContext();
       RewritePatternSet patterns(ctx);
+      ConversionTarget target(*ctx);
+      cudaq::opt::setQuakeToCCPrepLegality(target);
       QIRAPITypeConverter typeConverter(opaquePtr);
       cudaq::opt::populateQuakeToCCPrepPatterns(patterns);
-      if (failed(applyPatternsGreedily(module, std::move(patterns)))) {
+      if (failed(applyPartialConversion(module, target, std::move(patterns)))) {
         signalPassFailure();
         return;
       }

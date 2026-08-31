@@ -7,15 +7,21 @@
  ******************************************************************************/
 
 #include <nanobind/make_iterator.h>
+#include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
+#include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
 #include "py_SampleResult.h"
+#include "utils/NanobindAdaptors.h"
 
 #include "common/SampleResult.h"
+#include "nlohmann/json.hpp"
 
+#include <map>
 #include <sstream>
 
 namespace cudaq {
@@ -35,7 +41,31 @@ Note:
 	Conditional logic on mid-circuit measurements is no longer supported with
   `sample`. Use `run` instead.)#")
       .def_prop_ro("register_names", &sample_result::register_names)
-      .def(nanobind::init<>())
+      .def(
+          "__init__",
+          [](sample_result *self, const CountsDictionary &counts,
+             const nlohmann::json &annotations) {
+            new (self) sample_result(counts, cudaq_json(annotations));
+          },
+          nanobind::arg("counts") = CountsDictionary{},
+          nanobind::arg("annotations") = nlohmann::json::object(),
+          R"#(Construct a SampleResult from a counts dictionary.
+
+Args:
+  counts (dict[str, int], optional): Mapping of bitstrings to observation
+    counts. Defaults to an empty dict.
+  annotations (dict, optional): Metadata dict. Use ``annotations={"shots": N}``
+    to record an authoritative shot count that may exceed ``sum(counts.values())``
+    when shots were filtered.)#")
+      .def_prop_ro(
+          "counts", [](sample_result &self) { return self.to_map(); },
+          "Return the global counts as a ``dict[str, int]``.")
+      .def_prop_ro(
+          "annotations",
+          [](sample_result &self) -> const nlohmann::json & {
+            return self.get_annotations().get();
+          },
+          "Read-only metadata dict set by backends.")
       .def(
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "
@@ -56,6 +86,25 @@ Note:
           },
           "Return a string of the raw measurement counts that are stored in "
           "`self`.\n")
+      .def(
+          "__repr__",
+          [](sample_result &self) {
+            const auto counts = self.to_map();
+            const std::map<std::string, std::size_t> sortedCounts(
+                counts.begin(), counts.end());
+            const auto countsRepr = nanobind::cast<std::string>(
+                nanobind::repr(nanobind::cast(sortedCounts)));
+            const auto &annotations = self.get_annotations().get();
+
+            if (annotations.empty())
+              return "SampleResult(" + countsRepr + ")";
+
+            const auto annotationsRepr = nanobind::cast<std::string>(
+                nanobind::repr(nanobind::cast(annotations)));
+            return "SampleResult(" + countsRepr +
+                   ", annotations=" + annotationsRepr + ")";
+          },
+          "Return a constructor-style representation of this SampleResult.")
       .def(
           "__getitem__",
           [](sample_result &self, const std::string &bitstring) {

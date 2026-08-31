@@ -43,6 +43,10 @@ func.func @quantum_ops() {
   %18 = quake.reset %13 : (!quake.wire) -> !quake.wire
   quake.wrap %18 to %4 : !quake.wire, !quake.ref
 
+  %w1 = quake.null_wire
+  %w2 = quake.wrap_new %w1 : (!quake.wire) -> !quake.ref
+  %w3 = quake.unwrap %w2 : (!quake.ref) -> !quake.wire
+
   // Control type conversion
   %14 = quake.to_ctrl %12 : (!quake.wire) -> !quake.control
   %a14 = quake.from_ctrl %14 : (!quake.control) -> !quake.wire
@@ -195,6 +199,9 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 // CHECK:           %[[VAL_17:.*]] = quake.unwrap %[[VAL_5]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_18:.*]] = quake.reset %[[VAL_17]] : (!quake.wire) -> !quake.wire
 // CHECK:           quake.wrap %[[VAL_18]] to %[[VAL_5]] : !quake.wire, !quake.ref
+// CHECK:           %[[W1:.*]] = quake.null_wire
+// CHECK:           %[[W2:.*]] = quake.wrap_new %[[W1]] : (!quake.wire) -> !quake.ref
+// CHECK:           %[[W3:.*]] = quake.unwrap %[[W2]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_19:.*]] = quake.to_ctrl %[[VAL_16]] : (!quake.wire) -> !quake.control
 // CHECK:           %[[WAL_19:.*]] = quake.from_ctrl %[[VAL_19]] : (!quake.control) -> !quake.wire
 // CHECK:           quake.sink %[[WAL_19]] : !quake.wire

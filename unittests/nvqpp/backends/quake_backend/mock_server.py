@@ -10,7 +10,6 @@ import cudaq
 from fastapi import FastAPI, HTTPException, Request
 import uvicorn, uuid, base64, ctypes, sys, re
 from llvmlite import binding as llvm
-from preallocated_qubits_context import PreallocatedQubitsContext
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.ir import Module
 from cudaq.kernel.utils import getMLIRContext
@@ -38,12 +37,12 @@ SERVER_EXECUTION_PIPELINE = (
     "cc-loop-unroll{maximum-iterations=1024 "
     "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
     "allow-early-exit=true},"
-    "canonicalize,regtomem,canonicalize"
+    "canonicalize"
     "),"
     "canonicalize,cse,symbol-dce,lower-to-cfg,"
     "func.func(stack-frame-prealloc,combine-quantum-alloc,canonicalize,cse),"
     "symbol-dce,"
-    "convert-to-qir-api{api=adaptive-profile:1.0 opaque-pointer=true},"
+    "lower-wireset-to-profile-qir{convert-to=qir-adaptive},"
     "lower-to-cfg,symbol-dce,cc-to-llvm"
     ")")
 
@@ -127,9 +126,8 @@ def verifyModule(module, stage):
 def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
     # The client/server contract is checked before this point. The client has
     # already run the target JIT pipeline through `wireset` assignment. For
-    # execution, the mock server fully unrolls the submitted value-semantic IR,
-    # reconstructs ref semantics with `regtomem`, and then uses the normal QIR
-    # API lowering path.
+    # execution, the mock server fully unrolls the submitted value-semantic IR
+    # and lowers the `wireset` directly to QIR.
     pm = PassManager.parse(SERVER_EXECUTION_PIPELINE, context=ctx)
     try:
         pm.run(recovered_mod.operation)
@@ -203,15 +201,11 @@ async def postJob(request: Request):
     engine.run_static_constructors()
     funcPtr = engine.get_function_address(kernelFunctionName)
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
-    # Clear any leftover log from previous jobs
-    cudaq.testing.getAndClearOutputLog()
     qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
 
     shots = payload["shots"]
     for i in range(shots):
-        with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
-            kernel()
-        shot_log = cudaq.testing.getAndClearOutputLog()
+        shot_log = cudaq.testing.runKernel(numQubitsRequired, kernel)
         if i > 0:
             qir_log += "START\n"
         qir_log += shot_log

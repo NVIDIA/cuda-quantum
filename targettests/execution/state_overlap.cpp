@@ -23,6 +23,7 @@ struct bellCircuit {
 struct noOpCircuit {
   void operator()(const std::vector<double> vec) __qpu__ {
     cudaq::qvector qubits(2);
+    x(qubits); // keep qubits alive
   }
 };
 
@@ -30,6 +31,7 @@ struct trotter {
   void operator()(cudaq::state *initial_state,
                   std::vector<double> coefficients) __qpu__ {
     cudaq::qvector q(initial_state);
+    x(q); // keep qubits alive
   }
 };
 

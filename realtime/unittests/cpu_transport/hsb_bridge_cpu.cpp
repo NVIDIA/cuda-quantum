@@ -10,9 +10,9 @@
 /// @brief Phase 1 GPU-less HSB bridge using CpuRoceTransceiver +
 ///        CUDAQ_DISPATCH_HOST_CALL.
 ///
-/// Replaces hololink_bridge for the CPU-data-path test case.  No
+/// Replaces gpu_roce_bridge for the CPU-data-path test case.  No
 /// libhololink dependency, no GPU, no DOCA — only libibverbs + libcudaq-
-/// realtime + libcudaq-realtime-cpu-transport.
+/// realtime + libcudaq-realtime-cpu-roce-transport.
 ///
 /// The FPGA-side rendezvous (telling the FPGA our QP number and rkey) is
 /// out-of-band: this binary prints them to stdout and the orchestration
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
     dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
     dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
     dcfg.skip_tx_markers = 1; // we own the TX path; sentinel pattern
-                              // (used to avoid Hololink TX kernel
+                              // (used to avoid GpuRoceTransceiver TX kernel
                               // confusion) is irrelevant here.
     table.entries = h_entries;
     table.count = 1;
@@ -284,9 +284,9 @@ int main(int argc, char **argv) {
   // ------------------------------------------------------------------------
   // [4] Print rendezvous info for the orchestration script.
   // ------------------------------------------------------------------------
-  // NOTE: output format MUST match hololink_bridge_common.h exactly —
+  // NOTE: output format MUST match gpu_roce_bridge_common.h exactly —
   // "  KEY: VALUE" with a single space after the colon — because the
-  // orchestration script (hsb_test_cpu.sh, mirrored from hololink_test.sh)
+  // orchestration script (hsb_test_cpu.sh, mirrored from gpu_roce_test.sh)
   // uses strict regexes like 'QP Number: 0x\K...' to parse it.
   std::cout << "\n=== Bridge Ready ===" << std::endl;
   std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;

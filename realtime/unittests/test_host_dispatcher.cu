@@ -9,12 +9,14 @@
 #include <gtest/gtest.h>
 #include <cuda/std/atomic>
 #include <cuda_runtime.h>
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <thread>
 #include <unistd.h>
 #include <vector>
 
+#include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
@@ -26,6 +28,9 @@
   } while (0)
 
 namespace {
+
+using cudaq::realtime::RPCHeader;
+using cudaq::realtime::RPCResponse;
 
 //==============================================================================
 // Ring buffer helpers (same pattern as test_dispatch_kernel.cu)
@@ -245,6 +250,29 @@ bool create_double_graph(void** d_mailbox_slot, cudaGraph_t* graph_out,
   return true;
 }
 
+// HOST_CALL handler (two-pointer ABI): increments the rx payload into tx.
+void host_increment(const void* rx_slot, void* tx_slot, std::size_t slot_size) {
+  const auto* h = static_cast<const RPCHeader*>(rx_slot);
+  if (h->magic != cudaq::realtime::RPC_MAGIC_REQUEST)
+    return;
+  const std::uint32_t arg_len = h->arg_len;
+  const std::uint32_t request_id = h->request_id;
+  const std::uint64_t ptp = h->ptp_timestamp;
+  if (slot_size < sizeof(RPCResponse) + arg_len)
+    return;
+  const auto* in =
+      static_cast<const std::uint8_t*>(rx_slot) + sizeof(RPCHeader);
+  auto* resp = static_cast<RPCResponse*>(tx_slot);
+  resp->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
+  resp->status = 0;
+  resp->result_len = arg_len;
+  resp->request_id = request_id;
+  resp->ptp_timestamp = ptp;
+  auto* out = static_cast<std::uint8_t*>(tx_slot) + sizeof(RPCResponse);
+  for (std::uint32_t i = 0; i < arg_len; ++i)
+    out[i] = in[i] + 1;
+}
+
 //==============================================================================
 // Test fixture: drives the slim 3-thread ring loop (cudaq_host_ring_dispatch_loop)
 // over a standalone GRAPH_LAUNCH engine, for full control over idle_mask,
@@ -341,8 +369,8 @@ protected:
     // Build the standalone engine (one worker per GRAPH_LAUNCH entry); it owns
     // the worker streams / idle_mask and uses our caller-supplied pinned mailbox.
     cudaq_status_t st = CUDAQ_OK;
-    engine_ = cudaq_graph_launch_engine_create(&ringbuffer_, &table_, &config_,
-                                               h_mailbox_bank_, &st);
+    engine_ = cudaq_graph_launch_engine_create(
+        &ringbuffer_, &table_, config_.skip_tx_markers, h_mailbox_bank_, &st);
     ASSERT_EQ(st, CUDAQ_OK);
     ASSERT_NE(engine_, nullptr);
 
@@ -1398,8 +1426,8 @@ protected:
 
     cudaq_status_t engine_st = CUDAQ_OK;
     host_engine_ = cudaq_graph_launch_engine_create(
-        &host_ringbuffer_, &host_table_, &host_config_, h_mailbox_bank_,
-        &engine_st);
+        &host_ringbuffer_, &host_table_, host_config_.skip_tx_markers,
+        h_mailbox_bank_, &engine_st);
     ASSERT_EQ(engine_st, CUDAQ_OK);
     ASSERT_NE(host_engine_, nullptr);
 
@@ -1510,7 +1538,6 @@ protected:
 
   volatile int* shutdown_flag_host_ = nullptr;
   volatile int* shutdown_flag_dev_ = nullptr;
-  cuda::std::atomic<int>* host_loop_shutdown_atomic_ = nullptr;
   cudaq_function_entry_t* function_table_host_ = nullptr;
   cudaq_function_entry_t* function_table_dev_ = nullptr;
 
@@ -1566,6 +1593,283 @@ TEST_F(SharedRingDispatcherTest, InterleavedHostAndDeviceRequests) {
 
   cudaq_dispatcher_destroy(device_dispatcher_);
   device_dispatcher_ = nullptr;
+}
+
+//==============================================================================
+// Single-thread unified loop (cudaq_host_unified_loop) over a fake ring
+// data-plane.  The fake stages test-written RX slots on rx_poll and records
+// published TX slots on tx_publish.
+//==============================================================================
+
+class FakeRing {
+public:
+  FakeRing(std::size_t num_slots, std::size_t slot_size, bool in_place)
+      : num_slots_(num_slots), slot_size_(slot_size) {
+    ok_ = allocate_ring_buffer(num_slots, slot_size, &rx_flags_host_,
+                               &rx_flags_dev_, &rx_data_host_, &rx_data_dev_) &&
+          allocate_ring_buffer(num_slots, slot_size, &tx_flags_host_,
+                               &tx_flags_dev_, &tx_data_host_, &tx_data_dev_);
+    // std::atomic<int> is neither copyable nor movable, so size the vector via
+    // default-insertion (not assign) and zero each element explicitly.
+    published_ = std::vector<std::atomic<int>>(num_slots);
+    for (auto& p : published_)
+      p.store(0, std::memory_order_relaxed);
+    rb_.rx_flags = rx_flags_dev_;
+    rb_.tx_flags = tx_flags_dev_;
+    rb_.rx_data = rx_data_dev_;
+    rb_.tx_data = in_place ? rx_data_dev_ : tx_data_dev_;
+    rb_.rx_stride_sz = slot_size_;
+    rb_.tx_stride_sz = slot_size_;
+    rb_.rx_flags_host = rx_flags_host_;
+    rb_.tx_flags_host = tx_flags_host_;
+    rb_.rx_data_host = rx_data_host_;
+    rb_.tx_data_host = in_place ? rx_data_host_ : tx_data_host_;
+  }
+  ~FakeRing() {
+    free_ring_buffer(rx_flags_host_, rx_data_host_);
+    free_ring_buffer(tx_flags_host_, tx_data_host_);
+  }
+
+  bool ok() const { return ok_; }
+  const cudaq_ringbuffer_t& ring() const { return rb_; }
+  std::uint8_t* tx_host(std::size_t slot) {
+    return reinterpret_cast<std::uint8_t*>(rb_.tx_data_host) +
+           slot * slot_size_;
+  }
+
+  // Producer side (test): enqueue an already-written RX slot for delivery.
+  void enqueue(std::uint32_t slot) {
+    std::atomic_thread_fence(std::memory_order_release);
+    pending_[tail_.fetch_add(1, std::memory_order_acq_rel) % kCap] = slot;
+  }
+  bool published(std::uint32_t slot) {
+    return published_[slot].load(std::memory_order_acquire) != 0;
+  }
+
+  cudaq_cpu_dataplane_t dataplane() {
+    cudaq_cpu_dataplane_t dp{};
+    dp.ctx = this;
+    dp.ring = rb_;
+    dp.rx_poll = &FakeRing::rx_poll;
+    dp.tx_publish = &FakeRing::tx_publish;
+    return dp;
+  }
+
+private:
+  static cudaq_rx_status_t rx_poll(void* ctx, std::uint32_t* out_slot) {
+    auto* f = static_cast<FakeRing*>(ctx);
+    std::uint32_t h = f->head_.load(std::memory_order_acquire);
+    if (h == f->tail_.load(std::memory_order_acquire))
+      return CUDAQ_RX_EMPTY;
+    *out_slot = f->pending_[h % kCap];
+    f->head_.store(h + 1, std::memory_order_release);
+    return CUDAQ_RX_READY;
+  }
+  static cudaq_status_t tx_publish(void* ctx, std::uint32_t slot) {
+    auto* f = static_cast<FakeRing*>(ctx);
+    f->published_[slot].store(1, std::memory_order_release);
+    return CUDAQ_OK;
+  }
+
+  static constexpr std::size_t kCap = 64;
+  std::size_t num_slots_;
+  std::size_t slot_size_;
+  bool ok_ = false;
+  cudaq_ringbuffer_t rb_{};
+  volatile uint64_t* rx_flags_host_ = nullptr;
+  volatile uint64_t* rx_flags_dev_ = nullptr;
+  volatile uint64_t* tx_flags_host_ = nullptr;
+  volatile uint64_t* tx_flags_dev_ = nullptr;
+  std::uint8_t* rx_data_host_ = nullptr;
+  std::uint8_t* rx_data_dev_ = nullptr;
+  std::uint8_t* tx_data_host_ = nullptr;
+  std::uint8_t* tx_data_dev_ = nullptr;
+  std::atomic<std::uint32_t> head_{0};
+  std::atomic<std::uint32_t> tail_{0};
+  std::uint32_t pending_[kCap]{};
+  std::vector<std::atomic<int>> published_;
+};
+
+TEST(UnifiedLoopTest, HostCallOverRingDataplane) {
+  constexpr std::size_t num_slots = 4;
+  constexpr std::size_t slot_size = 256;
+  FakeRing fake(num_slots, slot_size, /*in_place=*/false);
+  ASSERT_TRUE(fake.ok());
+
+  cudaq_function_entry_t entry{};
+  entry.handler.host_fn = &host_increment;
+  entry.function_id = RPC_GRAPH_INCREMENT_FUNCTION_ID;
+  entry.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+
+  cudaq_cpu_dataplane_t dp = fake.dataplane();
+  volatile int shutdown_flag = 0;
+  uint64_t stats = 0;
+  cudaq_function_table_t table{&entry, 1};
+  std::thread loop([&] {
+    cudaq_host_unified_loop(&dp, &table, nullptr, &shutdown_flag, &stats);
+  });
+
+  const std::uint8_t payload[] = {10, 20, 30, 40};
+  ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
+                &fake.ring(), 1, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 7,
+                0),
+            CUDAQ_OK);
+  fake.enqueue(1);
+
+  for (int i = 0; i < 5000 && !fake.published(1); ++i)
+    usleep(200);
+  ASSERT_TRUE(fake.published(1)) << "HOST_CALL response not published";
+
+  auto* resp = reinterpret_cast<RPCResponse*>(fake.tx_host(1));
+  EXPECT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE);
+  EXPECT_EQ(resp->result_len, 4u);
+  EXPECT_EQ(resp->request_id, 7u);
+  std::uint8_t* result = fake.tx_host(1) + sizeof(RPCResponse);
+  EXPECT_EQ(result[0], 11);
+  EXPECT_EQ(result[1], 21);
+  EXPECT_EQ(result[2], 31);
+  EXPECT_EQ(result[3], 41);
+
+  shutdown_flag = 1;
+  __sync_synchronize();
+  loop.join();
+  EXPECT_EQ(stats, 1u);
+}
+
+// The unified loop validates RPC_MAGIC_REQUEST before resolving/dispatching a
+// slot (parity with the ring loop).  A slot with bad framing must be dropped:
+// no dispatch, no tx_publish, not counted.
+TEST(UnifiedLoopTest, DropsBadMagicOverRingDataplane) {
+  constexpr std::size_t num_slots = 4;
+  constexpr std::size_t slot_size = 256;
+  FakeRing fake(num_slots, slot_size, /*in_place=*/false);
+  ASSERT_TRUE(fake.ok());
+
+  cudaq_function_entry_t entry{};
+  entry.handler.host_fn = &host_increment;
+  entry.function_id = RPC_GRAPH_INCREMENT_FUNCTION_ID;
+  entry.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+
+  cudaq_cpu_dataplane_t dp = fake.dataplane();
+  volatile int shutdown_flag = 0;
+  uint64_t stats = 0;
+  cudaq_function_table_t table{&entry, 1};
+  std::thread loop([&] {
+    cudaq_host_unified_loop(&dp, &table, nullptr, &shutdown_flag, &stats);
+  });
+
+  const std::uint8_t payload[] = {10, 20, 30, 40};
+
+  // Slot 1: a well-formed request whose magic we then corrupt.
+  ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
+                &fake.ring(), 1, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 7,
+                0),
+            CUDAQ_OK);
+  auto* bad = reinterpret_cast<RPCHeader*>(
+      reinterpret_cast<std::uint8_t*>(fake.ring().rx_data_host) +
+      1 * slot_size);
+  bad->magic = 0; // bust the RPC_MAGIC_REQUEST framing
+  fake.enqueue(1);
+
+  // Slot 2: a valid request used as a fence.  rx_poll is FIFO and the loop is
+  // single-threaded, so once slot 2 is published slot 1 has already been
+  // processed (and, correctly, dropped).
+  ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
+                &fake.ring(), 2, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 8,
+                0),
+            CUDAQ_OK);
+  fake.enqueue(2);
+
+  for (int i = 0; i < 5000 && !fake.published(2); ++i)
+    usleep(200);
+  ASSERT_TRUE(fake.published(2)) << "fence request not published";
+  EXPECT_FALSE(fake.published(1)) << "bad-magic slot must be dropped";
+
+  shutdown_flag = 1;
+  __sync_synchronize();
+  loop.join();
+  EXPECT_EQ(stats, 1u); // only the fence request was dispatched
+}
+
+TEST(UnifiedLoopTest, GraphLaunchOverRingDataplane) {
+  constexpr std::size_t num_slots = 4;
+  constexpr std::size_t slot_size = 256;
+  FakeRing fake(num_slots, slot_size, /*in_place=*/false);
+  ASSERT_TRUE(fake.ok());
+
+  void** h_mailbox = nullptr;
+  void** d_mailbox = nullptr;
+  CUDA_CHECK(cudaHostAlloc(&h_mailbox, sizeof(void*), cudaHostAllocMapped));
+  std::memset(h_mailbox, 0, sizeof(void*));
+  CUDA_CHECK(cudaHostGetDevicePointer((void**)&d_mailbox, h_mailbox, 0));
+
+  // Per-RPC graph reading the GraphIOContext from the mailbox (separate rx/tx).
+  cudaGraph_t graph = nullptr;
+  cudaGraphExec_t exec = nullptr;
+  ASSERT_EQ(cudaGraphCreate(&graph, 0), cudaSuccess);
+  cudaKernelNodeParams params = {};
+  void* kernel_args[] = {&d_mailbox};
+  params.func = reinterpret_cast<void*>(graph_io_ctx_increment_kernel);
+  params.gridDim = dim3(1, 1, 1);
+  params.blockDim = dim3(32, 1, 1);
+  params.kernelParams = kernel_args;
+  cudaGraphNode_t node = nullptr;
+  ASSERT_EQ(cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params),
+            cudaSuccess);
+  ASSERT_EQ(cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0),
+            cudaSuccess);
+
+  cudaq_function_entry_t entry{};
+  entry.handler.graph_exec = exec;
+  entry.function_id = RPC_IO_CTX_INCREMENT_FUNCTION_ID;
+  entry.dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
+
+  cudaq_cpu_dataplane_t dp = fake.dataplane();
+  volatile int shutdown_flag = 0;
+  uint64_t stats = 0;
+  // The caller owns the engine now; build it from the fake ring (mirrors
+  // cudaq_dispatcher_start).  The unified loop needs IN_FLIGHT markers, so
+  // skip_tx_markers = 0.
+  cudaq_function_table_t engine_table{&entry, 1};
+  cudaq_status_t engine_st = CUDAQ_OK;
+  cudaq_graph_launch_engine_t *engine = cudaq_graph_launch_engine_create(
+      &dp.ring, &engine_table, /*skip_tx_markers=*/0, h_mailbox, &engine_st);
+  ASSERT_EQ(engine_st, CUDAQ_OK);
+  std::thread loop([&] {
+    cudaq_host_unified_loop(&dp, &engine_table, engine, &shutdown_flag, &stats);
+  });
+
+  const std::uint8_t payload[] = {1, 2, 3, 4};
+  ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
+                &fake.ring(), 2, RPC_IO_CTX_INCREMENT_FUNCTION_ID, payload, 4, 9,
+                0),
+            CUDAQ_OK);
+  fake.enqueue(2);
+
+  for (int i = 0; i < 10000 && !fake.published(2); ++i)
+    usleep(200);
+  ASSERT_TRUE(fake.published(2)) << "GRAPH_LAUNCH response not published";
+  CUDA_CHECK(cudaDeviceSynchronize());
+
+  auto* resp = reinterpret_cast<RPCResponse*>(fake.tx_host(2));
+  EXPECT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE);
+  EXPECT_EQ(resp->result_len, 4u);
+  EXPECT_EQ(resp->request_id, 9u);
+  std::uint8_t* result = fake.tx_host(2) + sizeof(RPCResponse);
+  EXPECT_EQ(result[0], 2);
+  EXPECT_EQ(result[1], 3);
+  EXPECT_EQ(result[2], 4);
+  EXPECT_EQ(result[3], 5);
+
+  shutdown_flag = 1;
+  __sync_synchronize();
+  loop.join();
+  EXPECT_EQ(stats, 1u);
+
+  cudaq_graph_launch_engine_destroy(engine);
+  cudaGraphExecDestroy(exec);
+  cudaGraphDestroy(graph);
+  cudaFreeHost(h_mailbox);
 }
 
 } // namespace

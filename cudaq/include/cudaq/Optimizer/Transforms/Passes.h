@@ -34,6 +34,7 @@ void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 void registerToCFGPipeline();
+void registerFaultTolerantTargetPipeline();
 
 /// This pipeline is run on every kernel decorator immediately after its
 /// definition has been processed by the Python bridge. It converts the
@@ -54,6 +55,26 @@ void addDecomposition(mlir::OpPassManager &pm,
                       mlir::ArrayRef<std::string> enabledPats,
                       mlir::ArrayRef<std::string> disabledPats = {});
 
+/// Clifford+T fault-tolerant synthesis sub-pipeline
+/// UnitarySynthesis
+/// ApplyOpSpecialization
+/// constant propagation
+/// CliffordTSynthesis
+/// Decomposition to the {H, S, T, X, Z, CNOT} basis
+///
+/// Intent: this is the production entry point for fault-tolerant lowering. It
+/// is the exact sub-pipeline registered as `cudaq-fault-tolerant-target` (see
+/// registerFaultTolerantTargetPipeline), not a test-only helper. The prelude
+/// passes (UnitarySynthesis, ApplyOpSpecialization, constant propagation) are
+/// included on purpose so the sub-pipeline is self-contained and establishes
+/// CliffordTSynthesis's preconditions (materialized controls/`adjoints`, folded
+/// constant angles) regardless of what ran before it. That means these passes
+/// may re-run if an enclosing pipeline already scheduled them; the passes are
+/// idempotent on already-lowered IR, so the duplication is safe.
+///
+/// Opt-in only. This helper is not added to default target pipelines.
+void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
+
 void registerAOTPipelines();
 void registerJITPipelines();
 
@@ -73,7 +94,6 @@ std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 void addLowerToCFG(mlir::OpPassManager &pm);
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
-std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
 std::unique_ptr<mlir::Pass>
 createQuakeSynthesizer(std::string_view, const void *,

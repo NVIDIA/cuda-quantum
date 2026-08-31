@@ -1111,3 +1111,20 @@ bool cudaq_internal::compiler::mergeAllCallableClosures(
   }
   return true;
 }
+
+bool cudaq_internal::compiler::retainCallableArguments(
+    std::span<void *const> &rawArgs, std::vector<void *> &closureArgs,
+    mlir::func::FuncOp funcOp) {
+  bool isFullySpecialized = true;
+
+  FunctionType fromFuncTy = funcOp.getFunctionType();
+  closureArgs = std::vector(rawArgs.begin(), rawArgs.end());
+  for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
+    if (!isa<cudaq::cc::CallableType>(ty)) {
+      isFullySpecialized = false;
+      closureArgs[i] = nullptr;
+    }
+  }
+  rawArgs = closureArgs;
+  return isFullySpecialized;
+}

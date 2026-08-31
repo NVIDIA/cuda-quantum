@@ -99,18 +99,23 @@ class QuakeValue(object):
             otherVal = self.__intToVal(other)
             mulOpStr = '{}IOp'.format(opStr)
             # Could be that this value is a float, in which
-            # case we should cast the other to an int
+            # case we should cast the other to a float.
             if F64Type.isinstance(thisVal.type):
                 otherVal = self.__intToFloat(otherVal)
                 mulOpStr = '{}FOp'.format(opStr)
         else:
             # Here we know that the other value is a QuakeValue
             otherVal = other.mlirValue
-            mulOpStr = '{}FOp'.format(opStr) if F64Type.isinstance(
-                thisVal.type) else '{}IOp'.format(opStr)
-            if mulOpStr == '{}FOp'.format(opStr) and IntegerType.isinstance(
-                    otherVal.type):
-                otherVal = arith.SIToFPOp(self.floatType, otherVal).result
+            thisIsFloat = F64Type.isinstance(thisVal.type)
+            otherIsFloat = F64Type.isinstance(otherVal.type)
+            if thisIsFloat or otherIsFloat:
+                mulOpStr = '{}FOp'.format(opStr)
+                if IntegerType.isinstance(thisVal.type):
+                    thisVal = self.__intToFloat(thisVal)
+                if IntegerType.isinstance(otherVal.type):
+                    otherVal = self.__intToFloat(otherVal)
+            else:
+                mulOpStr = '{}IOp'.format(opStr)
 
         return thisVal, otherVal, mulOpStr
 

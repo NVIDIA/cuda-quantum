@@ -29,7 +29,7 @@ This is the type that downstream simulation developers should extend.
 
 The actual definition of the quantum state data structure, and its overall evolution are 
 left as tasks for :code:`CircuitSimulatorBase` subclasses. Examples of simulation subtypes can be found 
-in :code:`runtime/nvqir/qpp/QppCircuitSimulator.cpp` or :code:`runtime/nvqir/custatevec/CuStateVecCircuitSimulator.cpp`.
+in :code:`runtime/nvqir/qpp/QppCircuitSimulator.cpp` or :code:`runtime/nvqir/custatevec/CuStateVecCircuitSimulatorEx.h`.
 The :code:`QppCircuitSimulator` models the state vector using the `Q++ <https://github.com/softwareqinc/qpp>`_ library, which 
 leverages the :code:`Eigen::Matrix` type and OpenMP threading for matrix-vector operations. 
 The :code:`CuStateVecCircuitSimulator` type models the state vector on an NVIDIA GPU device 
@@ -107,7 +107,7 @@ repository for this code called :code:`my-simulator` and add :code:`MySimulator.
 
 .. code:: cmake 
 
-    cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+    cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
     project(DemoCreateNVQIRBackend VERSION 1.0.0 LANGUAGES CXX)
     find_package(NVQIR REQUIRED)
     nvqir_add_backend(MySimulator MySimulator.cpp "")

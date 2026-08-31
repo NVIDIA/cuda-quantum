@@ -15,7 +15,7 @@ ninja install
 
 ## Requirements
 
-- CMake 3.22+
+- CMake 4.0+
 
 - CUDA toolkit (12+)
 
@@ -66,8 +66,8 @@ After cloning `HSB` from [GitHub](https://github.com/nvidia-holoscan/holoscan-se
 build it with
 
 ```bash
-# HOLOLINK_DIR is the top-level directory of HSB source code 
-cmake -G Ninja -S "$HOLOLINK_DIR" -B build \
+# HSB_DIR is the top-level directory of HSB source code 
+cmake -G Ninja -S "$HSB_DIR" -B build \
         -DCMAKE_BUILD_TYPE=Release \
         -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
         -DHOLOLINK_BUILD_PYTHON=OFF \
@@ -82,12 +82,12 @@ cmake --build build \
 
 > **_NOTE:_**  In order to compile Holoscan Sensor Bridge from source,
 we need to install all of its dependencies.
-Please refer to `HSB` [documentation](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
+Please refer to `HSB` [documentation](https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/host-setup)
 for more details.
 
 <!--- -->
 
-> **_NOTE:_** One can also use the Holoscan Sensor Bridge Docker [container](https://docs.nvidia.com/holoscan/sensor-bridge/latest/build.html)
+> **_NOTE:_** One can also use the Holoscan Sensor Bridge Docker [container](https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/build)
 to build CUDA-Q Realtime.
 
 ### Build CUDA-Q Realtime with `HSB`
@@ -97,9 +97,9 @@ To enable `HSB`, we can configure `cmake` when building CUDA-Q Realtime as follo
 ```bash
 cmake -G Ninja -S "$CUDAQ_REALTIME_DIR" -B build \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON \
-        -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HOLOLINK_DIR" \
-        -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$HOLOLINK_DIR/build"
+        -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON \
+        -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HSB_DIR" \
+        -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$HSB_DIR/build"
 cmake --build build
 ```
 
@@ -116,11 +116,11 @@ using CUDA-Q Realtime and Holoscan Sensor Bridge,
   for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
   and the pre-built RFSoC bit-file.
 
-- Run the test script (at `cuda-quantum/realtime/unittests/utils/hololink_test.sh`).
+- Run the test script (at `cuda-quantum/realtime/unittests/utils/gpu_roce_test.sh`).
 For example,
 
 ```bash
-bash hololink_test.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified
+bash gpu_roce_test.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified
 ```
 
 > **_NOTE:_**
@@ -167,10 +167,10 @@ the report as shown above.
 > the validation script as follows:
 >
 > ```bash
-> bash hololink_test.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified --build  --hololink-dir $HOLOLINK_DIR --cuda-quantum-dir $CUDAQ_DIR
+> bash gpu_roce_test.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified --build  --hsb-dir $HSB_DIR --cuda-quantum-dir $CUDAQ_DIR
 > ```
 >
-> `$HOLOLINK_DIR` and `$CUDAQ_DIR` are the top-level source directories for HSB
+> `$HSB_DIR` and `$CUDAQ_DIR` are the top-level source directories for HSB
 > and CUDA-Q, respectively.
 > Please note that `$CUDAQ_DIR` here is the parent directory
 > that contains the `realtime` sub-directory.

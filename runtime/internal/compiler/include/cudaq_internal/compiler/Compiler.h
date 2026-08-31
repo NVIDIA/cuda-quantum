@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/KernelArgs.h"
@@ -55,8 +56,11 @@ class Compiler {
   /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;
 
-  /// @brief The compile target configuration containing the compile options.
-  std::unique_ptr<cudaq::CompileTarget> target;
+  /// @brief The compile target describing the architecture to compile for.
+  cudaq::CompileTarget target;
+
+  /// @brief The compile options to compile with.
+  cudaq::CompileOptions options;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
@@ -95,12 +99,14 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  const cudaq::CompileTarget &getTarget() const { return *target; }
+  const cudaq::CompileTarget &getTarget() const { return target; }
+  const cudaq::CompileOptions &getOptions() const { return options; }
 
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
-  Compiler(std::unique_ptr<cudaq::CompileTarget> &&target);
+  Compiler(const cudaq::CompileTarget &target,
+           const cudaq::CompileOptions &options);
   ~Compiler();
 
   /// @brief Compile the given module and return a `CompiledModule`.
@@ -134,9 +140,10 @@ std::string getPassPipeline(const cudaq::CompileTarget &target);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.
-cudaq::CompiledModule
-compileModule(std::unique_ptr<cudaq::CompileTarget> target,
-              const cudaq::SourceModule &src, cudaq::KernelArgs args,
-              bool isEntryPoint = true);
+cudaq::CompiledModule compileModule(cudaq::CompileTarget target,
+                                    cudaq::CompileOptions options,
+                                    const cudaq::SourceModule &src,
+                                    cudaq::KernelArgs args,
+                                    bool isEntryPoint = true);
 
 } // namespace cudaq_internal::compiler

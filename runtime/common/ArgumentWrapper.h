@@ -9,6 +9,7 @@
 #pragma once
 
 #include <mlir/IR/BuiltinOps.h>
+#include <mlir/IR/OwningOpRef.h>
 #include <vector>
 
 namespace cudaq {
@@ -79,12 +80,13 @@ public:
   explicit CallableClosureArgument(const std::string &name, mlir::ModuleOp mod,
                                    std::optional<unsigned> &&startLifted,
                                    OpaqueArguments &&oppy)
-      : short_name{name}, module_op{mod},
+      : short_name{name}, module_op{mod.clone()},
         start_lifted_pos{std::move(startLifted)}, opaque_args{std::move(oppy)} {
   }
 
   const std::string &getShortName() const { return short_name; }
-  mlir::ModuleOp getModule() { return module_op; }
+  // Hands back a non-owning handle; ownership stays with this object.
+  mlir::ModuleOp getModule() { return module_op.get(); }
   const std::optional<unsigned> &getStartLiftedPos() const {
     return start_lifted_pos;
   }
@@ -94,7 +96,10 @@ private:
   CallableClosureArgument() = delete;
 
   std::string short_name;
-  mlir::ModuleOp module_op;
+  // Owns a clone of the callable's module so the closure stays valid after the
+  // source module it was built from is destroyed (e.g. the transient clones
+  // created while computing a compiled-module cache key).
+  mlir::OwningOpRef<mlir::ModuleOp> module_op;
   // Positions of the opaque arguments.
   std::optional<unsigned> start_lifted_pos;
   // Using OpaqueArguments class here since it deals with struct{any}.

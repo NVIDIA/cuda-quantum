@@ -11,6 +11,8 @@
 
 #include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
 
+#include "cudaq/realtime/daemon/bridge/bridge_interface.h"
+#include "cudaq/realtime/daemon/dispatcher/cpu_relax.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
@@ -45,8 +47,13 @@ uint64_t make_worker_mask(size_t num_workers) {
              : ((1ULL << num_workers) - 1);
 }
 
-int find_idle_worker_for_function(const cudaq_graph_launch_engine_t *engine,
-                                  uint32_t function_id, uint64_t routing_key) {
+} // namespace
+
+extern "C" {
+
+int cudaq_graph_launch_engine_acquire(const cudaq_graph_launch_engine_t *engine,
+                                      uint32_t function_id,
+                                      uint64_t routing_key) {
   uint64_t mask =
       as_atomic_u64(engine->idle_mask)->load(cuda::std::memory_order_acquire);
   while (mask != 0) {
@@ -61,29 +68,6 @@ int find_idle_worker_for_function(const cudaq_graph_launch_engine_t *engine,
     mask &= ~(1ULL << worker_id);
   }
   return -1;
-}
-
-} // namespace
-
-extern "C" {
-
-int cudaq_graph_launch_engine_acquire(const cudaq_graph_launch_engine_t *engine,
-                                      int use_function_table,
-                                      const cudaq_function_entry_t *entry,
-                                      uint32_t function_id,
-                                      uint64_t routing_key) {
-  // Function-table mode (the only mode the table-driven loops use): match a
-  // free worker to function_id.  `entry == NULL` is treated as a GRAPH_LAUNCH
-  // match (the unified loop has only function_id in hand).
-  if (use_function_table &&
-      (entry == nullptr ||
-       entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH))
-    return find_idle_worker_for_function(engine, function_id, routing_key);
-  uint64_t mask =
-      as_atomic_u64(engine->idle_mask)->load(cuda::std::memory_order_acquire);
-  if (mask == 0)
-    return -1;
-  return __builtin_ffsll(static_cast<long long>(mask)) - 1;
 }
 
 void cudaq_graph_launch_engine_sweep(
@@ -182,13 +166,12 @@ cudaq_status_t cudaq_graph_launch_engine_release_worker(
 
 cudaq_graph_launch_engine_t *cudaq_graph_launch_engine_create(
     const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
-    const cudaq_dispatcher_config_t *config, void **external_mailbox,
-    cudaq_status_t *out_status) {
+    int skip_tx_markers, void **external_mailbox, cudaq_status_t *out_status) {
   auto set_status = [&](cudaq_status_t s) {
     if (out_status)
       *out_status = s;
   };
-  if (!ringbuffer || !table || !table->entries || !config) {
+  if (!ringbuffer || !table || !table->entries) {
     set_status(CUDAQ_ERR_INVALID_ARG);
     return nullptr;
   }
@@ -215,7 +198,7 @@ cudaq_graph_launch_engine_t *cudaq_graph_launch_engine_create(
   engine->ringbuffer = *ringbuffer;
   engine->num_workers = num_workers;
   engine->worker_mask = worker_mask;
-  engine->skip_tx_markers = config->skip_tx_markers;
+  engine->skip_tx_markers = skip_tx_markers;
 
   engine->workers =
       new (std::nothrow) cudaq_host_dispatch_worker_t[num_workers];
@@ -304,6 +287,33 @@ void cudaq_graph_launch_engine_destroy(cudaq_graph_launch_engine_t *engine) {
   if (engine->io_ctxs_host)
     cudaFreeHost(engine->io_ctxs_host);
   delete engine;
+}
+
+void cudaq_graph_launch_engine_publish_ready(
+    const cudaq_graph_launch_engine_t *engine,
+    cudaq_status_t (*publish)(void *ctx, uint32_t slot), void *ctx) {
+  const cudaq_ringbuffer_t &ring = engine->ringbuffer;
+  uint64_t busy =
+      ~as_atomic_u64(engine->idle_mask)->load(cuda::std::memory_order_acquire);
+  busy &= (1ULL << engine->num_workers) - 1;
+  while (busy != 0) {
+    int w = __builtin_ffsll(static_cast<long long>(busy)) - 1;
+    busy &= ~(1ULL << w);
+    const int slot = engine->inflight_slot_tags[w];
+    const uint64_t v = as_atomic_u64(ring.tx_flags_host)[slot].load(
+        cuda::std::memory_order_acquire);
+    if (v == 0 || v == CUDAQ_TX_FLAG_IN_FLIGHT)
+      continue; // still running; leave the worker busy
+    // TODO: on the error we skip the publish and fall through to clear the flag
+    // and recycle the worker, so the requester sees the failure as a timeout.
+    // We need a strategy to handle errors instead of dropping them.
+    if ((v >> 48) != CUDAQ_TX_FLAG_ERROR_TAG)
+      publish(ctx, static_cast<uint32_t>(slot));
+    as_atomic_u64(ring.tx_flags_host)[slot].store(
+        0, cuda::std::memory_order_release);
+    as_atomic_u64(engine->idle_mask)
+        ->fetch_or(1ULL << w, cuda::std::memory_order_release);
+  }
 }
 
 } // extern "C"

@@ -9,10 +9,10 @@
 #include "common/ExtraPayloadProvider.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nlohmann/json.hpp"
 #include <bitset>
 #include <fstream>
 #include <iostream>
@@ -34,7 +34,8 @@ namespace cudaq {
 /// @brief The QuantumMachinesServerHelper class extends the ServerHelper class
 /// to handle interactions with the Quantum Machines server for submitting and
 /// retrieving quantum computation jobs.
-class QuantumMachinesServerHelper : public ServerHelper, public QirServerHelper  {
+class QuantumMachinesServerHelper : public ServerHelper,
+                                    public QirServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api.quantum-machines.com";
   static constexpr const char *DEFAULT_VERSION = "v1.0.0";
   static constexpr const char *DEFAULT_EXECUTOR = "mock";
@@ -118,7 +119,7 @@ public:
 
     ss << "  jit: " << (ke.jit.has_value() ? "<present>" : "<none>") << "\n";
     ss << "  resourceCounts: "
-      << (ke.resourceCounts.has_value() ? "<present>" : "<none>") << "\n";
+       << (ke.resourceCounts.has_value() ? "<present>" : "<none>") << "\n";
 
     ss << "  output_names: " << ke.output_names.get().dump(2) << "\n";
     ss << "  user_data: " << ke.user_data.get().dump(2) << "\n";
@@ -126,7 +127,7 @@ public:
     ss << "  mapping_reorder_idx: [";
     for (std::size_t i = 0; i < ke.mapping_reorder_idx.size(); ++i)
       ss << ke.mapping_reorder_idx[i]
-        << (i + 1 < ke.mapping_reorder_idx.size() ? ", " : "");
+         << (i + 1 < ke.mapping_reorder_idx.size() ? ", " : "");
     ss << "]\n";
 
     ss << "}";
@@ -141,7 +142,8 @@ public:
   //    std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
-    CUDAQ_INFO("In createJob. code: {}", kernelExecutionToString(circuitCodes[0]));
+    CUDAQ_INFO("In createJob. code: {}",
+               kernelExecutionToString(circuitCodes[0]));
     auto *executionContext = cudaq::getExecutionContext();
     const std::string requestType =
         executionContext ? executionContext->name : "unknown";
@@ -154,7 +156,8 @@ public:
     job["qubit_mapping_mode"] = backendConfig["qubit_mapping_mode"];
     job["output_format"] = isRunRequest ? "qir-raw" : "histogram";
     if (backendConfig.find("simulator_duration") != backendConfig.end()) {
-      job["simulator_duration"] = std::stoi(backendConfig["simulator_duration"]);
+      job["simulator_duration"] =
+          std::stoi(backendConfig["simulator_duration"]);
     }
     const auto providerConfig =
         runtimeTarget.runtimeConfig.find("extra_payload_provider");
@@ -249,28 +252,30 @@ public:
     return postJobResponse["results"];
   }
 
-  void updatePassPipeline(
-  const std::filesystem::path &platformPath, std::string &passPipeline) override {
-    CUDAQ_INFO("updatePassPipeline: platformPath: {}, passPipeline: {}", platformPath.string(), passPipeline);
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) override {
     std::string mappingMode = backendConfig["qubit_mapping_mode"];
     if (mappingMode == "backend") {
-      // Adding a simple "tail": do not run any qubit mapping.
-      //passPipeline += ",func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)";
-      CUDAQ_INFO("Backend qubit mapping, full pass pipeline: {}", passPipeline);
-      return;
+      CUDAQ_INFO("Backend qubit mapping.");
+      return {};
     }
-    std::filesystem::path qpuConfigPath = platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
+    std::filesystem::path qpuConfigPath =
+        platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
     std::string machineconfigFilePath = qpuConfigPath.string();
     if (mappingMode == "local_get_latest") {
-      // If mapping is done locally with the latest qpu config from the backend, we need to get the latest qpu config file from the backend and provide that to the mapping pass.
-      // Get the latest qpu config file from the backend and set quantumArchitectureFilePath to its path
+      // If mapping is done locally with the latest qpu config from the backend,
+      // we need to get the latest qpu config file from the backend and provide
+      // that to the mapping pass. Get the latest qpu config file from the
+      // backend and set quantumArchitectureFilePath to its path
       try {
-        // Create a RestClient and get the latest qpu config from backendConfig["url"]+"/v1/config/qubits" from the backend
-        // Store the response in a file in the platformPath / "mapping/quantum_machines" directory, and set quantumArchitectureFilePath to that file path
+        // Create a RestClient and get the latest qpu config from
+        // backendConfig["url"]+"/v1/config/qubits" from the backend Store the
+        // response in a file in the platformPath / "mapping/quantum_machines"
+        // directory, and set quantumArchitectureFilePath to that file path
         RestClient client;
-        client.setVerbose(true);
         auto headers = getHeaders();
-        auto response = client.getRawText(backendConfig["url"], "/v1/config/qubits", headers);
+        auto response = client.getRawText(backendConfig["url"],
+                                          "/v1/config/qubits", headers);
         std::string qpuConfig = response;
         CUDAQ_INFO("Updated configuration: {}", qpuConfig);
         std::filesystem::create_directories(qpuConfigPath.parent_path());
@@ -279,23 +284,23 @@ public:
         outFile.close();
 
       } catch (const std::exception &e) {
-        throw std::runtime_error("Failed to get latest qpu config from backend: " +
-                                  std::string(e.what()));
-        }
+        throw std::runtime_error(
+            "Failed to get latest qpu config from backend: " +
+            std::string(e.what()));
+      }
+    } else if (mappingMode != "local_file") {
+      throw std::runtime_error(
+          "qubit_mapping_mode: " + mappingMode +
+          " is not supported. Supported modes are 'local-file', "
+          "'local-get-latest', and 'backend'.");
     }
-    else if (mappingMode != "local_file") {
-      throw std::runtime_error("qubit_mapping_mode: " + mappingMode + " is not supported. Supported modes are 'local-file', 'local-get-latest', and 'backend'.");
-    }
-    // Add the pipelines that ar responsible for qubit mapping, and adjust he file path
-    //passPipeline += ",func.func(expand-control-veqs,add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)";
+    // Adjust the qubit-mapping pipeline to use the selected machine
+    // configuration file.
     const std::string needle = "qubit-mapping{device=bypass}";
-    auto pos = passPipeline.find(needle);
-    if (pos != std::string::npos) {
-      passPipeline.replace(pos, needle.size(),
-          "qubit-mapping{device=file(" + machineconfigFilePath + ") placement=greedy}");
-    }
-    //passPipeline = std::regex_replace(passPipeline, std::regex("qubit-mapping{device=bypass}"), "qubit-mapping{device=file("+machineconfigFilePath+") placement=greedy}");
-    CUDAQ_INFO("Updated pass pipeline: {}", passPipeline);
+    const std::string replacement = "qubit-mapping{device=file(" +
+                                    machineconfigFilePath +
+                                    ") placement=greedy}";
+    return {{needle, replacement}};
   }
 };
 

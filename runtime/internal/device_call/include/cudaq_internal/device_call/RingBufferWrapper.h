@@ -117,7 +117,10 @@ public:
   std::uint64_t timeoutMs() const { return timeoutMsValue; }
 
 private:
-  // Simple RAII wrapper for a pinned host allocation.
+  // Simple RAII wrapper for a pinned host allocation. On a machine with no
+  // CUDA device (where pinned, mapped memory is impossible), the allocation
+  // falls back to plain host memory and `devicePtr()` stays null; host-only
+  // dispatch never reads the device pointers.
   class PinnedAllocation {
   public:
     PinnedAllocation() = default;
@@ -134,6 +137,7 @@ private:
   private:
     void *host = nullptr;
     void *device = nullptr;
+    bool pinned = false;
   };
 
   bool allocateStorage(const char *channelName, std::uint32_t slots,

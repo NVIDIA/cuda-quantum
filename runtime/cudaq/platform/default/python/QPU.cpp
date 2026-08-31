@@ -8,6 +8,7 @@
 
 #include "QPU.h"
 #include "common/ArgumentWrapper.h"
+#include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
@@ -18,6 +19,7 @@
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -43,14 +45,18 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
                                              const std::string &format) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
 
-  auto target =
-      getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
-  target->fullySpecialize = true;
-  cudaq_internal::compiler::Compiler compiler(std::move(target));
+  auto target = createDefaultCompileTarget();
+  target.fullySpecialize = true;
+  // Translation consumes only the compiled MLIR artifact.
+  CompileOptions options;
+  options.emitJit = false;
+  cudaq_internal::compiler::Compiler compiler(std::move(target),
+                                              std::move(options));
 
   auto rawArgs = args.getArgs();
-  auto compiled = compiler.runPassPipeline(name, module.getAsOpaquePointer(),
-                                           {rawArgs}, true);
+  auto compiled =
+      compiler.runPassPipeline(name, module.getAsOpaquePointer(), {rawArgs},
+                               /*isEntryPoint=*/false);
   auto compiled_module =
       cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
           *compiled.getMlir());
@@ -58,11 +64,15 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   // TODO: can the following be merged with qirProfileTranslationFunction in
   // RuntimeMLIR.cpp?
   PassManager pm(compiled_module.getContext());
-  if (!compiler.getTarget().pipelineConfig.skipTargetLoweringPipeline) {
+  if (compiler.getTarget().pipelineConfig.empty()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
-  cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
+  bool disableQuantumOpt =
+      compiled_module->hasAttr(cudaq::runtime::disableQuantumOpts);
+  cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
+                                         /*useValueSemantics=*/
+                                         !disableQuantumOpt);
   if (failed(cudaq_internal::compiler::runPassManager(pm, compiled_module)))
     throw std::runtime_error("Pass pipeline failed.");
   if (failed(cudaq::verifier::checkQIRLLVMIRDialect(compiled_module, format)))
@@ -87,20 +97,24 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
                                              OpaqueArguments &args) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
 
-  auto target =
-      getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
-  target->fullySpecialize = true;
-  cudaq_internal::compiler::Compiler compiler(std::move(target));
+  auto target = createDefaultCompileTarget();
+  target.fullySpecialize = true;
+  // Translation consumes only the compiled MLIR artifact.
+  CompileOptions options;
+  options.emitJit = false;
+  cudaq_internal::compiler::Compiler compiler(std::move(target),
+                                              std::move(options));
 
   auto rawArgs = args.getArgs();
-  auto compiled = compiler.runPassPipeline(name, module.getAsOpaquePointer(),
-                                           {rawArgs}, true);
+  auto compiled =
+      compiler.runPassPipeline(name, module.getAsOpaquePointer(), {rawArgs},
+                               /*isEntryPoint=*/false);
   auto compiled_module =
       cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
           *compiled.getMlir());
   auto *ctx = compiled_module.getContext();
   PassManager pm(ctx);
-  if (!compiler.getTarget().pipelineConfig.skipTargetLoweringPipeline) {
+  if (compiler.getTarget().pipelineConfig.empty()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
