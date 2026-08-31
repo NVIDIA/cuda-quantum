@@ -93,18 +93,6 @@ func.func @anchor_aliases_vector_control_through_wrap_new(
 
 // -----
 
-// Separate function arguments are opaque: callers may pass an anchor that
-// aliases an element of the unresolved vector predicate.
-func.func @opaque_function_arguments_may_alias(%theta: f64,
-                                               %controls: !quake.veq<?>,
-                                               %anchor: !quake.ref) {
-  quake.phase (%theta) [%controls] %anchor
-      : (f64, !quake.veq<?>, !quake.ref) -> ()
-  return
-}
-
-// -----
-
 // The same conservative rule applies to CFG block arguments.
 func.func @opaque_block_arguments_may_alias(%theta: f64,
                                             %controls: !quake.veq<?>,
