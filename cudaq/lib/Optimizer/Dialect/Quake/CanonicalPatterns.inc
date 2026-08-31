@@ -825,12 +825,12 @@ struct ForwardAllocaTypePattern
 
 // %0 = quake.subveq %v, %lo, %hi : (!quake.veq<0>, i64, i64) -> !quake.veq<?>
 // ────────────────────────────────────────────────────────────────────────────
-// %0 = quake.relax_size %v : (!quake.veq<0>) -> !quake.veq<?>
+// %0 = cc.poison !quake.veq<?>
 //
-// The only valid subrange of an empty veq is itself: the op is dead weight.
-// Forward the input directly rather than let a canonically out-of-bounds
-// range linger in the IR.
-struct ForwardEmptyVeqSubVeqPattern
+// There is no valid subrange of an empty veq -- any requested range is
+// inherently out of bounds -- so replace it with a poison value instead of
+// letting the invalid access linger in the IR.
+struct ReplaceEmptyVeqSubVeqPattern
     : public OpRewritePattern<cudaq::quake::SubVeqOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -838,12 +838,8 @@ struct ForwardEmptyVeqSubVeqPattern
                                 PatternRewriter &rewriter) const override {
     if (!isEmptyVeqType(subveq.getVeq()))
       return failure();
-    Value veq = subveq.getVeq();
-    if (veq.getType() != subveq.getType())
-      veq = cudaq::quake::RelaxSizeOp::create(rewriter, subveq.getLoc(),
-                                              subveq.getType(), veq)
-                .getResult();
-    rewriter.replaceOp(subveq, veq);
+    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(subveq,
+                                                     subveq.getType());
     return success();
   }
 };

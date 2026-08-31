@@ -100,17 +100,16 @@ func.func @extract_ref_empty_veq(%v: !quake.veq<0>, %i: i64) -> !quake.ref {
 // CHECK-NOT:     quake.extract_ref
 // CHECK:         return %[[R]] : !quake.ref
 
-// The only valid subrange of an empty veq is itself, so `quake.subveq` is
-// erased and its input forwarded (relaxed to the result type).
-func.func @forward_empty_veq_subveq(%v: !quake.veq<0>, %lo: i64,
+// There is no valid subrange of an empty veq, so `quake.subveq` is replaced
+// with a poison value of the result type.
+func.func @replace_empty_veq_subveq(%v: !quake.veq<0>, %lo: i64,
                                     %hi: i64) -> !quake.veq<?> {
   %0 = quake.subveq %v, %lo, %hi : (!quake.veq<0>, i64, i64) -> !quake.veq<?>
   return %0 : !quake.veq<?>
 }
 
-// CHECK-LABEL: func.func @forward_empty_veq_subveq(
-// CHECK-SAME:    %[[V:[a-zA-Z0-9_.$-]+]]: !quake.veq<0>
-// CHECK:         %[[R:.*]] = quake.relax_size %[[V]] : (!quake.veq<0>) -> !quake.veq<?>
+// CHECK-LABEL: func.func @replace_empty_veq_subveq(
+// CHECK:         %[[R:.*]] = cc.poison !quake.veq<?>
 // CHECK-NOT:     quake.subveq
 // CHECK:         return %[[R]] : !quake.veq<?>
 

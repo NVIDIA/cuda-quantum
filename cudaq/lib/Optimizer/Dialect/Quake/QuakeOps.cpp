@@ -966,7 +966,7 @@ LogicalResult cudaq::quake::SubVeqOp::verify() {
 
 void cudaq::quake::SubVeqOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardEmptyVeqSubVeqPattern, FixUnspecifiedSubveqPattern,
+  patterns.add<ReplaceEmptyVeqSubVeqPattern, FixUnspecifiedSubveqPattern,
                FuseConstantToSubveqPattern, RemoveSubVeqNoOpPattern,
                CombineSubVeqsPattern>(context);
 }
