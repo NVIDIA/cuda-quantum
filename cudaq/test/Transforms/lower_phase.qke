@@ -293,3 +293,19 @@ func.func @max_f32_vector_fallback(%size: i32) {
       : (f32, !quake.veq<?>, !quake.ref) -> ()
   return
 }
+
+// An opaque function anchor with dynamically sized controls relies on the
+// phase producer contract.
+// CHECK-LABEL: func.func @arg_anchor_with_arg_vector(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: %[[NEG:.*]] = arith.negf %[[THETA]] : f64
+// CHECK-COUNT-2: quake.r1 (%[[THETA]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
+// CHECK-COUNT-2: quake.rz (%[[NEG]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
+// CHECK-NOT: quake.phase
+func.func @arg_anchor_with_arg_vector(%theta: f64,
+                                      %controls: !quake.veq<?>,
+                                      %anchor: !quake.ref) {
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}

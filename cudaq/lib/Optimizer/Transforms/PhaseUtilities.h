@@ -217,7 +217,8 @@ inline bool isFunctionEntryBlockArgument(mlir::BlockArgument argument) {
 
 /// Collect the physical-qubit origins of a phase operand for the anchored
 /// fallback. Unlike collectPhaseAnchorRoots, this tracks unresolved value
-/// provenance so the fallback is used only with a proven-disjoint anchor.
+/// provenance so the fallback rejects overlap visible in this function while
+/// relying on the PhaseOp producer contract for opaque function inputs.
 inline void collectPhaseAnchorFallbackRoots(
     mlir::Value value, llvm::SmallVectorImpl<PhaseAnchorFallbackRoot> &roots,
     mlir::Operation *at) {
@@ -307,9 +308,7 @@ inline bool mayAliasForPhaseAnchorFallback(mlir::Value anchor,
     for (const PhaseAnchorFallbackRoot &controlRoot : controlRoots) {
       if (anchorRoot.value == controlRoot.value ||
           anchorRoot.kind == PhaseAnchorFallbackRootKind::Unknown ||
-          controlRoot.kind == PhaseAnchorFallbackRootKind::Unknown ||
-          (anchorRoot.kind == PhaseAnchorFallbackRootKind::FunctionInput &&
-           controlRoot.kind == PhaseAnchorFallbackRootKind::FunctionInput))
+          controlRoot.kind == PhaseAnchorFallbackRootKind::Unknown)
         return true;
     }
   return false;
