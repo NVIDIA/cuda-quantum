@@ -2020,11 +2020,16 @@ Python
 ::: {#atomic-quantum-regions .section}
 ## [6.1. ]{.section-number}Atomic quantum regions[¶](#atomic-quantum-regions "Permalink to this heading"){.headerlink}
 
-Mark a pure-device kernel as an atomic quantum region when each
-invocation must remain an optimization boundary. Quantum operations can
-be optimized within the invoked kernel and within its caller. An
+An atomic quantum region denotes a single unitary operator on the qubits
+passed to it. Mark a pure-device kernel as an atomic quantum region when
+each invocation must remain an optimization boundary. Quantum operations
+can be optimized within the invoked kernel and within its caller. An
 optimization must not combine, cancel, or move operations across the
 invocation boundary.
+
+An atomic quantum region cannot allocate or measure qubits, including
+through kernels that it calls. Allocate qubits in the caller and pass
+them as arguments. Measure after the region returns.
 
 ::: {.tab-set .docutils}
 C++

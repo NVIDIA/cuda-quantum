@@ -13399,6 +13399,16 @@ them they are erased before execution.
     <!-- -->
     ```
 
+    []{#classcudaq_1_1quantum__platform_1a869da44cf708f60a030b834808d89784 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_jit]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform12supports_jitENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Return true if the [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} consumes
+        JIT-compiled artifacts.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1quantum__platform_1a996bf5dce275114b603dea2ec14d7a75 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[set_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[model]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_modelNSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Set the noise model for [`qpu_id`{.docutils .literal
