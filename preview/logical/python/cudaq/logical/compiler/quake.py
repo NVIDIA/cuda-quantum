@@ -16,7 +16,7 @@ import os
 import re
 from pathlib import Path
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from .._native import native
 from ..programs.definition import DefinitionHandle
@@ -90,10 +90,10 @@ def _quake_plugin_path() -> str:
 
 
 def _run_qlx_pass_pipeline(module, pipeline: str) -> None:
-    """Run a pass pipeline against either QLX- or CUDA-Q-owned MLIR modules."""
+    """Run a pass pipeline against a live MLIR module."""
 
     try:
-        native.run_pass_capsule(module, pipeline)
+        native.run_pass(module, pipeline)
     except Exception as error:
         # Keep the public Quake-import contract independent of the particular
         # MLIR Python binding's exception type.
@@ -168,7 +168,7 @@ def _run_quake_to_p0_pass(module, *, root: str | None = None):
             "this CUDA-Q Logical build has no typed Quake import support; it was not "
             "built against a CUDA-Q development installation")
     native.load_plugin(_quake_plugin_path())
-    converted = mlir_ir.Module._CAPICreate(native.clone_module_capsule(module))
+    converted = native.clone_module(module)
     pipeline = "prepare-quake-for-qlx,convert-quake-to-qlx"
     if root is not None:
         if not isinstance(root, str) or not root:
@@ -277,9 +277,7 @@ def _build_from_p0(
     specialization: dict[str, str] | None = None,
 ) -> Build:
     if not isinstance(module, mlir_ir.Module):
-        if getattr(module, "_CAPIPtr", None) is None:
-            raise TypeError("converted module does not expose the MLIR C API")
-        module = mlir_ir.Module._CAPICreate(native.clone_module_capsule(module))
+        raise TypeError("converted module does not expose the MLIR C API")
     transaction = CompilationContext(module=module)
     context = transaction.context
     module = transaction.module

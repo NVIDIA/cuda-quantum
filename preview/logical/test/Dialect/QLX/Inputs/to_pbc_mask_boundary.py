@@ -13,7 +13,7 @@ try:
     import _cudaq_logical_devpath
 except ImportError:
     pass
-from cudaq.logical._mlir_libs import _qlxRuntime as runtime
+from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
 
 def _module(support: int, *, rotation: bool) -> str:

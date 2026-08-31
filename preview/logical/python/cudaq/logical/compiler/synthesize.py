@@ -25,7 +25,7 @@ def _pass_pipeline_string(pass_spec, gate_set: GateSet) -> str:
 
 
 def _execute_pipeline(source: Build, gate_set: GateSet, pipeline) -> Build:
-    from .._mlir_libs import _qlxRuntime as runtime
+    from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
     module = source._fresh_module()
     joined_pipeline = ",".join(

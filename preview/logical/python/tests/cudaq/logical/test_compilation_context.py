@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import cudaq.logical
-import cudaq.logical.ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
 
 def _objective(context: cudaq.logical.compiler.CompilationContext,

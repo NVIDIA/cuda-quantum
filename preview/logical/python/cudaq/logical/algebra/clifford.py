@@ -280,7 +280,7 @@ class CliffordAction:
                                          definition.signature.parameters))
 
     def to_mlir_attr(self, context):
-        from .. import ir as mlir_ir
+        from cudaq.mlir import ir as mlir_ir
 
         matrix = ", ".join(str(bit) for row in self.matrix for bit in row)
         phases = ", ".join(str(bit) for bit in self.phases)

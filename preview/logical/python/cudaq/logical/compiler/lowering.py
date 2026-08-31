@@ -11,7 +11,7 @@ import importlib
 from dataclasses import dataclass
 from types import ModuleType
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..programs.definition import DefinitionHandle
 from ..codes import Encoding

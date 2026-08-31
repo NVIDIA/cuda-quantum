@@ -127,6 +127,70 @@ message(STATUS "Using LLVM ${LLVM_PACKAGE_VERSION} from ${LLVM_DIR}")
 message(STATUS "Using MLIR from ${MLIR_DIR}")
 message(STATUS "Shared MLIR:     ${CUDAQ_LIBRARY_DIR}")
 
+# --------------------------------------------------------------------------- #
+# Runtime-wheel Python binding artifacts
+#
+# libcudaqMLIRCAPI and MLIRPythonSupport-cudaq live in the CUDA-Q *runtime*
+# wheel, not in cudaq-devel. QLX Python extensions register into that existing
+# type universe, so the .so files must be present at configure time.
+# --------------------------------------------------------------------------- #
+set(_qlx_cudaq_mlir_capi
+  "${CUDAQ_LIBRARY_DIR}/libcudaqMLIRCAPI${CMAKE_SHARED_LIBRARY_SUFFIX}")
+set(_qlx_cudaq_mlir_libs "${QLX_CUDAQ_PREFIX}/cudaq/mlir/_mlir_libs")
+find_file(_qlx_cudaq_py_support
+  NAMES
+    "libMLIRPythonSupport-cudaq${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    "MLIRPythonSupport-cudaq${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  PATHS "${_qlx_cudaq_mlir_libs}"
+  NO_DEFAULT_PATH)
+find_file(_qlx_cudaq_nanobind
+  NAMES
+    "libnanobind-cudaq${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    "nanobind-cudaq${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  PATHS "${_qlx_cudaq_mlir_libs}"
+  NO_DEFAULT_PATH)
+
+if(NOT EXISTS "${_qlx_cudaq_mlir_capi}")
+  message(FATAL_ERROR
+    "CUDA-Q runtime wheel is missing libcudaqMLIRCAPI "
+    "(expected ${_qlx_cudaq_mlir_capi}).\n"
+    "Install the matching cudaq / cuda-quantum runtime wheel into the same "
+    "environment as cudaq-devel, or point -DQLX_CUDAQ_INSTALL_DIR at a CUDA-Q "
+    "prefix that includes the Python bindings.")
+endif()
+if(NOT _qlx_cudaq_py_support)
+  message(FATAL_ERROR
+    "CUDA-Q runtime wheel is missing MLIRPythonSupport-cudaq "
+    "(expected under ${_qlx_cudaq_mlir_libs}).\n"
+    "Install the matching cudaq / cuda-quantum runtime wheel into the same "
+    "environment as cudaq-devel.")
+endif()
+
+if(NOT TARGET cudaq::cudaqMLIRCAPI)
+  add_library(cudaq::cudaqMLIRCAPI SHARED IMPORTED)
+  set_target_properties(cudaq::cudaqMLIRCAPI PROPERTIES
+    IMPORTED_LOCATION "${_qlx_cudaq_mlir_capi}"
+    IMPORTED_NO_SONAME FALSE)
+endif()
+if(NOT TARGET cudaq::nanobind)
+  if(_qlx_cudaq_nanobind)
+    add_library(cudaq::nanobind SHARED IMPORTED)
+    set_target_properties(cudaq::nanobind PROPERTIES
+      IMPORTED_LOCATION "${_qlx_cudaq_nanobind}")
+  endif()
+endif()
+if(NOT TARGET cudaq::MLIRPythonSupport)
+  add_library(cudaq::MLIRPythonSupport SHARED IMPORTED)
+  set_target_properties(cudaq::MLIRPythonSupport PROPERTIES
+    IMPORTED_LOCATION "${_qlx_cudaq_py_support}")
+  target_link_libraries(cudaq::MLIRPythonSupport INTERFACE cudaq::cudaqMLIRCAPI)
+  if(TARGET cudaq::nanobind)
+    target_link_libraries(cudaq::MLIRPythonSupport INTERFACE cudaq::nanobind)
+  endif()
+endif()
+message(STATUS "cudaqMLIRCAPI:   ${_qlx_cudaq_mlir_capi}")
+message(STATUS "MLIRPythonSupport: ${_qlx_cudaq_py_support}")
+
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 

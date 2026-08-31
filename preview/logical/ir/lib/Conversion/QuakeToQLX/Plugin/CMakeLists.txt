@@ -12,8 +12,9 @@
 # it shares the host QLX operation TypeIDs. Mirrors the xstab
 # plugin (runtime/simulation/xstab/lib/Plugin). Loaded at runtime by
 # _qlxRuntime.load_plugin, which promotes libQLXPythonCAPI to RTLD_GLOBAL before
-# dlopen; core MLIR and QLX symbols are left undefined and resolve from that host
-# CAPI. The plugin consumes Quake/CC from CUDA-Q's shared MLIR target.
+# dlopen; core MLIR and QLX symbols are left undefined and resolve from the host
+# CAPI and libcudaqMLIR (promoted to RTLD_GLOBAL by _qlxRuntime.load_plugin). The
+# plugin consumes Quake/CC from CUDA-Q's shared MLIR target.
 #
 # This is a _qlxRuntime plugin only -- NOT a qlx-opt --load-*-plugin target
 # (qlx-opt already links the pass + Quake/CC itself).
@@ -46,9 +47,8 @@ set_target_properties(qlx-quake-plugin PROPERTIES
 )
 
 # Copy the plugin into the build-tree Python package (the one actually imported:
-# _PYTHON_BUILD_PREFIX = ${PROJECT_BINARY_DIR}/python/cudaq/logical) so import_quake finds
-# it without a `cmake --install` step (mirrors how QLXXStabProvider.cmake stages
-# the xstab plugin into ${CMAKE_BINARY_DIR}/python/cudaq/logical/_xstab).
+# ${PROJECT_BINARY_DIR}/python/cudaq/logical) so import_quake finds
+# it without a `cmake --install` step.
 set(_quake_py_pkg "${PROJECT_BINARY_DIR}/python/cudaq/logical/_quake")
 add_custom_command(TARGET qlx-quake-plugin POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory "${_quake_py_pkg}"

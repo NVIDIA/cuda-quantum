@@ -11,7 +11,7 @@ import pytest
 
 import cudaq.logical
 import cudaq.logical.compiler.linearity as linearity
-import cudaq.logical.ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 from cudaq.logical.compiler.linearity import (
     LinearityError,
     check_linearity,

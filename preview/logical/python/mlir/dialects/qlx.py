@@ -17,7 +17,7 @@ from ._qlx_ops_gen import (  # noqa: F401
     TargetManifestOp, WhileConditionOp, WhileOp, XorOp, YieldOp,
 )
 from ._qlx_enum_gen import BuiltinAction, BuiltinInstrument, Pauli  # noqa: F401
-from .._mlir_libs._qlx_ext.qlx import PauliAttr, set_inherent_attr  # noqa: F401
+from cudaq.mlir._mlir_libs._qlx_ext.qlx import PauliAttr, set_inherent_attr  # noqa: F401
 
 __all__ = [
     "ActionOp",

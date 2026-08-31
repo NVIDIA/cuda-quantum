@@ -72,6 +72,39 @@ static std::vector<std::string> &getPluginPaths() {
   return *paths;
 }
 
+static void ensurePassesRegistered() {
+  static const bool once = [] {
+    mlirRegisterTransformsPasses();
+    qlxRegisterAllPasses();
+    return true;
+  }();
+  (void)once;
+}
+
+static void promoteHostLibrariesGlobal() {
+  // Promote the QLX Python CAPI and CUDA-Q MLIR images to RTLD_GLOBAL so
+  // plugins built with --unresolved-symbols=ignore-all can find MLIR and
+  // QLX symbols at dlopen time. libQLXPythonCAPI no longer embeds mlir*
+  // CAPI objects, so libcudaqMLIR / libcudaqMLIRCAPI must also be
+  // promoted; both are already DT_NEEDED, so RTLD_NOLOAD suffices.
+#if defined(__linux__) || defined(__APPLE__)
+  auto promote = [](const void *symbol) {
+    ::Dl_info info;
+    if (::dladdr(const_cast<void *>(symbol), &info) && info.dli_fname)
+      ::dlopen(info.dli_fname, RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
+  };
+  promote(reinterpret_cast<const void *>(qlxRegisterAllPasses));
+  promote(reinterpret_cast<const void *>(mlirRegisterTransformsPasses));
+#if defined(__APPLE__)
+  ::dlopen("libcudaqMLIR.dylib", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
+  ::dlopen("libcudaqMLIRCAPI.dylib", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
+#else
+  ::dlopen("libcudaqMLIR.so", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
+  ::dlopen("libcudaqMLIRCAPI.so", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
+#endif
+#endif
+}
+
 namespace {
 
 // Trampoline used by qlxTranslate*: append to a std::string captured
@@ -86,6 +119,7 @@ inline MlirStringRef toRef(const std::string &s) {
 }
 
 void runPassPipeline(MlirModule pyModule, const std::string &pipeline) {
+  ensurePassesRegistered();
   mlir::ModuleOp mod = unwrap(pyModule);
   mlir::MLIRContext *ctx = mod.getContext();
   mlir::PassManager pm(ctx);
@@ -136,8 +170,6 @@ MlirModule moduleFromPythonCapsule(nb::handle pyModule) {
 NB_MODULE(_qlxRuntime, m) {
   m.doc() = "QLX text / module translation helpers";
 
-  mlirRegisterTransformsPasses();
-  qlxRegisterAllPasses();
   m.attr("has_quake_import") = true;
 
   //===-----------------------------------------------------------------===//
@@ -147,21 +179,8 @@ NB_MODULE(_qlxRuntime, m) {
   m.def(
       "load_plugin",
       [](const std::string &path) {
-  // Promote the QLX Python CAPI shared library to RTLD_GLOBAL so that
-  // plugins built with --unresolved-symbols=ignore-all can find MLIR
-  // symbols (pass registry, dialect registry, etc.) at dlopen time.
-  // We locate the library via dladdr on a known CAPI symbol.
-#if defined(__linux__) || defined(__APPLE__)
-        {
-          ::Dl_info capi_info;
-          // qlxRegisterAllPasses is defined in libQLXPythonCAPI.so.
-          if (::dladdr((void *)qlxRegisterAllPasses, &capi_info) &&
-              capi_info.dli_fname) {
-            ::dlopen(capi_info.dli_fname,
-                     RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
-          }
-        }
-#endif
+        ensurePassesRegistered();
+        promoteHostLibrariesGlobal();
 
         // Register the plugin's passes immediately into the global pass
         // registry so that parsePassPipeline can resolve them in any

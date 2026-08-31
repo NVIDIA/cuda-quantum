@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..architecture.constraints import (
     Colocate,

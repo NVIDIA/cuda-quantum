@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..programs.definition import DefinitionHandle
 
@@ -43,7 +43,7 @@ class CompilationContext:
             self.module = mlir_ir.Module.create(self.location)
         else:
             if not isinstance(module, mlir_ir.Module):
-                raise TypeError("module= must be a cudaq.logical.ir.Module")
+                raise TypeError("module= must be a cudaq.mlir.ir.Module")
             self.module = module
             self.context = module.context
             self.location = mlir_ir.Location.unknown(context=self.context)

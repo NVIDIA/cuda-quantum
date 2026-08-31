@@ -488,7 +488,7 @@ def check_linearity(module) -> LinearityReport:
     """Run the linear single-ownership analysis over every body in a module.
 
     Returns a structured :class:`LinearityReport`; never raises for
-    violations.  ``module`` is a ``cudaq.logical.ir.Module`` (or any operation exposing
+    violations.  ``module`` is a ``cudaq.mlir.ir.Module`` (or any operation exposing
     ``.operation`` with regions).
     """
     checked: list[str] = []

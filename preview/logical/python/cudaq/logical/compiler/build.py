@@ -16,7 +16,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Iterable
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..programs.definition import DefinitionHandle
 from ..experiments.definition import Experiment

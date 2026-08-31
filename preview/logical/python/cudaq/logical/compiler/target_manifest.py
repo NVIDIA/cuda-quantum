@@ -7,7 +7,7 @@
 # ============================================================================ #
 from __future__ import annotations
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..programs.definition import DefinitionHandle
 from .build import Build, EvidenceRecord

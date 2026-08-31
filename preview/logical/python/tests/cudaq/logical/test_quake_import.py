@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 import cudaq.logical
-import cudaq.logical.ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 from cudaq.logical._native import native
 
 pytestmark = pytest.mark.skipif(
@@ -478,7 +478,7 @@ def test_quake_import_rejects_excessive_controls():
 def test_quake_import_rejects_excessive_swap_targets():
     # The Quake op verifier rejects this malformed shape before the conversion
     # pass runs; it is still a fail-closed boundary with an actionable error.
-    with pytest.raises(cudaq.logical.ir.MLIRError,
+    with pytest.raises(cudaq.mlir.ir.MLIRError,
                        match="number of targets is equal to 2"):
         cudaq.logical.compiler.import_quake(EXCESSIVE_SWAP_TARGETS)
 

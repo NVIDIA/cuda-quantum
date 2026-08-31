@@ -51,7 +51,7 @@ set(QLX_INCLUDE_DIRS
 # Path to the CUDA-Q Logical Python C API library. Downstream plugins using the
 # Python bindings should share this runtime entry point.
 set(QLX_PYTHON_CAPI_LIB
-  "@CMAKE_BINARY_DIR@/python/cudaq/logical/_mlir_libs/libQLXPythonCAPI.so"
+  "@CMAKE_BINARY_DIR@/python/cudaq/mlir/_mlir_libs/libQLXPythonCAPI.so"
 )
 
 set(QLX_FOUND TRUE)

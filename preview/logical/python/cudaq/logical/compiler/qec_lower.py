@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import get_args, get_origin, get_type_hints
 from typing import Any
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..qec.lowering import (
     ActionSiteHandle,

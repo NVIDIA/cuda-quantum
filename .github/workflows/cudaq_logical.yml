@@ -249,6 +249,8 @@ jobs:
           python -c "import cudaq; print(cudaq.logical.__version__)"
           python -c "from cudaq import logical; print(logical.std.idle)"
           python -c "from cudaq.logical import program; print(program)"
+
+          python preview/logical/scripts/check_namespace_install.py
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30
