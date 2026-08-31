@@ -13,4 +13,6 @@
 
 int plain_old_function() { return 0; }
 
+// clang-format off
 // CHECK: warning: The CUDA-Q `sample` and `observe` algorithmic primitives will change in a future release.
+// clang-format on
