@@ -4741,8 +4741,8 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.ContinueOp([i, new_veq])
 
                 # Check if the source iterable is empty. If so, return a
-                # poison veq<0>. Otherwise peel the first element to form a
-                # veq<1> seed so the loop never starts from a veq<0> alloca
+                # poison `veq<0>`. Otherwise peel the first element to form a
+                # `veq<1>` seed so the loop never starts from a `veq<0> alloca`
                 # (which has no valid semantics).
                 isEmpty = arith.CmpIOp(IntegerAttr.get(i64Ty, 0), iterableSize,
                                        c0).result
