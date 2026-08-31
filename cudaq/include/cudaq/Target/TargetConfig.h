@@ -124,7 +124,7 @@ struct BackendEndConfigEntry {
   /// Extra libraries to be linked in if any
   std::vector<std::string> LinkLibs;
   /// List of plugin shared libraries to dlopen at runtime. Names may omit the
-  /// platform suffix (e.g. "libcudaq-rest-qpu"); it is appended for the
+  /// platform suffix (e.g. `"libcudaq-rest-qpu"i`); it is appended for the
   /// current platform when the library is resolved. Relative names are looked
   /// up in the CUDA-Q library directory and the target plugin's lib directory.
   std::vector<std::string> PluginLibraries;
