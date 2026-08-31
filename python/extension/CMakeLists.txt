@@ -89,7 +89,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_resource_count.cpp
     ../runtime/cudaq/analysis/py_dem.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
-    ../../runtime/cudaq/algorithms/run.cpp      # Common Python and C++ implementation of run
     ../runtime/cudaq/algorithms/py_state.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
@@ -116,16 +115,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/trace/py_trace.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../utils/LinkedLibraryHolder.cpp
-    ../../runtime/common/CodeGenConfig.cpp
-    ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
-    ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
-    ../../runtime/cudaq/platform/orca/OrcaRemoteRESTQPU.cpp
-    ../../runtime/cudaq/platform/orca/OrcaServerHelper.cpp
-    ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
-    ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
-    ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
-    ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
-    ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
     PythonMLIRHooks.cpp
 
@@ -155,6 +144,15 @@ target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
     ${CMAKE_SOURCE_DIR}/runtime
     ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
 )
+# The `cudaq.orca` submodule binds cudaq::orca::sample directly, so it can only
+# be built when the ORCA backend is. Link the library rather than recompiling
+# its sources here: a private copy would shadow libcudaq-orca-qpu in-process
+# and would ignore the build configuration entirely.
+if (CUDAQ_ENABLE_ORCA_BACKEND)
+  target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE cudaq-orca-qpu)
+  target_compile_definitions(CUDAQuantumPythonSources.Extension INTERFACE CUDAQ_ORCA_BACKEND_ENABLED)
+endif()
+
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
     cudaq-logger 
