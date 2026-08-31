@@ -54,11 +54,14 @@ for arch in config.targets_to_build.split():
 _py_pkg_dir = os.path.join(os.path.dirname(config.cudaq_lib_dir), 'python')
 _python = config.python_executable or sys.executable
 try:
-    _targets = subprocess.check_output(
-        [_python, '-c',
-         'import cudaq; print(" ".join(t.name for t in cudaq.get_targets()))'],
-        env=dict(os.environ, PYTHONPATH=_py_pkg_dir),
-        stderr=subprocess.STDOUT, text=True).split()
+    _targets = subprocess.check_output([
+        _python, '-c',
+        'import cudaq; print(" ".join(t.name for t in cudaq.get_targets()))'
+    ],
+                                       env=dict(os.environ,
+                                                PYTHONPATH=_py_pkg_dir),
+                                       stderr=subprocess.STDOUT,
+                                       text=True).split()
 except Exception as e:
     lit_config.fatal('Could not enumerate CUDA-Q targets, so cudaq-target-* '
                      'features cannot be set and gated tests would silently '
