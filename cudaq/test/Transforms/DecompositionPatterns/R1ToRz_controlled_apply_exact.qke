@@ -24,11 +24,12 @@
 // RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.basis > %t.basis.phase
 // RUN: FileCheck %s --check-prefix=PHASE < %t.basis.phase
 // RUN: CircuitCheck --input=%t.basis.phase %t.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s > %t.lower.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.decomposed > %t.lower
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %s > %t.lower.source
+// RUN: FileCheck %s --check-prefix=LOWER-SOURCE --implicit-check-not=quake.phase < %t.lower.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %t.decomposed > %t.lower
 // RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.lower
 // RUN: CircuitCheck --input=%t.lower %t.lower.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.basis > %t.basis.lower
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %t.basis > %t.basis.lower
 // RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.basis.lower
 // RUN: CircuitCheck --input=%t.basis.lower %t.lower.source
 
@@ -67,3 +68,6 @@ func.func @controlled_caller(%control: !quake.ref, %target: !quake.ref) {
 // LOWER-LABEL: func.func @controlled_caller
 // LOWER: quake.rz
 // LOWER: quake.r1
+
+// LOWER-SOURCE-LABEL: func.func @controlled_caller(
+// LOWER-SOURCE: return
