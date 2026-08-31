@@ -4755,7 +4755,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 nonEmptyBlock = Block.create_at_start(ifEmptyOp.elseRegion, [])
                 with InsertionPoint(nonEmptyBlock):
-                    # Peel element 0 to form the initial veq<1> seed.
+                    # Peel element 0 to form the initial `veq<1>` seed.
                     idx_val_0 = extractElem(c0)
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
