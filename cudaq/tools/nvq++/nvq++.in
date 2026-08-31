@@ -563,6 +563,7 @@ OUTPUTOPTS=
 OUTPUTFILE=
 OBJS=
 SRCS=
+HAS_COMPILE_OR_LINK_INPUT=false
 ARGS=
 CUDAQ_QUAKE_ARGS=
 CUDAQ_OPT_ARGS=
@@ -896,12 +897,15 @@ while [ $# -ne 0 ]; do
 		;;
 	*.o | *.so | *.bundle)
 		OBJS="${OBJS} $1"
+		HAS_COMPILE_OR_LINK_INPUT=true
 		;;
 	*.cpp | *.cc | *.cxx | *.c++)
 		SRCS="${SRCS} $1"
+		HAS_COMPILE_OR_LINK_INPUT=true
 		;;
 	*.a | *.dylib)
 		LINKLIBS="${LINKLIBS} $1"
+		HAS_COMPILE_OR_LINK_INPUT=true
 		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
@@ -918,6 +922,10 @@ fi
 
 if ${LIST_TARGETS}; then
 	list_targets
+fi
+
+if ${HAS_COMPILE_OR_LINK_INPUT} && ! ${PREPROCESS_ONLY}; then
+	printf '%s\n' 'WARNING: The CUDA-Q `sample` and `observe` algorithmic primitives will change in a future release. Existing code may require updates. See https://nvidia.github.io/cuda-quantum/latest/using/migration/upcoming_changes.html for details.' >&2
 fi
 
 TMPFILES=
