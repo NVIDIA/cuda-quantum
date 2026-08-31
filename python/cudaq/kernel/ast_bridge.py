@@ -4700,25 +4700,22 @@ class PyASTBridge(ast.NodeVisitor):
                 veqTy = self.getVeqType()
                 c0 = self.getConstantInt(0)
                 c1 = self.getConstantInt(1)
-
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
-                init_veq = quake.RelaxSizeOp(
-                    veqTy,
-                    quake.AllocaOp(empty_veq_ty).result).result
+                veq1_ty = quake.VeqType.get(1, context=self.ctx)
+
+                def extractElem(i):
+                    if quake.VeqType.isinstance(iterable.type):
+                        return quake.ExtractRefOp(iterTy, iterable, -1,
+                                                  index=i).result
+                    elem_addr = cc.ComputePtrOp(
+                        cc.PointerType.get(iterTy), iterable, [i],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    return cc.LoadOp(elem_addr).result
 
                 def bodyBuilder(args):
                     i, curr_veq = args[0], args[1]
-                    if quake.VeqType.isinstance(iterable.type):
-                        idx_val = quake.ExtractRefOp(iterTy,
-                                                     iterable,
-                                                     -1,
-                                                     index=i).result
-                    else:
-                        elem_addr = cc.ComputePtrOp(
-                            cc.PointerType.get(iterTy), iterable, [i],
-                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                  context=self.ctx))
-                        idx_val = cc.LoadOp(elem_addr).result
+                    idx_val = extractElem(i)
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
@@ -4743,12 +4740,60 @@ class PyASTBridge(ast.NodeVisitor):
                     self.symbolTable.endBlock()
                     cc.ContinueOp([i, new_veq])
 
-                loop = self.createForLoop(
-                    [i64Ty, veqTy], bodyBuilder, [c0, init_veq],
-                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
-                        0], iterableSize).result,
-                    lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
-                self.pushValue(loop.results[1])
+                # Check if the source iterable is empty. If so, return a
+                # poison veq<0>. Otherwise peel the first element to form a
+                # veq<1> seed so the loop never starts from a veq<0> alloca
+                # (which has no valid semantics).
+                isEmpty = arith.CmpIOp(IntegerAttr.get(i64Ty, 0), iterableSize,
+                                       c0).result
+                ifEmptyOp = cc.IfOp([veqTy], isEmpty, [])
+                emptyBlock = Block.create_at_start(ifEmptyOp.thenRegion, [])
+                with InsertionPoint(emptyBlock):
+                    poison = cc.PoisonOp(empty_veq_ty)
+                    cc.ContinueOp(
+                        [quake.RelaxSizeOp(veqTy, poison.result).result])
+
+                nonEmptyBlock = Block.create_at_start(ifEmptyOp.elseRegion, [])
+                with InsertionPoint(nonEmptyBlock):
+                    # Peel element 0 to form the initial veq<1> seed.
+                    idx_val_0 = extractElem(c0)
+                    self.symbolTable.beginBlock()
+                    self.__deconstructAssignment(node.generators[0].target,
+                                                 idx_val_0)
+                    if hasFilter:
+                        cond0 = evalFilter()
+                        ifFilter0 = cc.IfOp([veqTy], cond0, [])
+                        thenBlock0 = Block.create_at_start(
+                            ifFilter0.thenRegion, [])
+                        with InsertionPoint(thenBlock0):
+                            self.visit(node.elt)
+                            ref0 = self.popValue()
+                            veq1 = quake.ConcatOp(veq1_ty, [ref0]).result
+                            cc.ContinueOp(
+                                [quake.RelaxSizeOp(veqTy, veq1).result])
+                        elseBlock0 = Block.create_at_start(
+                            ifFilter0.elseRegion, [])
+                        with InsertionPoint(elseBlock0):
+                            poison0 = cc.PoisonOp(empty_veq_ty)
+                            cc.ContinueOp([
+                                quake.RelaxSizeOp(veqTy, poison0.result).result
+                            ])
+                        init_seed = ifFilter0.result
+                    else:
+                        self.visit(node.elt)
+                        ref0 = self.popValue()
+                        veq1 = quake.ConcatOp(veq1_ty, [ref0]).result
+                        init_seed = quake.RelaxSizeOp(veqTy, veq1).result
+                    self.symbolTable.endBlock()
+
+                    loop = self.createForLoop(
+                        [i64Ty, veqTy], bodyBuilder, [c1, init_seed],
+                        lambda args: arith.CmpIOp(IntegerAttr.get(
+                            i64Ty, 2), args[0], iterableSize).result, lambda
+                        args: [arith.AddIOp(args[0], c1).result, args[1]])
+                    cc.ContinueOp([loop.results[1]])
+
+                self.pushValue(ifEmptyOp.result)
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",
