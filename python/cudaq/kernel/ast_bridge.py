@@ -4716,7 +4716,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return cc.LoadOp(elem_addr).result
 
                 def bodyBuilder(args):
-                    # `found` tracks whether a real qubit has been placed in
+                    # `found` tracks whether a real `qubit` has been placed in
                     # the accumulator yet. Until it has, `curr_veq` is just
                     # the initial poison seed and is *never read* by this
                     # body: a matching element always *replaces* it (a
@@ -4724,7 +4724,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # `found` is true does a later match grow the (now
                     # real) accumulator via `quake.concat`. A `!quake.veq<0>`
                     # has no valid semantics, so it must never be an operand
-                    # to a concat -- it may only ever be the final, unread
+                    # to a `concat` -- it may only ever be the final, unread
                     # result of a search that found nothing at all.
                     i, found, curr_veq = args[0], args[1], args[2]
                     idx_val = extractElem(i)
