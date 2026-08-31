@@ -161,8 +161,7 @@ func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq
 // PIPELINE-NOT: combine-quantum-alloc
 // PIPELINE-NOT: convert-to-cfg
 // PIPELINE-NOT: stack-frame-prealloc
-// PIPELINE: verify-no-phase
-// PIPELINE-NEXT: convert-to-cfg-prep,
+// PIPELINE: convert-to-cfg-prep,
 // PIPELINE-NEXT: func.func(
 // PIPELINE-NEXT: convert-to-cfg
 // PIPELINE-NEXT: ),

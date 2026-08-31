@@ -7,8 +7,10 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s | CircuitCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s | CircuitCheck %s --up-to-global-phase
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{basis=rz,x(1)},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s | FileCheck %s --check-prefix=BASIS --implicit-check-not=quake.phase --implicit-check-not=quake.r1
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(cse,normalize-phase-placement,lower-phase,canonicalize))' %s > %t.lower
+// RUN: CircuitCheck --input=%t.lower %s --up-to-global-phase
+// RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase < %t.lower
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{basis=rz,x(1)},func.func(cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=BASIS --implicit-check-not=quake.phase --implicit-check-not=quake.r1
 
 func.func @forward(%target: !quake.ref) {
   %theta = arith.constant 1.234000e+00 : f64
@@ -36,3 +38,6 @@ func.func @controlled(%control: !quake.ref, %target: !quake.ref) {
 // BASIS: quake.x
 // BASIS: quake.rz
 // BASIS: return
+
+// LOWER-LABEL: func.func @forward(
+// LOWER: return
