@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // This test is only valid for x86_64.
-// RUN: if [ `uname -m` = "x86_64" ] ; then \
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s ; fi
+// REQUIRES: host-x86_64
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 #include <tuple>

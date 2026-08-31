@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // This test is only valid for aarch64.
-// RUN: if [ `uname -m` = "aarch64" ] ; then \
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s ; fi
+// REQUIRES: host-aarch64
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 #include <tuple>
