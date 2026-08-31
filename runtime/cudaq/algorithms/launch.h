@@ -89,6 +89,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       const bool isRemote = platform.is_remote(qpu_id);
       options.emulate = isEmulated;
       options.emitJit |= !isRemote;
+      if (!platform.supports_jit(qpu_id))
+        options.emitJit = false;
       options.boolVecBitPacked = !isRemote && !isEmulated;
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
