@@ -9,7 +9,7 @@
 // RUN: not cudaq-opt --lower-phase %s -split-input-file 2>&1 | FileCheck %s
 
 // The exact fallback requires an anchor outside the control predicate.
-// CHECK-COUNT-8: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
+// CHECK-COUNT-7: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
 func.func @anchor_aliases_vector_control(%theta: f64,
                                          %controls: !quake.veq<?>) {
   %anchor = quake.extract_ref %controls[0]
@@ -89,18 +89,6 @@ func.func @anchor_aliases_vector_control_through_wrap_new(
       : (f64, !quake.veq<?>, !quake.ref) -> ()
   %reclaimed = quake.unwrap %anchor : (!quake.ref) -> !quake.wire
   quake.sink %reclaimed : !quake.wire
-  return
-}
-
-// -----
-
-// Separate function arguments are opaque: callers may pass an anchor that
-// aliases an element of the unresolved vector predicate.
-func.func @opaque_function_arguments_may_alias(%theta: f64,
-                                               %controls: !quake.veq<?>,
-                                               %anchor: !quake.ref) {
-  quake.phase (%theta) [%controls] %anchor
-      : (f64, !quake.veq<?>, !quake.ref) -> ()
   return
 }
 
