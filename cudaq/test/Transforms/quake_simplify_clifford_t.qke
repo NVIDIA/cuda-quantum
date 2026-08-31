@@ -564,6 +564,7 @@ func.func @combine_before_legalization() {
 // COMBINE-STATS-LABEL: QuakeSimplify
 // COMBINE-STATS: 0 clifford-t-rotations
 // COMBINE-STATS: 1 rotations-combined
+// COMBINE-STATS: 1 simplification-runs
 
 // epsilon=1e-3 accepts each operation just inside its operator-norm bound and
 // rejects the corresponding value just outside. R1 uses delta ~= epsilon;

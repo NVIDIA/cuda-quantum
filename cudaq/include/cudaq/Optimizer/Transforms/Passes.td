@@ -1606,6 +1606,8 @@ def QuakeSimplify : Pass<"quake-simplify"> {
       "class. Zero enables bit-exact matching only.">,
   ];
   let statistics = [
+    Statistic<"numSimplificationRuns", "simplification-runs",
+              "Number of commutation-aware simplification runs">,
     Statistic<"numHermitianEliminations", "hermitian-eliminations",
               "Number of commutation-compatible Hermitian gate pairs eliminated">,
     Statistic<"numAdjointEliminations", "adjoint-eliminations",

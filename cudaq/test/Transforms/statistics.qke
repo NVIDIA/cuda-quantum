@@ -120,4 +120,5 @@ func.func @clifford_t_rotation() {
 // SIMPLE: 1 reduce-ysx-rewrites
 // SIMPLE: 2 resets-erased
 // SIMPLE: 1 rotations-combined
+// SIMPLE: 2 simplification-runs
 // SIMPLE: 1 zero-rotations-eliminated
