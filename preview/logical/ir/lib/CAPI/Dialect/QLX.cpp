@@ -1,0 +1,43 @@
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "qlx-c/Dialect/QLX.h"
+
+#include "mlir/CAPI/IR.h"
+#include "mlir/CAPI/Registration.h"
+#include "mlir/CAPI/Support.h"
+
+#include "qlx/Dialect/QLX/IR/QLXAttrs.h"
+#include "qlx/Dialect/QLX/IR/QLXDialect.h"
+#include "qlx/Dialect/QLX/Transforms/QLXToPBC.h"
+
+MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(QLX, qlx, qlx::QLXDialect)
+
+bool qlxLowerToPBC(MlirModule module) {
+  return mlir::succeeded(qlx::lowerToPBC(unwrap(module)));
+}
+
+bool qlxAttributeIsAPauli(MlirAttribute attr) {
+  return llvm::isa<qlx::PauliAttr>(unwrap(attr));
+}
+
+MlirAttribute qlxPauliAttrGet(MlirContext ctx, MlirStringRef value) {
+  auto symbol = qlx::symbolizePauli(unwrap(value));
+  if (!symbol)
+    return MlirAttribute{nullptr};
+  return wrap(qlx::PauliAttr::get(unwrap(ctx), *symbol));
+}
+
+MlirStringRef qlxPauliAttrGetValue(MlirAttribute attr) {
+  return wrap(
+      qlx::stringifyPauli(llvm::cast<qlx::PauliAttr>(unwrap(attr)).getValue()));
+}
+
+MlirTypeID qlxPauliAttrGetTypeID(void) {
+  return wrap(qlx::PauliAttr::getTypeID());
+}

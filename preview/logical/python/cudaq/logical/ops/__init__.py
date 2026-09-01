@@ -1,0 +1,74 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+"""Canonical executable authoring operations."""
+
+from . import _impl
+
+__all__ = [
+    "allocate",
+    "all_false",
+    "all_zero",
+    "apply",
+    "barrier",
+    "ccz",
+    "cond",
+    "cx",
+    "cz",
+    "discard",
+    "h",
+    "extract_syndrome",
+    "idle",
+    "if_",
+    "encoding_pack",
+    "encoding_unpack",
+    "measure",
+    "measure_pauli",
+    "measure_x",
+    "read_syndrome_ancillas",
+    "measure_gauges",
+    "measure_z",
+    "map_children",
+    "mpp",
+    "mz",
+    "allocate_patch",
+    "permute",
+    "prepare",
+    "prepare_plus",
+    "prepare_zero",
+    "readout",
+    "repeat",
+    "retry",
+    "reset",
+    "produce",
+    "request",
+    "request_many",
+    "pack_resource",
+    "parity",
+    "postselect",
+    "transport",
+    "unpack_resource",
+    "transition_epoch",
+    "rotate",
+    "resource_rotate",
+    "rx",
+    "ry",
+    "rz",
+    "while_",
+    "xor",
+    "x_if",
+    "z_if",
+    "s",
+    "sdg",
+    "t",
+    "tdg",
+    "x",
+    "y",
+    "z",
+]
+
+globals().update({name: getattr(_impl, name) for name in __all__})

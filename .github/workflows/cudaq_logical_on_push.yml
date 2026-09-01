@@ -1,0 +1,52 @@
+# Run the `cudaq-logical.yml` workflow on any PR that touches the cudaq.logical preview folder.
+
+name: Build and test cudaq.logical
+
+on:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+
+jobs:
+  changes:
+    name: Check for cudaq.logical changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      logical: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout changed-path action
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions/check-changed-paths
+          sparse-checkout-cone-mode: false
+
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            preview/logical/
+            .github/workflows/cudaq_logical.yml
+            .github/workflows/cudaq_logical_on_push.yml
+            .github/workflows/retrieve_python_wheels.yml
+            .github/actions/check-changed-paths/
+
+  build_and_test:
+    needs: changes
+    if: needs.changes.outputs.logical == 'true'
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        python_version: [3.11, 3.13, 3.14]
+
+    name: Build and test cudaq.logical
+    uses: ./.github/workflows/cudaq_logical.yml
+    with:
+      platform: ${{ matrix.platform }}
+      python_version: ${{ matrix.python_version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
