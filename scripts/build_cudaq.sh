@@ -20,6 +20,8 @@
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 # -or-
 # bash scripts/build_cudaq.sh -- -DCUDAQ_LIT_JOBS=2 
+# -or-
+# bash scripts/build_cudaq.sh -L
 #
 # Options:
 # -c <build_configuration>: The build configuration to use. Defaults to Release.
@@ -31,6 +33,7 @@
 # -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
 # -p: Install prerequisites before building.
 # -I: Install only (skip configure and build, just run ninja install + post-install).
+# -L: Also build cudaq.logical (preview/logical) against the fresh CUDA-Q installation.
 # --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
@@ -62,6 +65,7 @@ clean_build=true
 install_prereqs=false
 install_toolchain=""
 install_only=false
+build_logical=false
 num_jobs=""
 enable_sanitizers=false
 extra_cmake_args=""
@@ -91,7 +95,7 @@ source "$this_file_dir/set_env_defaults.sh"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:ispI" opt; do
+while getopts ":c:t:j:vB:ispIL" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -111,12 +115,19 @@ while getopts ":c:t:j:vB:ispI" opt; do
     ;;
     I) install_only=true
     ;;
+    L) build_logical=true
+    ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done
 OPTIND=$__optind__
+
+if $build_logical && [ "$(uname)" = "Darwin" ]; then
+  echo "Support for cudaq.logical is currently limited to Linux."
+  (return 0 2>/dev/null) && return 1 || exit 1
+fi
 
 # Prepare the build directory
 echo "Build directory: $build_dir"
@@ -293,6 +304,7 @@ if [ "$(uname)" != "Darwin" ]; then
   -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"'"
 fi
+
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
 # environment variable is specified. Setting this variable may hence be necessary in 
@@ -350,5 +362,56 @@ echo "<LLVM_INSTALL_PREFIX>$LLVM_INSTALL_PREFIX</LLVM_INSTALL_PREFIX>" >> "$CUDA
 echo "<CUQUANTUM_INSTALL_PREFIX>$CUQUANTUM_INSTALL_PREFIX</CUQUANTUM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 echo "<CUTENSOR_INSTALL_PREFIX>$CUTENSOR_INSTALL_PREFIX</CUTENSOR_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+
+# Build cudaq.logical against the fresh CUDA-Q installation (opt-in with -L).
+# This step runs its own CMake configure, so it is also executed in
+# install-only mode (-I); its build tree is never cleaned by this script.
+if $build_logical; then
+  echo "Building cudaq.logical against the CUDA-Q installation in $CUDAQ_INSTALL_PREFIX..."
+  logical_build_dir="$repo_root/build/preview/logical"
+  if [ -z "$LLVM_DIR" ]; then
+    LLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
+  fi
+  logical_cmake_args="-G Ninja \
+    -S $repo_root/preview/logical \
+    -B $logical_build_dir \
+    -DCMAKE_BUILD_TYPE=$build_configuration \
+    -DCMAKE_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX \
+    -DLLVM_DIR=$LLVM_DIR \
+    -DQLX_CUDAQ_INSTALL_DIR=$CUDAQ_INSTALL_PREFIX"
+  if $verbose; then
+    echo "cmake $logical_cmake_args"
+    cmake $logical_cmake_args
+    status=$?
+  else
+    echo "The progress of the cudaq.logical CMake configuration is being logged to $logs_dir/logical_cmake_output.txt."
+    cmake $logical_cmake_args \
+      2> "$logs_dir/logical_cmake_error.txt" 1> "$logs_dir/logical_cmake_output.txt"
+    status=$?
+  fi
+  if [ "$status" -ne 0 ]; then
+    echo -e "\e[01;31mError: CMake configuration failed for cudaq.logical. Please check $logs_dir/logical_cmake_error.txt for details.\e[0m" >&2
+    if ! $verbose; then
+      cat "$logs_dir/logical_cmake_error.txt" >&2
+    fi
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+
+  echo "Building cudaq.logical with configuration $build_configuration..."
+  if $verbose; then
+    ninja -C "$logical_build_dir" ${num_jobs} install
+    status=$?
+  else
+    echo "The progress of the cudaq.logical build is being logged to $logs_dir/logical_ninja_output.txt."
+    ninja -C "$logical_build_dir" ${num_jobs} install \
+      2> "$logs_dir/logical_ninja_error.txt" 1> "$logs_dir/logical_ninja_output.txt"
+    status=$?
+  fi
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo -e "\e[01;31mError: Failed to build/install cudaq.logical. Please check the console output or the files in the $logs_dir directory.\e[0m" >&2
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+  echo "Installed cudaq.logical into $CUDAQ_INSTALL_PREFIX (build tree: $logical_build_dir)"
+fi
 
 cd "$working_dir" && echo "Installed CUDA-Q in directory: $CUDAQ_INSTALL_PREFIX"

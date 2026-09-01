@@ -58,14 +58,7 @@ endif()
 # cudaq.logical.dialects.qlx, cudaq.logical.passmanager, plus the canonical
 # pure-Python modules as sibling submodules.
 set(MLIR_PYTHON_PACKAGE_PREFIX     "cudaq.logical")
-if(SKBUILD)
-  # scikit-build-core installs relative to the wheel's platlib root, where
-  # the canonical package is cudaq/logical/. Keep the historical standalone
-  # CMake layout for non-wheel installs.
-  set(MLIR_BINDINGS_PYTHON_INSTALL_PREFIX "cudaq/logical")
-else()
-  set(MLIR_BINDINGS_PYTHON_INSTALL_PREFIX "python_packages/cudaq/logical")
-endif()
+set(MLIR_BINDINGS_PYTHON_INSTALL_PREFIX "cudaq/logical")
 set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "cudaq_logical" CACHE STRING "" FORCE)
 
 # Every MLIR-side Python C extension (theirs and ours) is compiled with
@@ -446,6 +439,20 @@ foreach(_src ${_py_sources})
   file(RELATIVE_PATH _rel ${CMAKE_CURRENT_SOURCE_DIR} ${_src})
   configure_file(${_src} ${CMAKE_CURRENT_BINARY_DIR}/${_rel} COPYONLY)
 endforeach()
+
+# Hand-written cudaq.logical modules (compiler/, architecture/, ...) are staged
+# above for the build tree. MLIR machinery installs bindings separately; mirror
+# core CUDA-Q's ``install(DIRECTORY cudaq ...)`` for source-prefix installs.
+if(NOT SKBUILD)
+  install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/logical"
+    DESTINATION cudaq
+    COMPONENT QLXPythonModules
+    FILES_MATCHING
+    PATTERN "*.py"
+    PATTERN "dialects/*.td" EXCLUDE
+    PATTERN "__pycache__" EXCLUDE
+    PATTERN "*.pyc" EXCLUDE)
+endif()
 
 # Build-tree only: extend cudaq.__path__ so `import cudaq.logical` resolves
 # from this prefix without a cudaq/__init__.py in our tree. Never installed.

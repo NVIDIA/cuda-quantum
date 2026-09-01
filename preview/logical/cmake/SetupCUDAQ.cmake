@@ -99,6 +99,11 @@ message(STATUS "CUDA-Q:          ${QLX_CUDAQ_PREFIX} (${_qlx_cudaq_origin})")
 # CMAKE_MODULE_PATH, and includes AddCUDAQ -- so this one call is enough.
 set(CUDAQ_ENABLE_LANGUAGE OFF)
 find_package(CUDAQ REQUIRED CONFIG)
+# If LLVM_DIR is set but not MLIR_DIR, look for a colocated MLIR installation.
+# TODO: this could go in `/cmake/CUDAQConfig.cmake`
+if (NOT MLIR_DIR AND EXISTS "${LLVM_DIR}/../mlir/MLIRConfig.cmake")
+  get_filename_component(MLIR_DIR "${LLVM_DIR}/../mlir" ABSOLUTE)
+endif()
 find_package(LLVM REQUIRED CONFIG)
 find_package(MLIR REQUIRED CONFIG)
 
