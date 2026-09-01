@@ -1,0 +1,68 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize --cc-loop-unroll %s | FileCheck %s
+
+// Regression test: fully unrolling the inner loop can constant-fold some of the
+// conditions, leaving behind now-unreachable successor blocks. We need to
+// eliminate those unreachable blocks as prior to unrolling the outer loop so
+// that we don't leave behind broken stale use/defs.
+
+func.func @nested_loop_with_continue()->i64 {
+  % c0_i64 = arith.constant 0 : i64 % c1_i64 = arith.constant 1 : i64 % c2_i64 =
+                                                   arith.constant 2
+      : i64 % c4_i64 = arith.constant 4 : i64 % 0 : 2 = cc.loop while (
+                           (% arg0 = % c0_i64, % arg1 = % c0_i64)->(i64, i64)) {
+    % 1 = arith.cmpi slt, % arg0,
+      % c4_i64 : i64 cc.condition % 1(% arg0, % arg1 : i64, i64)
+  }
+  do {
+    ^bb0(% arg0 : i64, % arg1 : i64)
+        : %
+        1
+        : 2 = cc.loop while ((% arg2 = % c0_i64, % arg3 = % arg1)->(i64, i64)) {
+      % 2 = arith.cmpi slt, % arg2,
+        % c4_i64 : i64 cc.condition % 2(% arg2, % arg3 : i64, i64)
+    }
+    do {
+      ^bb0(% arg2 : i64, % arg3 : i64)
+          : %
+          2 = arith.remui % arg2,
+          % c2_i64 : i64 % 3 = arith.cmpi eq, % 2,
+          % c0_i64 : i64 cf.cond_br % 3, ^bb1,
+          ^bb2 ^ bb1 : // pred: ^bb0
+                       cc.continue %
+                     arg2,
+          % arg3 : i64,
+          i64 ^ bb2 : // pred: ^bb0
+                      %
+                      4 = arith.addi % arg3,
+          % arg2 : i64 cc.continue % arg2, % 4 : i64, i64
+    }
+    step{
+      ^bb0(% arg2 : i64, % arg3 : i64) : % 2 = arith.addi % arg2,
+      % c1_i64 : i64 cc.continue % 2,
+      % arg3 : i64,
+      i64
+    } cc.continue %
+        arg0,
+        % 1 #1 : i64, i64
+  }
+  step {
+    ^bb0(% arg0 : i64, % arg1 : i64)
+        : %
+        1 = arith.addi % arg0,
+        % c1_i64 : i64 cc.continue % 1, % arg1 : i64, i64
+  }
+  return % 0 #1 : i64
+}
+
+// CHECK-LABEL:   func.func @nested_loop_with_continue() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 16 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }

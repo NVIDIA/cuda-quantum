@@ -4443,23 +4443,63 @@ class PyASTBridge(ast.NodeVisitor):
         if_clauses = node.generators[0].ifs
         hasFilter = len(if_clauses) > 0
 
-        self.visit(node.generators[0].iter)
-        iterable = self.popValue()
-        orig_iterable_type = iterable.type
-        if cc.SequenceType.isinstance(iterable.type):
-            iterableSize = cc.SequenceSizeOp(self.getIntegerType(),
-                                             iterable).result
-            iterTy = cc.SequenceType.getElementType(iterable.type)
-            iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
-            iterable = cc.SequenceDataOp(iterArrPtrTy, iterable).result
-        elif quake.VeqType.isinstance(iterable.type):
-            iterableSize = quake.VeqSizeOp(self.getIntegerType(),
-                                           iterable).result
-            iterTy = quake.RefType.get()
+        i64Ty = self.getIntegerType()
+
+        # `range(...)` never needs to be materialized into a buffer: the loop
+        # induction variable *is* the element, so there is nothing to
+        # allocate or populate.
+        is_range_source = (isinstance(node.generators[0].iter, ast.Call) and
+                           isinstance(node.generators[0].iter.func, ast.Name)
+                           and node.generators[0].iter.func.id == 'range')
+        if is_range_source:
+            startVal, endVal, stepVal, isDecrementing = \
+                self.__processRangeLoopIterationBounds(
+                    node.generators[0].iter.args)
+            zero = self.getConstantInt(0)
+            one = self.getConstantInt(1)
+            totalSize = arith.SubIOp(endVal, startVal).result
+            roundingOffset = (arith.AddIOp(
+                stepVal, one).result if isDecrementing else arith.SubIOp(
+                    stepVal, one).result)
+            totalSize = arith.AddIOp(totalSize, roundingOffset).result
+            iterableSize = arith.MaxSIOp(
+                zero,
+                arith.DivSIOp(totalSize, stepVal).result).result
+            iterTy = i64Ty
+
+            def extractElem(i):
+                # `i` is a 0-based iteration count (needed for buffer
+                # indexing elsewhere), not the range value itself -- map it
+                # back to the real `range(start, end, step)` value.
+                return arith.AddIOp(startVal,
+                                    arith.MulIOp(i, stepVal).result).result
         else:
-            self.emitFatalError(
-                "CUDA-Q only supports list comprehension on ranges and arrays",
-                node)
+            self.visit(node.generators[0].iter)
+            iterable = self.popValue()
+            orig_iterable_type = iterable.type
+            if cc.SequenceType.isinstance(iterable.type):
+                iterableSize = cc.SequenceSizeOp(i64Ty, iterable).result
+                iterTy = cc.SequenceType.getElementType(iterable.type)
+                iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
+                iterable = cc.SequenceDataOp(iterArrPtrTy, iterable).result
+
+                def extractElem(i):
+                    elem_addr = cc.ComputePtrOp(
+                        cc.PointerType.get(iterTy), iterable, [i],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    return cc.LoadOp(elem_addr).result
+            elif quake.VeqType.isinstance(iterable.type):
+                iterableSize = quake.VeqSizeOp(i64Ty, iterable).result
+                iterTy = quake.RefType.get()
+
+                def extractElem(i):
+                    return quake.ExtractRefOp(iterTy, iterable, -1,
+                                              index=i).result
+            else:
+                self.emitFatalError(
+                    "CUDA-Q only supports list comprehension on ranges and "
+                    "arrays", node)
 
         def process_void_list():
             # NOTE: This does not actually create a valid value, and will fail
@@ -4691,93 +4731,102 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if quake.RefType.isinstance(listElemTy):
-            if quake.VeqType.isinstance(orig_iterable_type) and not hasFilter:
+            if (not is_range_source and
+                    quake.VeqType.isinstance(orig_iterable_type) and
+                    not hasFilter):
                 self.pushValue(iterable)
                 return
-            if (cc.SequenceType.isinstance(orig_iterable_type) or
+            if (is_range_source or
+                    cc.SequenceType.isinstance(orig_iterable_type) or
                     quake.VeqType.isinstance(orig_iterable_type)):
-                i64Ty = self.getIntegerType()
-                i1Ty = self.getIntegerType(1)
                 veqTy = self.getVeqType()
+                c0 = self.getConstantInt(0)
                 c1 = self.getConstantInt(1)
-                falseVal = self.getConstantInt(0, 1)
-                trueVal = self.getConstantInt(1, 1)
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
                 veq1_ty = quake.VeqType.get(1, context=self.ctx)
 
-                def extractElem(i):
-                    if quake.VeqType.isinstance(iterable.type):
-                        return quake.ExtractRefOp(iterTy, iterable, -1,
-                                                  index=i).result
-                    elem_addr = cc.ComputePtrOp(
-                        cc.PointerType.get(iterTy), iterable, [i],
+                # Build and record the set of indices described by the list comprehension itself.
+                idxBufTy = cc.PointerType.get(cc.ArrayType.get(i64Ty))
+                idxBuf = cc.AllocaOp(idxBufTy,
+                                     TypeAttr.get(i64Ty),
+                                     seqSize=iterableSize).result
+
+                def idxBufAddr(k):
+                    return cc.ComputePtrOp(
+                        cc.PointerType.get(i64Ty), idxBuf, [k],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx))
-                    return cc.LoadOp(elem_addr).result
 
-                def bodyBuilder(args):
-                    # `found` tracks whether a real `qubit` has been placed in
-                    # the accumulator yet. Until it has, `curr_veq` is just
-                    # the initial poison seed and is *never read* by this
-                    # body: a matching element always *replaces* it (a
-                    # fresh `veq<1>`), never concatenates onto it. Only once
-                    # `found` is true does a later match grow the (now
-                    # real) accumulator via `quake.concat`. A `!quake.veq<0>`
-                    # has no valid semantics, so it must never be an operand
-                    # to a `concat` -- it may only ever be the final, unread
-                    # result of a search that found nothing at all.
-                    i, found, curr_veq = args[0], args[1], args[2]
+                def collectBody(args):
+                    i, count = args[0], args[1]
                     idx_val = extractElem(i)
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    cond = evalFilter() if hasFilter else trueVal
-                    ifCond = cc.IfOp([i1Ty, veqTy], cond, [])
-                    condThen = Block.create_at_start(ifCond.thenRegion, [])
-                    with InsertionPoint(condThen):
+                    cond = evalFilter() if hasFilter else None
+                    self.symbolTable.endBlock()
+                    if cond is None:
+                        cc.StoreOp(i, idxBufAddr(count))
+                        cc.ContinueOp([i, arith.AddIOp(count, c1).result])
+                        return
+                    ifOp = cc.IfOp([i64Ty], cond, [])
+                    thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                    with InsertionPoint(thenBlock):
+                        cc.StoreOp(i, idxBufAddr(count))
+                        cc.ContinueOp([arith.AddIOp(count, c1).result])
+                    elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                    with InsertionPoint(elseBlock):
+                        cc.ContinueOp([count])
+                    cc.ContinueOp([i, ifOp.result])
+
+                collect = self.createForLoop(
+                    [i64Ty, i64Ty], collectBody, [c0, c0],
+                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
+                        0], iterableSize).result,
+                    lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
+                matchCount = collect.results[1]
+
+                # Construct the veq from the list comprehension set. If the set is empty then the veq is poison. This is a bug in the user's code that neither the bridge nor the compiler will paper over. Otherwise the set is used to drive a `quake.concat` chain seeded from the first match.
+                hasMatch = arith.CmpIOp(IntegerAttr.get(i64Ty, 4), matchCount,
+                                        c0).result
+                ifMatchOp = cc.IfOp([veqTy], hasMatch, [])
+                matchThen = Block.create_at_start(ifMatchOp.thenRegion, [])
+                with InsertionPoint(matchThen):
+                    idx0 = cc.LoadOp(idxBufAddr(c0)).result
+                    self.symbolTable.beginBlock()
+                    self.__deconstructAssignment(node.generators[0].target,
+                                                 extractElem(idx0))
+                    self.visit(node.elt)
+                    ref0 = self.popValue()
+                    veq1 = quake.ConcatOp(veq1_ty, [ref0]).result
+                    init_seed = quake.RelaxSizeOp(veqTy, veq1).result
+                    self.symbolTable.endBlock()
+
+                    def buildBody(args):
+                        k, curr_veq = args[0], args[1]
+                        idxK = cc.LoadOp(idxBufAddr(k)).result
+                        self.symbolTable.beginBlock()
+                        self.__deconstructAssignment(node.generators[0].target,
+                                                     extractElem(idxK))
                         self.visit(node.elt)
                         ref = self.popValue()
-                        ifFound = cc.IfOp([veqTy], found, [])
-                        foundThen = Block.create_at_start(
-                            ifFound.thenRegion, [])
-                        with InsertionPoint(foundThen):
-                            grown = quake.ConcatOp(veqTy,
-                                                   [curr_veq, ref]).result
-                            cc.ContinueOp([grown])
-                        foundElse = Block.create_at_start(
-                            ifFound.elseRegion, [])
-                        with InsertionPoint(foundElse):
-                            veq1 = quake.ConcatOp(veq1_ty, [ref]).result
-                            cc.ContinueOp(
-                                [quake.RelaxSizeOp(veqTy, veq1).result])
-                        cc.ContinueOp([trueVal, ifFound.result])
-                    condElse = Block.create_at_start(ifCond.elseRegion, [])
-                    with InsertionPoint(condElse):
-                        cc.ContinueOp([found, curr_veq])
-                    self.symbolTable.endBlock()
-                    cc.ContinueOp([i, ifCond.results[0], ifCond.results[1]])
+                        self.symbolTable.endBlock()
+                        grown = quake.ConcatOp(veqTy, [curr_veq, ref]).result
+                        cc.ContinueOp([k, grown])
 
-                # Seed the accumulator with poison: there is no sound
-                # zero-length `!quake.veq` to allocate and grow. The loop
-                # above only ever *replaces* this seed (with a real
-                # `veq<1>`) the first time a matching element is found; it
-                # is never grown from. If no element ever matches -- an
-                # empty source iterable, or a filter that rejects every
-                # element -- the poison seed survives as the final,
-                # unread-by-this-lowering result. Using that result (e.g.
-                # applying a gate to it) is then a bug in the user's kernel,
-                # not something this lowering can paper over.
-                poison = cc.PoisonOp(empty_veq_ty)
-                init_seed = quake.RelaxSizeOp(veqTy, poison.result).result
+                    build = self.createForLoop(
+                        [i64Ty, veqTy], buildBody, [c1, init_seed],
+                        lambda args: arith.CmpIOp(IntegerAttr.get(
+                            i64Ty, 2), args[0], matchCount).result, lambda args:
+                        [arith.AddIOp(args[0], c1).result, args[1]])
+                    cc.ContinueOp([build.results[1]])
+                matchElse = Block.create_at_start(ifMatchOp.elseRegion, [])
+                with InsertionPoint(matchElse):
+                    poison = cc.PoisonOp(empty_veq_ty)
+                    cc.ContinueOp(
+                        [quake.RelaxSizeOp(veqTy, poison.result).result])
 
-                loop = self.createForLoop(
-                    [i64Ty, i1Ty, veqTy], bodyBuilder,
-                    [self.getConstantInt(0), falseVal, init_seed],
-                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
-                        0], iterableSize).result, lambda args:
-                    [arith.AddIOp(args[0], c1).result, args[1], args[2]])
-
-                self.pushValue(loop.results[2])
+                self.pushValue(ifMatchOp.result)
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",
@@ -4790,15 +4839,6 @@ class PyASTBridge(ast.NodeVisitor):
         listValue = cc.AllocaOp(cc.PointerType.get(listTy),
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
-
-        def extractIterVal(iterVar):
-            if quake.VeqType.isinstance(iterable.type):
-                return quake.ExtractRefOp(iterTy, iterable, -1,
-                                          index=iterVar).result
-            eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(iterTy), iterable, [iterVar],
-                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-            return cc.LoadOp(eleAddr).result
 
         def storeElementAt(storeIdx):
             self.visit(node.elt)
@@ -4817,7 +4857,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             def bodyBuilder(iterVar):
                 self.symbolTable.beginBlock()
-                iterVal = extractIterVal(iterVar)
+                iterVal = extractElem(iterVar)
                 self.__deconstructAssignment(node.generators[0].target, iterVal)
                 storeElementAt(iterVar)
                 self.symbolTable.endBlock()
@@ -4835,7 +4875,7 @@ class PyASTBridge(ast.NodeVisitor):
         def filteredBodyBuilder(args):
             i, count = args[0], args[1]
             self.symbolTable.beginBlock()
-            iterVal = extractIterVal(i)
+            iterVal = extractElem(i)
             self.__deconstructAssignment(node.generators[0].target, iterVal)
             cond = evalFilter()
             ifOp = cc.IfOp([i64Ty], cond, [])
@@ -5312,9 +5352,30 @@ class PyASTBridge(ast.NodeVisitor):
                         "invalid number of arguments to enumerate "
                         "- expecting 1 argument", node)
 
-                self.visit(node.iter.args[0])
-                iterable = self.popValue()
-                getValues = lambda iterVar, v: (iterVar, v)
+                innerIterNode = node.iter.args[0]
+                if (isinstance(innerIterNode, ast.Call) and
+                        isinstance(innerIterNode.func, ast.Name) and
+                        innerIterNode.func.id == 'range'):
+                    # `enumerate(range(...))` never needs a buffer either:
+                    # drive the loop directly off the range bounds (as
+                    # above) and derive enumerate's 0-based index from the
+                    # loop variable arithmetically, since `step` is always a
+                    # compile-time constant. FIXME: handle `start` argument.
+                    iterable = None
+                    startVal, endVal, stepVal, isDecrementing = \
+                        self.__processRangeLoopIterationBounds(
+                            innerIterNode.args)
+                    rangeStart, rangeStep = startVal, stepVal
+
+                    def getValues(iterVar):
+                        idx = arith.DivSIOp(
+                            arith.SubIOp(iterVar, rangeStart).result,
+                            rangeStep).result
+                        return (idx, iterVar)
+                else:
+                    self.visit(innerIterNode)
+                    iterable = self.popValue()
+                    getValues = lambda iterVar, v: (iterVar, v)
 
         if not getValues:
             self.visit(node.iter)

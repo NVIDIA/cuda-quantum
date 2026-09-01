@@ -379,7 +379,12 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     }
     [[maybe_unused]] auto lastBranch =
         cf::BranchOp::create(rewriter, loc, exitTarget, iterationOpers);
-    rewriter.replaceOp(loop, endBlock->getArguments());
+    rewriter.replaceAllUsesWith(loop.getOperation()->getResults(),
+                                endBlock->getArguments());
+    // Cleanup any unreachable blocks from constant propagation of iterations.
+    [[maybe_unsued]] auto unused =
+        eraseUnreachableBlocks(rewriter, loop.getOperation()->getRegions());
+    rewriter.eraseOp(loop);
 
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
                lastBranch->getParentOfType<func::FuncOp>().dump());
