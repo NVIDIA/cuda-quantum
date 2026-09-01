@@ -151,8 +151,10 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.add<HoistVeqSizeThroughIfPattern>(ctx);
-    // Hoisting can only expose another match by creating a branch-local
-    // `quake.veq_size`, so existing and newly created roots close the worklist.
+    // Hoisting an outer size query creates new size queries inside its
+    // branches. Keep those new operations on the worklist so nested
+    // conditionals are handled without scanning unrelated operations in the
+    // function.
     GreedyRewriteConfig config;
     config.setScope(&func.getBody())
         .setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);

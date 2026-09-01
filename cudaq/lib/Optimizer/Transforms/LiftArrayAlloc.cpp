@@ -29,6 +29,9 @@ using namespace mlir;
 #include "LiftArrayAllocPatterns.inc"
 
 namespace {
+// Collect the initializer slice in producer-before-consumer order so each
+// stored value can be folded. Use an explicit stack because generated
+// initializer chains can be very deep.
 static void collectDefiningOps(Value value,
                                llvm::SmallPtrSetImpl<Operation *> &seen,
                                SmallVectorImpl<Operation *> &candidates) {
@@ -103,9 +106,9 @@ public:
     config.setScope(&func.getBody())
         .setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
 
-    // The region driver folded initializer expressions before retrying the
-    // allocation pattern. Preserve that phase ordering without scanning ops
-    // unrelated to an allocation.
+    // AllocaPattern requires each stored value to be a direct constant. Fold
+    // the initializer slices first, then rebuild the candidate set because
+    // folding may replace or erase operations collected above.
     if (!initializerOps.empty()) {
       RewritePatternSet foldingPatterns(ctx);
       if (failed(applyOpPatternsGreedily(initializerOps,

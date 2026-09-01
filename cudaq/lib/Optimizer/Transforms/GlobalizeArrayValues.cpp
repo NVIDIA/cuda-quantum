@@ -334,18 +334,22 @@ public:
             module.getOperation()))
       return;
 
-    // Make the unchecked assumption that a ConstArrayOp was added by the
-    // LiftArrayAlloc pass. This assumption means that the backing store of the
-    // ConstArrayOp has been checked that it is never written to.
+    // LiftArrayAlloc has already checked that these constant arrays are not
+    // modified, so this pass does not repeat the write analysis.
     unsigned counter = 0;
     LLVM_DEBUG(llvm::dbgs() << "Before globalizing array values:\n"
                             << module << '\n');
 
+    // Rewrite spans first because a constant array used by cc.reify_span is not
+    // yet eligible for ConstantArrayPattern. Recollect the arrays afterward,
+    // since removing a span can make its source array eligible.
     SmallVector<Operation *> reifyRoots;
     module.walk<WalkOrder::PreOrder>([&](cudaq::cc::ReifySpanOp reify) {
       reifyRoots.push_back(reify.getOperation());
     });
     GreedyRewriteConfig config;
+    // Keep operations created by these roots on the worklist without adding
+    // unrelated operations that were already in the module.
     config.setScope(&module.getBodyRegion())
         .setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
     RewritePatternSet reifyPatterns(ctx);

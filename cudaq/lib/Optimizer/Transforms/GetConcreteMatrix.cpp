@@ -29,6 +29,8 @@ public:
 
   void runOnOperation() override {
     auto module = getOperation();
+    // Replacing one of these calls never creates another, so the calls already
+    // present in the module are the complete worklist.
     SmallVector<Operation *> candidates;
     module.walk<WalkOrder::PreOrder>(
         [&](cudaq::quake::CustomUnitaryCallOp customOp) {
@@ -41,6 +43,8 @@ public:
     llvm::SmallPtrSet<Operation *, 4> convertedGenerators;
     for (Operation *candidate : candidates) {
       auto customOp = cast<cudaq::quake::CustomUnitaryCallOp>(candidate);
+      // Look up the generator from the call's nearest module. This matters when
+      // the pass root contains nested modules with their own symbol tables.
       auto parentModule = customOp->getParentOfType<ModuleOp>();
       auto generator =
           parentModule.lookupSymbol<func::FuncOp>(customOp.getGenerator());
@@ -70,6 +74,8 @@ public:
       convertedGenerators.insert(generator.getOperation());
     }
 
+    // A generator may be shared by several calls. Wait until every call has
+    // been handled before removing matrix addresses that no longer have users.
     SmallVector<Operation *> deadAddresses;
     for (Operation *generator : convertedGenerators)
       generator->walk([&](cudaq::cc::AddressOfOp address) {
