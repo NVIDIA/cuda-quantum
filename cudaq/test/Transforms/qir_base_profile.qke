@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s | FileCheck %s
+// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s | FileCheck --implicit-check-not='llvm.func @generalizedInvokeWithRotationsControlsTargets' %s
 
 module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu", quake.mangled_name_map = {__nvqpp__mlirgen__function_grover._Z6groverv = "_Z6groverv", __nvqpp__mlirgen__function_oracle._Z6oracleRN5cudaq7qvectorILm2EEERNS_5quditILm2EEE = "_Z6oracleRN5cudaq7qvectorILm2EEERNS_5quditILm2EEE", __nvqpp__mlirgen__function_reflect_uniform._Z15reflect_uniformRN5cudaq7qvectorILm2EEE = "_Z15reflect_uniformRN5cudaq7qvectorILm2EEE"}} {
   func.func @__nvqpp__mlirgen__function_grover._Z6groverv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {

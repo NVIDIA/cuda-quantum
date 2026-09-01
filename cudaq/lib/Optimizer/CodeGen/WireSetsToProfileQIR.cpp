@@ -625,8 +625,9 @@ struct WireSetToProfileQIRPrepPass
     createNewDecl(cudaq::opt::NVQIRInvokeWithControlBits, invokeCtrlTy);
 
     cudaq::IRBuilder irBuilder(builder);
-    if (failed(irBuilder.loadIntrinsic(
-            op, cudaq::opt::NVQIRGeneralizedInvokeAny))) {
+    auto qirTypeAliases = irBuilder.getIntrinsicText("qir_opaque_pointer");
+    if (failed(irBuilder.loadIntrinsicWithAliases(
+            op, cudaq::opt::NVQIRGeneralizedInvokeAny, qirTypeAliases))) {
       op.emitError("could not load generalized invoke intrinsic.");
       signalPassFailure();
       return;
@@ -644,11 +645,9 @@ struct WireSetToProfileQIRPrepPass
         name = std::string(padTo - std::min(padTo, name.length()), '0') + name;
         meas.setRegisterName(name);
       }
-      cudaq::IRBuilder irb(builder);
-      irb.genCStringLiteralAppendNul(meas.getLoc(), op, name);
+      irBuilder.genCStringLiteralAppendNul(meas.getLoc(), op, name);
     });
-    cudaq::IRBuilder irb(builder);
-    irb.genCStringLiteralAppendNul(builder.getUnknownLoc(), op, "?");
+    irBuilder.genCStringLiteralAppendNul(builder.getUnknownLoc(), op, "?");
 
     LLVM_DEBUG(llvm::dbgs() << "Module after prep:\n"; op->dump());
   }

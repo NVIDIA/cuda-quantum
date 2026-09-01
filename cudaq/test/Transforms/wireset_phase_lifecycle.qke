@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt \
 // RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
-// RUN:   | FileCheck --implicit-check-not=quake.phase %s
+// RUN:   | FileCheck --implicit-check-not=quake.phase --implicit-check-not='llvm.func @generalizedInvokeWithRotationsControlsTargets' %s
 // RUN: cudaq-opt --dump-pass-pipeline \
 // RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
 // RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s

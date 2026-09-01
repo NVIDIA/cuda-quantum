@@ -688,7 +688,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
     {cudaq::opt::NVQIRGeneralizedInvokeAny, {}, R"#(
-  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
 )#"},
 
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
