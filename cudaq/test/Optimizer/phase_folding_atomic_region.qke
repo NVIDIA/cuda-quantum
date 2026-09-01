@@ -57,16 +57,16 @@ func.func @nested_marked_scopes_do_not_share_phases() {
 // CHECK-LABEL:   func.func @nested_marked_scopes_do_not_share_phases() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
-// CHECK:             %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:               %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[S_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:               %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:               %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:               cc.continue %[[S_1]] : !quake.wire
-// CHECK:             } {atomic_quantum_region}
+// CHECK:             }
 // CHECK:             cc.continue %[[SCOPE_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return
 // CHECK:         }
 
@@ -91,16 +91,16 @@ func.func @sibling_marked_scopes_do_not_share_phases() {
 // CHECK-LABEL:   func.func @sibling_marked_scopes_do_not_share_phases() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[S_0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
-// CHECK:           %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           }
+// CHECK:           %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[SCOPE_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[S_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return
 // CHECK:         }
 
@@ -280,10 +280,10 @@ func.func @phases_do_not_fold_backward_through_marked_scope() {
 // CHECK-LABEL:   func.func @phases_do_not_fold_backward_through_marked_scope() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[S_0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[SCOPE_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
@@ -310,12 +310,12 @@ func.func @phases_do_not_fold_across_marked_scope_entry() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[S_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[S_1:.*]] = quake.s %[[X_1]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[S_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return
 // CHECK:         }
 
@@ -337,12 +337,12 @@ func.func @phases_do_not_fold_across_marked_scope_exit() {
 // CHECK-LABEL:   func.func @phases_do_not_fold_across_marked_scope_exit() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[S_0:.*]] = quake.s %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
 // CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[S_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             cc.continue %[[X_1]]#1 : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           %[[S_1:.*]] = quake.s %[[SCOPE_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
@@ -365,12 +365,12 @@ func.func @phases_fold_inside_marked_scope() {
 // CHECK-LABEL:   func.func @phases_fold_inside_marked_scope() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             %[[Z_0:.*]] = quake.z %[[X_1]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[Z_0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return
 // CHECK:         }
 
@@ -396,10 +396,10 @@ func.func @disjoint_phases_fold_around_marked_scope() {
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
 // CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[X_1:.*]] = quake.x %[[NULL_WIRE_2]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[X_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           %[[X_2:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[Z_0:.*]] = quake.z %[[X_2]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:           return
