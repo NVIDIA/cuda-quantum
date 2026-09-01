@@ -1082,7 +1082,7 @@ if ${ENABLE_AGGRESSIVE_INLINE}; then
 	if ${DO_LINK}; then
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-inlining")
 	else
-		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline")
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline,verify-atomic-quantum-regions")
 	fi
 fi
 if ${ENABLE_ARRAY_CONVERSION}; then
@@ -1125,6 +1125,10 @@ if [ ! -z "$TARGET_PASS_PIPELINE" ]; then
 	RUN_OPT=true
 	# Don't use add_pass_to_pipeline here.
 	OPT_PASSES="$TARGET_PASS_PIPELINE"
+fi
+
+if ${RUN_OPT}; then
+	OPT_PASSES="verify-atomic-quantum-regions,${OPT_PASSES}"
 fi
 
 OPT_PASSES="builtin.module(${OPT_PASSES})"

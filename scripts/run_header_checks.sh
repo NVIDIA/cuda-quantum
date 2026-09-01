@@ -43,7 +43,17 @@ for file in $cmakelists; do
   cp "$file"{,.tmp}
 done
 
-go install github.com/apache/skywalking-eyes/cmd/license-eye@latest
+# Pin the license-eye version. Using @latest means a new upstream release can
+# raise the required Go toolchain version and break the check without warning.
+license_eye_version=v0.9.0
+if ! go install github.com/apache/skywalking-eyes/cmd/license-eye@$license_eye_version; then
+  echo "Failed to install license-eye $license_eye_version." >&2
+  echo "It requires Go 1.25.3 or newer; installed: $(go version 2>/dev/null || echo none)." >&2
+  for file in $cmakelists; do
+    rm "$file".tmp
+  done
+  exit 1
+fi
 # Use GOPATH if set, otherwise default to ~/go (Go's default)
 "${GOPATH:-$HOME/go}/bin/license-eye" header $command
 status=$?

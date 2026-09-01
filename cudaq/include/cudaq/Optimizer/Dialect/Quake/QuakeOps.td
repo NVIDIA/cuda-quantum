@@ -162,6 +162,8 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
   let assemblyFormat = [{
     $reference `:` qualified(type($reference)) attr-dict
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -406,6 +408,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::TypeRange":$retTy,
@@ -594,6 +597,7 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise",
 
   let hasVerifier = 1;
   let hasCustomAssemblyFormat = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::StringRef":$noise_func,
@@ -1386,6 +1390,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
   }];
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   code extraClassDeclaration = [{
     //===------------------------------------------------------------------===//
@@ -2081,6 +2086,7 @@ def quake_LogOutputOp : QuakeOp<"log_output"> {
   );
   let results = (outs Variadic<AnyQLinearType>:$outs);
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
   let builders = [
     OpBuilder<(ins "mlir::ValueRange":$args,
                    CArg<"bool", "false">:$compilerGenerated), [{

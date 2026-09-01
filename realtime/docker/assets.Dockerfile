@@ -88,6 +88,7 @@ ADD cmake/modules/CUDAQGtestDiscovery.cmake /cuda-quantum/cmake/modules/CUDAQGte
 # [HSB]
 ARG cuda_native_arg="80-real;90"
 ENV CUDA_NATIVE_ARCH=${cuda_native_arg}
+ENV HSB_ROOT=/holoscan-sensor-bridge
 ARG hsb_version="2.6.0-EA2"
 # Build HSB
 RUN cd / && git clone -b ${hsb_version} https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge && \
@@ -95,10 +96,10 @@ RUN cd / && git clone -b ${hsb_version} https://github.com/nvidia-holoscan/holos
     cmake --build build --target roce_receiver gpu_roce_transceiver hololink_core
 
 # [CUDAQ Realtime]
+# Set install prefix to match where build_installer.sh expects it
+ENV CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
 RUN cd /cuda-quantum/realtime && \
-    mkdir -p build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/realtime_assets && \
-    make -j$(nproc) install
+    bash scripts/build_realtime.sh
 
 # [Install makeself]
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
@@ -107,9 +108,6 @@ RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && 
     ln -s /makeself/makeself-header.sh /usr/local/bin/makeself-header.sh
 
 # [Build realtime installer]
-# Set install prefix to match where build_installer.sh expects it
-ENV CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
-# Run installer build script
 RUN bash /cuda-quantum/realtime/scripts/build_installer.sh -c $(echo $CUDA_VERSION | cut -d . -f1)   
 
 FROM scratch

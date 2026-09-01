@@ -1,0 +1,100 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-atomic-quantum-regions --split-input-file --verify-diagnostics %s
+// RUN: cudaq-opt --aggressive-inlining --split-input-file --verify-diagnostics %s
+
+func.func @marked_measurements(%q: !quake.ref) attributes {atomic_quantum_region, "cudaq-entrypoint"} {
+  // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
+  %x = quake.mx %q : (!quake.ref) -> !quake.measure
+  // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
+  %y = quake.my %q : (!quake.ref) -> !quake.measure
+  // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
+  %z = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @marked_allocations() attributes {atomic_quantum_region, "cudaq-entrypoint"} {
+  // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
+  %q = quake.alloca !quake.ref
+  // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
+  %r = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
+  %s = quake.alloca !quake.struq<!quake.ref, !quake.veq<2>>
+  return
+}
+
+// -----
+
+// Inlining copies the helper into the marked function and into the marked
+// scope at the call site. One diagnostic is expected because the copies share
+// this source location.
+func.func private @ordinary_measuring_helper(%q: !quake.ref) {
+  // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+
+func.func @marked_transitive_measurement(%q: !quake.ref) attributes {atomic_quantum_region} {
+  call @ordinary_measuring_helper(%q) : (!quake.ref) -> ()
+  return
+}
+
+func.func @measurement_caller(%q: !quake.ref) {
+  call @marked_transitive_measurement(%q) : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func private @ordinary_allocating_helper() {
+  // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
+  %q = quake.alloca !quake.ref
+  return
+}
+
+func.func @marked_transitive_allocation() attributes {atomic_quantum_region} {
+  call @ordinary_allocating_helper() : () -> ()
+  return
+}
+
+func.func @allocation_caller() {
+  call @marked_transitive_allocation() : () -> ()
+  return
+}
+
+// -----
+
+func.func @marked_scope(%q: !quake.ref) {
+  cc.scope {
+    // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
+    %local = quake.alloca !quake.ref
+    // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
+    %m = quake.mz %q : (!quake.ref) -> !quake.measure
+    cc.continue
+  } {atomic_quantum_region}
+  return
+}
+
+// -----
+
+// `cc.noinline_call` survives the inliner, so the check walks the call graph
+// itself. This pair is mutually recursive and must still terminate.
+func.func private @noinline_cycle_helper(%q: !quake.ref) {
+  // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  cc.noinline_call @marked_noinline_cycle(%q) : (!quake.ref) -> ()
+  return
+}
+
+func.func @marked_noinline_cycle(%q: !quake.ref) attributes {atomic_quantum_region} {
+  cc.noinline_call @noinline_cycle_helper(%q) : (!quake.ref) -> ()
+  return
+}

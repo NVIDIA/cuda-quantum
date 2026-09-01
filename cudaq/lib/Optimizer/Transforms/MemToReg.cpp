@@ -17,7 +17,6 @@
 /// load/store form (QLS), is required and performed.
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
@@ -309,6 +308,15 @@ public:
   using SSAReg = Value; // A value that is an SSA virtual register.
 
   explicit RegionDataFlow(Operation *op) {
+    // Snapshot every block's argument count as it stood before this function
+    // does anything. This may run any number of times, so whatever arguments
+    // preexisted must stay exactly where they are; only arguments we add here
+    // are free to be reordered for cross-region consistency (see
+    // canonicalizeArgumentOrder).
+    for (auto &region : op->getRegions())
+      for (auto &b : region)
+        originalArgCount[&b] = b.getNumArguments();
+
     // Stitch together the control-flow across op's regions.
     SmallPtrSet<Block *, 2> entryBlocks;
     SmallPtrSet<Block *, 2> exitBlocks;
@@ -725,6 +733,162 @@ public:
     return offset;
   }
 
+  // After the initial per-region scan, each region of a multi-region parent
+  // has independently assigned its own block arguments to whatever memrefs it
+  // locally references. A region-branch terminator forwards a single operand
+  // list across regions that must agree on slot order. Just select a region as
+  // the canonical and physically permute every other region's block arguments
+  // to match it, remapping their uses accordingly.
+  void canonicalizeArgumentOrder(Operation *parent) {
+    if (entryCFG.empty())
+      return;
+    const bool noRegionArguments = neverTakesRegionArguments(parent);
+    if (noRegionArguments)
+      return;
+    const bool onlyLinearTypes = onlyTakesLinearTypeArguments(parent);
+
+    // Build a canonical order for the whole of the op's regions.
+    SmallVector<MemRef> canonicalOrder;
+    DenseSet<MemRef> seen;
+    auto addFromBlock = [&](Block *block) {
+      SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
+      getLiveInToBlock(order, block);
+      for (auto mr : order)
+        if (mr && seen.insert(mr).second)
+          canonicalOrder.push_back(mr);
+    };
+    addFromBlock(entryCFG.front());
+    for (auto &region : parent->getRegions()) {
+      if (region.empty())
+        continue;
+      Block *block = &region.front();
+      if (block != entryCFG.front())
+        addFromBlock(block);
+    }
+    for (auto mr : liveOutSet)
+      if (seen.insert(mr).second)
+        canonicalOrder.push_back(mr);
+    if (onlyLinearTypes)
+      llvm::erase_if(canonicalOrder, [](MemRef mr) {
+        return !cudaq::quake::isQuantumReferenceType(mr.getType());
+      });
+    if (canonicalOrder.empty())
+      return;
+
+    LLVM_DEBUG(llvm::dbgs() << "canonicalizeArgumentOrder: canonicalOrder=[";
+               for (auto mr : canonicalOrder) mr.dump(); llvm::dbgs() << "]\n");
+    for (auto &region : parent->getRegions()) {
+      if (!region.empty())
+        unifyBlockArguments(&region.front(), canonicalOrder);
+    }
+    reorderLiveOut(canonicalOrder, onlyLinearTypes);
+  }
+
+  // The live-out set fixes the parent's appended result order and the operand
+  // order of every exit terminator, both of which must agree with the block
+  // arguments just canonicalized. Permute it to match canonicalOrder. memrefs
+  // with no block argument (classical ones, under LinearTypeArgs) keep their
+  // relative order and follow.
+  void reorderLiveOut(ArrayRef<MemRef> canonicalOrder, bool onlyLinearTypes) {
+    if (liveOutSet.empty())
+      return;
+    DenseMap<MemRef, unsigned> canonicalPos;
+    for (auto [i, mr] : llvm::enumerate(canonicalOrder))
+      canonicalPos[mr] = i;
+    SmallVector<MemRef> ordered(liveOutSet.begin(), liveOutSet.end());
+    llvm::stable_sort(ordered, [&](MemRef a, MemRef b) {
+      auto ai = canonicalPos.find(a);
+      auto bi = canonicalPos.find(b);
+      bool aKnown = ai != canonicalPos.end();
+      bool bKnown = bi != canonicalPos.end();
+      if (aKnown != bKnown)
+        return aKnown;
+      return aKnown && ai->second < bi->second;
+    });
+    liveOutSet.clear();
+    for (auto mr : ordered)
+      liveOutSet.insert(mr);
+
+    // Rebuild liveInArgs, which was built from liveOutSet's previous order.
+    liveInArgs.clear();
+    for (auto liveOut : liveOutSet) {
+      assert(promotedDefs.count(liveOut));
+      if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
+        continue;
+      liveInArgs.push_back(promotedDefs[liveOut]);
+    }
+  }
+
+  // Ensure block arguments are in a canonicalOrder.
+  void unifyBlockArguments(Block *block, ArrayRef<MemRef> canonicalOrder) {
+    unsigned prefix = originalArgCount.lookup(block);
+    SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
+    getLiveInToBlock(order, block);
+
+    if (order.size() - prefix == canonicalOrder.size()) {
+      bool identity = true;
+      for (unsigned i = 0; i < canonicalOrder.size(); ++i)
+        if (order[prefix + i] != canonicalOrder[i]) {
+          identity = false;
+          break;
+        }
+      if (identity)
+        return;
+    }
+
+    DenseMap<MemRef, unsigned> canonicalPos;
+    for (auto [i, mr] : llvm::enumerate(canonicalOrder))
+      canonicalPos[mr] = i;
+
+    unsigned oldCount = block->getNumArguments();
+    SmallVector<BlockArgument> newArgs;
+    for (auto mr : canonicalOrder)
+      newArgs.push_back(
+          block->addArgument(dereferencedType(mr.getType()), mr.getLoc()));
+
+    // Map each of block's current suffix arguments (added before this pass
+    // touched anything vs. this pass's own earlier additions -- either way,
+    // about to be erased) to the new argument replacing it.
+    DenseMap<Value, Value> oldToNew;
+    for (unsigned i = prefix; i < oldCount; ++i) {
+      MemRef mr = order[i];
+      if (!mr)
+        continue;
+      auto it = canonicalPos.find(mr);
+      assert(it != canonicalPos.end() &&
+             "canonicalOrder must be a superset of every region's own order");
+      oldToNew[block->getArgument(i)] = newArgs[it->second];
+    }
+
+    // RAUW every real IR use of an old suffix argument.
+    for (auto [oldVal, newVal] : oldToNew)
+      oldVal.replaceAllUsesWith(newVal);
+
+    // A different memref's binding may itself alias one of these old arguments,
+    // because its genuinely correct value happens to equal one.
+    if (rMap.count(block))
+      for (auto &[mr, val] : rMap[block])
+        if (auto it = oldToNew.find(val); it != oldToNew.end())
+          val = it->second;
+    if (liveInMap.count(block))
+      for (auto &[mr, val] : liveInMap[block])
+        if (auto it = oldToNew.find(val); it != oldToNew.end())
+          val = it->second;
+
+    block->eraseArguments(prefix, oldCount - prefix);
+
+    // Establish liveInMap/rMap for every canonical memref at its new
+    // position, including ones block never referenced before (the
+    // pass-through case: its own value, for the duration of this block, is
+    // simply whatever comes in).
+    for (unsigned i = 0; i < canonicalOrder.size(); ++i) {
+      MemRef mr = canonicalOrder[i];
+      liveInMap[block][mr] = newArgs[i];
+      if (!rMap.count(block) || !rMap[block].count(mr))
+        rMap[block][mr] = newArgs[i];
+    }
+  }
+
   std::optional<SSAReg> hasLiveInToBlock(Block *block, MemRef mr) {
     assert(block && mr);
     auto iter = liveInMap.find(block);
@@ -736,10 +900,10 @@ public:
     return {};
   }
 
-  /// Promote the memory dereference \p memuse to immediately before the parent
-  /// operation. This allows uses within the regions of the parent to use the
-  /// new dominating dereference. These will be converted to live-in arguments
-  /// if the op takes region arguments.
+  // Promote the memory dereference \p memuse to immediately before the parent
+  // operation. This allows uses within the regions of the parent to use the
+  // new dominating dereference. These will be converted to live-in arguments
+  // if the op takes region arguments.
   SSAReg createPromotedValue(Operation *parent, Value memref) {
     if (promotedDefs.count(memref))
       return promotedDefs[memref];
@@ -812,6 +976,15 @@ public:
         continue;
       for (auto memref : liveOutSet) {
         if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
+          continue;
+        // block landed in blockSet because some memref's promoted value has
+        // a user here. If this memref was already threaded into block as a
+        // genuine live-in, it must be left alone: the "unsafe" call below
+        // always appends a fresh argument, so calling it again here would leave
+        // that first, already-live argument orphaned (unused, uncounted)
+        // instead of overwriting it.
+        if (auto it = liveInMap[block].find(memref);
+            it != liveInMap[block].end() && it->second != promotedDefs[memref])
           continue;
         unsafeAddLiveInToBlock(block, memref);
       }
@@ -895,6 +1068,10 @@ private:
   /// regions and thus must be returned as results. The parent cannot be a
   /// function.
   SetVector<MemRef> liveOutSet;
+
+  /// Each block's argument count as it stood before this pass added
+  /// anything -- see the RegionDataFlow constructor.
+  DenseMap<Block *, unsigned> originalArgCount;
 
   SmallVector<Block *> entryCFG;
   SmallVector<Block *> exitCFG;
@@ -1218,6 +1395,15 @@ public:
       }
     }
 
+    // Precompute, once, every memref that's the target of a cc.store
+    // anywhere within `parent`'s regions. `handleUse` (below) needs this to
+    // decide whether an external-scope load requires cross-region live-in
+    // threading.
+    DenseSet<Value> writtenWithinParent;
+    parent->walk([&](cudaq::cc::StoreOp store) {
+      writtenWithinParent.insert(store.getPtrvalue());
+    });
+
     // 1. If any operations held by the blocks of \p parent contain regions,
     // recursively process those operations. This establishes the value
     // semantics interface for these macro ops.
@@ -1500,7 +1686,7 @@ public:
             if (isFunctionEntryBlock(block)) {
               // This is a function's entry block. This use can't come before a
               // def in a valid program. Raise an error.
-              operRef.emitError("use before def in function");
+              operRef.emitError(DEBUG_TYPE ": use before def in function");
               signalPassFailure();
               return;
             }
@@ -1529,37 +1715,56 @@ public:
                 // a non-constant extract_ref from a veq defined outside this
                 // scope acts as a barrier — all wire chains must be wrapped
                 // back to their refs, and subsequent uses get a fresh unwrap.
-                // Preserve the incoming state across the aliasing barrier. An
-                // entry block owned by an op with NoRegionArguments captures
-                // the dominating promoted value directly. An internal block
-                // of such an op instead threads a live-in argument and writes
-                // it back to the reference before the barrier. Other parents
-                // consume their live-in as an op operand. The binding after
-                // the barrier is the fresh useop (unwrap), so the gate sees
-                // the current reference state.
+                // The binding after the barrier is the fresh useop (unwrap),
+                // so the gate sees the current reference state.
+                //
+                // That is only correct if memuse's *memory* actually holds
+                // the current state at the barrier. For a memref live-in
+                // from an outer scope that is nothing the barrier itself can
+                // establish: the value may still be in flight in an outer
+                // wire chain that was never wrapped back (cancelBindings only
+                // wraps bindings live in *this* block, and memuse has none
+                // here yet). So thread the incoming state in as a live-in and
+                // write it back to the reference before the barrier.
+                //
+                // The sole exception is an entry block owned by an op with
+                // NoRegionArguments, which cannot take a block argument and
+                // instead captures the dominating promoted value directly.
                 auto promoted = dataFlow.createPromotedValue(parent, memuse);
-                if (neverTakesRegionArguments(parent)) {
-                  if (block->isEntryBlock()) {
-                    dataFlow.addLiveInToBlock(block, memuse, promoted);
-                  } else {
-                    auto liveIn = dataFlow.addLiveInToBlock(block, memuse);
-                    OpBuilder builder(&block->front());
-                    cudaq::quake::WrapOp::create(builder, useop.getLoc(),
-                                                 liveIn, memuse);
-                  }
+                if (neverTakesRegionArguments(parent) &&
+                    block->isEntryBlock()) {
+                  dataFlow.addLiveInToBlock(block, memuse, promoted);
                 } else {
-                  dataFlow.addLiveInToBlock(block, memuse);
+                  auto liveIn = dataFlow.addLiveInToBlock(block, memuse);
+                  OpBuilder builder(&block->front());
+                  cudaq::quake::WrapOp::create(builder, useop.getLoc(), liveIn,
+                                               memuse);
                 }
                 dataFlow.addBinding(block, memuse, useop);
                 // useop stays in the IR (not replaced, not in cleanUps).
                 return;
               }
-              // Normal path: create a promoted value that dominates parent and
-              // thread it in as a live-in block argument.
-              auto newUseopVal = dataFlow.createPromotedValue(parent, memuse);
-              dataFlow.addBinding(block, memuse, newUseopVal);
-              dataFlow.addLiveInToBlock(block, memuse, newUseopVal);
-              useop.replaceAllUsesWith(newUseopVal);
+              // Normal path: memuse is live-in to `parent` from outside. If
+              // `parent` doesn't support real region arguments, or `memuse` is
+              // never written anywhere inside `parent`, fall back to a single
+              // promoted value reused everywhere. Otherwise thread it as a
+              // genuine live-in block argument instead, with no fixed value,
+              // and let the live-in/worklist machinery (steps 3-4) resolve the
+              // correct per-block value, including revisiting sibling regions
+              // when a later-discovered live-in requires it.
+              if (neverTakesRegionArguments(parent) ||
+                  (onlyTakesLinearTypeArguments(parent) &&
+                   !cudaq::quake::isQuantumReferenceType(memuse.getType())) ||
+                  !writtenWithinParent.contains(memuse)) {
+                auto newUseopVal = dataFlow.createPromotedValue(parent, memuse);
+                dataFlow.addBinding(block, memuse, newUseopVal);
+                dataFlow.addLiveInToBlock(block, memuse, newUseopVal);
+                useop.replaceAllUsesWith(newUseopVal);
+              } else {
+                auto newDef = dataFlow.addLiveInToBlock(block, memuse);
+                dataFlow.addBinding(block, memuse, newDef);
+                useop.replaceAllUsesWith(newDef);
+              }
               cleanUps.insert(useop);
               return;
             }
@@ -1665,6 +1870,16 @@ public:
     // parent and replace uses of promoted defs with block arguments.
     dataFlow.updatePromotedDefs(parent, worklist);
 
+    // 3.5. Steps 2 and 3 each independently assigned block arguments to
+    // whatever regions needed them (region-local uses in step 2; the
+    // liveOutSet-ordered sweep across every block that references a
+    // promoted def in step 3) -- with no coordination between regions. But a
+    // region-branch terminator forwards a single operand list across regions
+    // that must agree on slot order. Bring every region's argument order in
+    // line with the entry region's order now that all such arguments have been
+    // created.
+    dataFlow.canonicalizeArgumentOrder(parent);
+
     LLVM_DEBUG({
       llvm::dbgs() << "After fixing up promoted loads:\n"
                    << *parent << "\nPromotions:\n";
@@ -1722,8 +1937,11 @@ public:
               worklist.push_back(succ);
               auto sigma = dataFlow.maybeAddLiveInToBlock(succ, liveOut);
               OpBuilder builder(&succ->front());
-              cudaq::quake::WrapOp::create(builder, term->getLoc(), sigma,
-                                           liveOut);
+              auto sigmaWrap = cudaq::quake::WrapOp::create(
+                  builder, term->getLoc(), sigma, liveOut);
+              // liveOut (the ref) may itself be dead and already destined
+              // for cleanUps
+              cleanUps.insert(sigmaWrap);
             }
           }
         }
@@ -1765,6 +1983,15 @@ public:
           dataFlow.addBinding(block, liveOut, newVal);
           addTerminatorArgument(term, target, newVal, liveOut);
         } else {
+          // Cannot live-in a value from the ether. Give an error.
+          if (isFunctionEntryBlock(block) &&
+              !dataFlow.hasLiveInToBlock(block, liveOut)) {
+            emitError(term->getLoc(), DEBUG_TYPE
+                      ": cannot promote a value that would require threading a "
+                      "new live-in past the function entry block");
+            signalPassFailure();
+            return;
+          }
           auto newArg = dataFlow.maybeAddLiveInToBlock(block, liveOut);
           addTerminatorArgument(term, target, newArg, liveOut);
         }
@@ -1884,7 +2111,7 @@ public:
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
-      emitError(func.getLoc(), "error converting to QLS form\n");
+      emitError(func.getLoc(), DEBUG_TYPE ": error converting to QLS form\n");
       signalPassFailure();
       return failure();
     }

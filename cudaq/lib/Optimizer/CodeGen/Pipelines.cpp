@@ -60,6 +60,7 @@ static void createPrepareForWiresetPipeline(
     OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
     bool addWireset) {
   auto &funcPM = pm.nest<func::FuncOp>();
+  funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
   funcPM.addPass(cudaq::opt::createAddDeallocs());
   funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedLogOutput());
   funcPM.addPass(cudaq::opt::createExpandControlVeqs());
@@ -186,7 +187,6 @@ createTargetCodegenPipeline(OpPassManager &pm,
   // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
   // to run this pass again to expand those negations.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
 
   cudaq::opt::addLowerToCFGAndCleanup(pm);
   ::addQIRConversionPipeline(pm, options.target);
@@ -321,7 +321,6 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addPass(createSymbolDCEPass());
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
   cudaq::opt::addLowerToCFGAndCleanup(pm);
 }
 
@@ -349,5 +348,4 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
-  pm.addPass(createVerifyNoPhase());
 }
