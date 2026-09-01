@@ -1125,6 +1125,28 @@ class PyKernel(object):
                     'reset operation broadcasting on qvector not supported yet.'
                 )
 
+    def wait(self, duration, target):
+        """
+        Idle the provided qubit or qubits for `duration` microseconds.
+        """
+        with self.ctx, self.insertPoint, self.loc:
+            durationVal = get_parameter_value(self, duration)
+            if not quake.VeqType.isinstance(target.mlirValue.type):
+                quake.WaitOp([], durationVal, target.mlirValue)
+                return
+
+            # target is a VeqType
+            if quake.VeqType.hasSpecifiedSize(target.mlirValue.type):
+                size = quake.VeqType.getSize(target.mlirValue.type)
+                for i in range(size):
+                    extracted = quake.ExtractRefOp(quake.RefType.get(),
+                                                   target.mlirValue, i).result
+                    quake.WaitOp([], durationVal, extracted)
+                return
+            else:
+                emitFatalError(
+                    'wait operation broadcasting on qvector not supported yet.')
+
     def __measure(self, opClass, target, regName):
         """Common implementation for `mz` / `mx` / `my`. Emits the measurement
         op of class `opClass` against `target`, optionally tagging the result

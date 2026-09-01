@@ -439,7 +439,7 @@ protected:
   std::unordered_map<std::string, PredicateFuncTy> gatePredicates;
 
   static constexpr const char *availableOps[] = {
-      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
+      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz", "wait"};
 
   // User registered kraus channels for fine grain application
   std::unordered_map<

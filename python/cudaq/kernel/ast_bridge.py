@@ -3338,6 +3338,44 @@ class PyASTBridge(ast.NodeVisitor):
                                         broadcast=lambda q: q)
                 return
 
+            if node.func.id == 'wait':
+                # `wait` is not a `QuakeOperator` (no controls, no adjoint):
+                # its MLIR constructor is `WaitOp(wires, duration, target)`,
+                # with no slot for a `controls` operand. That shape doesn't
+                # fit `processQuantumOperation` (which always validates and
+                # forwards a `controls` list right before `targets`), so
+                # `wait` is constructed directly here instead, mirroring
+                # `processQuantumOperation`'s target-checking/broadcast logic.
+                duration, targets = self.__groupValues(node.args, [1, (1, -1)])
+                duration = self.changeOperandToType(self.getFloatType(),
+                                                    duration)
+
+                def isQvecOrQubits(vals):
+                    return (all(quake.RefType.isinstance(v.type) for v in vals)
+                           ) or (len(vals) == 1 and
+                                 quake.VeqType.isinstance(vals[0].type))
+
+                if not isQvecOrQubits(targets):
+                    self.emitFatalError(
+                        'invalid argument type for target operand', node)
+                if quake.VeqType.isinstance(targets[0].type):
+                    assert len(targets) == 1
+
+                    def bodyBuilder(iterVal):
+                        q = quake.ExtractRefOp(self.getRefType(),
+                                               targets[0],
+                                               -1,
+                                               index=iterVal).result
+                        quake.WaitOp([], duration, q)
+
+                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                              targets[0]).result
+                    self.createInvariantForLoop(bodyBuilder, veqSize)
+                else:
+                    for target in targets:
+                        quake.WaitOp([], duration, target)
+                return
+
             if node.func.id == 'u3':
                 processQuakeCtor(node.func.id.title(),
                                  node.args,
@@ -4454,7 +4492,8 @@ class PyASTBridge(ast.NodeVisitor):
                             return None
                         return resTy
                     if self.__isUnitaryGate(
-                            pyval.func.id) or pyval.func.id == 'reset':
+                            pyval.func.id) or pyval.func.id in ('reset',
+                                                                'wait'):
                         process_void_list()
                         return None
                     if self.__isMeasurementGate(pyval.func.id):

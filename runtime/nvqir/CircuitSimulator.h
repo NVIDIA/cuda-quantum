@@ -465,6 +465,9 @@ public:
   CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(r1)
   /// @brief The IBM U1 gate
   CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(u1)
+  /// @brief The Wait "gate": idle a qubit for a duration (unitary identity;
+  /// hooks noise application via the "wait" gate name)
+  CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(wait)
 
 // Undef those preprocessor defines.
 #undef CIRCUIT_SIMULATOR_ONE_QUBIT
@@ -1422,6 +1425,9 @@ public:
   CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(r1)
   /// @brief The IBM U1 gate
   CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(u1)
+  /// @brief The Wait "gate": idle a qubit for a duration (unitary identity;
+  /// hooks noise application via the "wait" gate name)
+  CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(wait)
 
 // Undef those preprocessor defines.
 #undef CIRCUIT_SIMULATOR_ONE_QUBIT

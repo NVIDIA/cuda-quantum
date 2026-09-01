@@ -247,6 +247,8 @@ protected:
               [&]() { simulator()->r1(parameters[0], localC, localT[0]); })
         .Case("u1",
               [&]() { simulator()->u1(parameters[0], localC, localT[0]); })
+        .Case("wait",
+              [&]() { simulator()->wait(parameters[0], localC, localT[0]); })
         .Case("u3",
               [&]() {
                 simulator()->u3(parameters[0], parameters[1], parameters[2],

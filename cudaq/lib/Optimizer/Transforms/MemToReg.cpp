@@ -614,6 +614,27 @@ public:
   }
 };
 
+/// Like `reset`, `wait` doesn't support the QuakeOperator interface. Handle
+/// it special for now, threading the duration operand through unchanged.
+class WaitOpPattern : public OpRewritePattern<cudaq::quake::WaitOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::WaitOp op,
+                                PatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
+    auto opnd = op.getTargets();
+    assert(opnd.getType() == cudaq::quake::RefType::get(rewriter.getContext()));
+    Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
+    auto newOp = cudaq::quake::WaitOp::create(rewriter, loc, TypeRange{wireTy},
+                                              op.getDuration(), target);
+    rewriter.replaceOpWithNewOp<cudaq::quake::WrapOp>(op, newOp.getResult(0),
+                                                      opnd);
+    return success();
+  }
+};
+
 class DeallocOpPattern : public OpRewritePattern<cudaq::quake::DeallocOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -1276,10 +1297,11 @@ public:
     auto func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern>(ctx);
+    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, WaitOpPattern,
+                    DeallocOpPattern>(ctx);
     ConversionTarget target(*ctx);
     target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                                 cudaq::quake::DeallocOp>(
+                                 cudaq::quake::WaitOp, cudaq::quake::DeallocOp>(
         [](Operation *op) { return !cudaq::quake::hasNonVectorReference(op); });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();

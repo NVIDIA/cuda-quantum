@@ -472,6 +472,15 @@ inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
+/// `wait` idles a qubit for `duration` microseconds. It is not
+/// controllable/`adjointable`, so it is a plain templated free function rather
+/// than going through the `CUDAQ_QIS_PARAM_ONE_TARGET_` macro.
+template <typename ScalarDuration>
+void wait(ScalarDuration duration, qubit &q) {
+  getExecutionManager()->apply("wait", {static_cast<double>(duration)}, {},
+                               {qubitToQuditInfo(q)});
+}
+
 // Measure all qubits in the range, return vector of 0,1
 template <typename QubitRange>
   requires std::ranges::range<QubitRange>

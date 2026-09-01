@@ -1654,6 +1654,33 @@ struct ResetOpPattern : public OpConversionPattern<cudaq::quake::ResetOp> {
   }
 };
 
+/// Like `reset`, `wait` isn't a `QuakeOperator`, so it can't go through
+/// `QuantumGatePattern`. QIR has no standard wait/delay intrinsic; this calls
+/// a custom `M::getQIRWait()` entry point that a QIR-consuming backend must
+/// provide.
+template <typename M>
+struct WaitOpPattern : public OpConversionPattern<cudaq::quake::WaitOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::WaitOp wait, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto qirFunctionName = M::getQIRWait();
+
+    if (wait.getResults().empty()) {
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          wait, TypeRange{}, qirFunctionName, adaptor.getOperands());
+    } else {
+      auto loc = wait.getLoc();
+      auto results = filterArgs(wait, adaptor.getOperands());
+      func::CallOp::create(rewriter, loc, TypeRange{}, qirFunctionName,
+                           adaptor.getOperands());
+      rewriter.replaceOp(wait, results);
+    }
+    return success();
+  }
+};
+
 struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -2526,7 +2553,7 @@ struct FullQIR {
 
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
-        MeasurementOpPattern<Self>, ResetOpPattern<Self>,
+        MeasurementOpPattern<Self>, ResetOpPattern<Self>, WaitOpPattern<Self>,
         ApplyNoiseOpRewrite<Self>,
 
         /* Regular quantum operators. */
@@ -2551,6 +2578,7 @@ struct FullQIR {
 
   static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasure; }
   static StringRef getQIRReset() { return cudaq::opt::QIRReset; }
+  static StringRef getQIRWait() { return cudaq::opt::QIRWait; }
 
   static constexpr bool mzReturnsResultType = true;
   static constexpr bool convertToCNot = false;
@@ -2597,7 +2625,7 @@ struct AnyProfileQIR {
 
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
-        ResetOpPattern<Self>, ApplyNoiseOpRewrite<Self>,
+        ResetOpPattern<Self>, WaitOpPattern<Self>, ApplyNoiseOpRewrite<Self>,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, cudaq::quake::HOp>,
@@ -2621,6 +2649,7 @@ struct AnyProfileQIR {
 
   static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasureBody; }
   static StringRef getQIRReset() { return cudaq::opt::QIRResetBody; }
+  static StringRef getQIRWait() { return cudaq::opt::QIRWaitBody; }
 
   static constexpr bool mzReturnsResultType = false;
   static constexpr bool convertToCNot = true;
