@@ -24,6 +24,10 @@ set(LANG_FILES
   CMakeDetermineCUDAQCompiler.cmake
   CMakeTestCUDAQCompiler.cmake
 )
+set(FIND_MODULE_FILES
+  FindGMP.cmake
+  FindMPFR.cmake
+)
 
 # The installed NVQIRConfig.cmake fetches fmt at the commit CUDA-Q was built
 # against, so that out-of-tree simulator plugins compile against the same
@@ -59,6 +63,9 @@ install(FILES ${CONFIG_FILES}
         DESTINATION lib/cmake/cudaq
         COMPONENT Development)
 install(FILES ${LANG_FILES}
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
+install(FILES ${FIND_MODULE_FILES}
         DESTINATION lib/cmake/cudaq
         COMPONENT Development)
 install(FILES ${CMAKE_BINARY_DIR}/cmake/modules/NVQIRConfig.cmake

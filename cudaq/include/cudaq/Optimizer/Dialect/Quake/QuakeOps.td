@@ -162,6 +162,8 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
   let assemblyFormat = [{
     $reference `:` qualified(type($reference)) attr-dict
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -383,7 +385,7 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
 //===----------------------------------------------------------------------===//
 
 def quake_ApplyOp : QuakeOp<"apply",
-    [AttrSizedOperandSegments, CallOpInterface]> {
+    [AttrSizedOperandSegments, CallOpInterface, QuantumSideEffects]> {
   let summary = "Abstract application of a function in Quake.";
   let description = [{
     User-defined kernels define both predicated and unpredicated functions.
@@ -395,7 +397,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 
   let arguments = (ins
     OptionalAttr<SymbolRefAttr>:$callee,
-    Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
+    Optional<cc_CallableType>:$indirect_callee,
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
     Variadic<AnyType>:$actuals,
@@ -406,6 +408,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::TypeRange":$retTy,
@@ -429,16 +432,56 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::UnitAttr":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   is_adj, controls, args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
                    "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   is_adj, controls, args, {}, {});
+    }]>,
+
+    // CallOp like builders. adj=false, controls=[]
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::StringRef":$callee,
+                   "mlir::ValueRange":$args), [{
+      auto *ctx = $_builder.getContext();
+      return build($_builder, $_state, retTy,
+                   mlir::SymbolRefAttr::get(ctx, callee), {}, /*is_adj=*/false,
+                   mlir::ValueRange{}, args, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::Value":$callable,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   /*is_adj=*/false, mlir::ValueRange{}, args, {}, {});
+    }]>,
+
+    // CallOpInterface builders using CallInterfaceCallable variant.
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::CallInterfaceCallable":$call_variant,
+                   "mlir::ValueRange":$ctrls,
+                   "mlir::ValueRange":$args), [{
+      if (auto indirect = dyn_cast<mlir::Value>(call_variant))
+        return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, indirect,
+                     /*is_adj=*/false, ctrls, args, {}, {});
+      auto sym = cast<mlir::SymbolRefAttr>(call_variant);
+      return build($_builder, $_state, retTy, sym, mlir::Value{},
+                   /*is_adj=*/false, ctrls, args, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::CallInterfaceCallable":$call_variant,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$args), [{
+      if (auto indirect = dyn_cast<mlir::Value>(call_variant))
+        return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, indirect,
+                     is_adj, mlir::ValueRange{}, args, {}, {});
+      auto sym = cast<mlir::SymbolRefAttr>(call_variant);
+      return build($_builder, $_state, retTy, sym, mlir::Value{}, is_adj,
+                   mlir::ValueRange{}, args, {}, {});
     }]>
   ];
 
@@ -466,11 +509,31 @@ def quake_ApplyOp : QuakeOp<"apply",
       return getIsAdj() || !getControls().empty();
     }
 
+    /// Return only the formal results of the callee; i.e., the results that
+    /// correspond to the called function's declared return types. This does not
+    /// include appended wire values.
+    ///
+    /// Note: if the callee already accepts linear types directly, the
+    /// function's own return type must handle those values and no new types are
+    /// appended to the results.
+    mlir::ResultRange getFormalResults() {
+      unsigned formalCount = getFunctionType().getResults().size();
+      return getResults().take_front(formalCount);
+    }
+
+    /// Return the results that are the pass-through linear-type (wire/cable)
+    /// actuals appended after the formal results, in left-to-right order.
+    /// Empty when the callee already declares linear types in its signature.
+    mlir::ResultRange getLinearResults() {
+      unsigned formalCount = getFunctionType().getResults().size();
+      return getResults().drop_front(formalCount);
+    }
+
     /// Return the callee of this operation.
     mlir::CallInterfaceCallable getCallableForCallee() {
       if (getCallee())
         return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
-      return getIndirectCallee().front();
+      return getIndirectCallee();
     }
 
     /// Set the callee for this operation.
@@ -482,7 +545,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 }
 
 // A ComputeActionOp will be transformed into a series of CallOps.
-def quake_ComputeActionOp : QuakeOp<"compute_action"> {
+def quake_ComputeActionOp : QuakeOp<"compute_action", [QuantumSideEffects]> {
   let summary = "Captures the compute/action/uncompute high-level idiom.";
   let description = [{
     CUDA-Q supports the high-level compute, action, uncompute idiom by
@@ -510,7 +573,8 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
-def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
+def quake_ApplyNoiseOp : QuakeOp<"apply_noise",
+    [AttrSizedOperandSegments, QuantumSideEffects]> {
   let summary = "Apply a noise operation to qubits.";
   let description = [{
     This operation provides support for the `cudaq::apply_noise` template
@@ -533,6 +597,7 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
 
   let hasVerifier = 1;
   let hasCustomAssemblyFormat = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::StringRef":$noise_func,
@@ -643,10 +708,11 @@ def quake_WrapNewOp : QuakeOp<"wrap_new"> {
   let assemblyFormat = [{
     $wire_value `:` functional-type(operands, results) attr-dict
   }];
+  let hasCanonicalizer = 1;
 }
 
 def quake_CallByRefOp : QuakeOp<"call_by_ref",
-    [CallOpInterface, SymbolUserOpInterface]> {
+    [CallOpInterface, SymbolUserOpInterface, QuantumSideEffects]> {
   let summary = "Call a kernel casting wires to refs.";
   let description = [{
     This operation performs a wrap operation on the wire arguments, calls the
@@ -1324,6 +1390,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
   }];
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   code extraClassDeclaration = [{
     //===------------------------------------------------------------------===//
@@ -2019,6 +2086,7 @@ def quake_LogOutputOp : QuakeOp<"log_output"> {
   );
   let results = (outs Variadic<AnyQLinearType>:$outs);
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
   let builders = [
     OpBuilder<(ins "mlir::ValueRange":$args,
                    CArg<"bool", "false">:$compilerGenerated), [{

@@ -22,13 +22,11 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel2 = "__nvqp
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0.32741{{[0-9]*}} : f64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.30356{{[0-9]*}} : f64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1.91935{{[0-9]*}} : f64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2.97418{{[0-9]*}} : f64
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant -2.97418{{[0-9]*}} : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1.48709{{[0-9]*}} : f64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry (%[[VAL_1]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_2]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
-// CHECK:           quake.r1 (%[[VAL_3]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
-// CHECK:           quake.rz (%[[VAL_4]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.phase (%[[VAL_3]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }

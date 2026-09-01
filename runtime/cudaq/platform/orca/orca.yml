@@ -15,6 +15,10 @@ config:
   gen-target-backend: true
   # Add the orca-qpu library to the link list
   link-libs: ["-lcudaq-orca-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-orca-qpu"]
   # Allow use of the multi-QPU library
   platform-library: mqpu
 

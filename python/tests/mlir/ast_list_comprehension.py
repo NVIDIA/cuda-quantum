@@ -57,7 +57,7 @@ def test_list_comprehension_constant():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1..
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_6:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_7:.*]]:2 = cc.loop while ((%[[VAL_8:.*]] = %{{.*}}, %[[VAL_9:.*]] = %{{.*}}) -> (i64, i64)) {
+# CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %{{.*}}) -> (i64)) {
 # CHECK:           } do {
 # CHECK:             %[[VAL_13:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<i64 x 5>>, i64) -> !cc.ptr<i64>
 # CHECK:             cc.store %{{.*}}, %[[VAL_13]] : !cc.ptr<i64>
@@ -68,8 +68,8 @@ def test_list_comprehension_constant():
 # CHECK:             %[[VAL_23:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<i8 x 5>>, i64) -> !cc.ptr<i8>
 # CHECK:             cc.store %{{.*}}, %[[VAL_23]] : !cc.ptr<i8>
 # CHECK:           } step {
-# CHECK:           %[[VAL_26:.*]]:3 = cc.loop while ((%[[VAL_27:.*]] =
-# CHECK-SAME: ) -> (i64, i1, i1)) {
+# CHECK:           %[[VAL_26:.*]]:2 = cc.loop while ((%[[VAL_27:.*]] =
+# CHECK-SAME: ) -> (i64, i1)) {
 # CHECK:           } do {
 # CHECK:             %[[VAL_32:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<i8 x 5>>, i64) -> !cc.ptr<i8>
 # CHECK:             %[[VAL_33:.*]] = cc.load %[[VAL_32]] : !cc.ptr<i8>
@@ -87,8 +87,8 @@ def test_list_comprehension_constant():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2..
 # CHECK-SAME () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_6:.*]]:2 = cc.loop while ((%[[VAL_7:.*]] =
-# CHECK-SAME: ) -> (i64, i64)) {
+# CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] =
+# CHECK-SAME: ) -> (i64)) {
 # CHECK:           } do {
 # CHECK:             %[[VAL_12:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<i64 x 5>>, i64) -> !cc.ptr<i64>
 # CHECK:           } step {
@@ -98,8 +98,8 @@ def test_list_comprehension_constant():
 # CHECK:           } do {
 # CHECK:             %[[VAL_22:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<f64 x 5>>, i64) -> !cc.ptr<f64>
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] =
-# CHECK-SAME: ) -> (i64, f64, f64)) {
+# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] =
+# CHECK-SAME: ) -> (i64, f64)) {
 # CHECK:           } do {
 # CHECK:             %[[VAL_31:.*]] = cc.compute_ptr %
 # CHECK-SAME: : (!cc.ptr<!cc.array<f64 x 5>>, i64) -> !cc.ptr<f64>
@@ -110,8 +110,8 @@ def test_list_comprehension_constant():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3..
 # CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_6:.*]]:2 = cc.loop while ((%[[VAL_7:.*]] =
-# CHECK-SAME: ) -> (i64, i64)) {
+# CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] =
+# CHECK-SAME: ) -> (i64)) {
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
@@ -119,8 +119,8 @@ def test_list_comprehension_constant():
 # CHECK-SAME: ) -> (i64)) {
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] = %
-# CHECK-SAME: ) -> (i64, complex<f64>, complex<f64>)) {
+# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] = %
+# CHECK-SAME: ) -> (i64, complex<f64>)) {
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
@@ -176,7 +176,7 @@ def test_list_comprehension_variable():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernela1..
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK:           %[[VAL_6:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_7:.*]]:2 = cc.loop while ((%[[VAL_8:.*]] = %
+# CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
@@ -184,7 +184,7 @@ def test_list_comprehension_variable():
 # CHECK:           %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_26:.*]]:3 = cc.loop while ((%[[VAL_27:.*]] = %
+# CHECK:           %[[VAL_26:.*]]:2 = cc.loop while ((%[[VAL_27:.*]] = %
 # CHECK:           } do {
 # CHECK:             %[[VAL_35:.*]] = cc.if(%{{.*}}) -> i1 {
 # CHECK:             } else {
@@ -197,7 +197,7 @@ def test_list_comprehension_variable():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernela2..
 # CHECK-SAME: () -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_6:.*]]:2 = cc.loop while ((%[[VAL_7:.*]] =
+# CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] =
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
@@ -205,7 +205,7 @@ def test_list_comprehension_variable():
 # CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] = %
+# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
@@ -218,7 +218,7 @@ def test_list_comprehension_variable():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernela3..
 # CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_6:.*]]:2 = cc.loop while ((%[[VAL_7:.*]] = %
+# CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
@@ -226,7 +226,7 @@ def test_list_comprehension_variable():
 # CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] = %
+# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }

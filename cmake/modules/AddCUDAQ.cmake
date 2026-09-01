@@ -59,9 +59,32 @@ function(add_cudaq_dialect_doc dialect dialect_namespace)
     -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
+# Replicate all build configs on `${name}` to `obj.${name}`
+function(_cudaq_forward_object_usage_requirements name)
+  if(NOT TARGET obj.${name})
+    return()
+  endif()
+  target_include_directories(obj.${name} SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_INCLUDE_DIRECTORIES>)
+  target_compile_definitions(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_DEFINITIONS>)
+  target_compile_options(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_OPTIONS>)
+endfunction()
+
+# target_link_libraries() for a library created by add_cudaq_library().  This ensures
+# the dependency is also set on obj.<target>, (used to build the `cudaqMLIR` shared library.
+function(cudaq_target_link_libraries target visibility)
+  target_link_libraries(${target} ${visibility} ${ARGN})
+  if(TARGET obj.${target})
+    target_link_libraries(obj.${target} PRIVATE ${ARGN})
+  endif()
+endfunction()
+
 function(add_cudaq_library name)
   add_mlir_library(${ARGV} DISABLE_INSTALL ENABLE_AGGREGATION)
   add_cudaq_library_install(${name})
+  _cudaq_forward_object_usage_requirements(${name})
 endfunction()
 
 # Define `CUDAQ_MLIR_BUNDLED_LIBS_PATH`: the file that lists all bundled MLIR libraries.
@@ -97,11 +120,14 @@ if(EXISTS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")
 endif()
 
 # --------------------------------------------------------------------------- #
-# ``cudaq_check_mlir_symbol_closure(<target>)``
+# ``cudaq_check_mlir_symbol_closure(<target> [PROVIDERS <target>...])``
 #
-# Fail the build if ``<target>`` references MLIR/LLVM symbols that libcudaqMLIR
-# does not export. Everything in CUDA-Q must resolve MLIR/LLVM dynamically from the
-# single libcudaqMLIR instance. See scripts/check_mlir_symbols.sh.
+# Fail the build if
+#  - ``<target>`` references MLIR/LLVM symbols that neither `libcudaqMLIR` nor
+#    any of the additional `PROVIDERS` export, or
+#  - re-defines duplicate (strong) symbols already defined in `libcudaqMLIR`.
+#
+# This wraps `scripts/check_mlir_symbols.sh`. See the script for more details.
 # --------------------------------------------------------------------------- #
 
 option(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE
@@ -119,13 +145,36 @@ foreach(_candidate
   endif()
 endforeach()
 
+if(CMAKE_NM AND NOT CUDAQ_NM)
+  set(CUDAQ_NM "${CMAKE_NM}" CACHE FILEPATH
+    "nm used to verify the MLIR/LLVM symbol closure")
+endif()
+find_program(CUDAQ_NM
+  NAMES nm llvm-nm
+  HINTS "${LLVM_TOOLS_BINARY_DIR}" "$ENV{LLVM_INSTALL_PREFIX}/bin"
+  DOC "nm used to verify the MLIR/LLVM symbol closure")
+
+if(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE AND NOT CUDAQ_NM)
+  message(STATUS
+    "Neither nm nor llvm-nm found: skipping the MLIR/LLVM symbol closure check.")
+endif()
+
 function(cudaq_check_mlir_symbol_closure name)
-  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT)
+  cmake_parse_arguments(ARG "" "" "PROVIDERS" ${ARGN})
+  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT
+      OR NOT CUDAQ_NM)
     return()
   endif()
+  set(_providers)
+  foreach(_provider IN LISTS ARG_PROVIDERS)
+    if(TARGET ${_provider})
+      list(APPEND _providers "$<TARGET_FILE:${_provider}>")
+    endif()
+  endforeach()
   add_custom_command(TARGET ${name} POST_BUILD
-    COMMAND bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
-    "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>"
+    COMMAND ${CMAKE_COMMAND} -E env "NM=${CUDAQ_NM}"
+    bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
+    "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>" ${_providers}
     COMMENT "Checking MLIR/LLVM symbol closure of ${name}"
     VERBATIM)
 endfunction()
@@ -244,9 +293,9 @@ endfunction()
 # Drop-in wrapper around MLIR's ``add_mlir_python_modules``.  After the
 # real assembly creates the ``<name>.extension.<module>.dso`` targets,
 # this function:
-#   - links ``cudaq::cudaqMLIR`` first (via ``target_link_options BEFORE``)
-#     so MLIR/LLVM symbols resolve from the wheel dylib rather than from
-#     static component archives embedded in the common CAPI lib.
+#   - links ``cudaq::cudaqMLIR`` so MLIR/LLVM symbols resolve from the wheel
+#     dylib rather than from static component archives (link order comes from
+#     ``cudaq::cudaqMLIR``'s ``INTERFACE_LINK_OPTIONS``).
 #   - appends ``CUDAQ_LIBRARY_DIR`` to ``INSTALL_RPATH`` / ``BUILD_RPATH``
 #     so the wheel's ``libcudaqMLIR.dylib`` resolves at load time.
 # --------------------------------------------------------------------------- #
@@ -274,6 +323,7 @@ function(add_cudaq_python_modules name)
   get_property(_all_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
   list(FILTER _all_targets INCLUDE REGEX "^${name}\\.extension\\.")
 
+  cmake_parse_arguments(ARG "" "" "COMMON_CAPI_LINK_LIBS" ${ARGN})
   foreach(_dso IN LISTS _all_targets)
     # Put cudaqMLIR BEFORE all other deps on the link line so its MLIR/LLVM
     # symbols shadow any static component archives in the common CAPI lib.
@@ -289,14 +339,16 @@ function(add_cudaq_python_modules name)
       set_property(TARGET ${_dso} APPEND PROPERTY BUILD_RPATH "${CUDAQ_LIBRARY_DIR}")
     endif()
 
-    cudaq_check_mlir_symbol_closure(${_dso})
+    cudaq_check_mlir_symbol_closure(${_dso} PROVIDERS ${ARG_COMMON_CAPI_LINK_LIBS})
   endforeach()
 endfunction()
 
 # Adds a CUDA Quantum dialect library target for installation. This should normally
 # only be called from add_cudaq_library().
+#
+# <name> will be registered as part of the `cudaq-dev-targets` export set.
 function(add_cudaq_library_install name)
-  install(TARGETS ${name} COMPONENT Development EXPORT CUDAQTargets)
+  install(TARGETS ${name} COMPONENT Development EXPORT cudaq-dev-targets)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_ALL_LIBS ${name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_EXPORTS ${name})
 endfunction()
@@ -329,10 +381,22 @@ function(cudaq_use_static_mlir target)
   set_target_properties(${target} PROPERTIES CUDAQ_MLIR_STATIC ON)
 endfunction()
 
+# Define the CUDAQ dev targets for downstream projects when they exist.
+if(NOT TARGET QuakeDialect
+    AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+endif()
+
 # Define the public alias ``cudaq::MLIR`` for use in downstream projects.
 if(NOT TARGET cudaq::MLIR)
   add_library(cudaq::MLIR INTERFACE IMPORTED GLOBAL)
   set_target_properties(cudaq::MLIR PROPERTIES
     INTERFACE_LINK_LIBRARIES cudaq::cudaqMLIR
   )
+  # Also expose the header files through `cudaq::MLIR`
+  if(CUDAQ_INCLUDE_DIR AND IS_DIRECTORY "${CUDAQ_INCLUDE_DIR}")
+    set_target_properties(cudaq::MLIR PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${CUDAQ_INCLUDE_DIR}"
+    )
+  endif()
 endif()

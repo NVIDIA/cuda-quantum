@@ -200,6 +200,16 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
+/// Materialize `multiple * pi` using the common floating-point construction
+/// and rounding convention for the requested result type.
+inline mlir::Value createPiConstant(mlir::Location location,
+                                    mlir::OpBuilder &builder,
+                                    mlir::FloatType type,
+                                    double multiple = 1.0) {
+  return cudaq::opt::factory::createFloatConstant(location, builder,
+                                                  multiple * M_PI, type);
+}
+
 /// Return the integer value if \p v is an integer constant.
 std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
 

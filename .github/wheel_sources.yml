@@ -1,0 +1,22 @@
+# Paths whose contents determine a project's wheel output.
+# git ls-tree is run on `include`; paths under an `exclude` prefix are dropped.
+
+cudaq:
+  include:
+    - CMakeLists.txt
+    - cmake
+    - cudaq
+    - runtime
+    - realtime
+    - utils
+    - python
+    - scripts
+    - pyproject.toml
+    - pyproject.toml.cu12
+    - pyproject.toml.cu13
+    - pyproject.toml.devel
+    - docker/release/cudaq.wheel.Dockerfile
+  exclude:
+    - cudaq/unittests
+    - cudaq/test
+    - python/tests

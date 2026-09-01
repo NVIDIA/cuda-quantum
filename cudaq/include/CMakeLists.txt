@@ -11,15 +11,13 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/nvqpp_config.h.in"
                @ONLY)
 add_subdirectory(cudaq)
 
-# The Clifford+T rotation-synthesis headers under cudaq/Synthesis back an
-# internal-only C++ library (cudaq-synth). The public surface is the Python
-# cudaq.synth module. cudaq-synth is not part of the exported CMake package,
-# so excluding the headers keeps the install tree from implying a supported
-# standalone C++ API.
+# The Clifford+T rotation-synthesis headers under cudaq/Synthesis are part of
+# the development surface: their implementation (cudaq-synth) is linked into
+# libcudaqMLIR via OptTransforms, so downstream MLIR extensions that need
+# gridsynth/KMM resolve it from cudaq::MLIR like every other CUDA-Q symbol.
 install(DIRECTORY cudaq
         DESTINATION include
         COMPONENT Development
         FILES_MATCHING
           PATTERN "*.h"
-          PATTERN "*.td"
-          PATTERN "Synthesis" EXCLUDE)
+          PATTERN "*.td")

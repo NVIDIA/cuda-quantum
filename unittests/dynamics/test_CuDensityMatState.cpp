@@ -322,6 +322,61 @@ TEST_F(CuDensityMatStateTest, DensityMatrixOverlapPartial) {
   EXPECT_NEAR(result.imag(), 0.0, 1e-12);
 }
 
+// The Hilbert-Schmidt inner product conjugates the left operand, so a
+// complex-valued density matrix pins down the conjugation. Dropping it would
+// make the self-overlap below 0 instead of 1.
+TEST_F(CuDensityMatStateTest, DensityMatrixOverlapComplex) {
+  std::vector<int64_t> dims1q = {2};
+
+  std::vector<std::complex<double>> dmPlusI = {
+      {0.5, 0.0}, {0.0, 0.5}, {0.0, -0.5}, {0.5, 0.0}};
+  CuDensityMatState statePlusI(dmPlusI.size(),
+                               cudaq::dynamics::createArrayGpu(dmPlusI));
+  statePlusI.initialize_cudm(handle, dims1q, /*batchSize=*/1);
+
+  auto self = statePlusI.overlap(statePlusI);
+  EXPECT_NEAR(self.real(), 1.0, 1e-12);
+  EXPECT_NEAR(self.imag(), 0.0, 1e-12);
+
+  std::vector<std::complex<double>> dmPlus = {
+      {0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}};
+  CuDensityMatState statePlus(dmPlus.size(),
+                              cudaq::dynamics::createArrayGpu(dmPlus));
+  statePlus.initialize_cudm(handle, dims1q, /*batchSize=*/1);
+
+  auto cross = statePlusI.overlap(statePlus);
+  EXPECT_NEAR(cross.real(), 0.5, 1e-12);
+  EXPECT_NEAR(cross.imag(), 0.0, 1e-12);
+}
+
+// State vectors report the magnitude of <psi|phi>.
+TEST_F(CuDensityMatStateTest, StateVectorOverlap) {
+  CuDensityMatState state00(stateVectorData.size(),
+                            cudaq::dynamics::createArrayGpu(stateVectorData));
+  state00.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  EXPECT_FALSE(state00.is_density_matrix());
+
+  auto self = state00.overlap(state00);
+  EXPECT_NEAR(self.real(), 1.0, 1e-12);
+
+  const double invSqrt2 = 1.0 / std::sqrt(2.0);
+  std::vector<std::complex<double>> phiData = {
+      {invSqrt2, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, invSqrt2}};
+  CuDensityMatState phi(phiData.size(),
+                        cudaq::dynamics::createArrayGpu(phiData));
+  phi.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+
+  auto cross = state00.overlap(phi);
+  EXPECT_NEAR(cross.real(), invSqrt2, 1e-12);
+
+  std::vector<std::complex<double>> ketData = {
+      {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
+  CuDensityMatState ket11(ketData.size(),
+                          cudaq::dynamics::createArrayGpu(ketData));
+  ket11.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  EXPECT_NEAR(state00.overlap(ket11).real(), 0.0, 1e-12);
+}
+
 // Test indexing for single-qubit density matrix
 TEST_F(CuDensityMatStateTest, SingleQubitDensityMatrixIndexing) {
   // 1-qubit system: 2x2 density matrix (4 elements)

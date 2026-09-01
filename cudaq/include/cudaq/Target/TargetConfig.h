@@ -98,6 +98,9 @@ struct BackendEndConfigEntry {
   std::optional<bool> GenTargetBackend;
   /// Enable/disable the library mode if provide.
   std::optional<bool> LibraryMode;
+  /// Whether the target supports pre-computing resource counts for faster
+  /// resource estimation.
+  std::optional<bool> SupportResourceCounts;
   /// IR lowering configuration (hardware REST QPU)
   std::string JITHighLevelPipeline;
   std::string JITMidLevelPipeline;
@@ -120,7 +123,10 @@ struct BackendEndConfigEntry {
   std::vector<std::string> CompilerFlags;
   /// Extra libraries to be linked in if any
   std::vector<std::string> LinkLibs;
-  /// List of plugin shared libraries to dlopen at runtime
+  /// List of plugin shared libraries to dlopen at runtime. Names may omit the
+  /// platform suffix (e.g. `"libcudaq-rest-qpu"i`); it is appended for the
+  /// current platform when the library is resolved. Relative names are looked
+  /// up in the CUDA-Q library directory and the target plugin's lib directory.
   std::vector<std::string> PluginLibraries;
   /// Extra linker flags for this target if any
   std::vector<std::string> LinkerFlags;
@@ -192,7 +198,7 @@ struct TargetVersionCompatibilityResult {
 };
 
 /// Validate an external plugin target against the current CUDA-Q version.
-/// Numeric MAJOR.MINOR.PATCH prefixes are compared; any suffix is ignored.
+/// Exact matches are compatible; any version difference produces a warning.
 TargetVersionCompatibilityResult
 checkExternalTargetVersion(const TargetConfig &config,
                            std::string_view currentVersion,

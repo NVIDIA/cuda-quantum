@@ -53,7 +53,7 @@ able to use it without any further installation steps.
 If you want to perform multi-GPU simulations, additional components must be
 installed. We recommend using [Conda](https://docs.conda.io/en/latest/) to do
 so. If you are not already using Conda, you can install a minimal version
-following [miniconda instructions here](https://docs.anaconda.com/miniconda/).
+following [Miniconda instructions here](https://docs.anaconda.com/miniconda/).
 The following commands will create and activate a complete environment for
 CUDA-Q with all its dependencies:
 
@@ -73,7 +73,7 @@ source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activat
 
 [//]: # (End conda install)
 
-**Warning (conda-forge)**: Installing `cudaq` from the `conda-forge` channel on recent versions of Python can lead to segmentation faults.
+**Warning (`conda-forge`)**: Installing `cudaq` from the `conda-forge` channel on recent versions of Python can lead to segmentation faults.
 If you see such errors, please switch to one of the Python versions 3.11.10 or 3.12.7 as per the issue
 [#2999](https://github.com/NVIDIA/cuda-quantum/issues/2999) or [#3104](https://github.com/NVIDIA/cuda-quantum/issues/3104).
 

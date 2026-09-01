@@ -13,8 +13,8 @@
 
 namespace cudaq {
 
-/// @brief The `FermioniqBaseQPU` is a QPU that allows users to
-// submit kernels to the Fermioniq simulator.
+/// @brief The `FermioniqQPU` is a QPU that allows users to
+/// submit kernels to the Fermioniq simulator.
 class FermioniqQPU : public BaseRemoteRESTQPU {
 public:
   // Overrides the `sample`/`observe` `launchKernel` overloads but inherits
@@ -36,13 +36,11 @@ public:
     }
   }
 
-  using BaseRemoteRESTQPU::getCompileTarget;
-  CompileTarget getCompileTarget(const observe_policy &policy) override {
-    auto target = BaseRemoteRESTQPU::getCompileTarget(policy);
-    // This target handles observable evaluation server-side.
-    // We don't want to split up the circuit into several ansatz
-    // sub circuit.
-    target.pauliTermSplitObservable = std::nullopt;
+  CompileTarget
+  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+    auto target =
+        BaseRemoteRESTQPU::getCompileTarget(skipPipelineSubstitutions);
+    target.supportObservableMeasurements = true;
     return target;
   }
 

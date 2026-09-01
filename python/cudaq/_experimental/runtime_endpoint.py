@@ -17,9 +17,10 @@ protocols below. Register it with :func:`set_runtime_endpoint`:
 .. code-block:: python
 
     import cudaq
-    from cudaq._experimental import SampleResult, set_runtime_endpoint
+    from cudaq import SampleResult
+    from cudaq._experimental import RuntimeEndpoint, set_runtime_endpoint
 
-    class MyEndpoint:
+    class MyEndpoint(RuntimeEndpoint):
 
         def sample(self, module, arguments, *, shots_count, **options):
             submit_somewhere(module, list(arguments))
@@ -47,19 +48,28 @@ from typing import Protocol, runtime_checkable
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     CompiledModule,
+    DEMResult,
+    EstimateResult,
     KernelArgs,
+    NoiseModel,
     ObserveResult,
     SampleResult,
     SpinOperator,
+    set_runtime_endpoint,
 )
 import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime as _cudaq_runtime
 
 __all__ = [
     "CompiledModule",
+    "DEMResult",
+    "EstimateResult",
     "KernelArgs",
+    "NoiseModel",
     "ObserveResult",
     "SampleResult",
     "SpinOperator",
+    "SupportsDem",
+    "SupportsEstimate",
     "SupportsObserve",
     "SupportsSample",
     "set_runtime_endpoint",
@@ -67,7 +77,41 @@ __all__ = [
 
 
 @runtime_checkable
-class SupportsSample(Protocol):
+class RuntimeEndpoint(Protocol):
+    """A runtime endpoint is a Python object that can serve kernel launches.
+    
+    Implement one or several of the children protocols for each supported
+    launch policy.
+    
+    Although not required, it is recommended for user-defined endpoints to
+    inherit explicitly from this base class. This ensures all default
+    attributes values are inherited:
+
+    ```python
+    class MyEndpoint(RuntimeEndpoint):
+        def sample(self, module, args, **kwargs):
+            pass
+    
+    ep = MyEndpoint()
+    print(ep.is_simulator)  # True
+    print(ep.is_remote)    # False
+    print(ep.is_emulated)  # False
+    print(ep.supports_jit) # True
+    ```
+
+    Set ``supports_jit = False`` if the endpoint consumes the
+    ``CompiledModule``'s MLIR artifact itself. The runtime then skips local
+    code generation, which is otherwise built and discarded.
+    """
+
+    is_simulator: bool = True
+    is_remote: bool = False
+    is_emulated: bool = False
+    supports_jit: bool = True
+
+
+@runtime_checkable
+class SupportsSample(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.sample``."""
 
     def sample(self, module: CompiledModule, args: KernelArgs,
@@ -81,7 +125,7 @@ class SupportsSample(Protocol):
 
 
 @runtime_checkable
-class SupportsObserve(Protocol):
+class SupportsObserve(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.observe``."""
 
     def observe(self, module: CompiledModule, args: KernelArgs,
@@ -94,26 +138,39 @@ class SupportsObserve(Protocol):
         ...
 
 
-_PROTOCOLS = (SupportsSample, SupportsObserve)
+@runtime_checkable
+class SupportsDem(RuntimeEndpoint, Protocol):
+    """An endpoint that can serve ``cudaq.dem_from_kernel``."""
+
+    def dem_from_kernel(self, module: CompiledModule, args: KernelArgs,
+                        **kwargs) -> DEMResult:
+        """Analyze a compiled kernel and return its detector error model.
+
+        Keyword arguments: ``noise_model`` (:class:`NoiseModel` or ``None``)
+        and the DEM options accepted by ``dem_from_kernel`` --
+        ``decompose_errors`` (bool), ``fold_loops`` (bool),
+        ``allow_gauge_detectors`` (bool),
+        ``approximate_disjoint_errors_threshold`` (float),
+        ``ignore_decomposition_failures`` (bool),
+        ``block_decomposition_from_introducing_remnant_edges`` (bool) and
+        ``return_measurement_matrices`` (bool).
+        """
+        ...
 
 
-def set_runtime_endpoint(endpoint) -> None:
-    """Route kernel launches to `endpoint` instead of the active target's QPU.
+@runtime_checkable
+class SupportsEstimate(RuntimeEndpoint, Protocol):
+    """An endpoint that can serve ``cudaq.estimate``."""
 
-    Args:
-      endpoint: An object implementing at least one of :class:`SupportsSample`,
-        :class:`SupportsObserve` or :class:`SupportsRun`. Launches under a
-        policy the object does not implement raise a `RuntimeError`.
+    def estimate(self, module: CompiledModule, args: KernelArgs,
+                 **kwargs) -> EstimateResult:
+        """Estimate the resources a compiled kernel would use.
 
-    Raises:
-      TypeError: If `endpoint` implements none of the protocols.
-    """
-    # Here we can do Python-level validation of the endpoint object. For now,
-    # just check that it implements at least one of the protocols.
+        Keyword arguments: ``choice``, a callable returning a `bool` that
+        resolves each measurement so that kernels branching on measurement
+        results take a definite path.
+        """
+        ...
 
-    if not any(isinstance(endpoint, protocol) for protocol in _PROTOCOLS):
-        raise TypeError(
-            f"{type(endpoint).__name__} is not a runtime endpoint: it must "
-            f"define at least one of "
-            f"{', '.join(p.__name__ for p in _PROTOCOLS)}.")
-    _cudaq_runtime.set_runtime_endpoint(endpoint)
+
+_PROTOCOLS = (SupportsSample, SupportsObserve, SupportsDem, SupportsEstimate)

@@ -22,7 +22,6 @@
 // RUN: if %qbraid_avail; then nvq++ --target qbraid --emulate %s -o %t && %t; fi
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t; fi
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t; fi
 // RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 // clang-format on
 

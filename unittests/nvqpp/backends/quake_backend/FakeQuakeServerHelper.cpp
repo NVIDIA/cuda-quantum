@@ -32,15 +32,26 @@ public:
   std::map<std::string, std::string>
   getPipelineSubstitutions(const std::filesystem::path &) override {
     const auto iter = backendConfig.find("emulate");
-    if (iter == backendConfig.end() || iter->second != "true")
+    if (iter == backendConfig.end() || iter->second != "true") {
+      const auto mappingIter = backendConfig.find("mapping_file");
+      if (mappingIter != backendConfig.end()) {
+        // Enable mapping only for tests compiled with `--mapping-file`.
+        const std::string mappingPipeline = "qubit-mapping{device=file(" +
+                                            mappingIter->second +
+                                            ") placement=identity search=none}";
+        return {{"%QUAKE_EMULATE_SUFFIX%", ""},
+                {"qubit-mapping{device=bypass}", mappingPipeline}};
+      }
       return {{"%QUAKE_EMULATE_SUFFIX%", ""}};
+    }
 
     // Remote execution preserves structured control flow in the wire-set
     // payload, then fully unrolls it on the mock server before lowering the
     // wire set directly to QIR. Mirror that execution-time lowering for local
     // emulation without changing the selectively unrolled client payload.
     return {{"%QUAKE_EMULATE_SUFFIX%",
-             ",func.func(cc-loop-unroll{maximum-iterations=1024 "
+             ",return-to-output-log,func.func(cc-loop-unroll{maximum-"
+             "iterations=1024 "
              "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
              "allow-early-exit=true},canonicalize),lower-to-cfg"}};
   }

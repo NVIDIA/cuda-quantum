@@ -8,9 +8,12 @@
 
 #include "PyRuntimeEndpoint.h"
 #include "common/KernelArgs.h"
+#include "common/NoiseModel.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/algorithms/estimate/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/algorithms/sample/policy.h"
@@ -19,6 +22,8 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include <memory>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/function.h>
 #include <nanobind/stl/string.h>
 #include <optional>
 #include <span>
@@ -37,6 +42,14 @@ static std::string getPythonClassName(const nanobind::object &obj) {
   } catch (...) {
   }
   return "";
+}
+
+/// Get the name of the Python type bound to the C++ type `T`.
+template <typename T>
+static std::string getBoundTypeName() {
+  auto resultType = nanobind::type_name(nanobind::type<T>());
+  auto str = nanobind::cast<std::string>(resultType);
+  return str.substr(str.find_last_of(".") + 1);
 }
 
 /// Wrap our Python object in a shared pointer so that it can be copied around
@@ -171,16 +184,57 @@ struct PyProtocol<observe_policy> {
   }
 };
 
+template <>
+struct PyProtocol<dem_policy> {
+  static constexpr const char *Method = "dem_from_kernel";
+
+  static nanobind::dict kwargs(const dem_policy &policy) {
+    const auto &opts = policy.options;
+    nanobind::dict kw;
+    if (policy.noiseModel)
+      kw["noise_model"] = policy.noiseModel;
+    else
+      kw["noise_model"] = nanobind::none();
+    kw["decompose_errors"] = opts.decompose_errors;
+    kw["fold_loops"] = opts.fold_loops;
+    kw["allow_gauge_detectors"] = opts.allow_gauge_detectors;
+    kw["approximate_disjoint_errors_threshold"] =
+        opts.approximate_disjoint_errors_threshold;
+    kw["ignore_decomposition_failures"] = opts.ignore_decomposition_failures;
+    kw["block_decomposition_from_introducing_remnant_edges"] =
+        opts.block_decomposition_from_introducing_remnant_edges;
+    kw["return_measurement_matrices"] = opts.return_measurement_matrices;
+    return kw;
+  }
+};
+
+template <>
+struct PyProtocol<estimate_policy> {
+  static constexpr const char *Method = "estimate";
+
+  static nanobind::dict kwargs(const estimate_policy &policy) {
+    nanobind::dict kw;
+    if (policy.choice)
+      kw["choice"] = nanobind::cast(policy.choice);
+    else
+      kw["choice"] = nanobind::none();
+    return kw;
+  }
+};
+
 /// Subset of launch policies that are supported in Python.
 template <typename Policy>
 concept PyLaunchPolicy = requires { PyProtocol<Policy>::Method; };
 
+} // namespace
+
 /// Dispatch a launch of \p policy to the Python object held in \p impl.
 template <PyLaunchPolicy Policy>
-typename Policy::result_type pyLaunch(std::any &impl, const Policy &policy,
-                                      const CompiledModule &module,
-                                      KernelArgs args) {
+static typename Policy::result_type
+pyLaunch(std::any &impl, const Policy &policy, const CompiledModule &module,
+         KernelArgs args) {
   using Protocol = PyProtocol<Policy>;
+  using Result = typename Policy::result_type;
 
   nanobind::gil_scoped_acquire gil;
 
@@ -209,27 +263,60 @@ typename Policy::result_type pyLaunch(std::any &impl, const Policy &policy,
   auto kwargs = Protocol::kwargs(policy);
   auto result = obj.attr(Protocol::Method)(pyModule, pyArgs, **kwargs);
 
+  if (!nanobind::isinstance<Result>(result)) {
+    auto got = getPythonClassName(result);
+    auto expected = getBoundTypeName<Result>();
+    std::stringstream errMsg;
+    errMsg << "Expected runtime endpoint method '" << Protocol::Method
+           << "' to return a " << expected;
+    if (!got.empty())
+      errMsg << ", but got '" << got << "'";
+    errMsg << ".";
+    throw nanobind::type_error(errMsg.str().c_str());
+  }
+
   return nanobind::cast<typename Policy::result_type>(result);
 }
 
-} // namespace
+static bool getAttrOrDefault(const nanobind::object &obj, const char *attr,
+                             bool defaultValue) {
+  if (nanobind::hasattr(obj, attr))
+    return nanobind::cast<bool>(obj.attr(attr));
+  return defaultValue;
+}
 
 static RuntimeEndpoint makeRuntimeEndpoint(nanobind::object obj) {
   nanobind::gil_scoped_acquire gil;
+  bool allNullptr = true;
   RuntimeEndpoint endpoint;
   endpoint.dispatch = detail::DispatchTable<all_policies>::create(
       // Note: this fixes the set of supported policies at construction time.
       // This means we currently don't support changing the set of supported
       // policies after `set_runtime_endpoint` is called.
-      [&obj]<typename Policy>() -> detail::launch_fn_type<Policy> {
+      [&obj, &allNullptr]<typename Policy>() -> detail::launch_fn_type<Policy> {
         if constexpr (PyLaunchPolicy<Policy>) {
           if (!nanobind::hasattr(obj, PyProtocol<Policy>::Method))
             return nullptr;
+          allNullptr = false;
           return &pyLaunch<Policy>;
         } else {
           return nullptr;
         }
       });
+
+  if (allNullptr) {
+    std::stringstream errMsg;
+    auto className = getPythonClassName(obj);
+    errMsg << className ? className : "Object passed to `set_runtime_endpoint`";
+    errMsg << " is not a valid runtime endpoint: it must define at least one "
+              "launch policy";
+    throw nanobind::type_error(errMsg.str().c_str());
+  }
+
+  endpoint.isSimulator = getAttrOrDefault(obj, "is_simulator", true);
+  endpoint.isRemote = getAttrOrDefault(obj, "is_remote", false);
+  endpoint.isEmulated = getAttrOrDefault(obj, "is_emulated", false);
+  endpoint.supportsJit = getAttrOrDefault(obj, "supports_jit", true);
   endpoint.impl = makeEndpointHandle(std::move(obj));
   return endpoint;
 }
@@ -266,6 +353,12 @@ void cudaq::bindRuntimeEndpoint(nanobind::module_ &mod) {
             makeRuntimeEndpoint(std::move(endpoint)), qpu_id);
       },
       nanobind::arg("endpoint"), nanobind::arg("qpu_id") = 0,
-      "Route kernel launches on the given QPU to a Python object implementing "
-      "one or more of the cudaq._experimental runtime endpoint protocols.");
+      R"#(
+Route kernel launches to `endpoint` instead of the active target's QPU.
+
+Args:
+  endpoint: An object implementing at least one of :class:`SupportsSample`,
+    :class:`SupportsObserve`. Launches under a policy the object does not
+    implement raise a `RuntimeError`.
+)#");
 }

@@ -11,6 +11,17 @@ get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
+# If MLIR_DIR/LLVM_DIR are not set explicitly, make educated guesses about where to find them.
+foreach(_cudaq_cmake_root "${CUDAQ_CMAKE_DIR}/.." "${CUDAQ_CMAKE_DIR}/../../llvm/lib/cmake")
+  if(NOT MLIR_DIR AND EXISTS "${_cudaq_cmake_root}/mlir/MLIRConfig.cmake")
+    get_filename_component(MLIR_DIR "${_cudaq_cmake_root}/mlir" ABSOLUTE)
+  endif()
+  if(NOT LLVM_DIR AND EXISTS "${_cudaq_cmake_root}/llvm/LLVMConfig.cmake")
+    get_filename_component(LLVM_DIR "${_cudaq_cmake_root}/llvm" ABSOLUTE)
+  endif()
+endforeach()
+unset(_cudaq_cmake_root)
+
 set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQOperator REQUIRED)
 
@@ -57,6 +68,9 @@ get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
 get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)
 get_filename_component(CUDAQ_INSTALL_DIR ${CUDAQ_LIBRARY_DIR} DIRECTORY)
 set(CUDAQ_INCLUDE_DIR ${CUDAQ_INSTALL_DIR}/include)
+
+find_dependency(GMP)
+find_dependency(MPFR)
 
 set (NVQIR_DIR "${PARENT_DIRECTORY}/nvqir")
 find_dependency(NVQIR REQUIRED)

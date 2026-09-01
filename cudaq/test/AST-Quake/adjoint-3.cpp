@@ -60,7 +60,7 @@ struct QernelZero {
 // CHECK:             } do {
 // CHECK:                 quake.z %{{.*}}
 // CHECK:                 %[[VAL_23:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:                 quake.apply<adj> @__nvqpp__mlirgen__statePrep_A{{.*}} %[[VAL_10]], %[[VAL_23]] : (!quake.veq<?>, f64) -> ()
+// CHECK:                 quake.apply<adj> @__nvqpp__mlirgen__statePrep_A{{.*}} (%[[VAL_10]], %[[VAL_23]]) : (!quake.veq<?>, f64) -> ()
 // CHECK:                 func.call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
 // CHECK:               cc.continue
 // CHECK:             } step {

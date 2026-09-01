@@ -1,0 +1,183 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each \
+// RUN:   "--codegen-for-qir=convert-to=qir value-semantics=true" %s \
+// RUN:   | FileCheck --check-prefix=FULL %s
+// RUN: cudaq-opt --verify-each \
+// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=true" %s \
+// RUN:   | FileCheck --check-prefix=PROFILE %s
+// RUN: cudaq-opt --verify-each \
+// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=false" %s \
+// RUN:   | FileCheck --check-prefix=NO_OPT %s
+// RUN: cudaq-opt --verify-each \
+// RUN:   "--codegen-for-qir=convert-to=qir-adaptive value-semantics=true" %s \
+// RUN:   | FileCheck --check-prefix=PROFILE %s
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=true" %s \
+// RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=true" %s \
+// RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=ALLOC %s
+
+// Models a marked kernel invocation followed by its adjoint. Specialization
+// and inlining materialize protected scopes for the marked pair, which must
+// survive final code generation; the otherwise-identical unmarked pair may
+// cancel.
+func.func private @shielded_ops(%q0: !quake.ref, %q1: !quake.ref) attributes {atomic_quantum_region} {
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @exposed_ops(%q0: !quake.ref, %q1: !quake.ref) {
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @shielded_roundtrip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  func.call @shielded_ops(%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @shielded_ops (%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  %b0 = quake.discriminate %m0 : (!quake.measure) -> i1
+  %b1 = quake.discriminate %m1 : (!quake.measure) -> i1
+  quake.log_output %b0 : (i1) -> ()
+  quake.log_output %b1 : (i1) -> ()
+  return
+}
+
+func.func @exposed_roundtrip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  func.call @exposed_ops(%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  quake.apply<adj> @exposed_ops (%q0, %q1) : (!quake.ref, !quake.ref) -> ()
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  %b0 = quake.discriminate %m0 : (!quake.measure) -> i1
+  %b1 = quake.discriminate %m1 : (!quake.measure) -> i1
+  quake.log_output %b0 : (i1) -> ()
+  quake.log_output %b1 : (i1) -> ()
+  return
+}
+
+// Models the post-inlining shape of a cudaq.run kernel returning a dynamic
+// sequence. Lowering its scope inserts stack save/restore operations around
+// the classical allocation. The final StackFramePrealloc must remove the
+// premature restore so the backing storage remains live through output.
+func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [!cc.sequence<i64>]} {
+  %result = cc.scope -> (!cc.sequence<i64>) {
+    %storage = cc.alloca i64[%size : i64]
+    %sequence = cc.sequence_init %storage, %size : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
+    cc.continue %sequence : !cc.sequence<i64>
+  }
+  quake.log_output %result : (!cc.sequence<i64>) -> ()
+  return
+}
+
+// FULL-LABEL: llvm.func @shielded_roundtrip()
+// FULL:       llvm.call @__quantum__qis__h
+// FULL-COUNT-2: llvm.call @generalizedInvokeWithRotationsControlsTargets
+// FULL:       llvm.call @__quantum__qis__h
+// FULL:       llvm.call @__quantum__qis__mz
+
+// FULL-LABEL: llvm.func @exposed_roundtrip()
+// FULL-NOT:   @__quantum__qis__h
+// FULL-NOT:   @generalizedInvokeWithRotationsControlsTargets
+// FULL:       llvm.call @__quantum__qis__mz
+// FULL-NOT:   @__quantum__qis__h
+// FULL-NOT:   @generalizedInvokeWithRotationsControlsTargets
+// FULL:       llvm.call @__quantum__qis__mz
+// FULL-NOT:   @__quantum__qis__h
+// FULL-NOT:   @generalizedInvokeWithRotationsControlsTargets
+// FULL:       llvm.return
+
+// FULL-LABEL: llvm.func @run_dynamic_result(
+// FULL-SAME:  %[[SIZE:.*]]: i64) attributes {
+// FULL-NOT:   llvm.stacksave
+// FULL-NOT:   llvm.stackrestore
+// FULL:       %[[STORAGE:.*]] = llvm.alloca %[[SIZE]] x i64 : (i64) -> !llvm.ptr
+// FULL-NOT:   llvm.stacksave
+// FULL-NOT:   llvm.stackrestore
+// FULL:       llvm.call @__quantum__rt__int_span_record_output
+// FULL-NOT:   llvm.stacksave
+// FULL-NOT:   llvm.stackrestore
+// FULL:       llvm.return
+
+// PROFILE-LABEL: llvm.func @shielded_roundtrip()
+// PROFILE:       llvm.call @__quantum__qis__h__body
+// PROFILE-COUNT-2: llvm.call @__quantum__qis__cnot__body
+// PROFILE:       llvm.call @__quantum__qis__h__body
+// PROFILE:       llvm.call @__quantum__qis__mz__body
+
+// PROFILE-LABEL: llvm.func @exposed_roundtrip()
+// PROFILE-NOT:   @__quantum__qis__h__body
+// PROFILE-NOT:   @__quantum__qis__cnot__body
+// PROFILE:       llvm.call @__quantum__qis__mz__body
+// PROFILE-NOT:   @__quantum__qis__h__body
+// PROFILE-NOT:   @__quantum__qis__cnot__body
+// PROFILE:       llvm.call @__quantum__qis__mz__body
+// PROFILE-NOT:   @__quantum__qis__h__body
+// PROFILE-NOT:   @__quantum__qis__cnot__body
+// PROFILE:       llvm.return
+
+// NO_OPT-LABEL: llvm.func @shielded_roundtrip()
+// NO_OPT:       llvm.call @__quantum__qis__h__body
+// NO_OPT:       llvm.call @__quantum__qis__cnot__body
+// NO_OPT:       llvm.call @__quantum__qis__cnot__body
+// NO_OPT:       llvm.call @__quantum__qis__h__body
+
+// NO_OPT-LABEL: llvm.func @exposed_roundtrip()
+// NO_OPT:       llvm.call @__quantum__qis__h__body
+// NO_OPT:       llvm.call @__quantum__qis__cnot__body
+// NO_OPT:       llvm.call @__quantum__qis__cnot__body
+// NO_OPT:       llvm.call @__quantum__qis__h__body
+
+// NO_OPT-LABEL: llvm.func @run_dynamic_result(
+// NO_OPT-NOT:   cc.scope
+// NO_OPT-NOT:   llvm.stacksave
+// NO_OPT-NOT:   llvm.stackrestore
+// NO_OPT:       llvm.alloca
+// NO_OPT-NOT:   cc.scope
+// NO_OPT-NOT:   llvm.stacksave
+// NO_OPT-NOT:   llvm.stackrestore
+// NO_OPT:       llvm.return
+
+// PIPELINE: Pass Manager
+// PIPELINE-NOT: convert-to-cfg
+// PIPELINE-NOT: stack-frame-prealloc
+// PIPELINE: combine-quantum-alloc
+// PIPELINE-NOT: convert-to-cfg
+// PIPELINE-NOT: stack-frame-prealloc
+// PIPELINE: factor-quantum-alloc
+// PIPELINE-NOT: combine-quantum-alloc
+// PIPELINE-NOT: convert-to-cfg
+// PIPELINE-NOT: stack-frame-prealloc
+// PIPELINE: convert-to-cfg-prep,
+// PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: convert-to-cfg
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: stack-frame-prealloc
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: canonicalize
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: delay-measurements
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: quake-to-qir-api-prep
+// PIPELINE: convert-to-cfg-prep
+// PIPELINE: convert-to-cfg
+// PIPELINE-NOT: combine-quantum-alloc
+
+// ALLOC: combine-quantum-alloc
+// ALLOC-NOT: combine-quantum-alloc

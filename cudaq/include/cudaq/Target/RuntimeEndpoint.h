@@ -80,6 +80,15 @@ struct RuntimeEndpoint {
   /// Launch function pointers for all supported policies, keyed by policy type.
   detail::DispatchTable<all_policies> dispatch;
 
+  /// Whether the RuntimeEndpoint is a QPU simulator.
+  bool isSimulator = true;
+  /// Whether the RuntimeEndpoint executes on a remote machine.
+  bool isRemote = false;
+  /// Whether the RuntimeEndpoint executes an emulation of a remote QPU.
+  bool isEmulated = false;
+  /// Whether the RuntimeEndpoint consumes JIT-compiled artifacts.
+  bool supportsJit = true;
+
   /// Store any RuntimeEndpoint state here. Passed by mutable reference to each
   /// launch invocation.
   std::any impl;

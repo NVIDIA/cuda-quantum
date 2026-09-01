@@ -1,0 +1,49 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// PR6 must preserve the KAK decomposer's extracted global phase until an
+// outer control has been specialized into the generated helper.
+// RUN: cudaq-opt --unitary-synthesis --canonicalize %s | FileCheck %s --check-prefix=PHASE
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
+// RUN:   %s | FileCheck %s --check-prefix=CONTROLLED
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
+// RUN:   --aggressive-inlining --expand-control-veqs --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize %s \
+// RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+
+module {
+  func.func @controlled_synthesized_cz() attributes {"cudaq-entrypoint"} {
+    %q = quake.alloca !quake.veq<3>
+    %outer = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+    %first = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+    %last = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+    quake.h %outer : (!quake.ref) -> ()
+    quake.custom_unitary_constant @cz [%outer] %first, %last
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant private @cz (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (-1.000000e+00,0.000000e+00)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>
+}
+
+// det(CZ) = -1, so KAK extracts a nonzero phase. It must be attached to the
+// generated helper's deterministic last scalar target.
+// PHASE-LABEL: func.func private @cz.kernel(
+// PHASE-SAME: %[[FIRST:.*]]: !quake.ref, %[[LAST:.*]]: !quake.ref) {
+// PHASE: quake.phase (%{{.*}}) %[[LAST]] : (f64, !quake.ref) -> ()
+
+// Apply specialization must add the outer predicate to the top-level KAK
+// correction while retaining its deterministic last-target anchor.
+// CONTROLLED-LABEL: func.func private @cz.kernel.ctrl(
+// CONTROLLED-SAME: %[[OUTER:.*]]: !quake.veq<?>, %{{.*}}: !quake.ref, %[[LAST:.*]]: !quake.ref) {
+// CONTROLLED: quake.phase (%{{.*}}) {{\[}}%[[OUTER]]{{\]}} %[[LAST]] : (f64, !quake.veq<?>, !quake.ref) -> ()
+
+// After inlining and expanding the outer singleton vector, LowerPhase must
+// eliminate bookkeeping and express its predicate with an R1 on that control.
+// LOWER-LABEL: func.func @controlled_synthesized_cz
+// LOWER: %[[OUTER:.*]] = quake.extract_ref %{{.*}}[0] : (!quake.veq<3>) -> !quake.ref
+// LOWER: quake.r1 (%{{.*}}) %[[OUTER]] : (f64, !quake.ref) -> ()

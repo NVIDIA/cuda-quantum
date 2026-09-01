@@ -228,6 +228,7 @@ YAML
 ZZ
 Zener
 accessor
+accessors
 acknowledgement
 adaptor
 adaptors
@@ -498,6 +499,7 @@ positionally
 precompute
 precomputed
 prepend
+preprocessing
 preprocessor
 probability
 prog

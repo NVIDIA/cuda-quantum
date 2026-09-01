@@ -115,6 +115,13 @@ if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
+# Transport-agnostic two-process test server.  Links cudaq-realtime, which
+# only exists when CUDA was found, and must be configured BEFORE the transport
+# test directories that exec it.
+if (TARGET cudaq-realtime)
+  add_subdirectory(test_server)
+endif()
+
 # UDP bridge provider tests: self-gated on the always-built udp provider
 # target, so they run in CI without any HSB/RDMA setup.
 add_subdirectory(bridge_interface/udp)

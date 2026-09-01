@@ -28,6 +28,7 @@ public:
   KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
                                             cudaq::KernelArgs args) override;
 
+  using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;
@@ -72,19 +73,8 @@ public:
   launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
                KernelArgs args) override;
 
-  using QPU::getCompileTarget;
-  CompileTarget getCompileTarget(const sample_policy &policy) override;
-
-  CompileTarget getCompileTarget(const observe_policy &policy) override;
-
-  CompileTarget getCompileTarget(const run_policy &policy) override;
-
-  CompileTarget getCompileTarget(const dem_policy &policy) override;
-
-  CompileTarget getCompileTarget(const estimate_policy &policy) override;
-
-  CompileTarget getCompileTarget(const other_policies &policy,
-                                 ExecutionContext *context) override;
+  CompileTarget
+  getCompileTarget(bool skipPipelineSubstitutions = false) override;
 
   void configureExecutionContext(ExecutionContext &context) const override;
   void beginExecution() override;

@@ -17,6 +17,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_UNWINDLOWERING
+#define GEN_PASS_DEF_VERIFYNOCFG
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -25,6 +26,34 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
+
+class VerifyNoCFGPass
+    : public cudaq::opt::impl::VerifyNoCFGBase<VerifyNoCFGPass> {
+public:
+  using VerifyNoCFGBase::VerifyNoCFGBase;
+
+  void runOnOperation() override {
+    // This pass runs in target-specific pipelines after argument synthesis and
+    // canonicalization. Only reject CFG branches that remain in the program;
+    // branches folded from concrete runtime arguments are therefore accepted.
+    Operation *branch = nullptr;
+    getOperation().walk([&](Operation *op) {
+      if (isa<cf::BranchOp, cf::CondBranchOp>(op)) {
+        branch = op;
+        return WalkResult::interrupt();
+      }
+      return WalkResult::advance();
+    });
+    if (!branch)
+      return;
+
+    emitError(branch->getLoc(),
+              "the selected target does not support control-flow graph "
+              "operations; an early return, break, or continue may have "
+              "produced unsupported control flow in the kernel");
+    signalPassFailure();
+  }
+};
 
 // A cc.scope may have break, continue, and return landing pads. A func.func may
 // have a return landing pad. This struture tracks the landing pads associated
@@ -323,6 +352,26 @@ static bool anyPrimitiveAncestor(
   return false;
 }
 
+// Is there a `cc.scope` anywhere between \p op and the nearest enclosing
+// loop (exclusive of that loop)? Checking only \p op's immediate parent (as
+// opposed to walking the full chain) misses the common case of a `cc.scope`
+// that is a grandparent (or further) of \p op, e.g. `cc.scope { cc.if {
+// cc.unwind_break } }` -- such a scope still owns quantum allocations that
+// must be deallocated via its landing pad before the jump completes.
+static bool anyScopeAncestor(
+    const DenseMap<Operation *, UnwindGotoAsPrimitive> &opParentMap,
+    Operation *op) {
+  for (auto iter = opParentMap.find(op); iter != opParentMap.end();) {
+    auto *parent = iter->second.parent;
+    if (!parent)
+      break;
+    if (isa<cudaq::cc::ScopeOp>(parent))
+      return true;
+    iter = opParentMap.find(parent);
+  }
+  return false;
+}
+
 static Value adjustedDeallocArg(cudaq::quake::AllocaOp alloc) {
   if (auto init = alloc.getInitializedState())
     return init.getResult();
@@ -541,11 +590,14 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
     auto *elseBlock = hasElse ? &ifOp.getElseRegion().front() : endBlock;
     updateBodyBranches(&ifOp.getThenRegion(), rewriter, endBlock);
     updateBodyBranches(&ifOp.getElseRegion(), rewriter, endBlock);
-    // If the if statement is marked as primitive, add the jumps to the
-    // continue, break, and/or return blocks of the parent. Otherwise, the
-    // control-flow will be within the region of the parent and the branches
-    // aren't needed.
-    if (anyPrimitiveAncestor(infoMap.opParentMap, ifOp.getOperation())) {
+    // If the if statement is marked as primitive, or a `cc.scope` lies
+    // between it and the nearest enclosing loop, add the jumps to the
+    // continue, break, and/or return blocks of the parent -- the latter
+    // case still needs to route through that scope's landing pad so its
+    // quantum allocations get deallocated. Otherwise, the control-flow will
+    // be within the region of the parent and the branches aren't needed.
+    if (anyScopeAncestor(infoMap.opParentMap, ifOp.getOperation()) ||
+        anyPrimitiveAncestor(infoMap.opParentMap, ifOp.getOperation())) {
       // Append blocks to tailRegion.
       auto &tailRegion = hasElse ? ifOp.getElseRegion() : ifOp.getThenRegion();
       auto blockMapIter = infoMap.blockDetails.find(ifOp.getOperation());
@@ -792,7 +844,7 @@ LogicalResult intraLoopJump(FROM op, PatternRewriter &rewriter,
   auto *blk = rewriter.getInsertionBlock();
   auto pos = rewriter.getInsertionPoint();
   rewriter.splitBlock(blk, std::next(pos));
-  if (isa<cudaq::cc::ScopeOp>(iter->second.parent) ||
+  if (anyScopeAncestor(infoMap.opParentMap, op.getOperation()) ||
       anyPrimitiveAncestor(infoMap.opParentMap, op.getOperation()))
     rewriter.replaceOpWithNewOp<cf::BranchOp>(op, getLandingPad(op, infoMap),
                                               op.getOperands());

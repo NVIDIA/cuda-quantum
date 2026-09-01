@@ -19,7 +19,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_alpha = "_
   func.func @__nvqpp__mlirgen__kernel_beta() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.alloca !quake.ref
     %1 = cc.undef !llvm.struct<"kernel_alpha", ()>
-    quake.apply<adj> @__nvqpp__mlirgen__kernel_alpha %0 : (!quake.ref) -> ()
+    quake.apply<adj> @__nvqpp__mlirgen__kernel_alpha (%0) : (!quake.ref) -> ()
     return
   }
 }

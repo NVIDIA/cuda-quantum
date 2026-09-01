@@ -87,9 +87,6 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return whether this QPU supports explicit measurements
-  virtual bool supportsExplicitMeasurements() { return true; }
-
   /// @brief Return the remote capabilities for this platform.
   virtual RemoteCapabilities getRemoteCapabilities() const {
     return RemoteCapabilities(/*initValues=*/false);
@@ -143,6 +140,14 @@ public:
                                            const CompiledModule &module,
                                            KernelArgs args);
 
+  virtual orca::sample_policy::result_type
+  launchKernel(const orca::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
+  virtual orca::async_sample_policy::result_type
+  launchKernel(const orca::async_sample_policy &policy,
+               const CompiledModule &module, KernelArgs args);
+
   virtual observe_result launchKernel(const observe_policy &policy,
                                       const CompiledModule &module,
                                       KernelArgs args);
@@ -182,28 +187,9 @@ public:
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
-  /// Get the compile target of the QPU for the given policy.
-  ///
-  /// By default, fall back to other_policies compile target.
+  /// Get the compile target of the QPU.
   [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const sample_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const observe_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const run_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const msm_size_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const msm_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const dem_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const estimate_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const ptsbe::sample_policy &policy);
-  // Overload for currently unsupported policies (to be removed).
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const other_policies &policy, ExecutionContext *context);
+  getCompileTarget(bool skipPipelineSubstitutions = false);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.

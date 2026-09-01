@@ -11,15 +11,25 @@
 // RUN:   FileCheck %s --check-prefix=EXACT
 // RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --check-prefix=THRESH
+// RUN: cudaq-opt --symbol-privatize='exclude=combine_before_legalization' \
+// RUN:   --symbol-dce %s -o %t.combine.baseline.qke
+// RUN: cudaq-opt --symbol-privatize='exclude=combine_before_legalization' \
+// RUN:   --symbol-dce \
+// RUN:   --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' \
+// RUN:   --mlir-pass-statistics --mlir-print-debuginfo %s \
+// RUN:   -o %t.combine.qke 2> %t.combine.stats
+// RUN: FileCheck %s --check-prefix=COMBINE < %t.combine.qke
+// RUN: FileCheck %s --check-prefix=COMBINE-STATS < %t.combine.stats
+// RUN: CircuitCheck %t.combine.baseline.qke < %t.combine.qke
 
 // `--symbol-privatize` makes every kernel not listed in `exclude` private, so
 // `--symbol-dce` can remove unrelated kernels and `CircuitCheck` compares only
 // the selected test group.
 // RUN: cudaq-opt \
-// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
+// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo,cleanup_after_legalization' \
 // RUN:   --symbol-dce %s -o %t.exact.qke
 // RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' \
-// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
+// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo,cleanup_after_legalization' \
 // RUN:   --symbol-dce %s | \
 // RUN:   CircuitCheck %t.exact.qke
 
@@ -490,8 +500,8 @@ func.func @unsupported_phased_rx() {
 
 // EXACT-LABEL: func.func @unsupported_phased_rx
 // EXACT: quake.phased_rx
-// Constant folding and rotation merging participate in the same greedy
-// fixpoint, so both ways of producing pi/4 reach the exact family.
+// Pre-legalization simplification folds and merges both ways of producing
+// pi/4, allowing the subsequent legalization phase to recognize them.
 func.func @fold_and_merge() {
   %eighth = arith.constant 0.39269908169872414 : f64
   %sum = arith.addf %eighth, %eighth : f64
@@ -508,6 +518,52 @@ func.func @fold_and_merge() {
 // EXACT-LABEL: func.func @fold_and_merge
 // EXACT-COUNT-2: quake.t
 // EXACT-NOT: quake.r1
+
+// Legalizing Rx(pi/4) emits phase, H, T, H. The fresh simplification driver
+// must cancel the final emitted H with the existing H.
+func.func @cleanup_after_legalization() {
+  %quarter = arith.constant 0.7853981633974483 : f64
+  %q = quake.null_wire
+  %r = quake.rx (%quarter) %q : (f64, !quake.wire) -> !quake.wire
+  %h = quake.h %r : (!quake.wire) -> !quake.wire
+  quake.sink %h : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @cleanup_after_legalization
+// EXACT: %[[PHASE_ANGLE:.*]] = arith.constant -0.39269908169872414 : f64
+// EXACT-NEXT: %[[Q:.*]] = quake.null_wire
+// EXACT-NEXT: %[[PHASE:.*]] = quake.phase (%[[PHASE_ANGLE]]) %[[Q]] : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[H:.*]] = quake.h %[[PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[T:.*]] = quake.t %[[H]] : (!quake.wire) -> !quake.wire
+// EXACT-NEXT: quake.sink %[[T]] : !quake.wire
+// EXACT-NOT: quake.rx
+
+// The later rotation must combine backward before the exact Clifford+T family
+// can legalize it. The sum is not a pi/4 multiple, so the combined rotation
+// remains at the later location.
+func.func @combine_before_legalization() {
+  %eighth = arith.constant 0.39269908169872414 : f64
+  %quarter = arith.constant 0.7853981633974483 : f64
+  %q = quake.null_wire
+  %r0 = quake.r1 (%eighth) %q : (f64, !quake.wire) -> !quake.wire loc("earlier")
+  %r1 = quake.r1 (%quarter) %r0 : (f64, !quake.wire) -> !quake.wire loc("later")
+  quake.sink %r1 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @combine_before_legalization
+// EXACT: quake.r1
+// COMBINE-LABEL: func.func @combine_before_legalization
+// COMBINE: %[[ANGLE:.*]] = arith.constant 1.1780972450961724 : f64
+// COMBINE-NEXT: %[[Q:.*]] = quake.null_wire
+// COMBINE-NEXT: %[[R:.*]] = quake.r1 (%[[ANGLE]]) %[[Q]] {{.*}}loc(#[[LATER:loc[0-9]+]])
+// COMBINE-NEXT: quake.sink %[[R]] : !quake.wire
+// COMBINE-NOT: quake.t
+// COMBINE: #[[LATER]] = loc("later")
+// COMBINE-STATS-LABEL: QuakeSimplify
+// COMBINE-STATS: 0 clifford-t-rotations
+// COMBINE-STATS: 1 rotations-combined
 
 // epsilon=1e-3 accepts each operation just inside its operator-norm bound and
 // rejects the corresponding value just outside. R1 uses delta ~= epsilon;

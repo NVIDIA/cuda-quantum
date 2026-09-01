@@ -27,7 +27,91 @@ struct TargetCodegenPipelineOptions
       *this, "convert-to", llvm::cl::desc("Conversion target specifier."),
       llvm::cl::init("")};
 };
+
+struct PrepareForWiresetPipelineOptions
+    : public PassPipelineOptions<PrepareForWiresetPipelineOptions> {
+  PassOptions::Option<unsigned> threshold{
+      *this, "maximum-iterations",
+      llvm::cl::desc("Maximum iterations to unroll.")};
+  PassOptions::Option<bool> signalFailure{
+      *this, "signal-failure-if-any-loop-cannot-be-completely-unrolled",
+      llvm::cl::desc("Signal failure if pass can't unroll all loops.")};
+  PassOptions::Option<bool> allowBreak{
+      *this, "allow-early-exit",
+      llvm::cl::desc(
+          "Allow unrolling of loop with early exit (i.e. break statement).")};
+  PassOptions::Option<bool> unrollOnlyAliasingQuantumAccessLoops{
+      *this, "unroll-only-aliasing-quantum-access-loops",
+      llvm::cl::desc(
+          "Unroll only loops containing aliasing quantum accesses or "
+          "exp_pauli operands that must be resolved for wire-set lowering.")};
+  PassOptions::Option<bool> unrollOnlyIndexUseLoops{
+      *this, "unroll-only-index-use-loops",
+      llvm::cl::desc(
+          "Unroll only loops whose induction variable is used in the loop "
+          "body.")};
+  PassOptions::Option<bool> addWireset{
+      *this, "add-wireset",
+      llvm::cl::desc("Add a wire set and assign wire indices.")};
+};
 } // namespace
+
+static void createPrepareForWiresetPipeline(
+    OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
+    bool addWireset) {
+  auto &funcPM = pm.nest<func::FuncOp>();
+  funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
+  funcPM.addPass(cudaq::opt::createAddDeallocs());
+  funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedLogOutput());
+  funcPM.addPass(cudaq::opt::createExpandControlVeqs());
+  funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createLoopNormalize());
+  funcPM.addPass(cudaq::opt::createLoopUnroll(loopUnrollOptions));
+  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(createCSEPass());
+  // Fold constant array element reads now that the loop is unrolled and the
+  // indices are constants. Kernels that interpret a captured gate array reach
+  // memtoreg with a dynamic `quake.extract_ref` index otherwise, and the
+  // register cannot be promoted to wires.
+  funcPM.addPass(cudaq::opt::createConstantPropagation());
+  funcPM.addPass(createCanonicalizerPass());
+  // Classically scalarize and promote Pauli words for early exp_pauli
+  // decomposition because quantum mem2reg cannot handle that operation.
+  funcPM.addPass(cudaq::opt::createSROA());
+  funcPM.addPass(cudaq::opt::createClassicalMemToReg());
+  funcPM.addPass(createCanonicalizerPass());
+  cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition"});
+  cudaq::opt::addConvertToLinearValues(pm);
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  if (addWireset) {
+    pm.addPass(cudaq::opt::createAddWireset());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignWireIndices());
+  }
+}
+
+void cudaq::opt::registerPrepareForWiresetPipeline() {
+  PassPipelineRegistration<PrepareForWiresetPipelineOptions>(
+      "prepare-for-wireset",
+      "Prepare supported Quake IR for wire-set conversion.",
+      [](OpPassManager &pm, const PrepareForWiresetPipelineOptions &opt) {
+        auto setIt = [](auto &to, const auto &from) {
+          if (from.hasValue())
+            to = from;
+        };
+
+        cudaq::opt::LoopUnrollOptions loopUnrollOptions;
+        setIt(loopUnrollOptions.threshold, opt.threshold);
+        setIt(loopUnrollOptions.signalFailure, opt.signalFailure);
+        setIt(loopUnrollOptions.allowBreak, opt.allowBreak);
+        setIt(loopUnrollOptions.unrollOnlyAliasingQuantumAccessLoops,
+              opt.unrollOnlyAliasingQuantumAccessLoops);
+        setIt(loopUnrollOptions.unrollOnlyIndexUseLoops,
+              opt.unrollOnlyIndexUseLoops);
+        createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);
+      });
+}
 
 static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
   auto convertFields = convertTo.split(':');
@@ -45,6 +129,12 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
     [[maybe_unused]] auto droppedOnTheFloor = emitOptionalError(
         {}, "convert to QIR must be given a valid specification to use.");
   }
+}
+
+void cudaq::opt::addLowerToCFGAndCleanup(OpPassManager &pm) {
+  cudaq::opt::addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
 
 static void
@@ -75,8 +165,6 @@ createCommonTargetCodegenPipeline(OpPassManager &pm,
   // If there was any specialization, we want another round in inlining to
   // inline the apply calls properly.
   cudaq::opt::addAggressiveInlining(pm);
-  cudaq::opt::addLowerToCFG(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -99,8 +187,8 @@ createTargetCodegenPipeline(OpPassManager &pm,
   // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
   // to run this pass again to expand those negations.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
 
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
@@ -155,6 +243,40 @@ void cudaq::opt::registerCodegenForQIRPipeline() {
       });
 }
 
+void cudaq::opt::addKernelBuilderJITPrepPipeline(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createUnwindLowering());
+  addAggressiveInlining(pm);
+  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
+  pm.addPass(createApplySpecialization());
+  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(createQuakeAddMetadata());
+  pm.addPass(createQuakePropagateMetadata());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addPass(createGenerateDeviceCodeLoader({.jitTime = true}));
+  pm.addPass(createGenerateKernelExecution());
+  pm.addPass(createSymbolDCEPass());
+}
+
+void cudaq::opt::addKernelBuilderJITLoweringPipeline(
+    OpPassManager &pm, bool combineQuantumAllocations) {
+  addLowerToCFG(pm);
+  if (combineQuantumAllocations)
+    pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  addConvertToQIRAPIPipeline(pm, "full");
+  pm.addPass(createCCToLLVM());
+  pm.addPass(createCanonicalizerPass());
+}
+
 void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
     OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(
@@ -172,7 +294,8 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createGetConcreteMatrix());
   pm.addPass(createUnitarySynthesis());
-  pm.addPass(createApplySpecialization());
+  cudaq::opt::ApplySpecializationOptions aso{.legacyClassical = true};
+  pm.addPass(createApplySpecialization(aso));
   addAggressiveInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -198,7 +321,7 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addPass(createSymbolDCEPass());
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
@@ -220,5 +343,9 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
-  pm.addPass(createVerifyNoPhase());
+  // The first IQM mapping can create new phase bookkeeping from lowered
+  // R1/Rz operations, so repeat the lifecycle before enforcing the invariant.
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
 }

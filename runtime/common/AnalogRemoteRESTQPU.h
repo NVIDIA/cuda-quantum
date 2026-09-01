@@ -24,18 +24,20 @@ public:
   /// @brief Check if this is an emulated target
   virtual bool isEmulated() override { return false; }
 
+  using BaseRemoteRESTQPU::getCompileTarget;
+  using BaseRemoteRESTQPU::launchKernel;
+
+  CompileTarget
+  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+    return {.overrideAOTCompilation = false};
+  }
+
   /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
-  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
-                                            KernelArgs args) override {
-    if (!std::holds_alternative<SourceModule>(module))
-      throw std::runtime_error(
-          "AnalogRemoteRESTQPU does not support pre-compiled module launch.");
-
-    const auto &src = std::get<SourceModule>(module);
-    const auto &kernelName = src.getName();
-    auto executionContext = cudaq::getExecutionContext();
-
+  detail::future launchKernelCommon(const sample_policy &policy,
+                                    const CompiledModule &module,
+                                    KernelArgs args) {
+    const auto &kernelName = module.getName();
     if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
@@ -48,22 +50,30 @@ public:
     std::vector<cudaq::KernelExecution> codes;
     std::string name = kernelName;
     const auto packed = args.getPacked();
-    std::string strArgs = packed ? (char *)packed->data.data() : "";
+    if (!packed)
+      throw std::runtime_error(
+          "Analog Hamiltonian launch requires a packed JSON payload.");
+    std::string strArgs(reinterpret_cast<const char *>(packed->data.data()),
+                        packed->data.size());
     codes.push_back(KernelExecution{.name = name, .code = strArgs});
 
-    if (executionContext) {
-      executor->setShots(executionContext->shots);
-      cudaq::detail::future future;
-      future = executor->execute(codes);
-      // Keep this asynchronous if requested
-      if (executionContext->asyncExec) {
-        executionContext->asyncResult = async_sample_result(std::move(future));
-        return {};
-      }
-      // Otherwise make this synchronous
-      executionContext->result = future.get();
-    }
-    return {};
+    executor->setShots(policy.options.shots);
+    return executor->execute(codes);
+  }
+
+  async_sample_result launchKernel(const async_sample_policy &policy,
+                                   const CompiledModule &module,
+                                   KernelArgs args) override {
+    // Keep this asynchronous if requested
+    return async_sample_result(
+        launchKernelCommon(policy.inner, module, std::move(args)));
+  }
+
+  sample_result launchKernel(const sample_policy &policy,
+                             const CompiledModule &module,
+                             KernelArgs args) override {
+    // Otherwise make this synchronous
+    return launchKernelCommon(policy, module, std::move(args)).get();
   }
 };
 

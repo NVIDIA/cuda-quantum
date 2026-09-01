@@ -9,6 +9,8 @@
 #include "LoopAnalysis.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "mlir/IR/Dominance.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 
 using namespace mlir;
 
@@ -94,15 +96,62 @@ static bool validCountedLoopIntervalForm(arith::CmpIOp cmp,
          (allowClosedInterval && isClosedIntervalForm(p));
 }
 
-// If the value, v, dominates the loop then it is invariant by definition. Block
-// arguments that are, in fact, a threaded invariant value should have been
-// converted to their dominating definition by the canonicalization pass.
+// If the value, v, dominates the loop then it is invariant by definition.
+// Block arguments that are, in fact, a threaded invariant value should have
+// been converted to their dominating definition by the canonicalization
+// pass, so a bare block argument that does not dominate the loop is not
+// invariant (it is some value threaded through the CFG, e.g. a loop-carried
+// argument).
+//
+// Otherwise, v may be defined by an op nested \em{inside} the loop that
+// simply recomputes an invariant value on every iteration rather than
+// having been hoisted out (e.g. `quake.veq_size` on a veq that is not
+// modified by the loop). Such a value is still effectively invariant: if
+// the op is free of memory effects and every one of its operands is
+// (recursively) loop-invariant, then so is its result.
+static bool isLoopInvariant(Value v, cudaq::cc::LoopOp loop,
+                            const DominanceInfo &dom) {
+  if (dom.dominates(v, loop.getOperation()))
+    return true;
+  auto *defOp = v.getDefiningOp();
+  if (!defOp || !isMemoryEffectFree(defOp))
+    return false;
+  // A region-bearing op (e.g. a nested `cc.loop`) may be memory-effect-free
+  // yet still capture values from its enclosing scope inside those regions —
+  // values not reflected in `getOperands()` at all. Recursing only over the
+  // explicit operand list would then wrongly call such an op "invariant"
+  // even though a captured value only dominates the op's *original*
+  // location. Callers that then hoist/clone this "invariant" value (see
+  // materializeLoopInvariant) would silently produce a dominance violation.
+  // Rather than reconstructing a whole region's capture set here, simply
+  // refuse to treat any region-bearing op as invariant.
+  if (defOp->getNumRegions() != 0)
+    return false;
+  return llvm::all_of(defOp->getOperands(), [&](Value operand) {
+    return isLoopInvariant(operand, loop, dom);
+  });
+}
+
 static bool isLoopInvariant(ArrayRef<Value> vs, cudaq::cc::LoopOp loop) {
   DominanceInfo dom(loop->getParentOfType<func::FuncOp>());
-  for (auto v : vs)
-    if (!dom.dominates(v, loop.getOperation()))
-      return false;
-  return true;
+  return llvm::all_of(vs,
+                      [&](Value v) { return isLoopInvariant(v, loop, dom); });
+}
+
+Value cudaq::opt::materializeLoopInvariant(RewriterBase &rewriter, Value v,
+                                           cc::LoopOp loop) {
+  DominanceInfo dom(loop->getParentOfType<func::FuncOp>());
+  if (dom.dominates(v, loop.getOperation()))
+    return v;
+  auto *defOp = v.getDefiningOp();
+  assert(defOp && isMemoryEffectFree(defOp) &&
+         "v must be loop-invariant (see isLoopInvariant)");
+  SmallVector<Value> newOperands;
+  for (Value operand : defOp->getOperands())
+    newOperands.push_back(materializeLoopInvariant(rewriter, operand, loop));
+  Operation *clone = rewriter.clone(*defOp);
+  clone->setOperands(newOperands);
+  return clone->getResult(cast<OpResult>(v).getResultNumber());
 }
 
 /// Returns a pair `(true, stepValue)` if and only if the operation, \p op, is
@@ -135,6 +184,7 @@ static BlockArgument getLinearExpr(Value expr,
     auto vl = peelCastOps(va);
     if (auto ba = dyn_cast<BlockArgument>(vl);
         ba && isLoopInvariant(vb, loop)) {
+      result.linearInduction = va;
       saved = vb;
       return ba;
     }
@@ -211,20 +261,18 @@ static unsigned bitWidth(Value val) {
   return cast<IntegerType>(val.getType()).getWidth();
 }
 
-namespace cudaq {
-
-bool opt::isSemiOpenPredicate(arith::CmpIPredicate p) {
+bool cudaq::opt::isSemiOpenPredicate(arith::CmpIPredicate p) {
   return p == arith::CmpIPredicate::ult || p == arith::CmpIPredicate::slt ||
          p == arith::CmpIPredicate::ugt || p == arith::CmpIPredicate::sgt ||
          p == arith::CmpIPredicate::ne;
 }
 
-bool opt::isUnsignedPredicate(arith::CmpIPredicate p) {
+bool cudaq::opt::isUnsignedPredicate(arith::CmpIPredicate p) {
   return p == arith::CmpIPredicate::ult || p == arith::CmpIPredicate::ule ||
          p == arith::CmpIPredicate::ugt || p == arith::CmpIPredicate::uge;
 }
 
-bool opt::isSignedPredicate(arith::CmpIPredicate p) {
+bool cudaq::opt::isSignedPredicate(arith::CmpIPredicate p) {
   return p == arith::CmpIPredicate::slt || p == arith::CmpIPredicate::sle ||
          p == arith::CmpIPredicate::sgt || p == arith::CmpIPredicate::sge;
 }
@@ -250,7 +298,8 @@ bool opt::isSignedPredicate(arith::CmpIPredicate p) {
 // the value of `%bound` or `%step`. Those values are invariant if there are
 // no side-effects in the loop Op (no store or call operations) and these values
 // do not depend on a block argument.
-bool opt::hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *lcp) {
+bool cudaq::opt::hasMonotonicControlInduction(cudaq::cc::LoopOp loop,
+                                              cudaq::opt::LoopComponents *lcp) {
   if (loop.getInitialArgs().empty() || loop.getResults().empty())
     return false;
   if (auto c = getLoopComponents(loop)) {
@@ -264,17 +313,18 @@ bool opt::hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *lcp) {
 
 static bool allExitsAreContinue(Region &reg) {
   for (auto &block : reg)
-    if (block.hasNoSuccessors() && !isa<cc::ContinueOp>(block.getTerminator()))
+    if (block.hasNoSuccessors() &&
+        !isa<cudaq::cc::ContinueOp>(block.getTerminator()))
       return false;
   return true;
 }
 
-bool opt::loopContainsBreak(cc::LoopOp loopOp) {
+bool cudaq::opt::loopContainsBreak(cudaq::cc::LoopOp loopOp) {
   return !allExitsAreContinue(loopOp.getBodyRegion());
 }
 
-bool opt::isaMonotonicLoop(Operation *op, bool allowEarlyExit,
-                           LoopComponents *lcp) {
+bool cudaq::opt::isaMonotonicLoop(Operation *op, bool allowEarlyExit,
+                                  cudaq::opt::LoopComponents *lcp) {
   if (auto loopOp = dyn_cast_or_null<cc::LoopOp>(op)) {
     // Cannot be a `do while` loop. See cc-loop-peeling.
     if (loopOp.isPostConditional())
@@ -286,7 +336,8 @@ bool opt::isaMonotonicLoop(Operation *op, bool allowEarlyExit,
   return false;
 }
 
-bool opt::isaInvariantLoop(const LoopComponents &c, bool allowClosedInterval) {
+bool cudaq::opt::isaInvariantLoop(const cudaq::opt::LoopComponents &c,
+                                  bool allowClosedInterval) {
   if (isaConstantOf(c.initialValue, 0) && isaConstantOf(c.stepValue, 1) &&
       isa<arith::AddIOp>(c.stepOp)) {
     auto cmp = cast<arith::CmpIOp>(c.compareOp);
@@ -295,8 +346,9 @@ bool opt::isaInvariantLoop(const LoopComponents &c, bool allowClosedInterval) {
   return false;
 }
 
-bool opt::isaInvariantLoop(cc::LoopOp loop, bool allowClosedInterval,
-                           bool allowEarlyExit, LoopComponents *lcp) {
+bool cudaq::opt::isaInvariantLoop(cudaq::cc::LoopOp loop,
+                                  bool allowClosedInterval, bool allowEarlyExit,
+                                  cudaq::opt::LoopComponents *lcp) {
   LoopComponents c;
   if (isaMonotonicLoop(loop.getOperation(), allowEarlyExit, &c)) {
     if (lcp)
@@ -306,46 +358,49 @@ bool opt::isaInvariantLoop(cc::LoopOp loop, bool allowClosedInterval,
   return false;
 }
 
-bool opt::isaCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
+bool cudaq::opt::isaCountedLoop(cudaq::cc::LoopOp loop,
+                                bool allowClosedInterval) {
   LoopComponents c;
   return isaInvariantLoop(loop, allowClosedInterval, /*allowEarlyExit=*/false,
                           &c) &&
          isaConstant(c.compareValue);
 }
 
-bool opt::isaIndefiniteCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
+bool cudaq::opt::isaIndefiniteCountedLoop(cudaq::cc::LoopOp loop,
+                                          bool allowClosedInterval) {
   LoopComponents c;
   return isaIndefiniteInvariantLoop(loop, allowClosedInterval, &c) &&
          isaConstant(c.compareValue);
 }
 
-Value opt::LoopComponents::getCompareInduction() const {
+mlir::Value cudaq::opt::LoopComponents::getCompareInduction() const {
   auto cmpOp = cast<arith::CmpIOp>(compareOp);
   return cmpOp.getLhs() == compareValue ? cmpOp.getRhs() : cmpOp.getLhs();
 }
 
-bool opt::LoopComponents::stepIsAnAddOp() const {
+bool cudaq::opt::LoopComponents::stepIsAnAddOp() const {
   return isa<arith::AddIOp>(stepOp);
 }
 
-bool opt::LoopComponents::shouldCommuteStepOp() const {
+bool cudaq::opt::LoopComponents::shouldCommuteStepOp() const {
   if (auto addOp = dyn_cast_or_null<arith::AddIOp>(stepOp))
-    return addOp.getRhs() == stepRegion->front().getArgument(induction);
+    if (induction.has_value())
+      return addOp.getRhs() == stepRegion->front().getArgument(*induction);
   // Note: we don't allow induction on lhs of subtraction.
   return false;
 }
 
-bool opt::LoopComponents::isClosedIntervalForm() const {
+bool cudaq::opt::LoopComponents::isClosedIntervalForm() const {
   auto p = cast<arith::CmpIOp>(compareOp).getPredicate();
   return ::isClosedIntervalForm(p) || ::isClosedIntervalDownForm(p);
 }
 
-bool opt::LoopComponents::isLinearExpr() const {
+bool cudaq::opt::LoopComponents::isLinearExpr() const {
   return addendValue || scaleValue;
 }
 
-std::int64_t opt::LoopComponents::extendValue(unsigned width,
-                                              std::size_t val) const {
+std::int64_t cudaq::opt::LoopComponents::extendValue(unsigned width,
+                                                     std::size_t val) const {
   const bool signExt =
       isSignedPredicate(cast<arith::CmpIOp>(compareOp).getPredicate());
   std::int64_t result = val;
@@ -383,7 +438,7 @@ std::int64_t opt::LoopComponents::extendValue(unsigned width,
   return result;
 }
 
-bool opt::LoopComponents::hasAlwaysTrueCondition() const {
+bool cudaq::opt::LoopComponents::hasAlwaysTrueCondition() const {
   auto cmpValOpt = factory::maybeValueOfIntConstant(compareValue);
   if (!cmpValOpt)
     return false;
@@ -469,7 +524,7 @@ bool opt::LoopComponents::hasAlwaysTrueCondition() const {
   return false;
 }
 
-bool opt::LoopComponents::hasAlwaysFalseCondition() const {
+bool cudaq::opt::LoopComponents::hasAlwaysFalseCondition() const {
   auto cmpValOpt = factory::maybeValueOfIntConstant(compareValue);
   if (!cmpValOpt)
     return false;
@@ -555,7 +610,8 @@ bool opt::LoopComponents::hasAlwaysFalseCondition() const {
   return false;
 }
 
-std::optional<std::size_t> opt::LoopComponents::getIterationsConstant() const {
+std::optional<std::size_t>
+cudaq::opt::LoopComponents::getIterationsConstant() const {
   auto initValOpt = factory::maybeValueOfIntConstant(initialValue);
   if (!initValOpt)
     return std::nullopt;
@@ -612,15 +668,16 @@ std::optional<std::size_t> opt::LoopComponents::getIterationsConstant() const {
 
 template <typename T>
 constexpr int computeArgsOffset() {
-  if constexpr (std::is_same_v<T, cc::ConditionOp>) {
+  if constexpr (std::is_same_v<T, cudaq::cc::ConditionOp>) {
     return 1;
   } else {
     return 0;
   }
 }
 
-std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
-  opt::LoopComponents result;
+std::optional<cudaq::opt::LoopComponents>
+cudaq::opt::getLoopComponents(cudaq::cc::LoopOp loop) {
+  LoopComponents result;
   auto &whileRegion = loop.getWhileRegion();
   auto &whileEntry = whileRegion.front();
   auto condOp = cast<cc::ConditionOp>(whileRegion.back().back());
@@ -696,7 +753,7 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   if (!result.stepOp)
     return {};
 
-  result.initialValue = loop.getInitialArgs()[result.induction];
+  result.initialValue = loop.getInitialArgs()[*result.induction];
 
   // The comparison operation allows for the induction value to appear as part
   // of a loop-invariant linear expression on one side of the comparison. This
@@ -707,15 +764,227 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   // TODO: A possible extension is to detect \em{conditionally iterated} loops
   // and open those up to further analysis and transformations such as loop
   // unrolling.
-  if (getLinearExpr(cmpOp.getLhs(), result, loop) ==
-      whileEntry.getArgument(result.induction))
+  auto matchAndSetLinearExpr = [&](Value value) {
+    auto candidate = result;
+    candidate.negatedAddend = false;
+    candidate.reciprocalScale = false;
+    candidate.minusOneMult = false;
+    candidate.linearInduction = {};
+    candidate.addendValue = {};
+    candidate.scaleValue = {};
+    if (getLinearExpr(value, candidate, loop) !=
+        whileEntry.getArgument(*result.induction))
+      return false;
+    result = candidate;
+    return true;
+  };
+  if (matchAndSetLinearExpr(cmpOp.getLhs()))
     result.compareValue = cmpOp.getRhs();
-  else if (getLinearExpr(cmpOp.getRhs(), result, loop) ==
-           whileEntry.getArgument(result.induction))
+  else if (matchAndSetLinearExpr(cmpOp.getRhs()))
     result.compareValue = cmpOp.getLhs();
   else
     return {};
   return result;
 }
 
-} // namespace cudaq
+namespace {
+/// Which region of a `cc.loop` to look in, and how to read its terminator's
+/// carried operands: `cc.condition($cond, $results...)` for the while region
+/// (the leading condition operand must be skipped), `cc.continue($operands...)`
+/// for the body and step regions.
+struct LoopRegionSite {
+  Region *region;
+  bool isWhile;
+};
+} // namespace
+
+/// Returns the single no-successor (exit) block of \p reg, or null if there
+/// isn't exactly one.
+static Block *getSingleExitBlock(Region &reg) {
+  Block *exit = nullptr;
+  for (auto &block : reg) {
+    if (block.hasNoSuccessors()) {
+      if (exit)
+        return nullptr;
+      exit = &block;
+    }
+  }
+  return exit;
+}
+
+/// Returns the value \p reg's terminator carries forward for loop-arg index
+/// \p i (dropping the leading condition operand first, for the while
+/// region), or a null Value if \p reg's exit terminator isn't the expected
+/// kind or doesn't have that many operands.
+static Value getCarriedValue(const LoopRegionSite &site, unsigned i) {
+  Block *exit = getSingleExitBlock(*site.region);
+  if (!exit)
+    return {};
+  if (site.isWhile) {
+    auto cond = dyn_cast<cudaq::cc::ConditionOp>(exit->back());
+    if (!cond || i >= cond.getResults().size())
+      return {};
+    return cond.getResults()[i];
+  }
+  auto cont = dyn_cast<cudaq::cc::ContinueOp>(exit->back());
+  if (!cont || i >= cont.getOperands().size())
+    return {};
+  return cont.getOperands()[i];
+}
+
+SmallVector<cudaq::opt::SecondaryInduction>
+cudaq::opt::getSecondaryInductions(cudaq::cc::LoopOp loop,
+                                   const cudaq::opt::LoopComponents &primary) {
+  SmallVector<SecondaryInduction> result;
+  // Requires the primary to have been identified in a concrete region.
+  if (!primary.induction.has_value())
+    return result;
+  unsigned primaryIdx = *primary.induction;
+
+  // A secondary induction's own step need not live in the same region as
+  // the primary's step: e.g. a `for (i = 0; i < n; i++) { ...; j += 1; }`
+  // shaped loop has the primary `i` stepped in the step region while a
+  // secondary `j` steps in the body region instead. Check every region the
+  // loop has; whichever one actually modifies index `i` (if exactly one
+  // does) supplies the step, and every other region must be a pure
+  // passthrough (the carried value is literally that region's own entry
+  // block argument) for the single closed-form step to be valid.
+  SmallVector<LoopRegionSite> sites;
+  sites.push_back({&loop.getWhileRegion(), /*isWhile=*/true});
+  sites.push_back({&loop.getBodyRegion(), /*isWhile=*/false});
+  if (loop.hasStep())
+    sites.push_back({&loop.getStepRegion(), /*isWhile=*/false});
+
+  unsigned numArgs = loop.getBodyRegion().front().getNumArguments();
+  for (unsigned i = 0; i < numArgs; ++i) {
+    if (i == primaryIdx)
+      continue;
+
+    // The else region runs once, on normal loop exit, so a value it recomputes
+    // has no closed form in terms of the primary. Only fuse `i` if the else
+    // region passes it through untouched.
+    if (loop.hasPythonElse()) {
+      Block &elseEntry = loop.getElseRegion().front();
+      if (i >= elseEntry.getNumArguments())
+        continue;
+      LoopRegionSite elseSite{&loop.getElseRegion(), /*isWhile=*/false};
+      Value carried = getCarriedValue(elseSite, i);
+      if (!carried || carried != elseEntry.getArgument(i))
+        continue;
+    }
+
+    Value stepVal;
+    bool isAdd = false;
+    bool isPrimaryAlias = false;
+    unsigned steppingSitesFound = 0;
+    bool malformed = false;
+
+    for (auto &site : sites) {
+      if (i >= site.region->front().getNumArguments() ||
+          primaryIdx >= site.region->front().getNumArguments()) {
+        malformed = true;
+        break;
+      }
+      Value entryArg = site.region->front().getArgument(i);
+      Value carried = getCarriedValue(site, i);
+      if (!carried) {
+        malformed = true;
+        break;
+      }
+      if (carried == entryArg)
+        continue; // Pure passthrough in this region — nothing to check.
+
+      // The while region's condition block runs once *before* every body
+      // iteration attempt (including one extra time, with no matching body
+      // iteration, to find the exit), one more time than body/step run — so
+      // a value stepped there is one step further along than the same value
+      // would be if body or step had stepped it instead: body would see
+      // `init + k*step` at iteration k for a body/step-stepped value, but a
+      // while-region-stepped one arrives at body already bumped to
+      // `init + (k+1)*step`. That mismatch only actually matters, though,
+      // when the *primary* induction's own step lives somewhere else: if the
+      // primary is itself stepped in the while region too (e.g.
+      // `while (i-- > 0)` — see getLoopComponents scanning the while region
+      // as a last resort), both it and this secondary pick up the exact same
+      // extra bump on the exact same schedule, so the closed form built
+      // below (in terms of the primary's own raw per-iteration value) still
+      // holds unchanged. It's only a body/step-vs-while (or while-vs-while
+      // but naming a *different* region — not possible here, there being
+      // only one while region — so really just body/step-vs-while) mismatch
+      // between where the primary and this secondary are each stepped that
+      // invalidates the closed form.
+      if (site.isWhile && primary.stepRegion != site.region) {
+        malformed = true;
+        break;
+      }
+
+      // The arg is reassigned each iteration to the primary induction's own
+      // per-iteration value, e.g. `cc.continue %i, %i, ...`. Its closed form
+      // then rides on the primary's own step rather than an independent
+      // accumulation; see the `aliasesPrimary` field.
+      if (carried == site.region->front().getArgument(primaryIdx)) {
+        Value candStep = primary.stepValue;
+        bool candIsAdd = primary.stepIsAnAddOp();
+        if (!candStep || !isLoopInvariant({candStep}, loop)) {
+          malformed = true;
+          break;
+        }
+        ++steppingSitesFound;
+        stepVal = candStep;
+        isAdd = candIsAdd;
+        isPrimaryAlias = true;
+        continue;
+      }
+
+      Block *exit = getSingleExitBlock(*site.region);
+      auto *defOp = carried.getDefiningOp();
+      if (!defOp || defOp->getBlock() != exit) {
+        malformed = true;
+        break;
+      }
+
+      Value candStep;
+      bool candIsAdd = false;
+      if (auto addOp = dyn_cast<arith::AddIOp>(defOp)) {
+        if (addOp.getLhs() == entryArg) {
+          candStep = addOp.getRhs();
+          candIsAdd = true;
+        } else if (addOp.getRhs() == entryArg) {
+          candStep = addOp.getLhs();
+          candIsAdd = true;
+        }
+      } else if (auto subOp = dyn_cast<arith::SubIOp>(defOp)) {
+        if (subOp.getLhs() == entryArg) {
+          candStep = subOp.getRhs();
+          candIsAdd = false;
+        }
+      }
+      if (!candStep || !isLoopInvariant({candStep}, loop)) {
+        malformed = true;
+        break;
+      }
+
+      ++steppingSitesFound;
+      stepVal = candStep;
+      isAdd = candIsAdd;
+      isPrimaryAlias = false;
+    }
+
+    // Fuse only when index `i` is stepped in exactly one region and left
+    // untouched everywhere else — anything else (stepped in more than one
+    // region, or a shape getCarriedValue/defOp can't make sense of) isn't a
+    // simple induction we can safely turn into a closed form, so leave it
+    // loop-carried rather than risk fusing it incorrectly.
+    if (malformed || steppingSitesFound != 1)
+      continue;
+
+    SecondaryInduction ind;
+    ind.argIndex = i;
+    ind.initialValue = loop.getInitialArgs()[i];
+    ind.stepValue = stepVal;
+    ind.stepIsAdd = isAdd;
+    ind.aliasesPrimary = isPrimaryAlias;
+    result.push_back(ind);
+  }
+  return result;
+}
