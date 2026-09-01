@@ -226,17 +226,45 @@ void pruneDeadLoopCarriedValues(func::FuncOp func) {
   };
 
   auto deleteDeadComputations = [&]() {
-    for (bool erased = true; erased;) {
-      erased = false;
-      SmallVector<Operation *> deadOps;
-      func.walk([&](Operation *op) {
-        if (!cudaq::opt::hasQuantum(*op) && isOpTriviallyDead(op))
-          deadOps.push_back(op);
-      });
-      for (auto *op : deadOps) {
-        op->erase();
-        erased = true;
+    DenseSet<Operation *> quantumContainingOps;
+    func.walk([&](Operation *op) {
+      if (!op->hasTrait<cudaq::QuantumGate>())
+        return;
+      for (Operation *ancestor = op; ancestor;
+           ancestor = ancestor->getParentOp())
+        if (!quantumContainingOps.insert(ancestor).second)
+          break;
+    });
+
+    SmallVector<Operation *> worklist;
+    DenseSet<Operation *> queued;
+    auto addIfDead = [&](Operation *op) {
+      if (op && !queued.count(op) && !quantumContainingOps.count(op) &&
+          isOpTriviallyDead(op)) {
+        queued.insert(op);
+        worklist.push_back(op);
       }
+    };
+
+    // Pre-order plus a LIFO worklist erases nested operations before a dead
+    // parent that owns them.
+    func.walk<WalkOrder::PreOrder>(addIfDead);
+    while (!worklist.empty()) {
+      Operation *op = worklist.pop_back_val();
+      queued.erase(op);
+      SmallVector<Operation *> definingOps;
+      for (Value operand : op->getOperands())
+        if (Operation *definingOp = operand.getDefiningOp())
+          definingOps.push_back(definingOp);
+      Operation *parent = op->getParentOp();
+      op->erase();
+
+      // Removing the final use can make an operand's definition dead. A
+      // region-owning parent can also become dead when its last effecting
+      // nested operation disappears.
+      for (Operation *definingOp : definingOps)
+        addIfDead(definingOp);
+      addIfDead(parent);
     }
   };
 
