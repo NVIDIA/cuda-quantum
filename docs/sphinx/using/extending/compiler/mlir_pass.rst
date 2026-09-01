@@ -241,10 +241,12 @@ how its run time scales. Measure the pass on its own and in the compiler
 pipelines that use it. The following practices can help keep pass time under
 control:
 
-- **Avoid unnecessary work.** For example, ``Operation::walk`` with
-  ``WalkResult::interrupt`` can stop when it finds a known root operation.
-  ``applyOpPatternsGreedily`` can limit the initial ``worklist`` to candidate
-  operations when doing so preserves the required rewrite behavior.
+- **Avoid unnecessary greedy rewrite work.** If a pass uses
+  ``applyPatternsGreedily`` across an entire region, consider passing an
+  initial ``worklist`` of matching operations to ``applyOpPatternsGreedily``. Do
+  this only when it preserves the required folding and newly exposed matches.
+  Otherwise, keep the region-wide driver and use
+  ``containsAnyOperationOfType`` to skip it when no patterns can match.
 
 - **Choose a rewrite driver that matches the transformation.**
   ``walkAndApplyPatterns`` can suit independent rewrites that need only one
@@ -260,7 +262,8 @@ control:
 Use ``--mlir-timing`` and CUDA-Q compiler traces to identify slow passes. If a
 pass has several stages, add focused trace spans to find where time is spent.
 Test inputs with different sizes and numbers of matching operations, verify that
-the output is unchanged, and check the effect on full compiler time.
+the required transformation behavior is preserved, and check the effect on
+full compiler time.
 
 Implement and register a built-in pass
 ======================================
