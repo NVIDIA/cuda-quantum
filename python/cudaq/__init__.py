@@ -611,3 +611,11 @@ elif any(
     parse_args()
 else:
     cudaq_runtime.initialize_cudaq()
+
+warnings.warn(
+    "The CUDA-Q `sample` and `observe` algorithmic primitives will change in "
+    "a future release. Existing code may require updates. See "
+    "https://nvidia.github.io/cuda-quantum/latest/using/migration/"
+    "upcoming_changes.html for details.",
+    FutureWarning,
+    stacklevel=2)
