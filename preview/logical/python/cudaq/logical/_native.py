@@ -9,7 +9,7 @@
 single namespace objects.
 
 The previous monolithic ``_qlxDialects`` extension exposed a single
-``qlx`` (and ``fabric``) submodule.  After registering into CUDA-Q's
+``qlx`` (and ``fabric``) submodule.  After registering into CUDA-Q
 ``cudaq.mlir`` bindings the native code lives in three extensions:
 
   - :mod:`cudaq.mlir._mlir_libs._qlx_ext`   -- two submodules ``qlx`` and

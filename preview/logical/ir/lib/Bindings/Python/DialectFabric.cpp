@@ -55,8 +55,7 @@ void bindCodeParamType(nb::module_ &m, const char *pyName,
 }
 
 void bindNullaryType(nb::module_ &m, const char *pyName, bool (*isa)(MlirType),
-                     MlirType (*getFn)(MlirContext),
-                     MlirTypeID (*typeIdFn)()) {
+                     MlirType (*getFn)(MlirContext), MlirTypeID (*typeIdFn)()) {
   mlir_type_subclass(m, pyName, isa, typeIdFn)
       .def_staticmethod(
           "get", [getFn](MlirContext ctx) { return getFn(ctx); },
@@ -79,8 +78,9 @@ void bindEnumAttr(nb::module_ &m, const char *pyName, const char *alias,
             return attr;
           },
           nb::arg("value"), nb::arg("context").none() = nb::none())
-      .def_property_readonly(
-          "value", [valueFn](MlirAttribute self) { return fromRef(valueFn(self)); });
+      .def_property_readonly("value", [valueFn](MlirAttribute self) {
+        return fromRef(valueFn(self));
+      });
   m.attr(alias) = m.attr(pyName);
 }
 
@@ -132,8 +132,7 @@ void qlx::python::populateFabricSubmodule(nb::module_ &m) {
                fabricAttributeIsAResource, fabricResourceAttrGet,
                fabricResourceAttrGetValue, fabricResourceAttrGetTypeID);
 
-  mlir_attribute_subclass(m, "FabricFloorplanAttr",
-                          fabricAttributeIsAFloorplan,
+  mlir_attribute_subclass(m, "FabricFloorplanAttr", fabricAttributeIsAFloorplan,
                           fabricFloorplanAttrGetTypeID)
       .def_staticmethod(
           "get",

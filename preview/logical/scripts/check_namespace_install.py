@@ -21,11 +21,9 @@ def main() -> None:
     cudaq_root = Path(cudaq.__file__).resolve().parent
     logical_root = Path(cudaq.logical.__file__).resolve().parent
     if logical_root.parent != cudaq_root:
-        raise SystemExit(
-            "cudaq.logical is not co-located with cudaq:\n"
-            f"  cudaq:    {cudaq_root}\n"
-            f"  logical:  {logical_root}"
-        )
+        raise SystemExit("cudaq.logical is not co-located with cudaq:\n"
+                         f"  cudaq:    {cudaq_root}\n"
+                         f"  logical:  {logical_root}")
 
     import cudaq.mlir._mlir_libs._qlx_ext  # noqa: F401
 
@@ -36,8 +34,7 @@ def main() -> None:
             "cudaq.logical and cudaq do not agree on mlir.ir module identity:\n"
             f"  cudaq.mlir.ir: {cudaq.mlir.ir}\n"
             f"  import ir:     {mlir_ir}\n"
-            f"  from cudaq.mlir import ir: {mlir_ir_again}"
-        )
+            f"  from cudaq.mlir import ir: {mlir_ir_again}")
 
     print("cudaq.logical namespace install ok")
     print(f"  cudaq:     {cudaq_root}")
