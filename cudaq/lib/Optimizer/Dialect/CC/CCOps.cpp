@@ -2499,6 +2499,17 @@ LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
   return success();
 }
 
+void cudaq::cc::spliceRegionAsCFG(PatternRewriter &rewriter, Region &region,
+                                  Block *continueBlock) {
+  for (Block &block : region)
+    if (auto contOp = dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+      rewriter.setInsertionPointToEnd(&block);
+      rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, continueBlock,
+                                                contOp.getOperands());
+    }
+  rewriter.inlineRegionBefore(region, continueBlock);
+}
+
 namespace {
 // Can \p region hold more than one block? Some regions are restricted to a
 // single block, either by trait or by an ODS size constraint on the parent op.
@@ -2507,8 +2518,7 @@ static bool takesMultipleBlocks(Region &region) {
     return false;
   Operation *parent = region.getParentOp();
   if (auto loop = dyn_cast<cudaq::cc::LoopOp>(parent))
-    return &region == &loop.getBodyRegion() ||
-           &region == &loop.getElseRegion();
+    return &region == &loop.getBodyRegion() || &region == &loop.getElseRegion();
   return isa<func::FuncOp, cudaq::cc::IfOp, cudaq::cc::ScopeOp,
              cudaq::cc::CreateLambdaOp>(parent);
 }
@@ -2577,14 +2587,7 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
       cf::BranchOp::create(rewriter, loc, splitBlock);
     }
     auto *entryBlock = &region.front();
-    for (auto &block : region)
-      if (auto contOp =
-              dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
-        rewriter.setInsertionPointToEnd(&block);
-        rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, succBlock,
-                                                  contOp.getOperands());
-      }
-    rewriter.inlineRegionBefore(region, succBlock);
+    cudaq::cc::spliceRegionAsCFG(rewriter, region, succBlock);
     rewriter.setInsertionPointToEnd(ifBlock);
     cf::BranchOp::create(rewriter, loc, entryBlock, ifOp.getLinearArgs());
     rewriter.replaceOp(ifOp, succBlock->getArguments());
