@@ -337,16 +337,37 @@ public:
     // Make the unchecked assumption that a ConstArrayOp was added by the
     // LiftArrayAlloc pass. This assumption means that the backing store of the
     // ConstArrayOp has been checked that it is never written to.
-    RewritePatternSet patterns(ctx);
     unsigned counter = 0;
-    patterns.insert<ReifySpanPattern, ConstantArrayPattern>(ctx, module,
-                                                            counter);
     LLVM_DEBUG(llvm::dbgs() << "Before globalizing array values:\n"
                             << module << '\n');
-    if (failed(applyPatternsGreedily(module, std::move(patterns)))) {
+
+    SmallVector<Operation *> reifyRoots;
+    module.walk<WalkOrder::PreOrder>([&](cudaq::cc::ReifySpanOp reify) {
+      reifyRoots.push_back(reify.getOperation());
+    });
+    GreedyRewriteConfig config;
+    config.setScope(&module.getBodyRegion())
+        .setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
+    RewritePatternSet reifyPatterns(ctx);
+    reifyPatterns.insert<ReifySpanPattern>(ctx, module, counter);
+    if (failed(applyOpPatternsGreedily(reifyRoots, std::move(reifyPatterns),
+                                       config))) {
       signalPassFailure();
       return;
     }
+
+    SmallVector<Operation *> constantArrayRoots;
+    module.walk<WalkOrder::PreOrder>([&](cudaq::cc::ConstantArrayOp array) {
+      constantArrayRoots.push_back(array.getOperation());
+    });
+    RewritePatternSet constantArrayPatterns(ctx);
+    constantArrayPatterns.insert<ConstantArrayPattern>(ctx, module, counter);
+    if (failed(applyOpPatternsGreedily(
+            constantArrayRoots, std::move(constantArrayPatterns), config))) {
+      signalPassFailure();
+      return;
+    }
+
     LLVM_DEBUG(llvm::dbgs() << "After globalizing array values:\n"
                             << module << '\n');
   }

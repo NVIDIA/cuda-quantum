@@ -140,13 +140,24 @@ public:
   using PyFrontendCleanupBase::PyFrontendCleanupBase;
 
   void runOnOperation() override {
-    if (!cudaq::opt::containsAnyOperationOfType<cudaq::quake::VeqSizeOp>(
-            getOperation().getOperation()))
+    auto func = getOperation();
+    SmallVector<Operation *> candidates;
+    func.walk([&](cudaq::quake::VeqSizeOp op) {
+      candidates.push_back(op.getOperation());
+    });
+    if (candidates.empty())
       return;
+
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.add<HoistVeqSizeThroughIfPattern>(ctx);
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
+    // Hoisting can only expose another match by creating a branch-local
+    // `quake.veq_size`, so existing and newly created roots close the worklist.
+    GreedyRewriteConfig config;
+    config.setScope(&func.getBody())
+        .setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
+    if (failed(
+            applyOpPatternsGreedily(candidates, std::move(patterns), config)))
       signalPassFailure();
   }
 };
