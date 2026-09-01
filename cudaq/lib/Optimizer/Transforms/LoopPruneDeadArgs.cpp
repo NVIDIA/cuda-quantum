@@ -176,43 +176,54 @@ void pruneDeadLoopCarriedValues(func::FuncOp func) {
       llvm::append_range(candidates, op->getResults());
   });
 
-  // Start from the assumption that every candidate is dead and propagate
-  // liveness until it stops spreading. A value is live if
+  // Start from the assumption that every candidate is dead. Record the
+  // reverse liveness dependencies, then propagate from opaque uses with a
+  // worklist. A value is live if
   // 1. it has an opaque use
   // 2. it is forwarded into a slot already known to be live
   // 3. it feeds a computation whose own result is already known to be live
-  // Liveness only ever grows and the candidate set is finite, so this
-  // terminates.
+  // Each dependency is visited only when its source becomes live.
   DenseSet<Value> live;
+  DenseMap<Value, SmallVector<Value>> livenessDependents;
+  DenseMap<LoopCarriedSlot, SmallVector<Value>> slotForwarders;
+  SmallVector<Value> worklist;
+  auto markLive = [&](Value value) {
+    if (live.insert(value).second)
+      worklist.push_back(value);
+  };
+  for (Value val : candidates)
+    for (OpOperand &use : val.getUses()) {
+      if (auto forwarded = forwardedSlot(use)) {
+        slotForwarders[*forwarded].push_back(val);
+        continue;
+      }
+      Operation *user = use.getOwner();
+      if (!isPrunableComputation(user)) {
+        markLive(val);
+        continue;
+      }
+      for (Value result : user->getResults())
+        livenessDependents[result].push_back(val);
+    }
+  for (auto &[slot, forwarders] : slotForwarders) {
+    auto loop = cast<cudaq::cc::LoopOp>(slot.first);
+    for (Value member : valuesInSlot(loop, slot.second))
+      llvm::append_range(livenessDependents[member], forwarders);
+  }
+  while (!worklist.empty()) {
+    Value value = worklist.pop_back_val();
+    auto iter = livenessDependents.find(value);
+    if (iter == livenessDependents.end())
+      continue;
+    for (Value dependent : iter->second)
+      markLive(dependent);
+  }
+
   auto slotIsLive = [&](LoopCarriedSlot slot) {
     auto loop = cast<cudaq::cc::LoopOp>(slot.first);
     return llvm::any_of(valuesInSlot(loop, slot.second),
                         [&](Value val) { return live.count(val); });
   };
-  auto hasLiveUse = [&](Value val) {
-    for (OpOperand &use : val.getUses()) {
-      if (auto forwarded = forwardedSlot(use)) {
-        if (slotIsLive(*forwarded))
-          return true;
-        continue;
-      }
-      Operation *user = use.getOwner();
-      if (!isPrunableComputation(user))
-        return true;
-      if (llvm::any_of(user->getResults(),
-                       [&](Value res) { return live.count(res); }))
-        return true;
-    }
-    return false;
-  };
-  for (bool changed = true; changed;) {
-    changed = false;
-    for (Value val : candidates)
-      if (!live.count(val) && hasLiveUse(val)) {
-        live.insert(val);
-        changed = true;
-      }
-  }
 
   auto deleteDeadComputations = [&]() {
     for (bool erased = true; erased;) {
