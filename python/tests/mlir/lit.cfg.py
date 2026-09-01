@@ -52,7 +52,11 @@ for arch in config.targets_to_build.split():
 # are registered, and every test gated on one silently becomes "Unsupported"
 # instead of running -- a green run that tested nothing.
 _py_pkg_dir = os.path.join(os.path.dirname(config.cudaq_lib_dir), 'python')
-_python = config.python_executable or sys.executable
+# The configured interpreter may be gone by test time. scikit-build wheel
+# builds configure in a temporary environment that is later deleted.
+_python = config.python_executable
+if not _python or not os.path.isfile(_python):
+    _python = sys.executable
 try:
     _targets = subprocess.check_output([
         _python, '-c',
