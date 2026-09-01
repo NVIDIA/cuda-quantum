@@ -14,359 +14,359 @@ latest
 ::: {.wy-menu .wy-menu-vertical spy="affix" role="navigation" aria-label="Navigation menu"}
 [Contents]{.caption-text}
 
--   [Quick Start](../../using/quick_start.html){.reference .internal}
-    -   [Install
-        CUDA-Q](../../using/quick_start.html#install-cuda-q){.reference
+-   [Quick Start](../quick_start.html){.reference .internal}
+    -   [Install CUDA-Q](../quick_start.html#install-cuda-q){.reference
         .internal}
     -   [Validate your
-        Installation](../../using/quick_start.html#validate-your-installation){.reference
+        Installation](../quick_start.html#validate-your-installation){.reference
         .internal}
     -   [CUDA-Q
-        Academic](../../using/quick_start.html#cuda-q-academic){.reference
+        Academic](../quick_start.html#cuda-q-academic){.reference
         .internal}
--   [Basics](../../using/basics/basics.html){.reference .internal}
+-   [Basics](../basics/basics.html){.reference .internal}
     -   [What is a CUDA-Q
-        Kernel?](../../using/basics/kernel_intro.html){.reference
-        .internal}
+        Kernel?](../basics/kernel_intro.html){.reference .internal}
     -   [Building your first CUDA-Q
-        Program](../../using/basics/build_kernel.html){.reference
-        .internal}
+        Program](../basics/build_kernel.html){.reference .internal}
     -   [Running your first CUDA-Q
-        Program](../../using/basics/run_kernel.html){.reference
-        .internal}
-        -   [Sample](../../using/basics/run_kernel.html#sample){.reference
+        Program](../basics/run_kernel.html){.reference .internal}
+        -   [Sample](../basics/run_kernel.html#sample){.reference
             .internal}
-        -   [Run](../../using/basics/run_kernel.html#run){.reference
-            .internal}
-        -   [Observe](../../using/basics/run_kernel.html#observe){.reference
+        -   [Run](../basics/run_kernel.html#run){.reference .internal}
+        -   [Observe](../basics/run_kernel.html#observe){.reference
             .internal}
         -   [Running on a
-            GPU](../../using/basics/run_kernel.html#running-on-a-gpu){.reference
+            GPU](../basics/run_kernel.html#running-on-a-gpu){.reference
             .internal}
-    -   [Troubleshooting](../../using/basics/troubleshooting.html){.reference
+    -   [Troubleshooting](../basics/troubleshooting.html){.reference
         .internal}
         -   [Debugging and Verbose Simulation
-            Output](../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
+            Output](../basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
         -   [Python
-            Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
+            Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
--   [Examples](../../using/examples/examples.html){.reference .internal}
-    -   [Introduction](../../using/examples/introduction.html){.reference
+-   [Examples](../examples/examples.html){.reference .internal}
+    -   [Introduction](../examples/introduction.html){.reference
         .internal}
-    -   [Building
-        Kernels](../../using/examples/building_kernels.html){.reference
+    -   [Building Kernels](../examples/building_kernels.html){.reference
         .internal}
         -   [Defining
-            Kernels](../../using/examples/building_kernels.html#defining-kernels){.reference
+            Kernels](../examples/building_kernels.html#defining-kernels){.reference
             .internal}
         -   [Initializing
-            states](../../using/examples/building_kernels.html#initializing-states){.reference
+            states](../examples/building_kernels.html#initializing-states){.reference
             .internal}
         -   [Applying
-            Gates](../../using/examples/building_kernels.html#applying-gates){.reference
+            Gates](../examples/building_kernels.html#applying-gates){.reference
             .internal}
         -   [Controlled
-            Operations](../../using/examples/building_kernels.html#controlled-operations){.reference
+            Operations](../examples/building_kernels.html#controlled-operations){.reference
             .internal}
         -   [Multi-Controlled
-            Operations](../../using/examples/building_kernels.html#multi-controlled-operations){.reference
+            Operations](../examples/building_kernels.html#multi-controlled-operations){.reference
             .internal}
         -   [Adjoint
-            Operations](../../using/examples/building_kernels.html#adjoint-operations){.reference
+            Operations](../examples/building_kernels.html#adjoint-operations){.reference
             .internal}
         -   [Custom
-            Operations](../../using/examples/building_kernels.html#custom-operations){.reference
+            Operations](../examples/building_kernels.html#custom-operations){.reference
             .internal}
         -   [Building Kernels with
-            Kernels](../../using/examples/building_kernels.html#building-kernels-with-kernels){.reference
+            Kernels](../examples/building_kernels.html#building-kernels-with-kernels){.reference
             .internal}
         -   [Parameterized
-            Kernels](../../using/examples/building_kernels.html#parameterized-kernels){.reference
+            Kernels](../examples/building_kernels.html#parameterized-kernels){.reference
             .internal}
     -   [Quantum
-        Operations](../../using/examples/quantum_operations.html){.reference
+        Operations](../examples/quantum_operations.html){.reference
         .internal}
         -   [Quantum
-            States](../../using/examples/quantum_operations.html#quantum-states){.reference
+            States](../examples/quantum_operations.html#quantum-states){.reference
             .internal}
         -   [Quantum
-            Gates](../../using/examples/quantum_operations.html#quantum-gates){.reference
+            Gates](../examples/quantum_operations.html#quantum-gates){.reference
             .internal}
-        -   [Measurements](../../using/examples/quantum_operations.html#measurements){.reference
+        -   [Measurements](../examples/quantum_operations.html#measurements){.reference
             .internal}
     -   [Measuring
-        Kernels](../../using/examples/measuring_kernels.html){.reference
+        Kernels](../examples/measuring_kernels.html){.reference
         .internal}
         -   [Measurement
-            Handles](../../using/examples/measuring_kernels.html#measurement-handles){.reference
+            Handles](../examples/measuring_kernels.html#measurement-handles){.reference
             .internal}
         -   [Mid-circuit Measurement and Conditional
-            Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
+            Logic](../examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
-    -   [Visualizing Kernels](visualization.html){.reference .internal}
+    -   [Visualizing
+        Kernels](../../examples/python/visualization.html){.reference
+        .internal}
         -   [Qubit
-            Visualization](visualization.html#Qubit-Visualization){.reference
+            Visualization](../../examples/python/visualization.html#Qubit-Visualization){.reference
             .internal}
         -   [Kernel
-            Visualization](visualization.html#Kernel-Visualization){.reference
+            Visualization](../../examples/python/visualization.html#Kernel-Visualization){.reference
             .internal}
     -   [Executing
-        Kernels](../../using/examples/executing_kernels.html){.reference
+        Kernels](../examples/executing_kernels.html){.reference
         .internal}
-        -   [Sample](../../using/examples/executing_kernels.html#sample){.reference
+        -   [Sample](../examples/executing_kernels.html#sample){.reference
             .internal}
             -   [Sample
-                Asynchronous](../../using/examples/executing_kernels.html#sample-asynchronous){.reference
+                Asynchronous](../examples/executing_kernels.html#sample-asynchronous){.reference
                 .internal}
-        -   [Run](../../using/examples/executing_kernels.html#run){.reference
+        -   [Run](../examples/executing_kernels.html#run){.reference
             .internal}
             -   [Return Custom Data
-                Types](../../using/examples/executing_kernels.html#return-custom-data-types){.reference
+                Types](../examples/executing_kernels.html#return-custom-data-types){.reference
                 .internal}
             -   [Run
-                Asynchronous](../../using/examples/executing_kernels.html#run-asynchronous){.reference
+                Asynchronous](../examples/executing_kernels.html#run-asynchronous){.reference
                 .internal}
-        -   [Observe](../../using/examples/executing_kernels.html#observe){.reference
+        -   [Observe](../examples/executing_kernels.html#observe){.reference
             .internal}
             -   [Observe
-                Asynchronous](../../using/examples/executing_kernels.html#observe-asynchronous){.reference
+                Asynchronous](../examples/executing_kernels.html#observe-asynchronous){.reference
                 .internal}
         -   [Get
-            State](../../using/examples/executing_kernels.html#get-state){.reference
+            State](../examples/executing_kernels.html#get-state){.reference
             .internal}
             -   [Get State
-                Asynchronous](../../using/examples/executing_kernels.html#get-state-asynchronous){.reference
+                Asynchronous](../examples/executing_kernels.html#get-state-asynchronous){.reference
                 .internal}
     -   [Computing Expectation
-        Values](../../using/examples/expectation_values.html){.reference
+        Values](../examples/expectation_values.html){.reference
         .internal}
         -   [Parallelizing across Multiple
-            Processors](../../using/examples/expectation_values.html#parallelizing-across-multiple-processors){.reference
+            Processors](../examples/expectation_values.html#parallelizing-across-multiple-processors){.reference
             .internal}
     -   [Multi-GPU
-        Workflows](../../using/examples/multi_gpu_workflows.html){.reference
+        Workflows](../examples/multi_gpu_workflows.html){.reference
         .internal}
         -   [From CPU to
-            GPU](../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
+            GPU](../examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
         -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
             .internal}
         -   [Parallel execution over multiple QPUs ([`mqpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
-                Terms](../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
+                Terms](../examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
                 .internal}
             -   [Circuit
-                Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
+                Batching](../examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-    -   [Optimizers & Gradients](optimizers_gradients.html){.reference
+    -   [Optimizers &
+        Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
         -   [CUDA-Q Optimizer
-            Overview](optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
             -   [Gradient-Free Optimizers (no gradients
-                required):](optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
                 .internal}
             -   [Gradient-Based Optimizers (require
-                gradients):](optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
                 .internal}
         -   [1. Built-in CUDA-Q Optimizers and
-            Gradients](optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
             -   [1.1 Adam Optimizer with Parameter
-                Configuration](optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
                 .internal}
             -   [1.2 SGD (Stochastic Gradient Descent)
-                Optimizer](optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
                 .internal}
             -   [1.3 SPSA (Simultaneous Perturbation Stochastic
-                Approximation)](optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
                 .internal}
         -   [2. Third-Party
-            Optimizers](optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
             .internal}
         -   [3. Parallel Parameter Shift
-            Gradients](optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
-    -   [Noisy Simulations](noisy_simulations.html){.reference
+    -   [Noisy
+        Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
     -   [Pre-Trajectory Sampling with Batch
-        Execution](../../using/examples/ptsbe.html){.reference
-        .internal}
+        Execution](../examples/ptsbe.html){.reference .internal}
         -   [Conceptual
-            Overview](../../using/examples/ptsbe.html#conceptual-overview){.reference
+            Overview](../examples/ptsbe.html#conceptual-overview){.reference
             .internal}
         -   [When to Use
-            PTSBE](../../using/examples/ptsbe.html#when-to-use-ptsbe){.reference
+            PTSBE](../examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-        -   [Quick
-            Start](../../using/examples/ptsbe.html#quick-start){.reference
+        -   [Quick Start](../examples/ptsbe.html#quick-start){.reference
             .internal}
         -   [Usage
-            Tutorial](../../using/examples/ptsbe.html#usage-tutorial){.reference
+            Tutorial](../examples/ptsbe.html#usage-tutorial){.reference
             .internal}
             -   [Controlling the Number of
-                Trajectories](../../using/examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
+                Trajectories](../examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
             -   [Choosing a Trajectory Sampling
-                Strategy](../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
+                Strategy](../examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
             -   [Shot Allocation
-                Strategies](../../using/examples/ptsbe.html#shot-allocation-strategies){.reference
+                Strategies](../examples/ptsbe.html#shot-allocation-strategies){.reference
                 .internal}
             -   [Inspecting Execution
-                Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
+                Data](../examples/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
     -   [Detector Error
-        Models](../../using/examples/dem_from_kernel.html){.reference
-        .internal}
+        Models](../examples/dem_from_kernel.html){.reference .internal}
         -   [DEM
-            Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
+            Options](../examples/dem_from_kernel.html#dem-options){.reference
             .internal}
         -   [Measurement
-            Matrices](../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
+            Matrices](../examples/dem_from_kernel.html#measurement-matrices){.reference
             .internal}
-        -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
+        -   [Limitations](../examples/dem_from_kernel.html#limitations){.reference
             .internal}
-    -   [Constructing
-        Operators](../../using/examples/operators.html){.reference
+    -   [Constructing Operators](../examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
-            Operators](../../using/examples/operators.html#constructing-spin-operators){.reference
+            Operators](../examples/operators.html#constructing-spin-operators){.reference
             .internal}
         -   [Pauli Words and Exponentiating Pauli
-            Words](../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words){.reference
+            Words](../examples/operators.html#pauli-words-and-exponentiating-pauli-words){.reference
             .internal}
-    -   [Performance Optimizations](#){.current .reference .internal}
-        -   [Gate Fusion](#Gate-Fusion){.reference .internal}
+    -   [Performance
+        Optimizations](../../examples/python/performance_optimizations.html){.reference
+        .internal}
+        -   [Gate
+            Fusion](../../examples/python/performance_optimizations.html#Gate-Fusion){.reference
+            .internal}
     -   [Using Quantum Hardware
-        Providers](../../using/examples/hardware_providers.html){.reference
+        Providers](../examples/hardware_providers.html){.reference
         .internal}
         -   [Amazon
-            Braket](../../using/examples/hardware_providers.html#amazon-braket){.reference
+            Braket](../examples/hardware_providers.html#amazon-braket){.reference
             .internal}
         -   [Anyon
-            Technologies](../../using/examples/hardware_providers.html#anyon-technologies){.reference
+            Technologies](../examples/hardware_providers.html#anyon-technologies){.reference
             .internal}
-        -   [Infleqtion](../../using/examples/hardware_providers.html#infleqtion){.reference
+        -   [Infleqtion](../examples/hardware_providers.html#infleqtion){.reference
             .internal}
-        -   [IonQ](../../using/examples/hardware_providers.html#ionq){.reference
+        -   [IonQ](../examples/hardware_providers.html#ionq){.reference
             .internal}
-        -   [IQM](../../using/examples/hardware_providers.html#iqm){.reference
+        -   [IQM](../examples/hardware_providers.html#iqm){.reference
             .internal}
-        -   [OQC](../../using/examples/hardware_providers.html#oqc){.reference
+        -   [OQC](../examples/hardware_providers.html#oqc){.reference
             .internal}
         -   [ORCA
-            Computing](../../using/examples/hardware_providers.html#orca-computing){.reference
+            Computing](../examples/hardware_providers.html#orca-computing){.reference
             .internal}
-        -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
+        -   [Pasqal](../examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
+        -   [qBraid](../examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+        -   [Quantinuum](../examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
-            Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
+            Machines](../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
-            Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
+            Computing](../examples/hardware_providers.html#quera-computing){.reference
             .internal}
-        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
+        -   [Scaleway](../examples/hardware_providers.html#scaleway){.reference
             .internal}
-        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+        -   [TII](../examples/hardware_providers.html#tii){.reference
             .internal}
     -   [When to Use sample vs.
-        run](../../using/examples/sample_vs_run.html){.reference
-        .internal}
-        -   [Introduction](../../using/examples/sample_vs_run.html#introduction){.reference
+        run](../examples/sample_vs_run.html){.reference .internal}
+        -   [Introduction](../examples/sample_vs_run.html#introduction){.reference
             .internal}
         -   [Usage
-            Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
+            Guidelines](../examples/sample_vs_run.html#usage-guidelines){.reference
             .internal}
         -   [What Is Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .notranslate}]{.pre}](../examples/sample_vs_run.html#what-is-supported-with-sample){.reference
             .internal}
         -   [What Is Not Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .notranslate}]{.pre}](../examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
             .internal}
         -   [How to
-            Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
+            Migrate](../examples/sample_vs_run.html#how-to-migrate){.reference
             .internal}
             -   [Step 1: Add a return type to the
-                kernel](../../using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                kernel](../examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
                 .internal}
             -   [Step 2: Replace [`sample`{.docutils .literal
                 .notranslate}]{.pre} with [`run`{.docutils .literal
-                .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .notranslate}]{.pre}](../examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
                 .internal}
             -   [Step 3: Update result
-                processing](../../using/examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                processing](../examples/sample_vs_run.html#step-3-update-result-processing){.reference
                 .internal}
         -   [Migration
-            Examples](../../using/examples/sample_vs_run.html#migration-examples){.reference
+            Examples](../examples/sample_vs_run.html#migration-examples){.reference
             .internal}
             -   [Example 1: Simple conditional
-                logic](../../using/examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                logic](../examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
                 .internal}
             -   [Example 2: Returning multiple measurement
-                results](../../using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                results](../examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
                 .internal}
             -   [Example 3: Quantum
-                teleportation](../../using/examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                teleportation](../examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
                 .internal}
         -   [Additional
-            Notes](../../using/examples/sample_vs_run.html#additional-notes){.reference
+            Notes](../examples/sample_vs_run.html#additional-notes){.reference
             .internal}
     -   [Dynamics
-        Examples](../../using/examples/dynamics_examples.html){.reference
+        Examples](../examples/dynamics_examples.html){.reference
         .internal}
         -   [Python Examples (Jupyter
-            Notebooks)](../../using/examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
+            Notebooks)](../examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
             .internal}
             -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-                Model)](dynamics/dynamics_intro_1.html){.reference
+                Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
                 .internal}
             -   [Introduction to CUDA-Q Dynamics (Time Dependent
-                Hamiltonians)](dynamics/dynamics_intro_2.html){.reference
+                Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
                 .internal}
             -   [Superconducting
-                Qubits](dynamics/superconducting.html){.reference
+                Qubits](../../examples/python/dynamics/superconducting.html){.reference
                 .internal}
-            -   [Spin Qubits](dynamics/spinqubits.html){.reference
+            -   [Spin
+                Qubits](../../examples/python/dynamics/spinqubits.html){.reference
                 .internal}
-            -   [Trapped Ion Qubits](dynamics/iontrap.html){.reference
+            -   [Trapped Ion
+                Qubits](../../examples/python/dynamics/iontrap.html){.reference
                 .internal}
-            -   [Control](dynamics/control.html){.reference .internal}
+            -   [Control](../../examples/python/dynamics/control.html){.reference
+                .internal}
         -   [C++
-            Examples](../../using/examples/dynamics_examples.html#c-examples){.reference
+            Examples](../examples/dynamics_examples.html#c-examples){.reference
             .internal}
             -   [Introduction: Single Qubit
-                Dynamics](../../using/examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
+                Dynamics](../examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
                 .internal}
             -   [Introduction: Cavity QED (Jaynes-Cummings
-                Model)](../../using/examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
+                Model)](../examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
                 .internal}
             -   [Superconducting Qubits: Cross-Resonance
-                Gate](../../using/examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
+                Gate](../examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
                 .internal}
             -   [Spin Qubits: Heisenberg Spin
-                Chain](../../using/examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
+                Chain](../examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
                 .internal}
             -   [Control: Driven
-                Qubit](../../using/examples/dynamics_examples.html#control-driven-qubit){.reference
+                Qubit](../examples/dynamics_examples.html#control-driven-qubit){.reference
                 .internal}
             -   [State
-                Batching](../../using/examples/dynamics_examples.html#state-batching){.reference
+                Batching](../examples/dynamics_examples.html#state-batching){.reference
                 .internal}
             -   [Numerical
-                Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
+                Integrators](../examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
--   [Applications](../../using/applications.html){.reference .internal}
+-   [Applications](../applications.html){.reference .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../../applications/python/krylov.html){.reference
@@ -713,664 +713,645 @@ latest
         -   [Performance of PTSBE vs standard noisy
             sampling](../../applications/python/ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling){.reference
             .internal}
--   [Backends](../../using/backends/backends.html){.reference .internal}
-    -   [Circuit
-        Simulation](../../using/backends/simulators.html){.reference
+-   [Backends](../backends/backends.html){.reference .internal}
+    -   [Circuit Simulation](../backends/simulators.html){.reference
         .internal}
         -   [State Vector
-            Simulators](../../using/backends/sims/svsims.html){.reference
+            Simulators](../backends/sims/svsims.html){.reference
             .internal}
-            -   [CPU](../../using/backends/sims/svsims.html#cpu){.reference
+            -   [CPU](../backends/sims/svsims.html#cpu){.reference
                 .internal}
-            -   [Single-GPU](../../using/backends/sims/svsims.html#single-gpu){.reference
+            -   [Single-GPU](../backends/sims/svsims.html#single-gpu){.reference
                 .internal}
             -   [Multi-GPU
-                multi-node](../../using/backends/sims/svsims.html#multi-gpu-multi-node){.reference
+                multi-node](../backends/sims/svsims.html#multi-gpu-multi-node){.reference
                 .internal}
         -   [Tensor Network
-            Simulators](../../using/backends/sims/tnsims.html){.reference
+            Simulators](../backends/sims/tnsims.html){.reference
             .internal}
             -   [Multi-GPU
-                multi-node](../../using/backends/sims/tnsims.html#multi-gpu-multi-node){.reference
+                multi-node](../backends/sims/tnsims.html#multi-gpu-multi-node){.reference
                 .internal}
             -   [Matrix product
-                state](../../using/backends/sims/tnsims.html#matrix-product-state){.reference
+                state](../backends/sims/tnsims.html#matrix-product-state){.reference
                 .internal}
-            -   [Fermioniq](../../using/backends/sims/tnsims.html#fermioniq){.reference
+            -   [Fermioniq](../backends/sims/tnsims.html#fermioniq){.reference
                 .internal}
         -   [Multi-QPU
-            Simulators](../../using/backends/sims/mqpusims.html){.reference
+            Simulators](../backends/sims/mqpusims.html){.reference
             .internal}
             -   [Simulate Multiple QPUs in
-                Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
+                Parallel](../backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
             -   [Multi-QPU with Multi-Node Multi-GPU
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
+                Backends](../backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
-        -   [Noisy
-            Simulators](../../using/backends/sims/noisy.html){.reference
+        -   [Noisy Simulators](../backends/sims/noisy.html){.reference
             .internal}
             -   [Trajectory Noisy
-                Simulation](../../using/backends/sims/noisy.html#trajectory-noisy-simulation){.reference
+                Simulation](../backends/sims/noisy.html#trajectory-noisy-simulation){.reference
                 .internal}
             -   [Density
-                Matrix](../../using/backends/sims/noisy.html#density-matrix){.reference
+                Matrix](../backends/sims/noisy.html#density-matrix){.reference
                 .internal}
-            -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
+            -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
         -   [Photonics
-            Simulators](../../using/backends/sims/photonics.html){.reference
+            Simulators](../backends/sims/photonics.html){.reference
             .internal}
-            -   [orca-photonics](../../using/backends/sims/photonics.html#orca-photonics){.reference
+            -   [orca-photonics](../backends/sims/photonics.html#orca-photonics){.reference
                 .internal}
-    -   [Quantum Hardware
-        (QPUs)](../../using/backends/hardware.html){.reference
+    -   [Quantum Hardware (QPUs)](../backends/hardware.html){.reference
         .internal}
         -   [Ion Trap
-            QPUs](../../using/backends/hardware/iontrap.html){.reference
+            QPUs](../backends/hardware/iontrap.html){.reference
             .internal}
-            -   [IonQ](../../using/backends/hardware/iontrap.html#ionq){.reference
+            -   [IonQ](../backends/hardware/iontrap.html#ionq){.reference
                 .internal}
-            -   [Quantinuum](../../using/backends/hardware/iontrap.html#quantinuum){.reference
+            -   [Quantinuum](../backends/hardware/iontrap.html#quantinuum){.reference
                 .internal}
         -   [Superconducting
-            QPUs](../../using/backends/hardware/superconducting.html){.reference
+            QPUs](../backends/hardware/superconducting.html){.reference
             .internal}
             -   [Anyon Technologies/Anyon
-                Computing](../../using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing){.reference
+                Computing](../backends/hardware/superconducting.html#anyon-technologies-anyon-computing){.reference
                 .internal}
-            -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
+            -   [IQM](../backends/hardware/superconducting.html#iqm){.reference
                 .internal}
-            -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
+            -   [OQC](../backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
+            -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
-            QPUs](../../using/backends/hardware/neutralatom.html){.reference
+            QPUs](../backends/hardware/neutralatom.html){.reference
             .internal}
-            -   [Infleqtion](../../using/backends/hardware/neutralatom.html#infleqtion){.reference
+            -   [Infleqtion](../backends/hardware/neutralatom.html#infleqtion){.reference
                 .internal}
-            -   [Pasqal](../../using/backends/hardware/neutralatom.html#pasqal){.reference
+            -   [Pasqal](../backends/hardware/neutralatom.html#pasqal){.reference
                 .internal}
             -   [QuEra
-                Computing](../../using/backends/hardware/neutralatom.html#quera-computing){.reference
+                Computing](../backends/hardware/neutralatom.html#quera-computing){.reference
                 .internal}
         -   [Photonic
-            QPUs](../../using/backends/hardware/photonic.html){.reference
+            QPUs](../backends/hardware/photonic.html){.reference
             .internal}
             -   [ORCA
-                Computing](../../using/backends/hardware/photonic.html#orca-computing){.reference
+                Computing](../backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
         -   [Quantum Control
-            Systems](../../using/backends/hardware/qcontrol.html){.reference
+            Systems](../backends/hardware/qcontrol.html){.reference
             .internal}
             -   [Quantum
-                Machines](../../using/backends/hardware/qcontrol.html#quantum-machines){.reference
+                Machines](../backends/hardware/qcontrol.html#quantum-machines){.reference
                 .internal}
     -   [Dynamics
-        Simulation](../../using/backends/dynamics_backends.html){.reference
+        Simulation](../backends/dynamics_backends.html){.reference
         .internal}
-    -   [Cloud](../../using/backends/cloud.html){.reference .internal}
+    -   [Cloud](../backends/cloud.html){.reference .internal}
         -   [Amazon Braket
-            (braket)](../../using/backends/cloud/braket.html){.reference
+            (braket)](../backends/cloud/braket.html){.reference
             .internal}
             -   [Setting
-                Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
+                Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
-            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            (scaleway)](../backends/cloud/scaleway.html){.reference
             .internal}
             -   [Setting
-                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                Credentials](../backends/cloud/scaleway.html#setting-credentials){.reference
                 .internal}
-            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+            -   [Submitting](../backends/cloud/scaleway.html#submitting){.reference
                 .internal}
             -   [Manage your QPU
-                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
-        -   [qBraid](../../using/backends/cloud/qbraid.html){.reference
+        -   [qBraid](../backends/cloud/qbraid.html){.reference
             .internal}
             -   [Setting
-                Credentials](../../using/backends/cloud/qbraid.html#setting-credentials){.reference
+                Credentials](../backends/cloud/qbraid.html#setting-credentials){.reference
                 .internal}
-            -   [Submitting](../../using/backends/cloud/qbraid.html#submitting){.reference
+            -   [Submitting](../backends/cloud/qbraid.html#submitting){.reference
                 .internal}
--   [Dynamics](../../using/dynamics.html){.reference .internal}
-    -   [Quick Start](../../using/dynamics.html#quick-start){.reference
+-   [Dynamics](../dynamics.html){.reference .internal}
+    -   [Quick Start](../dynamics.html#quick-start){.reference
         .internal}
-    -   [Operator](../../using/dynamics.html#operator){.reference
-        .internal}
+    -   [Operator](../dynamics.html#operator){.reference .internal}
     -   [Time-Dependent
-        Dynamics](../../using/dynamics.html#time-dependent-dynamics){.reference
+        Dynamics](../dynamics.html#time-dependent-dynamics){.reference
         .internal}
     -   [Super-operator
-        Representation](../../using/dynamics.html#super-operator-representation){.reference
+        Representation](../dynamics.html#super-operator-representation){.reference
         .internal}
     -   [Numerical
-        Integrators](../../using/dynamics.html#numerical-integrators){.reference
+        Integrators](../dynamics.html#numerical-integrators){.reference
         .internal}
-    -   [Batch
-        simulation](../../using/dynamics.html#batch-simulation){.reference
+    -   [Batch simulation](../dynamics.html#batch-simulation){.reference
         .internal}
     -   [Multi-GPU Multi-Node
-        Execution](../../using/dynamics.html#multi-gpu-multi-node-execution){.reference
+        Execution](../dynamics.html#multi-gpu-multi-node-execution){.reference
         .internal}
-    -   [Examples](../../using/dynamics.html#examples){.reference
+    -   [Examples](../dynamics.html#examples){.reference .internal}
+-   [Realtime](../realtime.html){.reference .internal}
+    -   [Installation](../realtime/installation.html){.reference
         .internal}
--   [Realtime](../../using/realtime.html){.reference .internal}
-    -   [Installation](../../using/realtime/installation.html){.reference
-        .internal}
-        -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
+        -   [Prerequisites](../realtime/installation.html#prerequisites){.reference
             .internal}
         -   [HSB FPGA IP core and RFSoC
-            bit-file](../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            bit-file](../realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
             .internal}
-        -   [Setup](../../using/realtime/installation.html#setup){.reference
+        -   [Setup](../realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
-            Measurement](../../using/realtime/installation.html#latency-measurement){.reference
+            Measurement](../realtime/installation.html#latency-measurement){.reference
             .internal}
-    -   [Host API](../../using/realtime/host.html){.reference .internal}
+    -   [Host API](../realtime/host.html){.reference .internal}
         -   [What is the
-            GpuRoceTransceiver?](../../using/realtime/host.html#what-is-the-gpurocetransceiver){.reference
+            GpuRoceTransceiver?](../realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
-            Mechanisms](../../using/realtime/host.html#transport-mechanisms){.reference
+            Mechanisms](../realtime/host.html#transport-mechanisms){.reference
             .internal}
             -   [Supported Transport
-                Options](../../using/realtime/host.html#supported-transport-options){.reference
+                Options](../realtime/host.html#supported-transport-options){.reference
                 .internal}
         -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
-            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
+            {#three-kernel-architecture}](../realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
-                Summary](../../using/realtime/host.html#data-flow-summary){.reference
+                Summary](../realtime/host.html#data-flow-summary){.reference
                 .internal}
             -   [Why 3
-                Kernels?](../../using/realtime/host.html#why-3-kernels){.reference
+                Kernels?](../realtime/host.html#why-3-kernels){.reference
                 .internal}
         -   [Unified Dispatch
-            Mode](../../using/realtime/host.html#unified-dispatch-mode){.reference
+            Mode](../realtime/host.html#unified-dispatch-mode){.reference
             .internal}
-            -   [Architecture](../../using/realtime/host.html#architecture){.reference
+            -   [Architecture](../realtime/host.html#architecture){.reference
                 .internal}
             -   [Transport-Agnostic
-                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
+                Design](../realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
-                Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
+                Mode](../realtime/host.html#when-to-use-which-mode){.reference
                 .internal}
             -   [Host API
-                Extensions](../../using/realtime/host.html#host-api-extensions){.reference
+                Extensions](../realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                GpuRoceTransceiver)](../../using/realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
+                GpuRoceTransceiver)](../realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
-            Paragraph)](../../using/realtime/host.html#what-this-api-does-in-one-paragraph){.reference
+            Paragraph)](../realtime/host.html#what-this-api-does-in-one-paragraph){.reference
             .internal}
-        -   [Scope](../../using/realtime/host.html#scope){.reference
-            .internal}
+        -   [Scope](../realtime/host.html#scope){.reference .internal}
         -   [Terms and
-            Components](../../using/realtime/host.html#terms-and-components){.reference
+            Components](../realtime/host.html#terms-and-components){.reference
             .internal}
         -   [Schema Data
-            Structures](../../using/realtime/host.html#schema-data-structures){.reference
+            Structures](../realtime/host.html#schema-data-structures){.reference
             .internal}
             -   [Type
-                Descriptors](../../using/realtime/host.html#type-descriptors){.reference
+                Descriptors](../realtime/host.html#type-descriptors){.reference
                 .internal}
             -   [Handler
-                Schema](../../using/realtime/host.html#handler-schema){.reference
+                Schema](../realtime/host.html#handler-schema){.reference
                 .internal}
         -   [RPC Messaging
-            Protocol](../../using/realtime/host.html#rpc-messaging-protocol){.reference
+            Protocol](../realtime/host.html#rpc-messaging-protocol){.reference
             .internal}
         -   [Host API
-            Overview](../../using/realtime/host.html#host-api-overview){.reference
+            Overview](../realtime/host.html#host-api-overview){.reference
             .internal}
         -   [Manager and Dispatcher
-            Topology](../../using/realtime/host.html#manager-and-dispatcher-topology){.reference
+            Topology](../realtime/host.html#manager-and-dispatcher-topology){.reference
             .internal}
         -   [Host API
-            Functions](../../using/realtime/host.html#host-api-functions){.reference
+            Functions](../realtime/host.html#host-api-functions){.reference
             .internal}
             -   [Occupancy Query and Eager Module
-                Loading](../../using/realtime/host.html#occupancy-query-and-eager-module-loading){.reference
+                Loading](../realtime/host.html#occupancy-query-and-eager-module-loading){.reference
                 .internal}
             -   [Graph-Based Dispatch
-                Functions](../../using/realtime/host.html#graph-based-dispatch-functions){.reference
+                Functions](../realtime/host.html#graph-based-dispatch-functions){.reference
                 .internal}
             -   [Kernel Launch Helper
-                Functions](../../using/realtime/host.html#kernel-launch-helper-functions){.reference
+                Functions](../realtime/host.html#kernel-launch-helper-functions){.reference
                 .internal}
         -   [Memory Layout and Ring Buffer
-            Wiring](../../using/realtime/host.html#memory-layout-and-ring-buffer-wiring){.reference
+            Wiring](../realtime/host.html#memory-layout-and-ring-buffer-wiring){.reference
             .internal}
         -   [Step-by-Step: Wiring the Host API
-            (Minimal)](../../using/realtime/host.html#step-by-step-wiring-the-host-api-minimal){.reference
+            (Minimal)](../realtime/host.html#step-by-step-wiring-the-host-api-minimal){.reference
             .internal}
         -   [Device Handler and Function
-            ID](../../using/realtime/host.html#device-handler-and-function-id){.reference
+            ID](../realtime/host.html#device-handler-and-function-id){.reference
             .internal}
             -   [Multi-Argument Handler
-                Example](../../using/realtime/host.html#multi-argument-handler-example){.reference
+                Example](../realtime/host.html#multi-argument-handler-example){.reference
                 .internal}
         -   [CUDA Graph Dispatch
-            Mode](../../using/realtime/host.html#cuda-graph-dispatch-mode){.reference
+            Mode](../realtime/host.html#cuda-graph-dispatch-mode){.reference
             .internal}
-            -   [Requirements](../../using/realtime/host.html#requirements){.reference
+            -   [Requirements](../realtime/host.html#requirements){.reference
                 .internal}
             -   [Graph-Based Dispatch
-                API](../../using/realtime/host.html#graph-based-dispatch-api){.reference
+                API](../realtime/host.html#graph-based-dispatch-api){.reference
                 .internal}
             -   [Graph Handler Setup
-                Example](../../using/realtime/host.html#graph-handler-setup-example){.reference
+                Example](../realtime/host.html#graph-handler-setup-example){.reference
                 .internal}
             -   [Graph Capture and
-                Instantiation](../../using/realtime/host.html#graph-capture-and-instantiation){.reference
+                Instantiation](../realtime/host.html#graph-capture-and-instantiation){.reference
                 .internal}
             -   [When to Use Graph
-                Dispatch](../../using/realtime/host.html#when-to-use-graph-dispatch){.reference
+                Dispatch](../realtime/host.html#when-to-use-graph-dispatch){.reference
                 .internal}
             -   [Graph vs Device Call
-                Dispatch](../../using/realtime/host.html#graph-vs-device-call-dispatch){.reference
+                Dispatch](../realtime/host.html#graph-vs-device-call-dispatch){.reference
                 .internal}
         -   [Building and Sending an RPC
-            Message](../../using/realtime/host.html#building-and-sending-an-rpc-message){.reference
+            Message](../realtime/host.html#building-and-sending-an-rpc-message){.reference
             .internal}
         -   [Reading the
-            Response](../../using/realtime/host.html#reading-the-response){.reference
+            Response](../realtime/host.html#reading-the-response){.reference
             .internal}
         -   [Schema-Driven Argument
-            Parsing](../../using/realtime/host.html#schema-driven-argument-parsing){.reference
+            Parsing](../realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
         -   [GpuRoceTransceiver 3-Kernel Workflow
-            (Primary)](../../using/realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
+            (Primary)](../realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
         -   [NIC-Free Testing (No GpuRoceTransceiver / No
-            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
+            ConnectX-7)](../realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
-        -   [Troubleshooting](../../using/realtime/host.html#troubleshooting){.reference
+        -   [Troubleshooting](../realtime/host.html#troubleshooting){.reference
             .internal}
-    -   [Messaging
-        Protocol](../../using/realtime/protocol.html){.reference
+    -   [Messaging Protocol](../realtime/protocol.html){.reference
         .internal}
-        -   [Scope](../../using/realtime/protocol.html#scope){.reference
+        -   [Scope](../realtime/protocol.html#scope){.reference
             .internal}
         -   [RPC Header /
-            Response](../../using/realtime/protocol.html#rpc-header-response){.reference
+            Response](../realtime/protocol.html#rpc-header-response){.reference
             .internal}
         -   [Request ID
-            Semantics](../../using/realtime/protocol.html#request-id-semantics){.reference
+            Semantics](../realtime/protocol.html#request-id-semantics){.reference
             .internal}
         -   [[`PTP`{.docutils .literal .notranslate}]{.pre} Timestamp
-            Semantics](../../using/realtime/protocol.html#ptp-timestamp-semantics){.reference
+            Semantics](../realtime/protocol.html#ptp-timestamp-semantics){.reference
             .internal}
         -   [Function ID
-            Semantics](../../using/realtime/protocol.html#function-id-semantics){.reference
+            Semantics](../realtime/protocol.html#function-id-semantics){.reference
             .internal}
         -   [Schema and Payload
-            Interpretation](../../using/realtime/protocol.html#schema-and-payload-interpretation){.reference
+            Interpretation](../realtime/protocol.html#schema-and-payload-interpretation){.reference
             .internal}
             -   [Type
-                System](../../using/realtime/protocol.html#type-system){.reference
+                System](../realtime/protocol.html#type-system){.reference
                 .internal}
         -   [Payload
-            Encoding](../../using/realtime/protocol.html#payload-encoding){.reference
+            Encoding](../realtime/protocol.html#payload-encoding){.reference
             .internal}
             -   [Single-Argument
-                Payloads](../../using/realtime/protocol.html#single-argument-payloads){.reference
+                Payloads](../realtime/protocol.html#single-argument-payloads){.reference
                 .internal}
             -   [Multi-Argument
-                Payloads](../../using/realtime/protocol.html#multi-argument-payloads){.reference
+                Payloads](../realtime/protocol.html#multi-argument-payloads){.reference
                 .internal}
             -   [Size
-                Constraints](../../using/realtime/protocol.html#size-constraints){.reference
+                Constraints](../realtime/protocol.html#size-constraints){.reference
                 .internal}
             -   [Encoding
-                Examples](../../using/realtime/protocol.html#encoding-examples){.reference
+                Examples](../realtime/protocol.html#encoding-examples){.reference
                 .internal}
             -   [Bit-Packed Data
-                Encoding](../../using/realtime/protocol.html#bit-packed-data-encoding){.reference
+                Encoding](../realtime/protocol.html#bit-packed-data-encoding){.reference
                 .internal}
             -   [Multi-Bit Measurement
-                Encoding](../../using/realtime/protocol.html#multi-bit-measurement-encoding){.reference
+                Encoding](../realtime/protocol.html#multi-bit-measurement-encoding){.reference
                 .internal}
         -   [Response
-            Encoding](../../using/realtime/protocol.html#response-encoding){.reference
+            Encoding](../realtime/protocol.html#response-encoding){.reference
             .internal}
             -   [Single-Result
-                Response](../../using/realtime/protocol.html#single-result-response){.reference
+                Response](../realtime/protocol.html#single-result-response){.reference
                 .internal}
             -   [Multi-Result
-                Response](../../using/realtime/protocol.html#multi-result-response){.reference
+                Response](../realtime/protocol.html#multi-result-response){.reference
                 .internal}
             -   [Status
-                Codes](../../using/realtime/protocol.html#status-codes){.reference
+                Codes](../realtime/protocol.html#status-codes){.reference
                 .internal}
         -   [QEC-Specific Usage
-            Example](../../using/realtime/protocol.html#qec-specific-usage-example){.reference
+            Example](../realtime/protocol.html#qec-specific-usage-example){.reference
             .internal}
             -   [QEC
-                Terminology](../../using/realtime/protocol.html#qec-terminology){.reference
+                Terminology](../realtime/protocol.html#qec-terminology){.reference
                 .internal}
             -   [QEC Decoder
-                Handler](../../using/realtime/protocol.html#qec-decoder-handler){.reference
+                Handler](../realtime/protocol.html#qec-decoder-handler){.reference
                 .internal}
             -   [Decoding
-                Rounds](../../using/realtime/protocol.html#decoding-rounds){.reference
+                Rounds](../realtime/protocol.html#decoding-rounds){.reference
                 .internal}
-    -   [CPU RoCE
-        Transport](../../using/realtime/cpu_transport.html){.reference
+    -   [CPU RoCE Transport](../realtime/cpu_transport.html){.reference
         .internal}
-        -   [C
-            ABI](../../using/realtime/cpu_transport.html#c-abi){.reference
+        -   [C ABI](../realtime/cpu_transport.html#c-abi){.reference
             .internal}
         -   [Two-phase bring-up ([`setup`{.docutils .literal
             .notranslate}]{.pre} / [`connect`{.docutils .literal
-            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#two-phase-bring-up-setup-connect){.reference
+            .notranslate}]{.pre})](../realtime/cpu_transport.html#two-phase-bring-up-setup-connect){.reference
             .internal}
         -   [TX
-            modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
+            modes](../realtime/cpu_transport.html#tx-modes){.reference
             .internal}
         -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+            .notranslate}]{.pre})](../realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
             .internal}
-    -   [Device Call
-        Channels](../../using/realtime/device_call.html){.reference
+    -   [Device Call Channels](../realtime/device_call.html){.reference
         .internal}
         -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
-            model](../../using/realtime/device_call.html#the-device-call-model){.reference
+            model](../realtime/device_call.html#the-device-call-model){.reference
             .internal}
         -   [Selecting a
-            channel](../../using/realtime/device_call.html#selecting-a-channel){.reference
+            channel](../realtime/device_call.html#selecting-a-channel){.reference
             .internal}
         -   [Extending an in-process
-            service](../../using/realtime/device_call.html#extending-an-in-process-service){.reference
+            service](../realtime/device_call.html#extending-an-in-process-service){.reference
             .internal}
         -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
-            channel](../../using/realtime/device_call.html#the-cpu-roce-channel){.reference
+            channel](../realtime/device_call.html#the-cpu-roce-channel){.reference
             .internal}
             -   [Wire pattern
-                (FPGA-compatible)](../../using/realtime/device_call.html#wire-pattern-fpga-compatible){.reference
+                (FPGA-compatible)](../realtime/device_call.html#wire-pattern-fpga-compatible){.reference
                 .internal}
             -   [Connection
-                setup](../../using/realtime/device_call.html#connection-setup){.reference
+                setup](../realtime/device_call.html#connection-setup){.reference
                 .internal}
             -   [Running
-                it](../../using/realtime/device_call.html#running-it){.reference
+                it](../realtime/device_call.html#running-it){.reference
                 .internal}
             -   [Test
-                harness](../../using/realtime/device_call.html#test-harness){.reference
+                harness](../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
+-   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
+        Solvers](../cudaqx/cudaqx.html#cuda-q-solvers){.reference
         .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
+    -   [CUDA-Q QEC](../cudaqx/cudaqx.html#cuda-q-qec){.reference
         .internal}
--   [Installation](../../using/install/install.html){.reference
-    .internal}
+-   [Installation](../install/install.html){.reference .internal}
     -   [Local
-        Installation](../../using/install/local_installation.html){.reference
+        Installation](../install/local_installation.html){.reference
         .internal}
-        -   [Introduction](../../using/install/local_installation.html#introduction){.reference
+        -   [Introduction](../install/local_installation.html#introduction){.reference
             .internal}
-            -   [Docker](../../using/install/local_installation.html#docker){.reference
+            -   [Docker](../install/local_installation.html#docker){.reference
                 .internal}
             -   [Known Blackwell
-                Issues](../../using/install/local_installation.html#known-blackwell-issues){.reference
+                Issues](../install/local_installation.html#known-blackwell-issues){.reference
                 .internal}
-            -   [Singularity](../../using/install/local_installation.html#singularity){.reference
+            -   [Singularity](../install/local_installation.html#singularity){.reference
                 .internal}
             -   [Python
-                wheels](../../using/install/local_installation.html#python-wheels){.reference
+                wheels](../install/local_installation.html#python-wheels){.reference
                 .internal}
             -   [Pre-built
-                binaries](../../using/install/local_installation.html#pre-built-binaries){.reference
+                binaries](../install/local_installation.html#pre-built-binaries){.reference
                 .internal}
         -   [Development with VS
-            Code](../../using/install/local_installation.html#development-with-vs-code){.reference
+            Code](../install/local_installation.html#development-with-vs-code){.reference
             .internal}
             -   [Using a Docker
-                container](../../using/install/local_installation.html#using-a-docker-container){.reference
+                container](../install/local_installation.html#using-a-docker-container){.reference
                 .internal}
             -   [Using a Singularity
-                container](../../using/install/local_installation.html#using-a-singularity-container){.reference
+                container](../install/local_installation.html#using-a-singularity-container){.reference
                 .internal}
         -   [Connecting to a Remote
-            Host](../../using/install/local_installation.html#connecting-to-a-remote-host){.reference
+            Host](../install/local_installation.html#connecting-to-a-remote-host){.reference
             .internal}
             -   [Developing with Remote
-                Tunnels](../../using/install/local_installation.html#developing-with-remote-tunnels){.reference
+                Tunnels](../install/local_installation.html#developing-with-remote-tunnels){.reference
                 .internal}
             -   [Remote Access via
-                SSH](../../using/install/local_installation.html#remote-access-via-ssh){.reference
+                SSH](../install/local_installation.html#remote-access-via-ssh){.reference
                 .internal}
         -   [DGX
-            Cloud](../../using/install/local_installation.html#dgx-cloud){.reference
+            Cloud](../install/local_installation.html#dgx-cloud){.reference
             .internal}
             -   [Get
-                Started](../../using/install/local_installation.html#get-started){.reference
+                Started](../install/local_installation.html#get-started){.reference
                 .internal}
             -   [Use
-                JupyterLab](../../using/install/local_installation.html#use-jupyterlab){.reference
+                JupyterLab](../install/local_installation.html#use-jupyterlab){.reference
                 .internal}
             -   [Use VS
-                Code](../../using/install/local_installation.html#use-vs-code){.reference
+                Code](../install/local_installation.html#use-vs-code){.reference
                 .internal}
         -   [Additional CUDA
-            Tools](../../using/install/local_installation.html#additional-cuda-tools){.reference
+            Tools](../install/local_installation.html#additional-cuda-tools){.reference
             .internal}
             -   [Installation via
-                PyPI](../../using/install/local_installation.html#installation-via-pypi){.reference
+                PyPI](../install/local_installation.html#installation-via-pypi){.reference
                 .internal}
             -   [Installation In Container
-                Images](../../using/install/local_installation.html#installation-in-container-images){.reference
+                Images](../install/local_installation.html#installation-in-container-images){.reference
                 .internal}
             -   [Installing Pre-built
-                Binaries](../../using/install/local_installation.html#installing-pre-built-binaries){.reference
+                Binaries](../install/local_installation.html#installing-pre-built-binaries){.reference
                 .internal}
         -   [Distributed Computing with
-            MPI](../../using/install/local_installation.html#distributed-computing-with-mpi){.reference
+            MPI](../install/local_installation.html#distributed-computing-with-mpi){.reference
             .internal}
         -   [Updating
-            CUDA-Q](../../using/install/local_installation.html#updating-cuda-q){.reference
+            CUDA-Q](../install/local_installation.html#updating-cuda-q){.reference
             .internal}
         -   [Dependencies and
-            Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
+            Compatibility](../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
             -   [Dynamic linking to GMP and
-                MPFR](../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                MPFR](../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
                 .internal}
         -   [Next
-            Steps](../../using/install/local_installation.html#next-steps){.reference
+            Steps](../install/local_installation.html#next-steps){.reference
             .internal}
     -   [Data Center
-        Installation](../../using/install/data_center_install.html){.reference
+        Installation](../install/data_center_install.html){.reference
         .internal}
-        -   [Prerequisites](../../using/install/data_center_install.html#prerequisites){.reference
+        -   [Prerequisites](../install/data_center_install.html#prerequisites){.reference
             .internal}
         -   [Build
-            Dependencies](../../using/install/data_center_install.html#build-dependencies){.reference
+            Dependencies](../install/data_center_install.html#build-dependencies){.reference
             .internal}
-            -   [CUDA](../../using/install/data_center_install.html#cuda){.reference
+            -   [CUDA](../install/data_center_install.html#cuda){.reference
                 .internal}
-            -   [Toolchain](../../using/install/data_center_install.html#toolchain){.reference
+            -   [Toolchain](../install/data_center_install.html#toolchain){.reference
                 .internal}
         -   [Building
-            CUDA-Q](../../using/install/data_center_install.html#building-cuda-q){.reference
+            CUDA-Q](../install/data_center_install.html#building-cuda-q){.reference
             .internal}
         -   [Python
-            Support](../../using/install/data_center_install.html#python-support){.reference
+            Support](../install/data_center_install.html#python-support){.reference
             .internal}
         -   [C++
-            Support](../../using/install/data_center_install.html#c-support){.reference
+            Support](../install/data_center_install.html#c-support){.reference
             .internal}
         -   [Installation on the
-            Host](../../using/install/data_center_install.html#installation-on-the-host){.reference
+            Host](../install/data_center_install.html#installation-on-the-host){.reference
             .internal}
             -   [CUDA Runtime
-                Libraries](../../using/install/data_center_install.html#cuda-runtime-libraries){.reference
+                Libraries](../install/data_center_install.html#cuda-runtime-libraries){.reference
                 .internal}
-            -   [MPI](../../using/install/data_center_install.html#mpi){.reference
+            -   [MPI](../install/data_center_install.html#mpi){.reference
                 .internal}
--   [Integration](../../using/integration/integration.html){.reference
-    .internal}
+-   [Integration](../integration/integration.html){.reference .internal}
     -   [Downstream CMake
-        Integration](../../using/integration/cmake_app.html){.reference
+        Integration](../integration/cmake_app.html){.reference
         .internal}
     -   [Combining CUDA with
-        CUDA-Q](../../using/integration/cuda_gpu.html){.reference
-        .internal}
+        CUDA-Q](../integration/cuda_gpu.html){.reference .internal}
     -   [Integrating with Third-Party
-        Libraries](../../using/integration/libraries.html){.reference
-        .internal}
+        Libraries](../integration/libraries.html){.reference .internal}
         -   [Calling a CUDA-Q library from
-            C++](../../using/integration/libraries.html#calling-a-cuda-q-library-from-c){.reference
+            C++](../integration/libraries.html#calling-a-cuda-q-library-from-c){.reference
             .internal}
         -   [Calling an C++ library from
-            CUDA-Q](../../using/integration/libraries.html#calling-an-c-library-from-cuda-q){.reference
+            CUDA-Q](../integration/libraries.html#calling-an-c-library-from-cuda-q){.reference
             .internal}
         -   [Interfacing between binaries compiled with a different
-            toolchains](../../using/integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
+            toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
--   [Extending](../../using/extending/extending.html){.reference
-    .internal}
+-   [Extending](../extending/extending.html){.reference .internal}
     -   [Compiler
-        development](../../using/extending/compiler/index.html){.reference
+        development](../extending/compiler/index.html){.reference
         .internal}
         -   [Compiler
-            IR](../../using/extending/compiler/cudaq_ir.html){.reference
+            IR](../extending/compiler/cudaq_ir.html){.reference
             .internal}
             -   [CUDA-Q
-                dialects](../../using/extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
+                dialects](../extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
                 .internal}
             -   [Source and
-                tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
+                tests](../extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
         -   [External compiler pass
-            plugins](../../using/extending/compiler/pass_plugins.html){.reference
+            plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
             -   [Implement and register the
-                pass](../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                pass](../extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
                 .internal}
             -   [Build the
-                plugin](../../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                plugin](../extending/compiler/pass_plugins.html#build-the-plugin){.reference
                 .internal}
             -   [Load and test the
-                plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
-    -   [Add a hardware
-        backend](../../using/extending/backend.html){.reference
+    -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
-            Structure](../../using/extending/backend.html#plugin-directory-structure){.reference
+            Structure](../extending/backend.html#plugin-directory-structure){.reference
             .internal}
         -   [REST-Style Backends (Server
-            Helper)](../../using/extending/backend.html#rest-style-backends-server-helper){.reference
+            Helper)](../extending/backend.html#rest-style-backends-server-helper){.reference
             .internal}
             -   [Server Helper
-                Class](../../using/extending/backend.html#server-helper-class){.reference
+                Class](../extending/backend.html#server-helper-class){.reference
                 .internal}
             -   [Target YAML
-                Configuration](../../using/extending/backend.html#target-yaml-configuration){.reference
+                Configuration](../extending/backend.html#target-yaml-configuration){.reference
                 .internal}
             -   [CMake Build
-                File](../../using/extending/backend.html#cmake-build-file){.reference
+                File](../extending/backend.html#cmake-build-file){.reference
                 .internal}
         -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
-            .notranslate}]{.pre}](../../using/extending/backend.html#auxiliary-files-and-plugin-root){.reference
+            .notranslate}]{.pre}](../extending/backend.html#auxiliary-files-and-plugin-root){.reference
             .internal}
         -   [Testing Your
-            Backend](../../using/extending/backend.html#testing-your-backend){.reference
+            Backend](../extending/backend.html#testing-your-backend){.reference
             .internal}
         -   [Example
-            Usage](../../using/extending/backend.html#example-usage){.reference
+            Usage](../extending/backend.html#example-usage){.reference
             .internal}
         -   [Next
-            Steps](../../using/extending/backend.html#next-steps){.reference
+            Steps](../extending/backend.html#next-steps){.reference
             .internal}
     -   [Package & distribute a backend
-        plugin](../../using/extending/packaging.html){.reference
-        .internal}
+        plugin](../extending/packaging.html){.reference .internal}
         -   [Plugin Package
-            Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
+            Layout](../extending/packaging.html#plugin-package-layout){.reference
             .internal}
         -   [Target YAML Reference (Plugin
-            Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
+            Fields)](../extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
             -   [[`%PLUGIN_ROOT%`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/packaging.html#plugin-root){.reference
+                .notranslate}]{.pre}](../extending/packaging.html#plugin-root){.reference
                 .internal}
             -   [[`target-arguments`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/packaging.html#target-arguments){.reference
+                .notranslate}]{.pre}](../extending/packaging.html#target-arguments){.reference
                 .internal}
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
-            .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
+            .notranslate}]{.pre}](../extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
         -   [Python
-            Packaging](../../using/extending/packaging.html#python-packaging){.reference
+            Packaging](../extending/packaging.html#python-packaging){.reference
             .internal}
             -   [[`pyproject.toml`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/packaging.html#pyproject-toml){.reference
+                .notranslate}]{.pre}](../extending/packaging.html#pyproject-toml){.reference
                 .internal}
             -   [[`__init__.py`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/packaging.html#init-py){.reference
+                .notranslate}]{.pre}](../extending/packaging.html#init-py){.reference
                 .internal}
             -   [[`__main__.py`{.docutils .literal .notranslate}]{.pre}
                 ([`--install-nvqpp`{.docutils .literal
                 .notranslate}]{.pre}
-                hook)](../../using/extending/packaging.html#main-py-install-nvqpp-hook){.reference
+                hook)](../extending/packaging.html#main-py-install-nvqpp-hook){.reference
                 .internal}
         -   [Installing the Plugin for End
-            Users](../../using/extending/packaging.html#installing-the-plugin-for-end-users){.reference
+            Users](../extending/packaging.html#installing-the-plugin-for-end-users){.reference
             .internal}
             -   [[`pip`{.docutils .literal
                 .notranslate}]{.pre}` `{.docutils .literal
                 .notranslate}[`install`{.docutils .literal
                 .notranslate}]{.pre} (Python --- zero
-                config)](../../using/extending/packaging.html#pip-install-python-zero-config){.reference
+                config)](../extending/packaging.html#pip-install-python-zero-config){.reference
                 .internal}
             -   [[`--install-nvqpp`{.docutils .literal
                 .notranslate}]{.pre} (make visible to [`nvq++`{.docutils
                 .literal
-                .notranslate}]{.pre})](../../using/extending/packaging.html#install-nvqpp-make-visible-to-nvq){.reference
+                .notranslate}]{.pre})](../extending/packaging.html#install-nvqpp-make-visible-to-nvq){.reference
                 .internal}
             -   [[`cudaq-install-plugin`{.docutils .literal
                 .notranslate}]{.pre} (C++-only
-                workflows)](../../using/extending/packaging.html#cudaq-install-plugin-c-only-workflows){.reference
+                workflows)](../extending/packaging.html#cudaq-install-plugin-c-only-workflows){.reference
                 .internal}
         -   [Discovery
-            Mechanics](../../using/extending/packaging.html#discovery-mechanics){.reference
+            Mechanics](../extending/packaging.html#discovery-mechanics){.reference
             .internal}
             -   [[`nvq++`{.docutils .literal .notranslate}]{.pre} target
-                resolution](../../using/extending/packaging.html#nvq-target-resolution){.reference
+                resolution](../extending/packaging.html#nvq-target-resolution){.reference
                 .internal}
             -   [Python target
-                resolution](../../using/extending/packaging.html#python-target-resolution){.reference
+                resolution](../extending/packaging.html#python-target-resolution){.reference
                 .internal}
             -   [Environment
-                variables](../../using/extending/packaging.html#environment-variables){.reference
+                variables](../extending/packaging.html#environment-variables){.reference
                 .internal}
         -   [Reference
-            Plugins](../../using/extending/packaging.html#reference-plugins){.reference
+            Plugins](../extending/packaging.html#reference-plugins){.reference
             .internal}
         -   [Quick-Start
-            Checklist](../../using/extending/packaging.html#quick-start-checklist){.reference
+            Checklist](../extending/packaging.html#quick-start-checklist){.reference
             .internal}
     -   [Create an NVQIR
-        simulator](../../using/extending/nvqir_simulator.html){.reference
+        simulator](../extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
-            .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
+            .notranslate}]{.pre}](../extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
-            action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
+            action](../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
@@ -1944,74 +1925,23 @@ latest
 ::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
--   [CUDA-Q by Example](../../using/examples/examples.html)
--   Optimizing Performance
+-   Upcoming changes to [`sample`{.docutils .literal
+    .notranslate}]{.pre} and [`observe`{.docutils .literal
+    .notranslate}]{.pre}
 -   
-
-::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
-[[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../using/examples/operators.html "Operators"){.btn
-.btn-neutral .float-left accesskey="p"} [Next []{.fa
-.fa-arrow-circle-right
-aria-hidden="true"}](../../using/examples/hardware_providers.html "Using Quantum Hardware Providers"){.btn
-.btn-neutral .float-right accesskey="n"}
-:::
 
 ------------------------------------------------------------------------
 :::
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#Optimizing-Performance .section}
-# Optimizing Performance[¶](#Optimizing-Performance "Permalink to this heading"){.headerlink}
+::: {#upcoming-changes-to-sample-and-observe .section}
+# Upcoming changes to [`sample`{.docutils .literal .notranslate}]{.pre} and [`observe`{.docutils .literal .notranslate}]{.pre}[¶](#upcoming-changes-to-sample-and-observe "Permalink to this heading"){.headerlink}
 
-Performance is a key focus for the CUDA-Q design. This section
-highlights some features that advanced users can take advantage of to
-increase performance in certain situations.
-
-::: {#Gate-Fusion .section}
-## Gate Fusion[¶](#Gate-Fusion "Permalink to this heading"){.headerlink}
-
-Gate fusion is an optimization technique where consecutive gates are
-combined into a single gate operation to improve the efficiency of the
-simulation (See figure below). By targeting the [`nvidia-mgpu`{.docutils
-.literal .notranslate}]{.pre} backend and setting the
-[`CUDAQ_MGPU_FUSE`{.docutils .literal .notranslate}]{.pre} environment
-variable, you can select the degree of fusion that takes place. A full
-command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
-.literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`python`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`c2h2VQE.py`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`--target`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`nvidia`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`--target-option`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
-
-![b6ff52e53f3747389664d9e99f34dac2](../../_images/gate-fuse.png)
-
-The importance of gate fusion is system dependent, but can have a large
-influence on the performance of the simulation. See the example below
-for a 24 qubit VQE experiment where changing the fusion level resulted
-in significant performance boosts.
-
-![44fb84ead6d44edd9fc62e01d6cb7771](../../_images/gatefusion.png)
+Details about the planned changes and migration guidance are coming
+soon.
 :::
 :::
-:::
-:::
-
-::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
-[[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../using/examples/operators.html "Operators"){.btn
-.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
-.fa-arrow-circle-right
-aria-hidden="true"}](../../using/examples/hardware_providers.html "Using Quantum Hardware Providers"){.btn
-.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------
