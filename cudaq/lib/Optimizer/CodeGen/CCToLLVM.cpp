@@ -771,7 +771,6 @@ public:
   matchAndRewrite(cudaq::cc::PoisonOp poison, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto resTy = getTypeConverter()->convertType(poison.getType());
-    // FIXME: This should use PoisonOp, obviously, when we upgrade MLIR.
     rewriter.replaceOpWithNewOp<LLVM::PoisonOp>(poison, resTy);
     return success();
   }
