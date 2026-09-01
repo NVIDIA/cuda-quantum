@@ -452,14 +452,14 @@ def test_listcomp_default_handle_pre_allocation():
 def test_handle_vector_cross_round_reassignment():
 
     @cudaq.kernel
-    def kernel_handle_vec_cross_round():
+    def kernel_handle_vec_cross_round() -> list[bool]:
         qv = cudaq.qvector(3)
         x(qv)
         mvec = mz(qv)
         for _ in range(2):
             m_new = mz(qv)
             mvec = m_new
-        use = mvec[0]
+        return mvec
 
     print(kernel_handle_vec_cross_round)
 
@@ -468,11 +468,11 @@ def test_handle_vector_cross_round_reassignment():
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           cc.loop while
+# CHECK:           %[[LOOP:.*]]:2 = cc.loop while
 # CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:             cc.continue
-# CHECK-NOT:       quake.discriminate
-# CHECK:           return
+# CHECK:             cc.continue {{.*}}%[[MNEW]]{{.*}} : {{.*}}!cc.sequence<!cc.measure_handle>{{.*}}
+# CHECK:           %[[BOOLS:.*]] = quake.discriminate %[[LOOP]]#{{[01]}} : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+# CHECK:           return %[[BOOLS]] : !cc.sequence<i1>
 
 # leave for gdb debugging
 if __name__ == "__main__":
