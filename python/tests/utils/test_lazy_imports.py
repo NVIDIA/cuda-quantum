@@ -11,6 +11,10 @@ import sys
 
 import pytest
 
+_API_CHANGE_NOTICE = (
+    "The CUDA-Q `sample` and `observe` algorithmic primitives will change in a "
+    "future release.")
+
 
 def _run_in_subprocess(code):
     """Run Python code in a fresh process so lazy import state is clean."""
@@ -20,6 +24,18 @@ def _run_in_subprocess(code):
     if result.returncode != 0:
         pytest.fail(f"Subprocess failed:\n{result.stderr}")
     return result.stdout
+
+
+def test_import_emits_api_change_notice_once():
+    result = subprocess.run(
+        [sys.executable, '-W', 'always', '-c', 'import cudaq\nimport cudaq'],
+        capture_output=True,
+        text=True)
+
+    assert result.returncode == 0, result.stderr
+    assert f"FutureWarning: {_API_CHANGE_NOTICE}" in result.stderr
+    assert result.stderr.count(_API_CHANGE_NOTICE) == 1
+    assert _API_CHANGE_NOTICE not in result.stdout
 
 
 def test_lazy_modules_not_eagerly_imported():
