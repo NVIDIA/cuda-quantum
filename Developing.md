@@ -102,7 +102,9 @@ some checks require system dependencies:
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install aspell aspell-en nodejs npm golang
+sudo apt-get install aspell aspell-en nodejs golang
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
 # macOS
 brew install aspell node go
