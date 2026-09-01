@@ -73,13 +73,6 @@ def verifyValueSemanticsPayload(decoded_payload):
                 f" `{token}`. The server must receive wireset MLIR.")
 
 
-def verifyNoCFG(decoded_payload):
-    for token in ["cf.br", "cf.cond_br"]:
-        if token in decoded_payload:
-            raise RuntimeError(
-                f"Remote payload contains unsupported CFG operation `{token}`.")
-
-
 def verifyExpectedMapping(decoded_payload, entry_func_name):
     if "mapping" not in entry_func_name:
         return
@@ -173,7 +166,6 @@ async def postJob(request: Request):
             " eliminated by the eliminate-dead-heap-copy pass.")
 
     verifyValueSemanticsPayload(decoded_payload)
-    verifyNoCFG(decoded_payload)
 
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)

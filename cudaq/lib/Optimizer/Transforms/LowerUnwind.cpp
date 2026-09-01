@@ -17,7 +17,6 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_UNWINDLOWERING
-#define GEN_PASS_DEF_VERIFYNOCFG
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -26,34 +25,6 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-class VerifyNoCFGPass
-    : public cudaq::opt::impl::VerifyNoCFGBase<VerifyNoCFGPass> {
-public:
-  using VerifyNoCFGBase::VerifyNoCFGBase;
-
-  void runOnOperation() override {
-    // This pass runs in target-specific pipelines after argument synthesis and
-    // canonicalization. Only reject CFG branches that remain in the program;
-    // branches folded from concrete runtime arguments are therefore accepted.
-    Operation *branch = nullptr;
-    getOperation().walk([&](Operation *op) {
-      if (isa<cf::BranchOp, cf::CondBranchOp>(op)) {
-        branch = op;
-        return WalkResult::interrupt();
-      }
-      return WalkResult::advance();
-    });
-    if (!branch)
-      return;
-
-    emitError(branch->getLoc(),
-              "the selected target does not support control-flow graph "
-              "operations; an early return, break, or continue may have "
-              "produced unsupported control flow in the kernel");
-    signalPassFailure();
-  }
-};
 
 // A cc.scope may have break, continue, and return landing pads. A func.func may
 // have a return landing pad. This struture tracks the landing pads associated

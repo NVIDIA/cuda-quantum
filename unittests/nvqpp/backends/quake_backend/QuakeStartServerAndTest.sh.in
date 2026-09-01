@@ -150,63 +150,6 @@ else
   echo ":white_check_mark: Successfully ran Python test_app.py"
 fi
 
-# Concrete boolean arguments fold the control flow introduced by early return,
-# break, and continue. The mock server verifies that these successful requests
-# contain no CFG operations.
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_unwind_app.cpp -o test_unwind_app
-if [ $? -ne 0 ]; then
-  echo ":x: nvq++ compilation failed for test_unwind_app"
-  test_err_sum=$((test_err_sum+1))
-else
-  for unwind_case in early-return break continue; do
-    unwind_output=$(./test_unwind_app "$unwind_case" 2>&1)
-    unwind_status=$?
-    if [ "$unwind_status" -ne 0 ]; then
-      echo ":x: C++ synthesized $unwind_case failed"
-      echo "$unwind_output"
-      test_err_sum=$((test_err_sum+1))
-    else
-      echo ":white_check_mark: C++ synthesized $unwind_case contains no CFG"
-    fi
-  done
-
-  for cfg_case in measurement-return measurement-break measurement-continue; do
-    cfg_output=$(./test_unwind_app "$cfg_case" 2>&1)
-    cfg_status=$?
-    if [ "$cfg_status" -eq 0 ] || [[ "$cfg_output" != *'the selected target does not support control-flow graph operations; an early return, break, or continue may have produced unsupported control flow in the kernel'* ]]; then
-      echo ":x: C++ $cfg_case rejection did not produce the expected diagnostic"
-      echo "$cfg_output"
-      test_err_sum=$((test_err_sum+1))
-    else
-      echo ":white_check_mark: C++ $cfg_case rejected by quake_fake"
-    fi
-  done
-fi
-
-for unwind_case in early-return break continue; do
-  unwind_output=$(PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_unwind_app.py "$unwind_case" 2>&1)
-  unwind_status=$?
-  if [ "$unwind_status" -ne 0 ]; then
-    echo ":x: Python synthesized $unwind_case failed"
-    echo "$unwind_output"
-    test_err_sum=$((test_err_sum+1))
-  else
-    echo ":white_check_mark: Python synthesized $unwind_case contains no CFG"
-  fi
-done
-
-for cfg_case in measurement-return measurement-break measurement-continue; do
-  cfg_output=$(PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_unwind_app.py "$cfg_case" 2>&1)
-  cfg_status=$?
-  if [ "$cfg_status" -eq 0 ] || [[ "$cfg_output" != *'the selected target does not support control-flow graph operations; an early return, break, or continue may have produced unsupported control flow in the kernel'* ]]; then
-    echo ":x: Python $cfg_case rejection did not produce the expected diagnostic"
-    echo "$cfg_output"
-    test_err_sum=$((test_err_sum+1))
-  else
-    echo ":white_check_mark: Python $cfg_case rejected by quake_fake"
-  fi
-done
-
 # Python loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the Python
 # client preserves cc.loop operations for the nop codegen path.
 CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.py > test_loop_app.py.out 2>&1
