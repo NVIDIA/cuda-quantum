@@ -308,6 +308,18 @@ struct u1 {
   const std::string name() const { return "u1"; }
 };
 
+/// @brief The Wait operation as a type. Idles the qubit for a duration (in
+/// microseconds, passed as `angles[0]`). It is unitary identity; any physical
+/// delay is realized by a noise model attached to the "wait" gate name via
+/// `applyNoiseChannel`.
+template <typename ScalarType = double>
+struct wait {
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::Id);
+  }
+  const std::string name() const { return "wait"; }
+};
+
 template <typename ScalarType = double>
 struct u2 {
   std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {

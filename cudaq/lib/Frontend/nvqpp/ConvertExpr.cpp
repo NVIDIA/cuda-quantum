@@ -2126,6 +2126,12 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         reportNegateError();
       return cudaq::quake::ResetOp::create(builder, loc, TypeRange{}, args[0]);
     }
+    if (funcName == "wait") {
+      if (!negations.empty())
+        reportNegateError();
+      return cudaq::quake::WaitOp::create(builder, loc, TypeRange{}, args[0],
+                                          args[1]);
+    }
     if (funcName == "swap") {
       const auto size = args.size();
       assert(size >= 2);

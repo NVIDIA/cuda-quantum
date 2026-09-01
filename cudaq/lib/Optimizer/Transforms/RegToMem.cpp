@@ -194,6 +194,11 @@ private:
             collectLinearValues(ArrayRef<Value>{reset.getTargets()});
         for (auto [t, r] : llvm::zip(wireTargs, reset.getResults()))
           insertToEqClass(t, r);
+      } else if (auto wait = dyn_cast<cudaq::quake::WaitOp>(op)) {
+        auto wireTargs =
+            collectLinearValues(ArrayRef<Value>{wait.getTargets()});
+        for (auto [t, r] : llvm::zip(wireTargs, wait.getResults()))
+          insertToEqClass(t, r);
       } else if (auto sink = dyn_cast<cudaq::quake::SinkOp>(op)) {
         insertToEqClass(sink.getTarget());
       } else if (auto ret = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
@@ -324,6 +329,15 @@ public:
       auto targ = findLookupValue(op.getTargets());
       eraseWrapUsers(op);
       cudaq::quake::ResetOp::create(rewriter, loc, TypeRange{}, targ);
+      Value unwrap =
+          cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, targ);
+      rewriter.replaceOp(op, {unwrap});
+    } else if constexpr (std::is_same_v<OP, cudaq::quake::WaitOp>) {
+      // Wait is a special case, like reset.
+      auto targ = findLookupValue(op.getTargets());
+      eraseWrapUsers(op);
+      cudaq::quake::WaitOp::create(rewriter, loc, TypeRange{}, op.getDuration(),
+                                   targ);
       Value unwrap =
           cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, targ);
       rewriter.replaceOp(op, {unwrap});
@@ -560,6 +574,7 @@ public:
     BlockSet fixupBlocks;
     RewritePatternSet patterns(ctx);
     patterns.insert<NOWRAP_QUANTUM_OPS, CollapseWrappers<cudaq::quake::ResetOp>,
+                    CollapseWrappers<cudaq::quake::WaitOp>,
                     CollapseWrappers<cudaq::quake::ReturnWireOp>,
                     CollapseWrappers<cudaq::quake::SinkOp>, EraseWiresIf>(
         ctx, analysis, allocas);
@@ -567,7 +582,8 @@ public:
     ConversionTarget target(*ctx);
     target
         .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                               cf::BranchOp, cf::CondBranchOp, cudaq::cc::IfOp>(
+                               cudaq::quake::WaitOp, cf::BranchOp,
+                               cf::CondBranchOp, cudaq::cc::IfOp>(
             [&](Operation *op) { return hasNoWires(op); });
     target.addIllegalOp<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>();
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::DeallocOp>();

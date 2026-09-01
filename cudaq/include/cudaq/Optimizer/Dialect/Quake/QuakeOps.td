@@ -1125,6 +1125,47 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
 }
 
 //===----------------------------------------------------------------------===//
+// Wait
+//===----------------------------------------------------------------------===//
+
+def quake_WaitOp : QuakeOp<"wait", [QuantumGate,
+    DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+  let summary = "Idle the wire for a given duration.";
+  let description = [{
+    The `quake.wait` operation idles a wire for `$duration` microseconds. The
+    duration is an f64 value; backends round it to the nearest representable
+    integer number of microseconds. The target may be a reference to a wire,
+    type `!quake.ref`, or a wire, type `!quake.wire`.
+
+    Example:
+    ```mlir
+      quake.wait (%dur) %0 : (f64, !quake.ref) -> ()
+      %2 = quake.wait (%dur) %1 : (f64, !quake.wire) -> !quake.wire
+    ```
+  }];
+
+  let arguments = (ins
+    F64:$duration,
+    AnyQTargetType:$targets
+  );
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+     `(` $duration `)` $targets `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
+        EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
+      cudaq::quake::getResetEffectsImpl(effects, getTargetsMutable());
+    }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
 // Measurements, Discriminate
 //===----------------------------------------------------------------------===//
 

@@ -312,6 +312,50 @@ public:
   }
 };
 
+/// Like `ResetRewrite`, `wait` doesn't support the `QuakeOperator` interface
+/// (no controls, no adjoint), so it can't go through `GenericRewrite`. It is
+/// lowered to the same `CudaqEMApply` entry point as a regular gate, with the
+/// duration as its single parameter.
+class WaitRewrite : public OpConversionPattern<cudaq::quake::WaitOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::WaitOp waitOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = waitOp.getLoc();
+    auto mod = waitOp->getParentOfType<ModuleOp>();
+    auto opName = createOpName(loc, mod, rewriter, "wait");
+    auto i8Ty = rewriter.getI8Type();
+    auto ptrI8Ty = cudaq::cc::PointerType::get(i8Ty);
+    auto regTy = cudaq::cc::PointerType::get(opName.getType());
+    auto addr = cudaq::cc::AddressOfOp::create(rewriter, loc, regTy,
+                                               opName.getSymName());
+    auto opString = cudaq::cc::CastOp::create(rewriter, loc, ptrI8Ty, addr);
+    Value numParams = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
+    auto f64Ty = rewriter.getF64Type();
+    auto buffer = cudaq::cc::AllocaOp::create(rewriter, loc, f64Ty, numParams);
+    cudaq::cc::StoreOp::create(rewriter, loc, adaptor.getDuration(), buffer);
+    auto controls = packQubitSpans(loc, rewriter, ValueRange{});
+    auto targets =
+        packQubitSpans(loc, rewriter, ValueRange{adaptor.getTargets()});
+    Value isAdj = arith::ConstantIntOp::create(rewriter, loc, 0, 1);
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        waitOp, mlir::TypeRange{}, cudaq::opt::CudaqEMApply,
+        ValueRange{opString, numParams, buffer, controls, targets, isAdj});
+    return success();
+  }
+
+  // Create a global with the "name" to use for this operation.
+  LLVM::GlobalOp createOpName(Location loc, ModuleOp mod,
+                              ConversionPatternRewriter &rewriter,
+                              StringRef name) const {
+    OpBuilder::InsertionGuard guard(rewriter);
+    auto builder = cudaq::IRBuilder::atBlockEnd(mod.getBody());
+    return builder.genCStringLiteralAppendNul(loc, mod, name.str());
+  }
+};
+
 template <typename OP>
 class GenericRewrite : public OpConversionPattern<OP> {
 public:
@@ -509,7 +553,7 @@ void cudaq::opt::populateQuakeToCCPatterns(TypeConverter &converter,
   patterns.insert<
       AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite, DiscriminateOpRewrite,
       ExtractRefOpRewrite, VeqSizeOpRewrite, MzOpRewrite, ResetRewrite,
-      SubveqOpRewrite, GenericRewrite<cudaq::quake::HOp>,
+      WaitRewrite, SubveqOpRewrite, GenericRewrite<cudaq::quake::HOp>,
       GenericRewrite<cudaq::quake::PhasedRxOp>,
       GenericRewrite<cudaq::quake::R1Op>, GenericRewrite<cudaq::quake::RxOp>,
       GenericRewrite<cudaq::quake::RyOp>, GenericRewrite<cudaq::quake::RzOp>,
@@ -525,7 +569,8 @@ void cudaq::opt::setQuakeToCCLegality(ConversionTarget &target) {
       cudaq::quake::AllocaOp, cudaq::quake::ConcatOp, cudaq::quake::DeallocOp,
       cudaq::quake::DiscriminateOp, cudaq::quake::ExtractRefOp,
       cudaq::quake::VeqSizeOp, cudaq::quake::MzOp, cudaq::quake::ResetOp,
-      cudaq::quake::SubVeqOp, cudaq::quake::HOp, cudaq::quake::PhasedRxOp,
+      cudaq::quake::WaitOp, cudaq::quake::SubVeqOp, cudaq::quake::HOp,
+      cudaq::quake::PhasedRxOp,
       cudaq::quake::R1Op, cudaq::quake::RxOp, cudaq::quake::RyOp,
       cudaq::quake::RzOp, cudaq::quake::SOp, cudaq::quake::SwapOp,
       cudaq::quake::TOp, cudaq::quake::U2Op, cudaq::quake::U3Op,

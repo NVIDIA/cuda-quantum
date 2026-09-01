@@ -1382,10 +1382,10 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   MACRO(CustomUnitaryConstantOp)
 #define GATE_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) CUSTOM_GATE_OPS(MACRO)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
-#define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(ExpPauliOp) GATE_OPS(MACRO)    \
-  MEASURE_OPS(MACRO)
-#define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullCableOp) \
-  MACRO(NullWireOp) MACRO(UnwrapOp)
+#define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(WaitOp) MACRO(ExpPauliOp)      \
+  GATE_OPS(MACRO) MEASURE_OPS(MACRO)
+#define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(WaitOp)      \
+  MACRO(NullCableOp) MACRO(NullWireOp) MACRO(UnwrapOp)
 // clang-format on
 
 #define INSTANTIATE_CALLBACKS(Op)                                              \

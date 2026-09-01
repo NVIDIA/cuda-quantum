@@ -7,10 +7,10 @@ cudaq.set_target("quantum_machines",
                  url="http://host.docker.internal:8000",
                  #url="http://172.16.32.154:8000",
                  #api_key="1234567890",
-                 qubit_mapping_mode="backend",
+                 #qubit_mapping_mode="backend",
                  #qubit_mapping_mode="local_file",
-                 #qubit_mapping_mode="local_get_latest",
-                 executor="sim")
+                 qubit_mapping_mode="local_get_latest",
+                 executor="iqcc")
 
 qubit_count = 5
 
@@ -19,17 +19,13 @@ qubit_count = 5
 @cudaq.kernel
 def all_h():
     qvector = cudaq.qvector(qubit_count)
-    reset(qvector)
 
-    for i in range(8):
-        #h(qvector[i])
-        h(qvector[0])
-        h(qvector[1])
-        h(qvector[2])
-    # mz(qvector[0])
-    # mz(qvector[0])
+    #reset(qvector)
+    for i in range(5):
+        h(qvector[i])
+    x.ctrl(qvector[0], qvector[1])
+    x.ctrl(qvector[2], qvector[3])
 
-    #rz(math.pi / 2, qvector[0])
 
 # Define the Hamiltonian (Observable)
 #hamiltonian = 5.0 * cudaq.spin.z(0)
@@ -38,13 +34,6 @@ def all_h():
 #result = cudaq.observe(all_h, hamiltonian)
 #print(f"Expectation Value: {result.expectation()}")
 
-@cudaq.kernel
-def reset_and_x(count: int):
-    qvector = cudaq.qvector(count)
-    reset(qvector)
-
-    for i in range(count):
-        x(qvector[i])
-
 # Submit synchronously
-cudaq.sample(reset_and_x, 5, shots_count=100).dump()
+cudaq.sample(all_h, shots_count=100).dump()
+

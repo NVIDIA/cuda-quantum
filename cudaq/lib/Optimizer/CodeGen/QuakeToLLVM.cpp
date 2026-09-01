@@ -467,6 +467,40 @@ public:
   }
 };
 
+/// Lower the quake.wait op to QIR. QIR has no standard wait/delay intrinsic,
+/// so this emits a call to a custom `__quantum__qis__wait(double, Qubit*)`
+/// entry point that a QIR-consuming backend must provide.
+class WaitRewrite : public ConvertOpToLLVMPattern<cudaq::quake::WaitOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::WaitOp instOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = instOp.getLoc();
+    auto parentModule = instOp->getParentOfType<ModuleOp>();
+    auto context = parentModule->getContext();
+    std::string instName = instOp->getName().stripDialect().str();
+
+    auto qirFunctionName = cudaq::opt::QIRQISPrefix + instName;
+    auto qirQubitPointerType = cudaq::cg::getLLVMQubitType(context);
+    auto paramType = rewriter.getF64Type();
+
+    auto qirFunctionSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        qirFunctionName, LLVM::LLVMVoidType::get(context),
+        {paramType, qirQubitPointerType}, parentModule);
+
+    Value duration = adaptor.getDuration();
+    if (duration.getType().getIntOrFloatBitWidth() < 64)
+      duration = arith::ExtFOp::create(rewriter, loc, paramType, duration);
+
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        instOp, TypeRange{}, qirFunctionSymbolRef,
+        ValueRange{duration, adaptor.getTargets()});
+    return success();
+  }
+};
+
 /// Lower exp_pauli(f64, veq, cc.string) to __quantum__qis__exp_pauli
 class ExpPauliRewrite
     : public ConvertOpToLLVMPattern<cudaq::quake::ExpPauliOp> {
@@ -1466,8 +1500,8 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
       OneTargetOneParamRewrite<cudaq::quake::RzOp>,
       OneTargetTwoParamRewrite<cudaq::quake::U2Op>,
       OneTargetThreeParamRewrite<cudaq::quake::U3Op>, QmemRAIIOpRewrite,
-      ResetRewrite, SubveqOpRewrite, TwoTargetRewrite<cudaq::quake::SwapOp>>(
-      typeConverter);
+      ResetRewrite, WaitRewrite, SubveqOpRewrite,
+      TwoTargetRewrite<cudaq::quake::SwapOp>>(typeConverter);
   patterns.insert<MeasureRewrite<cudaq::quake::MzOp>>(typeConverter,
                                                       measureCounter);
 }

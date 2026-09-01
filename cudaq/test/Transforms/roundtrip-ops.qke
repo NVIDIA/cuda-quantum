@@ -168,6 +168,13 @@ func.func @quantum_ops() {
 
   %54 = quake.create_state %49, %i8 : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
   quake.delete_state %54: !cc.ptr<!quake.state>
+
+  // Wait
+  %dur = arith.constant 1.0 : f64
+  quake.wait (%dur) %4 : (f64, !quake.ref) -> ()
+  %55 = quake.unwrap %4 : (!quake.ref) -> !quake.wire
+  %56 = quake.wait (%dur) %55 : (f64, !quake.wire) -> !quake.wire
+  quake.wrap %56 to %4 : !quake.wire, !quake.ref
   return
 }
 
@@ -296,6 +303,11 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 // CHECK:           %[[VAL_66:.*]] = quake.init_state %[[VAL_65]], %[[VAL_63]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 // CHECK:           %[[VAL_67:.*]] = quake.create_state %[[VAL_62]], %[[VAL_61]] : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
 // CHECK:           quake.delete_state %[[VAL_67]] : !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_68:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           quake.wait (%[[VAL_68]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_69:.*]] = quake.unwrap %[[VAL_5]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[VAL_70:.*]] = quake.wait (%[[VAL_68]]) %[[VAL_69]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[VAL_70]] to %[[VAL_5]] : !quake.wire, !quake.ref
 // CHECK:           return
 // CHECK:         }
 

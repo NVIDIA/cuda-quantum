@@ -219,6 +219,26 @@ struct ResetRewrite : OpConversionPattern<cudaq::quake::ResetOp> {
   }
 };
 
+/// Like `reset`, `wait` isn't a `QuakeOperator`, so it can't go through
+/// `GeneralRewrite`. QIR has no standard wait/delay intrinsic; this calls a
+/// custom `__quantum__qis__wait__body(double, Qubit*)` entry point that a
+/// QIR-consuming backend must provide.
+struct WaitRewrite : OpConversionPattern<cudaq::quake::WaitOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::WaitOp wait, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Value> qubits{adaptor.getTargets()};
+    auto loc = wait.getLoc();
+    std::string funcName = toQisBodyName(std::string("wait"));
+    func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
+                         adaptor.getOperands());
+    rewriter.replaceOp(wait, qubits);
+    return success();
+  }
+};
+
 struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -472,7 +492,8 @@ struct WireSetToProfileQIRPass
         GeneralRewrite<cudaq::quake::R1Op>, GeneralRewrite<cudaq::quake::U3Op>,
         GeneralRewrite<cudaq::quake::SwapOp>,
         GeneralRewrite<cudaq::quake::PhasedRxOp>, BorrowWireRewrite,
-        ResetRewrite, ReturnWireRewrite>(quakeTypeConverter, context);
+        ResetRewrite, WaitRewrite, ReturnWireRewrite>(quakeTypeConverter,
+                                                       context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
                                resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";

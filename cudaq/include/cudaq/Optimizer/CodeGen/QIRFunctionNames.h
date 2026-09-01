@@ -23,6 +23,8 @@ static constexpr const char QIRMeasureHandleToRegister[] =
     "__quantum__qis__mz_handle__to__register";
 static constexpr const char QIRResetBody[] = "__quantum__qis__reset__body";
 static constexpr const char QIRReset[] = "__quantum__qis__reset";
+static constexpr const char QIRWaitBody[] = "__quantum__qis__wait__body";
+static constexpr const char QIRWait[] = "__quantum__qis__wait";
 
 static constexpr const char QIRCnot[] = "__quantum__qis__cnot__body";
 static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
