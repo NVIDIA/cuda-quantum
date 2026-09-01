@@ -1,0 +1,23 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+@LIT_SITE_CFG_IN_HEADER@
+
+import os
+
+config.llvm_tools_dir = "@LLVM_TOOLS_BINARY_DIR@"
+config.qlx_tools_dir = "@QLX_TOOLS_DIR@"
+config.qlx_src_dir = "@PROJECT_SOURCE_DIR@"
+config.qlx_build_dir = "@PROJECT_BINARY_DIR@"
+config.filecheck_path = "@FILECHECK_PATH@"
+config.python_executable = "@Python3_EXECUTABLE@"
+config.qlx_python_dir = "@QLX_PYTHON_DIR@"
+config.test_exec_root = os.path.join(config.qlx_build_dir, "test")
+
+# Let the main config do the real work.
+lit_config.load_config(config, os.path.join(config.qlx_src_dir, "test", "lit.cfg.py"))

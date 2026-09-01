@@ -1,0 +1,16 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# REQUIRES: qlx-python
+# RUN: %python %S/Inputs/to_pbc_mask_boundary.py boundary | FileCheck %s --check-prefix=BOUNDARY
+# RUN: not %python %S/Inputs/to_pbc_mask_boundary.py rotation-overflow 2>&1 | FileCheck %s --check-prefix=ROTATION
+# RUN: not %python %S/Inputs/to_pbc_mask_boundary.py measurement-overflow 2>&1 | FileCheck %s --check-prefix=MEASUREMENT
+
+# BOUNDARY: 63-bit rotation and measurement masks are representable
+# ROTATION: qlx-to-pbc cannot encode Pauli-product rotation support of 64 operands in nonnegative i64 Pauli masks; maximum is 63
+# MEASUREMENT: qlx-to-pbc cannot encode Pauli-product measurement support of 64 operands in nonnegative i64 Pauli masks; maximum is 63

@@ -58,6 +58,9 @@ compile_commands.json
 **/*.dat
 **/.antlr
 __pycache__/
+.pytest_cache/
+pytest-of-*/
+.codegraph/
 
 # IDE files
 .vscode/*
