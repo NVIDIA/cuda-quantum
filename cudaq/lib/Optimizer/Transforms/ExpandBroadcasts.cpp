@@ -62,15 +62,19 @@ struct ExpandBroadcastsPass
   void runOnOperation() override {
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<
-        ExpandBroadcastPat<cudaq::quake::HOp>,
-        ExpandBroadcastPat<cudaq::quake::PhasedRxOp>,
-        ExpandBroadcastPat<cudaq::quake::R1Op>, ExpandBroadcastPat<cudaq::quake::RxOp>,
-        ExpandBroadcastPat<cudaq::quake::RyOp>, ExpandBroadcastPat<cudaq::quake::RzOp>,
-        ExpandBroadcastPat<cudaq::quake::SOp>, ExpandBroadcastPat<cudaq::quake::TOp>,
-        ExpandBroadcastPat<cudaq::quake::U2Op>, ExpandBroadcastPat<cudaq::quake::U3Op>,
-        ExpandBroadcastPat<cudaq::quake::XOp>, ExpandBroadcastPat<cudaq::quake::YOp>,
-        ExpandBroadcastPat<cudaq::quake::ZOp>>(ctx);
+    patterns.insert<ExpandBroadcastPat<cudaq::quake::HOp>,
+                    ExpandBroadcastPat<cudaq::quake::PhasedRxOp>,
+                    ExpandBroadcastPat<cudaq::quake::R1Op>,
+                    ExpandBroadcastPat<cudaq::quake::RxOp>,
+                    ExpandBroadcastPat<cudaq::quake::RyOp>,
+                    ExpandBroadcastPat<cudaq::quake::RzOp>,
+                    ExpandBroadcastPat<cudaq::quake::SOp>,
+                    ExpandBroadcastPat<cudaq::quake::TOp>,
+                    ExpandBroadcastPat<cudaq::quake::U2Op>,
+                    ExpandBroadcastPat<cudaq::quake::U3Op>,
+                    ExpandBroadcastPat<cudaq::quake::XOp>,
+                    ExpandBroadcastPat<cudaq::quake::YOp>,
+                    ExpandBroadcastPat<cudaq::quake::ZOp>>(ctx);
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
