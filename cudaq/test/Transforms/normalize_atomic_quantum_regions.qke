@@ -1,0 +1,206 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --normalize-atomic-quantum-regions %s | FileCheck %s
+
+// A `quake.alloca` found directly in the body of an `atomic_quantum_region`
+// `cc.scope` is hoisted into a new, plain wrapping `cc.scope`. Its paired
+// `quake.dealloc` sinks alongside it, after the (now-nested) atomic scope.
+
+func.func @basic_hoist() {
+  cc.scope {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    cc.continue
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @basic_hoist() {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:             cc.scope atomic {
+// CHECK:               quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:             }
+// CHECK:             quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// A measurement, and the transitive closure of every op that consumes its
+// result, also sinks out of the atomic scope, in original relative order
+// with the dealloc.
+
+func.func @with_measurement() -> i64 {
+  %total = cc.alloca i64
+  cc.scope {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    %m = quake.mz %q : (!quake.ref) -> !quake.measure
+    %b = quake.discriminate %m : (!quake.measure) -> i1
+    %i = cc.cast unsigned %b : (i1) -> i64
+    cc.store %i, %total : !cc.ptr<i64>
+    quake.dealloc %q : !quake.ref
+    cc.continue
+  } {atomic_quantum_region}
+  %r = cc.load %total : !cc.ptr<i64>
+  return %r : i64
+}
+
+// CHECK-LABEL:   func.func @with_measurement() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i64
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:             cc.scope atomic {
+// CHECK:               quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:             }
+// CHECK:             %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:             %[[VAL_4:.*]] = cc.cast unsigned %[[VAL_3]] : (i1) -> i64
+// CHECK:             cc.store %[[VAL_4]], %[[VAL_0]] : !cc.ptr<i64>
+// CHECK:             quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK:           }
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i64>
+// CHECK:           return %[[VAL_5]] : i64
+// CHECK:         }
+
+// A user of the measurement result that is itself a direct child of the
+// atomic scope's block (e.g. a `cc.if`) sinks as a whole, carrying its
+// nested body with it.
+
+func.func @nested_use() {
+  cc.scope {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    %m = quake.mz %q : (!quake.ref) -> !quake.measure
+    %b = quake.discriminate %m : (!quake.measure) -> i1
+    cc.if(%b) {
+      quake.x %q : (!quake.ref) -> ()
+      cc.continue
+    }
+    quake.dealloc %q : !quake.ref
+    cc.continue
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @nested_use() {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:             cc.scope atomic {
+// CHECK:               quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:             }
+// CHECK:             %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
+// CHECK:             cc.if(%[[VAL_2]]) {
+// CHECK:               quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:             }
+// CHECK:             quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// A user of the measurement result that is nested *inside* another op's
+// body (rather than that containing op itself being a direct consumer)
+// cannot be soundly extracted alone, so the whole atomic scope is left
+// unmodified.
+
+func.func @nested_use_bail(%cond: i1) {
+  cc.scope {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    %m = quake.mz %q : (!quake.ref) -> !quake.measure
+    %b = quake.discriminate %m : (!quake.measure) -> i1
+    cc.if(%cond) {
+      %y = arith.andi %b, %cond : i1
+      cc.continue
+    }
+    quake.dealloc %q : !quake.ref
+    cc.continue
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @nested_use_bail(
+// CHECK-SAME:                               %[[VAL_0:.*]]: i1) {
+// CHECK:           cc.scope atomic {
+// CHECK:             %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:             quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:             cc.if(%[[VAL_0]]) {
+// CHECK:               %[[VAL_4:.*]] = arith.andi %[[VAL_3]], %[[VAL_0]] : i1
+// CHECK:             }
+// CHECK:             quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// This pass only reasons about reference-semantics Quake IR. An atomic
+// scope containing any value-semantics (wire) op is left unmodified.
+
+func.func @mixed_semantics_voidscope(%w0: !quake.wire) {
+  cc.scope {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    %w1 = quake.h %w0 : (!quake.wire) -> !quake.wire
+    cc.continue
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @mixed_semantics_voidscope(
+// CHECK-SAME:                                          %[[VAL_0:.*]]: !quake.wire) {
+// CHECK:           cc.scope atomic {
+// CHECK:             %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:             quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:             quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK:             %[[VAL_2:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// A `cc.scope` producing a result is left unmodified for now.
+
+func.func @nonzero_result(%w0: !quake.wire) -> !quake.wire {
+  %r = cc.scope -> (!quake.wire) {
+    %w1 = quake.h %w0 : (!quake.wire) -> !quake.wire
+    cc.continue %w1 : !quake.wire
+  } {atomic_quantum_region}
+  return %r : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @nonzero_result(
+// CHECK-SAME:                              %[[VAL_0:.*]]: !quake.wire) -> !quake.wire {
+// CHECK:           %[[VAL_1:.*]] = cc.scope -> (!quake.wire) atomic {
+// CHECK:             %[[VAL_2:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[VAL_2]] : !quake.wire
+// CHECK:           }
+// CHECK:           return %[[VAL_1]] : !quake.wire
+// CHECK:         }
+
+// An atomic scope with no `quake.alloca` in its body has nothing to hoist
+// and is left unmodified.
+
+func.func @no_alloca(%q: !quake.ref) {
+  cc.scope {
+    quake.h %q : (!quake.ref) -> ()
+    cc.continue
+  } {atomic_quantum_region}
+  return
+}
+
+// CHECK-LABEL:   func.func @no_alloca(
+// CHECK-SAME:                         %[[VAL_0:.*]]: !quake.ref) {
+// CHECK:           cc.scope atomic {
+// CHECK:             quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }

@@ -174,19 +174,19 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK-LABEL:   func.func @preserve_atomic_scope_entry() {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[H_1:.*]] = quake.h %[[H_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[H_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           quake.sink %[[SCOPE_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @simplify_inside_atomic_scope(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             cc.continue %[[ARG0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return %[[SCOPE_0]] : !quake.wire
 // CHECK:         }
 
@@ -220,14 +220,14 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 
 // CHECK-LABEL:   func.func @nested_atomic_scopes_block(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[H_0:.*]] = quake.h %[[ARG0]] : (!quake.wire) -> !quake.wire
-// CHECK:             %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:             %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:               %[[H_1:.*]] = quake.h %[[H_0]] : (!quake.wire) -> !quake.wire
 // CHECK:               cc.continue %[[H_1]] : !quake.wire
-// CHECK:             } {atomic_quantum_region}
+// CHECK:             }
 // CHECK:             cc.continue %[[SCOPE_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return %[[SCOPE_0]] : !quake.wire
 // CHECK:         }
 
@@ -235,10 +235,10 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK-NEXT:      %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK-NEXT:      %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK-NEXT:      %[[X_0:.*]] = quake.x %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
-// CHECK-NEXT:      %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK-NEXT:        %[[H_0:.*]] = quake.h %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
 // CHECK-NEXT:        cc.continue %[[H_0]] : !quake.wire
-// CHECK-NEXT:      } {atomic_quantum_region}
+// CHECK-NEXT:      }
 // CHECK-NEXT:      %[[X_1:.*]] = quake.x %[[X_0]] : (!quake.wire) -> !quake.wire
 // CHECK-NEXT:      return %[[X_1]], %[[SCOPE_0]] : !quake.wire, !quake.wire
 // CHECK-NEXT:    }
@@ -246,23 +246,23 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK-LABEL:   func.func @conditional_region_stops_rewrite(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire,
 // CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i1) {
-// CHECK:           cc.scope {
+// CHECK:           cc.scope atomic {
 // CHECK:             %[[H_0:.*]] = quake.h %[[ARG0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.if(%[[ARG1]]) {
 // CHECK:               %[[H_1:.*]] = quake.h %[[H_0]] : (!quake.wire) -> !quake.wire
 // CHECK:               quake.sink %[[H_1]] : !quake.wire
 // CHECK:             }
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @marked_scope_use_prevents_outside_rewrite(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
 // CHECK:           %[[H_0:.*]] = quake.h %[[ARG0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[X_0:.*]] = quake.x %[[H_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[X_0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           %[[H_1:.*]] = quake.h %[[H_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           return %[[SCOPE_0]], %[[H_1]] : !quake.wire, !quake.wire
 // CHECK:         }
@@ -271,10 +271,10 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire,
 // CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
 // CHECK:           %[[SWAP_0:.*]]:2 = quake.swap %[[ARG0]], %[[ARG1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[SCOPE_0:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) atomic {
 // CHECK:             %[[SWAP_1:.*]]:2 = quake.swap %[[SWAP_0]]#1, %[[SWAP_0]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:             cc.continue %[[SWAP_1]]#0, %[[SWAP_1]]#1 : !quake.wire, !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return %[[SCOPE_0]]#0, %[[SCOPE_0]]#1 : !quake.wire, !quake.wire
 // CHECK:         }
 
@@ -285,12 +285,12 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK:           %[[S_0:.*]] = quake.s %[[ARG0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[S_1:.*]] = quake.s %[[ARG1]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[T_0:.*]] = quake.t %[[ARG2]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[SCOPE_0:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) atomic {
 // CHECK:             %[[S_2:.*]] = quake.s<adj> %[[S_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             %[[S_3:.*]] = quake.s %[[S_1]] : (!quake.wire) -> !quake.wire
 // CHECK:             %[[T_1:.*]] = quake.t %[[T_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[S_2]], %[[S_3]], %[[T_1]] : !quake.wire, !quake.wire, !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return %[[SCOPE_0]]#0, %[[SCOPE_0]]#1, %[[SCOPE_0]]#2 : !quake.wire, !quake.wire, !quake.wire
 // CHECK:         }
 
@@ -299,21 +299,21 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1.000000e+00 : f64
 // CHECK:           %[[CONSTANT_1:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK:           %[[RX_0:.*]] = quake.rx (%[[CONSTANT_0]]) %[[ARG0]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[RX_1:.*]] = quake.rx (%[[CONSTANT_1]]) %[[RX_0]] : (f64, !quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[RX_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return %[[SCOPE_0]] : !quake.wire
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @preserve_ysx_at_atomic_entry(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> !quake.wire {
 // CHECK:           %[[Y_0:.*]] = quake.y %[[ARG0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[S_0:.*]] = quake.s %[[Y_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             %[[X_0:.*]] = quake.x %[[S_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[X_0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return %[[SCOPE_0]] : !quake.wire
 // CHECK:         }
 
@@ -321,18 +321,18 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire,
 // CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
 // CHECK:           %[[RESET_0:.*]] = quake.reset %[[ARG0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[RESET_1:.*]] = quake.reset %[[RESET_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[RESET_1]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
-// CHECK:           %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_1:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[RESET_2:.*]] = quake.reset %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[RESET_2]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           %[[RESET_3:.*]] = quake.reset %[[ARG1]] : (!quake.wire) -> !quake.wire
-// CHECK:           cc.scope {
+// CHECK:           cc.scope atomic {
 // CHECK:             quake.sink %[[RESET_3]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           return %[[SCOPE_0]], %[[SCOPE_1]] : !quake.wire, !quake.wire
 // CHECK:         }

@@ -290,7 +290,7 @@ func.func @scope_entry_alias(%idx: i64) {
 // CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[Y_0:.*]] = quake.y %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
 // CHECK:           quake.wrap %[[Y_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
-// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (!quake.wire) atomic {
 // CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<1>, i64) -> !quake.ref
 // CHECK:             %[[UNWRAP_2:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
 // CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
@@ -298,7 +298,7 @@ func.func @scope_entry_alias(%idx: i64) {
 // CHECK:             %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
 // CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_3]] : (!quake.wire) -> !quake.wire
 // CHECK:             cc.continue %[[X_0]] : !quake.wire
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           quake.sink %[[SCOPE_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
