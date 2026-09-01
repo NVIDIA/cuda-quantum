@@ -2005,6 +2005,15 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
+def VerifyNoCFG : Pass<"verify-no-cfg", "mlir::func::FuncOp"> {
+  let summary = "Reject functions that contain CFG branch operations.";
+  let description = [{
+    Reject a function if it contains `cf.br` or `cf.cond_br`. Targets that
+    require structured control flow can add this pass to their pipeline after
+    argument synthesis and canonicalization have removed dead branches.
+  }];
+}
+
 def UnwindByDataFlow : Pass<"unwind-by-dataflow", "mlir::func::FuncOp"> {
   let summary = "Lower unwind control-flow macros to data-flow flag variables.";
   let description = [{
