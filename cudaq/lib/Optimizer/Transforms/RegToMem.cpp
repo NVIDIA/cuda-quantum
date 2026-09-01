@@ -580,11 +580,10 @@ public:
         ctx, analysis, allocas);
     patterns.insert<EraseWiresBranch, EraseWiresCondBranch>(ctx, fixupBlocks);
     ConversionTarget target(*ctx);
-    target
-        .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                               cudaq::quake::WaitOp, cf::BranchOp,
-                               cf::CondBranchOp, cudaq::cc::IfOp>(
-            [&](Operation *op) { return hasNoWires(op); });
+    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
+                                 cudaq::quake::WaitOp, cf::BranchOp,
+                                 cf::CondBranchOp, cudaq::cc::IfOp>(
+        [&](Operation *op) { return hasNoWires(op); });
     target.addIllegalOp<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>();
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::DeallocOp>();
     target.addLegalDialect<cudaq::cc::CCDialect>();

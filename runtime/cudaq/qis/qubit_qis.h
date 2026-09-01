@@ -473,7 +473,7 @@ inline void reset(qubit &q) {
 }
 
 /// `wait` idles a qubit for `duration` microseconds. It is not
-/// controllable/adjointable, so it is a plain templated free function rather
+/// controllable/`adjointable`, so it is a plain templated free function rather
 /// than going through the `CUDAQ_QIS_PARAM_ONE_TARGET_` macro.
 template <typename ScalarDuration>
 void wait(ScalarDuration duration, qubit &q) {

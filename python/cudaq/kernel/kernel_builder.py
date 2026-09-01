@@ -1145,8 +1145,7 @@ class PyKernel(object):
                 return
             else:
                 emitFatalError(
-                    'wait operation broadcasting on qvector not supported yet.'
-                )
+                    'wait operation broadcasting on qvector not supported yet.')
 
     def __measure(self, opClass, target, regName):
         """Common implementation for `mz` / `mx` / `my`. Emits the measurement

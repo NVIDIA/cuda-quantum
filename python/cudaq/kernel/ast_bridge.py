@@ -3346,17 +3346,14 @@ class PyASTBridge(ast.NodeVisitor):
                 # forwards a `controls` list right before `targets`), so
                 # `wait` is constructed directly here instead, mirroring
                 # `processQuantumOperation`'s target-checking/broadcast logic.
-                duration, targets = self.__groupValues(
-                    node.args, [1, (1, -1)])
+                duration, targets = self.__groupValues(node.args, [1, (1, -1)])
                 duration = self.changeOperandToType(self.getFloatType(),
                                                     duration)
 
                 def isQvecOrQubits(vals):
-                    return (all(
-                        quake.RefType.isinstance(v.type)
-                        for v in vals)) or (len(vals) == 1 and
-                                            quake.VeqType.isinstance(
-                                                vals[0].type))
+                    return (all(quake.RefType.isinstance(v.type) for v in vals)
+                           ) or (len(vals) == 1 and
+                                 quake.VeqType.isinstance(vals[0].type))
 
                 if not isQvecOrQubits(targets):
                     self.emitFatalError(
@@ -4494,8 +4491,9 @@ class PyASTBridge(ast.NodeVisitor):
                             process_void_list()
                             return None
                         return resTy
-                    if self.__isUnitaryGate(pyval.func.id) or pyval.func.id in (
-                            'reset', 'wait'):
+                    if self.__isUnitaryGate(
+                            pyval.func.id) or pyval.func.id in ('reset',
+                                                                'wait'):
                         process_void_list()
                         return None
                     if self.__isMeasurementGate(pyval.func.id):

@@ -570,11 +570,11 @@ void cudaq::opt::setQuakeToCCLegality(ConversionTarget &target) {
       cudaq::quake::DiscriminateOp, cudaq::quake::ExtractRefOp,
       cudaq::quake::VeqSizeOp, cudaq::quake::MzOp, cudaq::quake::ResetOp,
       cudaq::quake::WaitOp, cudaq::quake::SubVeqOp, cudaq::quake::HOp,
-      cudaq::quake::PhasedRxOp,
-      cudaq::quake::R1Op, cudaq::quake::RxOp, cudaq::quake::RyOp,
-      cudaq::quake::RzOp, cudaq::quake::SOp, cudaq::quake::SwapOp,
-      cudaq::quake::TOp, cudaq::quake::U2Op, cudaq::quake::U3Op,
-      cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>();
+      cudaq::quake::PhasedRxOp, cudaq::quake::R1Op, cudaq::quake::RxOp,
+      cudaq::quake::RyOp, cudaq::quake::RzOp, cudaq::quake::SOp,
+      cudaq::quake::SwapOp, cudaq::quake::TOp, cudaq::quake::U2Op,
+      cudaq::quake::U3Op, cudaq::quake::XOp, cudaq::quake::YOp,
+      cudaq::quake::ZOp>();
   target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                          cf::ControlFlowDialect, func::FuncDialect,
                          LLVM::LLVMDialect>();

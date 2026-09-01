@@ -493,7 +493,7 @@ struct WireSetToProfileQIRPass
         GeneralRewrite<cudaq::quake::SwapOp>,
         GeneralRewrite<cudaq::quake::PhasedRxOp>, BorrowWireRewrite,
         ResetRewrite, WaitRewrite, ReturnWireRewrite>(quakeTypeConverter,
-                                                       context);
+                                                      context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
                                resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";

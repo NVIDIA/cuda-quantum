@@ -627,8 +627,8 @@ public:
     auto opnd = op.getTargets();
     assert(opnd.getType() == cudaq::quake::RefType::get(rewriter.getContext()));
     Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
-    auto newOp = cudaq::quake::WaitOp::create(
-        rewriter, loc, TypeRange{wireTy}, op.getDuration(), target);
+    auto newOp = cudaq::quake::WaitOp::create(rewriter, loc, TypeRange{wireTy},
+                                              op.getDuration(), target);
     rewriter.replaceOpWithNewOp<cudaq::quake::WrapOp>(op, newOp.getResult(0),
                                                       opnd);
     return success();
