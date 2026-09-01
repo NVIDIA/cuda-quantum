@@ -4745,7 +4745,8 @@ class PyASTBridge(ast.NodeVisitor):
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
                 veq1_ty = quake.VeqType.get(1, context=self.ctx)
 
-                # Build and record the set of indices described by the list comprehension itself.
+                # Build and record the set of indices described by the list
+                # comprehension itself.
                 idxBufTy = cc.PointerType.get(cc.ArrayType.get(i64Ty))
                 idxBuf = cc.AllocaOp(idxBufTy,
                                      TypeAttr.get(i64Ty),
@@ -4786,7 +4787,11 @@ class PyASTBridge(ast.NodeVisitor):
                     lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
                 matchCount = collect.results[1]
 
-                # Construct the veq from the list comprehension set. If the set is empty then the veq is poison. This is a bug in the user's code that neither the bridge nor the compiler will paper over. Otherwise the set is used to drive a `quake.concat` chain seeded from the first match.
+                # Construct the `veq` from the list comprehension set. If the
+                # set is empty then the `veq` is poison. This is a bug in the
+                # user's code that neither the bridge nor the compiler will
+                # paper over. Otherwise the set is used to drive a
+                # `quake.concat` chain seeded from the first match.
                 hasMatch = arith.CmpIOp(IntegerAttr.get(i64Ty, 4), matchCount,
                                         c0).result
                 ifMatchOp = cc.IfOp([veqTy], hasMatch, [])
@@ -5358,7 +5363,7 @@ class PyASTBridge(ast.NodeVisitor):
                         innerIterNode.func.id == 'range'):
                     # `enumerate(range(...))` never needs a buffer either:
                     # drive the loop directly off the range bounds (as
-                    # above) and derive enumerate's 0-based index from the
+                    # above) and derive `enumerate's` 0-based index from the
                     # loop variable arithmetically, since `step` is always a
                     # compile-time constant. FIXME: handle `start` argument.
                     iterable = None
