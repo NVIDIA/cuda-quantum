@@ -37,6 +37,38 @@ func.func @loop() {
 // CHECK:           return
 // CHECK:         }
 
+// A loop over a statically-sized subveq rolls into one operation on the
+// subveq.
+func.func @loop_subveq() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c3 = arith.constant 3 : i64
+  %0 = quake.alloca !quake.veq<6>
+  %sub = quake.subveq %0, 2, 4 : (!quake.veq<6>) -> !quake.veq<3>
+  %1 = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = quake.extract_ref %sub[%i] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.h %e : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %n = arith.addi %i, %c1 : i64
+    cc.continue %n : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @loop_subveq() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           %[[VAL_1:.*]] = quake.subveq %[[VAL_0]], 2, 4 : (!quake.veq<6>) -> !quake.veq<3>
+// CHECK:           quake.h %[[VAL_1]] : (!quake.veq<3>) -> ()
+// CHECK-NOT:       cc.loop
+// CHECK:           return
+// CHECK:         }
+
 // A parameter defined outside the loop is preserved.
 func.func @parameters(%angle: f64) {
   %c0 = arith.constant 0 : i64
