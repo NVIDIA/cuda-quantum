@@ -243,3 +243,49 @@ func.func @arm_with_op() -> !quake.wire {
 // CHECK:           }
 // CHECK:           return %[[VAL_2]] : !quake.wire
 // CHECK:         }
+
+// The while region of a cc.loop holds a single block, so a multi-exit region
+// cannot be stitched into it and the cc.if is left alone.
+
+func.func private @side() -> i1
+
+func.func @in_while(%arg : i1) {
+  %0 = arith.constant true
+  cc.loop while {
+    cc.if (%0) {
+      cf.cond_br %arg, ^bb1, ^bb2
+    ^bb1:
+      %1 = func.call @side() : () -> i1
+      cc.continue
+    ^bb2:
+      cc.continue
+    }
+    %2 = func.call @side() : () -> i1
+    cc.condition %2
+  } do {
+    %3 = func.call @side() : () -> i1
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @in_while(
+// CHECK-SAME:      %[[VAL_0:.*]]: i1) {
+// CHECK:           %[[VAL_1:.*]] = arith.constant true
+// CHECK:           cc.loop while {
+// CHECK:             cc.if(%[[VAL_1]]) {
+// CHECK:               cf.cond_br %[[VAL_0]], ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               %[[VAL_2:.*]] = func.call @side() : () -> i1
+// CHECK:               cc.continue
+// CHECK:             ^bb2:
+// CHECK:               cc.continue
+// CHECK:             }
+// CHECK:             %[[VAL_3:.*]] = func.call @side() : () -> i1
+// CHECK:             cc.condition %[[VAL_3]]
+// CHECK:           } do {
+// CHECK:             %[[VAL_4:.*]] = func.call @side() : () -> i1
+// CHECK:             cc.continue
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }

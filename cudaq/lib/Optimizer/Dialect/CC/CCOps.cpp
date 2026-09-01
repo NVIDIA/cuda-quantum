@@ -2500,6 +2500,19 @@ LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
 }
 
 namespace {
+// Can \p region hold more than one block? Some regions are restricted to a
+// single block, either by trait or by an ODS size constraint on the parent op.
+static bool takesMultipleBlocks(Region &region) {
+  if (!mayHaveSSADominance(region))
+    return false;
+  Operation *parent = region.getParentOp();
+  if (auto loop = dyn_cast<cudaq::cc::LoopOp>(parent))
+    return &region == &loop.getBodyRegion() ||
+           &region == &loop.getElseRegion();
+  return isa<func::FuncOp, cudaq::cc::IfOp, cudaq::cc::ScopeOp,
+             cudaq::cc::CreateLambdaOp>(parent);
+}
+
 struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
   using Base = OpRewritePattern<cudaq::cc::IfOp>;
   using Base::Base;
@@ -2549,7 +2562,10 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
     }
 
     // General case: the region has multiple exits, so split the parent block at
-    // the cc.if and stitch the region in with branches.
+    // the cc.if and stitch the region in with branches. That requires that the
+    // region containing the cc.if can hold more than one block.
+    if (!takesMultipleBlocks(*ifOp->getParentRegion()))
+      return failure();
     auto *ifBlock = rewriter.getInsertionBlock();
     auto *splitBlock =
         rewriter.splitBlock(ifBlock, rewriter.getInsertionPoint());
