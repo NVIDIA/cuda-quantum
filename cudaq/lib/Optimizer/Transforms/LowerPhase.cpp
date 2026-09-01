@@ -68,42 +68,6 @@ static bool isScalarGateTarget(Value value) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(value.getType());
 }
 
-static Value getReferenceAnchor(Value anchor) {
-  if (auto unwrap = anchor.getDefiningOp<cudaq::quake::UnwrapOp>())
-    return unwrap.getRefValue();
-  return anchor;
-}
-
-static bool aggregateContainsReference(Value aggregate, Value reference) {
-  if (aggregate == reference)
-    return true;
-  if (auto relax = aggregate.getDefiningOp<cudaq::quake::RelaxSizeOp>())
-    return aggregateContainsReference(relax.getInputVec(), reference);
-  if (auto concat = aggregate.getDefiningOp<cudaq::quake::ConcatOp>())
-    return llvm::any_of(concat.getTargets(), [&](Value member) {
-      return aggregateContainsReference(member, reference);
-    });
-  if (auto struq = aggregate.getDefiningOp<cudaq::quake::MakeStruqOp>())
-    return llvm::any_of(struq.getVeqs(), [&](Value member) {
-      return aggregateContainsReference(member, reference);
-    });
-  return false;
-}
-
-/// Return true for the direct alias forms that the anchored fallback can
-/// identify locally. The phase producer is otherwise responsible for choosing
-/// an anchor outside the control predicate.
-static bool isKnownAnchorControlAlias(Value anchor, Value control) {
-  Value referenceAnchor = getReferenceAnchor(anchor);
-  if (aggregateContainsReference(control, referenceAnchor))
-    return true;
-  auto extract = referenceAnchor.getDefiningOp<cudaq::quake::ExtractRefOp>();
-  if (extract && aggregateContainsReference(control, extract.getVeq()))
-    return true;
-  auto member = referenceAnchor.getDefiningOp<cudaq::quake::GetMemberOp>();
-  return member && aggregateContainsReference(control, member.getStruq());
-}
-
 static void lowerWithScalarControl(IRRewriter &rewriter,
                                    cudaq::quake::PhaseOp phase, Value angle,
                                    SmallVector<Value> controls,
@@ -217,7 +181,7 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   // as R1's scalar target. The anchored identity is exact on the full active
   // control branch and preserves the complete ordered predicate.
   for (Value control : predicate.controls)
-    if (isKnownAnchorControlAlias(phase.getTarget(), control)) {
+    if (cudaq::opt::mayPhaseAnchorAliasControl(phase.getTarget(), control)) {
       phase.emitOpError(
           "cannot lower with an anchor that aliases a control operand");
       return failure();

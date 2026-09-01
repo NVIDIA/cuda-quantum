@@ -136,7 +136,7 @@ __qpu__ bool keeps_measurement_data_loop() {
 // CHECK-NOT:       quake.concat
 // CHECK-NOT:       quake.extract_ref
 // CHECK:           %[[LOOP:.*]]:2 = cc.loop while
-// CHECK-SAME:        (i1, i32)
+// CHECK-SAME:        (i32, i1)
 // CHECK:             %[[PTR:.*]] = cc.compute_ptr %[[HANDLES]]{{\[}}%{{.*}}] : (!cc.ptr<!cc.array<!cc.measure_handle x 3>>, i64) -> !cc.ptr<!cc.measure_handle>
 // CHECK:             %[[HANDLE:.*]] = cc.load %[[PTR]] : !cc.ptr<!cc.measure_handle>
 // CHECK:             quake.discriminate %[[HANDLE]] : (!cc.measure_handle) -> i1
@@ -144,5 +144,5 @@ __qpu__ bool keeps_measurement_data_loop() {
 // CHECK:           quake.return_wire %[[W0]] : !quake.wire
 // CHECK:           quake.return_wire %[[W1]] : !quake.wire
 // CHECK:           quake.return_wire %[[W2]] : !quake.wire
-// CHECK:           return %[[LOOP]]#0 : i1
+// CHECK:           return %[[LOOP]]#1 : i1
 // clang-format on

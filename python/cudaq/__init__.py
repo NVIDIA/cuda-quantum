@@ -305,7 +305,7 @@ def set_target(target, **extra_config):
     Args:
       target: The CUDA-Q target, specified as a recognized target name (``str``)
         or a :class:`cudaq.Target` instance. Support for
-        instances of :class:`cudaq._experimental.CustomTarget` is experimental.
+        instances of ``cudaq._experimental.CustomTarget`` is experimental.
       **extra_config: Target-specific configuration for the named-target
         overload.
 
@@ -397,8 +397,11 @@ ComplexMatrix = cudaq_runtime.ComplexMatrix
 
 testing = cudaq_runtime.testing
 
-# target-specific
-orca = cudaq_runtime.orca
+# target-specific. The ORCA bindings are only compiled into the extension when
+# the ORCA target was built (CUDAQ_ENABLE_ORCA_BACKEND), so this must not be
+# assumed present: importing cudaq at all would otherwise fail on a build that
+# legitimately disabled it.
+orca = getattr(cudaq_runtime, "orca", None)
 
 # ============================================================================ #
 # Utility Functions
@@ -608,3 +611,11 @@ elif any(
     parse_args()
 else:
     cudaq_runtime.initialize_cudaq()
+
+warnings.warn(
+    "The CUDA-Q `sample` and `observe` algorithmic primitives will change in "
+    "a future release. Existing code may require updates. See "
+    "https://nvidia.github.io/cuda-quantum/latest/using/migration/"
+    "upcoming_changes.html for details.",
+    FutureWarning,
+    stacklevel=2)

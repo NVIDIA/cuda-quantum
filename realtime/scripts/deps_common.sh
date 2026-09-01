@@ -8,6 +8,25 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Retry a command, clearing package-manager metadata between attempts. The CUDA
+# yum repo CDN intermittently serves a stale repomd.xml that points at rotated
+# repodata files, producing 404s; clearing metadata forces a fresh fetch.
+function retry {
+  local n=0 max=5 delay=15
+  until "$@"; do
+    n=$((n+1))
+    if [ "$n" -ge "$max" ]; then
+      echo "Command failed after $max attempts: $*" >&2
+      return 1
+    fi
+    echo "Attempt $n/$max failed; clearing repo metadata and retrying in ${delay}s..." >&2
+    if [ -x "$(command -v dnf)" ]; then dnf clean all || true
+    elif [ -x "$(command -v apt-get)" ]; then apt-get clean || true; fi
+    sleep "$delay"
+  done
+}
+
+
 # Version pins and helpers shared by the CUDA-Q Realtime dependency scripts,
 # i.e., install_dev_prerequisites.sh (standard apt path) and install_devdeps.sh
 # (containers that already ship Mellanox OFED).
@@ -62,7 +81,8 @@ cudaq_realtime_cuda_native_arch() {
 # Register the DOCA host apt repository for this architecture and distro.
 cudaq_realtime_add_doca_repo() {
   if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v gpg)" ]; then
-    apt-get update && apt-get install -y --no-install-recommends curl gnupg
+    retry apt-get update
+    retry apt-get install -y --no-install-recommends curl gnupg
   fi
 
   echo "Installing DOCA version $CUDAQ_REALTIME_DOCA_VERSION..."
@@ -75,7 +95,7 @@ cudaq_realtime_add_doca_repo() {
   echo "Using DOCA_REPO_LINK=${DOCA_URL}"
   curl https://linux.mellanox.com/public/repo/doca/GPG-KEY-Mellanox.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
   echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
-  apt-get update
+  retry apt-get update
 }
 
 # Install the Holoscan SDK matching the CUDA toolkit in use. Set
@@ -84,8 +104,8 @@ cudaq_realtime_add_doca_repo() {
 # resolving the Holoscan dependency chain.
 cudaq_realtime_install_holoscan() {
   _cudaq_realtime_holoscan_cuda_major=$(cudaq_realtime_cuda_major) || return 1
-  apt-get update
-  if apt-get install -y --no-install-recommends \
+  retry apt-get update
+  if retry apt-get install -y --no-install-recommends \
     holoscan-cuda-$_cudaq_realtime_holoscan_cuda_major; then
     return 0
   fi
@@ -94,7 +114,7 @@ cudaq_realtime_install_holoscan() {
   fi
   _cudaq_realtime_holoscan_tmp=$(mktemp -d)
   (cd "$_cudaq_realtime_holoscan_tmp" &&
-    apt-get download holoscan holoscan-cuda-$_cudaq_realtime_holoscan_cuda_major &&
+    retry apt-get download holoscan holoscan-cuda-$_cudaq_realtime_holoscan_cuda_major &&
     dpkg --force-depends -i holoscan*.deb)
   _cudaq_realtime_holoscan_status=$?
   rm -rf "$_cudaq_realtime_holoscan_tmp"

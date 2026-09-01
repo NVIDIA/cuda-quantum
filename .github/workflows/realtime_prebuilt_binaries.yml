@@ -96,7 +96,8 @@ jobs:
     - name: Upload installer
       uses: actions/upload-artifact@v7
       with:
-        name: install_cuda_quantum_realtime_cu${{ inputs.cuda_version }}.${{ inputs.platform }} 
+        name: install_cuda_quantum_realtime_cu${{ inputs.cuda_version }}.${{ inputs.platform }}
         path: /tmp/install
-        retention-days: 1
+        # Validation fetches these from the Deployments run; must outlive it.
+        retention-days: 3
         if-no-files-found: error

@@ -60,6 +60,7 @@ static void createPrepareForWiresetPipeline(
     OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
     bool addWireset) {
   auto &funcPM = pm.nest<func::FuncOp>();
+  funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
   funcPM.addPass(cudaq::opt::createAddDeallocs());
   funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedLogOutput());
   funcPM.addPass(cudaq::opt::createExpandControlVeqs());
@@ -69,6 +70,12 @@ static void createPrepareForWiresetPipeline(
   funcPM.addPass(cudaq::opt::createLoopUnroll(loopUnrollOptions));
   funcPM.addPass(createCanonicalizerPass());
   funcPM.addPass(createCSEPass());
+  // Fold constant array element reads now that the loop is unrolled and the
+  // indices are constants. Kernels that interpret a captured gate array reach
+  // memtoreg with a dynamic `quake.extract_ref` index otherwise, and the
+  // register cannot be promoted to wires.
+  funcPM.addPass(cudaq::opt::createConstantPropagation());
+  funcPM.addPass(createCanonicalizerPass());
   // Classically scalarize and promote Pauli words for early exp_pauli
   // decomposition because quantum mem2reg cannot handle that operation.
   funcPM.addPass(cudaq::opt::createSROA());
@@ -180,7 +187,6 @@ createTargetCodegenPipeline(OpPassManager &pm,
   // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
   // to run this pass again to expand those negations.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
 
   cudaq::opt::addLowerToCFGAndCleanup(pm);
   ::addQIRConversionPipeline(pm, options.target);
@@ -315,7 +321,6 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addPass(createSymbolDCEPass());
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
   cudaq::opt::addLowerToCFGAndCleanup(pm);
 }
 
@@ -343,5 +348,4 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
-  pm.addPass(createVerifyNoPhase());
 }

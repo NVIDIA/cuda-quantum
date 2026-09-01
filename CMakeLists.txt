@@ -145,6 +145,11 @@ if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
   set(CUDAQ_ENABLE_OQC_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the OQC target.")
 endif()
 
+# Enable ORCA target by default.
+if (NOT DEFINED CUDAQ_ENABLE_ORCA_BACKEND)
+  set(CUDAQ_ENABLE_ORCA_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the ORCA target.")
+endif()
+
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
@@ -735,6 +740,15 @@ if (CUDAQ_ENABLE_REST)
       "Install OpenSSL, set OPENSSL_ROOT_DIR, or pass -DCUDAQ_ENABLE_REST=OFF "
       "to disable REST support.")
     set(CUDAQ_ENABLE_REST OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
+if (CUDAQ_ENABLE_ORCA_BACKEND)
+  if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found — disabling the ORCA target. "
+      "OpenSSL is required when CUDAQ_ENABLE_ORCA_BACKEND is enabled (the "
+      "default). Install OpenSSL, set OPENSSL_ROOT_DIR, or pass "
+      "-DCUDAQ_ENABLE_ORCA_BACKEND=OFF to disable the ORCA target.")
+    set(CUDAQ_ENABLE_ORCA_BACKEND OFF CACHE BOOL "" FORCE)
   endif()
 endif()
 

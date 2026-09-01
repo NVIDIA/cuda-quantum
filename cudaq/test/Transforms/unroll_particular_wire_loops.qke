@@ -256,6 +256,8 @@ module {
 // DEFAULT:         }
 }
 
+// Vector measurements must expand before loops are selectively unrolled.
+// PIPELINE: expand-measurements
 // The forwarded aliasing-quantum-access option must appear on cc-loop-unroll.
 // PIPELINE: cc-loop-unroll{allow-early-exit=false maximum-iterations=5 signal-failure-if-any-loop-cannot-be-completely-unrolled=false unroll-only-aliasing-quantum-access-loops=true unroll-only-index-use-loops=false}
 // PIPELINE: decomposition{{.*}}ExpPauliDecomposition
