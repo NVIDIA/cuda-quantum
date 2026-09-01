@@ -171,7 +171,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %1 = arith.constant 1 : i64
     %n1 = arith.constant -1 : i64
     %c1 = arith.cmpi eq, %step, %0 : i64
-    cf.cond_br %c1, ^b1, ^exit(%0 : i64)
+    cf.cond_br %c1, ^exit(%0 : i64), ^b1
    ^b1:
     %c2 = arith.cmpi sgt, %step, %0 : i64
     %adjust = arith.select %c2, %1, %n1 : i64
