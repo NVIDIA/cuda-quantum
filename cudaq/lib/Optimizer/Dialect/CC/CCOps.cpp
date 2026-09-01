@@ -2265,14 +2265,17 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
       cf::BranchOp::create(rewriter, loc, splitBlock);
     }
     // Inline the cc.scope's region into the parent and create a branch to the
-    // new successor block.
+    // new successor block. Walk the blocks to find the exits.
     auto &initRegion = scope.getInitRegion();
     auto *initBlock = &initRegion.front();
-    auto *initTerminator = initRegion.back().getTerminator();
-    auto initTerminatorOperands = initTerminator->getOperands();
-    rewriter.setInsertionPointToEnd(&initRegion.back());
-    cf::BranchOp::create(rewriter, loc, succBlock, initTerminatorOperands);
-    rewriter.eraseOp(initTerminator);
+    for (auto &block : initRegion) {
+      if (auto contOp =
+              dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+        rewriter.setInsertionPointToEnd(&block);
+        rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, succBlock,
+                                                  contOp.getOperands());
+      }
+    }
     rewriter.inlineRegionBefore(initRegion, succBlock);
     // Replace the cc.scope with a branch to the newly inlined region's entry
     // block.

@@ -86,6 +86,11 @@ void registerWireSetToProfileQIRPipeline();
 void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
+/// Lower all remaining CC structured control flow to CFG form and immediately
+/// clean up stack-frame and CFG artifacts. Terminal code-generation pipelines
+/// call this only after their final boundary-sensitive quantum optimization.
+void addLowerToCFGAndCleanup(mlir::OpPassManager &pm);
+
 //===----------------------------------------------------------------------===//
 // Final code generation: converting to a transport layer
 //===----------------------------------------------------------------------===//

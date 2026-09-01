@@ -58,7 +58,7 @@ runs:
       with:
         name: ${{ inputs.artifact_name }}
         path: /tmp/restamped-wheel
-        retention-days: 1
+        retention-days: 7
         if-no-files-found: error
 
     - name: Refresh index entry

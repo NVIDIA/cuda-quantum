@@ -1,7 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2025-2026 IQM Quantum Computers                                   *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -286,23 +285,14 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
                                ", reason: " + jobMessage);
     }
 
-    // retrieve the counts artifact
+    // The counts are already part of the status response, so there is no need
+    // to fetch them separately.
     ServerMessage counts_batch;
     try {
-      RestClient client;
-      std::string iqmServerBaseUrl(iqmServerUrl);
-
-      auto pos = iqmServerBaseUrl.find("://cocos.");
-      if (pos != std::string::npos) {
-        iqmServerBaseUrl.erase(pos + 3, 6); // skip anchor and erase "cocos."
-        pos = iqmServerBaseUrl.find_first_of('/', pos + 3); // start of the path
-        iqmServerBaseUrl.erase(pos + 1);                    // erase the path
+      if (!getJobResponse.contains("counts_batch")) {
+        throw std::runtime_error("counts_batch field missing in results");
       }
-
-      auto headers = generateRequestHeader();
-      counts_batch = client.get(
-          iqmServerBaseUrl,
-          "api/v1/jobs/" + jobId + "/artifacts/measurement_counts", headers);
+      counts_batch = getJobResponse["counts_batch"];
       if (counts_batch.is_null() || counts_batch.empty() ||
           counts_batch.type() != nlohmann::json::value_t::array ||
           counts_batch[0].type() != nlohmann::json::value_t::object) {

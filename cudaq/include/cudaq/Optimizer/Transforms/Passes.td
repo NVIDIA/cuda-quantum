@@ -505,9 +505,10 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     - `x(n)` — Pauli-X with unbounded controls
     - `x,x(1)` — Both `not` and `cx`
 
-    NOTE: The current implementation is conservative w.r.t global phase, which
-    means no decomposition will take place under the presence of controlled
-    `quake.apply` operations in the module.
+    Every successful decomposition preserves the complete unitary, including
+    any scalar phase represented by compiler bookkeeping. This lets the pass
+    run before a later controlled `quake.apply` specialization; unsupported
+    forms remain unchanged rather than taking an implicit phase-relaxed path.
   }];
   let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
@@ -1064,14 +1065,15 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     as when generating a QIR base profile. A quantum circuit requires all loops
     be completely unrolled.
 
-    The unroll-only-wire-blocking-loops option opts in to selective unrolling
-    for wire-set lowering. Quantum references and slices must be statically
-    resolved. An `exp_pauli` also requires both its quantum register and Pauli
-    word to be resolved. Loops that block any of these resolutions are
-    unrolled; other counted loops remain rolled. A required loop that cannot be
-    unrolled (e.g. a non-constant trip count) is reported as an error. This
-    option defaults to false, leaving the pass behavior unchanged for existing
-    pipelines.
+    The unroll-only-aliasing-quantum-access-loops option opts in to selective
+    unrolling for wire-set lowering. Quantum references and slices accessed
+    through dynamic indices are aliasing quantum accesses and must be
+    statically resolved. An `exp_pauli` also requires both its quantum register
+    and Pauli word to be resolved. Loops containing these accesses or operands
+    are unrolled; other counted loops remain rolled. A required loop that
+    cannot be unrolled (e.g. a non-constant trip count) is reported as an
+    error. This option defaults to false, leaving the pass behavior unchanged
+    for existing pipelines.
 
     The unroll-only-index-use-loops option unrolls only index use loops:
     loops whose induction variable is used in the loop body. A loop that
@@ -1095,10 +1097,11 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
       "Allow unrolling of loop with early exit (i.e. break statement).">,
-    Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
-      "bool", /*default=*/"false",
-      "Unroll only loops that prevent quantum references, slices, or "
-      "exp_pauli operands from being resolved for wire-set lowering.">,
+    Option<"unrollOnlyAliasingQuantumAccessLoops",
+      "unroll-only-aliasing-quantum-access-loops", "bool",
+      /*default=*/"false",
+      "Unroll only loops containing aliasing quantum accesses or exp_pauli "
+      "operands that must be resolved for wire-set lowering.">,
     Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
       /*default=*/"false",
       "Unroll only index use loops, i.e. loops whose induction variable is "
@@ -1215,6 +1218,9 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
+    The mapping pass emits Mapped Quake IR, in which kernels borrow device wires
+    from `@mapped_wireset`.
+
     Note 1: this pass requires strictly value semantics (in the form of wire
     sets) for any quantum operations. It will throw an error if any memory
     reference semantics are present on quantum operations.
@@ -1230,6 +1236,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     against the layout that is live where the region is entered, and the
     placements that meet at each control-flow join must be reconciled to a
     single layout so the block after the join has an unambiguous entry.
+
+    Single-block `cc.scope` operations, including nested scopes, are routed as
+    ordered lexical segments. The mapper preserves their attributes and
+    classical operations, adding passthrough results when routing requires
+    captured wires to leave the scope. Other consumed input wires must already
+    be scope results.
+
+    The selected outer scope of a `run` entry is treated as the function body.
+    It must contain one block, but the restrictions on scope contents below do
+    not apply to it.
 
     Reconciliation is currently done by reverting each predecessor to the
     layout it entered with (its swaps are replayed in reverse before the region
@@ -1250,12 +1266,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     The following control flow is not yet supported and is rejected (a hard
     error under `raise-fatal-errors`, otherwise the function is skipped):
 
-    - measurements nested inside a branch or loop, unless the function is a
-      `run` entry point (where results are recorded by index, not order);
+    - in non-`run` functions, measurements inside a scope, branch, or loop.
     - a mid-circuit measurement whose measured wire feeds a non-terminal user,
-      or any measurement-dependent (adaptive) control flow;
-    - loops with a multi-block body, a Python `else`, or a `break`;
-    - quantum gates in a loop's condition or step region;
+      or measurement-dependent (adaptive) control flow, unless the function is
+      a `run` entry point with structured control flow.
+    - loops with a multi-block body, a Python `else`, or a `break`.
+    - quantum gates in a loop's condition or step region.
+    - a scope inside structured control flow, or structured control flow inside
+      a scope.
+    - multi-block scopes, or scopes containing quantum allocations, borrows, or
+      terminal wire operations.
     - more than one block at the function's top level.
   }];
 
@@ -1414,9 +1434,7 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     * A NOT gate inverts the phase for a qubit by (un)setting a flag.
     * A CNOT gate sets the phase of the target to the exclusive sum of the
       phase variables in the phases for the control and target qubits.
-    * If multiple `rz` ops are found at the same phase, they will be combined
-      by replacing the rotation angle of the latter occurring op with the sum of
-      the rotation angles of both ops, and removing the prior op.
+    * Compatible Z-axis rotations at the same phase are combined.
 
     Operates on `!quake.wire` SSA values. Traverses def-use chains directly.
   }];
@@ -1987,6 +2005,15 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
+def VerifyNoCFG : Pass<"verify-no-cfg", "mlir::func::FuncOp"> {
+  let summary = "Reject functions that contain CFG branch operations.";
+  let description = [{
+    Reject a function if it contains `cf.br` or `cf.cond_br`. Targets that
+    require structured control flow can add this pass to their pipeline after
+    argument synthesis and canonicalization have removed dead branches.
+  }];
+}
+
 def UnwindByDataFlow : Pass<"unwind-by-dataflow", "mlir::func::FuncOp"> {
   let summary = "Lower unwind control-flow macros to data-flow flag variables.";
   let description = [{
@@ -2040,12 +2067,27 @@ def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
   ];
 }
 
-def VerifyNoPhase : Pass<"verify-no-phase", "mlir::ModuleOp"> {
+def VerifyAtomicQuantumRegions :
+    Pass<"verify-atomic-quantum-regions", "mlir::ModuleOp"> {
   let summary =
-      "Verify that phase bookkeeping was eliminated before code generation";
+      "Reject measurement operations and qubit allocations inside an atomic "
+      "quantum region";
   let description = [{
-    Emits an error if any `quake.phase` operation survives to the final
-    code-generation boundary.
+    This pass rejects measurement operations and qubit allocations inside a
+    marked `cc.scope` and inside a function carrying the
+    `atomic_quantum_region` attribute. It follows a call whose callee it can
+    resolve. It does not follow a `quake.apply`.
+
+    When it runs before inlining, the pass covers a violation written in a
+    marked kernel and a violation in a helper that the kernel calls. Every
+    operation still carries the location of the user source that produced it,
+    so the diagnostic names that line.
+
+    When it runs after inlining and `apply-op-specialization`, the pass also
+    checks the kernels it could not reach earlier.
+
+    Run the pass before the conversion to value semantics, where a qubit
+    allocation stops being a `quake.alloca`.
   }];
 }
 

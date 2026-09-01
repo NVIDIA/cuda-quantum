@@ -36,8 +36,6 @@ def start_server(backend: str):
             from mock_qpu.iqm import app
         case "oqc":
             from mock_qpu.oqc import app
-        case "qci":
-            from mock_qpu.qci import app
         case "quantinuum":
             from mock_qpu.quantinuum import app
         case "quantum_machines":

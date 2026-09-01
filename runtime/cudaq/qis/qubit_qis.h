@@ -28,6 +28,8 @@
 #define __qpu__ __attribute__((annotate("quantum")))
 #define __disable_quantum_optimization__                                       \
   __attribute__((annotate("disable_quantum_optimization")))
+#define __atomic_quantum_region__                                              \
+  __attribute__((annotate("atomic_quantum_region")))
 
 // This file describes the API for a default qubit logical instruction
 // set for CUDA-Q kernels.
@@ -144,6 +146,14 @@ void oneQubitApplyControlledRange(QubitRange &ctrls, qubit &target) {
   };                                                                           \
   }                                                                            \
   template <typename mod = base, typename... QubitArgs>                        \
+    requires(std::conjunction_v<                                               \
+                 std::is_same<qubit, std::remove_cv_t<QubitArgs>>...> &&       \
+             std::disjunction_v<std::is_const<QubitArgs>...>)                  \
+  void NAME(QubitArgs &...) {                                                  \
+    static_assert(!std::disjunction_v<std::is_const<QubitArgs>...>,            \
+                  "Cannot apply a quantum operation to a const qubit.");       \
+  }                                                                            \
+  template <typename mod = base, typename... QubitArgs>                        \
   void NAME(QubitArgs &...args) {                                              \
     oneQubitApply<qubit_op::NAME##Op, mod>(args...);                           \
   }                                                                            \
@@ -232,6 +242,14 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
   };                                                                           \
   }                                                                            \
   template <typename mod = base, typename ScalarAngle, typename... QubitArgs>  \
+    requires(std::conjunction_v<                                               \
+                 std::is_same<qubit, std::remove_cv_t<QubitArgs>>...> &&       \
+             std::disjunction_v<std::is_const<QubitArgs>...>)                  \
+  void NAME(ScalarAngle, QubitArgs &...) {                                     \
+    static_assert(!std::disjunction_v<std::is_const<QubitArgs>...>,            \
+                  "Cannot apply a quantum operation to a const qubit.");       \
+  }                                                                            \
+  template <typename mod = base, typename ScalarAngle, typename... QubitArgs>  \
   void NAME(ScalarAngle angle, QubitArgs &...args) {                           \
     oneQubitSingleParameterApply<qubit_op::NAME##Op, mod>(angle, args...);     \
   }                                                                            \
@@ -255,6 +273,15 @@ struct u3 {
   static constexpr std::string_view name{"u3"};
 };
 } // namespace types
+
+template <typename mod = base, typename ScalarAngle, typename... QubitArgs>
+  requires(
+      std::conjunction_v<std::is_same<qubit, std::remove_cv_t<QubitArgs>>...> &&
+      std::disjunction_v<std::is_const<QubitArgs>...>)
+void u3(ScalarAngle, ScalarAngle, ScalarAngle, QubitArgs &...) {
+  static_assert(!std::disjunction_v<std::is_const<QubitArgs>...>,
+                "Cannot apply a quantum operation to a const qubit.");
+}
 
 template <typename mod = base, typename ScalarAngle, typename... QubitArgs>
 void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
@@ -305,6 +332,15 @@ struct swap {
   static constexpr std::string_view name{"swap"};
 };
 } // namespace types
+
+template <typename mod = base, typename... QubitArgs>
+  requires(
+      std::conjunction_v<std::is_same<qubit, std::remove_cv_t<QubitArgs>>...> &&
+      std::disjunction_v<std::is_const<QubitArgs>...>)
+void swap(QubitArgs &...) {
+  static_assert(!std::disjunction_v<std::is_const<QubitArgs>...>,
+                "Cannot apply a quantum operation to a const qubit.");
+}
 
 template <typename mod = base, typename... QubitArgs>
 void swap(QubitArgs &...args) {

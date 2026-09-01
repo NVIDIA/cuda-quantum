@@ -7,9 +7,9 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | CircuitCheck %s
 // RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=R1ToPhasedRx})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=R1ToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=R1ToPhasedRx})' %s | CircuitCheck %s
 
 // The FileCheck part of this test only cares about the sequence of operations.
 // Correcteness is checked by CircuitCheck.
@@ -21,6 +21,7 @@ func.func @test(%qubit: !quake.ref) {
   // CHECK: quake.phased_rx
   // CHECK-NEXT: quake.phased_rx
   // CHECK-NEXT: quake.phased_rx
+  // CHECK: quake.phase
   return
 }
 
@@ -31,5 +32,17 @@ func.func @adj(%qubit: !quake.ref) {
   // CHECK: quake.phased_rx
   // CHECK-NEXT: quake.phased_rx
   // CHECK-NEXT: quake.phased_rx
+  // CHECK: quake.phase
+  return
+}
+
+// CHECK-LABEL: func.func @zero
+func.func @zero(%qubit: !quake.ref) {
+  %zero = arith.constant 0.000000e+00 : f64
+  quake.r1 (%zero) %qubit : (f64, !quake.ref) -> ()
+  // CHECK: quake.phased_rx
+  // CHECK-NEXT: quake.phased_rx
+  // CHECK-NEXT: quake.phased_rx
+  // CHECK-NOT: quake.phase
   return
 }

@@ -48,3 +48,28 @@ func.func @adaptive_cfg_feedback_default() {
   quake.return_wire %wire : !quake.wire
   return
 }
+
+// -----
+
+quake.wire_set @wires[10]
+
+// Structured feedback is supported for run entries, but an adaptive CFG must
+// still fail instead of silently passing through composable mapping unmapped.
+func.func @adaptive_cfg_feedback_run() attributes {quake.cudaq_run = [i1]} {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %meas, %wire = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %bit = quake.discriminate %meas : (!quake.measure) -> i1
+  cf.cond_br %bit, ^then, ^else
+
+^then:
+  cf.br ^done
+
+^else:
+  cf.br ^done
+
+^done:
+  // CHECK: unsupported measurement-dependent behavior
+  quake.return_wire %wire : !quake.wire
+  quake.log_output %bit : (i1) -> ()
+  return
+}

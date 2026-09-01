@@ -1,0 +1,119 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --apply-op-specialization %s | FileCheck %s
+// RUN: cudaq-opt --verify-each --apply-op-specialization --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase --implicit-check-not=quake.apply
+
+// Phase-specific specialization regressions. Generic ApplyOp refinement,
+// wrapper-result forwarding, and native linear-signature diagnostics are
+// intentionally covered by separate tests and follow-up branches.
+
+// An adjoint with two outer controls must negate the phase angle while
+// preserving the pre-existing negative control's polarity.
+func.func private @phase_with_negative_control(%theta: f64,
+                                               %negative: !quake.ref,
+                                               %anchor: !quake.ref) {
+  quake.phase (%theta) [%negative neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @phase_controlled_adjoint(%theta: f64, %outer0: !quake.ref,
+                                    %outer1: !quake.ref,
+                                    %negative: !quake.ref,
+                                    %anchor: !quake.ref) {
+  quake.apply<adj> @phase_with_negative_control [%outer0, %outer1]
+      (%theta, %negative, %anchor)
+      : (!quake.ref, !quake.ref, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A phase in both sides of structured reversible control flow must acquire
+// the correct adjoint angle when the control flow is reversed.
+func.func private @structured_phase(%theta: f64, %condition: i1,
+                                    %count: i32, %anchor: !quake.ref) {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  cc.if(%condition) {
+    quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  }
+  %unused = cc.loop while ((%i = %c0) -> (i32)) {
+    %more = arith.cmpi slt, %i, %count : i32
+    cc.condition %more(%i : i32)
+  } do {
+  ^bb0(%i: i32):
+    quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+    cc.continue %i : i32
+  } step {
+  ^bb0(%i: i32):
+    %next = arith.addi %i, %c1 : i32
+    cc.continue %next : i32
+  }
+  return
+}
+
+func.func @structured_phase_caller(%theta: f64, %condition: i1,
+                                   %count: i32, %anchor: !quake.ref) {
+  quake.apply<adj> @structured_phase(%theta, %condition, %count, %anchor)
+      : (f64, i1, i32, !quake.ref) -> ()
+  return
+}
+
+// A recursively controlled phase must preserve the phase predicate in the
+// specialized recursive variant.
+func.func private @recursive_phase(%theta: f64, %recurse: i1,
+                                   %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  cc.if(%recurse) {
+    quake.apply @recursive_phase(%theta, %recurse, %anchor)
+        : (f64, i1, !quake.ref) -> ()
+  }
+  return
+}
+
+func.func @recursive_phase_caller(%theta: f64, %recurse: i1,
+                                  %outer: !quake.ref,
+                                  %anchor: !quake.ref) {
+  quake.apply @recursive_phase [%outer] (%theta, %recurse, %anchor)
+      : (!quake.ref, f64, i1, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func private @recursive_phase.ctrl(
+// CHECK-SAME:    %[[CTRL:.*]]: !quake.veq<?>, %[[THETA:.*]]: f64,
+// CHECK-SAME:    %{{.*}}: i1, %[[ANCHOR:.*]]: !quake.ref) {
+// CHECK:         quake.phase (%[[THETA]]) {{\[}}%[[CTRL]]{{\]}} %[[ANCHOR]]
+// CHECK:         cc.if
+// CHECK:         call @recursive_phase.ctrl
+// CHECK:         return
+// CHECK:       }
+
+// CHECK-LABEL: func.func private @structured_phase.adj(
+// CHECK:         cc.loop while
+// CHECK:         %[[LOOP_NEG_THETA:.*]] = arith.negf %[[THETA:.*]] : f64
+// CHECK:         quake.phase (%[[LOOP_NEG_THETA]]) %{{.*}} : (f64, !quake.ref) -> ()
+// CHECK:         cc.if
+// CHECK:         %[[IF_NEG_THETA:.*]] = arith.negf %[[THETA]] : f64
+// CHECK:         quake.phase (%[[IF_NEG_THETA]]) %{{.*}} : (f64, !quake.ref) -> ()
+// CHECK:         return
+// CHECK:       }
+
+// CHECK-LABEL: func.func private @phase_with_negative_control.adj.ctrl(
+// CHECK-SAME:    %[[CTRL:.*]]: !quake.veq<?>, %[[THETA:.*]]: f64,
+// CHECK-SAME:    %[[NEGATIVE:.*]]: !quake.ref, %[[ANCHOR:.*]]: !quake.ref) {
+// CHECK:         %[[NEG_THETA:.*]] = arith.negf %[[THETA]] : f64
+// CHECK:         quake.phase (%[[NEG_THETA]]) {{\[}}%[[CTRL]], %[[NEGATIVE]] neg [false, true]{{\]}} %[[ANCHOR]]
+// CHECK:         return
+// CHECK:       }
+
+// LOWER-LABEL: func.func @phase_controlled_adjoint(
+// LOWER:       return
+// LOWER-LABEL: func.func @structured_phase_caller(
+// LOWER:       return
+// LOWER-LABEL: func.func @recursive_phase_caller(
+// LOWER:       return

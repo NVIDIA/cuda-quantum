@@ -1,0 +1,319 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A failed exact rewrite must retain the source operation without creating
+// partial ExtractRef, basis-change, NegF, or phase IR.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition},func.func(cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER
+
+quake.wire_set @exp_pauli_boundary_wires[2]
+
+func.func @dynamic_identity(%theta: f64, %targets: !quake.veq<?>) {
+  quake.exp_pauli (%theta) %targets to "III" : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_identity(
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to "III" : (f64, !quake.veq<?>) -> ()
+// CHECK: return
+
+func.func @dynamic_adjoint_identity(%theta: f64, %targets: !quake.veq<?>) {
+  quake.exp_pauli<adj> (%theta) %targets to "III"
+      : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_adjoint_identity(
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli<adj> (%{{.*}}) %{{.*}} to "III" : (f64, !quake.veq<?>) -> ()
+// CHECK: return
+
+func.func @dynamic_nonidentity(%theta: f64, %targets: !quake.veq<?>) {
+  quake.exp_pauli (%theta) %targets to "XY" : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_nonidentity(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGETS:.*]]: !quake.veq<?>
+// CHECK-DAG: %[[NEG_PI_2:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK-DAG: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f64
+// CHECK-DAG: %[[PI_2:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK-DAG: %[[ZERO:.*]] = arith.constant 0 : i64
+// CHECK-DAG: %[[ONE:.*]] = arith.constant 1 : i64
+// CHECK: %[[FIRST:.*]] = quake.extract_ref %[[TARGETS]][%[[ZERO]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK: %[[SECOND:.*]] = quake.extract_ref %[[TARGETS]][%[[ONE]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK: quake.h %[[FIRST]] : (!quake.ref) -> ()
+// CHECK: quake.rx (%[[PI_2]]) %[[SECOND]] : (f64, !quake.ref) -> ()
+// CHECK: quake.x {{\[}}%[[FIRST]]] %[[SECOND]] : (!quake.ref, !quake.ref) -> ()
+// CHECK: %[[ANGLE:.*]] = arith.mulf %[[THETA]], %[[NEG_TWO]] : f64
+// CHECK: quake.rz (%[[ANGLE]]) %[[SECOND]] : (f64, !quake.ref) -> ()
+// CHECK: quake.x {{\[}}%[[FIRST]]] %[[SECOND]] : (!quake.ref, !quake.ref) -> ()
+// CHECK: quake.rx (%[[NEG_PI_2]]) %[[SECOND]] : (f64, !quake.ref) -> ()
+// CHECK: quake.h %[[FIRST]] : (!quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+func.func @empty_identity(%theta: f64, %targets: !quake.veq<0>) {
+  quake.exp_pauli (%theta) %targets to "" : (f64, !quake.veq<0>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @empty_identity(
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to "" : (f64, !quake.veq<0>) -> ()
+// CHECK: return
+
+func.func @unknown_word(%theta: f64, %target: !quake.ref, %word: !cc.charspan) {
+  quake.exp_pauli (%theta) %target to %word
+      : (f64, !quake.ref, !cc.charspan) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @unknown_word(
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to %{{.*}} : (f64, !quake.ref, !cc.charspan) -> ()
+// CHECK: return
+
+// Invalid literal words, static length mismatches, and malformed control
+// polarity metadata are verifier errors covered by Transforms/invalid.qke.
+
+func.func @controlled_nonidentity(%theta: f64, %first: !quake.ref,
+                                  %second: !quake.ref, %target: !quake.ref) {
+  quake.exp_pauli (%theta) [%first, %second neg [false, true]] %target to "X"
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @controlled_nonidentity(
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.h
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%{{.*}}, %{{.*}} neg [false, true]{{\]}} %{{.*}} to "X"
+// CHECK: return
+
+func.func @controlled_adjoint_nonidentity(%theta: f64, %control: !quake.ref,
+                                          %target: !quake.ref) {
+  quake.exp_pauli<adj> (%theta) [%control] %target to "X"
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @controlled_adjoint_nonidentity(
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.h
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli<adj> (%{{.*}}) {{\[}}%{{.*}}{{\]}} %{{.*}} to "X"
+// CHECK: return
+
+func.func @controlled_nonidentity_wire() attributes {"cudaq-entrypoint"} {
+  %control = quake.borrow_wire @exp_pauli_boundary_wires[0] : !quake.wire
+  %target = quake.borrow_wire @exp_pauli_boundary_wires[1] : !quake.wire
+  %theta = arith.constant 3.200000e-01 : f64
+  %next:2 = quake.exp_pauli (%theta) [%control] %target to "X"
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %next#0 : !quake.wire
+  quake.return_wire %next#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @controlled_nonidentity_wire()
+// CHECK: %[[CONTROL:.*]] = quake.borrow_wire @exp_pauli_boundary_wires[0] : !quake.wire
+// CHECK: %[[TARGET:.*]] = quake.borrow_wire @exp_pauli_boundary_wires[1] : !quake.wire
+// CHECK-NOT: quake.phase
+// CHECK-NOT: quake.h
+// CHECK: %[[SOURCE:.*]]:2 = quake.exp_pauli (%{{.*}}) {{\[}}%[[CONTROL]]{{\]}} %[[TARGET]] to "X" : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK: quake.return_wire %[[SOURCE]]#0 : !quake.wire
+// CHECK: quake.return_wire %[[SOURCE]]#1 : !quake.wire
+// CHECK: return
+
+func.func @dynamic_vector_control_with_separate_anchor(%theta: f64,
+                                                       %controls: !quake.veq<?>,
+                                                       %anchor: !quake.ref) {
+  quake.exp_pauli<adj> (%theta) [%controls neg [true]] %anchor to "I"
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_vector_control_with_separate_anchor(
+// CHECK: %[[NEG:.*]] = arith.negf %{{.*}} : f64
+// CHECK: quake.phase (%[[NEG]]) {{\[}}%{{.*}} neg [true]{{\]}} %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+func.func @duplicate_negative_controls(%theta: f64, %control: !quake.ref,
+                                         %anchor: !quake.ref) {
+  quake.exp_pauli (%theta) [%control, %control neg [true, true]] %anchor to "I"
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @duplicate_negative_controls(
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%{{.*}}, %{{.*}} neg [true, true]{{\]}} %{{.*}} to "I"
+// CHECK: return
+
+func.func @duplicate_vector_control(%theta: f64, %qubit: !quake.ref,
+                                      %anchor: !quake.ref) {
+  %controls = quake.concat %qubit, %qubit
+      : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  quake.exp_pauli (%theta) [%controls neg [true]] %anchor to "I"
+      : (f64, !quake.veq<2>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @duplicate_vector_control(
+// CHECK: %[[CONTROLS:.*]] = quake.concat %{{.*}}, %{{.*}} : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%[[CONTROLS]] neg [true]{{\]}} %{{.*}} to "I"
+// CHECK: return
+
+func.func @dynamic_control_anchor_alias(%theta: f64,
+                                        %controls: !quake.veq<?>) {
+  %anchor = quake.extract_ref %controls[0] : (!quake.veq<?>) -> !quake.ref
+  quake.exp_pauli (%theta) [%controls] %anchor to "I"
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_control_anchor_alias(
+// CHECK: %[[ANCHOR:.*]] = quake.extract_ref %{{.*}}[0] : (!quake.veq<?>) -> !quake.ref
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%{{.*}}{{\]}} %[[ANCHOR]] to "I"
+// CHECK: return
+
+func.func @subveq_control_anchor_alias(%theta: f64,
+                                       %controls: !quake.veq<?>) {
+  %sub = quake.subveq %controls, 0, 0 : (!quake.veq<?>) -> !quake.veq<1>
+  quake.exp_pauli (%theta) [%controls] %sub to "I"
+      : (f64, !quake.veq<?>, !quake.veq<1>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @subveq_control_anchor_alias(
+// CHECK: %[[SUB:.*]] = quake.subveq %{{.*}}, 0, 0 : (!quake.veq<?>) -> !quake.veq<1>
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%{{.*}}{{\]}} %[[SUB]] to "I"
+// CHECK: return
+
+func.func @static_vector_control_anchor_alias(%theta: f64, %targets: !quake.veq<2>) {
+  %control = quake.extract_ref %targets[1] : (!quake.veq<2>) -> !quake.ref
+  quake.exp_pauli (%theta) [%control] %targets to "II"
+      : (f64, !quake.ref, !quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @static_vector_control_anchor_alias(
+// CHECK: %[[CONTROL:.*]] = quake.extract_ref %{{.*}}[1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%[[CONTROL]]{{\]}} %{{.*}} to "II"
+// CHECK: return
+
+func.func @duplicate_vector_control_anchor_alias(%theta: f64, %qubit: !quake.ref) {
+  %targets = quake.concat %qubit, %qubit
+      : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %control = quake.extract_ref %targets[1] : (!quake.veq<2>) -> !quake.ref
+  quake.exp_pauli (%theta) [%control] %targets to "II"
+      : (f64, !quake.ref, !quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @duplicate_vector_control_anchor_alias(
+// CHECK: %[[TARGETS:.*]] = quake.concat %{{.*}}, %{{.*}} : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK: %[[CONTROL:.*]] = quake.extract_ref %[[TARGETS]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%[[CONTROL]]{{\]}} %[[TARGETS]] to "II"
+// CHECK: return
+
+func.func @sibling_subveq_control_anchor_alias(%theta: f64, %base: !quake.veq<?>) {
+  %controls = quake.subveq %base, 0, 1 : (!quake.veq<?>) -> !quake.veq<2>
+  %targets = quake.subveq %base, 1, 1 : (!quake.veq<?>) -> !quake.veq<1>
+  quake.exp_pauli (%theta) [%controls] %targets to "I"
+      : (f64, !quake.veq<2>, !quake.veq<1>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @sibling_subveq_control_anchor_alias(
+// CHECK: %[[CONTROLS:.*]] = quake.subveq %{{.*}}, 0, 1 : (!quake.veq<?>) -> !quake.veq<2>
+// CHECK: %[[TARGETS:.*]] = quake.subveq %{{.*}}, 1, 1 : (!quake.veq<?>) -> !quake.veq<1>
+// CHECK-NOT: quake.extract_ref
+// CHECK-NOT: quake.phase
+// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%[[CONTROLS]]{{\]}} %[[TARGETS]] to "I"
+// CHECK: return
+
+func.func @nonidentity_f16_retained(%theta: f16, %target: !quake.ref) {
+  quake.exp_pauli (%theta) %target to "Z" : (f16, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @nonidentity_f16_retained(
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.rz
+// CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to "Z" : (f16, !quake.ref) -> ()
+// CHECK: return
+
+func.func @nonidentity_bf16_retained(%theta: bf16, %target: !quake.ref) {
+  quake.exp_pauli (%theta) %target to "Z" : (bf16, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @nonidentity_bf16_retained(
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.rz
+// CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to "Z" : (bf16, !quake.ref) -> ()
+// CHECK: return
+
+// LOWER-LABEL: func.func @dynamic_vector_control_with_separate_anchor(
+// LOWER: quake.r1
+// LOWER-NOT: quake.phase
+// LOWER: return
+
+// LOWER-LABEL: func.func @duplicate_negative_controls(
+// LOWER: quake.exp_pauli
+// LOWER-NOT: quake.phase
+// LOWER: return
+
+// LOWER-LABEL: func.func @duplicate_vector_control(
+// LOWER: quake.exp_pauli
+// LOWER-NOT: quake.phase
+// LOWER: return
+
+// LOWER-LABEL: func.func @dynamic_control_anchor_alias(
+// LOWER: quake.exp_pauli
+// LOWER-NOT: quake.phase
+// LOWER: return
+
+// LOWER-LABEL: func.func @subveq_control_anchor_alias(
+// LOWER: quake.exp_pauli
+// LOWER-NOT: quake.phase
+// LOWER: return
+
+// LOWER-LABEL: func.func @static_vector_control_anchor_alias(
+// LOWER: quake.exp_pauli
+// LOWER-NOT: quake.phase
+// LOWER: return
+
+// LOWER-LABEL: func.func @duplicate_vector_control_anchor_alias(
+// LOWER: quake.exp_pauli
+// LOWER-NOT: quake.phase
+// LOWER: return
+
+// LOWER-LABEL: func.func @sibling_subveq_control_anchor_alias(
+// LOWER: quake.exp_pauli
+// LOWER-NOT: quake.phase
+// LOWER: return

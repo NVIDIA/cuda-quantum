@@ -54,6 +54,13 @@ DO_RUN=true
 VERIFY=true
 UNIFIED=false
 FORWARD=false
+SAVE_TEMPS=false
+
+# Log files are created with mktemp (see make_temp_log) rather than fixed /tmp
+# paths so that concurrent runs, or other users of a shared machine, cannot
+# collide on them.  Populated by do_run.
+EMULATOR_LOG=""
+BRIDGE_LOG=""
 
 # Directory defaults.  Per the plan we point at the current HSB source
 # checkout at /workspaces/holoscan-sensor-bridge (not the legacy
@@ -122,6 +129,8 @@ Run options:
   --num-pages N          Number of ring buffer slots (default: 128)
   --control-port N       UDP control port for emulator (default: 8193)
   --bin-dir DIR          Binary directory containing executables
+  --save-temps           Keep the emulator/bridge log files instead of
+                         deleting them on exit (paths are printed)
   --help, -h             Show this help
 EOF
 }
@@ -135,6 +144,7 @@ while [[ $# -gt 0 ]]; do
         --no-verify)        VERIFY=false ;;
         --unified)          UNIFIED=true ;;
         --forward)          FORWARD=true ;;
+        --save-temps)       SAVE_TEMPS=true ;;
         --hsb-dir)     HSB_DIR="$2"; shift ;;
         --cuda-quantum-dir) CUDA_QUANTUM_DIR="$2"; shift ;;
         --bin-dir)          BIN_DIR="$2"; shift ;;
@@ -163,6 +173,30 @@ done
 # ============================================================================
 # Helpers (most are direct ports from gpu_roce_test.sh)
 # ============================================================================
+
+# Command tracing.  Every command this script issues to configure the machine
+# goes through one of these two, so the log records exactly what was done --
+# when a run fails with e.g. "no IPv4-mapped RoCEv2 GID" it is otherwise
+# impossible to tell from the log whether the setup step took effect.  Pass the
+# command verbatim, `sudo` included, so the trace shows what was really run.
+#
+# run_cmd: for commands issued for their effect.  The trace goes to stdout,
+# because call sites routinely append `2>/dev/null` to hide expected failures
+# (deleting an address that isn't there) and that would swallow a trace written
+# to stderr.  Do not use where the caller captures stdout.
+run_cmd() {
+    echo "    + $*"
+    "$@"
+}
+
+# show_cmd: for queries whose stdout the caller captures (piping into grep or
+# awk), which forces the trace onto stderr.  The command's own stderr is
+# discarded here rather than at the call site, so that the call site's
+# redirection cannot suppress the trace along with it.
+show_cmd() {
+    echo "    + $*" >&2
+    "$@" 2>/dev/null
+}
 
 detect_ib_device() {
     if [[ -n "$IB_DEVICE" ]]; then
@@ -284,8 +318,8 @@ wait_for_roce_gid() {
     want=$(printf ":ffff:%02x%02x:%02x%02x" "$a" "$b" "$c" "$d")
     local deadline=$((SECONDS + 20)) portdir i g t
     while ((SECONDS < deadline)); do
-        if ! ip -o -4 addr show dev "$iface" 2>/dev/null | grep -q "${ip}/"; then
-            sudo ip addr add "${ip}/24" dev "$iface" 2>/dev/null || true
+        if ! show_cmd ip -o -4 addr show dev "$iface" | grep -q "${ip}/"; then
+            run_cmd sudo ip addr add "${ip}/24" dev "$iface" 2>/dev/null || true
         fi
         for portdir in /sys/class/infiniband/${ib_dev}/ports/*; do
             [[ -d "$portdir" ]] || continue
@@ -312,17 +346,17 @@ setup_port() {
     echo "  Configuring $iface: ip=$ip mtu=$mtu"
 
     local other
-    for other in $(ip -o addr show to "${ip}/24" 2>/dev/null | awk '{print $2}' | sort -u); do
+    for other in $(show_cmd ip -o addr show to "${ip}/24" | awk '{print $2}' | sort -u); do
         if [[ "$other" != "$iface" ]]; then
             echo "    Removing stale ${ip}/24 from $other"
-            sudo ip addr del "${ip}/24" dev "$other" 2>/dev/null || true
+            run_cmd sudo ip addr del "${ip}/24" dev "$other" 2>/dev/null || true
         fi
     done
 
-    sudo ip link set "$iface" up
-    sudo ip link set "$iface" mtu "$mtu"
-    sudo ip addr flush dev "$iface"
-    sudo ip addr add "${ip}/24" dev "$iface"
+    run_cmd sudo ip link set "$iface" up
+    run_cmd sudo ip link set "$iface" mtu "$mtu"
+    run_cmd sudo ip addr flush dev "$iface"
+    run_cmd sudo ip addr add "${ip}/24" dev "$iface"
 
     local ib_dev
     if command -v ibdev2netdev &>/dev/null; then
@@ -344,7 +378,7 @@ setup_port() {
             local port_count
             port_count=$(ls -d "/sys/class/infiniband/${ib_dev}/ports/"* 2>/dev/null | wc -l)
             for p in $(seq 1 "$port_count"); do
-                sudo rdma link set "${ib_dev}/${p}" type eth || true
+                run_cmd sudo rdma link set "${ib_dev}/${p}" type eth || true
             done
             echo "    RoCEv2 mode configured for $ib_dev"
         fi
@@ -356,10 +390,10 @@ setup_port() {
     fi
 
     if command -v mlnx_qos &>/dev/null; then
-        sudo mlnx_qos -i "$iface" --trust=dscp 2>/dev/null || true
+        run_cmd sudo mlnx_qos -i "$iface" --trust=dscp 2>/dev/null || true
     fi
     if command -v ethtool &>/dev/null; then
-        sudo ethtool -C "$iface" adaptive-rx off rx-usecs 0 2>/dev/null || true
+        run_cmd sudo ethtool -C "$iface" adaptive-rx off rx-usecs 0 2>/dev/null || true
     fi
     echo "    Done: $iface is up at $ip"
 }
@@ -380,11 +414,11 @@ do_setup_network() {
 
     if $EMULATE; then
         setup_port "$netdev" "$BRIDGE_IP" "$MTU"
-        sudo ip addr add "$EMULATOR_IP/24" dev "$netdev" 2>/dev/null || true
+        run_cmd sudo ip addr add "$EMULATOR_IP/24" dev "$netdev" 2>/dev/null || true
         local mac
         mac=$(cat /sys/class/net/$netdev/address)
-        sudo ip neigh replace "$BRIDGE_IP" lladdr "$mac" dev "$netdev" nud permanent 2>/dev/null || true
-        sudo ip neigh replace "$EMULATOR_IP" lladdr "$mac" dev "$netdev" nud permanent 2>/dev/null || true
+        run_cmd sudo ip neigh replace "$BRIDGE_IP" lladdr "$mac" dev "$netdev" nud permanent 2>/dev/null || true
+        run_cmd sudo ip neigh replace "$EMULATOR_IP" lladdr "$mac" dev "$netdev" nud permanent 2>/dev/null || true
     else
         setup_port "$netdev" "$BRIDGE_IP" "$MTU"
     fi
@@ -395,6 +429,22 @@ do_setup_network() {
 # ============================================================================
 # Run
 # ============================================================================
+
+make_temp_log() {
+    mktemp -t "hsb_test_cpu_$1_XXXXXX.log"
+}
+
+cleanup_temp_logs() {
+    local log
+    for log in "$EMULATOR_LOG" "$BRIDGE_LOG"; do
+        [[ -n "$log" ]] || continue
+        if $SAVE_TEMPS; then
+            echo "Kept log: $log"
+        else
+            rm -f "$log"
+        fi
+    done
+}
 
 cleanup_pids() {
     for pid in "${PIDS[@]}"; do
@@ -411,6 +461,66 @@ cleanup_pids() {
     for pid in "${PIDS[@]}"; do
         wait "$pid" 2>/dev/null || true
     done
+}
+
+# The bridge binds the FIRST IPv4-mapped RoCEv2 GID on the port and the
+# emulator binds the LAST, so the single-port loopback is only coherent when
+# the port carries exactly BRIDGE_IP and EMULATOR_IP, added in that order.
+# Any third address takes a GID slot too, and if it lands below BRIDGE_IP the
+# bridge adopts it as its own identity: the QPs still reach RTS and the
+# emulator (an unreliable QP, so it never learns) reports no send errors,
+# while the fabric discards every frame and the bridge dispatches nothing.
+#
+# That happens whenever the chosen port is owned by something that re-asserts
+# an address -- e.g. a NetworkManager profile with autoconnect=yes racing the
+# `ip addr flush` in setup_port.  Whether it wins the race varies run to run,
+# which makes the failure intermittent and near-impossible to read from the
+# logs, so assert the precondition up front instead.
+check_gid_precondition() {
+    local ib_dev="$1"
+    local portdir="/sys/class/infiniband/${ib_dev}/ports/1"
+    local i g t w7 w8 ipv4
+    local found=() bridge_idx=-1 emulator_idx=-1 foreign=()
+
+    for i in $(seq 0 31); do
+        g=$(cat "${portdir}/gids/$i" 2>/dev/null) || continue
+        [[ "$g" == *":ffff:"* ]] || continue
+        t=$(cat "${portdir}/gid_attrs/types/$i" 2>/dev/null) || true
+        [[ "$t" == *v2* ]] || continue
+        IFS=: read -r _ _ _ _ _ _ w7 w8 <<<"$g"
+        ipv4=$(printf "%d.%d.%d.%d" \
+            "$((16#${w7:0:2}))" "$((16#${w7:2:2}))" \
+            "$((16#${w8:0:2}))" "$((16#${w8:2:2}))")
+        found+=("gid[$i]=$ipv4")
+        case "$ipv4" in
+            "$BRIDGE_IP")   (( bridge_idx   < 0 )) && bridge_idx=$i ;;
+            "$EMULATOR_IP") (( emulator_idx < 0 )) && emulator_idx=$i ;;
+            *)              foreign+=("gid[$i]=$ipv4") ;;
+        esac
+    done
+
+    if (( bridge_idx < 0 )) || (( emulator_idx < 0 )) \
+       || (( bridge_idx > emulator_idx )) || (( ${#foreign[@]} > 0 )); then
+        echo "ERROR: $ib_dev cannot host this test: its RoCEv2 GID table must" >&2
+        echo "       contain $BRIDGE_IP (bridge) and $EMULATOR_IP (emulator)," >&2
+        echo "       nothing else, and the bridge's must come first." >&2
+        echo "  IPv4 RoCEv2 GIDs found: ${found[*]:-none}" >&2
+        # Always name both flags: --device alone leaves a fresh port without
+        # the addresses, and --setup-network alone falls back to whatever
+        # detect_ib_device returns and reconfigures the wrong port.
+        if (( ${#foreign[@]} > 0 )); then
+            echo "  Unexpected address(es): ${foreign[*]}" >&2
+            echo "  Something else owns this port (check: nmcli device status)." >&2
+            echo "  Re-run as: --setup-network --device DEV" >&2
+            echo "  where DEV is a port no other service manages." >&2
+        else
+            echo "  Re-run as: --setup-network --device $ib_dev" >&2
+        fi
+        exit 1
+    fi
+
+    echo "  GID precondition OK: bridge $BRIDGE_IP=gid[$bridge_idx]," \
+         "emulator $EMULATOR_IP=gid[$emulator_idx]"
 }
 
 do_run() {
@@ -436,28 +546,30 @@ do_run() {
     done
 
     PIDS=()
-    trap cleanup_pids EXIT
+    trap 'cleanup_pids; cleanup_temp_logs' EXIT
 
     local FPGA_QP
     local FPGA_TARGET_IP
 
     if $EMULATE; then
         echo "=== Emulated mode ==="
+        check_gid_precondition "$IB_DEVICE"
 
         echo "--- Starting emulator ---"
-        > /tmp/emulator.log
+        EMULATOR_LOG=$(make_temp_log emulator)
+        echo "  Emulator log: $EMULATOR_LOG"
         "$emulator_bin" \
             --device="$IB_DEVICE" \
             --port="$CONTROL_PORT" \
             --bridge-ip="$BRIDGE_IP" \
             --page-size="$PAGE_SIZE" \
-            > /tmp/emulator.log 2>&1 &
+            > "$EMULATOR_LOG" 2>&1 &
         PIDS+=($!)
-        tail -f /tmp/emulator.log &
+        tail -f "$EMULATOR_LOG" | stdbuf -oL awk '{ print "[EMULATOR] " $0 }' &
         PIDS+=($!)
 
         sleep 2
-        FPGA_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' /tmp/emulator.log | head -1)
+        FPGA_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' "$EMULATOR_LOG" | head -1)
         if [[ -z "$FPGA_QP" ]]; then
             echo "ERROR: Could not parse emulator QP from log" >&2
             exit 1
@@ -476,7 +588,8 @@ do_run() {
     if $UNIFIED; then mode_name="UNIFIED"; fi
     if $FORWARD; then mode_name="FORWARD"; fi
     echo "--- Starting bridge (mode: $mode_name) ---"
-    > /tmp/bridge.log
+    BRIDGE_LOG=$(make_temp_log bridge)
+    echo "  Bridge log: $BRIDGE_LOG"
     local bridge_args=(
         --device="$IB_DEVICE"
         --peer-ip="$FPGA_TARGET_IP"
@@ -492,22 +605,22 @@ do_run() {
     if $FORWARD; then
         bridge_args+=(--forward)
     fi
-    "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
+    "$bridge_bin" "${bridge_args[@]}" > "$BRIDGE_LOG" 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)
-    tail -f /tmp/bridge.log &
+    tail -f "$BRIDGE_LOG" | stdbuf -oL awk '{ print "[BRIDGE] " $0 }' &
     PIDS+=($!)
 
     local wait_elapsed=0
-    while ! grep -q "Bridge Ready" /tmp/bridge.log 2>/dev/null; do
+    while ! grep -q "Bridge Ready" "$BRIDGE_LOG" 2>/dev/null; do
         if ! kill -0 "$BRIDGE_PID" 2>/dev/null; then
             echo "ERROR: Bridge process died during startup" >&2
-            cat /tmp/bridge.log >&2
+            cat "$BRIDGE_LOG" >&2
             exit 1
         fi
         if (( wait_elapsed >= 30 )); then
             echo "ERROR: Bridge did not become ready within 30s" >&2
-            cat /tmp/bridge.log >&2
+            cat "$BRIDGE_LOG" >&2
             exit 1
         fi
         sleep 1
@@ -515,9 +628,9 @@ do_run() {
     done
 
     local BRIDGE_QP BRIDGE_RKEY BRIDGE_BUFFER
-    BRIDGE_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' /tmp/bridge.log | tail -1)
-    BRIDGE_RKEY=$(grep -oP 'RKey: \K[0-9]+' /tmp/bridge.log | tail -1)
-    BRIDGE_BUFFER=$(grep -oP 'Buffer Addr: 0x\K[0-9a-fA-F]+' /tmp/bridge.log | tail -1)
+    BRIDGE_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' "$BRIDGE_LOG" | tail -1)
+    BRIDGE_RKEY=$(grep -oP 'RKey: \K[0-9]+' "$BRIDGE_LOG" | tail -1)
+    BRIDGE_BUFFER=$(grep -oP 'Buffer Addr: 0x\K[0-9a-fA-F]+' "$BRIDGE_LOG" | tail -1)
 
     if [[ -z "$BRIDGE_QP" || -z "$BRIDGE_RKEY" || -z "$BRIDGE_BUFFER" ]]; then
         echo "ERROR: Could not parse bridge QP info from log" >&2
