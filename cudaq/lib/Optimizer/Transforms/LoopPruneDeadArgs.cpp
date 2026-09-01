@@ -296,20 +296,24 @@ void pruneDeadLoopCarriedValues(func::FuncOp func) {
   // still feeds arithmetic, `canEraseDeadSlots` refuses to drop it.
   deleteDeadComputations();
 
-  // Drop dead slots from every loop in one post-order sweep. Rebuilding an
-  // inner loop leaves its enclosing loop handle valid and may release the
-  // final use that kept an enclosing slot from being erased.
-  SmallVector<cudaq::cc::LoopOp> current;
-  func.walk<WalkOrder::PostOrder>(
-      [&](cudaq::cc::LoopOp loop) { current.push_back(loop); });
-  for (auto loop : current) {
-    llvm::SmallBitVector dead(loop.getInitialArgs().size());
-    for (unsigned pos = 0, end = dead.size(); pos != end; ++pos)
-      if (!slotIsLive(LoopCarriedSlot{loop.getOperation(), pos}))
-        dead.set(pos);
-    if (dead.none() || !canEraseDeadSlots(loop, dead))
-      continue;
-    eraseDeadSlots(loop, dead);
+  // Drop each dead slot from the loop's signature. Erasing an inner loop's
+  // slots is what frees up the enclosing loop's, so keep going until nothing
+  // more can be dropped.
+  for (bool changed = true; changed;) {
+    changed = false;
+    SmallVector<cudaq::cc::LoopOp> current;
+    func.walk([&](cudaq::cc::LoopOp loop) { current.push_back(loop); });
+    for (auto loop : llvm::reverse(current)) {
+      llvm::SmallBitVector dead(loop.getInitialArgs().size());
+      for (unsigned pos = 0, end = dead.size(); pos != end; ++pos)
+        if (!slotIsLive(LoopCarriedSlot{loop.getOperation(), pos}))
+          dead.set(pos);
+      if (dead.none() || !canEraseDeadSlots(loop, dead))
+        continue;
+      eraseDeadSlots(loop, dead);
+      changed = true;
+      break;
+    }
   }
 
   deleteDeadComputations();

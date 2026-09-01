@@ -103,8 +103,8 @@ func.func @dead_accumulator(%n: i32, %q: !quake.veq<?>) {
 // CHECK:           } step {
 
 // The outer dead slot initializes the inner dead slot. Erasing the inner slot
-// releases the outer block argument, so both signatures must be reduced in one
-// post-order sweep.
+// releases the outer block argument, so both signatures must eventually be
+// reduced.
 func.func @nested_dead_slots(%n: i32, %q: !quake.veq<?>) {
   %c0 = arith.constant 0 : i32
   %c1 = arith.constant 1 : i32
