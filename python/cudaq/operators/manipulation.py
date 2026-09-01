@@ -173,18 +173,29 @@ def _sum_transformation(operator: OperatorSum,
                 padded_term *= identity(degree)
         return padded_term
 
-    evaluated = arithmetics.evaluate(ScalarOperator.const(0))
+    # Seeding the accumulation with the first evaluated term (rather than
+    # arithmetics.evaluate(ScalarOperator.const(0)) and adding every term to
+    # it) avoids feeding a scalar zero into arithmetics.add. For the default
+    # evaluation arithmetics that resolves to a plain `0 + term`, which the
+    # C++ operator classes turn into an explicit, spurious zero-coefficient
+    # identity term rather than simplifying it away - polluting the result
+    # of `OperatorSum.evaluate()` with an extra term nobody asked for.
+    evaluated = None
     if pad_terms:
         degrees = operator.degrees
         for term in operator:
             evaluated_term = _product_transformation(padded_term(term, degrees),
                                                      arithmetics, pad_terms)
-            evaluated = arithmetics.add(evaluated, evaluated_term)
+            evaluated = evaluated_term if evaluated is None else arithmetics.add(
+                evaluated, evaluated_term)
     else:
         for term in operator:
             evaluated_term = _product_transformation(term, arithmetics,
                                                      pad_terms)
-            evaluated = arithmetics.add(evaluated, evaluated_term)
+            evaluated = evaluated_term if evaluated is None else arithmetics.add(
+                evaluated, evaluated_term)
+    if evaluated is None:
+        evaluated = arithmetics.evaluate(ScalarOperator.const(0))
     return evaluated
 
 
