@@ -69,6 +69,9 @@ get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)
 get_filename_component(CUDAQ_INSTALL_DIR ${CUDAQ_LIBRARY_DIR} DIRECTORY)
 set(CUDAQ_INCLUDE_DIR ${CUDAQ_INSTALL_DIR}/include)
 
+find_dependency(GMP)
+find_dependency(MPFR)
+
 set (NVQIR_DIR "${PARENT_DIRECTORY}/nvqir")
 find_dependency(NVQIR REQUIRED)
 

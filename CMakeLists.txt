@@ -50,6 +50,10 @@ project(cudaq LANGUAGES CXX C)
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
 
+# Always install to `lib`. This avoids the `lib` vs `lib64` mismatch depending
+# on distribution.
+set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries (lib)" FORCE)
+
 # Prevent In-source builds
 # ==============================================================================
 # Using the undocumented `CMAKE_DISABLE_IN_SOURCE_BUILDS` and
@@ -141,6 +145,11 @@ if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
   set(CUDAQ_ENABLE_OQC_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the OQC target.")
 endif()
 
+# Enable ORCA target by default.
+if (NOT DEFINED CUDAQ_ENABLE_ORCA_BACKEND)
+  set(CUDAQ_ENABLE_ORCA_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the ORCA target.")
+endif()
+
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
@@ -161,11 +170,6 @@ if (NOT DEFINED CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR)
 elseif (CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
   message(WARNING "CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON is supported only on Linux; forcing OFF.")
   set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector." FORCE)
-endif()
-
-# Enable Quantum Circuits, Inc. (QCI) target by default.
-if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
-  set(CUDAQ_ENABLE_QCI_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
 endif()
 
 # Enable TII target by default.
@@ -736,6 +740,15 @@ if (CUDAQ_ENABLE_REST)
       "Install OpenSSL, set OPENSSL_ROOT_DIR, or pass -DCUDAQ_ENABLE_REST=OFF "
       "to disable REST support.")
     set(CUDAQ_ENABLE_REST OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
+if (CUDAQ_ENABLE_ORCA_BACKEND)
+  if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found — disabling the ORCA target. "
+      "OpenSSL is required when CUDAQ_ENABLE_ORCA_BACKEND is enabled (the "
+      "default). Install OpenSSL, set OPENSSL_ROOT_DIR, or pass "
+      "-DCUDAQ_ENABLE_ORCA_BACKEND=OFF to disable the ORCA target.")
+    set(CUDAQ_ENABLE_ORCA_BACKEND OFF CACHE BOOL "" FORCE)
   endif()
 endif()
 

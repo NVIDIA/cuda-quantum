@@ -102,7 +102,7 @@ Step 1: ask which technology they want:
 ```text
 Which QPU technology are you targeting?
   1. Ion trap         (IonQ, Quantinuum)
-  2. Superconducting  (IQM, OQC, Anyon, TII, QCI)
+  2. Superconducting  (IQM, OQC, Anyon, TII)
   3. Neutral atom     (QuEra, Infleqtion, Pasqal)
   4. Cloud / multi-platform (AWS Braket, Scaleway)
 ```

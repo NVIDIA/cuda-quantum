@@ -633,8 +633,11 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     });
   } else {
     // If there is no initialization expression, skip creating a `for` scope.
+    // The step builder is still needed regardless of whether there's an init
+    // clause -- an empty init clause says nothing about whether an increment
+    // clause exists (e.g. `for (; i < 4; ++i)`).
     cc::LoopOp::create(builder, loc, ValueRange{}, postCondition, whileBuilder,
-                       bodyBuilder);
+                       bodyBuilder, stepBuilder);
   }
   const auto finalValueDepth = valueStack.size();
   if (finalValueDepth > initialValueDepth) {

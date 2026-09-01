@@ -911,6 +911,23 @@ class PyASTBridge(ast.NodeVisitor):
         then or else block."""
         return self.inIfStmtBlockStack > 0
 
+    def buildScopedBlock(self, stmts):
+        """Emit `stmts` inside a `cc.scope`.
+
+        A qubit allocated in a compound statement must be freed when that
+        statement ends. `cc.scope` marks that point and `add-deallocs` puts the
+        `quake.dealloc` there. Scopes with nothing to free are removed by
+        canonicalization, so this costs nothing when there is no allocation.
+        """
+        scope = cc.ScopeOp([])
+        scopeBlock = Block.create_at_start(scope.initRegion, [])
+        with InsertionPoint(scopeBlock):
+            self.symbolTable.beginBlock()
+            [self.visit(b) for b in stmts]
+            if not self.hasTerminator(scopeBlock):
+                cc.ContinueOp([])
+            self.symbolTable.endBlock()
+
     def hasTerminator(self, block):
         """Return True if the given Block has a Terminator operation."""
         return cudaq_runtime.blockHasTerminator(block)
@@ -4680,58 +4697,87 @@ class PyASTBridge(ast.NodeVisitor):
             if (cc.SequenceType.isinstance(orig_iterable_type) or
                     quake.VeqType.isinstance(orig_iterable_type)):
                 i64Ty = self.getIntegerType()
+                i1Ty = self.getIntegerType(1)
                 veqTy = self.getVeqType()
-                c0 = self.getConstantInt(0)
                 c1 = self.getConstantInt(1)
-
+                falseVal = self.getConstantInt(0, 1)
+                trueVal = self.getConstantInt(1, 1)
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
-                init_veq = quake.RelaxSizeOp(
-                    veqTy,
-                    quake.AllocaOp(empty_veq_ty).result).result
+                veq1_ty = quake.VeqType.get(1, context=self.ctx)
+
+                def extractElem(i):
+                    if quake.VeqType.isinstance(iterable.type):
+                        return quake.ExtractRefOp(iterTy, iterable, -1,
+                                                  index=i).result
+                    elem_addr = cc.ComputePtrOp(
+                        cc.PointerType.get(iterTy), iterable, [i],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    return cc.LoadOp(elem_addr).result
 
                 def bodyBuilder(args):
-                    i, curr_veq = args[0], args[1]
-                    if quake.VeqType.isinstance(iterable.type):
-                        idx_val = quake.ExtractRefOp(iterTy,
-                                                     iterable,
-                                                     -1,
-                                                     index=i).result
-                    else:
-                        elem_addr = cc.ComputePtrOp(
-                            cc.PointerType.get(iterTy), iterable, [i],
-                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                  context=self.ctx))
-                        idx_val = cc.LoadOp(elem_addr).result
+                    # `found` tracks whether a real `qubit` has been placed in
+                    # the accumulator yet. Until it has, `curr_veq` is just
+                    # the initial poison seed and is *never read* by this
+                    # body: a matching element always *replaces* it (a
+                    # fresh `veq<1>`), never concatenates onto it. Only once
+                    # `found` is true does a later match grow the (now
+                    # real) accumulator via `quake.concat`. A `!quake.veq<0>`
+                    # has no valid semantics, so it must never be an operand
+                    # to a `concat` -- it may only ever be the final, unread
+                    # result of a search that found nothing at all.
+                    i, found, curr_veq = args[0], args[1], args[2]
+                    idx_val = extractElem(i)
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    if hasFilter:
-                        cond = evalFilter()
-                        ifOp = cc.IfOp([veqTy], cond, [])
-                        thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-                        with InsertionPoint(thenBlock):
-                            self.visit(node.elt)
-                            ref = self.popValue()
-                            appended = quake.ConcatOp(veqTy,
-                                                      [curr_veq, ref]).result
-                            cc.ContinueOp([appended])
-                        elseBlock = Block.create_at_start(ifOp.elseRegion, [])
-                        with InsertionPoint(elseBlock):
-                            cc.ContinueOp([curr_veq])
-                        new_veq = ifOp.result
-                    else:
+                    cond = evalFilter() if hasFilter else trueVal
+                    ifCond = cc.IfOp([i1Ty, veqTy], cond, [])
+                    condThen = Block.create_at_start(ifCond.thenRegion, [])
+                    with InsertionPoint(condThen):
                         self.visit(node.elt)
                         ref = self.popValue()
-                        new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
+                        ifFound = cc.IfOp([veqTy], found, [])
+                        foundThen = Block.create_at_start(
+                            ifFound.thenRegion, [])
+                        with InsertionPoint(foundThen):
+                            grown = quake.ConcatOp(veqTy,
+                                                   [curr_veq, ref]).result
+                            cc.ContinueOp([grown])
+                        foundElse = Block.create_at_start(
+                            ifFound.elseRegion, [])
+                        with InsertionPoint(foundElse):
+                            veq1 = quake.ConcatOp(veq1_ty, [ref]).result
+                            cc.ContinueOp(
+                                [quake.RelaxSizeOp(veqTy, veq1).result])
+                        cc.ContinueOp([trueVal, ifFound.result])
+                    condElse = Block.create_at_start(ifCond.elseRegion, [])
+                    with InsertionPoint(condElse):
+                        cc.ContinueOp([found, curr_veq])
                     self.symbolTable.endBlock()
-                    cc.ContinueOp([i, new_veq])
+                    cc.ContinueOp([i, ifCond.results[0], ifCond.results[1]])
+
+                # Seed the accumulator with poison: there is no sound
+                # zero-length `!quake.veq` to allocate and grow. The loop
+                # above only ever *replaces* this seed (with a real
+                # `veq<1>`) the first time a matching element is found; it
+                # is never grown from. If no element ever matches -- an
+                # empty source iterable, or a filter that rejects every
+                # element -- the poison seed survives as the final,
+                # unread-by-this-lowering result. Using that result (e.g.
+                # applying a gate to it) is then a bug in the user's kernel,
+                # not something this lowering can paper over.
+                poison = cc.PoisonOp(empty_veq_ty)
+                init_seed = quake.RelaxSizeOp(veqTy, poison.result).result
 
                 loop = self.createForLoop(
-                    [i64Ty, veqTy], bodyBuilder, [c0, init_veq],
+                    [i64Ty, i1Ty, veqTy], bodyBuilder,
+                    [self.getConstantInt(0), falseVal, init_seed],
                     lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
-                        0], iterableSize).result,
-                    lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
-                self.pushValue(loop.results[1])
+                        0], iterableSize).result, lambda args:
+                    [arith.AddIOp(args[0], c1).result, args[1], args[2]])
+
+                self.pushValue(loop.results[2])
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",
@@ -5344,7 +5390,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(assignNode)
             finally:
                 self.sinkAllocaNames = outerSink
-            [self.visit(b) for b in stmts]
+            self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
         self.createMonotonicForLoop(
@@ -5373,12 +5419,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         def blockBuilder(iterVar):
             self.symbolTable.beginBlock()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             self.symbolTable.endBlock()
 
         self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
                            None if not node.orelse else
-                           lambda _: [self.visit(stmt) for stmt in node.orelse])
+                           lambda _: self.buildScopedBlock(node.orelse))
 
     def visit_BoolOp(self, node):
         """Convert boolean operations into equivalent MLIR operations using the
@@ -5638,24 +5684,20 @@ class PyASTBridge(ast.NodeVisitor):
         ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
         with InsertionPoint(thenBlock):
-            self.symbolTable.beginBlock()
             self.pushIfStmtBlockStack()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             if not self.hasTerminator(thenBlock):
                 cc.ContinueOp([])
             self.popIfStmtBlockStack()
-            self.symbolTable.endBlock()
 
         if len(node.orelse) > 0:
             elseBlock = Block.create_at_start(ifOp.elseRegion, [])
             with InsertionPoint(elseBlock):
-                self.symbolTable.beginBlock()
                 self.pushIfStmtBlockStack()
-                [self.visit(b) for b in node.orelse]
+                self.buildScopedBlock(node.orelse)
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp([])
                 self.popIfStmtBlockStack()
-                self.symbolTable.endBlock()
 
     def visit_Return(self, node):
 
@@ -6237,6 +6279,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     cudaqAliases = kwargs.get('cudaqAliases', None)
     disable_quantum_optimization = kwargs.get('disable_quantum_optimization',
                                               False)
+    atomic_quantum_region = kwargs.get('atomic_quantum_region', False)
 
     # Build the AOT Quake Module for this kernel. Wrapped in a single span so
     # the tracer can separate Python-AST-to-MLIR construction from the AOT
@@ -6257,6 +6300,9 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         with trace.span("ast_bridge.validate_return_statements"):
             ValidateReturnStatements(bridge).visit(astModule)
         bridge.visit(astModule)
+        if atomic_quantum_region:
+            bridge.kernelFuncOp.attributes.__setitem__(
+                'atomic_quantum_region', UnitAttr.get(context=bridge.ctx))
 
     # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
     # so `TracePassInstrumentation` is installed (matching the JIT-side
@@ -6272,8 +6318,9 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     try:
         with trace.span("cudaq.pipeline.aot"):
             cudaq_runtime.runPassManager(pm, bridge.module)
-    except:
-        raise RuntimeError(f"could not compile code for '{bridge.name}'.")
+    except Exception as e:
+        raise RuntimeError(
+            f"could not compile code for '{bridge.name}'.\n{e}") from e
 
     bridge.module.operation.attributes.__setitem__(
         cudaq__unique_attr_name, StringAttr.get(bridge.name,

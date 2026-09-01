@@ -232,8 +232,7 @@ __qpu__ void linear_expr0() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr0
 // CHECK:           %[[VAL_2:.*]] = arith.constant 9 : i32
 // CHECK:           cc.loop while ((%[[VAL_5:.*]] = %{{.*}}) -> (i32)) {
-// CHECK:             %[[VAL_6:.*]] = arith.addi %[[VAL_5]], %{{.*}} : i32
-// CHECK:             %[[VAL_7:.*]] = arith.cmpi ne, %[[VAL_6]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_7:.*]] = arith.cmpi ne, %[[VAL_5]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_7]](%[[VAL_5]] : i32)
 // CHECK:           } do {
 // CHECK:           } {normalized}
@@ -249,10 +248,8 @@ __qpu__ void linear_expr1a() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr1a
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 6 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_6:.*]] = %
-// CHECK:             %[[VAL_7:.*]] = arith.muli %[[VAL_6]], %
-// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_6]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
@@ -267,10 +264,8 @@ __qpu__ void linear_expr1b() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr1b
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 5 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_6:.*]] = %
-// CHECK:             %[[VAL_7:.*]] = arith.muli %[[VAL_6]], %[[VAL_3]] : i32
-// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_6]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
@@ -285,12 +280,8 @@ __qpu__ void linear_expr2() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr2
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 7 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 3 : i32
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_7:.*]] = %
-// CHECK:             %[[VAL_8:.*]] = arith.muli %[[VAL_7]], %[[VAL_3]] : i32
-// CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_4]] : i32
-// CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_7]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
@@ -305,10 +296,8 @@ __qpu__ void linear_expr3a() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3a
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 6 : i32
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_7:.*]] = %
-// CHECK:             %[[VAL_9:.*]] = arith.subi %[[VAL_4]], %[[VAL_7]] : i32
-// CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_7]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
@@ -324,10 +313,8 @@ __qpu__ void linear_expr3b() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3b
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %
-// CHECK:             %[[VAL_8:.*]] = arith.subi %[[VAL_3]], %[[VAL_6]] : i32
-// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_0]] : i32
+// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_6]], %[[VAL_0]] : i32
 // CHECK:           } {normalized}
 // clang-format on
 
@@ -342,10 +329,8 @@ __qpu__ void linear_expr3c() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3c
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_6:.*]] = %[[VAL_0]]) -> (i32)) {
-// CHECK:             %[[VAL_8:.*]] = arith.subi %[[VAL_3]], %[[VAL_6]] : i32
-// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_0]] : i32
+// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_6]], %[[VAL_0]] : i32
 // CHECK:           } {normalized}
 // clang-format on
 
@@ -359,10 +344,8 @@ __qpu__ void linear_expr4() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr4
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 5 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_6:.*]] = %
-// CHECK:             %[[VAL_7:.*]] = arith.subi %[[VAL_3]], %[[VAL_6]] : i32
-// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_6]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
@@ -376,14 +359,9 @@ __qpu__ void linear_expr5a() {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr5a
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 5 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 4 : i32
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_7:.*]] = %
-// CHECK:             %[[VAL_8:.*]] = arith.muli %[[VAL_7]], %[[VAL_3]] : i32
-// CHECK:             %[[VAL_9:.*]] = arith.subi %[[VAL_4]], %[[VAL_8]] : i32
-// CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_7]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
@@ -397,13 +375,9 @@ __qpu__ void linear_expr5b() {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr5b
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_6:.*]] = %
-// CHECK:             %[[VAL_7:.*]] = arith.muli %[[VAL_6]], %[[VAL_2]] : i32
-// CHECK:             %[[VAL_8:.*]] = arith.subi %[[VAL_3]], %[[VAL_7]] : i32
-// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_6]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_9]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
@@ -421,10 +395,8 @@ __qpu__ void linear_expr6() {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_0]]) -> (i32)) {
-// CHECK:             %[[VAL_6:.*]] = arith.muli %[[VAL_5]], %[[VAL_2]] : i32
-// CHECK:             %[[VAL_7:.*]] = arith.addi %[[VAL_6]], %[[VAL_1]] : i32
-// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
-// CHECK:             cc.condition %[[VAL_8]](%[[VAL_5]] : i32)
+// CHECK:             %[[VAL_6:.*]] = arith.cmpi ne, %[[VAL_5]], %[[VAL_2]] : i32
+// CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i32)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_9:.*]]: i32):
 // CHECK:             %[[VAL_10:.*]] = arith.muli %[[VAL_9]], %[[VAL_2]] : i32
@@ -436,6 +408,55 @@ __qpu__ void linear_expr6() {
 // CHECK:           ^bb0(%[[VAL_14:.*]]: i32):
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : i32
 // CHECK:             cc.continue %[[VAL_15]] : i32
+// CHECK:           } {normalized}
+// clang-format on
+
+__qpu__ void linear_expr_dynamic(int bound) {
+  cudaq::qubit q;
+  for (int i = 1; i + 2 < bound; i += 2)
+    x(q);
+}
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr_dynamic
+// CHECK:           %[[COUNT:.*]] = arith.select %{{.*}}, %{{.*}}, %{{.*}} : i32
+// CHECK:           cc.loop while ((%[[IV:.*]] = %{{.*}}) -> (i32)) {
+// CHECK:             %[[COND:.*]] = arith.cmpi ne, %[[IV]], %[[COUNT]] : i32
+// CHECK:             cc.condition %[[COND]](%[[IV]] : i32)
+// CHECK:           } {normalized}
+// clang-format on
+
+__qpu__ void linear_expr_unsigned(int bound) {
+  cudaq::qubit q;
+  for (std::uint8_t i = 0; i + 1 < bound; ++i)
+    x(q);
+}
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr_unsigned
+// CHECK:           %[[ZERO8:.*]] = arith.constant 0 : i8
+// CHECK:           %[[COUNT8:.*]] = arith.select %{{.*}}, %{{.*}}, %{{.*}} : i32
+// CHECK:           cc.loop while ((%[[IV8:.*]] = %[[ZERO8]]) -> (i8)) {
+// CHECK:             %[[WIDE_IV:.*]] = cc.cast unsigned %[[IV8]] : (i8) -> i32
+// CHECK:             %[[COND8:.*]] = arith.cmpi ne, %[[WIDE_IV]], %[[COUNT8]] : i32
+// CHECK:             cc.condition %[[COND8]](%[[IV8]] : i8)
+// CHECK:           } {normalized}
+// clang-format on
+
+__qpu__ void linear_expr_invariant_side(int bound) {
+  cudaq::qubit q;
+  for (int i = 1; bound + 1 > i; ++i)
+    x(q);
+}
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr_invariant_side
+// CHECK-SAME:    (%[[BOUND:.*]]: i32)
+// CHECK:           %[[ZERO:.*]] = arith.constant 0 : i32
+// CHECK:           %[[COUNT_SIDE:.*]] = arith.select %{{.*}}, %[[BOUND]], %[[ZERO]] : i32
+// CHECK:           cc.loop while ((%[[IV_SIDE:.*]] = %[[ZERO]]) -> (i32)) {
+// CHECK:             %[[COND_SIDE:.*]] = arith.cmpi ne, %[[IV_SIDE]], %[[COUNT_SIDE]] : i32
+// CHECK:             cc.condition %[[COND_SIDE]](%[[IV_SIDE]] : i32)
 // CHECK:           } {normalized}
 // clang-format on
 

@@ -342,8 +342,9 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 
 ## [Python MLIR tests]
+# lit 23+ rejects the external shell our lit configs use. Pin to LLVM 22.x.
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy && \
+    python3 -m pip install 'lit<23' pytest scipy && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param cudaq_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
@@ -375,7 +376,8 @@ RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA 
             cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -); \
     fi
 
-RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
+# lit 23+ rejects the external shell our lit configs use. Pin to LLVM 22.x.
+RUN python3 -m ensurepip --upgrade && python3 -m pip install 'lit<23' && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     if [ ! -x "$(command -v nvcc)" ]; then \

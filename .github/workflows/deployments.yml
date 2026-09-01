@@ -566,6 +566,10 @@ jobs:
 
     environment: ghcr-deployment
 
+    # The secrets context is unavailable in a step-level if, so mirror it to env.
+    env:
+      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -588,11 +592,12 @@ jobs:
           password: ${{ github.token }}
 
       - name: Log in to NGC
+        if: env.NGC_CREDENTIALS != ''
         uses: docker/login-action@v4
         with:
           registry: nvcr.io
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_CREDENTIALS }}
+          password: ${{ env.NGC_CREDENTIALS }}
 
       - name: metadata for jobs
         id: metadata
@@ -678,7 +683,7 @@ jobs:
 
           is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
           has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
-          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
+          push_to_ngc=`${{ secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
 
           echo "push to NGC? $push_to_ngc"
 
@@ -864,6 +869,26 @@ jobs:
       environment: ghcr-deployment
       run_validation: false # validation runs in the Validation workflow
 
+  realtime_binaries:
+    name: Create CUDA Quantum Realtime installer
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && ! inputs.devcontainer_only
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/realtime_prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ matrix.platform }}
+      cuda_version: ${{ matrix.cuda_version }}
+      environment: ghcr-deployment
+
   macos_ci:
     name: macOS CI
     needs: metadata
@@ -879,7 +904,7 @@ jobs:
   # Deployments; this job is the opt-in path for manual dispatches.
   trigger_validation:
     name: Trigger Validation
-    needs: [summary, python_wheels, binaries]
+    needs: [summary, python_wheels, binaries, realtime_binaries]
     if: inputs.run_validation_after
     runs-on: ubuntu-latest
     permissions:

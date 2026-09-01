@@ -1,0 +1,24 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The phase correction is the final owner of a wire target, so the source
+// result must be replaced with the PhaseOp wire result.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx})' %s | FileCheck %s
+
+func.func @wire(%target: !quake.wire) -> !quake.wire
+    attributes {"cudaq-entrypoint"} {
+  %next = quake.h %target : (!quake.wire) -> (!quake.wire)
+  return %next : !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire
+// CHECK-SAME: %[[TARGET:.*]]: !quake.wire
+// CHECK: %[[P0:.*]] = quake.phased_rx {{.*}} %[[TARGET]]
+// CHECK: %[[P1:.*]] = quake.phased_rx {{.*}} %[[P0]]
+// CHECK: %[[PHASE:.*]] = quake.phase {{.*}} %[[P1]]
+// CHECK: return %[[PHASE]]

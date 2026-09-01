@@ -10,7 +10,7 @@
 // kernel with a scalar return value. Verify mapping handles the resulting flat
 // entry block while preserving support for the scoped form.
 
-// RUN: cudaq-opt '--qubit-mapping=device=path(1) placement=identity search=none' %s | FileCheck %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(2) placement=identity search=none' %s | FileCheck %s
 
 module {
   quake.wire_set @wires[2147483647]
@@ -74,4 +74,38 @@ module {
   // CHECK:         cc.scope
   // CHECK:           quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.log_output {{.*}} : (i1) -> ()
+
+  // A run entry keeps measurements in place, so structured measurement
+  // feedback can be mapped without changing its semantics.
+  func.func @measurement_feedforward.run() attributes {quake.cudaq_run = [i1]} {
+    %0 = quake.borrow_wire @wires[0] : !quake.wire
+    %1 = quake.borrow_wire @wires[1] : !quake.wire
+    %meas, %wire = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %bit = quake.discriminate %meas : (!quake.measure) -> i1
+    %2:1 = cc.if (%bit) ((%arg = %1)) -> (!quake.wire) {
+      %then = quake.s %arg : (!quake.wire) -> !quake.wire
+      cc.continue %then : !quake.wire
+    } else {
+      %else = quake.h %arg : (!quake.wire) -> !quake.wire
+      cc.continue %else : !quake.wire
+    }
+    quake.return_wire %wire : !quake.wire
+    quake.return_wire %2#0 : !quake.wire
+    quake.log_output %bit : (i1) -> ()
+    return
+  }
+
+  // CHECK-LABEL: func.func @measurement_feedforward.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0, 1], quake.cudaq_run = [i1]}
+  // CHECK:         %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  // CHECK:         %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+  // CHECK:         %[[MEAS:.*]], %[[WIRE:.*]] = quake.mz %[[Q0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+  // CHECK:         %[[BIT:.*]] = quake.discriminate %[[MEAS]] : (!quake.measure) -> i1
+  // CHECK:         %[[IF:.*]] = cc.if(%[[BIT]]) ((%[[ARG:.*]] = %[[Q1]])) -> !quake.wire {
+  // CHECK:           %[[THEN:.*]] = quake.s %[[ARG]] : (!quake.wire) -> !quake.wire
+  // CHECK:           cc.continue %[[THEN]] : !quake.wire
+  // CHECK:         } else {
+  // CHECK:           %[[ELSE:.*]] = quake.h {{.*}} : (!quake.wire) -> !quake.wire
+  // CHECK:           cc.continue %[[ELSE]] : !quake.wire
+  // CHECK:         }
+  // CHECK:         quake.log_output %[[BIT]] : (i1) -> ()
 }

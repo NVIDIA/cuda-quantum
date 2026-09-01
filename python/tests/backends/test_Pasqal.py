@@ -10,6 +10,14 @@ import cudaq
 import os
 import pytest
 
+# The `pasqal` target only exists when CUDA-Q was configured with the Pasqal
+# backend enabled (CUDAQ_ENABLE_PASQAL_BACKEND). Guard on what the build
+# actually produced -- the session fixture below calls set_target during
+# setup, which raises on a build that correctly does not provide it.
+pytestmark = pytest.mark.skipif(
+    not cudaq.has_target("pasqal"),
+    reason="Could not find `pasqal` in installation")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def set_up_target():
