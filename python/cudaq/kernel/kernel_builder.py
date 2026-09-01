@@ -1855,14 +1855,18 @@ class PyKernel(object):
 
             # Convert `numpy` arrays to lists
             if cc.SequenceType.isinstance(mlirType):
-                # Validate that the length of this argument is greater than or
-                # equal to the number of unique quake value extractions
-                if len(arg) < len(self.arguments[i].knownUniqueExtractions):
+                # Validate that the length of this argument covers the
+                # highest constant index extracted from it. The number of
+                # *distinct* indices is not a valid stand-in for this: a
+                # kernel that extracts only index 5 has one unique
+                # extraction, but still requires a list of at least 6
+                # elements.
+                extractions = self.arguments[i].knownUniqueExtractions
+                if extractions and len(arg) <= max(extractions):
                     emitFatalError(
                         f"Invalid runtime list argument - {len(arg)} elements "
-                        f"in list but kernel code has at least "
-                        f"{len(self.arguments[i].knownUniqueExtractions)} "
-                        f"known unique extractions.")
+                        f"in list but kernel code extracts element "
+                        f"{max(extractions)}.")
                 if hasattr(arg, "tolist"):
                     processedArgs.append(arg.tolist())
                 else:
