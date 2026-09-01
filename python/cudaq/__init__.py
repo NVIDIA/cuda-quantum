@@ -397,8 +397,11 @@ ComplexMatrix = cudaq_runtime.ComplexMatrix
 
 testing = cudaq_runtime.testing
 
-# target-specific
-orca = cudaq_runtime.orca
+# target-specific. The ORCA bindings are only compiled into the extension when
+# the ORCA target was built (CUDAQ_ENABLE_ORCA_BACKEND), so this must not be
+# assumed present: importing cudaq at all would otherwise fail on a build that
+# legitimately disabled it.
+orca = getattr(cudaq_runtime, "orca", None)
 
 # ============================================================================ #
 # Utility Functions
