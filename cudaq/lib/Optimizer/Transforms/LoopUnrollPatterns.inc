@@ -382,7 +382,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     rewriter.replaceAllUsesWith(loop.getOperation()->getResults(),
                                 endBlock->getArguments());
     // Cleanup any unreachable blocks from constant propagation of iterations.
-    [[maybe_unsued]] auto unused =
+    [[maybe_unused]] auto unused =
         eraseUnreachableBlocks(rewriter, loop.getOperation()->getRegions());
     rewriter.eraseOp(loop);
 
