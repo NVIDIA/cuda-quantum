@@ -57,8 +57,8 @@ static void collectDefiningOps(Value value,
   }
 }
 
-static SmallVector<Operation *>
-collectAllocationCandidates(func::FuncOp func, bool includeMemoryOps) {
+template <bool includeMemoryOps>
+static SmallVector<Operation *> collectAllocationCandidates(func::FuncOp func) {
   SmallVector<Operation *> candidates;
   llvm::SmallPtrSet<Operation *, 16> seen;
   auto addCandidate = [&](Operation *op) {
@@ -70,18 +70,18 @@ collectAllocationCandidates(func::FuncOp func, bool includeMemoryOps) {
     for (Operation *pointerOp : alloc->getUsers()) {
       if (!isa<cudaq::cc::CastOp, cudaq::cc::ComputePtrOp>(pointerOp))
         continue;
-      if (includeMemoryOps)
+      if constexpr (includeMemoryOps)
         addCandidate(pointerOp);
       for (Operation *user : pointerOp->getUsers()) {
         auto store = dyn_cast<cudaq::cc::StoreOp>(user);
         if (!store)
           continue;
         collectDefiningOps(store.getValue(), seen, candidates);
-        if (includeMemoryOps)
+        if constexpr (includeMemoryOps)
           addCandidate(store);
       }
     }
-    if (includeMemoryOps)
+    if constexpr (includeMemoryOps)
       addCandidate(alloc);
   });
   return candidates;
@@ -96,9 +96,9 @@ public:
     auto *ctx = &getContext();
     auto func = getOperation();
     SmallVector<Operation *> initializerOps =
-        collectAllocationCandidates(func, false);
+        collectAllocationCandidates<false>(func);
     SmallVector<Operation *> candidates =
-        collectAllocationCandidates(func, true);
+        collectAllocationCandidates<true>(func);
     if (candidates.empty())
       return;
 
@@ -116,7 +116,7 @@ public:
         signalPassFailure();
         return;
       }
-      candidates = collectAllocationCandidates(func, true);
+      candidates = collectAllocationCandidates<true>(func);
     }
 
     DominanceInfo domInfo(func);

@@ -8,7 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/MapVector.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -29,61 +29,68 @@ public:
 
   void runOnOperation() override {
     auto module = getOperation();
-    // Replacing one of these calls never creates another, so the calls already
-    // present in the module are the complete worklist.
-    SmallVector<Operation *> candidates;
+    // Collect all calls before walking any generator body. Replacing a call
+    // cannot create another candidate, so this snapshot is complete.
+    llvm::SmallMapVector<func::FuncOp,
+                         SmallVector<cudaq::quake::CustomUnitaryCallOp>, 4>
+        generatorWorklist;
     module.walk<WalkOrder::PreOrder>(
         [&](cudaq::quake::CustomUnitaryCallOp customOp) {
-          candidates.push_back(customOp.getOperation());
+          // Resolve the generator from the call's nearest module. This matters
+          // when the pass root contains nested modules with their own symbol
+          // tables.
+          auto parentModule = customOp->getParentOfType<ModuleOp>();
+          auto generator =
+              parentModule.lookupSymbol<func::FuncOp>(customOp.getGenerator());
+          if (!generator)
+            return;
+
+          generatorWorklist[generator].push_back(customOp);
         });
-    if (candidates.empty())
+    if (generatorWorklist.empty())
       return;
 
     IRRewriter rewriter(&getContext());
-    llvm::SmallPtrSet<Operation *, 4> convertedGenerators;
-    for (Operation *candidate : candidates) {
-      auto customOp = cast<cudaq::quake::CustomUnitaryCallOp>(candidate);
-      // Look up the generator from the call's nearest module. This matters when
-      // the pass root contains nested modules with their own symbol tables.
-      auto parentModule = customOp->getParentOfType<ModuleOp>();
-      auto generator =
-          parentModule.lookupSymbol<func::FuncOp>(customOp.getGenerator());
-      if (!generator)
-        continue;
-
+    for (auto &[generator, calls] : generatorWorklist) {
       rewriter.modifyOpInPlace(generator, [&] { generator.setPrivate(); });
       StringRef concreteMatrix;
+      SmallVector<cudaq::cc::AddressOfOp> addresses;
       generator.walk([&](cudaq::cc::AddressOfOp address) {
         concreteMatrix = address.getGlobalName();
+        addresses.push_back(address);
       });
-      if (concreteMatrix.empty()) {
-        customOp.emitError(
-            "Constant matrix corresponding to custom operation's generator "
-            "function not found in the module.");
-        continue;
+
+      bool hasConvertedCall = false;
+      for (cudaq::quake::CustomUnitaryCallOp customOp : calls) {
+        if (concreteMatrix.empty()) {
+          customOp.emitError(
+              "Constant matrix corresponding to custom operation's generator "
+              "function not found in the module.");
+          continue;
+        }
+
+        auto parentModule = customOp->getParentOfType<ModuleOp>();
+        if (!parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix))
+          continue;
+
+        rewriter.setInsertionPoint(customOp);
+        rewriter.replaceOpWithNewOp<cudaq::quake::CustomUnitaryConstantOp>(
+            customOp,
+            FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
+            customOp.getIsAdj(), customOp.getParameters(),
+            customOp.getControls(), customOp.getTargets(),
+            customOp.getNegatedQubitControlsAttr());
+        hasConvertedCall = true;
       }
-      if (!parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix))
-        continue;
 
-      rewriter.setInsertionPoint(customOp);
-      rewriter.replaceOpWithNewOp<cudaq::quake::CustomUnitaryConstantOp>(
-          customOp,
-          FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
-          customOp.getIsAdj(), customOp.getParameters(), customOp.getControls(),
-          customOp.getTargets(), customOp.getNegatedQubitControlsAttr());
-      convertedGenerators.insert(generator.getOperation());
+      // A generator may be shared by several calls. Wait until every call has
+      // been handled before removing matrix addresses that no longer have
+      // users.
+      if (hasConvertedCall)
+        for (cudaq::cc::AddressOfOp address : addresses)
+          if (address->use_empty())
+            rewriter.eraseOp(address);
     }
-
-    // A generator may be shared by several calls. Wait until every call has
-    // been handled before removing matrix addresses that no longer have users.
-    SmallVector<Operation *> deadAddresses;
-    for (Operation *generator : convertedGenerators)
-      generator->walk([&](cudaq::cc::AddressOfOp address) {
-        if (address->use_empty())
-          deadAddresses.push_back(address.getOperation());
-      });
-    for (Operation *address : deadAddresses)
-      rewriter.eraseOp(address);
   }
 };
 

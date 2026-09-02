@@ -25,6 +25,8 @@
 #include "mlir/Pass/PassRegistry.h"
 
 namespace cudaq::opt {
+/// \returns true when \p root or a nested operation has one of the types in
+/// `OpTypes`. The walk stops after the first matching operation.
 template <typename... OpTypes>
 bool containsAnyOperationOfType(mlir::Operation *root) {
   return root
