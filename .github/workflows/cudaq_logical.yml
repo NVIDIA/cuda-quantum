@@ -141,8 +141,14 @@ jobs:
           raw_wheel="$(find .wheel-raw -name "cudaq_logical-*-cp${py_tag}-*.whl" -print -quit)"
           test -n "$raw_wheel"
 
+          # libcudaqMLIR, libcudaqMLIRCAPI, and libnanobind-cudaq are all
+          # shipped by the cudaq runtime wheel and resolved from it at
+          # runtime (see preview/logical/cmake/SetupCUDAQ.cmake), so they
+          # must not be grafted into this wheel.
           python -m auditwheel repair \
             --exclude libcudaqMLIR.so \
+            --exclude libcudaqMLIRCAPI.so \
+            --exclude libnanobind-cudaq.so \
             --wheel-dir ../../dist "$raw_wheel"
 
           wheel="$(find "$GITHUB_WORKSPACE/dist" -name "cudaq_logical-*-cp${py_tag}-*.whl" -print -quit)"

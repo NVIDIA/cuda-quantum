@@ -25,7 +25,10 @@ def main() -> None:
                          f"  cudaq:    {cudaq_root}\n"
                          f"  logical:  {logical_root}")
 
-    import cudaq.mlir._mlir_libs._qlx_ext  # noqa: F401
+    # NOTE: use the ``from ... import`` form here -- a plain
+    # ``import cudaq.mlir...`` would rebind ``cudaq`` as a local variable of
+    # this function and break the ``cudaq.__file__`` accesses above.
+    from cudaq.mlir._mlir_libs import _qlx_ext  # noqa: F401
 
     from cudaq.mlir import ir as mlir_ir_again
 
