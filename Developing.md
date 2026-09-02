@@ -102,7 +102,12 @@ some checks require system dependencies:
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install aspell aspell-en nodejs npm golang
+sudo apt-get install aspell aspell-en golang
+# Node from NodeSource, not apt: markdown-link-check needs Node 20 or newer,
+# and Ubuntu 24.04's nodejs package is 18. NodeSource's nodejs bundles npm,
+# so do not also install the apt npm package -- the two conflict.
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install nodejs
 
 # macOS
 brew install aspell node go
