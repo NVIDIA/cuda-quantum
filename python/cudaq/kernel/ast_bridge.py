@@ -2988,6 +2988,50 @@ class PyASTBridge(ast.NodeVisitor):
 
             return name
 
+        def processExternKernel(name, path=None):
+            """Emit a direct call to a function declared with
+            `cudaq.extern_kernel`. The declaration stays in reference form and
+            `cable-rough-in` rewrites the call into wire form later.
+            """
+            from .kernel_decorator import isa_extern_kernel_decorator
+
+            if path:
+                name = f"{path}.{name}"
+
+            if name in self.qualifiedDecoratorCache:
+                decorator = self.qualifiedDecoratorCache[name]
+            else:
+                decorator = recover_value_of_or_none(name, self.defFrame)
+                self.qualifiedDecoratorCache[name] = decorator
+            if decorator is None or not isa_extern_kernel_decorator(decorator):
+                return False
+
+            argTys = decorator.signature.arg_types
+            if len(node.args) != len(argTys):
+                self.emitFatalError(
+                    f"extern kernel '{decorator.name}' takes {len(argTys)} "
+                    f"argument(s), but {len(node.args)} were given.", node)
+            values = groupValues(node.args, [(len(argTys), len(argTys))])
+            values = convertArguments(argTys, values)
+
+            symbol = decorator.backendSymbol
+            fnTy = FunctionType.get(argTys, [])
+            currentST = SymbolTable(self.module.operation)
+            if symbol in currentST:
+                declaredTy = currentST[symbol].type
+                if declaredTy != fnTy:
+                    self.emitFatalError(
+                        f"extern kernel '{decorator.name}' declares symbol "
+                        f"'{symbol}' as {fnTy}, but it is already declared as "
+                        f"{declaredTy}.", node)
+            else:
+                with InsertionPoint(self.module.body):
+                    declOp = func.FuncOp(symbol, (argTys, []))
+                    declOp.sym_visibility = StringAttr.get("private")
+
+            func.CallOp([], symbol, values)
+            return True
+
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
             self.visit(ast.Name(symName))
@@ -3124,6 +3168,10 @@ class PyASTBridge(ast.NodeVisitor):
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
+                # Handle kernels the backend implements
+                if processExternKernel(name, path=devKey):
+                    return
+
                 # Handle debug functions
                 if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
                         node.func):
@@ -3162,6 +3210,9 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
         if isinstance(node.func, ast.Name):
+            if processExternKernel(node.func.id):
+                return
+
             symName = (node.func.id if node.func.id in self.symbolTable else
                        processDecorator(node.func.id))
             if symName:

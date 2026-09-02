@@ -166,15 +166,20 @@ def resolve_qualified_symbol(y):
                 obj = getattr(obj, attr)
         except AttributeError:
             return None
-        from .kernel_decorator import isa_kernel_decorator
-        if not isa_kernel_decorator(obj):
+        from .kernel_decorator import (isa_extern_kernel_decorator,
+                                       isa_kernel_decorator)
+
+        def isa_kernel_like(obj):
+            return isa_kernel_decorator(obj) or isa_extern_kernel_decorator(obj)
+
+        if not isa_kernel_like(obj):
             # FIXME: Legacy hack to support incorrect Python spellings of kernel
             # names.
             try:
                 obj = getattr(obj, parts[-1])
             except AttributeError:
                 pass
-        return obj if isa_kernel_decorator(obj) else None
+        return obj if isa_kernel_like(obj) else None
     return None
 
 
