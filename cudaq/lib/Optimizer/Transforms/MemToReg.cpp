@@ -994,11 +994,25 @@ public:
     // Phase 3: Update bindings and replace uses with the new block args.
     for (auto &info : defInfos) {
       for (auto [user, block] : std::get<UserBlocksType>(info)) {
-        Value newReg = liveInMap[block][std::get<0>(info)];
-        if (!hasBinding(block, std::get<0>(info)) ||
-            getBinding(block, std::get<0>(info)) == std::get<1>(info))
-          addBinding(block, std::get<0>(info), newReg);
-        user->replaceUsesOfWith(std::get<1>(info), newReg);
+        auto memref = std::get<0>(info);
+        auto oldVal = std::get<1>(info);
+        Value newReg = liveInMap[block][memref];
+        if (!hasBinding(block, memref) || getBinding(block, memref) == oldVal)
+          addBinding(block, memref, newReg);
+        // A copy such as `x = i` stores this def's value into another
+        // variable, binding that variable to the same value. Note the copy's
+        // target before rewriting the store.
+        Value copyTarget;
+        if (auto store = dyn_cast<cudaq::cc::StoreOp>(user))
+          if (store.getValue() == oldVal)
+            copyTarget = store.getPtrvalue();
+        user->replaceUsesOfWith(oldVal, newReg);
+        // The copy's target must follow the value it holds to the block
+        // argument, or `x` reads the value the def had before the loop
+        // instead of this iteration's.
+        if (copyTarget && hasBinding(block, copyTarget) &&
+            getBinding(block, copyTarget) == oldVal)
+          addBinding(block, copyTarget, newReg);
       }
     }
   }

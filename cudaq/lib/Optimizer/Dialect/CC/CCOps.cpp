@@ -1983,7 +1983,6 @@ SmallVector<Region *> cudaq::cc::LoopOp::getLoopRegions() {
 
 OperandRange
 cudaq::cc::LoopOp::getEntrySuccessorOperands(RegionBranchPoint point) {
-  llvm::errs() << "getEntrySuccessorOperands: " << point << "\n";
   assert(!point.isParent() && "invalid index region");
   Operation *pred = point.getTerminatorPredecessorOrNull();
   assert(pred && "must have a terminator");

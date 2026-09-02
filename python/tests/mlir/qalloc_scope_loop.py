@@ -80,6 +80,40 @@ def test_qalloc_freed_at_end_of_for_else():
     print(for_else_kernel)
 
 
+def test_qalloc_freed_on_break():
+    """A qubit allocated in a `for` body is freed on the `break` path."""
+
+    @cudaq.kernel
+    def break_kernel(n: int):
+        r = cudaq.qubit()
+        for i in range(n):
+            q = cudaq.qvector(2)
+            h(q[0])
+            x.ctrl(q[0], r)
+            if i == 1:
+                break
+        mz(r)
+
+    print(break_kernel)
+
+
+def test_qalloc_freed_on_continue():
+    """A qubit allocated in a `for` body is freed on the `continue` path."""
+
+    @cudaq.kernel
+    def continue_kernel(n: int):
+        r = cudaq.qubit()
+        for i in range(n):
+            q = cudaq.qvector(2)
+            h(q[0])
+            if i == 1:
+                continue
+            x.ctrl(q[0], r)
+        mz(r)
+
+    print(continue_kernel)
+
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__for_kernel..
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           cc.loop while
@@ -122,4 +156,35 @@ def test_qalloc_freed_at_end_of_for_else():
 # CHECK:               quake.dealloc %[[VAL_1]] : !quake.veq<2>
 # CHECK:             }
 # CHECK:           }
+# CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__break_kernel..
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           cc.loop while
+# CHECK:           } do {
+# CHECK:             %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+# CHECK:             cf.cond_br %{{.*}}, ^bb2, ^bb1
+# CHECK:           ^bb1:
+# CHECK:             quake.dealloc %[[VAL_1]] : !quake.veq<2>
+# CHECK:             cc.continue
+# CHECK:           ^bb2:
+# CHECK:             quake.dealloc %[[VAL_1]] : !quake.veq<2>
+# CHECK:             cc.break
+# CHECK:           } step {
+# CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__continue_kernel..
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           cc.loop while
+# CHECK:           } do {
+# CHECK:             %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+# CHECK:             cf.cond_br %{{.*}}, ^bb2, ^bb1
+# CHECK:           ^bb1:
+# CHECK:             quake.x [%{{.*}}] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:             quake.dealloc %[[VAL_1]] : !quake.veq<2>
+# CHECK:             cc.continue
+# CHECK:           ^bb2:
+# CHECK:             quake.dealloc %[[VAL_1]] : !quake.veq<2>
+# CHECK:             cc.continue
+# CHECK:           } step {
 # CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref

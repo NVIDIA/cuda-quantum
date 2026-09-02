@@ -112,6 +112,7 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopPruneDeadArgs());
   cudaq::opt::createClassicalOptimizationPipeline(
       pm, std::nullopt, {options.allowEarlyExit}, std::nullopt,
       {options.disableLoopUnrolling});
@@ -306,6 +307,7 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopPruneDeadArgs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization());

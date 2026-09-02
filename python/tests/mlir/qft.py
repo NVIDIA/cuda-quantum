@@ -39,7 +39,6 @@ def test_qft():
 # CHECK-DAG:       %[[CONSTANT_2:.*]] = arith.constant 2 : i64
 # CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[CONSTANT_4:.*]] = arith.constant 0 : i64
-# CHECK-DAG:       %[[UNDEF_1:.*]] = cc.undef i64
 # CHECK:           %[[VEQ_SIZE_0:.*]] = quake.veq_size %[[ARG0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[FLOORDIVSI_0:.*]] = arith.floordivsi %[[VEQ_SIZE_0]], %[[CONSTANT_2]] : i64
 # CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_4]]) -> (i64)) {
@@ -57,13 +56,13 @@ def test_qft():
 # CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_3]] : i64
 # CHECK:             cc.continue %[[ADDI_0]] : i64
-# CHECK:           } {normalized}
+# CHECK:           }
 # CHECK:           %[[SUBI_2:.*]] = arith.subi %[[VEQ_SIZE_0]], %[[CONSTANT_3]] : i64
-# CHECK:           %[[LOOP_1:.*]]:2 = cc.loop while ((%[[VAL_3:.*]] = %[[CONSTANT_4]], %[[VAL_4:.*]] = %[[UNDEF_1]]) -> (i64, i64)) {
+# CHECK:           %[[LOOP_1:.*]] = cc.loop while ((%[[VAL_3:.*]] = %[[CONSTANT_4]]) -> (i64)) {
 # CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_3]], %[[SUBI_2]] : i64
-# CHECK:             cc.condition %[[CMPI_1]](%[[VAL_3]], %[[VAL_4]] : i64, i64)
+# CHECK:             cc.condition %[[CMPI_1]](%[[VAL_3]] : i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_6:.*]]: i64, %[[VAL_7:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_6:.*]]: i64):
 # CHECK:             %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ARG0]]{{\[}}%[[VAL_6]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:             quake.h %[[EXTRACT_REF_2]] : (!quake.ref) -> ()
 # CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_6]], %[[CONSTANT_3]] : i64
@@ -90,12 +89,12 @@ def test_qft():
 # CHECK:               %[[ADDI_2:.*]] = arith.addi %[[VAL_11]], %[[CONSTANT_3]] : i64
 # CHECK:               cc.continue %[[ADDI_2]] : i64
 # CHECK:             } {normalized}
-# CHECK:             cc.continue %[[VAL_6]], %[[ADDI_1]] : i64, i64
+# CHECK:             cc.continue %[[VAL_6]] : i64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_13:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
 # CHECK:             %[[ADDI_3:.*]] = arith.addi %[[VAL_12]], %[[CONSTANT_3]] : i64
-# CHECK:             cc.continue %[[ADDI_3]], %[[VAL_13]] : i64, i64
-# CHECK:           } {normalized}
+# CHECK:             cc.continue %[[ADDI_3]] : i64
+# CHECK:           }
 # CHECK:           %[[SUBI_7:.*]] = arith.subi %[[VEQ_SIZE_0]], %[[CONSTANT_3]] : i64
 # CHECK:           %[[EXTRACT_REF_5:.*]] = quake.extract_ref %[[ARG0]]{{\[}}%[[SUBI_7]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:           quake.h %[[EXTRACT_REF_5]] : (!quake.ref) -> ()

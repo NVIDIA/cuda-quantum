@@ -1082,6 +1082,31 @@ def LoopNormalize : Pass<"cc-loop-normalize"> {
   ];
 }
 
+def LoopPruneDeadArgs : Pass<"cc-loop-prune-dead-args", "mlir::func::FuncOp"> {
+  let summary = "Drop loop-carried values that nothing reads.";
+  let description = [{
+    A Python local lives for the whole function, so its storage is in the entry
+    block and `memtoreg` promotes it to a value carried by every loop around
+    it. When nothing reads the value, the loop is left carrying it along with
+    the arithmetic that computes it.
+
+    That residue reads like a real dependence on an earlier loop's result, and
+    adjoint generation cannot reverse a block where a value produced by an op
+    it moves is read by one that stays. Where a carried value is dead, thread
+    the loop's own initial value around the loop instead and delete the
+    computations that go dead as a result.
+
+    Run this after `memtoreg`, which is what creates the carried value, and
+    before `apply-op-specialization`. Order relative to `cc-loop-normalize`
+    does not matter.
+
+    MLIR's generic `RegionBranchOpInterface` canonicalization cannot do this
+    job. It erases one dead value at a time, so it drops a slot from some of
+    the loop's regions and not the rest, and the `cc.loop` verifier rejects
+    that. A slot has to go from all four regions and the results at once.
+  }];
+}
+
 def LoopPeeling : Pass<"cc-loop-peeling"> {
   let summary = "Peeling classical do-while loops.";
   let description = [{

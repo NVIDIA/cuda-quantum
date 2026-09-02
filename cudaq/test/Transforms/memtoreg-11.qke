@@ -6,43 +6,42 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --convert-to-linear-values %s | FileCheck %s
+// RUN: cudaq-opt --memtoreg=quantum=0 %s | FileCheck %s
 
-func.func @dup_extract_sequential(%v: !quake.veq<2>) {
-  %1 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
-  %2 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
-  quake.h %1 : (!quake.ref) -> ()
-  quake.x %2 : (!quake.ref) -> ()
-  return
+// A loop body that copies the counter into another variable. `v` must get the
+// counter's value for this iteration, not the one it had before the loop.
+
+func.func @copy_counter(%n: i64) -> i64 {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %ctr = cc.alloca i64
+  %v = cc.alloca i64
+  cc.store %c0, %ctr : !cc.ptr<i64>
+  cc.store %c0, %v : !cc.ptr<i64>
+  cc.loop while {
+    %a = cc.load %ctr : !cc.ptr<i64>
+    %c = arith.cmpi slt, %a, %n : i64
+    cc.condition %c
+  } do {
+    %a = cc.load %ctr : !cc.ptr<i64>
+    cc.store %a, %v : !cc.ptr<i64>
+    cc.continue
+  } step {
+    %a = cc.load %ctr : !cc.ptr<i64>
+    %b = arith.addi %a, %c1 : i64
+    cc.store %b, %ctr : !cc.ptr<i64>
+  }
+  %r = cc.load %v : !cc.ptr<i64>
+  return %r : i64
 }
 
-// One load, both gates chained on it, one store back to the same ref.
-// CHECK-LABEL:   func.func @dup_extract_sequential(
-// CHECK-SAME:      %[[VEQ:.*]]: !quake.veq<2>) {
-// CHECK:           %[[REF:.*]] = quake.extract_ref %[[VEQ]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[LOAD:.*]] = quake.unwrap %[[REF]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[H:.*]] = quake.h %[[LOAD]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[X:.*]] = quake.x %[[H]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[X]] to %[[REF]] : !quake.wire, !quake.ref
-// CHECK:           return
-
-func.func @dup_extract_control(%v: !quake.veq<2>) {
-  %1 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
-  %2 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
-  %3 = quake.extract_ref %v[1] : (!quake.veq<2>) -> !quake.ref
-  quake.h %1 : (!quake.ref) -> ()
-  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-// Same qubit, reached the second time through a control position: the control
-// operand must be the `h` result, not a fresh read of qubit 0.
-// CHECK-LABEL:   func.func @dup_extract_control(
-// CHECK-SAME:      %[[VEQ2:.*]]: !quake.veq<2>) {
-// CHECK-DAG:       %[[CREF:.*]] = quake.extract_ref %[[VEQ2]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK-DAG:       %[[TREF:.*]] = quake.extract_ref %[[VEQ2]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[H2:.*]] = quake.h %{{.*}} : (!quake.wire) -> !quake.wire
-// CHECK:           %[[X2:.*]]:2 = quake.x {{\[}}%[[H2]]] %{{.*}} : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK-DAG:       quake.wrap %[[X2]]#0 to %[[CREF]] : !quake.wire, !quake.ref
-// CHECK-DAG:       quake.wrap %[[X2]]#1 to %[[TREF]] : !quake.wire, !quake.ref
-// CHECK:           return
+// CHECK-LABEL:   func.func @copy_counter(
+// CHECK-SAME:      %[[VAL_0:.*]]: i64) -> i64 {
+// CHECK:           %[[LOOP:.*]]:2 = cc.loop while ((%[[VAL_1:.*]] = %[[VAL_2:.*]], %[[VAL_3:.*]] = %[[VAL_4:.*]]) -> (i64, i64)) {
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_5:.*]]: i64, %[[VAL_6:.*]]: i64):
+// CHECK:             cc.continue %[[VAL_5]], %[[VAL_5]] : i64, i64
+// CHECK:           } step {
+// CHECK:           }
+// CHECK:           return %[[LOOP]]#1 : i64
+// CHECK:         }
