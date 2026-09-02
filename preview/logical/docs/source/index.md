@@ -48,6 +48,24 @@ The documentation is organized by the result you want:
 :maxdepth: 2
 :hidden:
 :glob:
+:caption: Start
+
+start/*
+```
+
+```{toctree}
+:maxdepth: 2
+:hidden:
+:glob:
+:caption: Guides
+
+*
+```
+
+```{toctree}
+:maxdepth: 2
+:hidden:
+:glob:
 :caption: Examples
 
 example-gallery/*

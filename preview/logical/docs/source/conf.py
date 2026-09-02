@@ -98,7 +98,9 @@ for _cls in (_MLIRLexer, _QLXLexer, _StimLexer):
         _sphinx_lexers[_alias] = _inst
 
 # Broken cross-references must fail the build: myst.xref_missing is
-# deliberately NOT suppressed.
+# deliberately NOT suppressed. (toc.empty_glob is not suppressible: Sphinx
+# emits it without a warning type. Every glob toctree therefore keeps at
+# least one real page at each merge point via section-index stubs.)
 suppress_warnings = [
     "misc.highlighting_failure",
 ]
