@@ -107,6 +107,13 @@ RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt" && \
     echo -e "$deprecation_notice" >> "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
 
+# Default shared-memory single-copy to CMA (avoids xpmem/knem device warnings
+# when those nodes are not mounted). Open MPI 4 uses btl_vader; Open MPI 5
+# uses the smsc framework (btl_sm is a 5.0.x alias for vader).
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=cma
+ENV OMPI_MCA_btl_sm_single_copy_mechanism=cma
+ENV OMPI_MCA_smsc=cma
+
 # See also https://github.com/microsoft/vscode-remote-release/issues/4781
 RUN env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|TERM=|SHLVL=|LANGUAGE=|_=)" \
         >> /etc/environment

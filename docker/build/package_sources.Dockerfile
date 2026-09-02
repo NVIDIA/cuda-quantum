@@ -57,11 +57,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --upgrade unearth --break-system-packages \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install necessary repository for librdmac1
-RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget \
-    && wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | apt-key add - \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" \
-    && echo 'deb-src http://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/$(ARCH) ./' >> /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
+# Install DOCA-Host repository (provides RDMA userspace packages formerly from MOFED)
+ARG TARGETARCH
+ARG DOCA_VERSION=3.1.0-091000-25.07
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+    && arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
+    && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
+    && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
+    && dpkg -i "/var/tmp/${doca_deb}" \
+    && rm -f "/var/tmp/${doca_deb}" \
     && apt-get update -y
 
 # Enable source repositories (Ubuntu 24.04 DEB822 format)
