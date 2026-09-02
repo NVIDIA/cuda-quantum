@@ -25,7 +25,7 @@ from .analysis import FunctionDefVisitor
 from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
                                KernelSignature)
 from .ast_bridge import compile_to_mlir
-from .utils import (emitFatalError, emitErrorIfInvalidPauli,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli, ExtensionEntry,
                     get_function_source_or_raise, get_module_name,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
@@ -753,6 +753,11 @@ class ExternKernelDecorator(object):
         self.astModule = _parse_ast(src)
         self.signature = KernelSignature.parse_from_ast(self.astModule,
                                                         self.name)
+
+        self.entry = ExtensionEntry(self.name,
+                                    ExtensionEntry.EXTERN_KERNEL,
+                                    signature=self.signature,
+                                    backendSymbol=self.backendSymbol)
 
         if self.signature.return_type is not None:
             emitFatalError(
