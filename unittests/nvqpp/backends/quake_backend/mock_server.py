@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 import uvicorn, uuid, base64, ctypes, sys, re
 from llvmlite import binding as llvm
 from cudaq.mlir.passmanager import PassManager
-from cudaq.mlir.ir import Module
+from cudaq.mlir.ir import Module, WalkResult
 from cudaq.kernel.utils import getMLIRContext
 from cudaq.mlir.dialects import func
 from cudaq.mlir.dialects import llvm as mlir_llvm
@@ -35,7 +35,7 @@ SERVER_EXECUTION_PIPELINE = (
     "func.func("
     "memtoreg,canonicalize,cc-loop-normalize,"
     "cc-loop-unroll{maximum-iterations=1024 "
-    "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
+    "signal-failure-if-any-loop-cannot-be-completely-unrolled=false "
     "allow-early-exit=true},"
     "canonicalize"
     "),"
@@ -46,27 +46,83 @@ SERVER_EXECUTION_PIPELINE = (
     "lower-to-cfg,symbol-dce,cc-to-llvm"
     ")")
 
+REQUIRED_QUAKE_OPERATIONS = {"quake.wire_set", "quake.borrow_wire"}
 
-def verifyValueSemanticsPayload(decoded_payload):
-    required_tokens = ["quake.wire_set", "quake.borrow_wire"]
-    for token in required_tokens:
-        if token not in decoded_payload:
+SUPPORTED_FUNC_OPERATIONS = {
+    "func.call",
+    "func.func",
+    "func.return",
+}
+
+SUPPORTED_QUAKE_OPERATIONS = {
+    "quake.borrow_wire",
+    "quake.discriminate",
+    "quake.exp_pauli",
+    "quake.h",
+    "quake.log_output",
+    "quake.mx",
+    "quake.my",
+    "quake.mz",
+    "quake.phased_rx",
+    "quake.r1",
+    "quake.reset",
+    "quake.return_wire",
+    "quake.rx",
+    "quake.ry",
+    "quake.rz",
+    "quake.s",
+    "quake.swap",
+    "quake.t",
+    "quake.u2",
+    "quake.u3",
+    "quake.wire_set",
+    "quake.x",
+    "quake.y",
+    "quake.z",
+}
+
+WIRE_SEMANTICS_OPERATIONS = SUPPORTED_QUAKE_OPERATIONS - {"quake.log_output"}
+
+
+def isCompatibleOperation(operation_name):
+    if operation_name.startswith(("arith.", "cc.")):
+        return True
+    if operation_name.startswith("func."):
+        return operation_name in SUPPORTED_FUNC_OPERATIONS
+    if operation_name.startswith("quake."):
+        return operation_name in SUPPORTED_QUAKE_OPERATIONS
+    if operation_name.startswith("cf."):
+        return False
+    return True
+
+
+def collectOperationNames(module):
+    operation_names = []
+
+    def visit(operation):
+        operation_names.append(operation.name)
+        return WalkResult.ADVANCE
+
+    module.operation.walk(visit)
+    return operation_names
+
+
+def verifyCompatibilityPayload(decoded_payload, operation_names):
+    operation_name_set = set(operation_names)
+    if operation_name_set & WIRE_SEMANTICS_OPERATIONS:
+        for operation_name in REQUIRED_QUAKE_OPERATIONS:
+            if operation_name not in operation_name_set:
+                raise RuntimeError(
+                    f"Remote payload is missing `{operation_name}`. The server must"
+                    " receive value-semantics MLIR with an assigned wireset.")
+
+    for operation_name in operation_names:
+        if not isCompatibleOperation(operation_name):
             raise RuntimeError(
-                f"Remote payload is missing `{token}`. The server must receive"
-                " value-semantics MLIR with an assigned wireset.")
+                f"Remote frontend does not support operation `{operation_name}`."
+            )
 
-    forbidden_tokens = [
-        "quake.alloca",
-        "quake.extract_ref",
-        "quake.subveq",
-        "quake.concat",
-        "quake.relax_size",
-        "quake.unwrap",
-        "quake.wrap",
-        "!quake.ref",
-        "!quake.veq",
-    ]
-    for token in forbidden_tokens:
+    for token in ["!quake.ref", "!quake.veq"]:
         if token in decoded_payload:
             raise RuntimeError(
                 f"Remote payload still contains reference-semantics token"
@@ -137,8 +193,9 @@ def verifyModule(module, stage):
 def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
     # The client/server contract is checked before this point. The client has
     # already run the target JIT pipeline through `wireset` assignment. For
-    # execution, the mock server fully unrolls the submitted value-semantic IR
-    # and lowers the `wireset` directly to QIR.
+    # execution, the mock server unrolls eligible value-semantic loops, lowers
+    # residual structured classical control flow, and lowers the `wireset`
+    # directly to QIR.
     pm = PassManager.parse(SERVER_EXECUTION_PIPELINE, context=ctx)
     try:
         pm.run(recovered_mod.operation)
@@ -165,11 +222,11 @@ async def postJob(request: Request):
             "Input MLIR contains malloc or memcpy calls. These should have been"
             " eliminated by the eliminate-dead-heap-copy pass.")
 
-    verifyValueSemanticsPayload(decoded_payload)
-
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)
     verifyModule(recovered_mod, "submitted")
+    verifyCompatibilityPayload(decoded_payload,
+                               collectOperationNames(recovered_mod))
     pm = PassManager.parse(
         "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
     try:
@@ -190,6 +247,20 @@ async def postJob(request: Request):
             "Remote payload is missing a `cudaq-entrypoint` function.")
     verifyExpectedMapping(decoded_payload, entry_func_name)
     verifyExpectedLoopCount(decoded_payload, entry_func_name)
+
+    # These kernels validate the submitted frontend IR only. Other applications
+    # in this test exercise the server's lowering and execution paths.
+    if "syntax_check_" in entry_func_name:
+        newId = str(uuid.uuid4())
+        createdJobs[newId] = ("HEADER\tschema_id\tlabeled\n"
+                              "HEADER\tschema_version\t1.0\n"
+                              "START\n"
+                              "METADATA\tentry_point\n"
+                              "METADATA\tqir_profiles\tadaptive_profile\n"
+                              "METADATA\trequired_num_qubits\t0\n"
+                              "METADATA\trequired_num_results\t0\n"
+                              "END\t0\n")
+        return ({"id": newId}, 201)
 
     # Lower the module to LLVM IR.
     qir_code = lowerValueSemanticsPayloadForExecution(recovered_mod, ctx)

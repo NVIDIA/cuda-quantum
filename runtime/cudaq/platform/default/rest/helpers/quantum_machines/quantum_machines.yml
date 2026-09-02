@@ -26,6 +26,8 @@ config:
   jit-high-level-pipeline: "func.func(add-measurements)"
   jit-mid-level-pipeline: "prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true},qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
   jit-low-level-pipeline: "symbol-dce"
+  # Preserve structured control flow for the remote Quake payload.
+  unwind-mode: dataflow
   # Tell the rest-qpu that the required output format is quake.
   codegen-emission: nop
   # Library mode is only for simulators, physical backends must turn this off

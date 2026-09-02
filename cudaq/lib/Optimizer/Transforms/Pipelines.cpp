@@ -13,6 +13,8 @@
 using namespace mlir;
 
 namespace {
+enum class AOTUnwindMode { CFG, Dataflow, None };
+
 struct TargetPrepPipelineOptions
     : public PassPipelineOptions<TargetPrepPipelineOptions> {
   PassOptions::Option<bool> eraseNoise{
@@ -50,6 +52,17 @@ struct TargetFinalizationPipelineOptions
 };
 
 struct PythonAOTOptions : public PassPipelineOptions<PythonAOTOptions> {
+  PassOptions::Option<AOTUnwindMode> unwindMode{
+      *this, "unwind-mode",
+      llvm::cl::desc("Select how the AOT pipeline handles unwind operations."),
+      llvm::cl::init(AOTUnwindMode::CFG),
+      llvm::cl::values(
+          clEnumValN(AOTUnwindMode::CFG, "cfg",
+                     "Lower unwind operations to control-flow operations."),
+          clEnumValN(AOTUnwindMode::Dataflow, "dataflow",
+                     "Lower unwind operations using structured data flow."),
+          clEnumValN(AOTUnwindMode::None, "none",
+                     "Do not lower unwind operations."))};
   PassOptions::Option<bool> autoGenRunStack{
       *this, "gen-run-stack",
       llvm::cl::desc("Autogenerate the cudaq::run dispatch stack."),
@@ -299,7 +312,16 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   // NB: This pipeline should be kept in synch with the pipeline in nvq++.
   pm.addPass(cudaq::opt::createVerifyAtomicQuantumRegions());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+  switch (options.unwindMode) {
+  case AOTUnwindMode::CFG:
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+    break;
+  case AOTUnwindMode::Dataflow:
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindByDataFlow());
+    break;
+  case AOTUnwindMode::None:
+    break;
+  }
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
@@ -316,7 +338,10 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createGenerateKernelExecution(gkeOpts));
   if (options.autoGenRunStack)
     pm.addPass(cudaq::opt::createRunSemanticsHackery());
-  cudaq::opt::addAggressiveInlining(pm);
+  // `none` leaves unwind operations in the IR so downstream lowering causes
+  // compilation to fail if the source contains unwinding control flow.
+  cudaq::opt::addAggressiveInlining(pm, /*fatalCheck=*/false,
+                                    options.unwindMode != AOTUnwindMode::None);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
@@ -340,7 +365,7 @@ void cudaq::opt::createPythonAOTPipeline(OpPassManager &pm,
 
 static void registerPythonAOTPipeline() {
   PassPipelineRegistration<PythonAOTOptions>(
-      "aot-prep-pipeline",
+      "python-aot-pipeline",
       "Pipeline to lower code for simulation or JIT compilation.",
       [](OpPassManager &pm, const PythonAOTOptions &options) {
         ::createPythonAOTPipeline(pm, options);

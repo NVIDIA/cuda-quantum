@@ -282,7 +282,7 @@ public:
 static void defaultInlinerOptPipeline(OpPassManager &pm) {}
 
 /// Run the passes in the correct order.
-/// 1) Lower unwind control flow before creating call-site scopes.
+/// 1) Optionally lower unwind control flow before creating call-site scopes.
 /// 2) Convert calls between kernels to direct calls (on the QPU).
 /// 3) Aggressively inline all calls.
 /// 4) Reject measurements and qubit allocations in atomic quantum regions.
@@ -290,9 +290,11 @@ static void defaultInlinerOptPipeline(OpPassManager &pm) {}
 /// Such a failure is most likely a sign that there is a cycle in the call
 /// graph. [This check is a bad idea: this should be deferred to final codegen
 /// when translating the final Quake IR.]
-void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
+void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks,
+                                       bool lowerUnwind) {
   llvm::StringMap<OpPassManager> opPipelines;
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+  if (lowerUnwind)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
   pm.addPass(cudaq::opt::createVerifyAtomicQuantumRegions());
@@ -316,6 +318,10 @@ struct AggressiveInliningPipelineOptions
       *this, "fatal-check",
       llvm::cl::desc("run checker and produce fatal errors immediately"),
       llvm::cl::init(false)};
+  PassOptions::Option<bool> lowerUnwind{
+      *this, "lower-unwind",
+      llvm::cl::desc("lower unwind operations before inlining"),
+      llvm::cl::init(true)};
 };
 } // namespace
 
@@ -324,6 +330,6 @@ void cudaq::opt::registerAggressiveInliningPipeline() {
       "aggressive-inlining",
       "Convert calls between kernels to direct calls and inline functions.",
       [](OpPassManager &pm, const AggressiveInliningPipelineOptions &opt) {
-        addAggressiveInlining(pm, opt.runFatalChecker);
+        addAggressiveInlining(pm, opt.runFatalChecker, opt.lowerUnwind);
       });
 }

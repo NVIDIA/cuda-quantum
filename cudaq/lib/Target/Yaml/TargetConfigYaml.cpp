@@ -64,6 +64,9 @@ static std::string processSimBackendConfig(
     output << "JIT_LOW_LEVEL_PIPELINE=\"" << configValue.JITLowLevelPipeline
            << "\"\n";
 
+  if (!configValue.AOTUnwindMode.empty())
+    output << "AOT_UNWIND_MODE=\"" << configValue.AOTUnwindMode << "\"\n";
+
   if (!configValue.TargetPassPipeline.empty())
     output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
            << "\"\n";
@@ -284,8 +287,11 @@ cudaq::config::parseTargetConfig(std::string yamlContent,
   auto substitutedYamlContent =
       cudaq::config::substitutePluginRoot(std::move(yamlContent), pluginRoot);
   cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(substitutedYamlContent.c_str());
-  Input >> config;
+  llvm::yaml::Input input(substitutedYamlContent.c_str());
+  input >> config;
+  if (const auto error = input.error())
+    throw std::runtime_error("Invalid target configuration: " +
+                             error.message());
   return config;
 }
 
@@ -381,6 +387,7 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("jit-high-level-pipeline", info.JITHighLevelPipeline);
   io.mapOptional("jit-mid-level-pipeline", info.JITMidLevelPipeline);
   io.mapOptional("jit-low-level-pipeline", info.JITLowLevelPipeline);
+  io.mapOptional("unwind-mode", info.AOTUnwindMode);
   io.mapOptional("target-pass-pipeline", info.TargetPassPipeline);
   io.mapOptional("codegen-emission", info.CodegenEmission);
   io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
@@ -395,6 +402,14 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("linker-flags", info.LinkerFlags);
   io.mapOptional("nvqir-simulation-backend", info.SimulationBackend);
   io.mapOptional("rules", info.ConditionalBuildConfigs);
+}
+
+std::string MappingTraits<cudaq::config::BackendEndConfigEntry>::validate(
+    IO &io, cudaq::config::BackendEndConfigEntry &info) {
+  if (info.AOTUnwindMode.empty() || info.AOTUnwindMode == "cfg" ||
+      info.AOTUnwindMode == "dataflow" || info.AOTUnwindMode == "none")
+    return {};
+  return "'unwind-mode' must be one of: cfg, dataflow, none.";
 }
 
 void MappingTraits<cudaq::config::BackendFeatureMap>::mapping(
