@@ -55,13 +55,17 @@ def JumpWithUnwind : NativeOpTrait<"JumpWithUnwind"> {
 // Note: In the following it seems that `size_t` is not acceptable as a type.
 // Hence this is the reason why we use `int` instead.
 // TODO: investigate further
+//
+// A negative `n` means the count is unconstrained (variadic); the predicate
+// is trivially satisfied so callers can always instantiate `NumParameters<n>`
+// / `NumTargets<n>` uniformly without conditionally omitting the trait.
 class NumParameters<int n> : StructuralOpTrait,
     PredOpTrait<"the number of parameters is equal to " # n,
-                CPred<"$parameters.size() == " # n>>;
+                CPred<!if(!ge(n, 0), "$parameters.size() == " # n, "true")>>;
 
 class NumTargets<int n> : StructuralOpTrait,
     PredOpTrait<"the number of targets is equal to " # n,
-                CPred<"$targets.size() == " # n>>;
+                CPred<!if(!ge(n, 0), "$targets.size() == " # n, "true")>>;
 
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_COMMON_TRAITS
