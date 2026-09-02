@@ -9,6 +9,7 @@
 #pragma once
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Support/LLVM.h"
 
@@ -34,14 +35,14 @@ namespace cudaq::opt {
 struct GreedyOpPartitioner {
   explicit GreedyOpPartitioner(mlir::Operation *op, unsigned maxQubits);
 
-  mlir::ArrayRef<mlir::SmallVector<mlir::Operation *>> getPartitions() const {
+  mlir::ArrayRef<llvm::DenseSet<mlir::Operation *>> getPartitions() const {
     return partitions;
   }
 
 private:
   void partitionBlock(mlir::Block &block, unsigned maxQubits);
 
-  mlir::SmallVector<mlir::SmallVector<mlir::Operation *>> partitions;
+  mlir::SmallVector<llvm::DenseSet<mlir::Operation *>> partitions;
 };
 
 } // namespace cudaq::opt

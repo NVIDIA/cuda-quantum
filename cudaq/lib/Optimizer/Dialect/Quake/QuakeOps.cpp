@@ -1005,6 +1005,73 @@ void cudaq::quake::WireSetOp::print(OpAsmPrinter &p) {
 }
 
 //===----------------------------------------------------------------------===//
+// RegionOp
+//===----------------------------------------------------------------------===//
+
+ParseResult cudaq::quake::RegionOp::parse(OpAsmParser &parser,
+                                          OperationState &result) {
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  std::int32_t numWires = 0;
+  if (parser.parseLSquare() || parser.parseInteger(numWires) ||
+      parser.parseRSquare())
+    return failure();
+  result.addAttribute(getNumWiresAttrName(result.name),
+                      parser.getBuilder().getI32IntegerAttr(numWires));
+  if (parser.parseOptionalAttrDictWithKeyword(result.attributes))
+    return failure();
+  return success();
+}
+
+void cudaq::quake::RegionOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  p.printSymbolName(getSymName());
+  p << '[' << getNumWires() << ']';
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(), {getSymNameAttrName(), getNumWiresAttrName()});
+}
+
+//===----------------------------------------------------------------------===//
+// MoveOp
+//===----------------------------------------------------------------------===//
+
+ParseResult cudaq::quake::MoveOp::parse(OpAsmParser &parser,
+                                        OperationState &result) {
+  OpAsmParser::UnresolvedOperand wireArg;
+  if (parser.parseOperand(wireArg) || parser.parseKeyword("to"))
+    return failure();
+  FlatSymbolRefAttr destRegion;
+  if (parser.parseAttribute(destRegion, getDestRegionAttrName(result.name),
+                            result.attributes))
+    return failure();
+  if (succeeded(parser.parseOptionalLSquare())) {
+    std::int32_t slot = 0;
+    if (parser.parseInteger(slot) || parser.parseRSquare())
+      return failure();
+    result.addAttribute(getDestSlotAttrName(result.name),
+                        parser.getBuilder().getI32IntegerAttr(slot));
+  }
+  Type wireType;
+  if (parser.parseColon() || parser.parseType(wireType))
+    return failure();
+  if (parser.resolveOperand(wireArg, wireType, result.operands))
+    return failure();
+  result.addTypes(wireType);
+  return success();
+}
+
+void cudaq::quake::MoveOp::print(OpAsmPrinter &p) {
+  p << ' ' << getWire() << " to @" << getDestRegion();
+  if (auto slotAttr = getDestSlotAttr())
+    p << '[' << slotAttr.getInt() << ']';
+  p << " : " << getResult().getType();
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(), {getDestRegionAttrName(), getDestSlotAttrName()});
+}
+
+//===----------------------------------------------------------------------===//
 // Operator interface
 //===----------------------------------------------------------------------===//
 

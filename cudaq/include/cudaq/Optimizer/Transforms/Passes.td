@@ -1132,6 +1132,47 @@ def OutlinePartitions : Pass<"outline-partitions", "mlir::func::FuncOp"> {
   ];
 }
 
+def IntroduceRegions : Pass<"introduce-regions", "mlir::ModuleOp"> {
+  let summary = "Emit quake.region declarations at module scope.";
+  let description = [{
+    Introduces one `quake.region` symbol per logical QPU region, each with
+    the specified wire capacity. These declarations are consumed by subsequent
+    passes in the region-lowering pipeline.
+  }];
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
+  let options = [
+    Option<"numRegions", "num-regions", "unsigned", /*default=*/"2",
+      "Number of QPU regions to introduce.">,
+    Option<"regionSize", "region-size", "unsigned", /*default=*/"2",
+      "Number of compute wires per region.">,
+  ];
+}
+
+def AssignSubcircuitRegions : Pass<"assign-subcircuit-regions", "mlir::func::FuncOp"> {
+  let summary = "Assign each subcircuit lambda to a QPU region by round-robin.";
+  let description = [{
+    Walks `cc.create_lambda` ops in block order and annotates each with a
+    `{region = @rN}` attribute by cycling through the `quake.region` symbols
+    declared in the enclosing module.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
+}
+
+def AddRegionMoves : Pass<"add-region-moves", "mlir::func::FuncOp"> {
+  let summary = "Insert quake.move ops at subcircuit boundaries.";
+  let description = [{
+    Requires that subcircuits have been annotated with `{region}` by
+    `assign-subcircuit-regions`. Inserts `quake.move` ops:
+    - Inside each lambda body: at entry, moving wire block arguments onto
+      region wires.
+    - In the enclosing block: between subcircuits whenever a wire crosses a
+      region boundary.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
+}
+
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
   let summary = "Perform phase based rotation merging.";
 

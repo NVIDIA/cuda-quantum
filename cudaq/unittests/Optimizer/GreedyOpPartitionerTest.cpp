@@ -31,12 +31,11 @@ static func::FuncOp getFunc(ModuleOp mod) {
 }
 
 // Returns the index of the partition that contains op, or -1 if none.
-static int partitionOf(ArrayRef<SmallVector<Operation *>> partitions,
+static int partitionOf(ArrayRef<DenseSet<Operation *>> partitions,
                        Operation *op) {
   for (auto [i, part] : llvm::enumerate(partitions))
-    for (Operation *o : part)
-      if (o == op)
-        return static_cast<int>(i);
+    if (part.contains(op))
+      return static_cast<int>(i);
   return -1;
 }
 

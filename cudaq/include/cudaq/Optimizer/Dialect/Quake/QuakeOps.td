@@ -1968,4 +1968,61 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
   }];
 }
 
+//===----------------------------------------------------------------------===//
+// Region placement: RegionOp, MoveOp
+//===----------------------------------------------------------------------===//
+
+def quake_RegionOp : QuakeOp<"region", [IsolatedFromAbove, Symbol]> {
+  let summary = "Declare a named QPU region with a fixed wire capacity.";
+  let description = [{
+    A `quake.region` declares a named QPU compute region at module scope.
+    The bracket value gives the number of logical compute wires available.
+    Subcircuits are scheduled onto regions and qubit movement between regions
+    is made explicit with `quake.move`.
+
+    Example:
+    ```mlir
+      quake.region @r1[2]
+    ```
+  }];
+
+  let arguments = (ins
+    StrAttr:$sym_name,
+    I32Attr:$num_wires
+  );
+
+  let hasCustomAssemblyFormat = 1;
+}
+
+def quake_MoveOp : QuakeOp<"move"> {
+  let summary = "Moves a qubit state from one location to another.";
+  let description = [{
+    Relocates a qubit wire to a named QPU region, consuming the input and
+    producing a new wire at the destination.
+
+    Without a slot the qubit is moved to the region without committing to a
+    specific wire position (used for inter-region transfers):
+    ```mlir
+      %q = quake.move %w to @r1 : !quake.wire
+    ```
+
+    With a slot the qubit is placed onto a specific wire within the region
+    (used when moving block arguments onto region wires at subcircuit entry):
+    ```mlir
+      %q = quake.move %w to @r1[0] : !quake.wire
+    ```
+  }];
+
+  let arguments = (ins
+    Arg<WireType, "wire to move", [MemRead, MemWrite]>:$wire,
+    FlatSymbolRefAttr:$dest_region,
+    OptionalAttr<I32Attr>:$dest_slot
+  );
+  let results = (outs
+    Arg<WireType, "relocated wire", [MemRead, MemWrite]>:$result
+  );
+
+  let hasCustomAssemblyFormat = 1;
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS

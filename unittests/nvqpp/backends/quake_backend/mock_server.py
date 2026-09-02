@@ -8,9 +8,10 @@
 
 import cudaq
 from fastapi import FastAPI, HTTPException, Request
-import uvicorn, uuid, base64, ctypes, sys, re
+import uvicorn, uuid, base64, ctypes, sys, re, os
 from llvmlite import binding as llvm
 from preallocated_qubits_context import PreallocatedQubitsContext
+from quake_walker import walk_module
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.ir import Module
 from cudaq.kernel.utils import getMLIRContext
@@ -140,12 +141,39 @@ def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
     return mlir_llvm.translate_module_to_llvmir(recovered_mod.operation)
 
 
+def walkOnlyJob(decoded_payload, shots):
+    # Prototype path: consume the Quake payload by walking it gate-by-gate
+    # without simulating. Emits a well-formed but non-simulated log (all-zero
+    # results) so the client round-trips. Enabled with QUAKE_WALK_ONLY=1.
+    report = walk_module(decoded_payload)
+    print(f"[walk-only] traversed Quake payload:\n{report}", flush=True)
+
+    log = ("HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\n"
+           "START\nMETADATA\tentry_point\n"
+           "METADATA\tqir_profiles\tadaptive_profile\n"
+           f"METADATA\trequired_num_qubits\t{report.num_wires}\n"
+           f"METADATA\trequired_num_results\t{report.num_measurements}\n")
+    for i in range(shots):
+        if i > 0:
+            log += "START\n"
+        for r in range(report.num_measurements):
+            log += f"OUTPUT\tRESULT\t0\tr{r:05d}\n"
+        log += "END\t0\n"
+    return log
+
+
 @app.post("/job")
 async def postJob(request: Request):
     global createdJobs
     payload = await request.json()
     # Decode base64
     decoded_payload = base64.b64decode(payload["ir"]).decode('utf-8')
+
+    if os.environ.get("QUAKE_WALK_ONLY") == "1":
+        verifyValueSemanticsPayload(decoded_payload)
+        newId = str(uuid.uuid4())
+        createdJobs[newId] = walkOnlyJob(decoded_payload, payload["shots"])
+        return ({"id": newId}, 201)
     # Verify that the input MLIR does not contain actual `malloc` or `memcpy`
     # calls. Match `@malloc` or `@llvm.memcpy` as function references (calls or
     # declarations).

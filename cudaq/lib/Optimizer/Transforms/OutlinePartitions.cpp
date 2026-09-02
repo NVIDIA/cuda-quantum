@@ -15,6 +15,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
+#include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/IRMapping.h"
 
@@ -26,37 +27,71 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace cudaq::opt {
-FailureOr<cc::CreateLambdaOp> outlinePartition(ArrayRef<Operation *>);
-LogicalResult outlinePartitions(ArrayRef<SmallVector<Operation *>>);
+FailureOr<cc::CreateLambdaOp> outlinePartition(const DenseSet<Operation *> &);
+LogicalResult outlinePartitions(ArrayRef<DenseSet<Operation *>>);
 } // namespace cudaq::opt
 
-namespace {
-static bool isWire(Value v) { return isa<cudaq::quake::WireType>(v.getType()); }
-} // namespace
+static inline bool isWire(Value v) {
+  return isa<cudaq::quake::WireType>(v.getType());
+}
 
-FailureOr<cudaq::cc::CreateLambdaOp>
-cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
+#ifndef NDEBUG
+static bool validatePartition(const DenseSet<Operation *> &partition,
+                              const SmallVector<Operation *> &orderedOps,
+                              Block *block, const SetVector<Value> &outputs) {
   if (partition.empty())
-    return failure();
-
-  DenseSet<Operation *> inPartition(partition.begin(), partition.end());
-
-  // All operations must live in one block; find the last one in block order to
-  // use as the anchor for the closure and its application.
-  Block *block = partition.front()->getBlock();
-  Operation *anchor = partition.front();
+    return false;
   for (Operation *op : partition) {
     if (op->getBlock() != block)
-      return failure();
+      return false;
+    for (Value v : llvm::concat<Value>(op->getOperands(), op->getResults()))
+      if (isa<cudaq::quake::RefType>(v.getType()))
+        return false;
+  }
+  // Contiguity: no non-partition op lies on a wire path between two partition
+  // ops.
+  DenseSet<Value> seen;
+  SmallVector<Value> worklist;
+  for (Operation *op : orderedOps)
+    for (Value res : op->getResults())
+      if (isWire(res))
+        for (Operation *user : res.getUsers())
+          if (!partition.contains(user))
+            for (Value r : user->getResults())
+              if (isWire(r) && seen.insert(r).second)
+                worklist.push_back(r);
+  while (!worklist.empty()) {
+    Value wire = worklist.pop_back_val();
+    for (Operation *user : wire.getUsers()) {
+      if (partition.contains(user))
+        return false;
+      for (Value res : user->getResults())
+        if (isWire(res) && seen.insert(res).second)
+          worklist.push_back(res);
+    }
+  }
+  // All external wire consumers must live in the same block.
+  for (Value out : outputs)
+    for (Operation *user : out.getUsers())
+      if (!partition.contains(user) && user->getBlock() != block)
+        return false;
+  return true;
+}
+#endif
+
+FailureOr<cudaq::cc::CreateLambdaOp>
+cudaq::opt::outlinePartition(const DenseSet<Operation *> &partition) {
+  Block *block = (*partition.begin())->getBlock();
+  Operation *anchor = *partition.begin();
+  for (Operation *op : partition)
     if (anchor->isBeforeInBlock(op))
       anchor = op;
-  }
 
   // Walk the partition in block (topological) order so cloned operands are
   // always already mapped.
   SmallVector<Operation *> orderedOps;
   for (Operation &op : *block)
-    if (inPartition.contains(&op))
+    if (partition.contains(&op))
       orderedOps.push_back(&op);
 
   // Infer the wire boundary. Because wires are use-once, an output wire has at
@@ -67,7 +102,7 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
       if (!isWire(operand))
         continue;
       Operation *def = operand.getDefiningOp();
-      if (!def || !inPartition.contains(def))
+      if (!def || !partition.contains(def))
         inputs.insert(operand);
     }
     for (Value res : op->getResults()) {
@@ -75,7 +110,7 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
         continue;
       bool external = res.use_empty();
       for (Operation *user : res.getUsers())
-        if (!inPartition.contains(user)) {
+        if (!partition.contains(user)) {
           external = true;
           break;
         }
@@ -84,37 +119,8 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
     }
   }
 
-  // Contiguity check: following each wire that exits the partition, ensure no
-  // descendant wire re-enters it (i.e., no non-partition op lies on a wire
-  // path between two partition ops).
-  {
-    DenseSet<Value> seen;
-    SmallVector<Value> worklist;
-    for (Operation *op : orderedOps)
-      for (Value res : op->getResults())
-        if (isWire(res))
-          for (Operation *user : res.getUsers())
-            if (!inPartition.contains(user))
-              for (Value r : user->getResults())
-                if (isWire(r) && seen.insert(r).second)
-                  worklist.push_back(r);
-    while (!worklist.empty()) {
-      Value wire = worklist.pop_back_val();
-      for (Operation *user : wire.getUsers()) {
-        if (inPartition.contains(user))
-          return failure();
-        for (Value res : user->getResults())
-          if (isWire(res) && seen.insert(res).second)
-            worklist.push_back(res);
-      }
-    }
-  }
-
-  // Require all external wire consumers to live in the same block.
-  for (Value out : outputs)
-    for (Operation *user : out.getUsers())
-      if (!inPartition.contains(user) && user->getBlock() != block)
-        return failure();
+  assert(validatePartition(partition, orderedOps, block, outputs) &&
+         "invalid partition");
 
   auto inputList = inputs.takeVector();
   auto outputList = outputs.takeVector();
@@ -128,19 +134,8 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
   auto callableTy =
       cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, inTys, outTys));
 
-  // Place lambda/call before the earliest external wire consumer so that the
-  // call results dominate their uses after the partition ops are erased.
   OpBuilder builder(ctx);
-  Operation *insertBefore = nullptr;
-  for (Value out : outputList)
-    for (Operation *user : out.getUsers())
-      if (!inPartition.contains(user))
-        if (!insertBefore || user->isBeforeInBlock(insertBefore))
-          insertBefore = user;
-  if (insertBefore)
-    builder.setInsertionPoint(insertBefore);
-  else
-    builder.setInsertionPointAfter(anchor);
+  builder.setInsertionPointAfter(anchor);
   Location loc = anchor->getLoc();
 
   auto lambda = cudaq::cc::CreateLambdaOp::create(
@@ -167,11 +162,12 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
   for (Operation *op : llvm::reverse(orderedOps))
     op->erase();
 
+  mlir::sortTopologically(block);
   return lambda;
 }
 
 LogicalResult
-cudaq::opt::outlinePartitions(ArrayRef<SmallVector<Operation *>> partitions) {
+cudaq::opt::outlinePartitions(ArrayRef<DenseSet<Operation *>> partitions) {
   auto result = success();
   for (const auto &partition : partitions)
     if (failed(outlinePartition(partition)))

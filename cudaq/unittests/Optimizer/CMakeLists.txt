@@ -62,6 +62,7 @@ add_cudaq_unittest("OutlinePartitionsTests" "outline-partitions"
         QuakeDialect
         CCDialect
         OptTransforms
+        OptAnalysis
     COMPILE_OPTS
       -fno-rtti
 )
