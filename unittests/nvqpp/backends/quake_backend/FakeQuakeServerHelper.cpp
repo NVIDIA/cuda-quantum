@@ -36,9 +36,9 @@ public:
       const auto mappingIter = backendConfig.find("mapping_file");
       if (mappingIter != backendConfig.end()) {
         // Enable mapping only for tests compiled with `--mapping-file`.
-        const std::string mappingPipeline = "qubit-mapping{device=file(" +
-                                            mappingIter->second +
-                                            ") placement=identity search=none}";
+        const std::string mappingPipeline =
+            "qubit-mapping{device=file(" + mappingIter->second +
+            ") placement=identity search=sabre}";
         return {{"%QUAKE_EMULATE_SUFFIX%", ""},
                 {"qubit-mapping{device=bypass}", mappingPipeline}};
       }

@@ -1,0 +1,30 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional.txt) placement=identity search=sabre' %s | FileCheck --implicit-check-not=quake.swap --implicit-check-not=quake.h %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @reverse_controlled_x() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %x:2 = quake.x [%q1] %q0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %x#1 : !quake.wire
+  quake.return_wire %x#0 : !quake.wire
+  return
+}
+
+// The only native direction is physical qubit 0 controlling physical qubit 1.
+// SABRE refines the identity seed to place logical q1 on physical qubit 0 and
+// logical q0 on physical qubit 1, so the input CX is emitted directly.
+
+// CHECK-LABEL:   func.func @reverse_controlled_x
+// CHECK:           %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:           %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// CHECK:           %[[CX:.*]]:2 = quake.x {{\[}}%[[Q1]]] %[[Q0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NOT:       quake.x
