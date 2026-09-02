@@ -1,0 +1,104 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --expand-broadcasts %s | FileCheck %s
+
+func.func @broadcast() {
+  %0 = quake.alloca !quake.veq<3>
+  quake.h %0 : (!quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @broadcast() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// Parameters and adjointness are replicated on each operation.
+func.func @parameters(%angle: f64) {
+  %0 = quake.alloca !quake.veq<2>
+  quake.rx<adj> (%angle) %0 : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @parameters(
+// CHECK-SAME:       %[[VAL_0:.*]]: f64) {
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_3]] : (f64, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// Only an uncontrolled operator broadcasts.
+func.func @controlled(%ctrl: !quake.ref) {
+  %0 = quake.alloca !quake.veq<2>
+  quake.z [%ctrl] %0 : (!quake.ref, !quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @controlled(
+// CHECK-SAME:       %[[VAL_0:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.z [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.veq<2>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// A vector of unknown size cannot be expanded.
+func.func @unsized(%vec: !quake.veq<?>) {
+  quake.x %vec : (!quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @unsized(
+// CHECK-SAME:       %[[VAL_0:.*]]: !quake.veq<?>) {
+// CHECK:           quake.x %[[VAL_0]] : (!quake.veq<?>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// A statically-sized subveq broadcasts just like any other sized veq.
+func.func @subveq() {
+  %0 = quake.alloca !quake.veq<6>
+  %1 = quake.subveq %0, 2, 4 : (!quake.veq<6>) -> !quake.veq<3>
+  quake.h %1 : (!quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @subveq() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           %[[VAL_1:.*]] = quake.subveq %[[VAL_0]], 2, 4 : (!quake.veq<6>) -> !quake.veq<3>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// For a multi-qubit operator a veq target is an operand list, not a broadcast.
+func.func @multi_qubit() {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.alloca !quake.veq<2>
+  quake.swap %0, %1 : (!quake.veq<2>, !quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @multi_qubit() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.swap %[[VAL_0]], %[[VAL_1]] : (!quake.veq<2>, !quake.veq<2>) -> ()
+// CHECK:           return
+// CHECK:         }
