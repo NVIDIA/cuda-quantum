@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""cudaq.logical.dialects.fabric -- Fabric dialect Python module.
+"""cudaq.mlir.dialects.fabric -- Fabric dialect Python module.
 
 Re-exports TableGen-generated Fabric op/enum bindings and the
 native extension's Fabric type/attribute classes.  Single-file
@@ -39,8 +39,8 @@ from ._fabric_enum_gen import (  # noqa: F401
 
 # Native extension: Fabric type and attribute subclasses live in the `fabric`
 # submodule of the combined _qlx_ext extension.  The dialect itself is
-# auto-registered on every Context via the _site_initialize_0 hook.
-from .._mlir_libs._qlx_ext.fabric import (  # noqa: F401
+# auto-registered on every Context via the _site_initialize_1 hook.
+from cudaq.mlir._mlir_libs._qlx_ext.fabric import (  # noqa: F401
     # Parameterized types
     PatchType, SyndromeType, ResourceStateType,
     # Simple types

@@ -31,7 +31,7 @@ def _to_pbc(source, *, pipeline: Pipeline) -> Build:
             "cudaq.logical.compiler.to_pbc requires cudaq.logical.compiler.synthesize(..., "
             "gate_set=cudaq.logical.compiler.clifford_t) first")
 
-    from .._mlir_libs import _qlxRuntime as runtime
+    from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
     # Lower a private replay of the immutable source snapshot.  The cached
     # ``Build.module`` object is an inspection view and may have been mutated

@@ -9,28 +9,28 @@
 single namespace objects.
 
 The previous monolithic ``_qlxDialects`` extension exposed a single
-``qlx`` (and ``fabric``) submodule.  After the embedded-MLIR refactor
-the native code lives in three extensions:
+``qlx`` (and ``fabric``) submodule.  After registering into CUDA-Q
+``cudaq.mlir`` bindings the native code lives in three extensions:
 
-  - :mod:`cudaq.logical._mlir_libs._qlx_ext`   -- two submodules ``qlx`` and
+  - :mod:`cudaq.mlir._mlir_libs._qlx_ext`   -- two submodules ``qlx`` and
         ``fabric`` exposing the dialects' types, attributes, and helpers
         (dialect registration is handled automatically at import via the
-        ``_site_initialize_0`` hook -- there is no explicit
+        ``_site_initialize_1`` hook -- there is no explicit
         ``register_dialect`` / ``ensure_dialects`` entry point here)
-  - :mod:`cudaq.logical._mlir_libs._qlxRuntime` -- verify /
+  - :mod:`cudaq.mlir._mlir_libs._qlxRuntime` -- verify /
         lower / translate / run_pass
 
 This module recombines them into the historical ``_native`` /
 ``_fabric_native`` shapes so existing consumers only have to change their
-import line: ``from cudaq.logical._mlir_libs._qlxDialects import qlx as _native``
+import line: ``from cudaq.mlir._mlir_libs._qlxDialects import qlx as _native``
 becomes ``from cudaq.logical._native import native as _native``, and likewise
 ``fabric`` becomes ``from cudaq.logical._native import fabric_native``.
 """
 
 from __future__ import annotations
 
-from ._mlir_libs import _qlx_ext  # noqa: F401
-from ._mlir_libs import _qlxRuntime  # noqa: F401
+from cudaq.mlir._mlir_libs import _qlx_ext  # noqa: F401
+from cudaq.mlir._mlir_libs import _qlxRuntime  # noqa: F401
 
 
 class _NativeFacade:
@@ -58,7 +58,7 @@ class _NativeFacade:
     @staticmethod
     def load_plugin(path: str) -> None:
         """Load a dialect/pass plugin without initializing the high-level surface."""
-        from ._mlir_libs import get_dialect_registry
+        from cudaq.mlir._mlir_libs import get_dialect_registry
 
         if path in _qlxRuntime.get_plugin_paths():
             return

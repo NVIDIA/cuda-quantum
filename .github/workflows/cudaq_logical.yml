@@ -143,6 +143,8 @@ jobs:
 
           python -m auditwheel repair \
             --exclude libcudaqMLIR.so \
+            --exclude libcudaqMLIRCAPI.so \
+            --exclude libnanobind-cudaq.so \
             --wheel-dir ../../dist "$raw_wheel"
 
           wheel="$(find "$GITHUB_WORKSPACE/dist" -name "cudaq_logical-*-cp${py_tag}-*.whl" -print -quit)"

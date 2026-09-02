@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 try:
-    import cudaq.logical  # noqa: F401
-except ImportError:
     import _cudaq_logical_devpath  # noqa: F401
-    import cudaq.logical  # noqa: F401
+except ImportError:
+    pass
+import cudaq.logical  # noqa: F401

@@ -57,9 +57,9 @@ def test_rotated_surface_catalog_entry_is_a_distance_indexed_code():
 
 def test_product_stage_estimation_and_target_surface():
     import cudaq.logical
-    from cudaq.logical.dialects import _fabric_ops_gen, _qlx_ops_gen
-    from cudaq.logical.dialects import fabric as fabric_dialect
-    from cudaq.logical.dialects import qlx as qlx_dialect
+    from cudaq.mlir.dialects import _fabric_ops_gen, _qlx_ops_gen
+    from cudaq.mlir.dialects import fabric as fabric_dialect
+    from cudaq.mlir.dialects import qlx as qlx_dialect
 
     assert tuple(cudaq.logical.stages.Stage) == (
         cudaq.logical.stages.Stage.P0,
@@ -114,7 +114,7 @@ def test_logical_estimate_is_invariant_under_cached_view_mutation():
 
     cached_action = next(operation for operation in walk(build.module.operation)
                          if operation.name == "qlx.apply")
-    cached_action.attributes["action"] = cudaq.logical.ir.Attribute.parse(
+    cached_action.attributes["action"] = cudaq.mlir.ir.Attribute.parse(
         "#qlx.action<x>", context=build.module.context)
 
     assert cudaq.logical.analysis.logical_counts(build) == expected

@@ -12,11 +12,11 @@ CUDA-Q Logical Python bindings
 
 The CUDA-Q Logical Python package has two layers:
 
-1. ``cudaq.logical.*`` -- an embedded copy of MLIR's standalone Python
-   package (relocated under our package via
-   ``MLIR_PYTHON_PACKAGE_PREFIX``), plus the CUDA-Q Logical dialect/compiler extensions
-   assembled with CUDA-Q's shared-MLIR helpers. No symlinks to the SDK
-   install are created.
+1. ``cudaq.mlir.*`` -- dialect wrappers (``qlx`` / ``fabric`` / ``lvm``) and
+   C++ extensions (``_qlx_ext``, ``_qlxRuntime``, ``_site_initialize_1``,
+   ``libQLXPythonCAPI``) registered into CUDA-Q's existing MLIR Python
+   bindings. Core ``ir`` / ``passmanager`` / ``_mlir.so`` come from the
+   CUDA-Q runtime wheel; this package does not rebuild them.
 
 2. ``cudaq.logical.*`` -- the user-facing pure-Python model, compiler, target,
    and analysis API. Copied to the build tree by a regular
@@ -51,43 +51,36 @@ endif()
 # Package layout
 # --------------------------------------------------------------------------- #
 
-# Embed MLIR's standalone Python package directly under the cudaq.logical.*
-# namespace -- matches upstream MLIR's mlir/python/mlir/ layout where
-# `mlir.ir`, `mlir.dialects.arith`, `mlir.passmanager` etc. all sit at
-# the top of the mlir package. For CUDA-Q Logical that's cudaq.logical.ir,
-# cudaq.logical.dialects.qlx, cudaq.logical.passmanager, plus the canonical
-# pure-Python modules as sibling submodules.
-set(MLIR_PYTHON_PACKAGE_PREFIX     "cudaq.logical")
-set(MLIR_BINDINGS_PYTHON_INSTALL_PREFIX "cudaq/logical")
-set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "cudaq_logical" CACHE STRING "" FORCE)
+# Register into CUDA-Q's existing cudaq.mlir Python bindings (same nanobind
+# domain, same _mlir.so). Dialect wrappers and our extension DSOs land next
+# to CUDA-Q's ir.py / passmanager.py / _mlir_libs/.
+set(MLIR_PYTHON_PACKAGE_PREFIX     "cudaq.mlir")
+set(MLIR_BINDINGS_PYTHON_INSTALL_PREFIX "cudaq/mlir")
+set(QLX_PACKAGE_INSTALL_PREFIX "cudaq/logical")
+set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "cudaq" CACHE STRING "" FORCE)
 
-# Every MLIR-side Python C extension (theirs and ours) is compiled with
-# the same MLIR_PYTHON_PACKAGE_PREFIX so all generated symbols agree.
+# Every MLIR-side Python C extension is compiled with the same prefix so
+# generated capsule names agree with CUDA-Q's _mlir.so.
 add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=${MLIR_PYTHON_PACKAGE_PREFIX}.")
 
-set(_PYTHON_BUILD_PREFIX        "${PROJECT_BINARY_DIR}/python/cudaq/logical")
+set(_MLIR_PYTHON_BUILD_PREFIX   "${PROJECT_BINARY_DIR}/python/cudaq/mlir")
 set(QLX_PYTHON_BINDINGS_DIR     "${PROJECT_SOURCE_DIR}/ir/lib/Bindings/Python")
 
-# Assemble the staged package from the current reviewed sources on every
-# configure. Preserve the separately built CUDA-Q ingress plug-in: its staging
-# copy is attached to the linker target and does not rerun merely because the
-# copied file disappeared.
-set(_QLX_STAGED_QUAKE_PLUGIN_BACKUP
-  "${CMAKE_CURRENT_BINARY_DIR}/.qlx-quake-stage")
-if(EXISTS "${_PYTHON_BUILD_PREFIX}/_quake")
-  file(REMOVE_RECURSE "${_QLX_STAGED_QUAKE_PLUGIN_BACKUP}")
-  file(RENAME "${_PYTHON_BUILD_PREFIX}/_quake"
-    "${_QLX_STAGED_QUAKE_PLUGIN_BACKUP}")
-endif()
-file(REMOVE_RECURSE "${_PYTHON_BUILD_PREFIX}")
-# The pre-move staging dir would otherwise stay on PYTHONPATH beside
-# cudaq/logical/ and load a second copy of the same nanobind domain.
+# Wipe only the MLIR staging root. cudaq/logical/_quake lives outside it, so
+# the plugin copy does not need to be backed up across configure.
+file(REMOVE_RECURSE "${_MLIR_PYTHON_BUILD_PREFIX}")
+# Stale private-MLIR copies from before this layout would otherwise stay on
+# PYTHONPATH and load a second copy of the same nanobind domain.
 file(REMOVE_RECURSE "${PROJECT_BINARY_DIR}/python/cudaq_logical")
-if(EXISTS "${_QLX_STAGED_QUAKE_PLUGIN_BACKUP}")
-  file(MAKE_DIRECTORY "${_PYTHON_BUILD_PREFIX}")
-  file(RENAME "${_QLX_STAGED_QUAKE_PLUGIN_BACKUP}"
-    "${_PYTHON_BUILD_PREFIX}/_quake")
-endif()
+file(REMOVE_RECURSE "${PROJECT_BINARY_DIR}/python/cudaq/logical/_mlir_libs")
+file(REMOVE
+  "${PROJECT_BINARY_DIR}/python/cudaq/logical/ir.py"
+  "${PROJECT_BINARY_DIR}/python/cudaq/logical/passmanager.py"
+  "${PROJECT_BINARY_DIR}/python/cudaq/logical/execution_engine.py"
+  "${PROJECT_BINARY_DIR}/python/cudaq/logical/rewrite.py")
+file(REMOVE_RECURSE
+  "${PROJECT_BINARY_DIR}/python/cudaq/logical/extras"
+  "${PROJECT_BINARY_DIR}/python/cudaq/logical/dialects")
 
 # mlir-tblgen needs to find our CUDA-Q Logical TD includes when expanding the
 # python-binding dialect shims.
@@ -104,7 +97,9 @@ declare_mlir_python_sources(QLXPythonSources)
 # --------------------------------------------------------------------------- #
 
 declare_mlir_python_sources(QLXPythonSources.Dialects
-  ADD_TO_PARENT QLXPythonSources)
+  ADD_TO_PARENT QLXPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  SOURCES dialects/lvm.py)
 
 # MLIR's Python binding generator does not implement the C++ generator's
 # operation filters. Generate into a private intermediate, then structurally
@@ -182,7 +177,7 @@ set(_QLX_PRODUCT_OP_CLASSES
 
 declare_qlx_product_dialect_python_bindings(
   ADD_TO_PARENT QLXPythonSources.Dialects
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/logical"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/QLXOps.td
   SOURCES dialects/qlx.py
   DIALECT_NAME qlx
@@ -208,7 +203,7 @@ set(_FABRIC_PRODUCT_OP_CLASSES
 
 declare_qlx_product_dialect_python_bindings(
   ADD_TO_PARENT QLXPythonSources.Dialects
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/logical"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/FabricOps.td
   SOURCES dialects/fabric.py
   DIALECT_NAME fabric
@@ -221,37 +216,20 @@ declare_qlx_product_dialect_python_bindings(
 # C++ extensions
 # --------------------------------------------------------------------------- #
 
-# _site_initialize_0: MLIR loads every _site_initialize_<i> module under
-# _mlir_libs/ at Context construction; ours auto-registers every dialect
-# a typical CUDA-Q Logical program touches (CUDA-Q Logical + LVM + Fabric and standard
-# func/arith/cf/llvm) plus eagerly registers the retained
-# CUDA-Q Logical-side passes at module import time.
+# _site_initialize_1: CUDA-Q owns _site_initialize_0. MLIR's loader counts
+# up from 0 and stops at the first gap, so a third distribution taking
+# index 2 would only load while cudaq-logical is installed.
+# Dialect handles and the QLX pass set are registered here at import time.
 declare_mlir_python_extension(QLXPythonSources.Init
-  MODULE_NAME _site_initialize_0
+  MODULE_NAME _site_initialize_1
   ADD_TO_PARENT QLXPythonSources
   ROOT_DIR "${QLX_PYTHON_BINDINGS_DIR}"
-  SOURCES _site_initialize_0.cpp
+  SOURCES _site_initialize_1.cpp
   EMBED_CAPI_LINK_LIBS
-    # CUDA-Q Logical-side CAPI.
     QLXCAPIDialectQLX
     QLXCAPIDialectLVM
     QLXCAPIDialectFabric
     QLXCAPIPasses
-    # Standard MLIR dialect CAPI: needed so our site-init can register
-    # func/arith/cf/llvm on every Context without having to pull in
-    # MLIRPythonExtension.RegisterEverything (which would drag in every
-    # upstream MLIR dialect). These are thin C wrapper objects; in CUDA-Q SDK
-    # mode their C++ implementation still resolves from libcudaqMLIR.
-    MLIRCAPIArith
-    MLIRCAPIControlFlow
-    MLIRCAPIFunc
-    MLIRCAPILLVM
-    MLIRCAPIIR
-    # MLIRCAPITransforms provides Rewrite.cpp symbols (e.g.
-    # mlirPDLResultListPushBackType) referenced by _mlir.so via
-    # Rewrite.cpp. Without it the common CAPI lib doesn't export
-    # those symbols and _mlir.so fails to load with undefined symbol.
-    MLIRCAPITransforms
 )
 
 # Single dialect extension: _qlx_ext.  Built from _qlx_ext.cpp (main
@@ -269,7 +247,6 @@ declare_mlir_python_extension(QLXPythonSources.Ext
   EMBED_CAPI_LINK_LIBS
     QLXCAPIDialectQLX
     QLXCAPIDialectFabric
-    MLIRCAPIIR
 )
 
 # Textual / module-level helpers (verify / lower / translate). Link deps that
@@ -286,80 +263,90 @@ declare_mlir_python_extension(QLXPythonSources.Runtime
     QLXCAPIDialectFabric
     QLXCAPITranslate
     QLXCAPIPasses
-    MLIRCAPIIR
 )
 
 # --------------------------------------------------------------------------- #
 # Common CAPI shared library + module assembly
 # --------------------------------------------------------------------------- #
 
-set(_SOURCE_COMPONENTS
-  QLXPythonSources
-  MLIRPythonSources.Core
-  # Python-side dialect modules (for the pythonic MLIR API surface like
-  # `cudaq.logical.dialects.func.FuncOp`).  Dialect *registration* on
-  # new Contexts is handled by _site_initialize_0.cpp via the mlir-c
-  # dialect handles, not by pulling in MLIRPythonExtension.RegisterEverything
-  # (which would drag in every upstream dialect).
-  MLIRPythonSources.Dialects.func
-  MLIRPythonSources.Dialects.arith
-  MLIRPythonSources.Dialects.cf
-  MLIRPythonSources.Dialects.builtin
-  MLIRPythonSources.Dialects.llvm
-  # MLIR's Core Python sources install dialects/ext.py, whose public helper
-  # implementation imports dialects/irdl.py.  Keep that upstream dependency
-  # closure intact so every installed Python module is importable.
-  MLIRPythonSources.Dialects.irdl
-)
+set(_SOURCE_COMPONENTS QLXPythonSources)
 
+# add_cudaq_python_common_capi_library checks undefined mlir::/llvm:: symbols
+# against libcudaqMLIR only. After dropping the embedded MLIRCAPI* objects,
+# CAPI and nanobind-domain symbols resolve from the runtime wheel, so disable
+# the helper's check and re-run it with those providers.
+set(_qlx_saved_symbol_check "${CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE}")
+set(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OFF)
 add_cudaq_python_common_capi_library(QLXPythonCAPI
   INSTALL_COMPONENT QLXPythonModules
   INSTALL_DESTINATION "${MLIR_BINDINGS_PYTHON_INSTALL_PREFIX}/_mlir_libs"
-  OUTPUT_DIRECTORY "${_PYTHON_BUILD_PREFIX}/_mlir_libs"
+  OUTPUT_DIRECTORY "${_MLIR_PYTHON_BUILD_PREFIX}/_mlir_libs"
   RELATIVE_INSTALL_ROOT ".."
   DECLARED_SOURCES ${_SOURCE_COMPONENTS}
 )
+set(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE "${_qlx_saved_symbol_check}")
 
-# CUDA-Q's helper deliberately exports only CAPI symbols, but its current
-# export list is hard-coded to the mlir* and cudaq* prefixes. CUDA-Q Logical's embedded
-# CAPI objects use qlx*, so extend the generated list until the upstream
-# helper accepts downstream export prefixes.
-get_target_property(_qlx_capi_link_options QLXPythonCAPI LINK_OPTIONS)
-if(NOT _qlx_capi_link_options
-    OR _qlx_capi_link_options STREQUAL "_qlx_capi_link_options-NOTFOUND")
-  set(_qlx_capi_link_options)
-endif()
-if(APPLE)
-  list(FILTER _qlx_capi_link_options EXCLUDE REGEX
-    "exported_symbols_list")
-  set(_qlx_capi_exports
-    "${CMAKE_CURRENT_BINARY_DIR}/QLXPythonCAPI-qlx-exported.txt")
-  file(WRITE "${_qlx_capi_exports}"
-    "_mlir*\n_cudaq*\n_qlx*\n_lvm*\n_fabric*\n")
-  set(_qlx_capi_export_option
-    "LINKER:-exported_symbols_list,${_qlx_capi_exports}")
-else()
-  list(FILTER _qlx_capi_link_options EXCLUDE REGEX "version-script")
-  set(_qlx_capi_exports
-    "${CMAKE_CURRENT_BINARY_DIR}/QLXPythonCAPI-qlx.map")
-  file(WRITE "${_qlx_capi_exports}"
-    "{\n  global:\n    mlir*;\n    cudaq*;\n    qlx*;\n    lvm*;\n"
-    "    fabric*;\n  local:\n    *;\n};\n")
-  set(_qlx_capi_export_option
-    "LINKER:--version-script=${_qlx_capi_exports}")
-endif()
-set_property(TARGET QLXPythonCAPI PROPERTY
-  LINK_OPTIONS "${_qlx_capi_link_options}")
+# QLXCAPI* libraries declare a PUBLIC dep on MLIRCAPIIR. Exclude the
+# upstream CAPI aggregates so their objects are not copied into this DSO;
+# the implementations live in libcudaqMLIRCAPI.
 set_property(TARGET QLXPythonCAPI APPEND PROPERTY
-  LINK_DEPENDS "${_qlx_capi_exports}")
-target_link_options(QLXPythonCAPI PRIVATE "${_qlx_capi_export_option}")
+  MLIR_AGGREGATE_EXCLUDE_LIBS
+    MLIRCAPIIR
+    MLIRCAPIArith
+    MLIRCAPIControlFlow
+    MLIRCAPIFunc
+    MLIRCAPILLVM
+    MLIRCAPITransforms)
+
+target_link_libraries(QLXPythonCAPI PRIVATE
+  cudaq::cudaqMLIRCAPI
+  cudaq::MLIRPythonSupport)
+cudaq_check_mlir_symbol_closure(QLXPythonCAPI
+  PROVIDERS cudaq::cudaqMLIRCAPI cudaq::MLIRPythonSupport)
 
 add_cudaq_python_modules(QLXPythonModules
-  ROOT_PREFIX "${_PYTHON_BUILD_PREFIX}"
+  ROOT_PREFIX "${_MLIR_PYTHON_BUILD_PREFIX}"
   INSTALL_PREFIX "${MLIR_BINDINGS_PYTHON_INSTALL_PREFIX}"
   DECLARED_SOURCES ${_SOURCE_COMPONENTS}
-  COMMON_CAPI_LINK_LIBS QLXPythonCAPI
+  COMMON_CAPI_LINK_LIBS
+    QLXPythonCAPI
+    cudaq::cudaqMLIRCAPI
+    cudaq::MLIRPythonSupport
 )
+
+# MLIRPythonSupport and nanobind live in the runtime wheel's
+# cudaq/mlir/_mlir_libs, not in lib/. The build-tree output directory is
+# also named _mlir_libs, so CMake warns about an RPATH cycle; the installed
+# wheel path must still be on BUILD_RPATH for the DSOs to load from the
+# build tree.
+set(_qlx_cudaq_py_libs "${QLX_CUDAQ_PREFIX}/cudaq/mlir/_mlir_libs")
+set_property(TARGET QLXPythonCAPI APPEND PROPERTY
+  BUILD_RPATH "${_qlx_cudaq_py_libs}")
+get_property(_qlx_py_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+list(FILTER _qlx_py_targets INCLUDE REGEX "^QLXPythonModules\\.extension\\.")
+foreach(_qlx_py_dso IN LISTS _qlx_py_targets)
+  set_property(TARGET ${_qlx_py_dso} APPEND PROPERTY
+    BUILD_RPATH "${_qlx_cudaq_py_libs}")
+endforeach()
+
+# MLIR rebuilds libnanobind-cudaq.so for NB_DOMAIN=cudaq and would otherwise
+# stage/install it next to CUDA-Q's copy. Keep one image: the runtime wheel's.
+if(TARGET nanobind-cudaq)
+  set_target_properties(nanobind-cudaq PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+  # Undo the install() issued by build_nanobind_lib into cudaq/mlir/_mlir_libs.
+  install(CODE "
+    foreach(_nb_name IN ITEMS
+        libnanobind-cudaq.so libnanobind-cudaq.dylib nanobind-cudaq.dll)
+      set(_nb_path \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${MLIR_BINDINGS_PYTHON_INSTALL_PREFIX}/_mlir_libs/\${_nb_name}\")
+      if(EXISTS \"\${_nb_path}\")
+        file(REMOVE \"\${_nb_path}\")
+      endif()
+    endforeach()
+  " COMPONENT QLXPythonModules)
+endif()
 
 # --------------------------------------------------------------------------- #
 # Post-assembly: link in non-exported deps and wire compile defs.
@@ -388,16 +375,16 @@ if(TARGET qlx-quake-plugin)
   add_dependencies(QLXPythonModules qlx-quake-plugin)
   install(TARGETS qlx-quake-plugin
     LIBRARY
-      DESTINATION "${MLIR_BINDINGS_PYTHON_INSTALL_PREFIX}/_quake"
+      DESTINATION "${QLX_PACKAGE_INSTALL_PREFIX}/_quake"
       COMPONENT QLXPythonModules
     RUNTIME
-      DESTINATION "${MLIR_BINDINGS_PYTHON_INSTALL_PREFIX}/_quake"
+      DESTINATION "${QLX_PACKAGE_INSTALL_PREFIX}/_quake"
       COMPONENT QLXPythonModules)
 endif()
 
 # QLXPythonCAPI and qlx-quake-plugin are not covered by
 # add_cudaq_python_modules' SKBUILD RPATH helper. They live at
-# cudaq/logical/_mlir_libs and cudaq/logical/_quake -- three levels below
+# cudaq/mlir/_mlir_libs and cudaq/logical/_quake -- three levels below
 # platlib, the same depth as upstream cudaq/mlir/_mlir_libs -- so they need
 # $ORIGIN/../../../lib to reach the cudaq wheel's libcudaqMLIR.
 # Extension DSOs go through add_cudaq_python_modules, which already appends
@@ -435,6 +422,10 @@ endif()
 
 file(GLOB_RECURSE _py_sources
   CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/logical/*.py")
+# Dialect wrappers live under python/mlir/ and are staged by MLIR's assembly
+# into cudaq/mlir/dialects/. Keep them out of this glob so two producers
+# cannot race for the same staged files.
+list(FILTER _py_sources EXCLUDE REGEX "/dialects/")
 foreach(_src ${_py_sources})
   file(RELATIVE_PATH _rel ${CMAKE_CURRENT_SOURCE_DIR} ${_src})
   configure_file(${_src} ${CMAKE_CURRENT_BINARY_DIR}/${_rel} COPYONLY)
@@ -454,13 +445,35 @@ if(NOT SKBUILD)
     PATTERN "*.pyc" EXCLUDE)
 endif()
 
-# Build-tree only: extend cudaq.__path__ so `import cudaq.logical` resolves
-# from this prefix without a cudaq/__init__.py in our tree. Never installed.
+# Build-tree only: extend cudaq.__path__, cudaq.mlir.__path__ and
+# cudaq.mlir._mlir_libs.__path__ so `import cudaq.logical` and our MLIR
+# extensions resolve from this prefix. Never installed.
+# cudaq/__init__.py imports _quakeDialects, which runs _site_initialize()
+# before this shim can patch cudaq.mlir, so `_site_initialize_1` is missed
+# on that first pass. After appending our `_mlir_libs` path, load it and
+# call `register_dialects` on the existing global registry — do not re-run
+# `_site_initialize()`, which would replace `ir.Context`.
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_cudaq_logical_devpath.py"
-"import cudaq, pathlib
-_p = str(pathlib.Path(__file__).resolve().parent / \"cudaq\")
-if _p not in cudaq.__path__:
+"import importlib, pathlib
+import cudaq
+_build_cudaq = pathlib.Path(__file__).resolve().parent / \"cudaq\"
+_p = str(_build_cudaq)
+if _p not in list(cudaq.__path__):
     cudaq.__path__.append(_p)
+import cudaq.mlir as _mlir
+_mlir_p = str(_build_cudaq / \"mlir\")
+if _mlir_p not in list(_mlir.__path__):
+    _mlir.__path__.append(_mlir_p)
+import cudaq.mlir._mlir_libs as _libs
+_libs_p = str(_build_cudaq / \"mlir\" / \"_mlir_libs\")
+if _libs_p not in list(_libs.__path__):
+    _libs.__path__.append(_libs_p)
+    # Do not re-run _site_initialize(): that replaces ir.Context and
+    # double-wraps the CUDA-Q subclass. Register our dialects into the
+    # already-built global registry instead.
+    _init1 = importlib.import_module(
+        \"cudaq.mlir._mlir_libs._site_initialize_1\")
+    _init1.register_dialects(_libs.get_dialect_registry())
 ")
 
 # --------------------------------------------------------------------------- #

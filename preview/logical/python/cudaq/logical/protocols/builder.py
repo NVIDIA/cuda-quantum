@@ -13,7 +13,7 @@ import math
 from types import NoneType
 from typing import get_args, get_origin, get_type_hints
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..errors import UnsupportedCombination
 from ..programs.context import (

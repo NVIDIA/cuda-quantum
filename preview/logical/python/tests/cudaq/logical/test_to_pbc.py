@@ -23,7 +23,7 @@ from typing import Tuple
 import pytest
 
 import cudaq.logical
-from cudaq.logical._mlir_libs import _qlxRuntime as rt
+from cudaq.mlir._mlir_libs import _qlxRuntime as rt
 
 stim = pytest.importorskip("stim")
 

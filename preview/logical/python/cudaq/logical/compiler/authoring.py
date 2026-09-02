@@ -10,7 +10,7 @@ from __future__ import annotations
 from inspect import Parameter, Signature
 from types import GenericAlias
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 from ..gadgets.builder import GadgetBuilder as _GadgetBackend
 from ..programs.builder import UnplacedBuilder as _UnplacedBackend
@@ -121,7 +121,7 @@ class UnplacedBuilder:
         """Enter a controlled raw-MLIR insertion scope at the builder frontier.
 
         Yields the builder's current insertion point so generated operations
-        (``cudaq.logical.ir.Operation.create(..., ip=ip)``) land exactly where typed
+        (``cudaq.mlir.ir.Operation.create(..., ip=ip)``) land exactly where typed
         helpers would emit.  Raw results rejoin typed helpers through explicit
         adoption; operations that are not adopted remain visible only to MLIR.
         """

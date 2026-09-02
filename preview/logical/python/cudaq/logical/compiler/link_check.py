@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .. import ir as mlir_ir
+from cudaq.mlir import ir as mlir_ir
 
 SUPPORTED_IR_VERSIONS = ("0.4-draft",)
 SUPPORTED_MODEL_VERSIONS = ("0.3.10-proposed",)

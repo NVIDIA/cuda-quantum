@@ -20,6 +20,7 @@ from importlib.metadata import (
     PackageNotFoundError as _PackageNotFoundError,
     distribution as _distribution,
 )
+from importlib.util import find_spec as _find_spec
 from pathlib import Path as _Path
 
 from . import (  # noqa: E402

@@ -45,7 +45,9 @@ cmake.build-type = "Release"
 build-dir = "../build"
 wheel.packages = ["cudaq"]
 wheel.exclude = [
-  "cudaq/logical/dialects/*.td",
+  "cudaq/mlir/dialects/*.td",
+  "cudaq/mlir/_mlir_libs/libnanobind-cudaq.so",
+  "cudaq/mlir/_mlir_libs/libnanobind-cudaq.dylib",
 ]
 install.components = ["QLXPythonModules", "QLXPythonWheelRuntimes", "QLXTools"]
 
