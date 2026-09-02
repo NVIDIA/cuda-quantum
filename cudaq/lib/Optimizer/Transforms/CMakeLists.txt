@@ -24,6 +24,7 @@ add_cudaq_library(OptTransforms
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   CommutationAwareRewrite.cpp
+  ConsolidateBroadcasts.cpp
   ConstantPropagation.cpp
   DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
@@ -36,6 +37,7 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
+  ExpandBroadcasts.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
