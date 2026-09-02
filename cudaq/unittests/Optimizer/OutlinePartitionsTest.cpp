@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Support/LogicalResult.h"
@@ -17,9 +18,9 @@ class Operation;
 }
 namespace cudaq::opt {
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
-    outlinePartition(llvm::ArrayRef<mlir::Operation *>);
+outlinePartition(const llvm::DenseSet<mlir::Operation *> &);
 mlir::LogicalResult
-    outlinePartitions(llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>>);
+    outlinePartitions(mlir::ArrayRef<llvm::DenseSet<mlir::Operation *>>);
 } // namespace cudaq::opt
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -56,10 +57,10 @@ TEST(OutlinePartitions, ContiguousRun) {
   auto mod = parse(ctx, ir);
   ASSERT_TRUE(mod);
 
-  SmallVector<Operation *> partition;
+  DenseSet<Operation *> partition;
   mod->walk([&](Operation *op) {
     if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
-      partition.push_back(op);
+      partition.insert(op);
   });
   ASSERT_EQ(partition.size(), 2u);
 
@@ -110,10 +111,10 @@ TEST(OutlinePartitions, EarlyConsumerReordered) {
   // Partition {h, t}: h's output feeds z (non-partition) which appears before
   // t in block order, but there is no non-partition op on a wire path between
   // h and t, so the partition is contiguous. The closure is inserted before z.
-  SmallVector<Operation *> partition;
+  DenseSet<Operation *> partition;
   mod->walk([&](Operation *op) {
     if (isa<cudaq::quake::HOp, cudaq::quake::TOp>(op))
-      partition.push_back(op);
+      partition.insert(op);
   });
   ASSERT_EQ(partition.size(), 2u);
   auto lambda = cudaq::opt::outlinePartition(partition);
@@ -139,10 +140,10 @@ TEST(OutlinePartitions, NonContiguousRejected) {
 
   // Partition {h, x}: the wire path h -> z (non-partition) -> x passes through
   // a non-partition op, so the partition is not a contiguous slice.
-  SmallVector<Operation *> partition;
+  DenseSet<Operation *> partition;
   mod->walk([&](Operation *op) {
     if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
-      partition.push_back(op);
+      partition.insert(op);
   });
   ASSERT_EQ(partition.size(), 2u);
   EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
@@ -167,20 +168,18 @@ TEST(OutlinePartitions, HardcodedAnalysis) {
   struct HardcodedAnalysis {
     MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(HardcodedAnalysis)
     explicit HardcodedAnalysis(mlir::Operation *op) {
-      SmallVector<Operation *> partition;
+      DenseSet<Operation *> partition;
       op->walk([&](Operation *inner) {
         if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(inner))
-          partition.push_back(inner);
+          partition.insert(inner);
       });
       if (!partition.empty())
         partitions.push_back(std::move(partition));
     }
-    ArrayRef<SmallVector<Operation *>> getPartitions() const {
-      return partitions;
-    }
+    ArrayRef<DenseSet<Operation *>> getPartitions() const { return partitions; }
 
   private:
-    SmallVector<SmallVector<Operation *>> partitions;
+    SmallVector<DenseSet<Operation *>> partitions;
   };
   func::FuncOp funcOp;
   mod->walk([&](func::FuncOp f) { funcOp = f; });
@@ -226,14 +225,14 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
   struct ThreePartitionAnalysis {
     MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ThreePartitionAnalysis)
     explicit ThreePartitionAnalysis(mlir::Operation *op) {
-      SmallVector<Operation *> p1, p2, p3;
+      DenseSet<Operation *> p1, p2, p3;
       op->walk([&](Operation *inner) {
         if (isa<cudaq::quake::HOp>(inner))
-          p1.push_back(inner);
+          p1.insert(inner);
         else if (isa<cudaq::quake::TOp>(inner))
-          p2.push_back(inner);
+          p2.insert(inner);
         else if (isa<cudaq::quake::XOp>(inner))
-          p3.push_back(inner);
+          p3.insert(inner);
       });
       if (!p1.empty())
         partitions.push_back(std::move(p1));
@@ -242,12 +241,10 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
       if (!p3.empty())
         partitions.push_back(std::move(p3));
     }
-    ArrayRef<SmallVector<Operation *>> getPartitions() const {
-      return partitions;
-    }
+    ArrayRef<DenseSet<Operation *>> getPartitions() const { return partitions; }
 
   private:
-    SmallVector<SmallVector<Operation *>> partitions;
+    SmallVector<DenseSet<Operation *>> partitions;
   };
 
   func::FuncOp funcOp;

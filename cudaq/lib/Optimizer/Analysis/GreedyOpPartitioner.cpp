@@ -52,7 +52,7 @@ void cudaq::opt::GreedyOpPartitioner::partitionBlock(Block &block,
     for (Value w : P->liveWires)
       wireOwner.erase(w);
     if (!P->ops.empty())
-      partitions.push_back(std::move(P->ops));
+      partitions.emplace_back(P->ops.begin(), P->ops.end());
     open.erase(std::find_if(open.begin(), open.end(),
                             [P](const Part &x) { return &x == P; }));
   };
@@ -185,7 +185,7 @@ void cudaq::opt::GreedyOpPartitioner::partitionBlock(Block &block,
         // so we know how many extra external qubits closing it introduces.
         DenseMap<Part *, unsigned> ownedInputs;
         for (Value w : op.getOperands()) {
-          if (!isWire(w))
+          if (!isQubitValue(w))
             continue;
           auto it = wireOwner.find(w);
           if (it != wireOwner.end() && touched.count(it->second))
