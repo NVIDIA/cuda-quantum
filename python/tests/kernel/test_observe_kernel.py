@@ -408,3 +408,42 @@ def test_observe_list_multi_term_operators():
     results_id = cudaq.observe(simple_kernel, [op_with_id])
     result_id = cudaq.observe(simple_kernel, op_with_id)
     assert np.isclose(results_id[0].expectation(), result_id.expectation())
+
+
+def test_observe_rejects_non_power_of_two_state_size():
+    """Regression for #2490: non-power-of-2 state must error, not segfault."""
+    cudaq.set_target('qpp-cpu')
+
+    n_size = 7
+
+    @cudaq.kernel
+    def initial_state(vec: list[float]):
+        q = cudaq.qvector(vec)
+
+    x = np.random.randn(n_size)
+    x = x / np.linalg.norm(x)
+
+    H = -5.0 + 2.5 * spin.x(0) * spin.y(1) + 0.23 * spin.z(1) + 0.11 * spin.z(0)
+
+    with pytest.raises(RuntimeError, match="power of 2"):
+        cudaq.observe(initial_state, H, x).expectation()
+
+
+def test_state_from_data_rejects_non_power_of_two():
+    """Regression for #2490: direct state construction must also validate size."""
+    cudaq.set_target('qpp-cpu')
+    bad = np.ones(7, dtype=np.complex128) / np.sqrt(7)
+    with pytest.raises(RuntimeError, match="power of 2"):
+        cudaq.State.from_data(bad)
+
+
+def test_state_from_data_rejects_empty_vector():
+    cudaq.set_target('qpp-cpu')
+    with pytest.raises(RuntimeError, match="power of 2"):
+        cudaq.State.from_data(np.array([], dtype=np.complex128))
+
+
+def test_state_from_data_accepts_power_of_two():
+    cudaq.set_target('qpp-cpu')
+    good = np.ones(4, dtype=np.complex128) / 2.0
+    assert cudaq.State.from_data(good) is not None
