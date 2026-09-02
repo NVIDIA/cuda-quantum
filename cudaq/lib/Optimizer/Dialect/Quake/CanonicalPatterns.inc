@@ -156,7 +156,11 @@ struct ReplaceZeroSizeAllocaPattern
 // every later pass special-case a zero-size veq.
 static bool isEmptyVeqType(Value value) {
   auto veqTy = dyn_cast<cudaq::quake::VeqType>(value.getType());
-  return veqTy && veqTy.hasSpecifiedSize() && veqTy.getSize() == 0;
+  if (veqTy && veqTy.hasSpecifiedSize() && veqTy.getSize() == 0)
+    return true;
+  if (auto relax = value.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    return isEmptyVeqType(relax.getInputVec());
+  return false;
 }
 
 // quake.dealloc %empty : !quake.veq<0>
@@ -838,8 +842,7 @@ struct ReplaceEmptyVeqSubVeqPattern
                                 PatternRewriter &rewriter) const override {
     if (!isEmptyVeqType(subveq.getVeq()))
       return failure();
-    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(subveq,
-                                                     subveq.getType());
+    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(subveq, subveq.getType());
     return success();
   }
 };
