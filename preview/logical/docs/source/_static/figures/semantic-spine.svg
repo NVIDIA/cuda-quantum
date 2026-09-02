@@ -36,7 +36,7 @@
 <text x="590" y="208" font-size="10.8" fill="#9d174d">· protocol_network</text>
 <text x="590" y="233" font-size="10.8" fill="#9d174d">· patch_graph — interactions</text>
 <text x="590" y="258" font-size="10.8" fill="#9d174d">· estimates — typed results</text>
-<path d="M 570 234 L 508 234" fill="none" stroke="#db2777" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<path d="M 570 242 L 508 242" fill="none" stroke="#db2777" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
 <rect x="830" y="60" width="200" height="230" rx="10" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
 <text x="930" y="84" font-size="12" text-anchor="middle" font-weight="800" fill="#16a34a">CONSUME / EMIT</text>
 <text x="930" y="100" font-size="9.5" text-anchor="middle" fill="#64748b" font-style="italic">orthogonal to the spine</text>
@@ -46,8 +46,8 @@
 <text x="846" y="194" font-size="10.5" fill="#166534">· clifford_t → H/S/T counts</text>
 <text x="846" y="216" font-size="10.5" fill="#166534">· surface_target → P2 counts</text>
 <text x="846" y="238" font-size="10.5" fill="#166534">· fabric-to-stim → Stim text</text>
-<path d="M 500 65 L 830 130" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
-<path d="M 500 273 L 830 240" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<path d="M 500 50 L 830 95" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<path d="M 500 300 L 830 275" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
 <rect x="40" y="316" width="460" height="24" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.3"/>
 <text x="270" y="332" font-size="10" text-anchor="middle" fill="#475569" font-style="italic">evidence plane: every transition proves, assumes, or declares missing</text>
 </svg>
