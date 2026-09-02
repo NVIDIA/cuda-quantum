@@ -28,9 +28,6 @@
 #include "qlx-c/Passes.h"
 #include "qlx-c/Target/Translations.h"
 
-// Upstream MLIR transform passes (provides --symbol-dce).
-#include "mlir-c/Transforms.h"
-
 // Module-text helpers that don't have a CAPI entry yet still talk to the
 // C++ surface directly.  The dialect bindings (DialectQLX/DialectFabric)
 // stay CAPI-only; this file is the "sin bin" for the textual surface.
@@ -55,12 +52,7 @@
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"
 
 #include "PassDebug.h"
-#include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/raw_ostream.h"
-
-#if defined(__linux__) || defined(__APPLE__)
-#include <dlfcn.h>
-#endif
 
 namespace nb = nanobind;
 
@@ -70,30 +62,6 @@ namespace nb = nanobind;
 static std::vector<std::string> &getPluginPaths() {
   static auto *paths = new std::vector<std::string>();
   return *paths;
-}
-
-static void promoteHostLibrariesGlobal() {
-  // Promote the QLX Python CAPI and CUDA-Q MLIR images to RTLD_GLOBAL so
-  // plugins built with --unresolved-symbols=ignore-all can find MLIR and
-  // QLX symbols at dlopen time. libQLXPythonCAPI no longer embeds mlir*
-  // CAPI objects, so libcudaqMLIR / libcudaqMLIRCAPI must also be
-  // promoted; both are already DT_NEEDED, so RTLD_NOLOAD suffices.
-#if defined(__linux__) || defined(__APPLE__)
-  auto promote = [](const void *symbol) {
-    ::Dl_info info;
-    if (::dladdr(const_cast<void *>(symbol), &info) && info.dli_fname)
-      ::dlopen(info.dli_fname, RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
-  };
-  promote(reinterpret_cast<const void *>(qlxRegisterAllPasses));
-  promote(reinterpret_cast<const void *>(mlirRegisterTransformsPasses));
-#if defined(__APPLE__)
-  ::dlopen("libcudaqMLIR.dylib", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
-  ::dlopen("libcudaqMLIRCAPI.dylib", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
-#else
-  ::dlopen("libcudaqMLIR.so", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
-  ::dlopen("libcudaqMLIRCAPI.so", RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
-#endif
-#endif
 }
 
 namespace {
@@ -169,8 +137,6 @@ NB_MODULE(_qlxRuntime, m) {
   m.def(
       "load_plugin",
       [](const std::string &path) {
-        promoteHostLibrariesGlobal();
-
         // Register the plugin's passes immediately into the global pass
         // registry so that parsePassPipeline can resolve them in any
         // PassManager from this point on.
@@ -184,17 +150,6 @@ NB_MODULE(_qlxRuntime, m) {
 
         // Store the path for dialect injection into new contexts.
         getPluginPaths().push_back(path);
-
-        // Also open the library permanently so JIT'd code that references
-        // plugin runtime symbols can resolve them via the process namespace.
-        std::string errMsg;
-        if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(path.c_str(),
-                                                              &errMsg)) {
-          // Non-fatal: the plugin may be pass-only with no runtime symbols.
-          // Emit a warning but do not throw.
-          llvm::errs() << "[qlx] load_plugin: LoadLibraryPermanently(" << path
-                       << "): " << errMsg << "\n";
-        }
       },
       nb::arg("path"),
       "Load an MLIR dialect+pass plugin .so into the QLX runtime.\n\n"

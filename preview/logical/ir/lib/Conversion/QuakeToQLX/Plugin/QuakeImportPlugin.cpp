@@ -9,9 +9,10 @@
 //===----------------------------------------------------------------------===//
 //
 // Packages the CUDA-Q Quake and CC dialects as a loadable MLIR DialectPlugin,
-// loaded at runtime by the qlx Python extension (_qlxRuntime.load_plugin, which
-// promotes libQLXPythonCAPI to RTLD_GLOBAL first). Core MLIR and QLX symbols
-// are left undefined and resolve from that host CAPI.
+// loaded at runtime by the qlx Python extension (_qlxRuntime.load_plugin).
+// The plugin links cudaq::MLIR, so all MLIR and Quake/CC symbols resolve from
+// libcudaqMLIR through its own DT_NEEDED entries; no RTLD_GLOBAL promotion of
+// host images is required.
 //
 // The Quake/CC definitions and TypeIDs resolve from CUDA-Q's shared MLIR
 // target, so CUDA-Q and QLX operate in one compiler universe. Static CUDA-Q
