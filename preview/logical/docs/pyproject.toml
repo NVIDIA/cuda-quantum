@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cudaq-logical-docs"
+version = "0.1.0"
+description = "CUDA-Q Logical (cudaq.logical) documentation"
+requires-python = ">=3.10"
+dependencies = [
+    "sphinx>=8.1,<9",
+    "sphinx-rtd-theme>=3.0,<4",
+    "myst-parser>=3,<5",
+    "sphinx-design>=0.6,<0.7",
+]
+
+[tool.setuptools]
+packages = []
