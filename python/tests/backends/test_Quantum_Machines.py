@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import cudaq
+import numpy as np
 import os
 import pytest
 from multiprocessing import Process
@@ -76,6 +77,27 @@ def test_async_with_args():
     counts = results.get()
     counts.dump()
     assert len(counts) == 8
+
+
+@skipIfQuantumMachinesNotInstalled
+def test_extern_kernel_ramsey():
+    # The payload carries a call the compiler never lowers.
+
+    @cudaq.extern_kernel
+    def wait(duration: float, q: cudaq.qubit) -> None:
+        ...
+
+    @cudaq.kernel
+    def ramsey_single(wait_duration: float):
+        qubit = cudaq.qubit()
+        rx(np.pi / 2, qubit)
+        wait(wait_duration, qubit)
+        rx(np.pi / 2, qubit)
+        mz(qubit)
+
+    counts = cudaq.sample(ramsey_single, 1.0)
+    counts.dump()
+    assert len(counts) > 0
 
 
 # leave for gdb debugging
