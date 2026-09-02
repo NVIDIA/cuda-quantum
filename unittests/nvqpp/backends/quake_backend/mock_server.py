@@ -48,7 +48,7 @@ SERVER_EXECUTION_PIPELINE = (
 
 
 def stripExternalDeclarations(decoded_payload):
-    """Drop bodyless `func.func private` lines.
+    """Drop `bodyless` `func.func private` lines.
 
     An external quantum operation is declared in reference form and called in
     wire form, so its declaration mentions `!quake.ref`.
@@ -146,7 +146,7 @@ def verifyModule(module, stage):
 
 
 def eraseExternalQuantumCalls(recovered_mod):
-    """Erase `quake.call_by_ref` ops whose callee has no body.
+    """Erase `quake.call_by_ref` ops whose `callee` has no body.
 
     The mock server only has to prove the call arrived in wire form, so it
     threads each operand to the matching result, keeping the wires linear.
