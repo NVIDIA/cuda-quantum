@@ -240,8 +240,8 @@
 <li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -504,7 +504,6 @@
 <li class="toctree-l4"><a class="reference internal" href="using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -718,7 +717,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -759,7 +761,12 @@
 <li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="using/extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/extending/backend.html">Add a hardware backend</a><ul>
@@ -831,7 +838,10 @@
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -862,6 +872,7 @@
 <li class="toctree-l2"><a class="reference internal" href="specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -911,6 +922,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -981,6 +993,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -988,6 +1001,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1093,6 +1107,14 @@ setting—that is, CPUs, GPUs, and QPUs working together. CUDA-Q contains suppor
 programming in Python and in C++.</p>
 <p>You are browsing the documentation for latest version of CUDA-Q. You can find documentation for all released versions <a class="reference internal" href="versions.html"><span class="doc">here</span></a>.</p>
 <p><strong>CUDA-Q</strong> is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.</p>
+<section id="research-preview-pulse-level-programming">
+<h2>Research Preview: Pulse-Level Programming<a class="headerlink" href="#research-preview-pulse-level-programming" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q pulse is a new research-preview package for programming at the pulse level. It provides a Python
+kernel DSL, pulse and operator dialects, compiler passes, and an experimental GPU execution path. Because it
+is a research preview, its APIs and behavior may change incompatibly or be removed without notice, and it is
+not a product-supported CUDA-Q feature.</p>
+<p>See the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/feature/pulse/pulse/README.md">CUDA-Q pulse README</a> for a
+quick example, build instructions, and the current scope and limitations.</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
@@ -1193,6 +1215,7 @@ programming in Python and in C++.</p>
 <li class="toctree-l1"><a class="reference internal" href="versions.html">   Other Versions</a></li>
 </ul>
 </div>
+</section>
 </section>
 
 

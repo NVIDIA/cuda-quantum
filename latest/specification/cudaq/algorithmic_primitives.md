@@ -274,10 +274,9 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
@@ -795,9 +794,6 @@ latest
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1199,6 +1195,9 @@ latest
         -   [Dependencies and
             Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../using/install/local_installation.html#next-steps){.reference
             .internal}
@@ -1268,6 +1267,15 @@ latest
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -1401,6 +1409,9 @@ latest
                 .notranslate}]{.pre}](operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum Kernels](kernels.html){.reference .internal}
+            -   [6.1. Atomic quantum
+                regions](kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit Synthesis](synthesis.html){.reference
             .internal}
         -   [8. Control Flow](control_flow.html){.reference .internal}
@@ -1456,6 +1467,9 @@ latest
             Introduction](../quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -1560,6 +1574,9 @@ latest
                 .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
@@ -1733,6 +1750,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1753,6 +1773,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -2154,32 +2177,32 @@ should produce
 :::
 :::
 
-Here we see that we have measured a qubit in a uniform superposition to
-a register named [`reg1`{.code .docutils .literal .notranslate}]{.pre},
-and followed it with a reset and the application of an NOT operation. By
-default the [`sample_result`{.code .docutils .literal
-.notranslate}]{.pre} returned for this sampling tasks contains the
-default [`__global__`{.code .docutils .literal .notranslate}]{.pre}
-register as well as the user specified [`reg1`{.code .docutils .literal
-.notranslate}]{.pre} register.
+This kernel measures a qubit in a uniform superposition to a register
+named [`reg1`{.code .docutils .literal .notranslate}]{.pre}, resets it,
+and applies an X operation. By default, the [`sample_result`{.code
+.docutils .literal .notranslate}]{.pre} contains the default
+[`__global__`{.code .docutils .literal .notranslate}]{.pre} register and
+the user-specified [`reg1`{.code .docutils .literal .notranslate}]{.pre}
+register.
 
 The contents of the [`__global__`{.code .docutils .literal
 .notranslate}]{.pre} register will depend on how your kernel is written:
 
 1.  If no measurements appear in the kernel, then the
     [`__global__`{.code .docutils .literal .notranslate}]{.pre} register
-    is formed with implicit measurements being added for *all* the
-    qubits defined in the kernel, and the measurements all occur at the
+    is formed with implicit measurements being added for the qubits that
+    remain in the compiled kernel, and the measurements all occur at the
     end of the kernel. This is not supported when sampling with the
     [`explicit_measurements`{.code .docutils .literal
     .notranslate}]{.pre} option; kernels executed with
     [`explicit_measurements`{.code .docutils .literal
     .notranslate}]{.pre} mode must contain measurements. The order of
     the bits in the bitstring corresponds to the qubit allocation order
-    specified in the kernel. That is - the [`[0]`{.code .docutils
-    .literal .notranslate}]{.pre} element in the [`__global__`{.code
-    .docutils .literal .notranslate}]{.pre} bitstring corresponds with
-    the first declared qubit in the kernel. For example,
+    specified in the kernel, for qubits that remain in the compiled
+    kernel. That is - the [`[0]`{.code .docutils .literal
+    .notranslate}]{.pre} element in the [`__global__`{.code .docutils
+    .literal .notranslate}]{.pre} bitstring corresponds with the first
+    remaining declared qubit in the kernel. For example,
 
 ::: {.tab-set .docutils}
 C++
@@ -2188,7 +2211,7 @@ C++
 ::: {.highlight-cpp .notranslate}
 ::: highlight
     auto kernel = []() __qpu__ {
-      cudaq::qubit a, b;
+      cudaq::qubit a;
       x(a);
     };
     cudaq::sample(kernel).dump();
@@ -2203,7 +2226,7 @@ Python
 ::: highlight
     @cudaq.kernel
     def kernel():
-        a, b = cudaq.qubit(), cudaq.qubit()
+        a = cudaq.qubit()
         x(a)
 
     cudaq.sample(kernel).dump()
@@ -2219,7 +2242,7 @@ should produce
 > ::: {.highlight-bash .notranslate}
 > ::: highlight
 >     {
->       __global__ : { 10:1000 }
+>       __global__ : { 1:1000 }
 >     }
 > :::
 > :::
@@ -2308,14 +2331,16 @@ should produce
 ::: {.admonition .note}
 Note
 
-If you don't specify any measurements in your kernel and allow the
-[`nvq++`{.code .docutils .literal .notranslate}]{.pre} compiler to
-perform passes that introduce ancilla qubits into your kernel, it may be
-difficult to discern which qubits are the ancilla qubits vs which ones
-are your qubits. In this case, it is recommended that you provide
-explicit measurements in your kernel in order to only receive
-measurements from your qubits and silently discard the measurements from
-the ancillary qubits.
+Allocating a qubit does not require the compiler to preserve it. For
+example, if a kernel allocates two qubits but only operates on one, the
+other qubit may not appear in the implicit measurement results. If a
+program requires a stable per-shot result format, measure the required
+qubits, return those measurement values from the kernel, and execute it
+with [`cudaq.run`{.code .docutils .literal .notranslate}]{.pre} or
+[`cudaq::run`{.code .docutils .literal .notranslate}]{.pre}. Use the
+[`explicit_measurements`{.code .docutils .literal .notranslate}]{.pre}
+option only when measurement results are needed in the order in which
+they occur in the kernel.
 :::
 
 **\[8\]** The API exposed by the [`sample_result`{.code .docutils

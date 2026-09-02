@@ -243,8 +243,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -507,7 +507,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -721,7 +720,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -762,7 +764,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a hardware backend</a><ul>
@@ -834,7 +841,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -865,6 +875,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -914,6 +925,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -984,6 +996,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -991,6 +1004,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -5801,12 +5815,25 @@
 </dd></dl>
 
 <dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10cudaq_jsonE">
+<span class="target" id="classcudaq_1_1cudaq__json"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cudaq_json</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq10cudaq_jsonE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Opaque <code class="docutils literal notranslate"><span class="pre">pimpl</span></code> wrapper around <code class="docutils literal notranslate"><span class="pre">nlohmann::json</span></code>. </p>
+<p>Use this type in headers to avoid pulling in the heavy nlohmann/json.hpp. Only cudaq_json.cpp includes the full <code class="docutils literal notranslate"><span class="pre">nlohmann</span></code> header. Callers that need to operate on the underlying JSON value should call get() in a <code class="docutils literal notranslate"><span class="pre">.cpp</span></code> file that includes nlohmann/json.hpp directly. </p>
+</dd></dl>
+
+<dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultE">
 <span class="target" id="classcudaq_1_1sample__result"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a> abstraction wraps a set of <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code>s for a single quantum kernel execution under the sampling or observation <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1ExecutionContext"><span class="std std-ref"><span class="pre">ExecutionContext</span></span></a></code>. Each <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> is mapped to a register name, with a default <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> with name <strong>global</strong> representing the observed measurement results holistically for the quantum kernel. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1ptsbe_1_1sample__result"><span class="std std-ref">cudaq::ptsbe::sample_result</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result15get_annotationsEv">
+<span class="target" id="classcudaq_1_1sample__result_1a77baabc3a31fed3362e171993b06c8b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10cudaq_jsonE" title="cudaq::cudaq_json"><span class="n"><span class="pre">cudaq_json</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_annotations</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result15get_annotationsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the backend-attached metadata (read-only). </p>
+</dd></dl>
+
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultEv">
 <span class="target" id="classcudaq_1_1sample__result_1ae8f611495ea923027a4008a4da8019a8"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultEv" title="Permalink to this definition">¶</a><br /></dt>
@@ -5840,6 +5867,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultEdRKNSt6vectorI15ExecutionResultEE">
 <span class="target" id="classcudaq_1_1sample__result_1ab8c063b978cefc340b6137a54f6431e5"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">preComputedExp</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">results</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultEdRKNSt6vectorI15ExecutionResultEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The constructor, takes a precomputed expectation value and stores it with the <code class="docutils literal notranslate"><span class="pre">__global__</span></code> <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultE16CountsDictionary10cudaq_json">
+<span class="target" id="classcudaq_1_1sample__result_1af62507b788d034613235c942050d2b19"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CountsDictionary</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">counts</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq10cudaq_jsonE" title="cudaq::cudaq_json"><span class="n"><span class="pre">cudaq_json</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">annotations</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultE16CountsDictionary10cudaq_json" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct from a counts dictionary and optional annotations. The global register is populated with the provided counts. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -6456,6 +6489,10 @@ handles, a vector of <code class="docutils literal notranslate"><span class="pre
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15TensorStateDataE">
 <span class="target" id="SimulationState_8h_1a492cfc761cde8697c6e6263a23812c9e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TensorStateData</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq15TensorStateDataE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Encapsulates a list of tensors (data pointer and dimensions). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Each tensor must be contiguous and stored in column-major order. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp type">
@@ -6708,7 +6745,7 @@ first be registered <em>outside the kernel</em> with
 <span class="w">      </span><span class="n">validateCompleteness</span><span class="p">();</span>
 <span class="w">      </span><span class="n">generateUnitaryParameters</span><span class="p">();</span>
 <span class="w">  </span><span class="p">}</span>
-<span class="w">  </span><span class="n">REGISTER_KRAUS_CHANNEL</span><span class="p">(</span><span class="s">&quot;my_custom_kraus_channel_subtype&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">REGISTER_KRAUS_CHANNEL</span><span class="p">(</span><span class="s">"my_custom_kraus_channel_subtype"</span><span class="p">);</span>
 <span class="p">};</span>
 
 <span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
@@ -7419,8 +7456,8 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE">
-<span class="target" id="classcudaq_1_1kernel__builder_1a93e1e94ce81d273f342834d75ecfbe55"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isArgStdVec</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder13isArgSequenceENSt6size_tE">
+<span class="target" id="classcudaq_1_1kernel__builder_1a5d651bba098bf0574539f51e7fcdd40f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isArgSequence</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder13isArgSequenceENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return <code class="docutils literal notranslate"><span class="pre">true</span></code> if the argument to the kernel is a <code class="docutils literal notranslate"><span class="pre">std::vector</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise. </p>
 </dd></dl>
 
@@ -7489,7 +7526,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder18logical_observableE10QuakeValueNSt6size_tE">
 <span class="target" id="classcudaq_1_1kernel__builder_1a70e54a7b27a0d0419178f27bf6d0468e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">logical_observable</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">measurements</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">observable_index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder18logical_observableE10QuakeValueNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">logical_observable</span></code> with an explicit <code class="docutils literal notranslate"><span class="pre">observable_index</span></code>. Takes a single <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> handle (typically a <code class="docutils literal notranslate"><span class="pre">!cc.stdvec&lt;!cc.</span><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a><span class="pre">&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">mz</span></code> on a <code class="docutils literal notranslate"><span class="pre">qvector</span></code>, but a scalar handle is also accepted by the dialect). </p>
+<dd><p><code class="docutils literal notranslate"><span class="pre">logical_observable</span></code> with an explicit <code class="docutils literal notranslate"><span class="pre">observable_index</span></code>. Takes a single <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> handle (typically a <code class="docutils literal notranslate"><span class="pre">!cc.sequence&lt;!cc.</span><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a><span class="pre">&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">mz</span></code> on a <code class="docutils literal notranslate"><span class="pre">qvector</span></code>, but a scalar handle is also accepted by the dialect). </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -7558,7 +7595,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue22canValidateNumElementsEv">
 <span class="target" id="classcudaq_1_1QuakeValue_1acc754ef5c14737881caf8bc44d06a761"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">canValidateNumElements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue22canValidateNumElementsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of StdVecType can validate its number of unique elements. We cannot do this in the case of <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> extractions within for loops where we do not know the bounds of the loop. </p>
+<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of SequenceType can validate its number of unique elements. We cannot do this in the case of <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> extractions within for loops where we do not know the bounds of the loop. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -7570,7 +7607,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue4sizeEv">
 <span class="target" id="classcudaq_1_1QuakeValue_1af7d27118ed68e75175ab7e7927e16000"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue4sizeEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> with type StdVec or Veq, return the size <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
+<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> with type Sequence or Veq, return the size <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -7580,9 +7617,9 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue8isStdVecEv">
-<span class="target" id="classcudaq_1_1QuakeValue_1a9a744ebbea0a51a5cda2f90684ab6ec8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isStdVec</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue8isStdVecEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> is of type StdVec. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue10isSequenceEv">
+<span class="target" id="classcudaq_1_1QuakeValue_1a066685a645dad87c7d99c2256e08c556"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isSequence</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue10isSequenceEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> is of type Sequence. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p></p>
@@ -7593,19 +7630,19 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue19getRequiredElementsEv">
 <span class="target" id="classcudaq_1_1QuakeValue_1af63960107eb641d65b04e0eff5889d68"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRequiredElements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue19getRequiredElementsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of type StdVec, return the number of required elements, i.e. the number of unique extractions observed. </p>
+<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of type Sequence, return the number of required elements, i.e. the number of unique extractions observed. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValueixEKNSt6size_tE">
 <span class="target" id="classcudaq_1_1QuakeValue_1ad6347f7655d24d2b540783a91fef8274"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValueixEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type StdVecType and VeqType. </p>
+<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type SequenceType and VeqType. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValueixERK10QuakeValue">
 <span class="target" id="classcudaq_1_1QuakeValue_1a055e4cc59ef7a83cffdf2a6d90d56060"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValueixERK10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type StdVecType and VeqType. </p>
+<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type SequenceType and VeqType. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -7728,7 +7765,7 @@ like this:</p>
 <span class="target" id="classcudaq_1_1optimizer"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">optimizer</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq9optimizerE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <a class="reference internal" href="#classcudaq_1_1optimizer"><span class="std std-ref">cudaq::optimizer</span></a> provides a high-level interface for general optimization of user-specified objective functions. This is meant to serve an interface for clients working with concrete subtypes providing specific optimization algorithms possibly delegating to third party libraries. This interface provides an optimize(…) method that takes the number of objective function input parameters (the dimension), and a user-specified objective function that takes the function input parameters as a immutable (<code class="docutils literal notranslate"><span class="pre">const</span></code>) vector&lt;double&gt; reference and a mutable vector&lt;double&gt; reference modeling the current iteration gradient vector (dF / dx_i, for all i parameters). This function must return a scalar double, the value of this function at the current input parameters. The optimizer also exposes a method for querying whether the current optimization strategy requires gradients or not. Parameterizing optimization strategies is left as a task for sub-types (things like initial parameters, max function evaluations, etc.).</p>
 <p><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">optimizers</span><span class="o">::</span><span class="n">cobyla</span><span class="w"> </span><span class="n">opt</span><span class="p">;</span>
-<span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">opt</span><span class="p">.</span><span class="n">requiresGradients</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="s">&quot;Cobyla algo does not use gradients.&quot;</span><span class="p">);</span>
+<span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">opt</span><span class="p">.</span><span class="n">requiresGradients</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="s">"Cobyla algo does not use gradients."</span><span class="p">);</span>
 <span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">opt_val</span><span class="p">,</span><span class="w"> </span><span class="n">opt_params</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">opt</span><span class="p">.</span><span class="n">optimize</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span>
 <span class="w">              </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">dx</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                  </span><span class="p">...</span><span class="w"> </span><span class="n">use</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">modify</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">scalar</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="p">...</span>
@@ -8373,12 +8410,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv">
-<span class="target" id="classcudaq_1_1QPU_1a7dbeada25331aff921bc06b047ed49b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supportsExplicitMeasurements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return whether this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> supports explicit measurements. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">
 <span class="target" id="classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the remote capabilities for this platform. </p>
@@ -8429,10 +8460,9 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy">
-<span class="target" id="classcudaq_1_1QPU_1abe5bda9898c9e96558ad65a9caa48d39"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">CompileTarget</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getCompileTarget</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">sample_policy</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">policy</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> for the given policy.</p>
-<p>By default, fall back to <a class="reference internal" href="#structcudaq_1_1other__policies"><span class="std std-ref">other_policies</span></a> compile target. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU16getCompileTargetEb">
+<span class="target" id="classcudaq_1_1QPU_1a945fb6566ca01562c092cb3e4b3d98ab"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">CompileTarget</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getCompileTarget</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">skipPipelineSubstitutions</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU16getCompileTargetEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8484,7 +8514,7 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq12FermioniqQPUE">
 <span class="target" id="classcudaq_1_1FermioniqQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FermioniqQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="cudaq::BaseRemoteRESTQPU"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq12FermioniqQPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <code class="docutils literal notranslate"><span class="pre">FermioniqBaseQPU</span></code> is a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that allows users to. </p>
+<dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1FermioniqQPU"><span class="std std-ref"><span class="pre">FermioniqQPU</span></span></a></code> is a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that allows users to submit kernels to the Fermioniq simulator. </p>
 </dd></dl>
 
 <dl class="cpp class">
@@ -8508,7 +8538,7 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platformE">
 <span class="target" id="classcudaq_1_1quantum__platform"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">quantum_platform</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platformE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> corresponds to a specific quantum architecture. The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> exposes a public API for programmers to query specific information about the targeted QPU(s) (e.g. number of qubits, qubit connectivity, etc.). This type is meant to be subclassed for concrete realizations of quantum platforms, which are intended to populate this platformQPUs member of this base class. </p>
+<dd><p>The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> corresponds to a specific quantum architecture. The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> exposes a public API for programmers to query specific information about the targeted QPU(s) (e.g. number of qubits, qubit connectivity, etc.). This type is meant to be subclassed for concrete realizations of quantum platforms, which are intended to populate the QPUs of this base class via <code class="docutils literal notranslate"><span class="pre">addQPU</span></code> and <code class="docutils literal notranslate"><span class="pre">clearQPUs</span></code>. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -8587,6 +8617,12 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform11is_emulatedENSt6size_tE">
 <span class="target" id="classcudaq_1_1quantum__platform_1a792706705262ba5fe57aa102e2a7ff91"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_emulated</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform11is_emulatedENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return true if <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is locally emulating a remote <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform12supports_jitENSt6size_tE">
+<span class="target" id="classcudaq_1_1quantum__platform_1a869da44cf708f60a030b834808d89784"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supports_jit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform12supports_jitENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return true if the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> consumes JIT-compiled artifacts. </p>
 </dd></dl>
 
 <dl class="cpp function">

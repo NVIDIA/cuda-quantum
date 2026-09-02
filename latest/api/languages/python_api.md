@@ -274,10 +274,9 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
@@ -795,9 +794,6 @@ latest
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1199,6 +1195,9 @@ latest
         -   [Dependencies and
             Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../using/install/local_installation.html#next-steps){.reference
             .internal}
@@ -1268,6 +1267,15 @@ latest
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -1414,6 +1422,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1482,6 +1493,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../api.html){.reference .internal}
     -   [C++ API](cpp_api.html){.reference .internal}
@@ -1565,6 +1579,9 @@ latest
                 .notranslate}]{.pre}](#cudaq.draw){.reference .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.estimate_resources){.reference
@@ -1724,6 +1741,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.ObserveResult){.reference
                 .internal}
@@ -1744,6 +1764,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](#optimizers){.reference .internal}
             -   [Gradients](#gradients){.reference .internal}
@@ -2003,7 +2026,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[defer_compilation]{.pre}]{.n}[[=]{.pre}]{.o}[[True]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[decorator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[defer_compilation]{.pre}]{.n}[[=]{.pre}]{.o}[[True]{.pre}]{.default_value}*, *[[disable_quantum_optimization]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[decorator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*]{.pre}]{.o}*, *[[atomic_quantum_region]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
 
 :   The [`PyKernelDecorator`{.code .docutils .literal
     .notranslate}]{.pre} serves as a standard Python decorator that
@@ -2025,6 +2048,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     [[\_\_str\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__str__ "Permalink to this definition"){.headerlink}
 
     :   Return a string representation for this kernel as MLIR.
+
+    *[property]{.pre}[ ]{.w}*[[atomic_quantum_region]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernelDecorator.atomic_quantum_region "Permalink to this definition"){.headerlink}
+
+    :   Whether each invocation is an atomic quantum region.
 
     [[beta_reduction]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[isEntryPoint]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.beta_reduction "Permalink to this definition"){.headerlink}
 
@@ -2056,12 +2083,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   Enable translation from [`return`{.code .docutils .literal
         .notranslate}]{.pre} statements to QIR output log
-
-    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[jStr]{.pre}]{.n}*, *[[overrideDict]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.from_json "Permalink to this definition"){.headerlink}
-
-    :   Convert a JSON string (as produced by [`to_json`{.code .docutils
-        .literal .notranslate}]{.pre}) into a new PyKernelDecorator
-        object.
 
     [[is_compiled]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.is_compiled "Permalink to this definition"){.headerlink}
 
@@ -2129,19 +2150,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   Whether the kernel can be compiled for the current target.
 
-    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert [`self`{.code .docutils .literal .notranslate}]{.pre} to
-        a JSON-serialized version of the kernel such that
-        [`from_json`{.code .docutils .literal .notranslate}]{.pre} can
-        reconstruct it elsewhere.
-
-    *[static]{.pre}[ ]{.w}*[[type_to_str]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[t]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.type_to_str "Permalink to this definition"){.headerlink}
-
-    :   This converts types to strings in a clean JSON-compatible way.
-        int -\> 'int' list\[float\] -\> 'list\[float\]' List\[float\]
-        -\> 'list\[float\]'
-
 ```{=html}
 <!-- -->
 ```
@@ -2154,7 +2162,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     should be compile and executed on an available quantum coprocessor.
 
     Verbose logging can be enabled via [`verbose=True`{.code .docutils
-    .literal .notranslate}]{.pre}.
+    .literal .notranslate}]{.pre}. Set
+    [`atomic_quantum_region=True`{.code .docutils .literal
+    .notranslate}]{.pre} to preserve the boundary around each kernel
+    invocation from cross-boundary quantum optimization.
 :::
 
 ::: {#kernel-execution .section}
@@ -2765,6 +2776,57 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.estimate "Permalink to this definition"){.headerlink}
+
+:   Performs resource counting on the given quantum kernel expression
+    and returns an accounting of how many times each gate was applied,
+    in addition to the total number of gates and qubits used.
+
+    Parameters[:]{.colon}
+
+    :   -   **choice** (*Any*) -- A choice function called to determine
+            the outcome of measurements, in case control flow depends on
+            measurements. Should only return either [`True`{.code
+            .docutils .literal .notranslate}]{.pre} or [`False`{.code
+            .docutils .literal .notranslate}]{.pre}. Invoking the kernel
+            within the choice function is forbidden. Default: returns
+            [`True`{.code .docutils .literal .notranslate}]{.pre} or
+            [`False`{.code .docutils .literal .notranslate}]{.pre} with
+            50% probability.
+
+        -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to count resources on
+
+        -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
+            to evaluate the kernel function at. Leave empty if the
+            kernel doesn't accept any arguments.
+
+    Returns[:]{.colon}
+
+    :   
+
+        A data-type containing the resource count
+
+        :   results for the [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}.
+
+    Return type[:]{.colon}
+
+    :   [[`cudaq.EstimateResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.EstimateResult "cudaq.EstimateResult"){.reference
+        .internal}
+
+```{=html}
+<!-- -->
+```
+
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.estimate_resources "Permalink to this definition"){.headerlink}
 
 :   Performs resource counting on the given quantum kernel expression
@@ -2803,6 +2865,18 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         :   for the [[`Kernel`{.xref .py .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}. Any annotation stored on the
+            [[`cudaq.EstimateResult`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.EstimateResult "cudaq.EstimateResult"){.reference
+            .internal} instance is discarded. Use
+            [[`cudaq.estimate()`{.xref .py .py-func .docutils .literal
+            .notranslate}]{.pre}](#cudaq.estimate "cudaq.estimate"){.reference
+            .internal} to get the full result. The returned instance
+            corresponds to the [`resources`{.code .docutils .literal
+            .notranslate}]{.pre} attribute of the return value of
+            [[`cudaq.estimate()`{.xref .py .py-func .docutils .literal
+            .notranslate}]{.pre}](#cudaq.estimate "cudaq.estimate"){.reference
             .internal}.
 
     Return type[:]{.colon}
@@ -2819,130 +2893,70 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
 :   Generate a detector error model (DEM) from a CUDA-Q kernel.
 
-    Runs [`kernel`{.code .docutils .literal .notranslate}]{.pre} under
-    [`dem_policy`{.code .docutils .literal .notranslate}]{.pre} with a
-    thread-local Stim analysis scope, then returns Stim's standard
-    [`.dem`{.code .docutils .literal .notranslate}]{.pre} text via
-    [`stim::DetectorErrorModel::str()`{.code .docutils .literal
-    .notranslate}]{.pre}. The active CUDA-Q target is unaffected.
+    Returns a [[`cudaq.DEMResult`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.DEMResult "cudaq.DEMResult"){.reference
+    .internal} carrying the DEM text, count fields, and (by default) the
+    measurement matrices.
+
+    [`str(result)`{.docutils .literal .notranslate}]{.pre} returns the
+    DEM text so existing print calls are unchanged.
+    [`stim.DetectorErrorModel(result.dem)`{.docutils .literal
+    .notranslate}]{.pre} replaces the previous
+    [`stim.DetectorErrorModel(result)`{.docutils .literal
+    .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} to analyze.
+    :   -   **kernel** -- The kernel to analyze.
 
-        -   **\*arguments** -- Concrete argument values forwarded to the
-            kernel invocation.
+        -   **\*arguments** -- Forwarded to the kernel.
 
-        -   **noise_model** ([[`NoiseModel`{.xref .py .py-class
-            .docutils .literal
-            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
-            .internal}, optional) -- Noise model layered on top of any
-            [`apply_noise`{.code .docutils .literal .notranslate}]{.pre}
-            ops already present in the kernel.
+        -   **noise_model** -- Optional noise model.
 
         -   **decompose_errors**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Decompose hyper-edge error
-            mechanisms into pairs of two-detector edges. Default
-            [`False`{.docutils .literal .notranslate}]{.pre}.
+            .external}) -- Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **fold_loops**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Fold loop bodies in the circuit
-            for a more compact DEM. Default [`False`{.docutils .literal
+            .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **allow_gauge_detectors**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Allow detectors whose parity is
-            not determined by the circuit. Default [`False`{.docutils
-            .literal .notranslate}]{.pre}.
+            .external}) -- Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **approximate_disjoint_errors_threshold**
             ([*float*](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Threshold for approximating
-            disjoint-error products; set to [`0`{.docutils .literal
-            .notranslate}]{.pre} to disable. Default [`0.0`{.docutils
-            .literal .notranslate}]{.pre}.
+            .external}) -- Default [`0.0`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **ignore_decomposition_failures**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- When decomposition fails for an
-            error mechanism, insert it into the DEM undecomposed (as a
-            hyper-edge) instead of raising an exception. Only relevant
-            when [`decompose_errors`{.docutils .literal
-            .notranslate}]{.pre} is [`True`{.docutils .literal
-            .notranslate}]{.pre}. Default [`False`{.docutils .literal
+            .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **block_decomposition_from_introducing_remnant_edges**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Prevent the decomposer from
-            introducing remnant edges. Default [`False`{.docutils
-            .literal .notranslate}]{.pre}.
+            .external}) -- Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **return_measurement_matrices**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- When True, also return the
-            sparse measurements-to-detectors (m2d) and
-            measurements-to-observables (m2o) matrices alongside the DEM
-            text. Default [`False`{.docutils .literal
+            .external}) -- When [`False`{.docutils .literal
+            .notranslate}]{.pre}, [`m2d_matrix`{.docutils .literal
+            .notranslate}]{.pre} / [`m2o_matrix`{.docutils .literal
+            .notranslate}]{.pre} will be [`None`{.docutils .literal
+            .notranslate}]{.pre}. Default [`True`{.docutils .literal
             .notranslate}]{.pre}.
 
     Returns[:]{.colon}
 
-    :   a UTF-8 string in Stim's standard [`.dem`{.code .docutils
-        .literal .notranslate}]{.pre} file format. Consumers that need a
-        structured DEM can parse it with
-        [`stim.DetectorErrorModel(text)`{.code .docutils .literal
-        .notranslate}]{.pre}.
-
-        If [`return_measurement_matrices`{.code .docutils .literal
-        .notranslate}]{.pre} is True: a tuple [`(dem_text,`{.docutils
-        .literal .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m2d,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m2o)`{.docutils .literal .notranslate}]{.pre}
-        where both matrices are [`scipy.sparse.csr_matrix`{.docutils
-        .literal .notranslate}]{.pre} with binary entries.
-        [`m2d`{.docutils .literal .notranslate}]{.pre} has shape
-        [`(num_detectors,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`num_measurements)`{.docutils .literal
-        .notranslate}]{.pre}: entry [`m2d[d,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m]`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`==`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
-        measurement [`m`{.docutils .literal .notranslate}]{.pre}
-        contributes to detector [`d`{.docutils .literal
-        .notranslate}]{.pre}. [`m2o`{.docutils .literal
-        .notranslate}]{.pre} has shape [`(num_observables,`{.docutils
-        .literal .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`num_measurements)`{.docutils .literal
-        .notranslate}]{.pre}: entry [`m2o[k,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m]`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`==`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
-        measurement [`m`{.docutils .literal .notranslate}]{.pre}
-        contributes to observable [`k`{.docutils .literal
-        .notranslate}]{.pre}. Measurement indices are chronological.
-
-    Return type[:]{.colon}
-
-    :   If [`return_measurement_matrices`{.code .docutils .literal
-        .notranslate}]{.pre} is False (default)
+    :   [[`cudaq.DEMResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.DEMResult "cudaq.DEMResult"){.reference
+        .internal}
 :::
 
 ::: {#cudaq-contrib .section}
@@ -3221,8 +3235,9 @@ discriminated bits into an integer.)
     kernel code can call [`cudaq.to_bools(...)`{.docutils .literal
     .notranslate}]{.pre}; the AST bridge intercepts the call and lowers
     it to a vector form [`quake.discriminate`{.docutils .literal
-    .notranslate}]{.pre} on [`!cc.stdvec<!cc.measure_handle>`{.docutils
-    .literal .notranslate}]{.pre}. Host-side invocation raises a
+    .notranslate}]{.pre} on
+    [`!cc.sequence<!cc.measure_handle>`{.docutils .literal
+    .notranslate}]{.pre}. Host-side invocation raises a
     [`RuntimeError`{.docutils .literal .notranslate}]{.pre}.
 :::
 
@@ -3266,44 +3281,30 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}]{.n}*, *[[/]{.pre}]{.o}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}\
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
 
-:   Overloaded function.
+:   Set the backend used for CUDA-Q kernel execution.
 
-    1.  [`set_target(arg0:`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target,`{.docutils
-        .literal .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`/,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`**kwargs)`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`->`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`None`{.docutils .literal .notranslate}]{.pre}
+    Can provide optional, target-specific configuration data via Python
+    [`kwargs`{.code .docutils .literal .notranslate}]{.pre}.
 
-    Set the [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} to be used for CUDA-Q kernel execution. Can
-    provide optional, target-specific configuration data via Python
-    kwargs.
+    Parameters[:]{.colon}
 
-    2.  [`set_target(arg0:`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`str,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`/,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`**kwargs)`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`->`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`None`{.docutils .literal .notranslate}]{.pre}
+    :   -   **target** -- The CUDA-Q target, specified as a recognized
+            target name ([`str`{.docutils .literal .notranslate}]{.pre})
+            or a [[`cudaq.Target`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.Target "cudaq.Target"){.reference
+            .internal} instance. Support for instances of
+            [`cudaq._experimental.CustomTarget`{.docutils .literal
+            .notranslate}]{.pre} is experimental.
 
-    Set the [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} with given name to be used for CUDA-Q kernel
-    execution. Can provide optional, target-specific configuration data
-    via Python kwargs.
+        -   **\*\*extra_config** -- Target-specific configuration for
+            the named-target overload.
+
+    Raises[:]{.colon}
+
+    :   [**TypeError**](https://docs.python.org/3/library/exceptions.html#TypeError "(in Python v3.14)"){.reference
+        .external} -- For unsupported target types or keyword arguments.
 
 ```{=html}
 <!-- -->
@@ -3318,17 +3319,17 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.NoiseModel"){.reference .internal}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_noise "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[model]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_noise "Permalink to this definition"){.headerlink}
 
-:   Set the underlying noise model.
+:   
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.unset_noise "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unset_noise "Permalink to this definition"){.headerlink}
 
-:   Clear backend simulation from any existing noise models.
+:   
 
 ```{=html}
 <!-- -->
@@ -6566,6 +6567,10 @@ discriminated bits into an integer.)
         .literal .notranslate}]{.pre}. Equivalent to the number of
         uniquely measured bitstrings.
 
+    *[property]{.pre}[ ]{.w}*[[annotations]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.annotations "Permalink to this definition"){.headerlink}
+
+    :   Read-only metadata dict set by backends.
+
     [[clear]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.clear "Permalink to this definition"){.headerlink}
 
     :   Clear out all metadata from [`self`{.code .docutils .literal
@@ -6597,6 +6602,12 @@ discriminated bits into an integer.)
 
         :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
+
+    *[property]{.pre}[ ]{.w}*[[counts]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.counts "Permalink to this definition"){.headerlink}
+
+    :   Return the global counts as a [`dict[str,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`int]`{.docutils .literal .notranslate}]{.pre}.
 
     [[deserialize]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.deserialize "Permalink to this definition"){.headerlink}
 
@@ -6756,6 +6767,61 @@ discriminated bits into an integer.)
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncSampleResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[impl]{.pre}]{.n}*, *[[mod]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.AsyncSampleResult "Permalink to this definition"){.headerlink}
 
 :   
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[DEMResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.DEMResult "Permalink to this definition"){.headerlink}
+
+:   
+
+    *[property]{.pre}[ ]{.w}*[[annotations]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.annotations "Permalink to this definition"){.headerlink}
+
+    :   Read-only metadata dict set by backends.
+
+    *[property]{.pre}[ ]{.w}*[[dem]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.dem "Permalink to this definition"){.headerlink}
+
+    :   DEM text in Stim's [`.dem`{.docutils .literal
+        .notranslate}]{.pre} format.
+
+    [[from_matrices]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.DEMResult.from_matrices "Permalink to this definition"){.headerlink}
+
+    :   
+
+    *[property]{.pre}[ ]{.w}*[[m2d]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2d "Permalink to this definition"){.headerlink}
+
+    :   Measurement-to-detector row lists (neutral C++ form).
+
+    *[property]{.pre}[ ]{.w}*[[m2d_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2d_matrix "Permalink to this definition"){.headerlink}
+
+    :   scipy CSR matrix (num_detectors x num_measurements), or None
+        when matrices were not requested.
+
+    *[property]{.pre}[ ]{.w}*[[m2o]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2o "Permalink to this definition"){.headerlink}
+
+    :   Measurement-to-observable row lists (neutral C++ form).
+
+    *[property]{.pre}[ ]{.w}*[[m2o_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2o_matrix "Permalink to this definition"){.headerlink}
+
+    :   scipy CSR matrix (num_observables x num_measurements), or None
+        when matrices were not requested.
+
+    *[property]{.pre}[ ]{.w}*[[matrices_computed]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.matrices_computed "Permalink to this definition"){.headerlink}
+
+    :   True when m2d / m2o were populated.
+
+    *[property]{.pre}[ ]{.w}*[[num_detectors]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.num_detectors "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> int
+
+    *[property]{.pre}[ ]{.w}*[[num_measurements]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.num_measurements "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> int
+
+    *[property]{.pre}[ ]{.w}*[[num_observables]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.num_observables "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> int
 
 ```{=html}
 <!-- -->
@@ -7205,10 +7271,35 @@ discriminated bits into an integer.)
     :   Per-qubit circuit depth (all gates), as a dict mapping qubit
         index to depth.
 
+    *[property]{.pre}[ ]{.w}*[[t_depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.t_depth "Permalink to this definition"){.headerlink}
+
+    :   The dependency-aware depth of T and T-dagger gates.
+
     [[to_dict]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.to_dict "Permalink to this definition"){.headerlink}
 
     :   Return a dictionary of the raw resource counts that are stored
         in [`self`{.code .docutils .literal .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[EstimateResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.EstimateResult "Permalink to this definition"){.headerlink}
+
+:   A data-type containing the results of a call to
+    [[`cudaq.estimate()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.estimate "cudaq.estimate"){.reference
+    .internal}.
+
+    *[property]{.pre}[ ]{.w}*[[annotations]{.pre}]{.sig-name .descname}[¶](#cudaq.EstimateResult.annotations "Permalink to this definition"){.headerlink}
+
+    :   Additional metadata dict set by backends.
+
+    *[property]{.pre}[ ]{.w}*[[resources]{.pre}]{.sig-name .descname}[¶](#cudaq.EstimateResult.resources "Permalink to this definition"){.headerlink}
+
+    :   The [[`Resources`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference
+        .internal} gate counts for the estimated kernel.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}

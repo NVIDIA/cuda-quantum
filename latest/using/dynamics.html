@@ -243,8 +243,8 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -507,7 +507,6 @@
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -721,7 +720,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -762,7 +764,12 @@
 <li class="toctree-l4"><a class="reference internal" href="extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="extending/backend.html">Add a hardware backend</a><ul>
@@ -834,7 +841,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -865,6 +875,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -914,6 +925,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -984,6 +996,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -991,6 +1004,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1139,13 +1153,13 @@ Details about CUDA-Q <code class="code docutils literal notranslate"><span class
 <span class="w">    </span><span class="c1">// Time dependent modulation</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">=</span>
 <span class="w">        </span><span class="p">[</span><span class="n">omega_d</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">parameter_map</span><span class="w"> </span><span class="o">&amp;</span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">"t"</span><span class="p">);</span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">end</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">real</span><span class="p">();</span>
 <span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">omega_d</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
 <span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Cannot find the time parameter.&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Cannot find the time parameter."</span><span class="p">);</span>
 <span class="w">    </span><span class="p">};</span>
 
 <span class="w">    </span><span class="n">hamiltonian</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_x</span><span class="p">;</span>
@@ -1166,7 +1180,7 @@ with <code class="code docutils literal notranslate"><span class="pre">cudaq.evo
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Schedule</span>
 
 <span class="c1"># Set the target to our dynamics simulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"dynamics"</span><span class="p">)</span>
 
 <span class="c1"># Dimensions of sub-systems: a single two-level system.</span>
 <span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
@@ -1177,7 +1191,7 @@ with <code class="code docutils literal notranslate"><span class="pre">cudaq.evo
 
 <span class="c1"># Schedule of time steps.</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_final</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">)</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"t"</span><span class="p">])</span>
 
 <span class="c1"># Run the simulation.</span>
 <span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
@@ -1207,7 +1221,7 @@ with <code class="code docutils literal notranslate"><span class="pre">cudaq.evo
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n_steps</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
 <span class="w">      </span><span class="n">steps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t_final</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">n_steps</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
 
-<span class="w">    </span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">});</span>
+<span class="w">    </span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">"t"</span><span class="p">});</span>
 
 <span class="w">    </span><span class="c1">// Numerical integrator</span>
 <span class="w">    </span><span class="c1">// Here we choose a Runge-`Kutta` method for time evolution.</span>
@@ -1265,9 +1279,9 @@ If you only need the intermediate expectation values, you can set <code class="c
     <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">get_result</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">evolution_result</span><span class="p">))</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">get_result</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">evolution_result</span><span class="p">))</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">get_result</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">evolution_result</span><span class="p">))</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Expectation value&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">&quot;Sigma-X&quot;</span><span class="p">,</span> <span class="s2">&quot;Sigma-Y&quot;</span><span class="p">,</span> <span class="s2">&quot;Sigma-Z&quot;</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Expectation value"</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time"</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">((</span><span class="s2">"Sigma-X"</span><span class="p">,</span> <span class="s2">"Sigma-Y"</span><span class="p">,</span> <span class="s2">"Sigma-Z"</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>In particular, for each time step, <code class="code docutils literal notranslate"><span class="pre">evolve</span></code> captures an array of expectation values, one for each
@@ -1282,7 +1296,7 @@ observable. Hence, we convert them into sequences for plotting purposes.</p>
 <span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
 <span class="w">      </span><span class="kt">double</span><span class="w"> </span><span class="n">ez</span><span class="w"> </span><span class="o">=</span>
 <span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="mi">2</span><span class="p">][</span><span class="n">i</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">steps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ex</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ey</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ez</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">steps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ex</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ey</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ez</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
 <span class="w">    </span><span class="p">}</span>
 </pre></div>
 </div>
@@ -1443,9 +1457,9 @@ where <span class="math notranslate nohighlight">\(f(t)\)</span> is the time-dep
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">=</span>
 <span class="w">        </span><span class="p">[</span><span class="n">omega</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
 <span class="w">                    </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="k">auto</span><span class="w"> </span><span class="n">entry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">parameters</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">);</span>
+<span class="w">          </span><span class="k">auto</span><span class="w"> </span><span class="n">entry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">parameters</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">"t"</span><span class="p">);</span>
 <span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">entry</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">parameters</span><span class="p">.</span><span class="n">end</span><span class="p">())</span>
-<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Cannot find value of expected parameter&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Cannot find value of expected parameter"</span><span class="p">);</span>
 <span class="w">          </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">entry</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">real</span><span class="p">();</span>
 <span class="w">          </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">omega</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
 <span class="w">        </span><span class="p">};</span>
@@ -1471,12 +1485,12 @@ that operator.</p>
 <span class="k">def</span><span class="w"> </span><span class="nf">displacement_matrix</span><span class="p">(</span>
         <span class="n">dimension</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">displacement</span><span class="p">:</span> <span class="n">NumericType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">complexfloating</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Returns the displacement operator matrix.</span>
 <span class="sd">    Args:</span>
 <span class="sd">        displacement: Amplitude of the displacement operator.</span>
 <span class="sd">            See also https://en.wikipedia.org/wiki/Displacement_operator.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">displacement</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">(</span><span class="n">displacement</span><span class="p">)</span>
     <span class="n">term1</span> <span class="o">=</span> <span class="n">displacement</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="n">dimension</span><span class="p">})</span>
     <span class="n">term2</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">conjugate</span><span class="p">(</span><span class="n">displacement</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">(</span>
@@ -1488,14 +1502,14 @@ that operator.</p>
 <span class="c1"># acts on a single degree of freedom, which can have any dimension.</span>
 <span class="c1"># An argument [2], for example, would indicate that it can only</span>
 <span class="c1"># act on a single degree of freedom with dimension two.</span>
-<span class="n">operators</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;displace&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">displacement_matrix</span><span class="p">)</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">"displace"</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">displacement_matrix</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">displacement</span><span class="p">(</span><span class="n">degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">operators</span><span class="o">.</span><span class="n">MatrixOperatorElement</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Instantiates a displacement operator acting on the given degree of freedom.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">operators</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="s2">&quot;displace&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">degree</span><span class="p">])</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">operators</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="s2">"displace"</span><span class="p">,</span> <span class="p">[</span><span class="n">degree</span><span class="p">])</span>
 
 
 </pre></div>
@@ -1511,9 +1525,9 @@ that operator.</p>
 <span class="w">      </span><span class="c1">//   - displacement: Amplitude of the displacement operator.</span>
 <span class="w">      </span><span class="c1">// See also https://en.wikipedia.org/wiki/Displacement_operator.</span>
 <span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">dimension</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dimensions</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">entry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">parameters</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;displacement&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">entry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">parameters</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">"displacement"</span><span class="p">);</span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">entry</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">parameters</span><span class="p">.</span><span class="n">end</span><span class="p">())</span>
-<span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;missing value for parameter &#39;displacement&#39;&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"missing value for parameter 'displacement'"</span><span class="p">);</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">displacement_amplitude</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">entry</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">create</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex_matrix</span><span class="p">(</span><span class="n">dimension</span><span class="p">,</span><span class="w"> </span><span class="n">dimension</span><span class="p">);</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">annihilate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex_matrix</span><span class="p">(</span><span class="n">dimension</span><span class="p">,</span><span class="w"> </span><span class="n">dimension</span><span class="p">);</span>
@@ -1526,12 +1540,12 @@ that operator.</p>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">term1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">term2</span><span class="p">).</span><span class="n">exponential</span><span class="p">();</span>
 <span class="w">    </span><span class="p">};</span>
 
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">matrix_handler</span><span class="o">::</span><span class="n">define</span><span class="p">(</span><span class="s">&quot;displace_op&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">-1</span><span class="p">},</span><span class="w"> </span><span class="n">displacement_matrix</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">matrix_handler</span><span class="o">::</span><span class="n">define</span><span class="p">(</span><span class="s">"displace_op"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">-1</span><span class="p">},</span><span class="w"> </span><span class="n">displacement_matrix</span><span class="p">);</span>
 
 <span class="w">    </span><span class="c1">// Instantiate a displacement operator acting on the given degree of</span>
 <span class="w">    </span><span class="c1">// freedom.</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">displacement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">degree</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">matrix_handler</span><span class="o">::</span><span class="n">instantiate</span><span class="p">(</span><span class="s">&quot;displace_op&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="n">degree</span><span class="p">});</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">matrix_handler</span><span class="o">::</span><span class="n">instantiate</span><span class="p">(</span><span class="s">"displace_op"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="n">degree</span><span class="p">});</span>
 <span class="w">    </span><span class="p">};</span>
 </pre></div>
 </div>
@@ -1549,7 +1563,7 @@ operator under a time dependent displacement amplitude, we can define how the am
 
 <span class="c1"># Define the time dependency of the system operator as a schedule that linearly</span>
 <span class="c1"># increases the displacement parameter from 0 to 1.</span>
-<span class="n">time_dependence</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="p">[</span><span class="s1">&#39;displacement&#39;</span><span class="p">])</span>
+<span class="n">time_dependence</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="p">[</span><span class="s1">'displacement'</span><span class="p">])</span>
 <span class="n">initial_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
     <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
 
@@ -1567,7 +1581,7 @@ operator under a time dependent displacement amplitude, we can define how the am
 <span class="w">    </span><span class="c1">// Define the time dependency of the system operator as a schedule that</span>
 <span class="w">    </span><span class="c1">// linearly increases the displacement parameter from 0 to 1.</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="nf">time_dependence</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">),</span>
-<span class="w">                                    </span><span class="p">{</span><span class="s">&quot;displacement&quot;</span><span class="p">});</span>
+<span class="w">                                    </span><span class="p">{</span><span class="s">"displacement"</span><span class="p">});</span>
 <span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">state_vec</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">));</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">initial_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">::</span><span class="n">from_data</span><span class="p">(</span><span class="n">state_vec</span><span class="p">);</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">integrators</span><span class="o">::</span><span class="n">runge_kutta</span><span class="w"> </span><span class="nf">integrator</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">);</span>
@@ -1592,12 +1606,12 @@ the desired value for each parameter:</p>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_value</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">step_idx</span><span class="p">):</span>
         <span class="k">match</span> <span class="n">param_name</span><span class="p">:</span>
-            <span class="k">case</span> <span class="s1">&#39;displacement&#39;</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s1">'displacement'</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">time_steps</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">step_idx</span><span class="p">)]</span>
-            <span class="k">case</span> <span class="s1">&#39;squeezing&#39;</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s1">'squeezing'</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">time_steps</span><span class="p">[</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">step_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
             <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;value for parameter </span><span class="si">{</span><span class="n">param_name</span><span class="si">}</span><span class="s2"> undefined&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"value for parameter </span><span class="si">{</span><span class="n">param_name</span><span class="si">}</span><span class="s2"> undefined"</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">Schedule</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">time_steps</span><span class="p">)),</span> <span class="n">system_operator</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
                     <span class="n">compute_value</span><span class="p">)</span>
@@ -1618,19 +1632,19 @@ the desired value for each parameter:</p>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">compute_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="n">time_steps</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">param_name</span><span class="p">,</span>
 <span class="w">                                        </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">step</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">step_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">step</span><span class="p">.</span><span class="n">real</span><span class="p">();</span>
-<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">param_name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;displacement&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">param_name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">"displacement"</span><span class="p">)</span>
 <span class="w">          </span><span class="k">return</span><span class="w"> </span><span class="n">time_steps</span><span class="p">[</span><span class="n">step_idx</span><span class="p">];</span>
-<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">param_name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;squeezing&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">param_name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">"squeezing"</span><span class="p">)</span>
 <span class="w">          </span><span class="k">return</span><span class="w"> </span><span class="n">time_steps</span><span class="p">[</span><span class="n">time_steps</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">step_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)];</span>
 
-<span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;value for parameter &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">param_name</span><span class="w"> </span><span class="o">+</span>
-<span class="w">                                 </span><span class="s">&quot; undefined&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"value for parameter "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">param_name</span><span class="w"> </span><span class="o">+</span>
+<span class="w">                                 </span><span class="s">" undefined"</span><span class="p">);</span>
 <span class="w">      </span><span class="p">};</span>
 
 <span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">steps</span><span class="p">;</span>
 <span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_steps</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
 <span class="w">        </span><span class="n">steps</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
-<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;displacement&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;squeezing&quot;</span><span class="p">},</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">"displacement"</span><span class="p">,</span><span class="w"> </span><span class="s">"squeezing"</span><span class="p">},</span>
 <span class="w">                             </span><span class="n">compute_value</span><span class="p">);</span>
 <span class="w">    </span><span class="p">};</span>
 
@@ -1664,7 +1678,7 @@ the desired value for each parameter:</p>
 
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"t"</span><span class="p">])</span>
 <span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
 <span class="c1"># initial state</span>
 <span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">InitialState</span><span class="o">.</span><span class="n">ZERO</span>
@@ -1689,7 +1703,7 @@ the desired value for each parameter:</p>
 <span class="w">        </span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sum_op</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">matrix_handler</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ham</span><span class="p">(</span><span class="n">ham_</span><span class="p">);</span>
 <span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">numSteps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="nf">schedule</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="n">numSteps</span><span class="p">),</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">});</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="nf">schedule</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="n">numSteps</span><span class="p">),</span><span class="w"> </span><span class="p">{</span><span class="s">"t"</span><span class="p">});</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">initialState</span><span class="w"> </span><span class="o">=</span>
 <span class="w">        </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">::</span><span class="n">from_data</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="p">{</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">});</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">integrators</span><span class="o">::</span><span class="n">runge_kutta</span><span class="w"> </span><span class="nf">integrator</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mf">0.001</span><span class="p">);</span>
@@ -1774,7 +1788,7 @@ This is an optional dependency of CUDA-Q, thus will not be installed by default.
 <p>Torch-based integrators require a CUDA-enabled Torch installation. Depending on your platform (e.g., <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code>),
 the default Torch pip package may not have CUDA support.</p>
 <p>The below command can be used to verify your installation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import torch; print(torch.version.cuda)&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import torch; print(torch.version.cuda)"</span>
 </pre></div>
 </div>
 <p>If the output is a ‘<code class="code docutils literal notranslate"><span class="pre">None</span></code>’ string, it indicates that your Torch installation does not support CUDA.
@@ -1821,7 +1835,7 @@ This batching capability applies to (1) multiple initial states and/or (2) multi
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
 <span class="c1"># Set the target to our dynamics simulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"dynamics"</span><span class="p">)</span>
 
 <span class="c1"># Qubit Hamiltonian</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -1850,7 +1864,7 @@ This batching capability applies to (1) multiple initial states and/or (2) multi
 <span class="n">sic_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">psi_1</span><span class="p">,</span> <span class="n">psi_2</span><span class="p">,</span> <span class="n">psi_3</span><span class="p">,</span> <span class="n">psi_4</span><span class="p">]</span>
 <span class="c1"># Schedule of time steps.</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
 
 <span class="c1"># Run the batch simulation.</span>
 <span class="n">evolution_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
@@ -1916,7 +1930,7 @@ This batching capability applies to (1) multiple initial states and/or (2) multi
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
 <span class="c1"># Set the target to our dynamics simulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"dynamics"</span><span class="p">)</span>
 
 <span class="c1"># Dimensions of sub-system.</span>
 <span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
@@ -1946,7 +1960,7 @@ This batching capability applies to (1) multiple initial states and/or (2) multi
 
 <span class="c1"># Schedule of time steps.</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">5000</span><span class="p">)</span>
-<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">"t"</span><span class="p">])</span>
 
 <span class="c1"># Run the batch simulation.</span>
 <span class="n">evolution_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
@@ -1983,12 +1997,12 @@ If only one initial state is provided, it will be used for all Hamiltonians in t
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">omega</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">omega_drive</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">=</span>
 <span class="w">        </span><span class="p">[</span><span class="n">omega</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">parameter_map</span><span class="w"> </span><span class="o">&amp;</span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">"t"</span><span class="p">);</span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">end</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">real</span><span class="p">();</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">omega</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
 <span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Cannot find the time parameter.&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Cannot find the time parameter."</span><span class="p">);</span>
 <span class="w">    </span><span class="p">};</span>
 
 <span class="w">    </span><span class="c1">// Add the Hamiltonian for each drive frequency to the batch.</span>
@@ -2002,7 +2016,7 @@ If only one initial state is provided, it will be used for all Hamiltonians in t
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// The schedule carries the time parameter `labelled` `t`, which is used by</span>
 <span class="w">  </span><span class="c1">// the callback.</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">});</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">"t"</span><span class="p">});</span>
 
 <span class="w">  </span><span class="c1">// A default Runge-`Kutta` integrator (4`th` order) with time step `dt`</span>
 <span class="w">  </span><span class="c1">// depending on the schedule.</span>
@@ -2186,7 +2200,7 @@ To enable parallel execution, the application must initialize MPI as follows.</p
 <div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
 
 <span class="c1"># Set the target to our dynamics simulator</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"dynamics"</span><span class="p">)</span>
 
 <span class="c1"># Initial state (expressed as an enum)</span>
 <span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">InitialState</span><span class="o">.</span><span class="n">ZERO</span>

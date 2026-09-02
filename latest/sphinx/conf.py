@@ -120,7 +120,8 @@ exclude_patterns = [
     'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
-    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md'
+    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
+    'examples/plugins/mlir_extension/README.md',
 ]
 
 compiler_developer_docs = (
@@ -131,10 +132,14 @@ if compiler_developer_docs:
     tags.add('compiler_developer_docs')
     rst_epilog = '''
 .. |CUDA-Q dialect documentation| replace:: :doc:`CUDA-Q dialect documentation </using/extending/compiler/dialect_reference>`
+.. |compiler pass development guide| replace:: :doc:`compiler pass development guide </using/extending/compiler/mlir_pass>`
+.. |available compiler passes| replace:: :doc:`available compiler passes </using/extending/compiler/available_passes>`
 '''
 else:
     rst_epilog = '''
 .. |CUDA-Q dialect documentation| replace:: CUDA-Q dialect documentation
+.. |compiler pass development guide| replace:: compiler pass development guide
+.. |available compiler passes| replace:: available compiler passes
 '''
     exclude_patterns.extend([
         'using/extending/compiler/mlir_pass.rst',
@@ -238,6 +243,10 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'numpy.ndarray[]'),
+    # numpy documents NDArray as py:data, so the py:class reference that
+    # autodoc generates for the annotation cannot resolve via intersphinx
+    ('py:class', 'NDArray'),
+    ('py:class', 'numpy.typing.NDArray'),
     # FIXME: remove these after adding proper documentation
     # (also reexamine why some of the ones above are ignored)
     ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),

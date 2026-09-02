@@ -269,10 +269,9 @@ latest
             .internal}
         -   [Pasqal](../../examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
+        -   [qBraid](../../examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../examples/hardware_providers.html#quantum-circuits-inc){.reference
+        -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
             Machines](../../examples/hardware_providers.html#quantum-machines){.reference
@@ -787,9 +786,6 @@ latest
                 .internal}
             -   [OQC](../../backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1184,6 +1180,9 @@ latest
         -   [Dependencies and
             Compatibility](../../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1244,6 +1243,15 @@ latest
                 .internal}
         -   [External compiler pass
             plugins](pass_plugins.html){.reference .internal}
+            -   [Implement and register the
+                pass](pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](../backend.html#plugin-directory-structure){.reference
@@ -1384,6 +1392,9 @@ latest
         -   [6. Quantum
             Kernels](../../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1452,6 +1463,9 @@ latest
             Introduction](../../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../../api/api.html){.reference .internal}
     -   [C++ API](../../../api/languages/cpp_api.html){.reference
@@ -1556,6 +1570,9 @@ latest
                 .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
@@ -1729,6 +1746,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1749,6 +1769,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1911,7 +1934,7 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "Create your own CUDA-Q Compiler Pass"){.btn
+aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1974,6 +1997,89 @@ The authored [[Quake semantic
 specification]{.doc}](../../../specification/quake-dialect.html){.reference
 .internal} explains the reference and value models and the reasoning
 behind them.
+
+::: {#linear-value-quake-ir .section}
+[]{#quake-linear-values}
+
+#### Linear-value Quake IR[¶](#linear-value-quake-ir "Permalink to this heading"){.headerlink}
+
+The [`convert-to-linear-values`{.docutils .literal .notranslate}]{.pre}
+pipeline turns supported Quake references into linear values. Each
+converted qubit becomes a [`!quake.wire`{.docutils .literal
+.notranslate}]{.pre} threaded from one operation to the next, making
+dependencies visible to optimization passes.
+
+Where possible, the pipeline splits fixed-size allocations and vector
+controls into individual wires. A [`!quake.cable`{.docutils .literal
+.notranslate}]{.pre} keeps wires grouped and ordered when they cross
+into reference-form code. Dynamic registers, runtime-indexed elements,
+and anything else the pipeline cannot convert stay in reference form.
+This pipeline changes the representation only. It does not simplify
+gates.
+
+Run the registered pipeline on a Quake module with:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    cudaq-opt \
+      --pass-pipeline='builtin.module(convert-to-linear-values)' \
+      input.qke -o -
+:::
+:::
+
+For example, start with:
+
+::: {.highlight-mlir .notranslate}
+::: highlight
+    func.func private @callee(!quake.veq<?>)
+
+    func.func @linear_values(%dynamic : !quake.veq<?>) {
+      %controls = quake.alloca !quake.veq<2>
+      %target = quake.alloca !quake.ref
+      quake.h %target : (!quake.ref) -> ()
+      quake.h %target : (!quake.ref) -> ()
+      quake.x [%controls] %target : (!quake.veq<2>, !quake.ref) -> ()
+      %relaxed = quake.relax_size %controls : (!quake.veq<2>) -> !quake.veq<?>
+      call @callee(%relaxed) : (!quake.veq<?>) -> ()
+      quake.dealloc %target : !quake.ref
+      quake.dealloc %controls : !quake.veq<2>
+      return
+    }
+:::
+:::
+
+The command produces:
+
+::: {.highlight-mlir .notranslate}
+::: highlight
+    module {
+      func.func private @callee(!quake.veq<?>)
+      func.func @linear_values(%arg0: !quake.veq<?>) {
+        %0 = quake.null_wire
+        %1 = quake.null_wire
+        %2 = quake.null_wire
+        %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+        %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+        %5:3 = quake.x [%0, %1] %4 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+        %6 = quake.bundle_cable %5#0, %5#1 : (!quake.wire, !quake.wire) -> !quake.cable<2>
+        %7 = quake.call_by_ref @callee(%6) : (!quake.cable<2>) -> !quake.cable<2>
+        %8:2 = quake.split_cable %7 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+        quake.sink %5#2 : !quake.wire
+        quake.sink %8#0 : !quake.wire
+        quake.sink %8#1 : !quake.wire
+        return
+      }
+    }
+:::
+:::
+:::
+
+::: {#mapped-quake-ir .section}
+#### Mapped Quake IR[¶](#mapped-quake-ir "Permalink to this heading"){.headerlink}
+
+The mapping pass emits Mapped Quake IR, in which kernels borrow device
+wires from [`@mapped_wireset`{.docutils .literal .notranslate}]{.pre}.
+:::
 :::
 
 ::: {#cc .section}
@@ -2060,7 +2166,7 @@ Textual IR coverage is under [`cudaq/test/Transforms`{.docutils .literal
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "Create your own CUDA-Q Compiler Pass"){.btn
+aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

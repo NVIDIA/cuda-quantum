@@ -274,10 +274,9 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
@@ -795,9 +794,6 @@ latest
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1199,6 +1195,9 @@ latest
         -   [Dependencies and
             Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../using/install/local_installation.html#next-steps){.reference
             .internal}
@@ -1268,6 +1267,15 @@ latest
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -1414,6 +1422,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1482,6 +1493,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../api.html){.reference .internal}
     -   [C++ API](#){.current .reference .internal}
@@ -1565,6 +1579,9 @@ latest
                 .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.estimate_resources){.reference
@@ -1735,6 +1752,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1755,6 +1775,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](python_api.html#optimizers){.reference
                 .internal}
@@ -9067,6 +9090,22 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
+[]{#classcudaq_1_1cudaq__json .target}[[class]{.pre}]{.k}[ ]{.w}[[[cudaq_json]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq10cudaq_jsonE "Permalink to this definition"){.headerlink}\
+
+:   Opaque [`pimpl`{.docutils .literal .notranslate}]{.pre} wrapper
+    around [`nlohmann::json`{.docutils .literal .notranslate}]{.pre}.
+
+    Use this type in headers to avoid pulling in the heavy
+    nlohmann/json.hpp. Only cudaq_json.cpp includes the full
+    [`nlohmann`{.docutils .literal .notranslate}]{.pre} header. Callers
+    that need to operate on the underlying JSON value should call get()
+    in a [`.cpp`{.docutils .literal .notranslate}]{.pre} file that
+    includes nlohmann/json.hpp directly.
+
+```{=html}
+<!-- -->
+```
+
 []{#classcudaq_1_1sample__result .target}[[class]{.pre}]{.k}[ ]{.w}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13sample_resultE "Permalink to this definition"){.headerlink}\
 
 :   The [[sample_result]{.std
@@ -9093,6 +9132,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
+
+    []{#classcudaq_1_1sample__result_1a77baabc3a31fed3362e171993b06c8b5 .target}[[inline]{.pre}]{.k}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[[cudaq_json]{.pre}]{.n}](#_CPPv4N5cudaq10cudaq_jsonE "cudaq::cudaq_json"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[get_annotations]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq13sample_result15get_annotationsEv "Permalink to this definition"){.headerlink}\
+
+    :   Return the backend-attached metadata (read-only).
+
+    ```{=html}
+    <!-- -->
+    ```
 
     []{#classcudaq_1_1sample__result_1ae8f611495ea923027a4008a4da8019a8 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq13sample_result13sample_resultEv "Permalink to this definition"){.headerlink}\
 
@@ -9143,6 +9190,15 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         .notranslate}]{.pre}]{.std
         .std-ref}](#structcudaq_1_1ExecutionResult){.reference
         .internal}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1sample__result_1af62507b788d034613235c942050d2b19 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[CountsDictionary]{.pre}]{.n}[ ]{.w}[[counts]{.pre}]{.n .sig-param}, [[[cudaq_json]{.pre}]{.n}](#_CPPv4N5cudaq10cudaq_jsonE "cudaq::cudaq_json"){.reference .internal}[ ]{.w}[[annotations]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultE16CountsDictionary10cudaq_json "Permalink to this definition"){.headerlink}\
+
+    :   Construct from a counts dictionary and optional annotations. The
+        global register is populated with the provided counts.
 
     ```{=html}
     <!-- -->
@@ -9978,6 +10034,12 @@ discriminate a vector of handles.
 []{#SimulationState_8h_1a492cfc761cde8697c6e6263a23812c9e .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[TensorStateData]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq15TensorStateDataE "Permalink to this definition"){.headerlink}\
 
 :   Encapsulates a list of tensors (data pointer and dimensions).
+
+    ::: {.admonition .note}
+    Note
+
+    Each tensor must be contiguous and stored in column-major order.
+    :::
 
 ```{=html}
 <!-- -->
@@ -11343,7 +11405,7 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1kernel__builder_1a93e1e94ce81d273f342834d75ecfbe55 .target}[[inline]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[isArgStdVec]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[idx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1kernel__builder_1a5d651bba098bf0574539f51e7fcdd40f .target}[[inline]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[isArgSequence]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[idx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder13isArgSequenceENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Return [`true`{.docutils .literal .notranslate}]{.pre} if the
         argument to the kernel is a [`std::vector`{.docutils .literal
@@ -11514,7 +11576,7 @@ discriminate a vector of handles.
         .notranslate}]{.pre}. Takes a single [[[`QuakeValue`{.docutils
         .literal .notranslate}]{.pre}]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
-        handle (typically a [`!cc.stdvec<!cc.`{.docutils .literal
+        handle (typically a [`!cc.sequence<!cc.`{.docutils .literal
         .notranslate}]{.pre}[[[`measure_handle`{.docutils .literal
         .notranslate}]{.pre}]{.std
         .std-ref}](#classcudaq_1_1measure__handle){.reference
@@ -11638,8 +11700,8 @@ discriminate a vector of handles.
 
     :   Return true if this [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} of
-        StdVecType can validate its number of unique elements. We cannot
-        do this in the case of [[QuakeValue]{.std
+        SequenceType can validate its number of unique elements. We
+        cannot do this in the case of [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
         extractions within for loops where we do not know the bounds of
         the loop.
@@ -11663,7 +11725,7 @@ discriminate a vector of handles.
 
     :   For a [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} with
-        type StdVec or Veq, return the size [[QuakeValue]{.std
+        type Sequence or Veq, return the size [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}.
 
     ```{=html}
@@ -11680,11 +11742,11 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QuakeValue_1a9a744ebbea0a51a5cda2f90684ab6ec8 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[isStdVec]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq10QuakeValue8isStdVecEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1QuakeValue_1a066685a645dad87c7d99c2256e08c556 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[isSequence]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq10QuakeValue10isSequenceEv "Permalink to this definition"){.headerlink}\
 
     :   Return true if this [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} is
-        of type StdVec.
+        of type Sequence.
 
         Returns[:]{.colon}
 
@@ -11698,7 +11760,7 @@ discriminate a vector of handles.
 
     :   For a [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} of
-        type StdVec, return the number of required elements, i.e. the
+        type Sequence, return the number of required elements, i.e. the
         number of unique extractions observed.
 
     ```{=html}
@@ -11710,7 +11772,7 @@ discriminate a vector of handles.
     :   Return a new [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} when
         the current value is indexed, specifically for QuakeValues of
-        type StdVecType and VeqType.
+        type SequenceType and VeqType.
 
     ```{=html}
     <!-- -->
@@ -11721,7 +11783,7 @@ discriminate a vector of handles.
     :   Return a new [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} when
         the current value is indexed, specifically for QuakeValues of
-        type StdVecType and VeqType.
+        type SequenceType and VeqType.
 
     ```{=html}
     <!-- -->
@@ -12978,16 +13040,6 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1a7dbeada25331aff921bc06b047ed49b6 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[supportsExplicitMeasurements]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv "Permalink to this definition"){.headerlink}\
-
-    :   Return whether this [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} supports
-        explicit measurements.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[[RemoteCapabilities]{.pre}]{.n}](#_CPPv4N5cudaq18RemoteCapabilitiesE "cudaq::RemoteCapabilities"){.reference .internal}[ ]{.w}[[[getRemoteCapabilities]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv "Permalink to this definition"){.headerlink}\
 
     :   Return the remote capabilities for this platform.
@@ -13067,15 +13119,10 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1abe5bda9898c9e96558ad65a9caa48d39 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1QPU_1a945fb6566ca01562c092cb3e4b3d98ab .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[bool]{.pre}]{.kt}[ ]{.w}[[skipPipelineSubstitutions]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetEb "Permalink to this definition"){.headerlink}\
 
     :   Get the compile target of the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
-        given policy.
-
-        By default, fall back to [[other_policies]{.std
-        .std-ref}](#structcudaq_1_1other__policies){.reference
-        .internal} compile target.
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
 
     ```{=html}
     <!-- -->
@@ -13169,9 +13216,10 @@ them they are erased before execution.
 
 []{#classcudaq_1_1FermioniqQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[FermioniqQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[BaseRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq17BaseRemoteRESTQPUE "cudaq::BaseRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq12FermioniqQPUE "Permalink to this definition"){.headerlink}\
 
-:   The [`FermioniqBaseQPU`{.docutils .literal .notranslate}]{.pre} is a
+:   The [[[`FermioniqQPU`{.docutils .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal} is a
     [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference .internal}
-    that allows users to.
+    that allows users to submit kernels to the Fermioniq simulator.
 
 ```{=html}
 <!-- -->
@@ -13229,7 +13277,9 @@ them they are erased before execution.
     about the targeted QPU(s) (e.g. number of qubits, qubit
     connectivity, etc.). This type is meant to be subclassed for
     concrete realizations of quantum platforms, which are intended to
-    populate this platformQPUs member of this base class.
+    populate the QPUs of this base class via [`addQPU`{.docutils
+    .literal .notranslate}]{.pre} and [`clearQPUs`{.docutils .literal
+    .notranslate}]{.pre}.
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
@@ -13344,6 +13394,16 @@ them they are erased before execution.
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} is locally
         emulating a remote [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1quantum__platform_1a869da44cf708f60a030b834808d89784 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_jit]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform12supports_jitENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Return true if the [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} consumes
+        JIT-compiled artifacts.
 
     ```{=html}
     <!-- -->

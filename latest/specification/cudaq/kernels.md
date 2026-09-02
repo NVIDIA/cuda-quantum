@@ -274,10 +274,9 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
@@ -795,9 +794,6 @@ latest
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1199,6 +1195,9 @@ latest
         -   [Dependencies and
             Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../using/install/local_installation.html#next-steps){.reference
             .internal}
@@ -1268,6 +1267,15 @@ latest
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -1401,6 +1409,8 @@ latest
                 .notranslate}]{.pre}](operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum Kernels](#){.current .reference .internal}
+            -   [6.1. Atomic quantum
+                regions](#atomic-quantum-regions){.reference .internal}
         -   [7. Sub-circuit Synthesis](synthesis.html){.reference
             .internal}
         -   [8. Control Flow](control_flow.html){.reference .internal}
@@ -1458,6 +1468,9 @@ latest
             Introduction](../quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -1562,6 +1575,9 @@ latest
                 .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
@@ -1735,6 +1751,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1755,6 +1774,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1992,6 +2014,75 @@ Python
        ... quantum code ...
 :::
 :::
+:::
+:::
+
+::: {#atomic-quantum-regions .section}
+## [6.1. ]{.section-number}Atomic quantum regions[¶](#atomic-quantum-regions "Permalink to this heading"){.headerlink}
+
+An atomic quantum region denotes a single unitary operator on the qubits
+passed to it. Mark a pure-device kernel as an atomic quantum region when
+each invocation must remain an optimization boundary. Quantum operations
+can be optimized within the invoked kernel and within its caller. An
+optimization must not combine, cancel, or move operations across the
+invocation boundary.
+
+An atomic quantum region cannot allocate or measure qubits, including
+through kernels that it calls. Allocate qubits in the caller and pass
+them as arguments. Measure after the region returns.
+
+::: {.tab-set .docutils}
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    void atomic_h(cudaq::qubit &qubit)
+        __qpu__ __atomic_quantum_region__ {
+      h(qubit);
+    }
+
+    void caller() __qpu__ {
+      cudaq::qubit qubit;
+      atomic_h(qubit);
+      cudaq::adjoint(atomic_h, qubit);
+    }
+:::
+:::
+:::
+
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel(atomic_quantum_region=True)
+    def atomic_h(qubit: cudaq.qubit):
+        h(qubit)
+
+    @cudaq.kernel
+    def caller():
+        qubit = cudaq.qubit()
+        atomic_h(qubit)
+        cudaq.adjoint(atomic_h, qubit)
+:::
+:::
+:::
+:::
+
+For the Python builder frontend, call
+[`atomic_quantum_region()`{.docutils .literal .notranslate}]{.pre}
+before composing the helper into another builder.
+
+::: {.highlight-python .notranslate}
+::: highlight
+    atomic_h, qubit = cudaq.make_kernel(cudaq.qubit)
+    atomic_h.atomic_quantum_region()
+    atomic_h.h(qubit)
+
+    caller = cudaq.make_kernel()
+    qubit = caller.qalloc()
+    caller.apply_call(atomic_h, qubit)
 :::
 :::
 
@@ -2425,6 +2516,7 @@ CUDA-Q kernel inputs can also be
 This approach enables the development of generic libraries of quantum
 algorithms that are parameterized on sub-units of the global circuit
 representation.
+:::
 :::
 :::
 :::

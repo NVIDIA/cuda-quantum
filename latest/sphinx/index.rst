@@ -13,6 +13,17 @@ You are browsing the documentation for |version| version of CUDA-Q. You can find
 
 **CUDA-Q** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
 
+Research Preview: Pulse-Level Programming
+-----------------------------------------
+
+CUDA-Q pulse is a new research-preview package for programming at the pulse level. It provides a Python
+kernel DSL, pulse and operator dialects, compiler passes, and an experimental GPU execution path. Because it
+is a research preview, its APIs and behavior may change incompatibly or be removed without notice, and it is
+not a product-supported CUDA-Q feature.
+
+See the `CUDA-Q pulse README <https://github.com/NVIDIA/cuda-quantum/blob/feature/pulse/pulse/README.md>`__ for a
+quick example, build instructions, and the current scope and limitations.
+
 .. toctree::
    :caption: Contents
    :maxdepth: 2

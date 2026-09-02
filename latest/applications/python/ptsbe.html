@@ -244,8 +244,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -508,7 +508,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -722,7 +721,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -763,7 +765,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a hardware backend</a><ul>
@@ -835,7 +842,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -866,6 +876,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -915,6 +926,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -985,6 +997,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -992,6 +1005,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1110,7 +1124,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"nvidia"</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1134,8 +1148,8 @@
     <span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
 
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="n">depol_1q</span><span class="p">))</span>
-<span class="n">noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Depolarization2</span><span class="p">(</span><span class="n">depol_2q</span><span class="p">),</span> <span class="n">num_controls</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"h"</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="n">depol_1q</span><span class="p">))</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Depolarization2</span><span class="p">(</span><span class="n">depol_2q</span><span class="p">),</span> <span class="n">num_controls</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1159,7 +1173,7 @@
     <span class="n">bell_inline_noise</span><span class="p">,</span>
     <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Inline apply_noise result:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Inline apply_noise result:"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result_inline</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1208,7 +1222,7 @@ Inline apply_noise result:
 <span class="n">strategy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">OrderedSamplingStrategy</span><span class="p">()</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">print_result</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">sample_result</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">:</span><span class="s2">&lt;36</span><span class="si">}</span><span class="s2"> shots=</span><span class="si">{</span><span class="n">sample_result</span><span class="o">.</span><span class="n">get_total_shots</span><span class="p">()</span><span class="si">:</span><span class="s2">&gt;6</span><span class="si">}</span><span class="s2">  counts=</span><span class="si">{</span><span class="n">sample_result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">:</span><span class="s2">&lt;36</span><span class="si">}</span><span class="s2"> shots=</span><span class="si">{</span><span class="n">sample_result</span><span class="o">.</span><span class="n">get_total_shots</span><span class="p">()</span><span class="si">:</span><span class="s2">&gt;6</span><span class="si">}</span><span class="s2">  counts=</span><span class="si">{</span><span class="n">sample_result</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">biased_alloc</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">ShotAllocationType</span><span class="o">.</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
@@ -1243,10 +1257,10 @@ Inline apply_noise result:
     <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Comparison with same shots=</span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2">, max_trajectories=</span><span class="si">{</span><span class="n">max_traj</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="n">print_result</span><span class="p">(</span><span class="s2">&quot;PTSBE (ordered + low-weight bias)&quot;</span><span class="p">,</span> <span class="n">result_biased</span><span class="p">)</span>
-<span class="n">print_result</span><span class="p">(</span><span class="s2">&quot;PTSBE (ordered + proportional)&quot;</span><span class="p">,</span> <span class="n">result_unbiased</span><span class="p">)</span>
-<span class="n">print_result</span><span class="p">(</span><span class="s2">&quot;Standard noisy sample&quot;</span><span class="p">,</span> <span class="n">result_standard</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Comparison with same shots=</span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2">, max_trajectories=</span><span class="si">{</span><span class="n">max_traj</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">print_result</span><span class="p">(</span><span class="s2">"PTSBE (ordered + low-weight bias)"</span><span class="p">,</span> <span class="n">result_biased</span><span class="p">)</span>
+<span class="n">print_result</span><span class="p">(</span><span class="s2">"PTSBE (ordered + proportional)"</span><span class="p">,</span> <span class="n">result_unbiased</span><span class="p">)</span>
+<span class="n">print_result</span><span class="p">(</span><span class="s2">"Standard noisy sample"</span><span class="p">,</span> <span class="n">result_standard</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1285,8 +1299,8 @@ Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 
 <span class="n">ghz_depol_2q</span> <span class="o">=</span> <span class="mf">0.01</span>
 
 <span class="n">ghz_noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">ghz_noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="n">ghz_depol_1q</span><span class="p">))</span>
-<span class="n">ghz_noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Depolarization2</span><span class="p">(</span><span class="n">ghz_depol_2q</span><span class="p">),</span> <span class="n">num_controls</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ghz_noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"h"</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="n">ghz_depol_1q</span><span class="p">))</span>
+<span class="n">ghz_noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Depolarization2</span><span class="p">(</span><span class="n">ghz_depol_2q</span><span class="p">),</span> <span class="n">num_controls</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1316,25 +1330,25 @@ Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 
 <span class="n">data</span> <span class="o">=</span> <span class="n">result_with_data</span><span class="o">.</span><span class="n">ptsbe_execution_data</span>
 
 <span class="n">trajs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">trajectories</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">probability</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trajectories: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="p">)</span><span class="si">}</span><span class="s2">, Total shots: </span><span class="si">{</span><span class="n">exec_shots</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Trajectories: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="p">)</span><span class="si">}</span><span class="s2">, Total shots: </span><span class="si">{</span><span class="n">exec_shots</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="c1"># `t.probability` is the per-shot probability mass in the full trajectory distribution.</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Top 5 trajectories (highest probability):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Top 5 trajectories (highest probability):"</span><span class="p">)</span>
 <span class="n">cumulative</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="k">for</span> <span class="n">rank</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">trajs</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="mi">1</span><span class="p">):</span>
     <span class="n">cumulative</span> <span class="o">+=</span> <span class="n">t</span><span class="o">.</span><span class="n">num_shots</span>
     <span class="n">n_errors</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">kraus_selections</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">is_error</span><span class="p">)</span>
     <span class="n">p_theory</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">probability</span>
     <span class="n">p_empirical</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">num_shots</span> <span class="o">/</span> <span class="n">exec_shots</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  #</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">: p_theory=</span><span class="si">{</span><span class="n">p_theory</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, p_empirical=</span><span class="si">{</span><span class="n">p_empirical</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, &quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;shots=</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">num_shots</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">, errors=</span><span class="si">{</span><span class="n">n_errors</span><span class="si">}</span><span class="s2">, &quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;cumulative shots=</span><span class="si">{</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cumulative</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">exec_shots</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  #</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">: p_theory=</span><span class="si">{</span><span class="n">p_theory</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, p_empirical=</span><span class="si">{</span><span class="n">p_empirical</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, "</span>
+          <span class="sa">f</span><span class="s2">"shots=</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">num_shots</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">, errors=</span><span class="si">{</span><span class="n">n_errors</span><span class="si">}</span><span class="s2">, "</span>
+          <span class="sa">f</span><span class="s2">"cumulative shots=</span><span class="si">{</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cumulative</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">exec_shots</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
 
 <span class="c1"># Lowest-probability trajectory</span>
 <span class="n">lowest</span> <span class="o">=</span> <span class="n">trajs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 <span class="n">n_errors_low</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">lowest</span><span class="o">.</span><span class="n">kraus_selections</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">is_error</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Lowest-probability trajectory:&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  prob=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, shots=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">num_shots</span><span class="si">}</span><span class="s2">, errors=</span><span class="si">{</span><span class="n">n_errors_low</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Lowest-probability trajectory:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  prob=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, shots=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">num_shots</span><span class="si">}</span><span class="s2">, errors=</span><span class="si">{</span><span class="n">n_errors_low</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">noise_instructions</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">inst</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">inst</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">instructions</span><span class="p">)</span>
                       <span class="k">if</span> <span class="n">inst</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">TraceInstructionType</span><span class="o">.</span><span class="n">Noise</span><span class="p">}</span>
@@ -1344,22 +1358,22 @@ Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 
     <span class="c1"># `channel.channel` is the underlying `cudaq.KrausChannel` with `.noise_type`,</span>
     <span class="c1"># `.parameters`, and `.get_ops()` for the Kraus matrices.</span>
     <span class="n">channel</span> <span class="o">=</span> <span class="n">noise_instructions</span><span class="p">[</span><span class="n">sel</span><span class="o">.</span><span class="n">circuit_location</span><span class="p">]</span>
-    <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;error&quot;</span> <span class="k">if</span> <span class="n">sel</span><span class="o">.</span><span class="n">is_error</span> <span class="k">else</span> <span class="s2">&quot;no-error&quot;</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">channel</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="s2">"error"</span> <span class="k">if</span> <span class="n">sel</span><span class="o">.</span><span class="n">is_error</span> <span class="k">else</span> <span class="s2">"no-error"</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">channel</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
     <span class="n">n_ops</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">channel</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">get_ops</span><span class="p">())</span>
-    <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    site </span><span class="si">{</span><span class="n">sel</span><span class="o">.</span><span class="n">circuit_location</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">(p=</span><span class="si">{</span><span class="n">params</span><span class="si">}</span><span class="s2">) on q</span><span class="si">{</span><span class="n">channel</span><span class="o">.</span><span class="n">targets</span><span class="si">}</span><span class="s2">]: &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;K</span><span class="si">{</span><span class="n">sel</span><span class="o">.</span><span class="n">kraus_operator_index</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">n_ops</span><span class="si">}</span><span class="s2"> ops (</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"    site </span><span class="si">{</span><span class="n">sel</span><span class="o">.</span><span class="n">circuit_location</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">(p=</span><span class="si">{</span><span class="n">params</span><span class="si">}</span><span class="s2">) on q</span><span class="si">{</span><span class="n">channel</span><span class="o">.</span><span class="n">targets</span><span class="si">}</span><span class="s2">]: "</span>
+            <span class="sa">f</span><span class="s2">"K</span><span class="si">{</span><span class="n">sel</span><span class="o">.</span><span class="n">kraus_operator_index</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">n_ops</span><span class="si">}</span><span class="s2"> ops (</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
 
 <span class="n">highest</span> <span class="o">=</span> <span class="n">trajs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Highest-probability trajectory (id=</span><span class="si">{</span><span class="n">highest</span><span class="o">.</span><span class="n">trajectory_id</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  prob=</span><span class="si">{</span><span class="n">highest</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, shots=</span><span class="si">{</span><span class="n">highest</span><span class="o">.</span><span class="n">num_shots</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Kraus selections:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Highest-probability trajectory (id=</span><span class="si">{</span><span class="n">highest</span><span class="o">.</span><span class="n">trajectory_id</span><span class="si">}</span><span class="s2">):"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  prob=</span><span class="si">{</span><span class="n">highest</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, shots=</span><span class="si">{</span><span class="n">highest</span><span class="o">.</span><span class="n">num_shots</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Kraus selections:"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">sel</span> <span class="ow">in</span> <span class="n">highest</span><span class="o">.</span><span class="n">kraus_selections</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">fmt_selection</span><span class="p">(</span><span class="n">sel</span><span class="p">))</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Lowest-probability trajectory (id=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">trajectory_id</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  prob=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, shots=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">num_shots</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Kraus selections:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Lowest-probability trajectory (id=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">trajectory_id</span><span class="si">}</span><span class="s2">):"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  prob=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, shots=</span><span class="si">{</span><span class="n">lowest</span><span class="o">.</span><span class="n">num_shots</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Kraus selections:"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">sel</span> <span class="ow">in</span> <span class="n">lowest</span><span class="o">.</span><span class="n">kraus_selections</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">fmt_selection</span><span class="p">(</span><span class="n">sel</span><span class="p">))</span>
 
@@ -1367,13 +1381,13 @@ Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 
 <span class="n">error_counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span>
     <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">kraus_selections</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">is_error</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trajs</span>
 <span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Trajectories grouped by error count:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Trajectories grouped by error count:"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">n_err</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">error_counts</span><span class="p">):</span>
     <span class="n">n_traj</span> <span class="o">=</span> <span class="n">error_counts</span><span class="p">[</span><span class="n">n_err</span><span class="p">]</span>
     <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">num_shots</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trajs</span>
                 <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">kraus_selections</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">is_error</span><span class="p">)</span> <span class="o">==</span> <span class="n">n_err</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">n_err</span><span class="si">}</span><span class="s2"> errors: </span><span class="si">{</span><span class="n">n_traj</span><span class="si">}</span><span class="s2"> trajectories, &quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">total</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> shots (</span><span class="si">{</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">exec_shots</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">n_err</span><span class="si">}</span><span class="s2"> errors: </span><span class="si">{</span><span class="n">n_traj</span><span class="si">}</span><span class="s2"> trajectories, "</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">total</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> shots (</span><span class="si">{</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">exec_shots</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1447,8 +1461,8 @@ Trajectories grouped by error count:
 <span class="n">shot_counts</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1_000</span><span class="p">,</span> <span class="mi">10_000</span><span class="p">,</span> <span class="mi">100_000</span><span class="p">,</span> <span class="mi">1_000_000</span><span class="p">]</span>
 <span class="n">max_traj</span> <span class="o">=</span> <span class="mi">64</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;shots&#39;</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;standard (s)&#39;</span><span class="si">:</span><span class="s2">&gt;14</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;PTSBE (s)&#39;</span><span class="si">:</span><span class="s2">&gt;12</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;speedup&#39;</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">52</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'shots'</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">'standard (s)'</span><span class="si">:</span><span class="s2">&gt;14</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">'PTSBE (s)'</span><span class="si">:</span><span class="s2">&gt;12</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">'speedup'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"-"</span> <span class="o">*</span> <span class="mi">52</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">shots</span> <span class="ow">in</span> <span class="n">shot_counts</span><span class="p">:</span>
     <span class="c1"># Standard noisy sampling (one trajectory per shot)</span>
@@ -1466,8 +1480,8 @@ Trajectories grouped by error count:
     <span class="p">)</span>
     <span class="n">t_ptsbe</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
 
-    <span class="n">speedup</span> <span class="o">=</span> <span class="n">t_standard</span> <span class="o">/</span> <span class="n">t_ptsbe</span> <span class="k">if</span> <span class="n">t_ptsbe</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shots</span><span class="si">:</span><span class="s2">&gt;10,</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">t_standard</span><span class="si">:</span><span class="s2">&gt;14.3f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">t_ptsbe</span><span class="si">:</span><span class="s2">&gt;12.3f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">&gt;7.1f</span><span class="si">}</span><span class="s2">x&quot;</span><span class="p">)</span>
+    <span class="n">speedup</span> <span class="o">=</span> <span class="n">t_standard</span> <span class="o">/</span> <span class="n">t_ptsbe</span> <span class="k">if</span> <span class="n">t_ptsbe</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s1">'inf'</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">shots</span><span class="si">:</span><span class="s2">&gt;10,</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">t_standard</span><span class="si">:</span><span class="s2">&gt;14.3f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">t_ptsbe</span><span class="si">:</span><span class="s2">&gt;12.3f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">&gt;7.1f</span><span class="si">}</span><span class="s2">x"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

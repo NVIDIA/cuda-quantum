@@ -241,8 +241,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -505,7 +505,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -719,7 +718,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +762,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -832,7 +839,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -863,6 +873,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -912,6 +923,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -982,6 +994,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -989,6 +1002,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1189,6 +1203,8 @@ to set the following environment variables prior to proceeding:</p>
 <span class="nb">export</span><span class="w"> </span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/llvm</span><span class="si">}</span><span class="w">  </span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">BLAS_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">BLAS_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/blas</span><span class="si">}</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">ZLIB_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">ZLIB_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/zlib</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">GMP_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">GMP_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/gmp</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">MPFR_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">MPFR_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/mpfr</span><span class="si">}</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">OPENSSL_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">OPENSSL_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/openssl</span><span class="si">}</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">CURL_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">CURL_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/curl</span><span class="si">}</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">AWS_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">AWS_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/aws</span><span class="si">}</span>
@@ -1242,7 +1258,7 @@ install CUDA 12.6:</p>
 <span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
 <span class="c1"># DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64</span>
 
-dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
+dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo"</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-toolkit-<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
 <span class="c1"># custatevec is now linked to `libnvidia-ml.so.1`, which is provided in the NVIDIA driver.</span>
@@ -1265,19 +1281,19 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 <span class="w">    </span>gcc-toolset-<span class="si">${</span><span class="nv">GCC_VERSION</span><span class="si">}</span>
 <span class="c1"># Enabling the toolchain globally is only needed for debug builds</span>
 <span class="c1"># to ensure that the correct assembler is picked to process debug symbols.</span>
-<span class="nv">enable_script</span><span class="o">=</span><span class="sb">`</span>find<span class="w"> </span>/<span class="w"> </span>-path<span class="w"> </span><span class="s1">&#39;*gcc*&#39;</span><span class="w"> </span>-path<span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="nv">$GCC_VERSIONS</span><span class="s1">&#39;*&#39;</span><span class="w"> </span>-name<span class="w"> </span><span class="nb">enable</span><span class="sb">`</span>
-<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$enable_script</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
-<span class="w">    </span>.<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$enable_script</span><span class="s2">&quot;</span>
+<span class="nv">enable_script</span><span class="o">=</span><span class="sb">`</span>find<span class="w"> </span>/<span class="w"> </span>-path<span class="w"> </span><span class="s1">'*gcc*'</span><span class="w"> </span>-path<span class="w"> </span><span class="s1">'*'</span><span class="nv">$GCC_VERSIONS</span><span class="s1">'*'</span><span class="w"> </span>-name<span class="w"> </span><span class="nb">enable</span><span class="sb">`</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$enable_script</span><span class="s2">"</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span>.<span class="w"> </span><span class="s2">"</span><span class="nv">$enable_script</span><span class="s2">"</span>
 <span class="k">fi</span>
 </pre></div>
 </div>
 <p>Independent on which compiler toolchain you installed, set the following
 environment variables to point to the respective compilers on your build system:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">GCC_TOOLCHAIN</span><span class="o">=</span>/opt/rh/gcc-toolset-12/root/usr/
-<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/g++&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/gcc&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/g++"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/gcc"</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">CUDACXX</span><span class="o">=</span>/usr/local/cuda/bin/nvcc
-<span class="nb">export</span><span class="w"> </span><span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/g++&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/g++"</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -1342,13 +1358,13 @@ you need to copy the <code class="code docutils literal notranslate"><span class
 </div>
 <p>From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;python-bindings;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">'clang;flang;lld;mlir;python-bindings;openmp;runtimes'</span><span class="w"> </span><span class="se">\</span>
 bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-e<span class="w"> </span>qrmi<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang++&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/flang&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CC</span><span class="o">=</span><span class="s2">"</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang"</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CXX</span><span class="o">=</span><span class="s2">"</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang++"</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">FC</span><span class="o">=</span><span class="s2">"</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/flang"</span><span class="w"> </span><span class="se">\</span>
 python3<span class="w"> </span>-m<span class="w"> </span>build<span class="w"> </span>--wheel<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== ccache stats (python_build) ===&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">(</span>ccache<span class="w"> </span>-s<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span><span class="o">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"=== ccache stats (python_build) ==="</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">(</span>ccache<span class="w"> </span>-s<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span><span class="o">)</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1363,9 +1379,9 @@ include dependencies in the wheel, if necessary, and correctly label the wheel.
 We recommend not including the CUDA runtime libraries and instead install them separately
 on the host system following the instructions in the next section. The following
 command builds the final wheel, not including CUDA dependencies:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WHEEL</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>find<span class="w"> </span>.<span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;cuda_quantum*.whl&#39;</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">MANYLINUX_PLATFORM</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDAQ_WHEEL</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-o<span class="w"> </span><span class="s1">&#39;[a-z]*linux_[^\.]*&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-re<span class="w"> </span><span class="s1">&#39;s/^linux_/manylinux_2_28_/&#39;</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">:</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/cuda-quantum/_skbuild/lib&quot;</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WHEEL</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>find<span class="w"> </span>.<span class="w"> </span>-name<span class="w"> </span><span class="s1">'cuda_quantum*.whl'</span><span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">MANYLINUX_PLATFORM</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDAQ_WHEEL</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-o<span class="w"> </span><span class="s1">'[a-z]*linux_[^\.]*'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-re<span class="w"> </span><span class="s1">'s/^linux_/manylinux_2_28_/'</span><span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">:</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/cuda-quantum/_skbuild/lib"</span><span class="w"> </span><span class="se">\</span>
 python3<span class="w"> </span>-m<span class="w"> </span>auditwheel<span class="w"> </span>-v<span class="w"> </span>repair<span class="w"> </span><span class="si">${</span><span class="nv">CUDAQ_WHEEL</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--plat<span class="w"> </span><span class="si">${</span><span class="nv">MANYLINUX_PLATFORM</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcublas.so.11<span class="w"> </span><span class="se">\</span>
@@ -1401,11 +1417,11 @@ command to build CUDA-Q:</p>
 <span class="nv">CUDAQ_REQUIRE_OPENMP</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_WERROR</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
-<span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">'clang;flang;lld;mlir;openmp;runtimes'</span><span class="w"> </span><span class="se">\</span>
 bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">&quot;-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">"-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR<span class="o">=</span>OFF<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== ccache stats (cpp_build) ===&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">(</span>ccache<span class="w"> </span>-s<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span><span class="o">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"=== ccache stats (cpp_build) ==="</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">(</span>ccache<span class="w"> </span>-s<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span><span class="o">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="o">(</span>ccache<span class="w"> </span>--print-stats<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span>ccache<span class="w"> </span>-s<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="o">)</span><span class="w"> </span>&gt;<span class="w"> </span>/root/.ccache/_build_stats.txt
 </pre></div>
 </div>
@@ -1421,27 +1437,27 @@ files to install into a separate folder using the command</p>
 <span class="c1"># existing relative RPATHs ($ORIGIN/../lib, @loader_path/../lib) cover</span>
 <span class="c1"># everything and no hardcoded absolute paths are needed.</span>
 mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets
-cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq
+cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span>cuda_quantum_assets/cudaq
 
 <span class="c1"># Remove Python-dependent plugins from the C++ installer. The pyscf plugin</span>
 <span class="c1"># requires a Python runtime and is not used for the C++ workflows.</span>
 rm<span class="w"> </span>-f<span class="w"> </span>cuda_quantum_assets/cudaq/lib/plugins/libcudaq-pyscf*
 
-<span class="c1"># Bundle the complete LLVM installation in its own subtree so clang&#39;s</span>
+<span class="c1"># Bundle the complete LLVM installation in its own subtree so clang's</span>
 <span class="c1"># internal path resolution (resource dir, C++ headers, runtime libs) works</span>
 <span class="c1"># without custom fallbacks. Preserving the full install also keeps LLVM</span>
-<span class="c1"># tools off the user&#39;s PATH (only cudaq/bin/ is added by set_env.sh).</span>
+<span class="c1"># tools off the user's PATH (only cudaq/bin/ is added by set_env.sh).</span>
 <span class="nv">llvm_dest</span><span class="o">=</span>cuda_quantum_assets/cudaq/lib/llvm
-cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">&quot;</span>
+cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">"</span>
 
 <span class="c1"># Copy runtime libs also to cudaq/lib/ for RPATH compatibility -- CUDAQ</span>
 <span class="c1"># binaries in bin/ have RPATH $ORIGIN/../lib and need libc++ etc. there.</span>
 <span class="k">for</span><span class="w"> </span>lib<span class="w"> </span><span class="k">in</span><span class="w"> </span>libc++<span class="w"> </span>libunwind<span class="w"> </span>libomp<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/</span><span class="si">${</span><span class="nv">lib</span><span class="si">}</span><span class="s2">&quot;</span>*.dylib*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/</span><span class="si">${</span><span class="nv">lib</span><span class="si">}</span><span class="s2">&quot;</span>*.so*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span>f<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*/<span class="si">${</span><span class="nv">lib</span><span class="si">}</span>*<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">    </span><span class="o">[</span><span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$f</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">continue</span>
-<span class="w">    </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$f</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq/lib/
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/</span><span class="si">${</span><span class="nv">lib</span><span class="si">}</span><span class="s2">"</span>*.dylib*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/</span><span class="si">${</span><span class="nv">lib</span><span class="si">}</span><span class="s2">"</span>*.so*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span>f<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/"</span>*/<span class="si">${</span><span class="nv">lib</span><span class="si">}</span>*<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="o">[</span><span class="w"> </span>-e<span class="w"> </span><span class="s2">"</span><span class="nv">$f</span><span class="s2">"</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">continue</span>
+<span class="w">    </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="nv">$f</span><span class="s2">"</span><span class="w"> </span>cuda_quantum_assets/cudaq/lib/
 <span class="w">  </span><span class="k">done</span>
 <span class="k">done</span>
 
@@ -1449,17 +1465,17 @@ cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</spa
 <span class="c1"># Try both lib64/ and lib/ since different distros use different conventions;</span>
 <span class="c1"># || true prevents set -e from aborting when a glob matches nothing.</span>
 <span class="k">if</span><span class="w"> </span><span class="nv">$include_cuda_deps</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib64/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/include/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib64/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/include/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib64/"</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/"</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/"</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/include/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib64/"</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/"</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/"</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/include/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
 <span class="k">fi</span>
 
 <span class="c1"># Generate an empty build_config.xml since all dependencies are already</span>
 <span class="c1"># merged into cudaq/.</span>
-cat<span class="w"> </span>&gt;<span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> </span><span class="s">&lt;&lt; &#39;BCONFIG&#39;</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> </span><span class="s">&lt;&lt; 'BCONFIG'</span>
 <span class="s">&lt;build_config&gt;</span>
 <span class="s">&lt;/build_config&gt;</span>
 <span class="s">BCONFIG</span>
@@ -1470,7 +1486,7 @@ cp<span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> <
 <p>You can then create a self-extracting archive with the command</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./makeself.sh<span class="w"> </span>--gzip<span class="w"> </span>--sha256<span class="w"> </span>--license<span class="w"> </span>cuda_quantum_assets/cudaq/LICENSE<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda_quantum_assets<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">&quot;CUDA-Q toolkit for heterogeneous quantum-classical workflows&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">"CUDA-Q toolkit for heterogeneous quantum-classical workflows"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>bash<span class="w"> </span>install.sh
 </pre></div>
 </div>
@@ -1544,7 +1560,7 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
 <span class="c1"># DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64</span>
 
 <span class="nv">version_suffix</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
-dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
+dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo"</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-nvrtc-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
@@ -1576,7 +1592,7 @@ the packages <code class="code docutils literal notranslate"><span class="pre">a
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">OPENMPI_VERSION</span><span class="o">=</span><span class="m">4</span>.1.4
 <span class="nv">OPENMPI_DOWNLOAD_URL</span><span class="o">=</span>https://github.com/open-mpi/ompi
 
-wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">OPENMPI_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/archive/v</span><span class="si">${</span><span class="nv">OPENMPI_VERSION</span><span class="si">}</span><span class="s2">.tar.gz&quot;</span><span class="w"> </span>-O<span class="w"> </span>/tmp/openmpi.tar.gz
+wget<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">OPENMPI_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/archive/v</span><span class="si">${</span><span class="nv">OPENMPI_VERSION</span><span class="si">}</span><span class="s2">.tar.gz"</span><span class="w"> </span>-O<span class="w"> </span>/tmp/openmpi.tar.gz
 mkdir<span class="w"> </span>-p<span class="w"> </span>~/.openmpi-src<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span>/tmp/openmpi.tar.gz<span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span>~/.openmpi-src
 rm<span class="w"> </span>-rf<span class="w"> </span>/tmp/openmpi.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/.openmpi-src
 ./autogen.pl<span class="w"> </span>
@@ -1599,9 +1615,9 @@ for example, this can be done by compiling and running the following program:</p
 <span class="c1">// mpic++ mpi_cuda_check.cpp -o check.x &amp;&amp; mpiexec -np 1 ./check.x</span>
 <span class="c1">// ```</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mpi.h&quot;</span>
-<span class="cp">#if __has_include(&quot;mpi-ext.h&quot;)</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mpi-ext.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"mpi.h"</span>
+<span class="cp">#if __has_include("mpi-ext.h")</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"mpi-ext.h"</span>
 <span class="cp">#endif</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
 
@@ -1609,10 +1625,10 @@ for example, this can be done by compiling and running the following program:</p
 <span class="w">  </span><span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">exit_code</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">MPIX_Query_cuda_support</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;CUDA-aware MPI installation.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"CUDA-aware MPI installation.</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">exit_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Missing CUDA support.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Missing CUDA support.</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">exit_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="w">  </span><span class="n">MPI_Finalize</span><span class="p">();</span>
@@ -1636,7 +1652,7 @@ configure CUDA-Q to use it by activating the necessary plugin.
 Plugins for OpenMPI and MPICH are included in CUDA-Q and can be activated by
 setting the environment variable <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> to the MPI installation folder
 and then running the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_QUANTUM_PATH</span><span class="si">}</span><span class="s2">/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUDA_QUANTUM_PATH</span><span class="si">}</span><span class="s2">/distributed_interfaces/activate_custom_mpi.sh"</span>
 </pre></div>
 </div>
 <div class="admonition note">

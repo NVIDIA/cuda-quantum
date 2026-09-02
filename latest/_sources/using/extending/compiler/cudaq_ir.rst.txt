@@ -26,6 +26,13 @@ For an agreed IR change, state the operations and forms that the transformation
 accepts, the properties it preserves, and the IR it produces. Record these
 expectations in the implementation and its tests.
 
+.. only:: compiler_developer_docs
+
+   See the |compiler pass development guide| for guidance on documenting and
+   testing these expectations in a built-in or external pass. The
+   |available compiler passes| page lists the registered CUDA-Q passes and their
+   options.
+
 CUDA-Q dialects
 ===============
 
@@ -43,6 +50,73 @@ requires one of these forms must state that requirement explicitly.
 The authored
 :doc:`Quake semantic specification <../../../specification/quake-dialect>`
 explains the reference and value models and the reasoning behind them.
+
+.. _quake-linear-values:
+
+Linear-value Quake IR
+^^^^^^^^^^^^^^^^^^^^^
+
+The ``convert-to-linear-values`` pipeline turns supported Quake references into
+linear values. Each converted qubit becomes a ``!quake.wire`` threaded from one
+operation to the next, making dependencies visible to optimization passes.
+
+Where possible, the pipeline splits fixed-size allocations and vector controls
+into individual wires. A ``!quake.cable`` keeps wires grouped and ordered when
+they cross into reference-form code. Dynamic registers, runtime-indexed
+elements, and anything else the pipeline cannot convert stay in reference form.
+This pipeline changes the representation only. It does not simplify gates.
+
+Run the registered pipeline on a Quake module with:
+
+.. :spellcheck-disable:
+
+.. code:: bash
+
+   cudaq-opt \
+     --pass-pipeline='builtin.module(convert-to-linear-values)' \
+     input.qke -o -
+
+.. :spellcheck-enable:
+
+For example, start with:
+
+.. literalinclude:: ../../../../../cudaq/test/Transforms/convert_to_linear_values.qke
+   :language: mlir
+   :start-at: func.func private @callee
+   :end-at: }
+
+The command produces:
+
+.. :spellcheck-disable:
+
+.. code:: mlir
+
+   module {
+     func.func private @callee(!quake.veq<?>)
+     func.func @linear_values(%arg0: !quake.veq<?>) {
+       %0 = quake.null_wire
+       %1 = quake.null_wire
+       %2 = quake.null_wire
+       %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+       %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+       %5:3 = quake.x [%0, %1] %4 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+       %6 = quake.bundle_cable %5#0, %5#1 : (!quake.wire, !quake.wire) -> !quake.cable<2>
+       %7 = quake.call_by_ref @callee(%6) : (!quake.cable<2>) -> !quake.cable<2>
+       %8:2 = quake.split_cable %7 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+       quake.sink %5#2 : !quake.wire
+       quake.sink %8#0 : !quake.wire
+       quake.sink %8#1 : !quake.wire
+       return
+     }
+   }
+
+.. :spellcheck-enable:
+
+Mapped Quake IR
+^^^^^^^^^^^^^^^
+
+The mapping pass emits Mapped Quake IR, in which kernels borrow device wires
+from ``@mapped_wireset``.
 
 CC
 --

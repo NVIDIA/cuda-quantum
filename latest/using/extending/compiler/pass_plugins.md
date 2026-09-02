@@ -269,10 +269,9 @@ latest
             .internal}
         -   [Pasqal](../../examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
+        -   [qBraid](../../examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../../examples/hardware_providers.html#quantum-circuits-inc){.reference
+        -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
             Machines](../../examples/hardware_providers.html#quantum-machines){.reference
@@ -787,9 +786,6 @@ latest
                 .internal}
             -   [OQC](../../backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1184,6 +1180,9 @@ latest
         -   [Dependencies and
             Compatibility](../../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1246,6 +1245,13 @@ latest
                 .internal}
         -   [External compiler pass plugins](#){.current .reference
             .internal}
+            -   [Implement and register the
+                pass](#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the plugin](#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](#load-and-test-the-plugin){.reference .internal}
     -   [Add a hardware backend](../backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](../backend.html#plugin-directory-structure){.reference
@@ -1386,6 +1392,9 @@ latest
         -   [6. Quantum
             Kernels](../../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1454,6 +1463,9 @@ latest
             Introduction](../../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../../api/api.html){.reference .internal}
     -   [C++ API](../../../api/languages/cpp_api.html){.reference
@@ -1558,6 +1570,9 @@ latest
                 .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
@@ -1731,6 +1746,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1751,6 +1769,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1906,7 +1927,7 @@ latest
 -   [](../../../index.html){.icon .icon-home aria-label="Home"}
 -   [Extending CUDA-Q](../extending.html)
 -   [CUDA-Q compiler development](index.html)
--   Create your own CUDA-Q Compiler Pass
+-   External compiler pass plugins
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
@@ -1922,48 +1943,53 @@ aria-hidden="true"}](../backend.html "Extending CUDA-Q with a new Hardware Backe
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#create-your-own-cuda-q-compiler-pass .section}
-# Create your own CUDA-Q Compiler Pass[¶](#create-your-own-cuda-q-compiler-pass "Permalink to this heading"){.headerlink}
+::: {#external-compiler-pass-plugins .section}
+[]{#id1}
 
-The CUDA-Q IR can be transformed, analyzed, or optimized using standard
-MLIR patterns and tools. CUDA-Q provides a registration mechanism for
-the [`cudaq-opt`{.code .docutils .literal .notranslate}]{.pre} tool that
-allows one to create, load, and use custom MLIR passes on Quake code.
+# External compiler pass plugins[¶](#external-compiler-pass-plugins "Permalink to this heading"){.headerlink}
 
-CUDA-Q MLIR Passes can only be created within an existing CUDA-Q
-development environment. Therefore, you must clone the repository and
-add your Pass code as part of the existing CUDA-Q CMake system.
+[`cudaq-opt`{.docutils .literal .notranslate}]{.pre} can load a custom
+MLIR operation pass from a shared library. This keeps the pass outside
+CUDA-Q's built-in pass catalog and production pipelines while allowing
+it to transform CUDA-Q IR with the same MLIR APIs used by built-in
+passes.
 
-As an example, clone the repository and add the following directory
-structure under [`lib`{.code .docutils .literal .notranslate}]{.pre},
-[`lib/Plugins/MyCustomPlugin/`{.code .docutils .literal
-.notranslate}]{.pre}. Within this directory create a
-[`CMakeLists.txt`{.code .docutils .literal .notranslate}]{.pre} file and
-a [`MyCustomPlugin.cpp`{.code .docutils .literal .notranslate}]{.pre}
-file. In the CMake file, add the following:
+CUDA-Q currently builds and tests pass plugins within a CUDA-Q
+development build. A plugin must use CUDA-Q, LLVM, and MLIR headers and
+libraries compatible with the [`cudaq-opt`{.docutils .literal
+.notranslate}]{.pre} binary that loads it. Rebuild the plugin when those
+dependencies change.
 
-::: {.highlight-cmake .notranslate}
-::: highlight
-    add_llvm_pass_plugin(MyCustomPlugin MyCustomPlugin.cpp)
-:::
-:::
+::: {#implement-and-register-the-pass .section}
+## Implement and register the pass[¶](#implement-and-register-the-pass "Permalink to this heading"){.headerlink}
 
-Creating a CUDA-Q IR pass starts with the implementation of an
-[`mlir::OperationPass`{.code .docutils .literal .notranslate}]{.pre}. A
-full discussion of the MLIR Pass infrastructure is beyond the scope of
-this document; please see [MLIR
-Passes](https://mlir.llvm.org/docs/PassManagement){.reference
-.external}. To create such a pass, start with the following template in
-the [`MyCustomPlugin.cpp`{.code .docutils .literal .notranslate}]{.pre}
-file:
+A plugin pass is an MLIR operation pass with a textual argument. Include
+[`cudaq/Support/Plugin.h`{.docutils .literal .notranslate}]{.pre} and
+place [`CUDAQ_REGISTER_MLIR_PASS`{.docutils .literal
+.notranslate}]{.pre} at file scope after the pass definition. The macro
+exports the CUDA-Q plugin entry point and registers one
+default-constructible pass.
+
+The complete example below is included from the source compiled by the
+plugin test target. It replaces each [`quake.h`{.docutils .literal
+.notranslate}]{.pre} operation with [`quake.s`{.docutils .literal
+.notranslate}]{.pre} so that the regression can observe the
+transformation. This example demonstrates plugin registration and does
+not preserve circuit semantics.
 
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-    #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+    /*******************************************************************************
+     * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+     * All rights reserved.                                                        *
+     *                                                                             *
+     * This source code and the accompanying materials are made available under    *
+     * the terms of the Apache License 2.0 which accompanies this distribution.    *
+     ******************************************************************************/
+
     #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+    #include "cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"
     #include "cudaq/Support/Plugin.h"
-    #include "mlir/Rewrite/FrozenRewritePatternSet.h"
-    #include "mlir/Transforms/DialectConversion.h"
 
     // Here is an example MLIR Pass that one can write externally and
     // use via the cudaq-opt tool, with the --load-cudaq-plugin flag.
@@ -1995,12 +2021,9 @@ file:
         auto circuit = getOperation();
         auto ctx = circuit.getContext();
 
-        RewritePatternSet patterns(ctx);
-        patterns.insert<ReplaceH>(ctx);
-        ConversionTarget target(*ctx);
-        target.addLegalDialect<cudaq::quake::QuakeDialect>();
-        target.addIllegalOp<cudaq::quake::HOp>();
-        if (failed(applyPartialConversion(circuit, target, std::move(patterns)))) {
+        cudaq::opt::CommutationAwareRewriteDriver driver(*ctx);
+        driver.get_patterns().add<ReplaceH>(ctx);
+        if (failed(driver.run(circuit.getBody()))) {
           circuit.emitOpError("simple pass failed");
           signalPassFailure();
         }
@@ -2012,30 +2035,62 @@ file:
     CUDAQ_REGISTER_MLIR_PASS(CustomPassPlugin)
 :::
 :::
+:::
 
-This example serves as a very simple template for creating custom MLIR
-Passes that analyze the CUDA-Q Quake representation and perform some
-general transformation. In this example, we create a rewrite pattern
-that replaces [`Hadamard`{.code .docutils .literal .notranslate}]{.pre}
-operations with [`S`{.code .docutils .literal .notranslate}]{.pre}
-operations.
+::: {#build-the-plugin .section}
+## Build the plugin[¶](#build-the-plugin "Permalink to this heading"){.headerlink}
 
-Ensure that [`add_subdirectory(Plugins)`{.code .docutils .literal
-.notranslate}]{.pre} is in the [`lib/CMakeLists.txt`{.code .docutils
-.literal .notranslate}]{.pre} file, and also that there is a
-[`lib/Plugins/CMakeLists.txt`{.code .docutils .literal
-.notranslate}]{.pre} file that adds your plugin directory with
-[`add_subdirectory`{.code .docutils .literal .notranslate}]{.pre}.
+The tested CMake target uses LLVM's pass-plugin helper and depends on
+the generated Quake dialect headers:
 
-Then build CUDA-Q and you will have a [`MyCustomPlugin.so`{.code
-.docutils .literal .notranslate}]{.pre} plugin library in the install.
-You can load the plugin and use it with [`cudaq-opt`{.code .docutils
-.literal .notranslate}]{.pre} as follows:
+::: {.highlight-cmake .notranslate}
+::: highlight
+    # ============================================================================ #
+    # Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+    # All rights reserved.                                                         #
+    #                                                                              #
+    # This source code and the accompanying materials are made available under     #
+    # the terms of the Apache License 2.0 which accompanies this distribution.     #
+    # ============================================================================ #
+
+    include(HandleLLVMOptions)
+    add_llvm_pass_plugin(CustomPassPlugin CustomPassPlugin.cpp)
+    # Depends on QuakeDialect TableGen to use the generated `.h.inc` files.
+    add_dependencies(CustomPassPlugin QuakeDialect)
+    # Link no CUDA-Q or MLIR library: cudaq-opt links MLIR/LLVM statically and
+    # re-exports it for plugins, so every symbol resolves from the host. Linking
+    # libcudaqMLIR would pull a second copy of LLVM's globals into the process and
+    # abort on duplicate cl::opt registration.
+:::
+:::
+
+Build that target from a configured CUDA-Q build tree:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    cudaq-opt --load-cudaq-plugin MyCustomPlugin.so file.qke -cudaq-custom-pass
+    cmake --build build --target CustomPassPlugin
 :::
+:::
+:::
+
+::: {#load-and-test-the-plugin .section}
+## Load and test the plugin[¶](#load-and-test-the-plugin "Permalink to this heading"){.headerlink}
+
+Load the shared library before naming its registered pass. This Linux
+command uses the paths produced by the in-tree build:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    build/bin/cudaq-opt input.qke \
+      --load-cudaq-plugin build/lib/CustomPassPlugin.so \
+      --cudaq-custom-pass
+:::
+:::
+
+A corresponding regression test loads the plugin into
+[`cudaq-opt`{.docutils .literal .notranslate}]{.pre} and checks the
+transformed IR. The pass is registered only for that invocation and is
+not added to a CUDA-Q compilation pipeline.
 :::
 :::
 :::

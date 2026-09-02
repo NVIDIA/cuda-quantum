@@ -264,10 +264,9 @@ latest
             .internal}
         -   [Pasqal](../examples/hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../examples/hardware_providers.html#quantinuum){.reference
+        -   [qBraid](../examples/hardware_providers.html#qbraid){.reference
             .internal}
-        -   [Quantum Circuits,
-            Inc.](../examples/hardware_providers.html#quantum-circuits-inc){.reference
+        -   [Quantinuum](../examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum
             Machines](../examples/hardware_providers.html#quantum-machines){.reference
@@ -781,9 +780,6 @@ latest
                 .internal}
             -   [OQC](../backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1150,6 +1146,9 @@ latest
         -   [Dependencies and
             Compatibility](#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next Steps](#next-steps){.reference .internal}
     -   [Data Center Installation](data_center_install.html){.reference
         .internal}
@@ -1211,6 +1210,15 @@ latest
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -1355,6 +1363,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1423,6 +1434,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -1527,6 +1541,9 @@ latest
                 .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
@@ -1700,6 +1717,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1720,6 +1740,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -3311,6 +3334,50 @@ Tegra devices (Jetson) are not supported in CUDA-Q at this time.
 For more information, please refer to [Binary Compatibility
 documentation](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility){.reference
 .external}.
+:::
+
+::: {#dynamic-linking-to-gmp-and-mpfr .section}
+[]{#dynamic-linking-gmp-mpfr}
+
+### Dynamic linking to GMP and MPFR[¶](#dynamic-linking-to-gmp-and-mpfr "Permalink to this heading"){.headerlink}
+
+CUDA-Q binary distributions include the
+[GMP](https://gmplib.org/){.reference .external} and
+[MPFR](https://www.mpfr.org/){.reference .external} shared libraries,
+which are used by the Clifford+T rotation synthesis library. Both
+libraries are unmodified and are licensed under the GNU Lesser General
+Public License v3. The full license texts are included in the
+[`LICENSES`{.code .docutils .literal .notranslate}]{.pre} folder
+distributed with CUDA-Q, and the corresponding copyright notices are
+listed in the [`NOTICE`{.code .docutils .literal .notranslate}]{.pre}
+file.
+
+CUDA-Q links to GMP and MPFR exclusively dynamically, and the two
+libraries can be replaced with compatible versions without rebuilding
+CUDA-Q by substituting the shared library files ([`libgmp.so*`{.code
+.docutils .literal .notranslate}]{.pre} and [`libmpfr.so*`{.code
+.docutils .literal .notranslate}]{.pre} on Linux, [`libgmp*.dylib`{.code
+.docutils .literal .notranslate}]{.pre} and [`libmpfr*.dylib`{.code
+.docutils .literal .notranslate}]{.pre} on macOS):
+
+-   Docker image and installer - the libraries are located in the
+    [`lib`{.code .docutils .literal .notranslate}]{.pre} folder of the
+    CUDA-Q installation directory, that is
+    [`${CUDA_QUANTUM_PATH}/lib`{.code .docutils .literal
+    .notranslate}]{.pre}.
+
+-   Python wheels - the libraries are located in the [`lib`{.code
+    .docutils .literal .notranslate}]{.pre} folder that is installed
+    next to the [`cudaq`{.code .docutils .literal .notranslate}]{.pre}
+    package in your Python environment's [`site-packages`{.code
+    .docutils .literal .notranslate}]{.pre} directory.
+
+Alternatively, when building CUDA-Q from source, you can link against
+your own GMP and MPFR builds instead of the ones built by
+[`scripts/install_prerequisites.sh`{.code .docutils .literal
+.notranslate}]{.pre}. Please see [[Installation from
+Source]{.doc}](data_center_install.html){.reference .internal} for more
+information.
 :::
 :::
 

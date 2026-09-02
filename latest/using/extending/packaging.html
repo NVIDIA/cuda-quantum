@@ -241,8 +241,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -505,7 +505,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -719,7 +718,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +762,12 @@
 <li class="toctree-l4"><a class="reference internal" href="compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="backend.html">Add a hardware backend</a><ul>
@@ -832,7 +839,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -863,6 +873,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -912,6 +923,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -982,6 +994,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -989,6 +1002,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1121,12 +1135,12 @@ plugin-relevant fields:</p>
 <p>A substitution token expanded to the plugin’s root directory at YAML parse
 time:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">config</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">jit-mid-level-pipeline</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;qubit-mapping{device=file(%PLUGIN_ROOT%/data/topology.txt)}&quot;</span>
+<span class="w">  </span><span class="nt">jit-mid-level-pipeline</span><span class="p">:</span><span class="w"> </span><span class="s">"qubit-mapping{device=file(%PLUGIN_ROOT%/data/topology.txt)}"</span>
 
 <span class="nt">target-arguments</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">device</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
-<span class="w">    </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;%PLUGIN_ROOT%/data/topology.txt&quot;</span>
+<span class="w">    </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="s">"%PLUGIN_ROOT%/data/topology.txt"</span>
 <span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">device</span>
 </pre></div>
 </div>
@@ -1142,12 +1156,12 @@ keyword arguments for <code class="docutils literal notranslate"><span class="pr
 <span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
 <span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api_key</span>
-<span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;API</span><span class="nv"> </span><span class="s">key</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">backend.&quot;</span>
+<span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">"API</span><span class="nv"> </span><span class="s">key</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">backend."</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shots</span>
 <span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
 <span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shots</span>
-<span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Default</span><span class="nv"> </span><span class="s">shot</span><span class="nv"> </span><span class="s">count.&quot;</span>
+<span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">"Default</span><span class="nv"> </span><span class="s">shot</span><span class="nv"> </span><span class="s">count."</span>
 </pre></div>
 </div>
 <p>These appear as <code class="docutils literal notranslate"><span class="pre">--my-backend-api-key</span> <span class="pre">&lt;value&gt;</span></code> on the command line and
@@ -1159,7 +1173,7 @@ keyword arguments for <code class="docutils literal notranslate"><span class="pr
 <p>During development, build your plugin inside the CUDA-Q source tree without
 modifying any in-tree files:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>-B<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-DCUDAQ_EXTERNAL_PROJECTS<span class="o">=</span><span class="s2">&quot;my-backend&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-DCUDAQ_EXTERNAL_PROJECTS<span class="o">=</span><span class="s2">"my-backend"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-DCUDAQ_EXTERNAL_MY_BACKEND_SOURCE_DIR<span class="o">=</span>/path/to/my-backend
 
 ninja<span class="w"> </span>-C<span class="w"> </span>build<span class="w"> </span>cudaq-serverhelper-my-backend<span class="w">   </span><span class="c1"># or cudaq-qpu-my-backend</span>
@@ -1169,7 +1183,7 @@ ninja<span class="w"> </span>-C<span class="w"> </span>build<span class="w"> </s
 <code class="docutils literal notranslate"><span class="pre">targets/</span></code>, <code class="docutils literal notranslate"><span class="pre">lib/</span></code>, and packaging files ready to use.</p>
 <p>Multiple plugins can be built together:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>-B<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-DCUDAQ_EXTERNAL_PROJECTS<span class="o">=</span><span class="s2">&quot;foo;bar&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-DCUDAQ_EXTERNAL_PROJECTS<span class="o">=</span><span class="s2">"foo;bar"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-DCUDAQ_EXTERNAL_FOO_SOURCE_DIR<span class="o">=</span>/path/to/foo<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-DCUDAQ_EXTERNAL_BAR_SOURCE_DIR<span class="o">=</span>/path/to/bar
 </pre></div>
@@ -1191,26 +1205,26 @@ its shared library; do not distribute the package as a platform-agnostic wheel.<
 <section id="pyproject-toml">
 <h3><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code><a class="headerlink" href="#pyproject-toml" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[build-system]</span>
-<span class="n">requires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;setuptools&gt;=64&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;wheel&quot;</span><span class="p">]</span>
-<span class="n">build-backend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;setuptools.build_meta&quot;</span>
+<span class="n">requires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"setuptools&gt;=64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"wheel"</span><span class="p">]</span>
+<span class="n">build-backend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"setuptools.build_meta"</span>
 
 <span class="k">[project]</span>
-<span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my-backend-cudaq&quot;</span>
-<span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
-<span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Backend plugin for CUDA-Q.&quot;</span>
-<span class="n">requires-python</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&gt;=3.9&quot;</span>
+<span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my-backend-cudaq"</span>
+<span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"0.1.0"</span>
+<span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"My Backend plugin for CUDA-Q."</span>
+<span class="n">requires-python</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"&gt;=3.9"</span>
 
-<span class="k">[project.entry-points.</span><span class="s2">&quot;cudaq.backends&quot;</span><span class="k">]</span>
-<span class="n">my-backend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_backend_cudaq:register&quot;</span>
+<span class="k">[project.entry-points.</span><span class="s2">"cudaq.backends"</span><span class="k">]</span>
+<span class="n">my-backend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_backend_cudaq:register"</span>
 
 <span class="k">[tool.setuptools]</span>
-<span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;my_backend_cudaq&quot;</span><span class="p">]</span>
+<span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"my_backend_cudaq"</span><span class="p">]</span>
 
 <span class="k">[tool.setuptools.package-dir]</span>
-<span class="s2">&quot;my_backend_cudaq&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;.&quot;</span>
+<span class="s2">"my_backend_cudaq"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"."</span>
 
 <span class="k">[tool.setuptools.package-data]</span>
-<span class="s2">&quot;my_backend_cudaq&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;targets/*.yml&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;lib/*&quot;</span><span class="p">]</span>
+<span class="s2">"my_backend_cudaq"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"targets/*.yml"</span><span class="p">,</span><span class="w"> </span><span class="s2">"lib/*"</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>The critical piece is the <code class="docutils literal notranslate"><span class="pre">[project.entry-points.&quot;cudaq.backends&quot;]</span></code> section.
@@ -1236,8 +1250,8 @@ entry-point name and traceback and continues — other plugins still load.</p>
 </section>
 <section id="main-py-install-nvqpp-hook">
 <h3><code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> (<code class="docutils literal notranslate"><span class="pre">--install-nvqpp</span></code> hook)<a class="headerlink" href="#main-py-install-nvqpp-hook" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">PACKAGE_NAME</span> <span class="o">=</span> <span class="s2">&quot;my_backend_cudaq&quot;</span>
-<span class="n">PLUGIN_NAME</span> <span class="o">=</span> <span class="s2">&quot;my-backend&quot;</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">PACKAGE_NAME</span> <span class="o">=</span> <span class="s2">"my_backend_cudaq"</span>
+<span class="n">PLUGIN_NAME</span> <span class="o">=</span> <span class="s2">"my-backend"</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -1245,7 +1259,7 @@ entry-point name and traceback and continues — other plugins still load.</p>
     <span class="k">return</span> <span class="n">install_plugin_for_nvqpp_main</span><span class="p">(</span><span class="n">PACKAGE_NAME</span><span class="p">,</span> <span class="n">PLUGIN_NAME</span><span class="p">)</span>
 
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
 </div>
@@ -1380,7 +1394,7 @@ build configuration, Python packaging, lit tests, and documentation.</p>
 □ Add __init__.py with register() function
 □ Add __main__.py with --install-nvqpp hook
 □ Add tests/ with at least one end-to-end test
-□ Verify: pip install . &amp;&amp; python -c &quot;import cudaq; assert cudaq.has_target(&#39;&lt;name&gt;&#39;)&quot;
+□ Verify: pip install . &amp;&amp; python -c "import cudaq; assert cudaq.has_target('&lt;name&gt;')"
 □ Verify: python -m &lt;pkg&gt; --install-nvqpp &amp;&amp; nvq++ --target=&lt;name&gt; ...
 </pre></div>
 </div>

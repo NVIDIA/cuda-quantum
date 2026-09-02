@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create your own CUDA-Q Compiler Pass &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>External compiler pass plugins &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -241,8 +241,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -505,7 +505,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -719,7 +718,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +762,12 @@
 <li class="toctree-l4"><a class="reference internal" href="cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">External compiler pass plugins</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../backend.html">Add a hardware backend</a><ul>
@@ -832,7 +839,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -863,6 +873,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -912,6 +923,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -982,6 +994,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -989,6 +1002,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1076,7 +1090,7 @@
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../extending.html">Extending CUDA-Q</a></li>
           <li class="breadcrumb-item"><a href="index.html">CUDA-Q compiler development</a></li>
-      <li class="breadcrumb-item active">Create your own CUDA-Q Compiler Pass</li>
+      <li class="breadcrumb-item active">External compiler pass plugins</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
@@ -1088,32 +1102,37 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="create-your-own-cuda-q-compiler-pass">
-<h1>Create your own CUDA-Q Compiler Pass<a class="headerlink" href="#create-your-own-cuda-q-compiler-pass" title="Permalink to this heading">¶</a></h1>
-<p>The CUDA-Q IR can be transformed, analyzed, or optimized
-using standard MLIR patterns and tools. CUDA-Q provides a registration
-mechanism for the <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> tool that allows one to create, load, and
-use custom MLIR passes on Quake code.</p>
-<p>CUDA-Q MLIR Passes can only be created within an existing CUDA-Q
-development environment. Therefore, you must clone the repository and add your
-Pass code as part of the existing CUDA-Q CMake system.</p>
-<p>As an example, clone the repository and add the following directory structure
-under <code class="code docutils literal notranslate"><span class="pre">lib</span></code>, <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/MyCustomPlugin/</span></code>. Within this directory create a
-<code class="code docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> file and a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file. In the CMake file,
-add the following:</p>
-<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">MyCustomPlugin</span><span class="w"> </span><span class="s">MyCustomPlugin.cpp</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Creating a CUDA-Q IR pass starts with the implementation of an
-<code class="code docutils literal notranslate"><span class="pre">mlir::OperationPass</span></code>. A full discussion of the MLIR Pass infrastructure
-is beyond the scope of this document; please see
-<a class="reference external" href="https://mlir.llvm.org/docs/PassManagement">MLIR Passes</a>. To create such
-a pass, start with the following template in the <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeDialect.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeOps.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Support/Plugin.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Rewrite/FrozenRewritePatternSet.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Transforms/DialectConversion.h&quot;</span>
+  <section id="external-compiler-pass-plugins">
+<span id="id1"></span><h1>External compiler pass plugins<a class="headerlink" href="#external-compiler-pass-plugins" title="Permalink to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">cudaq-opt</span></code> can load a custom MLIR operation pass from a shared library. This
+keeps the pass outside CUDA-Q’s built-in pass catalog and production pipelines
+while allowing it to transform CUDA-Q IR with the same MLIR APIs used by
+built-in passes.</p>
+<p>CUDA-Q currently builds and tests pass plugins within a CUDA-Q development
+build. A plugin must use CUDA-Q, LLVM, and MLIR headers and libraries compatible
+with the <code class="docutils literal notranslate"><span class="pre">cudaq-opt</span></code> binary that loads it. Rebuild the plugin when those
+dependencies change.</p>
+<section id="implement-and-register-the-pass">
+<h2>Implement and register the pass<a class="headerlink" href="#implement-and-register-the-pass" title="Permalink to this heading">¶</a></h2>
+<p>A plugin pass is an MLIR operation pass with a textual argument. Include
+<code class="docutils literal notranslate"><span class="pre">cudaq/Support/Plugin.h</span></code> and place <code class="docutils literal notranslate"><span class="pre">CUDAQ_REGISTER_MLIR_PASS</span></code> at file scope
+after the pass definition. The macro exports the CUDA-Q plugin entry point and
+registers one default-constructible pass.</p>
+<p>The complete example below is included from the source compiled by the plugin
+test target. It replaces each <code class="docutils literal notranslate"><span class="pre">quake.h</span></code> operation with
+<code class="docutils literal notranslate"><span class="pre">quake.s</span></code> so that the regression can observe the transformation. This example
+demonstrates plugin registration and does not preserve circuit semantics.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cm">/*******************************************************************************</span>
+<span class="cm"> * Copyright (c) 2022 - 2026 NVIDIA Corporation &amp; Affiliates.                  *</span>
+<span class="cm"> * All rights reserved.                                                        *</span>
+<span class="cm"> *                                                                             *</span>
+<span class="cm"> * This source code and the accompanying materials are made available under    *</span>
+<span class="cm"> * the terms of the Apache License 2.0 which accompanies this distribution.    *</span>
+<span class="cm"> ******************************************************************************/</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Optimizer/Dialect/Quake/QuakeOps.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/Support/Plugin.h"</span>
 
 <span class="c1">// Here is an example MLIR Pass that one can write externally and</span>
 <span class="c1">// use via the cudaq-opt tool, with the --load-cudaq-plugin flag.</span>
@@ -1139,19 +1158,16 @@ a pass, start with the following template in the <code class="code docutils lite
 <span class="k">public</span><span class="o">:</span>
 <span class="w">  </span><span class="n">MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID</span><span class="p">(</span><span class="n">CustomPassPlugin</span><span class="p">)</span>
 
-<span class="w">  </span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="w"> </span><span class="n">getArgument</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;cudaq-custom-pass&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="w"> </span><span class="n">getArgument</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">"cudaq-custom-pass"</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">runOnOperation</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">circuit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getOperation</span><span class="p">();</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circuit</span><span class="p">.</span><span class="n">getContext</span><span class="p">();</span>
 
-<span class="w">    </span><span class="n">RewritePatternSet</span><span class="w"> </span><span class="nf">patterns</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">patterns</span><span class="p">.</span><span class="n">insert</span><span class="o">&lt;</span><span class="n">ReplaceH</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ConversionTarget</span><span class="w"> </span><span class="nf">target</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addLegalDialect</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">QuakeDialect</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addIllegalOp</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">applyPartialConversion</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">))))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">&quot;simple pass failed&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">opt</span><span class="o">::</span><span class="n">CommutationAwareRewriteDriver</span><span class="w"> </span><span class="nf">driver</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="n">driver</span><span class="p">.</span><span class="n">get_patterns</span><span class="p">().</span><span class="n">add</span><span class="o">&lt;</span><span class="n">ReplaceH</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">driver</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">circuit</span><span class="p">.</span><span class="n">getBody</span><span class="p">())))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">"simple pass failed"</span><span class="p">);</span>
 <span class="w">      </span><span class="n">signalPassFailure</span><span class="p">();</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
@@ -1162,18 +1178,47 @@ a pass, start with the following template in the <code class="code docutils lite
 <span class="n">CUDAQ_REGISTER_MLIR_PASS</span><span class="p">(</span><span class="n">CustomPassPlugin</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>This example serves as a very simple template for creating custom MLIR
-Passes that analyze the CUDA-Q Quake representation and perform
-some general transformation. In this example, we create a rewrite pattern
-that replaces <code class="code docutils literal notranslate"><span class="pre">Hadamard</span></code> operations with <code class="code docutils literal notranslate"><span class="pre">S</span></code> operations.</p>
-<p>Ensure that <code class="code docutils literal notranslate"><span class="pre">add_subdirectory(Plugins)</span></code> is in the <code class="code docutils literal notranslate"><span class="pre">lib/CMakeLists.txt</span></code> file,
-and also that there is a <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/CMakeLists.txt</span></code> file that adds your
-plugin directory with <code class="code docutils literal notranslate"><span class="pre">add_subdirectory</span></code>.</p>
-<p>Then build CUDA-Q and you will have a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.so</span></code> plugin library
-in the install. You can load the plugin and use it with <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cudaq-opt<span class="w"> </span>--load-cudaq-plugin<span class="w"> </span>MyCustomPlugin.so<span class="w"> </span>file.qke<span class="w"> </span>-cudaq-custom-pass
+</section>
+<section id="build-the-plugin">
+<h2>Build the plugin<a class="headerlink" href="#build-the-plugin" title="Permalink to this heading">¶</a></h2>
+<p>The tested CMake target uses LLVM’s pass-plugin helper and depends on the
+generated Quake dialect headers:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="c"># ============================================================================ #</span>
+<span class="c"># Copyright (c) 2022 - 2026 NVIDIA Corporation &amp; Affiliates.                   #</span>
+<span class="c"># All rights reserved.                                                         #</span>
+<span class="c">#                                                                              #</span>
+<span class="c"># This source code and the accompanying materials are made available under     #</span>
+<span class="c"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
+<span class="c"># ============================================================================ #</span>
+
+<span class="nb">include</span><span class="p">(</span><span class="s">HandleLLVMOptions</span><span class="p">)</span>
+<span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">CustomPassPlugin.cpp</span><span class="p">)</span>
+<span class="c"># Depends on QuakeDialect TableGen to use the generated `.h.inc` files.</span>
+<span class="nb">add_dependencies</span><span class="p">(</span><span class="s">CustomPassPlugin</span><span class="w"> </span><span class="s">QuakeDialect</span><span class="p">)</span>
+<span class="c"># Link no CUDA-Q or MLIR library: cudaq-opt links MLIR/LLVM statically and</span>
+<span class="c"># re-exports it for plugins, so every symbol resolves from the host. Linking</span>
+<span class="c"># libcudaqMLIR would pull a second copy of LLVM's globals into the process and</span>
+<span class="c"># abort on duplicate cl::opt registration.</span>
 </pre></div>
 </div>
+<p>Build that target from a configured CUDA-Q build tree:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>--build<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>CustomPassPlugin
+</pre></div>
+</div>
+</section>
+<section id="load-and-test-the-plugin">
+<h2>Load and test the plugin<a class="headerlink" href="#load-and-test-the-plugin" title="Permalink to this heading">¶</a></h2>
+<p>Load the shared library before naming its registered pass. This Linux command
+uses the paths produced by the in-tree build:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>build/bin/cudaq-opt<span class="w"> </span>input.qke<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--load-cudaq-plugin<span class="w"> </span>build/lib/CustomPassPlugin.so<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cudaq-custom-pass
+</pre></div>
+</div>
+<p>A corresponding regression test loads the plugin into <code class="docutils literal notranslate"><span class="pre">cudaq-opt</span></code> and checks
+the transformed IR. The pass is registered only for that invocation and is not
+added to a CUDA-Q compilation pipeline.</p>
+</section>
 </section>
 
 

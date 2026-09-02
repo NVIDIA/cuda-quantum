@@ -52,8 +52,10 @@ before. This includes implicit measurements, explicit measurements without
 conditionals, partial qubit measurement, mid-circuit measurement for
 reset patterns, and the ``explicit_measurements`` option (which concatenates all
 measurement results in execution order rather than re-measuring at the end of
-the kernel -- see the :ref:`sample specification <cudaq-sample-spec>` for
-details).
+the kernel). If your program depends on a stable output bit schema, measure the
+required qubits explicitly rather than relying on the default ``__global__``
+bit positions. See the :ref:`sample specification <cudaq-sample-spec>` for
+details.
 
 .. tab:: Python
 

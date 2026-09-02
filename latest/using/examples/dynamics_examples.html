@@ -241,8 +241,8 @@
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#scaleway">Scaleway</a></li>
@@ -505,7 +505,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -719,7 +718,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +762,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -832,7 +839,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -863,6 +873,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -912,6 +923,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -982,6 +994,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -989,6 +1002,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1169,10 +1183,10 @@ transverse field Hamiltonian, with and without dissipation (collapse operators).
 <span class="c1">// nvq++ --target dynamics qubit_dynamics.cpp -o a.out &amp;&amp; ./a.out</span>
 <span class="c1">// ```</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;export_csv_helper.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"export_csv_helper.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/evolve.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/integrator.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/operators.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1226,13 +1240,13 @@ transverse field Hamiltonian, with and without dissipation (collapse operators).
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">decay_result0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">evolve_result_decay</span><span class="p">);</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">decay_result1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">evolve_result_decay</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;qubit_dynamics_ideal_result.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_y&quot;</span><span class="p">,</span>
-<span class="w">             </span><span class="n">ideal_result0</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_z&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result1</span><span class="p">);</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;qubit_dynamics_decay_result.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_y&quot;</span><span class="p">,</span>
-<span class="w">             </span><span class="n">decay_result0</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_z&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">decay_result1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"qubit_dynamics_ideal_result.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_y"</span><span class="p">,</span>
+<span class="w">             </span><span class="n">ideal_result0</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_z"</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"qubit_dynamics_decay_result.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_y"</span><span class="p">,</span>
+<span class="w">             </span><span class="n">decay_result0</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_z"</span><span class="p">,</span><span class="w"> </span><span class="n">decay_result1</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Results exported to qubit_dynamics_ideal_result.csv and &quot;</span>
-<span class="w">               </span><span class="s">&quot;qubit_dynamics_decay_result.csv&quot;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Results exported to qubit_dynamics_ideal_result.csv and "</span>
+<span class="w">               </span><span class="s">"qubit_dynamics_decay_result.csv"</span>
 <span class="w">            </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
@@ -1258,10 +1272,10 @@ with different subsystem dimensions.</p>
 <span class="c1">// nvq++ --target dynamics cavity_qed.cpp -o a.out &amp;&amp; ./a.out</span>
 <span class="c1">// ```</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;export_csv_helper.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"export_csv_helper.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/evolve.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/integrator.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/operators.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1371,19 +1385,19 @@ with different subsystem dimensions.</p>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">decay_result1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">evolve_result_decay</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Export the results to `CSV` files</span>
-<span class="w">  </span><span class="c1">// &quot;cavity_`qed`_ideal_result.`csv`&quot; contains the ideal evolution results.</span>
-<span class="w">  </span><span class="c1">// &quot;cavity_`qed`_decay_result.`csv`&quot; contains the evolution results with</span>
+<span class="w">  </span><span class="c1">// "cavity_`qed`_ideal_result.`csv`" contains the ideal evolution results.</span>
+<span class="w">  </span><span class="c1">// "cavity_`qed`_decay_result.`csv`" contains the evolution results with</span>
 <span class="w">  </span><span class="c1">// cavity decay.</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;cavity_qed_ideal_result.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span>
-<span class="w">             </span><span class="s">&quot;cavity_photon_number&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result0</span><span class="p">,</span>
-<span class="w">             </span><span class="s">&quot;atom_excitation_probability&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result1</span><span class="p">);</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;cavity_qed_decay_result.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span>
-<span class="w">             </span><span class="s">&quot;cavity_photon_number&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">decay_result0</span><span class="p">,</span>
-<span class="w">             </span><span class="s">&quot;atom_excitation_probability&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">decay_result1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"cavity_qed_ideal_result.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span>
+<span class="w">             </span><span class="s">"cavity_photon_number"</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result0</span><span class="p">,</span>
+<span class="w">             </span><span class="s">"atom_excitation_probability"</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"cavity_qed_decay_result.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span>
+<span class="w">             </span><span class="s">"cavity_photon_number"</span><span class="p">,</span><span class="w"> </span><span class="n">decay_result0</span><span class="p">,</span>
+<span class="w">             </span><span class="s">"atom_excitation_probability"</span><span class="p">,</span><span class="w"> </span><span class="n">decay_result1</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Simulation complete. The results are saved in &quot;</span>
-<span class="w">               </span><span class="s">&quot;cavity_qed_ideal_result.csv &quot;</span>
-<span class="w">               </span><span class="s">&quot;and cavity_qed_decay_result.csv files.&quot;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Simulation complete. The results are saved in "</span>
+<span class="w">               </span><span class="s">"cavity_qed_ideal_result.csv "</span>
+<span class="w">               </span><span class="s">"and cavity_qed_decay_result.csv files."</span>
 <span class="w">            </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -1408,10 +1422,10 @@ time-dependent Hamiltonians and batched state evolution.</p>
 <span class="c1">// nvq++ --target dynamics cavity_qed.cpp -o a.out &amp;&amp; ./a.out</span>
 <span class="c1">// ```</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;export_csv_helper.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"export_csv_helper.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/evolve.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/integrator.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/operators.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1539,20 +1553,20 @@ time-dependent Hamiltonians and batched state evolution.</p>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result_10_5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">evolution_result_10</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Export the results to a `CSV` file</span>
-<span class="w">  </span><span class="c1">// Export the Z-component of qubit 1&#39;s expectation values for both initial</span>
-<span class="w">  </span><span class="c1">// states. The `CSV` file &quot;cross_resonance_z.`csv`&quot; will have time versus (Z1)</span>
+<span class="w">  </span><span class="c1">// Export the Z-component of qubit 1's expectation values for both initial</span>
+<span class="w">  </span><span class="c1">// states. The `CSV` file "cross_resonance_z.`csv`" will have time versus (Z1)</span>
 <span class="w">  </span><span class="c1">// data for both |00&gt; and |10&gt; initial conditions.</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;cross_resonance_z.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&lt;Z1&gt;_00&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result_00_5</span><span class="p">,</span>
-<span class="w">             </span><span class="s">&quot;&lt;Z1&gt;_10&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result_10_5</span><span class="p">);</span>
-<span class="w">  </span><span class="c1">// Export the Y-component of qubit 1&#39;s expectation values for both initial</span>
-<span class="w">  </span><span class="c1">// states. The `CSV` file &quot;cross_resonance_y.`csv`&quot; will have time versus (Y1)</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"cross_resonance_z.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"&lt;Z1&gt;_00"</span><span class="p">,</span><span class="w"> </span><span class="n">result_00_5</span><span class="p">,</span>
+<span class="w">             </span><span class="s">"&lt;Z1&gt;_10"</span><span class="p">,</span><span class="w"> </span><span class="n">result_10_5</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Export the Y-component of qubit 1's expectation values for both initial</span>
+<span class="w">  </span><span class="c1">// states. The `CSV` file "cross_resonance_y.`csv`" will have time versus (Y1)</span>
 <span class="w">  </span><span class="c1">// data.</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;cross_resonance_y.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&lt;Y1&gt;_00&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result_00_4</span><span class="p">,</span>
-<span class="w">             </span><span class="s">&quot;&lt;Y1&gt;_10&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result_10_4</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"cross_resonance_y.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"&lt;Y1&gt;_00"</span><span class="p">,</span><span class="w"> </span><span class="n">result_00_4</span><span class="p">,</span>
+<span class="w">             </span><span class="s">"&lt;Y1&gt;_10"</span><span class="p">,</span><span class="w"> </span><span class="n">result_10_4</span><span class="p">);</span>
 
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span>
-<span class="w">      </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Simulation complete. The results are saved in cross_resonance_z.csv &quot;</span>
-<span class="w">         </span><span class="s">&quot;and cross_resonance_y.csv files.&quot;</span>
+<span class="w">      </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Simulation complete. The results are saved in cross_resonance_z.csv "</span>
+<span class="w">         </span><span class="s">"and cross_resonance_y.csv files."</span>
 <span class="w">      </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -1576,10 +1590,10 @@ for studying quantum magnetism and entanglement dynamics in spin qubit systems.<
 <span class="c1">// nvq++ --target dynamics heisenberg_model.cpp -o a.out &amp;&amp; ./a.out</span>
 <span class="c1">// ```</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;export_csv_helper.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"export_csv_helper.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/evolve.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/integrator.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/operators.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1593,11 +1607,11 @@ for studying quantum magnetism and entanglement dynamics in spin qubit systems.<
 
 <span class="w">  </span><span class="c1">// Initial state</span>
 <span class="w">  </span><span class="c1">// Prepare an initial state where the spins are arranged in a staggered</span>
-<span class="w">  </span><span class="c1">// configuration. Even indices get the value &#39;0&#39; and odd indices get &#39;1&#39;. For</span>
+<span class="w">  </span><span class="c1">// configuration. Even indices get the value '0' and odd indices get '1'. For</span>
 <span class="w">  </span><span class="c1">// example, for 9 spins: spins: 0 1 0 1 0 1 0 1 0</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">spin_state</span><span class="p">;</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_spins</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">spin_state</span><span class="p">.</span><span class="n">push_back</span><span class="p">((</span><span class="n">i</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="sc">&#39;0&#39;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="sc">&#39;1&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">spin_state</span><span class="p">.</span><span class="n">push_back</span><span class="p">((</span><span class="n">i</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="sc">'0'</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="sc">'1'</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">// Convert the binary string to an integer index</span>
@@ -1693,8 +1707,8 @@ for studying quantum magnetism and entanglement dynamics in spin qubit systems.<
 <span class="w">                    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">IntermediateResultSave</span><span class="o">::</span><span class="n">ExpectationValue</span><span class="p">);</span>
 
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">evolve_results</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">g_values</span><span class="p">.</span><span class="n">size</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cerr</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Unexpected number of results. Expected &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">g_values</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
-<span class="w">              </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;; got &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">evolve_results</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cerr</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Unexpected number of results. Expected "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">g_values</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+<span class="w">              </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"; got "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">evolve_results</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
@@ -1714,16 +1728,16 @@ for studying quantum magnetism and entanglement dynamics in spin qubit systems.<
 <span class="w">        </span><span class="p">{</span><span class="n">g_values</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">evolve_results</span><span class="p">[</span><span class="n">i</span><span class="p">])});</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">// The `CSV` file &quot;`heisenberg`_model.`csv`&quot; will contain column with:</span>
+<span class="w">  </span><span class="c1">// The `CSV` file "`heisenberg`_model.`csv`" will contain column with:</span>
 <span class="w">  </span><span class="c1">//    - The time steps</span>
 <span class="w">  </span><span class="c1">//    - The expectation values of the staggered magnetization for each g value</span>
 <span class="w">  </span><span class="c1">//    (labeled g_0, g_0.25, g_4).</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;heisenberg_model_result.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;g_0&quot;</span><span class="p">,</span>
-<span class="w">             </span><span class="n">observe_results</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">second</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;g_0.25&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">observe_results</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">second</span><span class="p">,</span>
-<span class="w">             </span><span class="s">&quot;g_4&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">observe_results</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">second</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"heisenberg_model_result.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"g_0"</span><span class="p">,</span>
+<span class="w">             </span><span class="n">observe_results</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">second</span><span class="p">,</span><span class="w"> </span><span class="s">"g_0.25"</span><span class="p">,</span><span class="w"> </span><span class="n">observe_results</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">second</span><span class="p">,</span>
+<span class="w">             </span><span class="s">"g_4"</span><span class="p">,</span><span class="w"> </span><span class="n">observe_results</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">second</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Simulation complete. The results are saved in &quot;</span>
-<span class="w">               </span><span class="s">&quot;heisenberg_model_result.csv file.&quot;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Simulation complete. The results are saved in "</span>
+<span class="w">               </span><span class="s">"heisenberg_model_result.csv file."</span>
 <span class="w">            </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -1748,10 +1762,10 @@ callbacks for modelling control pulses.</p>
 <span class="c1">// nvq++ --target dynamics qubit_control.cpp -o a.out &amp;&amp; ./a.out</span>
 <span class="c1">// ```</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;export_csv_helper.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"export_csv_helper.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/evolve.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/integrator.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/operators.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1768,17 +1782,17 @@ callbacks for modelling control pulses.</p>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="p">[</span><span class="n">omega_drive</span><span class="p">](</span>
 <span class="w">          </span><span class="k">const</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">parameter_map</span><span class="w"> </span><span class="o">&amp;</span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">"t"</span><span class="p">);</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">end</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">real</span><span class="p">();</span>
 <span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">omega_drive</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Cannot find the time parameter.&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Cannot find the time parameter."</span><span class="p">);</span>
 <span class="w">  </span><span class="p">};</span>
 
 <span class="w">  </span><span class="c1">// The Hamiltonian consists of two terms:</span>
-<span class="w">  </span><span class="c1">// 1. A static term: 0.5 * omega_z * `Sz`_0, representing the `qubit&#39;s`</span>
+<span class="w">  </span><span class="c1">// 1. A static term: 0.5 * omega_z * `Sz`_0, representing the `qubit's`</span>
 <span class="w">  </span><span class="c1">// intrinsic energy splitting.</span>
 <span class="w">  </span><span class="c1">// 2. A time-dependent driving term: omega_x * cos(omega_drive * t) * `Sx`_0,</span>
 <span class="w">  </span><span class="c1">// which induces rotations about the X-axis. The scalar_operator(mod_`func`)</span>
@@ -1805,13 +1819,13 @@ callbacks for modelling control pulses.</p>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="n">t_final</span><span class="p">,</span><span class="w"> </span><span class="n">num_steps</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// The schedule carries the time parameter `labelled` `t`, which is used by</span>
 <span class="w">  </span><span class="c1">// mod_`func`.</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">});</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">"t"</span><span class="p">});</span>
 
 <span class="w">  </span><span class="c1">// A default Runge-`Kutta` integrator (4`th` order) with time step `dt`</span>
 <span class="w">  </span><span class="c1">// depending on the schedule.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">integrators</span><span class="o">::</span><span class="n">runge_kutta</span><span class="w"> </span><span class="n">integrator</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// Measure the expectation values of the `qubit&#39;s` spin components along the</span>
+<span class="w">  </span><span class="c1">// Measure the expectation values of the `qubit's` spin components along the</span>
 <span class="w">  </span><span class="c1">// X, Y, and Z directions.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">observables</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
 <span class="w">                      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)};</span>
@@ -1856,15 +1870,15 @@ callbacks for modelling control pulses.</p>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">decoherence_result_z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">evolve_result_decay</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Export the results to a `CSV` file</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;qubit_control_ideal_result.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;t&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_x&quot;</span><span class="p">,</span>
-<span class="w">             </span><span class="n">ideal_result_x</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_y&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result_y</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"qubit_control_ideal_result.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"t"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_x"</span><span class="p">,</span>
+<span class="w">             </span><span class="n">ideal_result_x</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_y"</span><span class="p">,</span><span class="w"> </span><span class="n">ideal_result_y</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_z"</span><span class="p">,</span>
 <span class="w">             </span><span class="n">ideal_result_z</span><span class="p">);</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;qubit_control_decoherence_result.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;t&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_x&quot;</span><span class="p">,</span>
-<span class="w">             </span><span class="n">decoherence_result_x</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_y&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">decoherence_result_y</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"qubit_control_decoherence_result.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"t"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_x"</span><span class="p">,</span>
+<span class="w">             </span><span class="n">decoherence_result_x</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_y"</span><span class="p">,</span><span class="w"> </span><span class="n">decoherence_result_y</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_z"</span><span class="p">,</span>
 <span class="w">             </span><span class="n">decoherence_result_z</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Results exported to qubit_control_ideal_result.csv and &quot;</span>
-<span class="w">               </span><span class="s">&quot;qubit_control_decoherence_result.csv&quot;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Results exported to qubit_control_ideal_result.csv and "</span>
+<span class="w">               </span><span class="s">"qubit_control_decoherence_result.csv"</span>
 <span class="w">            </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
@@ -1890,10 +1904,10 @@ the same Hamiltonian simultaneously.</p>
 <span class="c1">// nvq++ --target dynamics qubit_dynamics.cpp -o a.out &amp;&amp; ./a.out</span>
 <span class="c1">// ```</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;export_csv_helper.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"export_csv_helper.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/evolve.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/algorithms/integrator.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/operators.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1941,13 +1955,13 @@ the same Hamiltonian simultaneously.</p>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result_state1_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">evolve_results</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result_state1_z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_expectation</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">evolve_results</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;qubit_dynamics_state_0.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_y&quot;</span><span class="p">,</span>
-<span class="w">             </span><span class="n">result_state0_y</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_z&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result_state0_z</span><span class="p">);</span>
-<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">&quot;qubit_dynamics_state_1.csv&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;time&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_y&quot;</span><span class="p">,</span>
-<span class="w">             </span><span class="n">result_state1_y</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sigma_z&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result_state1_z</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"qubit_dynamics_state_0.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_y"</span><span class="p">,</span>
+<span class="w">             </span><span class="n">result_state0_y</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_z"</span><span class="p">,</span><span class="w"> </span><span class="n">result_state0_z</span><span class="p">);</span>
+<span class="w">  </span><span class="n">export_csv</span><span class="p">(</span><span class="s">"qubit_dynamics_state_1.csv"</span><span class="p">,</span><span class="w"> </span><span class="s">"time"</span><span class="p">,</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_y"</span><span class="p">,</span>
+<span class="w">             </span><span class="n">result_state1_y</span><span class="p">,</span><span class="w"> </span><span class="s">"sigma_z"</span><span class="p">,</span><span class="w"> </span><span class="n">result_state1_z</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Results exported to qubit_dynamics_state_0.csv and &quot;</span>
-<span class="w">               </span><span class="s">&quot;qubit_dynamics_state_1.csv&quot;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Results exported to qubit_dynamics_state_0.csv and "</span>
+<span class="w">               </span><span class="s">"qubit_dynamics_state_1.csv"</span>
 <span class="w">            </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>

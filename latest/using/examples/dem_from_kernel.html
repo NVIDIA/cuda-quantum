@@ -241,8 +241,8 @@
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#scaleway">Scaleway</a></li>
@@ -505,7 +505,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -719,7 +718,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +762,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -832,7 +839,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -863,6 +873,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -912,6 +923,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -982,6 +994,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -989,6 +1002,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1096,11 +1110,17 @@ to infer which errors occurred from a circuit’s measurement record.</p>
 <p>In CUDA-Q you declare the parity checks (<em>detectors</em>) and <em>logical observables</em>
 directly inside a kernel, then extract the DEM with
 <code class="code docutils literal notranslate"><span class="pre">cudaq::dem_from_kernel</span></code> (C++) or <code class="code docutils literal notranslate"><span class="pre">cudaq.dem_from_kernel</span></code> (Python)
-as text in Stim’s standard
+in Stim’s standard
 <a class="reference external" href="https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md">.dem file format</a>,
 which <code class="docutils literal notranslate"><span class="pre">stim.DetectorErrorModel</span></code> parses back into a decoder-ready model. The
 measurements that feed the declarations are <em>measurement handles</em>
 (<a class="reference internal" href="measuring_kernels.html"><span class="doc">Measuring Kernels</span></a>).</p>
+<p>In Python, <code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> returns a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.DEMResult" title="cudaq.DEMResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.DEMResult</span></code></a>. Its <code class="docutils literal notranslate"><span class="pre">dem</span></code>
+property contains the <code class="docutils literal notranslate"><span class="pre">.dem</span></code> text, and <code class="docutils literal notranslate"><span class="pre">str(result)</span></code> returns the same text.
+For example, construct a Stim model with
+<code class="docutils literal notranslate"><span class="pre">stim.DetectorErrorModel(result.dem)</span></code>. The result also reports the detector,
+observable, and measurement counts and, by default, contains the measurement
+matrices described below.</p>
 <p>Three kernel-side declarations are available in both C++ and Python :
 <code class="docutils literal notranslate"><span class="pre">detector(m0,</span> <span class="pre">m1,</span> <span class="pre">...)</span></code> declares one detector as a parity
 constraint over the given measurements; <code class="docutils literal notranslate"><span class="pre">detectors(prev,</span> <span class="pre">curr)</span></code> declares <code class="docutils literal notranslate"><span class="pre">N</span></code>
@@ -1172,12 +1192,13 @@ and the other predefined noise channels.</p>
 <p>Pass the kernel (and a noise model) to <code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> to extract the DEM.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the detector error model as Stim `.dem` text. A noise model must be</span>
-<span class="c1"># supplied for the in-kernel `apply_noise` mechanisms to take effect. Parse the</span>
-<span class="c1"># text with `stim.DetectorErrorModel(dem)` to drive a decoder.</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the detector error model. A noise model must be supplied for the</span>
+<span class="c1"># in-kernel `apply_noise` mechanisms to take effect. The result's `dem` member</span>
+<span class="c1"># contains Stim `.dem` text; pass it to `stim.DetectorErrorModel(result.dem)`</span>
+<span class="c1"># to drive a decoder. Converting the result to a string also returns this text.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">dem</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Memory experiment DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1189,7 +1210,7 @@ and the other predefined noise channels.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"Memory experiment DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
 </pre></div>
 </div>
 </div>
@@ -1359,8 +1380,8 @@ hyper-edge decomposes into (since <code class="docutils literal notranslate"><sp
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
     <span class="n">decompose_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Raw DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_raw</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_decomposed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Raw DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_raw</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Decomposed DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_decomposed</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1375,8 +1396,8 @@ argument (after the noise model):</p>
 <span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">decompose_errors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">opts</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Raw DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_raw</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"Raw DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">dem_raw</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"Decomposed DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
 </pre></div>
 </div>
 </div>
@@ -1401,38 +1422,42 @@ error(0.01000000000000000021) D1
 <h2>Measurement Matrices<a class="headerlink" href="#measurement-matrices" title="Permalink to this heading">¶</a></h2>
 <p>The DEM describes how error mechanisms flip detectors, but decoders often also
 need to know how the raw measurement record maps onto the detectors and logical
-observables. <code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> can return that mapping alongside the DEM text
-as two sparse binary <em>measurement matrices</em>, <code class="docutils literal notranslate"><span class="pre">m2d</span></code> and <code class="docutils literal notranslate"><span class="pre">m2o</span></code>:</p>
+observables. In Python, the <a class="reference internal" href="../../api/languages/python_api.html#cudaq.DEMResult" title="cudaq.DEMResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.DEMResult</span></code></a> returned by
+<code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> provides that mapping as two sparse binary <em>measurement
+matrices</em>, <code class="docutils literal notranslate"><span class="pre">m2d_matrix</span></code> and <code class="docutils literal notranslate"><span class="pre">m2o_matrix</span></code>:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">m2d</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_detectors,</span> <span class="pre">num_measurements)</span></code>. Entry
-<code class="docutils literal notranslate"><span class="pre">m2d[d,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to detector <code class="docutils literal notranslate"><span class="pre">d</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">m2o</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_observables,</span> <span class="pre">num_measurements)</span></code>. Entry
-<code class="docutils literal notranslate"><span class="pre">m2o[k,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to observable <code class="docutils literal notranslate"><span class="pre">k</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m2d_matrix</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_detectors,</span> <span class="pre">num_measurements)</span></code>. Entry
+<code class="docutils literal notranslate"><span class="pre">m2d_matrix[d,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to detector <code class="docutils literal notranslate"><span class="pre">d</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m2o_matrix</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_observables,</span> <span class="pre">num_measurements)</span></code>. Entry
+<code class="docutils literal notranslate"><span class="pre">m2o_matrix[k,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to observable <code class="docutils literal notranslate"><span class="pre">k</span></code>.</p></li>
 </ul>
 <p>In both matrices the columns are indexed by measurement in chronological order.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
-<p>Pass <code class="docutils literal notranslate"><span class="pre">return_measurement_matrices=True</span></code>. The function then returns a
-3-tuple <code class="docutils literal notranslate"><span class="pre">(dem_text,</span> <span class="pre">m2d,</span> <span class="pre">m2o)</span></code> instead of a plain string, where <code class="docutils literal notranslate"><span class="pre">m2d</span></code>
-and <code class="docutils literal notranslate"><span class="pre">m2o</span></code> are <code class="docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix</span></code> objects with binary entries:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set return_measurement_matrices=True to also obtain the sparse</span>
-<span class="c1"># measurements-to-detectors (m2d) and measurements-to-observables (m2o)</span>
-<span class="c1"># matrices. The function then returns a 3-tuple instead of a plain string.</span>
-<span class="c1"># Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their</span>
-<span class="c1"># columns are indexed by measurement in chronological order.</span>
-<span class="n">dem_text</span><span class="p">,</span> <span class="n">m2d</span><span class="p">,</span> <span class="n">m2o</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span>
+<p>Measurement matrices are computed by default. The <code class="docutils literal notranslate"><span class="pre">m2d_matrix</span></code> and
+<code class="docutils literal notranslate"><span class="pre">m2o_matrix</span></code> properties are <code class="docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix</span></code> objects with
+binary entries. Pass <code class="docutils literal notranslate"><span class="pre">return_measurement_matrices=False</span></code> to skip their
+computation; both properties will then be <code class="docutils literal notranslate"><span class="pre">None</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># `dem_from_kernel` returns a `cudaq.DEMResult`. By default, its `m2d_matrix`</span>
+<span class="c1"># and `m2o_matrix` properties contain the sparse measurements-to-detectors and</span>
+<span class="c1"># measurements-to-observables matrices. Both are `scipy.sparse.csr_matrix`</span>
+<span class="c1"># objects with binary entries, and their columns are indexed by measurement in</span>
+<span class="c1"># chronological order. Set `return_measurement_matrices=False` to skip their</span>
+<span class="c1"># computation; both properties will then be `None`.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span>
     <span class="n">memory_experiment</span><span class="p">,</span>
     <span class="mi">2</span><span class="p">,</span>
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">return_measurement_matrices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="n">m2d</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">m2d_matrix</span>
+<span class="n">m2o</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">m2o_matrix</span>
 <span class="c1"># m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means</span>
 <span class="c1"># measurement m contributes to detector d. m2o has shape</span>
 <span class="c1"># `(num_observables, num_measurements)` with the same convention for observables.</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d shape: </span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o shape: </span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2d shape: </span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2o shape: </span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2d:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"m2o:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1450,9 +1475,9 @@ observable, and <code class="docutils literal notranslate"><span class="pre">num
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2OSparseMatrix</span><span class="w"> </span><span class="n">m2o</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_mm</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2d: %zu detectors x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"m2d: %zu detectors x %zu measurements</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
 <span class="w">              </span><span class="n">m2d</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2o: %zu observables x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"m2o: %zu observables x %zu measurements</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
 <span class="w">              </span><span class="n">m2o</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// The measurement matrices can be combined with any DEM options by passing a</span>

@@ -239,9 +239,8 @@ latest
         -   [OQC](#oqc){.reference .internal}
         -   [ORCA Computing](#orca-computing){.reference .internal}
         -   [Pasqal](#pasqal){.reference .internal}
+        -   [qBraid](#qbraid){.reference .internal}
         -   [Quantinuum](#quantinuum){.reference .internal}
-        -   [Quantum Circuits, Inc.](#quantum-circuits-inc){.reference
-            .internal}
         -   [Quantum Machines](#quantum-machines){.reference .internal}
         -   [QuEra Computing](#quera-computing){.reference .internal}
         -   [Scaleway](#scaleway){.reference .internal}
@@ -746,9 +745,6 @@ latest
                 .internal}
             -   [OQC](../backends/hardware/superconducting.html#oqc){.reference
                 .internal}
-            -   [Quantum Circuits,
-                Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
-                .internal}
             -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
@@ -1140,6 +1136,9 @@ latest
         -   [Dependencies and
             Compatibility](../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1205,6 +1204,15 @@ latest
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -1349,6 +1357,9 @@ latest
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
+            -   [6.1. Atomic quantum
+                regions](../../specification/cudaq/kernels.html#atomic-quantum-regions){.reference
+                .internal}
         -   [7. Sub-circuit
             Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
@@ -1417,6 +1428,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -1521,6 +1535,9 @@ latest
                 .internal}
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
@@ -1694,6 +1711,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1714,6 +1734,9 @@ latest
                 .internal}
             -   [[`Resources`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
+            -   [[`EstimateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EstimateResult){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -3177,6 +3200,133 @@ C++
 :::
 :::
 
+::: {#qbraid .section}
+[]{#qbraid-examples}
+
+## qBraid[¶](#qbraid "Permalink to this heading"){.headerlink}
+
+The following code illustrates how to run kernels on qBraid's backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+
+    # You only have to set the target once! No need to redefine it
+    # for every execution call on your kernel.
+    # To use different targets in the same file, you must update
+    # it via another call to `cudaq.set_target()`
+    cudaq.set_target("qbraid")
+
+
+    # Create the kernel we'd like to execute on qBraid.
+    @cudaq.kernel
+    def kernel():
+        qvector = cudaq.qvector(2)
+        h(qvector[0])
+        x.ctrl(qvector[0], qvector[1])
+
+
+    # Execute on qBraid and print out the results.
+
+    # Option A:
+    # By using the asynchronous `cudaq.sample_async`, the remaining
+    # classical code will be executed while the job is being handled
+    # by qBraid. This is ideal when submitting via a queue over
+    # the cloud.
+    async_results = cudaq.sample_async(kernel)
+    # ... more classical code to run ...
+
+    # We can either retrieve the results later in the program with
+    # ```
+    # async_counts = async_results.get()
+    # ```
+    # or we can also write the job reference (`async_results`) to
+    # a file and load it later or from a different process.
+    file = open("future.txt", "w")
+    file.write(str(async_results))
+    file.close()
+
+    # We can later read the file content and retrieve the job
+    # information and results.
+    same_file = open("future.txt", "r")
+    retrieved_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
+
+    counts = retrieved_async_results.get()
+    print(counts)
+
+    # Option B:
+    # By using the synchronous `cudaq.sample`, the execution of
+    # any remaining classical code in the file will occur only
+    # after the job has been returned from qBraid.
+    counts = cudaq.sample(kernel)
+    print(counts)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Compile and run with:
+    // ```
+    // nvq++ --target qbraid qbraid.cpp -o out.x && ./out.x
+    // ```
+    // This will submit the job to the qBraid ideal simulator target (default).
+
+    #include <cudaq.h>
+    #include <fstream>
+
+    // Define a simple quantum kernel to execute on qBraid.
+    struct ghz {
+      // Maximally entangled state between 5 qubits.
+      auto operator()() __qpu__ {
+        cudaq::qvector q(5);
+        h(q[0]);
+        for (int i = 0; i < 4; i++) {
+          x<cudaq::ctrl>(q[i], q[i + 1]);
+        }
+        auto result = mz(q);
+      }
+    };
+
+    int main() {
+      // Submit to qBraid asynchronously (e.g., continue executing
+      // code in the file until the job has been returned).
+      auto future = cudaq::sample_async(ghz{});
+      // ... classical code to execute in the meantime ...
+
+      // Can write the future to file:
+      {
+        std::ofstream out("saveMe.json");
+        out << future;
+      }
+
+      // Then come back and read it in later.
+      cudaq::async_result<cudaq::sample_result> readIn;
+      std::ifstream in("saveMe.json");
+      in >> readIn;
+
+      // Get the results of the read in future.
+      auto async_counts = readIn.get();
+      async_counts.dump();
+
+      // OR: Submit to qBraid synchronously (e.g., wait for the job
+      // result to be returned before proceeding).
+      auto counts = cudaq::sample(ghz{});
+      counts.dump();
+    }
+:::
+:::
+:::
+:::
+:::
+
 ::: {#quantinuum .section}
 []{#quantinuum-examples}
 
@@ -3319,158 +3469,6 @@ C++
       // result to be returned before proceeding).
       auto counts = cudaq::sample(ghz{});
       counts.dump();
-    }
-:::
-:::
-:::
-:::
-:::
-
-::: {#quantum-circuits-inc .section}
-[]{#quantum-circuits-examples}
-
-## Quantum Circuits, Inc.[¶](#quantum-circuits-inc "Permalink to this heading"){.headerlink}
-
-The following code illustrates how to run kernels on Quantum Circuits'
-backends.
-
-::: {.tab-set .docutils}
-Python
-
-::: {.tab-content .docutils}
-::: {.highlight-python .notranslate}
-::: highlight
-    import cudaq
-
-    # Make sure to export or otherwise present your user token via the environment,
-    # e.g., using export:
-    # ```
-    # export QCI_AUTH_TOKEN="your token here"
-    # ```
-    #
-    # The example will run on QCI's AquSim simulator by default.
-
-    cudaq.set_target("qci")
-
-
-    @cudaq.kernel
-    def teleportation():
-
-        # Initialize a three qubit quantum circuit
-        qubits = cudaq.qvector(3)
-
-        # Random quantum state on qubit 0.
-        rx(3.14, qubits[0])
-        ry(2.71, qubits[0])
-        rz(6.62, qubits[0])
-
-        # Create a maximally entangled state on qubits 1 and 2.
-        h(qubits[1])
-        cx(qubits[1], qubits[2])
-
-        cx(qubits[0], qubits[1])
-
-        h(qubits[0])
-        m1 = mz(qubits[0])
-        m2 = mz(qubits[1])
-
-        if m1 == 1:
-            z(qubits[2])
-
-        if m2 == 1:
-            x(qubits[2])
-
-        mz(qubits)
-
-
-    print(cudaq.sample(teleportation))
-:::
-:::
-:::
-
-C++
-
-::: {.tab-content .docutils}
-::: {.highlight-cpp .notranslate}
-::: highlight
-    // Compile with
-    // ```
-    // nvq++ teleport.cpp --target qci -o teleport.x
-    // ```
-    //
-    // Make sure to export or otherwise present your user token via the environment,
-    // e.g., using export:
-    // ```
-    // export QCI_AUTH_TOKEN="your token here"
-    // ```
-    //
-    // Then run against the Seeker or AquSim with:
-    // ```
-    // ./teleport.x
-    // ```
-
-    #include <array>
-    #include <cudaq.h>
-    #include <iostream>
-
-    struct teleportation {
-      auto operator()() __qpu__ {
-        std::vector<bool> results(3);
-
-        // Initialize a three qubit quantum circuit
-        cudaq::qvector qubits(3);
-
-        // Random quantum state on qubit 0.
-        rx(3.14, qubits[0]);
-        ry(2.71, qubits[0]);
-        rz(6.62, qubits[0]);
-
-        // Create a maximally entangled state on qubits 1 and 2.
-        h(qubits[1]);
-        cx(qubits[1], qubits[2]);
-
-        cx(qubits[0], qubits[1]);
-        h(qubits[0]);
-
-        results[0] = mz(qubits[0]);
-        results[1] = mz(qubits[1]);
-
-        if (results[0]) {
-          z(qubits[2]);
-        }
-
-        if (results[1]) {
-          x(qubits[2]);
-        }
-
-        results[2] = mz(qubits[2]);
-        return results;
-      }
-    };
-
-    int main() {
-      // Note: Increase the number of shots to get closer to expected probabilities.
-      constexpr std::size_t num_shots = 25;
-      auto results = cudaq::run(num_shots, teleportation{});
-
-      std::array<std::size_t, 3> ones{};
-      for (const auto &shot : results)
-        for (std::size_t q = 0; q < 3; ++q)
-          ones[q] += static_cast<std::size_t>(shot[q]);
-
-      auto freq = [&](std::size_t q) {
-        return static_cast<double>(ones[q]) / num_shots;
-      };
-
-      // `mz[0]` and `mz[1]` are Bell measurement outcomes, so each is ~50%.
-      // Probability of measuring`mz[2]` in 1 is determined by the prepared state,
-      // which is ~4.6% for the angles above.
-      std::cout << "Results over " << num_shots << " shots:\n";
-      for (std::size_t q = 0; q < 3; ++q)
-        std::cout << "  mz[" << q << "] = 1:  " << ones[q] << " / " << num_shots
-                  << "  (" << 100.0 * freq(q) << "%)\n";
-
-      return 0;
     }
 :::
 :::

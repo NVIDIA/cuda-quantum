@@ -31,7 +31,7 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Create your own CUDA-Q Compiler Pass" href="pass_plugins.html" />
+    <link rel="next" title="External compiler pass plugins" href="pass_plugins.html" />
     <link rel="prev" title="CUDA-Q compiler development" href="index.html" /> 
 </head>
 
@@ -241,8 +241,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#scaleway">Scaleway</a></li>
@@ -505,7 +505,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#oqc">OQC</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
@@ -719,7 +718,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +762,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../backend.html">Add a hardware backend</a><ul>
@@ -832,7 +839,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/kernels.html#atomic-quantum-regions">6.1. Atomic quantum regions</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -863,6 +873,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -912,6 +923,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
@@ -982,6 +994,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -989,6 +1002,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EstimateResult"><code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1081,7 +1095,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="index.html" class="btn btn-neutral float-left" title="CUDA-Q compiler development" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="pass_plugins.html" class="btn btn-neutral float-right" title="Create your own CUDA-Q Compiler Pass" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="pass_plugins.html" class="btn btn-neutral float-right" title="External compiler pass plugins" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -1125,6 +1139,66 @@ requires one of these forms must state that requirement explicitly.</p>
 <p>The authored
 <a class="reference internal" href="../../../specification/quake-dialect.html"><span class="doc">Quake semantic specification</span></a>
 explains the reference and value models and the reasoning behind them.</p>
+<section id="linear-value-quake-ir">
+<span id="quake-linear-values"></span><h4>Linear-value Quake IR<a class="headerlink" href="#linear-value-quake-ir" title="Permalink to this heading">¶</a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">convert-to-linear-values</span></code> pipeline turns supported Quake references into
+linear values. Each converted qubit becomes a <code class="docutils literal notranslate"><span class="pre">!quake.wire</span></code> threaded from one
+operation to the next, making dependencies visible to optimization passes.</p>
+<p>Where possible, the pipeline splits fixed-size allocations and vector controls
+into individual wires. A <code class="docutils literal notranslate"><span class="pre">!quake.cable</span></code> keeps wires grouped and ordered when
+they cross into reference-form code. Dynamic registers, runtime-indexed
+elements, and anything else the pipeline cannot convert stay in reference form.
+This pipeline changes the representation only. It does not simplify gates.</p>
+<p>Run the registered pipeline on a Quake module with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cudaq-opt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--pass-pipeline<span class="o">=</span><span class="s1">'builtin.module(convert-to-linear-values)'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>input.qke<span class="w"> </span>-o<span class="w"> </span>-
+</pre></div>
+</div>
+<p>For example, start with:</p>
+<div class="highlight-mlir notranslate"><div class="highlight"><pre><span></span>func.func private @callee(!quake.veq&lt;?&gt;)
+
+func.func @linear_values(%dynamic : !quake.veq&lt;?&gt;) {
+  %controls = quake.alloca !quake.veq&lt;2&gt;
+  %target = quake.alloca !quake.ref
+  quake.h %target : (!quake.ref) -&gt; ()
+  quake.h %target : (!quake.ref) -&gt; ()
+  quake.x [%controls] %target : (!quake.veq&lt;2&gt;, !quake.ref) -&gt; ()
+  %relaxed = quake.relax_size %controls : (!quake.veq&lt;2&gt;) -&gt; !quake.veq&lt;?&gt;
+  call @callee(%relaxed) : (!quake.veq&lt;?&gt;) -&gt; ()
+  quake.dealloc %target : !quake.ref
+  quake.dealloc %controls : !quake.veq&lt;2&gt;
+  return
+}
+</pre></div>
+</div>
+<p>The command produces:</p>
+<div class="highlight-mlir notranslate"><div class="highlight"><pre><span></span>module {
+  func.func private @callee(!quake.veq&lt;?&gt;)
+  func.func @linear_values(%arg0: !quake.veq&lt;?&gt;) {
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.h %2 : (!quake.wire) -&gt; !quake.wire
+    %4 = quake.h %3 : (!quake.wire) -&gt; !quake.wire
+    %5:3 = quake.x [%0, %1] %4 : (!quake.wire, !quake.wire, !quake.wire) -&gt; (!quake.wire, !quake.wire, !quake.wire)
+    %6 = quake.bundle_cable %5#0, %5#1 : (!quake.wire, !quake.wire) -&gt; !quake.cable&lt;2&gt;
+    %7 = quake.call_by_ref @callee(%6) : (!quake.cable&lt;2&gt;) -&gt; !quake.cable&lt;2&gt;
+    %8:2 = quake.split_cable %7 : (!quake.cable&lt;2&gt;) -&gt; (!quake.wire, !quake.wire)
+    quake.sink %5#2 : !quake.wire
+    quake.sink %8#0 : !quake.wire
+    quake.sink %8#1 : !quake.wire
+    return
+  }
+}
+</pre></div>
+</div>
+</section>
+<section id="mapped-quake-ir">
+<h4>Mapped Quake IR<a class="headerlink" href="#mapped-quake-ir" title="Permalink to this heading">¶</a></h4>
+<p>The mapping pass emits Mapped Quake IR, in which kernels borrow device wires
+from <code class="docutils literal notranslate"><span class="pre">&#64;mapped_wireset</span></code>.</p>
+</section>
 </section>
 <section id="cc">
 <h3>CC<a class="headerlink" href="#cc" title="Permalink to this heading">¶</a></h3>
@@ -1183,7 +1257,7 @@ are under <code class="docutils literal notranslate"><span class="pre">cudaq/uni
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="CUDA-Q compiler development" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="pass_plugins.html" class="btn btn-neutral float-right" title="Create your own CUDA-Q Compiler Pass" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="pass_plugins.html" class="btn btn-neutral float-right" title="External compiler pass plugins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
