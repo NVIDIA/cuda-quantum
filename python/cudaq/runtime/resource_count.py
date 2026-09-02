@@ -51,8 +51,11 @@ def estimate(kernel, *args, **kwargs):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     choice = kwargs.get("choice", None)
+    endpoint_options = {
+        key: value for key, value in kwargs.items() if key != "choice"
+    }
     return cudaq_runtime.estimate_impl(decorator.uniqName, module, choice,
-                                       *processedArgs)
+                                       endpoint_options, *processedArgs)
 
 
 @trace.traced

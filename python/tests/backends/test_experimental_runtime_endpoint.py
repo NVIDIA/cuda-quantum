@@ -237,6 +237,18 @@ def test_estimate_forwards_the_choice_function():
     assert kwargs["choice"]() is True
 
 
+def test_estimate_forwards_endpoint_options():
+    endpoint = DemoEndpoint()
+    set_runtime_endpoint(endpoint)
+
+    marker = object()
+    cudaq.estimate(kernel, 1, [1, 2, 3], tier="logical", marker=marker)
+
+    _, _, kwargs = endpoint.calls[0]
+    assert kwargs["tier"] == "logical"
+    assert kwargs["marker"] is marker
+
+
 def test_estimate_resources_launch():
     endpoint = DemoEndpoint()
     set_runtime_endpoint(endpoint)

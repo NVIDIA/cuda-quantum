@@ -166,9 +166,11 @@ class SupportsEstimate(RuntimeEndpoint, Protocol):
                  **kwargs) -> EstimateResult:
         """Estimate the resources a compiled kernel would use.
 
-        Keyword arguments: ``choice``, a callable returning a `bool` that
-        resolves each measurement so that kernels branching on measurement
-        results take a definite path.
+        Keyword arguments include ``choice``, a callable returning a ``bool``
+        that resolves each measurement so that kernels branching on measurement
+        results take a definite path. Additional keyword arguments passed to
+        :func:`cudaq.estimate` are forwarded unchanged for endpoint-specific
+        estimation options.
         """
         ...
 

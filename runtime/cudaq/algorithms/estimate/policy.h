@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/CompileOptions.h"
+#include "cudaq/algorithms/endpoint_options.h"
 #include "cudaq/algorithms/estimate/result.h"
 #include <functional>
 #include <string>
@@ -27,6 +28,9 @@ struct estimate_policy {
   /// Invoked for every measurement to deterministically pick which branch to
   /// follow when the kernel branches on a measurement result.
   std::function<bool()> choice;
+
+  /// Options for a runtime endpoint that CUDA-Q itself does not interpret.
+  std::shared_ptr<endpoint_options> endpointOptions;
 
   friend CompileOptions get_compile_options_impl(const estimate_policy &);
 };
