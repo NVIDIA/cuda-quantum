@@ -128,11 +128,7 @@ message(STATUS "Using MLIR from ${MLIR_DIR}")
 message(STATUS "Shared MLIR:     ${CUDAQ_LIBRARY_DIR}")
 
 # --------------------------------------------------------------------------- #
-# Runtime-wheel Python binding artifacts
-#
-# libcudaqMLIRCAPI and MLIRPythonSupport-cudaq live in the CUDA-Q *runtime*
-# wheel, not in cudaq-devel. QLX Python extensions register into that existing
-# type universe, so the .so files must be present at configure time.
+# Locate all required CUDA-Q Python binding libraries
 # --------------------------------------------------------------------------- #
 set(_qlx_cudaq_mlir_capi
   "${CUDAQ_LIBRARY_DIR}/libcudaqMLIRCAPI${CMAKE_SHARED_LIBRARY_SUFFIX}")

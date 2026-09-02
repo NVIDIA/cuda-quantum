@@ -72,15 +72,6 @@ static std::vector<std::string> &getPluginPaths() {
   return *paths;
 }
 
-static void ensurePassesRegistered() {
-  static const bool once = [] {
-    mlirRegisterTransformsPasses();
-    qlxRegisterAllPasses();
-    return true;
-  }();
-  (void)once;
-}
-
 static void promoteHostLibrariesGlobal() {
   // Promote the QLX Python CAPI and CUDA-Q MLIR images to RTLD_GLOBAL so
   // plugins built with --unresolved-symbols=ignore-all can find MLIR and
@@ -119,7 +110,6 @@ inline MlirStringRef toRef(const std::string &s) {
 }
 
 void runPassPipeline(MlirModule pyModule, const std::string &pipeline) {
-  ensurePassesRegistered();
   mlir::ModuleOp mod = unwrap(pyModule);
   mlir::MLIRContext *ctx = mod.getContext();
   mlir::PassManager pm(ctx);
@@ -179,7 +169,6 @@ NB_MODULE(_qlxRuntime, m) {
   m.def(
       "load_plugin",
       [](const std::string &path) {
-        ensurePassesRegistered();
         promoteHostLibrariesGlobal();
 
         // Register the plugin's passes immediately into the global pass

@@ -219,8 +219,7 @@ declare_qlx_product_dialect_python_bindings(
 # _site_initialize_1: CUDA-Q owns _site_initialize_0. MLIR's loader counts
 # up from 0 and stops at the first gap, so a third distribution taking
 # index 2 would only load while cudaq-logical is installed.
-# Dialect handles are registered here; pass registration is deferred to
-# _qlxRuntime (first use) so a bare `import cudaq` stays cheap.
+# Dialect handles and the QLX pass set are registered here at import time.
 declare_mlir_python_extension(QLXPythonSources.Init
   MODULE_NAME _site_initialize_1
   ADD_TO_PARENT QLXPythonSources
