@@ -436,10 +436,14 @@ class PyASTBridge(ast.NodeVisitor):
         # `id(<ast.For node>)`
         self.loopLocalTargets = {}
         self.sinkAllocaNames = set()
+        # `for` loop targets read after their loop and bound nowhere else
+        self.loopEscapingTargets = {}
+        self.boundLoopTargets = set()
 
     def __analyzeLoopLocalTargets(self, statements, argNames):
         """Record, for each `for` loop in `statements`, which of its target
-        variables never occur outside that loop.
+        variables never occur outside that loop, and which of them are read
+        outside it without ever being bound outside it.
 
         Python keeps a loop variable alive after its loop, so by default the
         storage for one is allocated in the function's entry block. That is
@@ -450,6 +454,7 @@ class PyASTBridge(ast.NodeVisitor):
         or not anything reads it, and those dead loop-carried values defeat
         `cc.loop` reversal in the apply-op-specialization pass.
         """
+        self.boundLoopTargets.clear()
         forNodes = [
             n for stmt in statements for n in ast.walk(stmt)
             if isinstance(n, ast.For)
@@ -461,8 +466,6 @@ class PyASTBridge(ast.NodeVisitor):
             if isinstance(n, ast.Name)
         ]
         for forNode in forNodes:
-            if forNode.orelse:
-                continue
             targets = {
                 t.id
                 for t in ast.walk(forNode.target)
@@ -472,12 +475,27 @@ class PyASTBridge(ast.NodeVisitor):
             if not targets:
                 continue
             insideLoop = {id(n) for n in ast.walk(forNode)}
-            usedOutside = {
-                n.id
-                for n in allNames
+            outside = [
+                n for n in allNames
                 if n.id in targets and id(n) not in insideLoop
-            }
-            local = targets - usedOutside
+            ]
+            # Only a binding before a read can make that read well-defined.
+            position = lambda n: (n.lineno, n.col_offset)
+            loopEnd = (forNode.end_lineno, forNode.end_col_offset)
+            boundSoFar = set()
+            escaping = {}
+            for n in sorted(outside, key=position):
+                if not isinstance(n.ctx, ast.Load):
+                    boundSoFar.add(n.id)
+                    continue
+                if n.id in boundSoFar or position(n) < loopEnd:
+                    continue
+                escaping.setdefault(n.id, n)
+            if escaping:
+                self.loopEscapingTargets[id(forNode)] = escaping
+            if forNode.orelse:
+                continue
+            local = targets - {n.id for n in outside}
             if local:
                 self.loopLocalTargets[id(forNode)] = local
 
@@ -1638,6 +1656,65 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             self.emitFatalError("unsupported target in tuple deconstruction",
                                 self.currentNode)
+
+    def __constantIntValue(self, value):
+        """Return `value`'s constant integer, or None if it is not an
+        `arith.constant`."""
+        op = getattr(value, 'operation', None)
+        if op is None:
+            op = getattr(value, 'owner', None)
+        if getattr(op, 'name', None) != 'arith.constant':
+            return None
+        try:
+            return IntegerAttr(op.attributes['value']).value
+        except (KeyError, ValueError):
+            return None
+
+    def __staticVeqSize(self, node):
+        """Return the statically known qubit count of `node`, or None."""
+        size = self._staticQvectorSizeFromAst(node)
+        if size is None and isinstance(node, ast.Name):
+            size = self.staticVeqSizes.get(node.id)
+        return size
+
+    def __staticIterationCount(self, node):
+        """Return the statically known trip count of `for ... in <node>`, or
+        None."""
+        if isinstance(node, ast.List):
+            return len(node.elts)
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and
+                node.func.id == 'enumerate' and len(node.args) == 1):
+            return self.__staticIterationCount(node.args[0])
+        return self.__staticVeqSize(node)
+
+    def __staticRangeArgument(self, node):
+        """Return the value of a `range()` argument of the form `len(<veq>)`
+        or `<veq>.size()`, or None."""
+        if not isinstance(node, ast.Call):
+            return None
+        if isinstance(node.func, ast.Name) and node.func.id == 'len' and len(
+                node.args) == 1:
+            return self.__staticIterationCount(node.args[0])
+        if isinstance(node.func, ast.Attribute) and node.func.attr in (
+                'size', 'num_qubits') and not node.args:
+            return self.__staticVeqSize(node.func.value)
+        return None
+
+    def __loopRunsAtLeastOnce(self, node, startVal, endVal, isDecrementing):
+        """Return True if the `for` loop `node` provably runs at least once,
+        and False whenever that cannot be established."""
+        start = self.__constantIntValue(startVal)
+        end = self.__constantIntValue(endVal)
+        if start is not None and end is not None:
+            return end < start if isDecrementing else end > start
+        if isinstance(node.iter, ast.Call) and isinstance(
+                node.iter.func, ast.Name) and node.iter.func.id == 'range':
+            if len(node.iter.args) != 1 or start != 0:
+                return False
+            count = self.__staticRangeArgument(node.iter.args[0])
+        else:
+            count = self.__staticIterationCount(node.iter)
+        return count is not None and count > 0
 
     def __processRangeLoopIterationBounds(self, pyVals):
         """Analyze `range(...)` bounds and return the start, end, and step
@@ -5439,6 +5516,28 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 self.emitFatalError('{} iterable type not supported.', node)
 
+        # A loop that never runs leaves its variable unbound in Python. A
+        # kernel cannot raise `NameError`, and would read the variable's stack
+        # slot uninitialized, so reject the read instead.
+        runsAtLeastOnce = self.__loopRunsAtLeastOnce(node, startVal, endVal,
+                                                     isDecrementing)
+        escaping = sorted((name, read.lineno + self.locationOffset[1] - 1)
+                          for name, read in self.loopEscapingTargets.get(
+                              id(node), {}).items()
+                          if name not in self.symbolTable and
+                          name not in self.boundLoopTargets)
+        if escaping and not runsAtLeastOnce:
+            names = ', '.join(name for name, _ in escaping)
+            lines = ', '.join(str(line) for _, line in escaping)
+            self.emitFatalError(
+                f"loop variable(s) {names} may be read (line(s) {lines}) after "
+                "a loop that can run zero times, which leaves them unbound in "
+                "Python - assign them before the loop, or use a loop whose "
+                "trip count is known to be non-zero", node)
+        if runsAtLeastOnce:
+            self.boundLoopTargets.update(
+                t.id for t in ast.walk(node.target) if isinstance(t, ast.Name))
+
         loopLocal = self.loopLocalTargets.get(id(node), set())
 
         def blockBuilder(iterVar, stmts):
@@ -5928,10 +6027,15 @@ class PyASTBridge(ast.NodeVisitor):
                     "qubit", node)
 
         if isinstance(node.op, ast.USub):
-            # Make our lives easier for -1 used in variable subscript extraction
-            if isinstance(node.operand,
-                          ast.Constant) and node.operand.value == 1:
-                self.pushValue(self.getConstantInt(-1))
+            # Fold a negated integer literal into a single constant.
+            if isinstance(node.operand, ast.Constant) and isinstance(
+                    node.operand.value,
+                    int) and not isinstance(node.operand.value, bool):
+                self.pushValue(
+                    self.getConstantInt(
+                        -node.operand.value,
+                        IntegerType(operand.type).width
+                        if IntegerType.isinstance(operand.type) else 64))
                 return
 
             if F64Type.isinstance(operand.type):

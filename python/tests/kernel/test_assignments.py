@@ -1195,14 +1195,28 @@ def test_var_scopes():
     # uninitialized value (i.e. garbage).
 
     @cudaq.kernel
-    def test3(val: int) -> int:
-        qs = cudaq.qvector(val)
-        for idx in range(val):
+    def test3() -> int:
+        qs = cudaq.qvector(5)
+        for idx in range(5):
             x(qs[idx])
         return idx
 
-    assert test3(3) == 2
-    assert test3(5) == 4
+    assert test3() == 4
+
+    # A loop that may run zero times leaves `idx` unbound in Python.
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test3a(val: int) -> int:
+            qs = cudaq.qvector(val)
+            for idx in range(val):
+                x(qs[idx])
+            return idx
+
+        test3a.compile()
+
+    assert "loop variable(s) idx" in str(e.value)
+    assert "after a loop that can run zero times" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
 
