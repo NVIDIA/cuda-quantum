@@ -992,6 +992,26 @@ func.func @cable() {
 // CHECK:           return
 // CHECK:         }
 
+// A classical argument precedes the quantum one, so the result index trails the
+// operand index.
+func.func private @external_wait_call(f64, !quake.ref)
+
+func.func @call_by_ref_leading_classical_arg() {
+  %0 = arith.constant 1.000000e+00 : f64
+  %1 = quake.null_wire
+  %2 = quake.call_by_ref @external_wait_call(%0, %1) : (f64, !quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @call_by_ref_leading_classical_arg() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.call_by_ref @external_wait_call(%[[VAL_0]], %[[VAL_1]]) : (f64, !quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_2]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
 func.func private @integrated_device_callback(i64) -> i64
 
 func.func @integrated_device() {
