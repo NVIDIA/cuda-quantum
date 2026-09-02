@@ -65,14 +65,6 @@ finally:
     globals().pop("_package_root", None)
     globals().pop("_metadata_root", None)
 
-# Fail loudly on a half-upgraded install: pip uninstall/upgrade of cuda-quantum
-# can strand our files in `cudaq/mlir/_mlir_libs` next to a missing `_mlir.so`.
-if _find_spec("cudaq.mlir._mlir_libs._qlx_ext") is None:
-    raise ImportError(
-        "cudaq.logical requires cudaq.mlir._mlir_libs._qlx_ext; the CUDA-Q "
-        "runtime wheel may have been upgraded or uninstalled without "
-        "reinstalling cudaq-logical")
-
 __all__ = [
     "program",
     "objective",

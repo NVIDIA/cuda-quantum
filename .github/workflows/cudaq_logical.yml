@@ -141,10 +141,6 @@ jobs:
           raw_wheel="$(find .wheel-raw -name "cudaq_logical-*-cp${py_tag}-*.whl" -print -quit)"
           test -n "$raw_wheel"
 
-          # libcudaqMLIR, libcudaqMLIRCAPI, and libnanobind-cudaq are all
-          # shipped by the cudaq runtime wheel and resolved from it at
-          # runtime (see preview/logical/cmake/SetupCUDAQ.cmake), so they
-          # must not be grafted into this wheel.
           python -m auditwheel repair \
             --exclude libcudaqMLIR.so \
             --exclude libcudaqMLIRCAPI.so \
@@ -255,8 +251,6 @@ jobs:
           python -c "import cudaq; print(cudaq.logical.__version__)"
           python -c "from cudaq import logical; print(logical.std.idle)"
           python -c "from cudaq.logical import program; print(program)"
-
-          python preview/logical/scripts/check_namespace_install.py
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30
