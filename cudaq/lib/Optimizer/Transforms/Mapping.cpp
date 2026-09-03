@@ -762,15 +762,6 @@ struct RoutingProblem {
   }
 };
 
-/// Returns true when a two-qubit operation has distinct control and target
-/// roles whose physical order must be supported by the device.
-bool requiresDirectedCoupling(const RoutingProblem::Node &node) {
-  if (node.qubits.size() != 2)
-    return false;
-  auto gate = dyn_cast<cudaq::quake::OperatorInterface>(node.op);
-  return gate && !gate.getControls().empty();
-}
-
 /// A single routing decision: a gate mapped onto physical qubits, a swap
 /// inserted between them, an if-op, a loop-op, or a scope. The router
 /// records Gate and Swap events; the recursive router adds structured events.
@@ -1182,10 +1173,6 @@ private:
 
   double computeLayerCost(ArrayRef<NodeRef> layer);
 
-  /// Return the remaining routing cost of a two-qubit gate under the current
-  /// placement, including an adjacent wrong-direction controlled gate.
-  unsigned computeGateCost(const RoutingProblem::Node &node) const;
-
   Swap chooseSwap();
 
   /// Record a swap between two physical qubits: apply it to the placement and
@@ -1273,14 +1260,11 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
   for (auto vr : node.qubits)
     deviceQubits.push_back(placement.getPhy(vr));
 
-  // A non-measurement, non-structured two-qubit operation can be mapped only
-  // when its physical qubits are adjacent and, for a controlled gate, support
-  // its control-to-target direction.
+  // An operation cannot be mapped if it is not a measurement and uses two
+  // virtual qubits that are not adjacently placed.
   if (!node.isMeasure && !isStructuredRoutingOperation(node.op) &&
       deviceQubits.size() == 2 &&
-      (!device.areConnected(deviceQubits[0], deviceQubits[1]) ||
-       (requiresDirectedCoupling(node) &&
-        !device.supportsDirection(deviceQubits[0], deviceQubits[1]))))
+      !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 
   // Structured control flow is routed recursively by ControlFlowRouter.
@@ -1360,28 +1344,19 @@ void SabreRouter::selectExtendedLayer() {
     --visitCount[n.index];
 }
 
-unsigned SabreRouter::computeGateCost(const RoutingProblem::Node &node) const {
-  const auto phy0 = placement.getPhy(node.qubits[0]);
-  const auto phy1 = placement.getPhy(node.qubits[1]);
-  const unsigned distance = device.getDistance(phy0, phy1);
-  // Invariant: findUnroutableInteraction admits only layouts whose two-qubit
-  // interactions are intra-island, and swaps never cross islands.
-  assert(distance != cudaq::Device::unreachableDistance &&
-         "front-layer gate spans disconnected device islands");
-  unsigned cost = distance - 1;
-  // Adjacency normally has zero cost, but a controlled gate on a reverse-only
-  // edge still needs one swap to exchange its physical control and target.
-  if (distance == 1 && requiresDirectedCoupling(node) &&
-      !device.supportsDirection(phy0, phy1))
-    ++cost;
-  return cost;
-}
-
 double SabreRouter::computeLayerCost(ArrayRef<NodeRef> layer) {
   double cost = 0.0;
   for (NodeRef n : layer) {
     const RoutingProblem::Node &node = problem[n];
-    cost += computeGateCost(node);
+    auto phy0 = placement.getPhy(node.qubits[0]);
+    auto phy1 = placement.getPhy(node.qubits[1]);
+    unsigned distance = device.getDistance(phy0, phy1);
+    // Invariant: findUnroutableInteraction admits only layouts whose two-qubit
+    // interactions are intra-island, and swaps never cross islands, so a
+    // routed gate always has a finite distance here.
+    assert(distance != cudaq::Device::unreachableDistance &&
+           "front-layer gate spans disconnected device islands");
+    cost += distance - 1;
   }
   return cost / layer.size();
 }
@@ -1455,9 +1430,15 @@ void SabreRouter::forceClosestGate() {
     const RoutingProblem::Node &node = problem[n];
     if (!node.isTwoQ)
       continue;
-    unsigned cost = computeGateCost(node);
-    if (cost < bestDist) {
-      bestDist = cost;
+    unsigned d = device.getDistance(placement.getPhy(node.qubits[0]),
+                                    placement.getPhy(node.qubits[1]));
+    // Co-island by construction (see `computeLayerCost` /
+    // `findUnroutableInteraction`): a stalled front-layer gate is always
+    // reachable, never unreachableDistance.
+    assert(d != cudaq::Device::unreachableDistance &&
+           "stalled front-layer gate spans disconnected device islands");
+    if (d < bestDist) {
+      bestDist = d;
       closest = n;
     }
   }
@@ -1465,20 +1446,7 @@ void SabreRouter::forceClosestGate() {
   const RoutingProblem::Node &node = problem[closest];
   cudaq::Device::Path path = device.getShortestPath(
       placement.getPhy(node.qubits[0]), placement.getPhy(node.qubits[1]));
-  // An adjacent controlled gate can remain stalled when only the reverse
-  // direction is native. Exchange its logical operands across the edge so the
-  // required control-to-target direction becomes native.
-  if (path.size() == 2) {
-    assert(requiresDirectedCoupling(node) &&
-           !device.supportsDirection(path[0], path[1]) &&
-           device.supportsDirection(path[1], path[0]) &&
-           "an adjacent stalled gate must have the reverse coupling");
-    addSwap(path[0], path[1]);
-    return;
-  }
-  // For a nonadjacent pair, move the first logical operand along the shortest
-  // path until the physical qubits are adjacent. The next mapping attempt
-  // reevaluates the direction of their final edge.
+  // Move one qubit along the path until it is adjacent to the other.
   for (unsigned i = 0; i + 2 < path.size(); ++i)
     addSwap(path[i], path[i + 1]);
 }
@@ -1900,62 +1868,130 @@ public:
   }
 
 private:
-  /// Emit a CX in the requested logical direction. If only the reverse
-  /// physical direction is native, conjugate that CX with Hadamards.
-  void emitDirectionCompliantCX(OpBuilder &builder,
+  /// Rewire `op` to the current wires on `physicalQubits`, then record its
+  /// resulting wires as the new state of those physical qubits.
+  void
+  rewireMappedOperation(Operation *op,
+                        ArrayRef<cudaq::Placement::DeviceQ> physicalQubits) {
+    SmallVector<Value, 2> newOpWires;
+    for (auto qubit : physicalQubits)
+      newOpWires.push_back(phyToWire[qubit.index]);
+    [[maybe_unused]] const LogicalResult rewired =
+        cudaq::quake::setQuantumOperands(op, newOpWires);
+    assert(succeeded(rewired) &&
+           "rewiring with a fixed operand count cannot fail");
+    if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(op))
+      return;
+    for (auto &&[wire, qubit] :
+         llvm::zip_equal(cudaq::quake::getQuantumResults(op), physicalQubits))
+      phyToWire[qubit.index] = wire;
+  }
+
+  void emitHadamard(OpBuilder &builder, Location location,
+                    cudaq::Placement::DeviceQ qubit) {
+    const auto wireType = builder.getType<cudaq::quake::WireType>();
+    auto h = cudaq::quake::HOp::create(
+        builder, location, TypeRange{wireType}, false, ValueRange{},
+        ValueRange{}, ValueRange{phyToWire[qubit.index]}, DenseBoolArrayAttr{});
+    phyToWire[qubit.index] = h.getResult(0);
+  }
+
+  void emitNativeCX(OpBuilder &builder, Location location,
+                    cudaq::Placement::DeviceQ control,
+                    cudaq::Placement::DeviceQ target) {
+    assert(device.supportsDirection(control, target) &&
+           "emitted CX must match a native device direction");
+    const auto wireType = builder.getType<cudaq::quake::WireType>();
+    auto cx = cudaq::quake::XOp::create(
+        builder, location, TypeRange{wireType, wireType}, false, ValueRange{},
+        ValueRange{phyToWire[control.index]},
+        ValueRange{phyToWire[target.index]}, DenseBoolArrayAttr{});
+    phyToWire[control.index] = cx.getResult(0);
+    phyToWire[target.index] = cx.getResult(1);
+  }
+
+  /// Emit a synthesized CX in the requested logical direction.
+  void emitDirectionCompliantCX(OpBuilder &builder, Location location,
                                 cudaq::Placement::DeviceQ control,
                                 cudaq::Placement::DeviceQ target) {
-    const auto emitHadamard = [this,
-                               &builder](cudaq::Placement::DeviceQ qubit) {
-      const auto wireType = builder.getType<cudaq::quake::WireType>();
-      auto h = cudaq::quake::HOp::create(
-          builder, builder.getUnknownLoc(), TypeRange{wireType}, false,
-          ValueRange{}, ValueRange{}, ValueRange{phyToWire[qubit.index]},
-          DenseBoolArrayAttr{});
-      phyToWire[qubit.index] = h.getResult(0);
-    };
-    const auto emitNativeCX =
-        [this, &builder](cudaq::Placement::DeviceQ nativeControl,
-                         cudaq::Placement::DeviceQ nativeTarget) {
-          assert(device.supportsDirection(nativeControl, nativeTarget) &&
-                 "emitted CX must match a native device direction");
-          const auto wireType = builder.getType<cudaq::quake::WireType>();
-          auto cx = cudaq::quake::XOp::create(
-              builder, builder.getUnknownLoc(), TypeRange{wireType, wireType},
-              false, ValueRange{}, ValueRange{phyToWire[nativeControl.index]},
-              ValueRange{phyToWire[nativeTarget.index]}, DenseBoolArrayAttr{});
-          phyToWire[nativeControl.index] = cx.getResult(0);
-          phyToWire[nativeTarget.index] = cx.getResult(1);
-        };
-
     if (device.supportsDirection(control, target)) {
-      emitNativeCX(control, target);
+      emitNativeCX(builder, location, control, target);
       return;
     }
 
     assert(device.supportsDirection(target, control) &&
            "a routing edge must support at least one CX direction");
-    emitHadamard(control);
-    emitHadamard(target);
-    emitNativeCX(target, control);
-    emitHadamard(control);
-    emitHadamard(target);
+    emitHadamard(builder, location, control);
+    emitHadamard(builder, location, target);
+    emitNativeCX(builder, location, target, control);
+    emitHadamard(builder, location, control);
+    emitHadamard(builder, location, target);
   }
 
-  /// Emit a mapper-introduced SWAP without leaving a direction-agnostic swap
-  /// operation for a later decomposition pass.
-  void emitDirectionalSwap(OpBuilder &builder, cudaq::Placement::DeviceQ q0,
-                           cudaq::Placement::DeviceQ q1) {
+  /// Rewire an original CX, correcting a reverse-only physical direction.
+  void emitDirectionCompliantCX(OpBuilder &builder, cudaq::quake::XOp cx,
+                                cudaq::Placement::DeviceQ control,
+                                cudaq::Placement::DeviceQ target) {
+    if (device.supportsDirection(control, target)) {
+      rewireMappedOperation(cx, {control, target});
+      return;
+    }
+
+    assert(device.supportsDirection(target, control) &&
+           "a mapped CX must use a connected device edge");
+    // Reuse the original CX as the native reverse gate in the four-H identity.
+    emitHadamard(builder, cx.getLoc(), control);
+    emitHadamard(builder, cx.getLoc(), target);
+    rewireMappedOperation(cx, {target, control});
+    emitHadamard(builder, cx.getLoc(), control);
+    emitHadamard(builder, cx.getLoc(), target);
+  }
+
+  /// Rewire an original CZ. Its symmetric unitary permits exchanging operand
+  /// roles when only the reverse physical direction is supported.
+  void emitDirectionCompliantCZ(cudaq::quake::ZOp cz,
+                                cudaq::Placement::DeviceQ control,
+                                cudaq::Placement::DeviceQ target) {
+    if (device.supportsDirection(control, target)) {
+      rewireMappedOperation(cz, {control, target});
+      return;
+    }
+
+    assert(device.supportsDirection(target, control) &&
+           "a mapped CZ must use a connected device edge");
+    rewireMappedOperation(cz, {target, control});
+  }
+
+  /// Emit a mapper-introduced SWAP according to the directions supported by
+  /// its particular device edge.
+  void emitRoutingSwap(OpBuilder &builder, cudaq::Placement::DeviceQ q0,
+                       cudaq::Placement::DeviceQ q1) {
     assert(device.areConnected(q0, q1) &&
            "a routing swap must use a connected device edge");
-    const bool forward = device.supportsDirection(q0, q1);
-    assert((forward || device.supportsDirection(q1, q0)) &&
+    const bool forward =
+        device.isBidirectional() ? true : device.supportsDirection(q0, q1);
+    const bool reverse =
+        device.isBidirectional() ? true : device.supportsDirection(q1, q0);
+    assert((forward || reverse) &&
            "a routing edge must support at least one CX direction");
+
+    const auto location = builder.getUnknownLoc();
+    if (forward && reverse) {
+      const auto wireType = builder.getType<cudaq::quake::WireType>();
+      auto swap = cudaq::quake::SwapOp::create(
+          builder, location, TypeRange{wireType, wireType}, false, ValueRange{},
+          ValueRange{}, ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
+          DenseBoolArrayAttr{});
+      phyToWire[q0.index] = swap.getResult(0);
+      phyToWire[q1.index] = swap.getResult(1);
+      return;
+    }
+
     const auto control = forward ? q0 : q1;
     const auto target = forward ? q1 : q0;
-    emitDirectionCompliantCX(builder, control, target);
-    emitDirectionCompliantCX(builder, target, control);
-    emitDirectionCompliantCX(builder, control, target);
+    emitDirectionCompliantCX(builder, location, control, target);
+    emitDirectionCompliantCX(builder, location, target, control);
+    emitDirectionCompliantCX(builder, location, control, target);
   }
 
   /// Extend `scope` with results for mapper-introduced wires that must cross
@@ -2027,41 +2063,28 @@ private:
   void emitBlock(Block &blk) {
     const RoutingResult &blkResult = blockResults.at(&blk);
     OpBuilder blkBuilder(&blk, blk.begin());
-    auto wireType = blkBuilder.getType<cudaq::quake::WireType>();
 
     for (const RoutingEvent &ev : blkResult.trace) {
       if (ev.kind == RoutingEvent::Kind::Swap) {
         auto q0 = ev.phys[0], q1 = ev.phys[1];
-        if (device.isBidirectional()) {
-          auto swap = cudaq::quake::SwapOp::create(
-              blkBuilder, blkBuilder.getUnknownLoc(),
-              TypeRange{wireType, wireType}, false, ValueRange{}, ValueRange{},
-              ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
-              DenseBoolArrayAttr{});
-          phyToWire[q0.index] = swap.getResult(0);
-          phyToWire[q1.index] = swap.getResult(1);
-        } else {
-          emitDirectionalSwap(blkBuilder, q0, q1);
-        }
+        emitRoutingSwap(blkBuilder, q0, q1);
       } else if (ev.kind == RoutingEvent::Kind::Gate) {
-#ifndef NDEBUG
-        if (auto gate = dyn_cast<cudaq::quake::OperatorInterface>(ev.op);
-            gate && ev.phys.size() == 2 && !gate.getControls().empty())
-          assert(device.supportsDirection(ev.phys[0], ev.phys[1]) &&
-                 "mapped controlled gate must match the device direction");
-#endif
-        SmallVector<Value, 2> newOpWires;
-        for (auto phy : ev.phys)
-          newOpWires.push_back(phyToWire[phy.index]);
-        [[maybe_unused]] LogicalResult rewired =
-            cudaq::quake::setQuantumOperands(ev.op, newOpWires);
-        assert(succeeded(rewired) &&
-               "rewiring with a fixed operand count cannot fail");
-        if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(ev.op))
+        if (device.isBidirectional()) {
+          rewireMappedOperation(ev.op, ev.phys);
           continue;
-        for (auto &&[w, q] :
-             llvm::zip_equal(cudaq::quake::getQuantumResults(ev.op), ev.phys))
-          phyToWire[q.index] = w;
+        }
+        // Correct CX and CZ operations placed on reverse-only device edges.
+        if (auto cx = dyn_cast<cudaq::quake::XOp>(ev.op);
+            cx && ev.phys.size() == 2 && cx.getControls().size() == 1) {
+          emitDirectionCompliantCX(blkBuilder, cx, ev.phys[0], ev.phys[1]);
+          continue;
+        }
+        if (auto cz = dyn_cast<cudaq::quake::ZOp>(ev.op);
+            cz && ev.phys.size() == 2 && cz.getControls().size() == 1) {
+          emitDirectionCompliantCZ(cz, ev.phys[0], ev.phys[1]);
+          continue;
+        }
+        rewireMappedOperation(ev.op, ev.phys);
       } else if (ev.kind == RoutingEvent::Kind::If) {
         auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
         SmallVector<Value> entryWires;
@@ -2182,17 +2205,7 @@ private:
       OpBuilder cleanBuilder(blk.getTerminator());
       for (const RoutingEvent &cleanEv : blkResult.cleanUpTrace) {
         auto q0 = cleanEv.phys[0], q1 = cleanEv.phys[1];
-        if (device.isBidirectional()) {
-          auto swap = cudaq::quake::SwapOp::create(
-              cleanBuilder, cleanBuilder.getUnknownLoc(),
-              TypeRange{wireType, wireType}, false, ValueRange{}, ValueRange{},
-              ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
-              DenseBoolArrayAttr{});
-          phyToWire[q0.index] = swap.getResult(0);
-          phyToWire[q1.index] = swap.getResult(1);
-        } else {
-          emitDirectionalSwap(cleanBuilder, q0, q1);
-        }
+        emitRoutingSwap(cleanBuilder, q0, q1);
       }
     }
     sortTopologically(&blk);
@@ -2500,6 +2513,45 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       signalPassFailure();
     }
     return WalkResult::interrupt();
+  }
+
+  static bool isSupportedDirectionalOperation(Operation *op) {
+    auto gate = dyn_cast<cudaq::quake::OperatorInterface>(op);
+    if (!gate)
+      return true;
+
+    const std::size_t numQubits =
+        gate.getControls().size() + gate.getTargets().size();
+    if (numQubits <= 1)
+      return true;
+    // Only CX and CZ have direction-correction rules during emission.
+    if (gate.getControls().size() != 1 || gate.getTargets().size() != 1 ||
+        !isa<cudaq::quake::XOp, cudaq::quake::ZOp>(op))
+      return false;
+
+    const auto negatedControls = gate.getNegatedControls();
+    return !negatedControls ||
+           llvm::none_of(*negatedControls,
+                         [](bool isNegated) { return isNegated; });
+  }
+
+  LogicalResult validateDirectionalOperations(func::FuncOp func) {
+    if (!deviceInstance->hasUnidirectionalCoupling())
+      return success();
+
+    const WalkResult result = func.walk([&](Operation *op) {
+      if (isSupportedDirectionalOperation(op))
+        return WalkResult::advance();
+      if (nonComposable) {
+        op->emitOpError(
+            "is not supported by directional qubit mapping; only CX and CZ "
+            "are supported as multi-qubit gates; run the decomposition pass "
+            "before qubit mapping");
+        signalPassFailure();
+      }
+      return WalkResult::interrupt();
+    });
+    return failure(result.wasInterrupted());
   }
 
   /// Validate the scope forms whose routing and wire boundaries the mapper can
@@ -3089,6 +3141,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         return;
       }
     }
+
+    // Not all two-qubit gates are supported on unidirectional devices.
+    if (!deviceInstance->isBidirectional() &&
+        failed(validateDirectionalOperations(func)))
+      return;
 
     // Interaction data is required by every placement strategy: greedy and
     // auto use it to build seeds, while identity uses it to reject interactions

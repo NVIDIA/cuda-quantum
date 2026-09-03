@@ -54,6 +54,7 @@ TEST(DeviceTest, FileCouplingsDefaultToBidirectional) {
                                      "0 --> {1}\n");
 
   EXPECT_TRUE(device.isBidirectional());
+  EXPECT_FALSE(device.hasUnidirectionalCoupling());
   EXPECT_TRUE(device.supportsDirection(Qubit(0), Qubit(1)));
   EXPECT_TRUE(device.supportsDirection(Qubit(1), Qubit(0)));
 }
@@ -64,6 +65,7 @@ TEST(DeviceTest, DirectionalFilePreservesRoutingConnectivity) {
                                      "0 --> {1}\n");
 
   EXPECT_FALSE(device.isBidirectional());
+  EXPECT_TRUE(device.hasUnidirectionalCoupling());
   EXPECT_TRUE(device.areConnected(Qubit(0), Qubit(1)));
   EXPECT_TRUE(device.areConnected(Qubit(1), Qubit(0)));
   EXPECT_TRUE(device.supportsDirection(Qubit(0), Qubit(1)));
@@ -81,6 +83,7 @@ TEST(DeviceTest, DirectionalFileCanDeclareBothDirections) {
                                      "bidirectional: false\n");
 
   EXPECT_FALSE(device.isBidirectional());
+  EXPECT_FALSE(device.hasUnidirectionalCoupling());
   EXPECT_TRUE(device.supportsDirection(Qubit(0), Qubit(1)));
   EXPECT_TRUE(device.supportsDirection(Qubit(1), Qubit(0)));
 }

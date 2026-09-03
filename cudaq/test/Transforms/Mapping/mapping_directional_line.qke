@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_line.txt) placement=greedy search=sabre' %s | FileCheck --implicit-check-not=quake.swap --implicit-check-not=quake.h %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_line.txt) placement=greedy search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_line.txt) placement=greedy search=sabre' %s | CircuitCheck --up-to-mapping %s
 
 quake.wire_set @wires[2147483647]
@@ -27,19 +27,22 @@ func.func @two_qubit_gate() {
   return
 }
 
-// The mapped wire set records undirected physical connectivity, so each edge
-// appears in both directions. Controlled-gate operand order carries the native
-// direction: SABRE must refine the greedy [2, 3, 1, 0, 4] seed so that both CX
-// gates use a forward edge without inserting a SWAP.
+// The selected layout places the first CX on a native edge. The second CX is
+// reversed relative to 0 -> 1, producing four Hadamards around the native CX.
 
 // CHECK-LABEL:   func.func @two_qubit_gate
-// CHECK-SAME:      mapping_reorder_idx = [2, 3, 0, 1, 4]
-// CHECK-SAME:      mapping_v2p = [2, 3, 0, 1, 4]
+// CHECK-SAME:      mapping_reorder_idx = [2, 3, 1, 0, 4]
+// CHECK-SAME:      mapping_v2p = [2, 3, 1, 0, 4]
 // CHECK:           %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
 // CHECK:           %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[3] : !quake.wire
-// CHECK:           %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
-// CHECK:           %[[Q3:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:           %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:           %[[Q3:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
 // CHECK:           %[[Q4:.*]] = quake.borrow_wire @mapped_wireset[4] : !quake.wire
-// CHECK:           %[[CX01:.*]]:2 = quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[CX23:.*]]:2 = quake.x {{\[}}%[[Q2]]] %[[Q3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[CX01:.*]]:2 = quake.x {{\[}}%[[Q0]]] %[[Q1]]
+// CHECK:           %[[H2:.*]] = quake.h %[[Q2]]
+// CHECK:           %[[H3:.*]] = quake.h %[[Q3]]
+// CHECK:           %[[CX23:.*]]:2 = quake.x {{\[}}%[[H3]]] %[[H2]]
+// CHECK:           %[[H2_OUT:.*]] = quake.h %[[CX23]]#1
+// CHECK:           %[[H3_OUT:.*]] = quake.h %[[CX23]]#0
+// CHECK-NOT:       quake.h
 // CHECK-NOT:       quake.x

@@ -246,6 +246,20 @@ public:
     return hasEdge(directedCouplings, control, target);
   }
 
+  /// Returns true when at least one connected pair supports only one direction.
+  bool hasUnidirectionalCoupling() const {
+    // Bidirectional mode makes the reverse of every declared edge native.
+    if (isBidirectional())
+      return false;
+    for (unsigned source = 0; source < getNumQubits(); ++source) {
+      const Qubit src(source);
+      for (Qubit dst : topology.getNeighbours(src))
+        if (!supportsDirection(src, dst) || !supportsDirection(dst, src))
+          return true;
+    }
+    return false;
+  }
+
   /// Returns whether topology entries are interpreted as bidirectional.
   bool isBidirectional() const { return bidirectional; }
 
