@@ -1,9 +1,9 @@
 # Quickstart
 
-From a clean Python environment to a verified QEC resource estimate and
-emitted Stim circuit text. Every command on this page was run against the
-build it produces, and every embedded program is one of the shipped,
-test-executed examples under `preview/logical/examples/`.
+From a clean Python environment to a verified QEC resource estimate and emitted
+Stim circuit text. Every command on this page was run against the build it
+produces, and every embedded program is one of the shipped, test-executed
+examples under `preview/logical/examples/`.
 
 You will:
 
@@ -15,10 +15,10 @@ You will:
 
 ## Install and build
 
-CUDA-Q Logical builds against an *installed* CUDA-Q development SDK — it is
-never added to the CUDA-Q build as a sub-project and never fetches or builds
-a second LLVM/MLIR stack. In a fresh Python environment (Python 3.11 or
-later), install the SDK wheel and the build tools:
+CUDA-Q Logical builds against an _installed_ CUDA-Q development SDK — it is
+never added to the CUDA-Q build as a sub-project and never fetches or builds a
+second LLVM/MLIR stack. In a fresh Python environment (Python 3.11 or later),
+install the SDK wheel and the build tools:
 
 ```bash
 pip install cudaq-devel nanobind lit cmake ninja
@@ -26,7 +26,7 @@ pip install cudaq-devel nanobind lit cmake ninja
 
 ```{note}
 While CUDA-Q Logical is in preview, `cudaq-devel` may not yet be on your
-package index — see [building against CUDA-Q](reference/building-against-cudaq.md)
+package index — see [building against CUDA-Q](../reference/building-against-cudaq.md)
 for the wheelhouse and source-prefix routes.
 ```
 
@@ -37,12 +37,12 @@ cmake -S preview/logical -B preview/logical/build -G Ninja
 cmake --build preview/logical/build
 ```
 
-CMake locates the SDK through the Python interpreter it resolves, so the
-wheel only has to be installed in the active environment. To build against a
-CUDA-Q work tree instead of the wheel, configure with
+CMake locates the SDK through the Python interpreter it resolves, so the wheel
+only has to be installed in the active environment. To build against a CUDA-Q
+work tree instead of the wheel, configure with
 `-DCUDAQ_INSTALL_PREFIX=/path/to/cudaq/install`; the full contract is in
-`preview/logical/README.md`. Installing the `cudaq-logical` Python wheel is
-an alternative to running from the build tree; this page uses the build tree
+`preview/logical/README.md`. Installing the `cudaq-logical` Python wheel is an
+alternative to running from the build tree; this page uses the build tree
 directly.
 
 ## Running the shipped examples
@@ -56,10 +56,9 @@ PYTHONPATH=preview/logical/build/python \
   python3 -c "import _cudaq_logical_devpath, runpy; runpy.run_path('preview/logical/examples/01_p0_bell.py', run_name='__main__')"
 ```
 
-The leading `_cudaq_logical_devpath` import makes the build-tree
-`cudaq.logical` importable next to the installed CUDA-Q runtime. Every
-`python3` command below is this same invocation with a different example
-path.
+The leading `_cudaq_logical_devpath` import makes the build-tree `cudaq.logical`
+importable next to the installed CUDA-Q runtime. Every `python3` command below
+is this same invocation with a different example path.
 
 ## Step 1 — Estimate an existing CUDA-Q kernel
 
@@ -67,7 +66,7 @@ The fastest route to a first number: take an ordinary CUDA-Q kernel, select a
 distance-3 rotated-surface-code target with room for one logical qubit, and
 estimate its resources through the CUDA-Q target integration.
 
-```{literalinclude} ../../examples/00_cudaq_logical_resource_estimate.py
+```{literalinclude} ../../../examples/00_cudaq_logical_resource_estimate.py
 :language: python
 :caption: examples/00_cudaq_logical_resource_estimate.py
 ```
@@ -88,16 +87,16 @@ CUDA-Q logical-zero resources:
   CUDA-Q Logical gadget calls: {'rotated_surface_3_measure_z0': 1, 'rotated_surface_3_prepare_zero': 1}
 ```
 
-One encoded patch protects one logical qubit through preparation and Z
-readout, and every step is a named, inspectable gadget call — CUDA-Q Logical
-never invents an implementation it cannot point to.
+One encoded patch protects one logical qubit through preparation and Z readout,
+and every step is a named, inspectable gadget call — CUDA-Q Logical never
+invents an implementation it cannot point to.
 
 ## Step 2 — Author a portable P0 program
 
-The `cudaq.logical` facade authors logical programs directly. A P0 program
-names no code, no device, and no carrier — and it is already estimable.
+The `cudaq.logical` facade authors logical programs directly. A P0 program names
+no code, no device, and no carrier — and it is already estimable.
 
-```{literalinclude} ../../examples/01_p0_bell.py
+```{literalinclude} ../../../examples/01_p0_bell.py
 :language: python
 :caption: examples/01_p0_bell.py
 ```
@@ -119,12 +118,12 @@ counts directly.
 
 ## Step 3 — Choose a code and a gadget (P2)
 
-P2 is where codes and gadgets enter. This example defines the
-``[[7,1,3]]`` Steane code as a CSS block, declares a terminal-memory
-objective, and authors a gadget that implements it — one syndrome-extraction
-pass followed by data-qubit readout.
+P2 is where codes and gadgets enter. This example defines the `[[7,1,3]]` Steane
+code as a CSS block, declares a terminal-memory objective, and authors a gadget
+that implements it — one syndrome-extraction pass followed by data-qubit
+readout.
 
-```{literalinclude} ../../examples/03_code_and_gadget.py
+```{literalinclude} ../../../examples/03_code_and_gadget.py
 :language: python
 :caption: examples/03_code_and_gadget.py
 ```
@@ -147,45 +146,39 @@ dialect, where `ql.analysis.count` reports the gadget's authored operations.
 These verified, named gadgets are the atoms of every P2 static estimate — the
 surface-code counts in Step 1 are sums over exactly such calls.
 
-## Step 4 — Emit Stim text from the command line
+## Step 4 — Emit Stim text from Python
 
-A verified P2 program can be emitted as standards-compatible Stim circuit
-text — CUDA-Q Logical's secondary interchange path. The command-line tools
-are built into `preview/logical/build/bin`; add them to `PATH` and translate
-the shipped P2 memory fixture:
+A verified P2 entry gadget can be emitted as standards-compatible Stim circuit
+text — CUDA-Q Logical's secondary interchange path. Compile the Steane memory
+gadget from Step 3 and request a typed emission artifact:
 
-```{literalinclude} ../../examples/cli/stim_memory.mlir
-:language: mlir
-:caption: examples/cli/stim_memory.mlir
+% invisible-code-block: python % % steane_memory = load_ql_example( %
+"preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+
+```python
+import cudaq.logical as ql
+
+build = ql.compile(steane_memory)
+emission = ql.lower.emit_stim_artifact(
+    build.module, root_symbol=build.root.symbol)
+print(emission.text)
 ```
 
-```bash
-export PATH="$PWD/preview/logical/build/bin:$PATH"
-qlx-translate preview/logical/examples/cli/stim_memory.mlir --fabric-to-stim
-```
-
-```stim
-R 0
-M 0
-```
-
-The fixture uses the trivial distance-1 `bare` code, so the circuit is a
-single reset/measure pair; encoded codes expand to their full gadget bodies.
-The emitted text is standard Stim — it loads directly with the reference
-`stim` Python package. The companion `qlx-opt` tool runs the same compiler
-pass pipelines the Python facade uses; `preview/logical/examples/cli/` shows
-the logical-estimate, placement, and static-estimate pipelines.
+The resulting Stim circuit contains the explicit resets, Clifford operations,
+and measurements in the selected encoded gadget. `emission.interface` records
+the compiled boundary from which the text was projected, and the text loads
+directly with the reference `stim` Python package.
 
 ## Where to go next
 
-- Browse the remaining runnable studies in the
-  [example gallery](example-gallery/index.md) — placement, distillation,
-  Clifford+T synthesis, and the Gidney–Ekerå and Fermi–Hubbard estimates.
-- Follow the guided introductions under [Start](start/index.md).
-- Task-oriented guides — codes, gadgets, devices, estimation, the CLI — live
-  in the [workflow guides](workflows/index.md).
-- Build-system and SDK contracts are in the
-  [reference section](reference/index.md).
+- Continue with [CUDA-Q Logical in practice](cudaq-logical-in-practice.md) for
+  the complete staged lowering.
+- Use the task-oriented [code](../use-cases/define-a-code.md),
+  [placement](../use-cases/devices-and-placement.md), and
+  [estimation](../use-cases/estimation.md) guides.
+- Browse the remaining runnable studies in [Examples](../use-cases/examples.md).
+- Inspect compiler internals in the
+  [architecture reference](../reference/architecture.md).
 
 To run the full conformance suite — the lit FileCheck tests plus the Python
 suite that executes these examples:

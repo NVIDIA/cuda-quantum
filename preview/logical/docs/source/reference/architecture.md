@@ -1,5 +1,10 @@
 # Architecture
 
+This advanced reference is for contributors and users inspecting dialects,
+passes, or intermediate representations. For the Python interface, start with
+[Getting started](../getting-started/quickstart.md) and the
+[use cases](../use-cases/define-a-code.md).
+
 CUDA-Q Logical has one user surface over three semantic stages, orthogonal
 analysis facets, and one primary MLIR dialect family per stage. This page walks
 the whole machine: the dialect stack, the artifact model, the ownership
@@ -12,7 +17,7 @@ Each semantic stage owns one primary representation family, and the passes that
 convert between families are the canonical compiler lowerings. Analysis facets
 are ops and results inside the owning representation, not extra semantic stages.
 
-```{figure} _static/figures/dialect-map.svg
+```{figure} ../_static/figures/dialect-map.svg
 :alt: The three stage dialects with their responsibilities, the passes that lower between them, and the target-emitter boundary.
 :width: 100%
 
@@ -31,7 +36,7 @@ Stages describe semantic commitment: a later stage must discharge the intent its
 earlier stages left open, and each transition produces immutable evidence
 instead of silently filling in missing physics.
 
-```{figure} _static/figures/semantic-spine.svg
+```{figure} ../_static/figures/semantic-spine.svg
 :alt: The P0, P1, and P2 stage boxes with their facets and the consumers attached orthogonally.
 :width: 100%
 
@@ -97,7 +102,7 @@ an explicit `ql.discard` ends ownership. The IR verifiers reject duplication,
 stale reuse, and mismatched branch carries — there is no in-place mutation
 anywhere in the IR.
 
-```{figure} _static/figures/patch-lifecycle.svg
+```{figure} ../_static/figures/patch-lifecycle.svg
 :alt: State machine of a patch's linear ownership from allocation through active execution to terminal readout.
 :width: 100%
 
@@ -207,7 +212,7 @@ are ordinary Python modules, not global registries.
 
 ## Where to go next
 
-- The [core concepts](concepts.md) explain the stage, ownership, and evidence
-  model this architecture implements.
-- The [workflow guides](workflows/index.md) exercise each pipeline preset end to
-  end.
+- The [core concepts](../getting-started/concepts.md) explain the stage,
+  ownership, and evidence model this architecture implements.
+- The [use cases](../use-cases/define-a-code.md) apply the Python interface to
+  codes, placement, synthesis, estimation, and emission.

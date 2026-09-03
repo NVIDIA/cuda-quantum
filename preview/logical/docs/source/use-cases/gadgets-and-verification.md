@@ -192,7 +192,7 @@ never accepted as the proof; the derivation is.
 
 - [Defining codes](define-a-code.md) — the validated algebra gadgets build on,
   and the factories that consume it.
-- The [quickstart](../quickstart.md) compiles a Steane gadget end to end and
-  counts its authored operations.
-- The [example gallery](../example-gallery/index.md) embeds the shipped gadget
-  and protocol sources, including 15-to-1 distillation.
+- The [quickstart](../getting-started/quickstart.md) compiles a Steane gadget
+  end to end and counts its authored operations.
+- [Examples](examples.md) links the shipped gadget and protocol sources,
+  including 15-to-1 distillation.

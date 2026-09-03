@@ -169,5 +169,5 @@ simulated accept/reject statistics. :::
   off-lattice rotations.
 - [Devices and placement](devices-and-placement.md) — where factory regions and
   resource streams live on a machine.
-- The [example gallery](../example-gallery/index.md) — the distillation example
-  in context of the full shipped set.
+- [Examples](examples.md) — the distillation example in context of the full
+  shipped set.

@@ -103,8 +103,8 @@ assert surface_3.block.size == 17       # 9 data + 8 syndrome carriers
 ```
 
 alongside `ql.codes.Steane`, `ql.codes.Repetition`, `ql.codes.RM15` (the
-`[[15,1,3]]` Reed–Muller code), and `ql.codes.BareQubit` (the trivial
-distance-1 code used by the Stim-emission fixture).
+`[[15,1,3]]` Reed–Muller code), and `ql.codes.BareQubit` (the trivial distance-1
+code used by the Stim-emission fixture).
 
 A parameterized family is an ordinary function decorated with `@ql.code` that
 returns a `ql.codes.CSSCode`; bracket syntax specializes it:
@@ -154,7 +154,7 @@ subject of [gadgets and verification](gadgets-and-verification.md).
 
 - [Gadgets and verification](gadgets-and-verification.md) — realize objectives
   on your code and check the claims.
-- The [quickstart](../quickstart.md) runs the Steane code and gadget of this
-  page end to end.
-- The [example gallery](../example-gallery/index.md) embeds the shipped,
-  test-executed sources this page draws from.
+- The [quickstart](../getting-started/quickstart.md) runs the Steane code and
+  gadget of this page end to end.
+- [Examples](examples.md) links the shipped, test-executed sources this page
+  draws from.

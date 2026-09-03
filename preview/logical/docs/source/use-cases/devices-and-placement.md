@@ -107,10 +107,8 @@ preference the solver had to give up, and the deterministic tie-break:
 Hard constraints are hard. Requiring a capability that no region provides fails
 closed:
 
-% invisible-code-block: python
-%
-% p0, TwoSlotMachine = load_ql_example(
-%     "preview/logical/examples/02_p1_placement.py", "p0", "TwoSlotMachine")
+% invisible-code-block: python % % p0, TwoSlotMachine = load_ql_example( %
+"preview/logical/examples/02_p1_placement.py", "p0", "TwoSlotMachine")
 
 ```python
 try:
@@ -125,8 +123,8 @@ except ValueError as exc:
     assert "no machine space satisfies the placement constraints" in str(exc)
 ```
 
-What is refused is silently relaxing a hard requirement. Soft preferences,
-by contrast, may be surrendered — and the surrender is reported:
+What is refused is silently relaxing a hard requirement. Soft preferences, by
+contrast, may be surrendered — and the surrender is reported:
 
 ```python
 p1 = ql.compiler.place(
@@ -174,5 +172,5 @@ estimate code changes when the study moves from one machine to another.
   supply and a concrete 15-to-1 factory.
 - [Logical Clifford+T synthesis](logical-synthesis.md) — legalizing logical
   rotations before placement.
-- The [example gallery](../example-gallery/index.md) — the placement example in
-  context of the full shipped set.
+- [Examples](examples.md) — the placement example in context of the full shipped
+  set.

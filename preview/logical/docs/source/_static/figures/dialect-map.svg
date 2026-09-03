@@ -28,7 +28,7 @@
 <text x="58" y="264" font-size="10.5" fill="#334155">codes · encodings · gadgets · protocols · patch graph · resource evidence</text>
 <text x="1005" y="264" font-size="9.5" text-anchor="end" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">estimate: fabric-count</text>
 <line x1="90" y1="294" x2="90" y2="318" stroke="#64748b" stroke-width="1.6" marker-end="url(#arr)"/>
-<text x="104" y="312" font-size="10" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">fabric-to-stim   (qlx-translate) · emit_stim   (lower/stim.py)</text>
+<text x="104" y="312" font-size="10" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">emit_stim   (lower/stim.py)</text>
 <rect x="40" y="318" width="980" height="56" rx="10" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
 <text x="58" y="340" font-size="12" font-weight="750" fill="#16a34a">target emitters</text>
 <text x="58" y="359" font-size="10.5" fill="#166534">Stim circuit text from verified P2 entry gadgets · CUDA-Q estimate annotations (LogicalEstimate / FabricCounts) via cudaq.estimate</text>

@@ -8,8 +8,8 @@ definition; a definition is first compiled through its normal default pipeline,
 and the estimator then validates that the resulting stage matches the requested
 tier, failing with a typed diagnostic when they disagree.
 
-| Tier                        | Needs                                                     | Returns                                                                                                                                                          |
-| --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tier                       | Needs                                                     | Returns                                                                                                                                                         |
+| -------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ql.estimate.Tier.LOGICAL` | a verified P0 program — no device, no code                | `ql.estimate.LogicalProfile`: action/instrument totals, peak logical qubits, idle/discard counts, an action-depth upper bound, synthesis demand                 |
 | `ql.estimate.Tier.STATIC`  | a selected P2 build — code, gadgets, and protocols chosen | `ql.estimate.FabricCounts`: per-operation counts, gadget/protocol call totals, resource requests, postselection bookkeeping, syndrome rounds, peak live patches |
 
@@ -53,10 +53,8 @@ Once codes, gadgets, and protocols are selected, the static tier walks the
 executable Fabric closure and counts what would actually run. Example 03's
 Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
-% invisible-code-block: python
-%
-% gadget_build = load_ql_example(
-%     "preview/logical/examples/03_code_and_gadget.py", "gadget")
+% invisible-code-block: python % % gadget_build = load_ql_example( %
+"preview/logical/examples/03_code_and_gadget.py", "gadget")
 
 ```python
 counts = ql.estimate(gadget_build, tier=ql.estimate.Tier.STATIC)
@@ -75,10 +73,8 @@ Protocols compose gadgets with resources and postselection, and the static tier
 keeps the bookkeeping visible. Example 04's 15-to-1 distillation is estimated
 straight from the authoring definition:
 
-% invisible-code-block: python
-%
-% distill_15to1 = load_ql_example(
-%     "preview/logical/examples/04_distillation.py", "distill_15to1")
+% invisible-code-block: python % % distill_15to1 = load_ql_example( %
+"preview/logical/examples/04_distillation.py", "distill_15to1")
 
 ```python
 counts = ql.estimate(distill_15to1, tier=ql.estimate.Tier.STATIC)
@@ -119,8 +115,8 @@ that postselection may discard. Selection is never averaged away silently.
 
 ## Direct spellings
 
-`ql.analysis.logical_counts(p0)` and `ql.analysis.count(build)` are the
-per-tier function forms of the same estimators. They remain useful when code
+`ql.analysis.logical_counts(p0)` and `ql.analysis.count(build)` are the per-tier
+function forms of the same estimators. They remain useful when code
 intentionally selects one specialized analysis; product flows should prefer the
 unified `ql.estimate(...)` front door.
 
@@ -172,12 +168,9 @@ selected (`examples/00_cudaq_logical_resource_estimate.py`,
 results as CUDA-Q annotations, and the typed views are rehydrated directly from
 them:
 
-% invisible-code-block: python
-%
-% import cudaq
-% kernel = load_ql_example(
-%     "preview/logical/examples/00_cudaq_logical_resource_estimate.py",
-%     "logical_zero_readout")
+% invisible-code-block: python % % import cudaq % kernel = load_ql_example( %
+"preview/logical/examples/00_cudaq_logical_resource_estimate.py", %
+"logical_zero_readout")
 
 ```python
 from cudaq.logical.estimate import FabricCounts, LogicalEstimate
@@ -188,7 +181,3 @@ logical = LogicalEstimate.from_annotations(estimates.annotations)
 assert static.patches_peak == 1
 assert logical.logical_qubits_peak == 1
 ```
-
-For the pass-pipeline spelling of the same two tiers — and for CI systems that
-do not embed Python — see the
-[command-line estimation workflow](command-line-estimation).
