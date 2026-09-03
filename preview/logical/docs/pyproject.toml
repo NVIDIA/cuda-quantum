@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "cudaq-logical-docs"
 version = "0.1.0"
 description = "CUDA-Q Logical (cudaq.logical) documentation"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
@@ -20,4 +20,6 @@ build-deps = [
     "myst-parser>=3,<5",
     "sphinx-design>=0.6,<0.7",
 ]
-test-deps = ["cudaq-logical", "pytest>=7.0", "sybil>=6"]
+# Note: tests will fail if cudaq-logical is not installed in the environment.
+# If using `uv run`, make sure to pass the `--active` flag to run within your activated `venv`.
+test-deps = ["pytest>=7.0", "sybil>=6"]

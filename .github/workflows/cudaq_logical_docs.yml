@@ -105,40 +105,40 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check artifact inputs
-        shell: bash
-        run: |
-          set -euo pipefail
-          for v in CUDAQ_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
-            if [ -z "${!v}" ]; then
-              echo "::error::$v is empty: pass all four artifact inputs together or none."
-              exit 1
-            fi
-          done
+      - parallel:
+          - name: Check artifact inputs
+            shell: bash
+            run: |
+              set -euo pipefail
+              for v in CUDAQ_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
+                if [ -z "${!v}" ]; then
+                  echo "::error::$v is empty: pass all four artifact inputs together or none."
+                  exit 1
+                fi
+              done
+          - name: Download cudaq-logical wheel
+            uses: actions/download-artifact@v8
+            with:
+              name: ${{ env.WHEEL_NAME }}
+              path: dist
 
-      - name: Download cudaq-logical wheel
-        uses: actions/download-artifact@v8
-        with:
-          name: ${{ env.WHEEL_NAME }}
-          path: dist
+          - name: Download runtime wheel
+            uses: actions/download-artifact@v8
+            with:
+              name: ${{ env.RUNTIME_ARTIFACT_NAME }}
+              path: dist
 
-      - name: Download runtime wheel
-        uses: actions/download-artifact@v8
-        with:
-          name: ${{ env.RUNTIME_ARTIFACT_NAME }}
-          path: dist
+          - name: Download CUDA-Q metapackage
+            uses: actions/download-artifact@v8
+            with:
+              name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
+              path: dist
 
-      - name: Download CUDA-Q metapackage
-        uses: actions/download-artifact@v8
-        with:
-          name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
-          path: dist
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: ${{ inputs.python_version }}
-          activate-environment: true
+          - name: Install uv
+            uses: astral-sh/setup-uv@v6
+            with:
+              python-version: ${{ inputs.python_version }}
+              activate-environment: true
 
       - name: Install cudaq.logical
         shell: bash
@@ -146,8 +146,16 @@ jobs:
           set -euo pipefail
           uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
 
+      - name: Test inline docs snippets
+        shell: bash
+        background: true
+        timeout-minutes: 30
+        run: |
+          uv run --directory preview/logical/docs/ --extra test-deps --active test-docs
+
       - name: Validate installed cudaq.logical tools
         shell: bash
+        background: true
         run: |
           set -euo pipefail
 
@@ -186,15 +194,6 @@ jobs:
             fi
             tail -n 3 "example-logs/$name.log"
           done
-
-      - name: Test inline docs snippets
-        shell: bash
-        timeout-minutes: 30
-        run: |
-          set -euo pipefail
-
-          uv pip install "./preview/logical/docs[test]"
-          test-docs
 
       - name: Upload example logs
         uses: actions/upload-artifact@v7
