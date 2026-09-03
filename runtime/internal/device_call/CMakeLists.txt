@@ -88,6 +88,8 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   add_test(NAME cudaq_device_call_no_exported_transport_symbols
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_no_exported_transport_symbols.sh
             $<TARGET_FILE:cudaq-device-call-runtime>)
+  set_tests_properties(cudaq_device_call_no_exported_transport_symbols PROPERTIES
+    LABELS "realtime")
 
   install(TARGETS cudaq-device-call-runtime-headers
           EXPORT cudaq-targets
