@@ -18,6 +18,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <vector>
 
 namespace cudaq::qrmi {
 
@@ -49,17 +50,79 @@ inline void ensureSuccess(QrmiReturnCode rc, std::string_view context) {
     throw std::runtime_error(std::string(context) + ": " + lastError());
 }
 
+inline std::string listDelimiter() {
+  auto *delimiter = std::getenv("QRMI_LIST_DELIMITER");
+  if (delimiter && delimiter[0] != '\0')
+    return delimiter;
+  return ",";
+}
+
+inline std::vector<std::string> splitList(const char *value) {
+  if (!value)
+    return {};
+  std::vector<std::string> out;
+  std::string csv(value);
+  auto delimiter = listDelimiter();
+  std::size_t begin = 0;
+  while (begin <= csv.size()) {
+    auto end = csv.find(delimiter, begin);
+    out.push_back(
+        csv.substr(begin, end == std::string::npos ? end : end - begin));
+    if (end == std::string::npos)
+      break;
+    begin = end + delimiter.size();
+  }
+  return out;
+}
+
+inline QrmiResourceType parseResourceType(const std::string &resourceType) {
+  if (resourceType == "pasqal-cloud")
+    return QRMI_RESOURCE_TYPE_PASQAL_CLOUD;
+  if (resourceType == "pasqal-local")
+    return QRMI_RESOURCE_TYPE_PASQAL_LOCAL;
+
+  throw std::runtime_error("Unsupported QRMI resource type '" + resourceType +
+                           "' in QRMI_JOB_QPU_TYPES. Supported values are "
+                           "pasqal-cloud and pasqal-local.");
+}
+
+inline QrmiResourceType resolveResourceType(const std::string &backendName) {
+  auto resources = splitList(std::getenv("QRMI_JOB_QPU_RESOURCES"));
+  if (resources.empty()) {
+    throw std::runtime_error(
+        "QRMI mode requires QRMI_JOB_QPU_RESOURCES to resolve backend type.");
+  }
+
+  auto types = splitList(std::getenv("QRMI_JOB_QPU_TYPES"));
+  if (types.empty()) {
+    throw std::runtime_error("QRMI mode requires QRMI_JOB_QPU_TYPES "
+                             "to resolve backend type.");
+  }
+
+  for (std::size_t idx = 0; idx < resources.size(); ++idx) {
+    if (resources[idx] == backendName) {
+      if (idx >= types.size()) {
+        throw std::runtime_error("QRMI backend '" + backendName +
+                                 "' has no matching entry in "
+                                 "QRMI_JOB_QPU_TYPES.");
+      }
+      return parseResourceType(types[idx]);
+    }
+  }
+
+  throw std::runtime_error("QRMI backend '" + backendName +
+                           "' is not present in QRMI_JOB_QPU_RESOURCES.");
+}
+
 inline bool taskInProgress(QrmiTaskStatus status);
 inline std::string taskStatusAsString(QrmiTaskStatus status);
 
 class ResourceSession {
 public:
-  ResourceSession( // TODO: I think resource type should not be needed by
-                   // caller. fix in qrmi
-      const std::string &backendName,
-      QrmiResourceType resourceType = QRMI_RESOURCE_TYPE_PASQAL_CLOUD)
+  ResourceSession(const std::string &backendName)
       : backendName_(backendName),
-        resource_(qrmi_resource_new(backendName.c_str(), resourceType)) {
+        resource_(qrmi_resource_new(backendName.c_str(),
+                                    resolveResourceType(backendName_))) {
     if (!resource_) {
       throw std::runtime_error("Failed to create QRMI resource for '" +
                                backendName_ + "': " + lastError());
@@ -69,6 +132,8 @@ public:
     ensureSuccess(qrmi_resource_acquire(resource_.get(), &acquisitionTokenRaw),
                   "qrmi_resource_acquire()");
     acquisitionToken_.reset(acquisitionTokenRaw);
+    acquisitionTokenEnvName_ = backendName_ + "_QRMI_JOB_ACQUISITION_TOKEN";
+    setenv(acquisitionTokenEnvName_.c_str(), acquisitionToken_.get(), 1);
   }
 
   ResourceSession(const ResourceSession &) = delete;
@@ -80,8 +145,10 @@ public:
     if (!resource_ || !acquisitionToken_)
       return;
     auto rc = qrmi_resource_release(resource_.get(), acquisitionToken_.get());
-    if (rc == QRMI_RETURN_CODE_SUCCESS)
+    if (rc == QRMI_RETURN_CODE_SUCCESS) {
+      unsetenv(acquisitionTokenEnvName_.c_str());
       acquisitionToken_.reset();
+    }
   }
 
   std::string startTask(QrmiPayload &payload) {
@@ -159,6 +226,7 @@ public:
 
 private:
   std::string backendName_;
+  std::string acquisitionTokenEnvName_;
   ResourcePtr resource_;
   StringPtr acquisitionToken_;
 };
