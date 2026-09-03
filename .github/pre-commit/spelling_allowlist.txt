@@ -16,7 +16,6 @@ Braket
 Bytecode
 CAPI
 CCZ
-Chuang
 CLA
 CLI
 CMake
@@ -32,6 +31,7 @@ CPython
 CUDA
 Cartesian
 CentOS
+Chuang
 CompileMetrics
 CompiledKernel
 Conda
@@ -60,13 +60,13 @@ Fortran
 Fourier
 GF
 GHCR
-Gidney
 GMP
 GPL
 GPU
 GPUDirect
 GPUs
 Gantt
+Gidney
 GitHub
 GoogleTest
 GpuRoceTransceiver
@@ -128,13 +128,13 @@ Meiboom
 Miniconda
 MultiGraph
 MyST
-Nielsen
 NGC
 NIC
 NVIDIA
 NVLink
 NVQIR
 NVQLink
+Nielsen
 OPX
 OQC
 ORCA
