@@ -2059,7 +2059,7 @@ def quake_EvinceOp : QuakeOp<"evince"> {
     This may lower further to actual recording of the value to a \e virtual
     output device produced by a well-defined CUDA-Q kernel.
 
-    \e How this to be accomplished and the details thereof are not the concern
+    \e How this is accomplished and the details thereof are not the concern
     of Quake or the `evince` operation. The presence of this operation
     explicitly denotes that a \e value in Quake is \e observable in the
     computational sense. This restricts the types of optimizations that may

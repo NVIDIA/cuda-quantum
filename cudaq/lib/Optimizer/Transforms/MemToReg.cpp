@@ -2104,10 +2104,12 @@ public:
     patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern,
                     EvinceOpPattern>(ctx);
     ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                                 cudaq::quake::DeallocOp,
-                                 cudaq::quake::EvinceOp>(
-        [](Operation *op) { return !cudaq::quake::hasNonVectorReference(op); });
+    target
+        .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
+                               cudaq::quake::DeallocOp, cudaq::quake::EvinceOp>(
+            [](Operation *op) {
+              return !cudaq::quake::hasNonVectorReference(op);
+            });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {

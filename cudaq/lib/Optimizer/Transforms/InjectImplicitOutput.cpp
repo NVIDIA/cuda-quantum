@@ -46,8 +46,7 @@ public:
       for (Operation &op : block) {
         if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
           orderedAllocs.push_back(alloc);
-        } else if (isa<cudaq::quake::EvinceOp, cudaq::quake::DeallocOp>(
-                       op)) {
+        } else if (isa<cudaq::quake::EvinceOp, cudaq::quake::DeallocOp>(op)) {
           LLVM_DEBUG({
             if (isa<cudaq::quake::EvinceOp>(op))
               llvm::dbgs() << "kernel already has evince ops, skipping.\n";

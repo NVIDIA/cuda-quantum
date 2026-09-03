@@ -510,11 +510,10 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
 /// Convert a wire-form quake.evince back to ref form. Each wire result is
 /// replaced by its wire input (pass-through), and the op is rebuilt with the
 /// corresponding alloca refs so it is legal after regtomem.
-class CollapseEvinceWires
-    : public OpRewritePattern<cudaq::quake::EvinceOp> {
+class CollapseEvinceWires : public OpRewritePattern<cudaq::quake::EvinceOp> {
 public:
   explicit CollapseEvinceWires(MLIRContext *ctx, RegToMemAnalysis &analysis,
-                                  ArrayRef<Value> allocas)
+                               ArrayRef<Value> allocas)
       : OpRewritePattern(ctx), analysis(analysis), allocas(allocas) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::EvinceOp op,
@@ -532,8 +531,7 @@ public:
         newArgs.push_back(arg);
       }
     }
-    auto newOp =
-        cudaq::quake::EvinceOp::create(rewriter, op.getLoc(), newArgs);
+    auto newOp = cudaq::quake::EvinceOp::create(rewriter, op.getLoc(), newArgs);
     for (auto namedAttr : op->getAttrs())
       newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
     rewriter.eraseOp(op);
