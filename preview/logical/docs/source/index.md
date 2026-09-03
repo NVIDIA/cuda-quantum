@@ -7,6 +7,17 @@ gadgets, distillation protocols, and inspectable resource estimates. CUDA-Q
 Logical also supports emitting a realized program for further processing in
 third party tools such as Stim.
 
+## Installation
+
+In a Python 3.11+ environment:
+
+```bash
+pip install cudaq-logical
+```
+
+To build from source, see
+[Building against CUDA-Q](../reference/building-against-cudaq.md).
+
 ## An end-to-end estimate
 
 As a first step, define a CUDA-Q Logical target that describes the desired QEC
@@ -24,7 +35,7 @@ Behind `cudaq.estimate`, CUDA-Q Logical takes the kernel's logical intent,
 realizes it with the code and gadgets the target names, and reports the cost of
 that choice (peak encoded patches, peak protected logical qubits, and the named
 gadget calls that make up the estimate). For more examples of CUDA-Q Logical's
-features, see the [examples](use-cases/examples.md).
+features, see the [examples](use-cases/examples/index.md).
 
 CUDA-Q kernels are only one of the possible entry points. You can also author
 portable logical programs directly, define your own codes and gadgets, and place
@@ -42,7 +53,7 @@ The documentation is organized by the result you want:
 | **Install and run a first estimate**                                       | [Getting started](getting-started/quickstart.md)                                               |
 | **Understand stages, ownership, and evidence**                             | [How CUDA-Q Logical refines a program](getting-started/how-cudaq-logical-refines-a-program.md) |
 | **Do a specific job** (define a code, place, distill, estimate, emit Stim) | [Use cases](use-cases/define-a-code.md)                                                        |
-| **Browse runnable end-to-end examples**                                    | [Examples](use-cases/examples.md)                                                              |
+| **Browse runnable end-to-end examples**                                    | [Examples](use-cases/examples/index.md)                                                        |
 | **Inspect advanced internals or build against CUDA-Q**                     | [Reference](reference/architecture.md)                                                         |
 
 ```{toctree}
@@ -54,6 +65,7 @@ getting-started/quickstart
 getting-started/cudaq-logical-in-practice
 getting-started/how-cudaq-logical-refines-a-program
 getting-started/concepts
+use-cases/examples/index
 ```
 
 ```{toctree}
@@ -68,7 +80,6 @@ use-cases/magic-states-and-protocols
 use-cases/logical-synthesis
 use-cases/estimation
 use-cases/stim-emission
-use-cases/examples
 ```
 
 ```{toctree}

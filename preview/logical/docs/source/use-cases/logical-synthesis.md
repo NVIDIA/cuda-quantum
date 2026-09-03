@@ -182,5 +182,5 @@ rotation.
 
 - [Magic states and protocols](magic-states-and-protocols.md) — the phase
   convention, exact angles, and where the T states come from.
-- [Examples](examples.md) — example 05 estimates a CUDA-Q rotation in this gate
-  set end to end.
+- [Examples](examples/index.md) — example 05 estimates a CUDA-Q rotation in this
+  gate set end to end.

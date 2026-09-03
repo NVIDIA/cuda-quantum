@@ -110,4 +110,4 @@ facets they advertise.
 
 The [CUDA-Q Logical in practice](cudaq-logical-in-practice.md) walkthrough shows
 the same discipline ending at a static estimate and emitted Stim text.
-[Examples](../use-cases/examples.md) covers the full shipped set.
+[Examples](../use-cases/examples/index.md) covers the full shipped set.

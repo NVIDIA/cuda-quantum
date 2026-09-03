@@ -157,5 +157,5 @@ subject of [gadgets and verification](gadgets-and-verification.md).
   on your code and check the claims.
 - The [quick start](../getting-started/quickstart.md) runs the Steane code and
   gadget of this page end to end.
-- [Examples](examples.md) links the shipped, test-executed sources this page
-  draws from.
+- [Examples](examples/index.md) links the shipped, test-executed sources this
+  page draws from.

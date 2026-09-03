@@ -1,64 +1,39 @@
 # Quick start
 
 From a clean Python environment to a verified QEC resource estimate and emitted
-Stim circuit text. Every command on this page was run against the build it
-produces, and every embedded program is one of the shipped, test-executed
+Stim circuit text. Every command on this page assumes `cudaq-logical` is
+installed, and every embedded program is one of the shipped, test-executed
 examples under `preview/logical/examples/`.
 
 You will:
 
-1. install the CUDA-Q development SDK and build CUDA-Q Logical;
+1. install CUDA-Q Logical;
 2. estimate an existing CUDA-Q kernel against a surface-code target;
 3. author a portable P0 logical program and read its logical estimate;
 4. define a QEC code and a verified gadget, and count their P2 operations;
 5. emit standards-compatible Stim text from the command line.
 
-## Install and build
+## Install
 
-CUDA-Q Logical builds against an _installed_ CUDA-Q development SDK — it is
-never added to the CUDA-Q build as a sub-project and never fetches or builds a
-second LLVM/MLIR stack. In a fresh Python environment (Python 3.11 or later),
-install the SDK wheel and the build tools:
+In a fresh Python environment (Python 3.11 or later):
 
 ```bash
-pip install cudaq-devel nanobind lit cmake ninja
+pip install cudaq-logical
 ```
 
-```{note}
-While CUDA-Q Logical is in preview, `cudaq-devel` may not yet be on your
-package index — see [building against CUDA-Q](../reference/building-against-cudaq.md)
-for the wheelhouse and source-prefix routes.
-```
-
-Then, from the repository root, configure and build:
-
-```bash
-cmake -S preview/logical -B preview/logical/build -G Ninja
-cmake --build preview/logical/build
-```
-
-CMake locates the SDK through the Python interpreter it resolves, so the wheel
-only has to be installed in the active environment. To build against a CUDA-Q
-work tree instead of the wheel, configure with
-`-DCUDAQ_INSTALL_PREFIX=/path/to/cudaq/install`; the full contract is in
-`preview/logical/README.md`. Installing the `cudaq-logical` Python wheel is an
-alternative to running from the build tree; this page uses the build tree
-directly.
+To build from source against CUDA-Q, see
+[Building against CUDA-Q](../reference/building-against-cudaq.md).
 
 ## Running the shipped examples
 
-The build tree at `preview/logical/build/python` contains the complete
-`cudaq.logical` package with its native MLIR bindings. Run any example file
-against it with:
+From a checkout of this repository, run any example file with:
 
 ```bash
-PYTHONPATH=preview/logical/build/python \
-  python3 -c "import _cudaq_logical_devpath, runpy; runpy.run_path('preview/logical/examples/01_p0_bell.py', run_name='__main__')"
+python3 preview/logical/examples/01_p0_bell.py
 ```
 
-The leading `_cudaq_logical_devpath` import makes the build-tree `cudaq.logical`
-importable next to the installed CUDA-Q runtime. Every `python3` command below
-is this same invocation with a different example path.
+Every `python3` command below is the same invocation with a different example
+path.
 
 ## Step 1 — Estimate an existing CUDA-Q kernel
 
@@ -73,8 +48,7 @@ estimate its resources through the CUDA-Q target integration.
 ```
 
 ```bash
-PYTHONPATH=preview/logical/build/python \
-  python3 -c "import _cudaq_logical_devpath, runpy; runpy.run_path('preview/logical/examples/00_cudaq_logical_resource_estimate.py', run_name='__main__')"
+python3 preview/logical/examples/00_cudaq_logical_resource_estimate.py
 ```
 
 The example prints the selected backend stack and finishes with the annotated
@@ -104,8 +78,7 @@ no code, no device, and no carrier — and it is already estimable.
 ```
 
 ```bash
-PYTHONPATH=preview/logical/build/python \
-  python3 -c "import _cudaq_logical_devpath, runpy; runpy.run_path('preview/logical/examples/01_p0_bell.py', run_name='__main__')"
+python3 preview/logical/examples/01_p0_bell.py
 ```
 
 ```text
@@ -132,8 +105,7 @@ readout.
 ```
 
 ```bash
-PYTHONPATH=preview/logical/build/python \
-  python3 -c "import _cudaq_logical_devpath, runpy; runpy.run_path('preview/logical/examples/03_code_and_gadget.py', run_name='__main__')"
+python3 preview/logical/examples/03_code_and_gadget.py
 ```
 
 ```text
@@ -183,13 +155,10 @@ directly with the reference `stim` Python package.
 - Use the task-oriented [code](../use-cases/define-a-code.md),
   [placement](../use-cases/devices-and-placement.md), and
   [estimation](../use-cases/estimation.md) guides.
-- Browse the remaining runnable studies in [Examples](../use-cases/examples.md).
+- Browse the remaining runnable studies in
+  [Examples](../use-cases/examples/index.md).
 - Inspect compiler internals in the
   [architecture reference](../reference/architecture.md).
 
-To run the full conformance suite — the lit `FileCheck` tests plus the Python
-suite that executes these examples:
-
-```bash
-ctest --test-dir preview/logical/build
-```
+To run the full conformance suite after building from source, see
+[Building against CUDA-Q](../reference/building-against-cudaq.md#verifying-the-build).

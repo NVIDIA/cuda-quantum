@@ -196,5 +196,5 @@ never accepted as the proof; the derivation is.
   and the factories that consume it.
 - The [quick start](../getting-started/quickstart.md) compiles a Steane gadget
   end to end and counts its authored operations.
-- [Examples](examples.md) links the shipped gadget and protocol sources,
+- [Examples](examples/index.md) links the shipped gadget and protocol sources,
   including 15-to-1 distillation.

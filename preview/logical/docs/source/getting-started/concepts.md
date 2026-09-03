@@ -216,4 +216,5 @@ about: `ql.types.X(q)` constructs a Pauli \_factor* for products, while
 - The [architecture reference](../reference/architecture.md) describes the
   dialect stack and pipeline presets that realize these concepts.
 - The [use cases](../use-cases/define-a-code.md) put them to work task by task.
-- [Examples](../use-cases/examples.md) shows them in runnable, shipped code.
+- [Examples](../use-cases/examples/index.md) shows them in runnable, shipped
+  code.

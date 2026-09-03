@@ -178,5 +178,5 @@ estimate code changes when the study moves from one machine to another.
   supply and a concrete 15-to-1 factory.
 - [Logical Clifford+T synthesis](logical-synthesis.md) — legalizing logical
   rotations before placement.
-- [Examples](examples.md) — the placement example in context of the full shipped
-  set.
+- [Examples](examples/index.md) — the placement example in context of the full
+  shipped set.

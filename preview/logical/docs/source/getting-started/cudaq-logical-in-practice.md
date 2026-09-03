@@ -176,5 +176,6 @@ costs; they are not simulated executions. :::
 
 - [How CUDA-Q Logical refines a program](how-cudaq-logical-refines-a-program.md)
   develops stage and facet ownership in more detail.
-- [Examples](../use-cases/examples.md) collects every shipped Python example,
-  including distillation, Clifford+T synthesis, and the Gidney–Ekerå projection.
+- [Examples](../use-cases/examples/index.md) collects every shipped Python
+  example, including distillation, Clifford+T synthesis, and the Gidney–Ekerå
+  projection.
