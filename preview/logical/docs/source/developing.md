@@ -26,7 +26,7 @@ CUDA-Q is discovered from the `cudaq-devel` wheel in the Python environment
 CMake resolves (pass `-DPython3_EXECUTABLE=...` to pin one); configuration
 fails with a diagnostic if that wheel is absent. The full
 development-installation contract, the source-build alternative
-(`QLX_CUDAQ_INSTALL_DIR`), and the failure diagnostics are in
+(`CUDAQ_INSTALL_PREFIX`), and the failure diagnostics are in
 [Building against CUDA-Q](reference/building-against-cudaq.md). A normal
 CUDA-Q runtime installation is not sufficient.
 

@@ -9,12 +9,13 @@ CUDA-Q documentation; content is authored in MyST Markdown.
 From the repository root:
 
 ```bash
-uv venv
-uv pip install ./preview/logical/docs
-sphinx-build -W -b html preview/logical/docs/source preview/logical/docs/_build/html
+uv run --directory preview/logical/docs build-docs
 ```
 
 Then open `preview/logical/docs/_build/html/index.html`.
+
+Extra arguments are forwarded to `sphinx-build` (for example,
+`uvx --from ./preview/logical/docs build-docs -- -n` for nit-picky mode).
 
 From this directory, `make html` and `make clean` wrap the same `sphinx-build`
 call (`-W` is on by default; override with `make html SPHINXOPTS=`).

@@ -1,2 +1,3 @@
 build/
 docs/_build/
+docs/uv.lock

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
 
 [project]
 name = "cudaq-logical-docs"
@@ -14,5 +14,5 @@ dependencies = [
     "sphinx-design>=0.6,<0.7",
 ]
 
-[tool.setuptools]
-packages = []
+[project.scripts]
+build-docs = "cudaq_logical_docs:main"

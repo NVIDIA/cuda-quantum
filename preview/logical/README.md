@@ -55,7 +55,7 @@ the build at that prefix:
 
 ```bash
 cmake -S preview/logical -B preview/logical/build -G Ninja \
-  -DQLX_CUDAQ_INSTALL_DIR=/path/to/cudaq/install
+  -DCUDAQ_INSTALL_PREFIX=/path/to/cudaq/install
 ```
 
 Run an example against the build tree with:

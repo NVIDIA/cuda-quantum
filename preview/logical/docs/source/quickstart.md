@@ -40,7 +40,7 @@ cmake --build preview/logical/build
 CMake locates the SDK through the Python interpreter it resolves, so the
 wheel only has to be installed in the active environment. To build against a
 CUDA-Q work tree instead of the wheel, configure with
-`-DQLX_CUDAQ_INSTALL_DIR=/path/to/cudaq/install`; the full contract is in
+`-DCUDAQ_INSTALL_PREFIX=/path/to/cudaq/install`; the full contract is in
 `preview/logical/README.md`. Installing the `cudaq-logical` Python wheel is
 an alternative to running from the build tree; this page uses the build tree
 directly.
