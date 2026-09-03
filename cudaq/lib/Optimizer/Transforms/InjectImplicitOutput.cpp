@@ -65,8 +65,8 @@ public:
 
     // 1. At this point, we have a function that we want to process.
 
-    // λ to resolve the value to create an evince for.
-    auto logValue = [](cudaq::quake::AllocaOp alloc) -> Value {
+    // λ to resolve the value to create an evince op for.
+    auto evinceValue = [](cudaq::quake::AllocaOp alloc) -> Value {
       if (alloc.hasInitializedState())
         return alloc.getInitializedState().getResult();
       return alloc.getResult();
@@ -105,7 +105,7 @@ public:
     // block.
     builder.setInsertionPointToEnd(exitBlock);
     for (auto alloc : orderedAllocs)
-      emitEvince(builder, alloc.getLoc(), logValue(alloc));
+      emitEvince(builder, alloc.getLoc(), evinceValue(alloc));
     func::ReturnOp::create(builder, loc, exitBlock->getArguments());
 
     // 3. Redirect all existing func.return ops to branch to the exit block,
@@ -134,7 +134,7 @@ public:
           // this return, preserving declaration order.
           for (auto alloc : orderedAllocs)
             if (dom.dominates(alloc.getOperation(), ret.getOperation()))
-              emitEvince(builder, alloc.getLoc(), logValue(alloc));
+              emitEvince(builder, alloc.getLoc(), evinceValue(alloc));
         }
       }
     }

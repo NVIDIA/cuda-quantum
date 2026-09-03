@@ -292,9 +292,9 @@ struct DropEmptyVeqEvinceArgsPattern
     : public OpRewritePattern<cudaq::quake::EvinceOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp log,
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
                                 PatternRewriter &rewriter) const override {
-    auto args = log.getArgs();
+    auto args = evin.getArgs();
     SmallVector<Value> keep;
     for (Value arg : args)
       if (!isEmptyVeqType(arg))
@@ -303,12 +303,12 @@ struct DropEmptyVeqEvinceArgsPattern
       return failure();
 
     if (keep.empty()) {
-      rewriter.eraseOp(log);
+      rewriter.eraseOp(evin);
       return success();
     }
 
     rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
-        log, keep, log.getCompilerGenerated());
+        evin, keep, evin.getCompilerGenerated());
     return success();
   }
 };
