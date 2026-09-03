@@ -9,13 +9,17 @@ CUDA-Q documentation; content is authored in MyST Markdown.
 From the repository root:
 
 ```bash
-uv run --directory preview/logical/docs build-docs
+uv run --directory preview/logical/docs --extra build-deps build-docs
 ```
 
 Then open `preview/logical/docs/_build/html/index.html`.
 
-Extra arguments are forwarded to `sphinx-build` (for example,
-`uvx --from ./preview/logical/docs build-docs -- -n` for nit-picky mode).
+To execute inline Python snippets from the docs (requires an installed
+`cudaq-logical` wheel):
+
+```bash
+uv run --directory preview/logical/docs --extra test-deps test-docs
+```
 
 From this directory, `make html` and `make clean` wrap the same `sphinx-build`
 call (`-W` is on by default; override with `make html SPHINXOPTS=`).

@@ -1,14 +1,14 @@
 # Defining codes
 
-A code in CUDA-Q Logical is validated algebra: constructing one **proves**
-its stabilizer and logical structure — mutual commutation, canonical pairing,
-and rank against `n - k - r` — or fails with a diagnostic. There is no way to
-hold an algebraically invalid code and pass it to a gadget or a device.
+A code in CUDA-Q Logical is validated algebra: constructing one **proves** its
+stabilizer and logical structure — mutual commutation, canonical pairing, and
+rank against `n - k - r` — or fails with a diagnostic. There is no way to hold
+an algebraically invalid code and pass it to a gadget or a device.
 
 ## CSS codes: state the checks once
 
-The shipped examples define the self-dual ``[[7,1,3]]`` Steane code by
-stating its CSS check rows once:
+The shipped examples define the self-dual `[[7,1,3]]` Steane code by stating its
+CSS check rows once:
 
 ```{literalinclude} ../../../examples/03_code_and_gadget.py
 :language: python
@@ -19,13 +19,15 @@ stating its CSS check rows once:
 
 Check rows are carrier-index supports. `n` comes from the block, `k` from the
 logical pairs, and `r` from the (absent) gauge declarations — supplying any of
-them explicitly is a checked assertion, never a hint. Construction derives
-the remaining structure, so downstream code can trust it; the same shipped
-example asserts `Steane.n == 7`, `Steane.k == 1`, and `Steane.d.value == 3`
-and finds six independent X/Z stabilizer checks. An algebra that does not
-close fails at construction:
+them explicitly is a checked assertion, never a hint. Construction derives the
+remaining structure, so downstream code can trust it; the same shipped example
+asserts `Steane.n == 7`, `Steane.k == 1`, and `Steane.d.value == 3` and finds
+six independent X/Z stabilizer checks. An algebra that does not close fails at
+construction:
 
 ```python
+import cudaq.logical as qlx
+
 try:
     @qlx.code
     class Bad:
@@ -36,13 +38,15 @@ try:
         lx = ((0,),)
         lz = ((1,),)
 except ValueError as exc:
-    print(exc)   # stabilizer rank must equal n-k-r = 1, got 2
+    assert "stabilizer rank must equal n-k-r = 1, got 2" in str(exc)
 ```
 
 For non-CSS stabilizer codes, the general Pauli spelling states generators as
 Pauli products instead of support rows:
 
 ```python
+import cudaq.logical as qlx
+
 @qlx.code
 class Repetition3:
     block = qlx.codes.Block(data=3, syndrome=2)
@@ -72,15 +76,20 @@ never a proof. The evidence-bearing constructors (`exact`, `lower_bound`,
 `TypeError` rather than silently upgrading the claim:
 
 ```python
-qlx.codes.Distance.exact(12)
-# TypeError: Distance.exact evidence requires method= and provenance=;
-# use Distance.claimed(...) to record an unproved assertion
+import cudaq.logical as qlx
+
+try:
+    # TypeError: Distance.exact evidence requires method= and provenance=;
+    # use Distance.claimed(...) to record an unproved assertion
+    qlx.codes.Distance.exact(12)
+except TypeError as exc:
+    assert "method= and provenance=" in str(exc)
 ```
 
-`Distance.asymmetric` carries independent X- and Z-basis evidence — the
-catalog repetition code is ``d_x = 3, d_z = 1`` — and `Distance.unknown(...)`
-is the honest zero: estimators that need distance scaling report *missing
-evidence* instead of inventing a number.
+`Distance.asymmetric` carries independent X- and Z-basis evidence — the catalog
+repetition code is `d_x = 3, d_z = 1` — and `Distance.unknown(...)` is the
+honest zero: estimators that need distance scaling report _missing evidence_
+instead of inventing a number.
 
 ## The catalog and parameterized families
 
@@ -94,13 +103,15 @@ assert surface_3.block.size == 17       # 9 data + 8 syndrome carriers
 ```
 
 alongside `qlx.codes.Steane`, `qlx.codes.Repetition`, `qlx.codes.RM15` (the
-``[[15,1,3]]`` Reed–Muller code), and `qlx.codes.BareQubit` (the trivial
+`[[15,1,3]]` Reed–Muller code), and `qlx.codes.BareQubit` (the trivial
 distance-1 code used by the Stim-emission fixture).
 
-A parameterized family is an ordinary function decorated with `@qlx.code`
-that returns a `qlx.codes.CSSCode`; bracket syntax specializes it:
+A parameterized family is an ordinary function decorated with `@qlx.code` that
+returns a `qlx.codes.CSSCode`; bracket syntax specializes it:
 
 ```python
+import cudaq.logical as qlx
+
 @qlx.code
 def repetition(distance: int):
     """The ``[[distance, 1, distance]]`` bit-flip repetition family."""
@@ -129,6 +140,8 @@ code to a named `fabric.code` artifact, and the gadget factories consume the
 code directly:
 
 ```python
+import cudaq.logical as qlx
+
 prep    = qlx.gadgets.prepare_zero(qlx.codes.Steane)     # |0>_L preparation
 round_  = qlx.gadgets.css_memory_round(qlx.codes.Steane) # one syndrome round
 readout = qlx.gadgets.logical_measure(qlx.codes.Steane, basis="z")
@@ -139,8 +152,8 @@ subject of [gadgets and verification](gadgets-and-verification.md).
 
 ## Where to go next
 
-- [Gadgets and verification](gadgets-and-verification.md) — realize
-  objectives on your code and check the claims.
+- [Gadgets and verification](gadgets-and-verification.md) — realize objectives
+  on your code and check the claims.
 - The [quickstart](../quickstart.md) runs the Steane code and gadget of this
   page end to end.
 - The [example gallery](../example-gallery/index.md) embeds the shipped,

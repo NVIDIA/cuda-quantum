@@ -1,13 +1,13 @@
 # Magic states and protocols
 
-Non-Clifford computation is where fault-tolerant resource estimation stops
-being a memory benchmark: Pauli-product rotations and measurements need magic
-states, and magic states come from distillation protocols. CUDA-Q Logical
-treats each protocol as a verified, inspectable definition — never a
-string-named leaf the compiler trusts.
+Non-Clifford computation is where fault-tolerant resource estimation stops being
+a memory benchmark: Pauli-product rotations and measurements need magic states,
+and magic states come from distillation protocols. CUDA-Q Logical treats each
+protocol as a verified, inspectable definition — never a string-named leaf the
+compiler trusts.
 
 In the programming model, `qlx.ops.rotate` (Pauli-product rotation) and
-`qlx.mpp` (Pauli-product measurement) are *logical primitives*:
+`qlx.mpp` (Pauli-product measurement) are _logical primitives_:
 
 ```python
 import cudaq.logical as qlx
@@ -28,57 +28,64 @@ application author supplies.
 
 ## Phase convention
 
-CUDA-Q Logical fixes one rotation convention everywhere — the frontend and
-the synthesis pass both assume it:
+CUDA-Q Logical fixes one rotation convention everywhere — the frontend and the
+synthesis pass both assume it:
 
 $$R_P(\theta) = \exp\!\left(-\tfrac{i}{2}\,\theta P\right),\qquad P \in \{X, Y, Z, \dots\}.$$
 
 This is the standard (Nielsen–Chuang) convention. Two consequences are worth
 stating outright because they trip up cross-checks against other tools:
 
-- **Litinski's angle is off by a factor of two.** Litinski writes rotations
-  as $P_\phi = \exp(i\phi P)$, so his $\phi$ and our $\theta$ relate by
-  $\theta = -2\phi$. A Litinski "$P_{\pi/8}$" is our $R_P(\pi/4)$ — the
-  magic (T-class) rotation. Always convert before comparing angles.
-- **The Clifford hierarchy lands on quarter-turns of $\theta$**, not
-  eighths: $R_P(\pi)$ is a Pauli, $R_P(\pi/2)$ is a Clifford, and
-  $R_P(\pi/4)$ is the non-Clifford magic rotation that consumes one T state.
+- **Litinski's angle is off by a factor of two.** Litinski writes rotations as
+  $P_\phi = \exp(i\phi P)$, so his $\phi$ and our $\theta$ relate by
+  $\theta = -2\phi$. A Litinski "$P_{\pi/8}$" is our $R_P(\pi/4)$ — the magic
+  (T-class) rotation. Always convert before comparing angles.
+- **The Clifford hierarchy lands on quarter-turns of $\theta$**, not eighths:
+  $R_P(\pi)$ is a Pauli, $R_P(\pi/2)$ is a Clifford, and $R_P(\pi/4)$ is the
+  non-Clifford magic rotation that consumes one T state.
 
-Concretely, for $P = Z$ the diagonal rotation $R_Z(\theta) =
-\operatorname{diag}(e^{-i\theta/2},\, e^{+i\theta/2})$ equals the named gates
-**up to an unobservable global phase**:
+Concretely, for $P = Z$ the diagonal rotation
+$R_Z(\theta) =
+\operatorname{diag}(e^{-i\theta/2},\, e^{+i\theta/2})$ equals the
+named gates **up to an unobservable global phase**:
 
-| angle $\theta$ | $R_Z(\theta)$ | equals (up to global phase) | class |
-| --- | --- | --- | --- |
-| $\pi/4$ | $\operatorname{diag}(e^{-i\pi/8}, e^{+i\pi/8})$ | $e^{-i\pi/8}\,T$, with $T=\operatorname{diag}(1, e^{i\pi/4})$ | magic (T) |
-| $\pi/2$ | $\operatorname{diag}(e^{-i\pi/4}, e^{+i\pi/4})$ | $e^{-i\pi/4}\,S$, with $S=\operatorname{diag}(1, i)=T^2$ | Clifford |
-| $\pi$ | $\operatorname{diag}(e^{-i\pi/2}, e^{+i\pi/2})$ | $e^{-i\pi/2}\,Z$, with $Z=\operatorname{diag}(1, -1)=S^2=T^4$ | Pauli |
+| angle $\theta$ | $R_Z(\theta)$                                   | equals (up to global phase)                                   | class     |
+| -------------- | ----------------------------------------------- | ------------------------------------------------------------- | --------- |
+| $\pi/4$        | $\operatorname{diag}(e^{-i\pi/8}, e^{+i\pi/8})$ | $e^{-i\pi/8}\,T$, with $T=\operatorname{diag}(1, e^{i\pi/4})$ | magic (T) |
+| $\pi/2$        | $\operatorname{diag}(e^{-i\pi/4}, e^{+i\pi/4})$ | $e^{-i\pi/4}\,S$, with $S=\operatorname{diag}(1, i)=T^2$      | Clifford  |
+| $\pi$          | $\operatorname{diag}(e^{-i\pi/2}, e^{+i\pi/2})$ | $e^{-i\pi/2}\,Z$, with $Z=\operatorname{diag}(1, -1)=S^2=T^4$ | Pauli     |
 
 So $R_Z(k\,\pi/4) = T^k \pmod 8$ up to global phase — the exact-word fast path
-the native `qlx-synthesize-rotations` pass takes before ever calling
-gridsynth: $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is
-dropped throughout: it is unobservable and carries no logical content.
+the native `qlx-synthesize-rotations` pass takes before ever calling gridsynth:
+$k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is dropped
+throughout: it is unobservable and carries no logical content.
 
 ### Authoring exact angles with `qlx.algebra.pi`
 
-Writing `angle=0.7853981633974483` leaves the compiler to *infer* that you
-meant $\pi/4$ from a float, within a tolerance. To state the intent exactly,
-author with the symbol `qlx.algebra.pi` — an exact rational multiple of
-$\pi$ that arithmetic keeps exact:
+Writing `angle=0.7853981633974483` leaves the compiler to _infer_ that you meant
+$\pi/4$ from a float, within a tolerance. To state the intent exactly, author
+with the symbol `qlx.algebra.pi` — an exact rational multiple of $\pi$ that
+arithmetic keeps exact:
 
 ```python
-q[0], = qlx.ops.rotate(qlx.types.Z(q[0]), angle=qlx.algebra.pi / 4)  # the magic (T) rotation
-q[0]  = qlx.rz(q[0], 3 * qlx.algebra.pi / 4)                         # exact, still T-class
-q[0]  = qlx.rz(q[0], qlx.algebra.pi / 8)                             # exact target, off-lattice
+@qlx.program
+def exact_angles() -> bool:
+    q = qlx.allocate(1, state=qlx.types.zero)
+    q[0], = qlx.ops.rotate(qlx.types.Z(q[0]), angle=qlx.algebra.pi / 4)
+    q[0] = qlx.rz(q[0], 3 * qlx.algebra.pi / 4)
+    q[0] = qlx.rz(q[0], qlx.algebra.pi / 8)
+    return qlx.measure_z(q[0])
+
+qlx.compile(exact_angles)
 ```
 
 An `Angle` authored this way stamps its reduced coefficient onto the rotation
 op, so the synthesis dispatch classifies it **authoritatively** —
 `qlx.algebra.pi / 2` is the Clifford point and `qlx.algebra.pi / 4` the magic
-point by construction, never a near-lattice float that a tolerance might snap
-or miss. `float(qlx.algebra.pi / 4)` still yields the ordinary radian value,
-so a raw float angle (e.g. `0.3`) keeps the numeric path unchanged — both
-surfaces coexist.
+point by construction, never a near-lattice float that a tolerance might snap or
+miss. `float(qlx.algebra.pi / 4)` still yields the ordinary radian value, so a
+raw float angle (e.g. `0.3`) keeps the numeric path unchanged — both surfaces
+coexist.
 
 Off-lattice rotations are legalized to Clifford+T by synthesis; see
 [Logical Clifford+T synthesis](logical-synthesis.md).
@@ -86,13 +93,12 @@ Off-lattice rotations are legalized to Clifford+T by synthesis; see
 ## Typed resource kinds
 
 Magic states are typed resources, not ad-hoc qubits. The standard library
-declares the kinds — `qlx.std.T_STATE`, `RAW_T_STATE`, `Y_STATE`,
-`CCZ_STATE`, `CS_STATE`, `ENCODED_BELL_PAIR` — each with a typed consume
-action, and `qlx.std.produce(...)` builds the objective a production protocol
-claims to implement. A protocol body sees resources through
-`qlx.types.resource[...]` handles: `qlx.request_many` draws raw inputs,
-`qlx.unpack_resource` opens a resource into a patch, and `qlx.pack_resource`
-certifies the output kind.
+declares the kinds — `qlx.std.T_STATE`, `RAW_T_STATE`, `Y_STATE`, `CCZ_STATE`,
+`CS_STATE`, `ENCODED_BELL_PAIR` — each with a typed consume action, and
+`qlx.std.produce(...)` builds the objective a production protocol claims to
+implement. A protocol body sees resources through `qlx.types.resource[...]`
+handles: `qlx.request_many` draws raw inputs, `qlx.unpack_resource` opens a
+resource into a patch, and `qlx.pack_resource` certifies the output kind.
 
 ## 15-to-1: a concrete factory
 
@@ -107,14 +113,14 @@ with the root authoring facade — not an analytical placeholder:
 
 Fifteen linear raw-state inputs are unpacked onto bare patches; eleven
 resource-assisted product rotations from
-`qlx.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal
-circuit; `qlx.protocols.bare_s` converts the resulting T† on the odd row to
-the canonical T|+⟩; and exactly the four even rows must measure $+X$ —
-recorded with `qlx.postselect`, so the acceptance condition is part of the
-definition rather than a comment about it.
+`qlx.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal circuit;
+`qlx.protocols.bare_s` converts the resulting T† on the odd row to the canonical
+T|+⟩; and exactly the four even rows must measure $+X$ — recorded with
+`qlx.postselect`, so the acceptance condition is part of the definition rather
+than a comment about it.
 
-Because the protocol is an ordinary compiled definition, the static
-estimation tier counts it directly:
+Because the protocol is an ordinary compiled definition, the static estimation
+tier counts it directly:
 
 ```{literalinclude} ../../../examples/04_distillation.py
 :language: python
@@ -129,13 +135,12 @@ estimation tier counts it directly:
   peak live patches: 5
 ```
 
-`success_count` records the four postselection checks, and the estimate
-carries them as first-class cost facts: a downstream study does not have to
-rediscover that this factory rejects.
+`success_count` records the four postselection checks, and the estimate carries
+them as first-class cost facts: a downstream study does not have to rediscover
+that this factory rejects.
 
-The leading-order analytical curves attach to the *same* protocol library
-entry for supply/demand studies — output error $35p^3$ and acceptance
-$1 - 15p$:
+The leading-order analytical curves attach to the _same_ protocol library entry
+for supply/demand studies — output error $35p^3$ and acceptance $1 - 15p$:
 
 ```python
 model = qlx.protocols.DISTILL_15TO1_T
@@ -144,24 +149,22 @@ assert model.acceptance_probability(1e-3) == 0.9851045810483217
 ```
 
 The `qlx.protocols` library also exposes the reusable pieces —
-`FIFTEEN_TO_ONE_ROTATION_STEPS` and their supports, `bare_s`,
-`bare_measure_x`, and the ready-made `distill_15to1` definition — so a code
-library can compose its own production protocol from verified parts.
+`FIFTEEN_TO_ONE_ROTATION_STEPS` and their supports, `bare_s`, `bare_measure_x`,
+and the ready-made `distill_15to1` definition — so a code library can compose
+its own production protocol from verified parts.
 
-:::{admonition} Evidence boundary
-:class: note
+:::{admonition} Evidence boundary :class: note
 
 A static estimate counts what the declared protocol costs; it does not sample
 the factory, decode its checks, or model the noise that makes distillation
 necessary. Postselection is reported as counts and success rows, not as
-simulated accept/reject statistics.
-:::
+simulated accept/reject statistics. :::
 
 ## Continue from here
 
 - [Logical Clifford+T synthesis](logical-synthesis.md) — the other route for
   off-lattice rotations.
-- [Devices and placement](devices-and-placement.md) — where factory regions
-  and resource streams live on a machine.
-- The [example gallery](../example-gallery/index.md) — the distillation
-  example in context of the full shipped set.
+- [Devices and placement](devices-and-placement.md) — where factory regions and
+  resource streams live on a machine.
+- The [example gallery](../example-gallery/index.md) — the distillation example
+  in context of the full shipped set.

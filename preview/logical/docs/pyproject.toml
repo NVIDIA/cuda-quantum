@@ -7,12 +7,17 @@ name = "cudaq-logical-docs"
 version = "0.1.0"
 description = "CUDA-Q Logical (cudaq.logical) documentation"
 requires-python = ">=3.10"
-dependencies = [
+dependencies = []
+
+[project.scripts]
+build-docs = "cudaq_logical_docs:main"
+test-docs = "cudaq_logical_docs:test_main"
+
+[project.optional-dependencies]
+build-deps = [
     "sphinx>=8.1,<9",
     "sphinx-rtd-theme>=3.0,<4",
     "myst-parser>=3,<5",
     "sphinx-design>=0.6,<0.7",
 ]
-
-[project.scripts]
-build-docs = "cudaq_logical_docs:main"
+test-deps = ["cudaq-logical", "pytest>=7.0", "sybil>=6"]

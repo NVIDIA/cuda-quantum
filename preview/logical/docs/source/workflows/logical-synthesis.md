@@ -1,9 +1,9 @@
 # Logical Clifford+T synthesis
 
-Use `qlx.compiler.synthesize` when you want a device-independent logical
-program expressed in a specific gate set. The result is an ordinary immutable
-P0 `Build`: inspect it, serialize it, or pass it to placement and QEC
-compilation later.
+Use `qlx.compiler.synthesize` when you want a device-independent logical program
+expressed in a specific gate set. The result is an ordinary immutable P0
+`Build`: inspect it, serialize it, or pass it to placement and QEC compilation
+later.
 
 ## Synthesize a program
 
@@ -40,8 +40,8 @@ print(clifford_t.synthesis.clifford_count)
 ```
 
 No `device=` is involved. Preparation, measurement, discard, structured
-classical control, source locations, and linear ownership remain P0
-semantics; only logical unitary actions are legalized.
+classical control, source locations, and linear ownership remain P0 semantics;
+only logical unitary actions are legalized.
 
 `qlx.compiler.gate_sets.clifford_t` emits:
 
@@ -50,19 +50,18 @@ semantics; only logical unitary actions are legalized.
 - positive `T`; and
 - `CX`.
 
-Inverse phase gates use positive generators. Pauli and Clifford actions, CZ,
-and CCZ are decomposed exactly. Static multi-qubit Pauli rotations use local
-basis changes, a CX parity ladder, one synthesized Z rotation, and
-uncomputation. The legalization is performed by the shared CUDA-Q
-cudaq-synth/gridsynth implementation — recorded on the build's
-`logical_gate_set_legalization` evidence record — and a final independent
-verifier (`qlx-verify-clifford-t`) rejects any logical action left outside
-the requested gate set.
+Inverse phase gates use positive generators. Pauli and Clifford actions, CZ, and
+CCZ are decomposed exactly. Static multi-qubit Pauli rotations use local basis
+changes, a CX parity ladder, one synthesized Z rotation, and uncomputation. The
+legalization is performed by the shared CUDA-Q cudaq-synth/gridsynth
+implementation — recorded on the build's `logical_gate_set_legalization`
+evidence record — and a final independent verifier (`qlx-verify-clifford-t`)
+rejects any logical action left outside the requested gate set.
 
 ## Precision
 
-`precision` is the default projective operator-norm bound for each
-off-lattice rotation:
+`precision` is the default projective operator-norm bound for each off-lattice
+rotation:
 
 ```python
 result = qlx.compiler.synthesize(
@@ -76,22 +75,28 @@ result = qlx.compiler.synthesize(
 An explicitly authored rotation precision takes precedence:
 
 ```python
-q[0], = qlx.ops.rotate(
-    qlx.types.Z(q[0]),
-    angle=0.3,
-    precision=1e-12,
-)
+@qlx.program
+def rotation_precision() -> bool:
+    q = qlx.allocate(1, state=qlx.types.zero)
+    q[0], = qlx.ops.rotate(
+        qlx.types.Z(q[0]),
+        angle=0.3,
+        precision=1e-12,
+    )
+    return qlx.measure_z(q[0])
+
+qlx.compile(rotation_precision)
 ```
 
 Exact rational multiples written with `qlx.algebra.pi` retain exact source
 metadata and take the exact-word fast path (see
-[Magic states and protocols](magic-states-and-protocols.md)). For
-float-authored angles, an exact lattice word is used only when that word
-meets the requested precision.
+[Magic states and protocols](magic-states-and-protocols.md)). For float-authored
+angles, an exact lattice word is used only when that word meets the requested
+precision.
 
-Grid synthesis needs a static angle. Specialize runtime ABI parameters
-through `parameters=` as shown above. Without specialization, synthesis fails
-rather than returning a `Build` that still contains an arbitrary rotation.
+Grid synthesis needs a static angle. Specialize runtime ABI parameters through
+`parameters=` as shown above. Without specialization, synthesis fails rather
+than returning a `Build` that still contains an arbitrary rotation.
 
 ## Inspect and replay the result
 
@@ -129,8 +134,8 @@ equivalent = qlx.compile(
 assert equivalent.to_mlir() == clifford_t.to_mlir()
 ```
 
-This is a real P0-to-P0 transformation. Passing an existing P0 `Build`
-creates a new `Build` and leaves the source unchanged:
+This is a real P0-to-P0 transformation. Passing an existing P0 `Build` creates a
+new `Build` and leaves the source unchanged:
 
 ```python
 source = qlx.compile(
@@ -168,14 +173,14 @@ Neither pass chooses a code, requests magic states, or inspects a machine.
 ## When not to synthesize
 
 Do not synthesize early when the intended realization should choose a native
-rotation or another non-Clifford strategy at P2 selection time — synthesis is
-an early logical commitment that prices every rotation as a Clifford+T word.
-In that case, compile the original P0 program instead and let selection see
-the rotation.
+rotation or another non-Clifford strategy at P2 selection time — synthesis is an
+early logical commitment that prices every rotation as a Clifford+T word. In
+that case, compile the original P0 program instead and let selection see the
+rotation.
 
 ## Continue from here
 
 - [Magic states and protocols](magic-states-and-protocols.md) — the phase
   convention, exact angles, and where the T states come from.
-- The [example gallery](../example-gallery/index.md) — example 05 estimates
-  a CUDA-Q rotation in this gate set end to end.
+- The [example gallery](../example-gallery/index.md) — example 05 estimates a
+  CUDA-Q rotation in this gate set end to end.

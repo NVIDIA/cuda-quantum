@@ -20,13 +20,13 @@ on:
       platform:
         type: choice
         description: Wheel platform
-        options: ['linux/amd64', 'linux/arm64']
+        options: ["linux/amd64", "linux/arm64"]
         default: linux/amd64
       python_version:
         type: choice
         description: Python version
-        options: ['3.11', '3.13', '3.14']
-        default: '3.11'
+        options: ["3.11", "3.13", "3.14"]
+        default: "3.11"
   workflow_call:
     inputs:
       platform:
@@ -36,25 +36,25 @@ on:
       python_version:
         type: string
         description: Python version
-        default: '3.11'
+        default: "3.11"
       # Artifact inputs: set all four together to reuse a pre-built wheel
       # (matching platform/python_version); leave empty to build it first.
       wheel_name:
         type: string
         description: Artifact name of a pre-built cudaq-logical wheel to reuse.
-        default: ''
+        default: ""
       runtime_artifact_name:
         type: string
         description: Artifact name of the matching CUDA-Q runtime wheel.
-        default: ''
+        default: ""
       metapackage_artifact_name:
         type: string
         description: Artifact name of the matching cudaq metapackage.
-        default: ''
+        default: ""
       cudaq_version:
         type: string
         description: Version of the pre-built wheels.
-        default: ''
+        default: ""
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -79,16 +79,25 @@ jobs:
     needs: build
     # Run both after a successful fallback build and when it was skipped
     # because pre-built artifact names were passed in.
-    if: ${{ always() && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    if:
+      ${{ always() && (needs.build.result == 'success' || needs.build.result ==
+      'skipped') }}
+    runs-on:
+      ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') ||
+      'linux-amd64-cpu8' }}
     permissions:
       contents: read
       actions: read
     env:
-      CUDAQ_VERSION: ${{ inputs.cudaq_version || needs.build.outputs.cudaq_version }}
+      CUDAQ_VERSION:
+        ${{ inputs.cudaq_version || needs.build.outputs.cudaq_version }}
       WHEEL_NAME: ${{ inputs.wheel_name || needs.build.outputs.wheel_name }}
-      RUNTIME_ARTIFACT_NAME: ${{ inputs.runtime_artifact_name || needs.build.outputs.runtime_artifact_name }}
-      METAPACKAGE_ARTIFACT_NAME: ${{ inputs.metapackage_artifact_name || needs.build.outputs.metapackage_artifact_name }}
+      RUNTIME_ARTIFACT_NAME:
+        ${{ inputs.runtime_artifact_name ||
+        needs.build.outputs.runtime_artifact_name }}
+      METAPACKAGE_ARTIFACT_NAME:
+        ${{ inputs.metapackage_artifact_name ||
+        needs.build.outputs.metapackage_artifact_name }}
 
     steps:
       - name: Checkout repository
@@ -177,6 +186,15 @@ jobs:
             fi
             tail -n 3 "example-logs/$name.log"
           done
+
+      - name: Test inline docs snippets
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+
+          uv pip install "./preview/logical/docs[test]"
+          test-docs
 
       - name: Upload example logs
         uses: actions/upload-artifact@v7
