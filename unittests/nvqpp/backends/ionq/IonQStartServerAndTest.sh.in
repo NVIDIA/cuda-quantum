@@ -33,8 +33,8 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
-# Set the environment before entering main
-export IONQ_API_KEY="00000000000000000000000000000000"
+# The key comes from the api_key target argument; keep the env var unset.
+unset IONQ_API_KEY
 # Run the tests
 ./test_ionq
 # Did they fail? 

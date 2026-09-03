@@ -35,6 +35,11 @@ target-arguments:
     type: string
     platform-arg: qpu 
     help-string: "Specify the IonQ QPU."
+  - key: api-key
+    required: false
+    type: string
+    platform-arg: api_key
+    help-string: "Specify the IonQ API key."
   - key: noise-model
     required: false
     type: string
