@@ -36,8 +36,8 @@ def _setup(namespace):
         build_mod.Build.__init__._qlx_docs_patched = True
 
     root = Path.cwd()
-    while (root != root.parent
-           and not (root / "preview/logical/examples").is_dir()):
+    while (root != root.parent and
+           not (root / "preview/logical/examples").is_dir()):
         root = root.parent
     if not (root / "preview/logical/examples").is_dir():
         raise RuntimeError(

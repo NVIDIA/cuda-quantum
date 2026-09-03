@@ -6,8 +6,8 @@ and magic states come from distillation protocols. CUDA-Q Logical treats each
 protocol as a verified, inspectable definition — never a string-named leaf the
 compiler trusts.
 
-In the programming model, `ql.ops.rotate` (Pauli-product rotation) and
-`ql.mpp` (Pauli-product measurement) are _logical primitives_:
+In the programming model, `ql.ops.rotate` (Pauli-product rotation) and `ql.mpp`
+(Pauli-product measurement) are _logical primitives_:
 
 ```python
 import cudaq.logical as ql
@@ -31,7 +31,10 @@ application author supplies.
 CUDA-Q Logical fixes one rotation convention everywhere — the frontend and the
 synthesis pass both assume it:
 
-$$R_P(\theta) = \exp\!\left(-\tfrac{i}{2}\,\theta P\right),\qquad P \in \{X, Y, Z, \dots\}.$$
+$$
+R_P(\theta) = \exp\!\left(-\tfrac{i}{2}\,\theta P\right),
+\qquad P \in \{X, Y, Z, \dots\}.
+$$
 
 This is the standard (Nielsen–Chuang) convention. Two consequences are worth
 stating outright because they trip up cross-checks against other tools:
