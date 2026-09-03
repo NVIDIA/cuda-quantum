@@ -2048,23 +2048,30 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
 }
 
 //===----------------------------------------------------------------------===//
-// LogOutputOp
+// EvinceOp
 //===----------------------------------------------------------------------===//
 
-def quake_LogOutputOp : QuakeOp<"log_output"> {
-  let summary = "Marks a value in the IR as observable.";
+def quake_EvinceOp : QuakeOp<"evince"> {
+  let summary = "Marks a value in the IR as evincive (observable).";
   let description = [{
     This operation is a high-level \e abstraction for the necessary and
-    sufficient functionality to log output results to a \e virtual output device
-    produced by a well-defined CUDA-Q kernel. \e How this to be accomplished and
-    the details thereof are not the concern of Quake. The presence of this
-    operation explicitly denotes that a \e value in Quake is \e observable in
-    the computational sense. This restricts the types of optimizations that may
+    sufficient functionality to make values evincive, observable to the outside.
+    This may lower further to actual recording of the value to a \e virtual
+    output device produced by a well-defined CUDA-Q kernel.
+
+    \e How this to be accomplished and the details thereof are not the concern
+    of Quake or the `evince` operation. The presence of this operation
+    explicitly denotes that a \e value in Quake is \e observable in the
+    computational sense. This restricts the types of optimizations that may
     be applied; such as, the value cannot be trivially erased.
+
+    This operation may be purely annotative to record that certain values in the
+    IR may not be fully optimized away.
 
     The semantics of this operation are very clear. Arguments are considered
     observable and live, and this operation \e explicitly denotes I/O
-    side-effects.
+    side-effects, whether those side-effects are reified in the final code
+    generation or not.
 
     The lowering of this operation is heavily context dependent. The target and
     launch policies of an entry-point kernel will interplay with an abstract
@@ -2077,7 +2084,7 @@ def quake_LogOutputOp : QuakeOp<"log_output"> {
 
     Do not read this overly literally. Using this operation on a value of
     quantum type simply does \e not mean that a qubit is anything more than
-    "of interest". A physical qubit isn't something one can email.
+    evincive and interesting.
   }];
 
   let arguments = (ins

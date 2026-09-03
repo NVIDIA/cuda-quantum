@@ -139,7 +139,7 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, ResetOp, SinkOp,
-             ReturnWireOp, LogOutputOp>(op);
+             ReturnWireOp, EvinceOp>(op);
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {
@@ -1697,10 +1697,10 @@ WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)
 
 //===----------------------------------------------------------------------===//
-// LogOutputOp
+// EvinceOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult cudaq::quake::LogOutputOp::verify() {
+LogicalResult cudaq::quake::EvinceOp::verify() {
   SmallVector<Type> expected;
   for (Value v : getArgs())
     if (isLinearType(v.getType()))
@@ -1712,9 +1712,9 @@ LogicalResult cudaq::quake::LogOutputOp::verify() {
   return success();
 }
 
-void cudaq::quake::LogOutputOp::getCanonicalizationPatterns(
+void cudaq::quake::EvinceOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<DropEmptyVeqLogOutputArgsPattern>(context);
+  patterns.add<DropEmptyVeqEvinceArgsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
