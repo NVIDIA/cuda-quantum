@@ -6,6 +6,7 @@ APIs
 AST
 Aer
 AlmaLinux
+Amano
 Anyon
 AquSim
 Asynchronous

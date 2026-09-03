@@ -14,37 +14,17 @@ CUDA-Q does this with grid synthesis (Ross and Selinger, `arXiv:1403.2975
 ``epsilon``, it finds a short Clifford+T sequence :math:`U` satisfying
 :math:`\|R_z(\theta) - U\| \le \epsilon` in the operator norm.
 
-Synthesizing a whole kernel
----------------------------
+There are two ways to use it. ``cudaq.synth`` is a Python API for approximating
+individual rotations, and is shown first. Synthesizing a whole kernel is done by
+a compiler pass, which is opt-in. It is not part of any default target pipeline,
+and the targets that run it are benchmarking targets for estimating how many T
+gates an algorithm would cost.
 
-The ``compiler-bench-ftqc-clifford-t`` target compiles a kernel all the way
-down to Clifford+T. It reduces ``rx``, ``ry`` and ``r1`` rotations to ``rz``,
-synthesizes each one, and optimizes the result. Its ``epsilon`` argument sets
-the per-rotation tolerance and defaults to ``1e-10``.
+Synthesizing a rotation
+-----------------------
 
-.. literalinclude:: ../../snippets/python/using/examples/synthesis/rotation_synthesis.py
-     :language: python
-     :start-after: [Begin Target]
-     :end-before: [End Target]
-
-.. code-block:: text
-
-    only Clifford+T: True
-    T count:         208
-
-Because the T gate is the expensive resource on fault-tolerant hardware, the
-T count is the number to watch. Pairing the target with
-:doc:`cudaq.estimate_resources </api/languages/python_api>` reports that count
-without a full state-vector simulation.
-
-Rotation angles must be compile-time constants when synthesis runs. A kernel
-whose angle comes from a runtime argument has to be specialized first.
-
-Synthesizing a single rotation
-------------------------------
-
-To approximate one rotation directly, use ``cudaq.synth.gridsynth``. Note that
-the ``synth`` submodule is imported explicitly:
+To approximate a rotation, use ``cudaq.synth.gridsynth``. Note that the
+``synth`` submodule is imported explicitly:
 
 .. literalinclude:: ../../snippets/python/using/examples/synthesis/rotation_synthesis.py
      :language: python
@@ -66,6 +46,25 @@ matrix-multiplication order, so as a circuit they apply right to left.
 is computed exactly in arbitrary precision, so it does not depend on the
 precision of any simulator, and it never exceeds the ``epsilon`` you asked for.
 
+A ``CliffordTSequence`` can also be built directly from a gate string, which is
+useful for inspecting Clifford+T circuits that came from somewhere else.
+``normalized`` rewrites a sequence into Matsumoto-Amano normal form. An exactly
+equal sequence with the smallest possible T count.
+
+.. literalinclude:: ../../snippets/python/using/examples/synthesis/rotation_synthesis.py
+     :language: python
+     :start-after: [Begin Sequence]
+     :end-before: [End Sequence]
+
+.. code-block:: text
+
+    imported:   TST (T count 2)
+    normalized: SS (T count 0)
+    already normal form: True
+
+``gridsynth`` already returns sequences in normal form, so normalizing its
+output changes nothing.
+
 To use a synthesized sequence in a circuit, ``to_kernel`` builds a kernel that
 takes a single qubit, ready for ``apply_call``:
 
@@ -84,9 +83,36 @@ drops the ``W`` phase factors, so the kernel it returns equals
 :math:`R_z(\theta)` only up to a global phase. That phase has no effect when
 the kernel is used on its own, but it becomes an observable relative phase if
 the kernel is made the target of a controlled operation. The
-``compiler-bench-ftqc-clifford-t`` target does not have this limitation: it
+``compiler-bench-ftqc-clifford-t`` target does not have this limitation. It
 emits the phase explicitly, so the circuit it produces is exactly equal to the
 original.
+
+Estimating the T count of a kernel
+----------------------------------
+
+The T gate is the expensive resource on fault-tolerant hardware, so the T count
+of a circuit is the number usually worth measuring. The
+``compiler-bench-ftqc-clifford-t`` target runs synthesis over a whole kernel so
+that count can be read off directly. It reduces ``rx``, ``ry`` and ``r1``
+rotations to ``rz``, synthesizes each one, and optimizes the result. Its
+``epsilon`` argument sets the per-rotation tolerance and defaults to ``1e-10``.
+
+.. literalinclude:: ../../snippets/python/using/examples/synthesis/rotation_synthesis.py
+     :language: python
+     :start-after: [Begin Target]
+     :end-before: [End Target]
+
+.. code-block:: text
+
+    only Clifford+T: True
+    T count:         208
+
+This is a benchmarking target for resource counting, not a path for compiling
+kernels to run on hardware. It is also Python only. An ``nvq++`` build accepts
+the target but does not run the synthesis.
+
+Rotation angles must be compile-time constants when synthesis runs. A kernel
+whose angle comes from a runtime argument has to be specialized first.
 
 Choosing epsilon
 ----------------

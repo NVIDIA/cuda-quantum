@@ -56,6 +56,22 @@ print(f"error:   {synth.rz_error(theta, seq):.3e}")
 assert synth.rz_error(theta, seq) <= epsilon
 # [End Single]
 
+# [Begin Sequence]
+# A sequence can also be built directly from a gate string, which is useful for
+# inspecting Clifford+T circuits that came from somewhere else.
+imported = synth.CliffordTSequence("TST")
+print(f"imported:   {imported} (T count {imported.t_count})")
+
+# `normalized` rewrites a sequence into Matsumoto-Amano normal form. The result
+# is exactly equal and has the smallest possible T count.
+reduced = imported.normalized()
+print(f"normalized: {reduced} (T count {reduced.t_count})")
+
+# `gridsynth` already returns normal form, so normalizing its output changes
+# nothing.
+print(f"already normal form: {seq.normalized() == seq}")
+# [End Sequence]
+
 # [Begin Kernel]
 # `to_kernel` builds a kernel taking a single qubit, for use with `apply_call`.
 # Sandwiching the rotation between two Hadamards turns the phase it applies
