@@ -7,18 +7,19 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --normalize-atomic-quantum-regions %s | FileCheck %s
+// RUN: cudaq-opt --normalize-atomic-quantum-regions %s -verify-diagnostics -o /dev/null
 
 // A `quake.alloca` found directly in the body of an `atomic_quantum_region`
 // `cc.scope` is hoisted into a new, plain wrapping `cc.scope`. Its paired
 // `quake.dealloc` sinks alongside it, after the (now-nested) atomic scope.
 
 func.func @basic_hoist() {
-  cc.scope {
+  cc.scope atomic {
     %q = quake.alloca !quake.ref
     quake.h %q : (!quake.ref) -> ()
     quake.dealloc %q : !quake.ref
     cc.continue
-  } {atomic_quantum_region}
+  }
   return
 }
 
@@ -39,7 +40,7 @@ func.func @basic_hoist() {
 
 func.func @with_measurement() -> i64 {
   %total = cc.alloca i64
-  cc.scope {
+  cc.scope atomic {
     %q = quake.alloca !quake.ref
     quake.h %q : (!quake.ref) -> ()
     %m = quake.mz %q : (!quake.ref) -> !quake.measure
@@ -48,7 +49,7 @@ func.func @with_measurement() -> i64 {
     cc.store %i, %total : !cc.ptr<i64>
     quake.dealloc %q : !quake.ref
     cc.continue
-  } {atomic_quantum_region}
+  }
   %r = cc.load %total : !cc.ptr<i64>
   return %r : i64
 }
@@ -75,7 +76,7 @@ func.func @with_measurement() -> i64 {
 // nested body with it.
 
 func.func @nested_use() {
-  cc.scope {
+  cc.scope atomic {
     %q = quake.alloca !quake.ref
     quake.h %q : (!quake.ref) -> ()
     %m = quake.mz %q : (!quake.ref) -> !quake.measure
@@ -86,7 +87,7 @@ func.func @nested_use() {
     }
     quake.dealloc %q : !quake.ref
     cc.continue
-  } {atomic_quantum_region}
+  }
   return
 }
 
@@ -112,7 +113,7 @@ func.func @nested_use() {
 // unmodified.
 
 func.func @nested_use_bail(%cond: i1) {
-  cc.scope {
+  cc.scope atomic {
     %q = quake.alloca !quake.ref
     quake.h %q : (!quake.ref) -> ()
     %m = quake.mz %q : (!quake.ref) -> !quake.measure
@@ -123,7 +124,7 @@ func.func @nested_use_bail(%cond: i1) {
     }
     quake.dealloc %q : !quake.ref
     cc.continue
-  } {atomic_quantum_region}
+  }
   return
 }
 
@@ -146,13 +147,13 @@ func.func @nested_use_bail(%cond: i1) {
 // scope containing any value-semantics (wire) op is left unmodified.
 
 func.func @mixed_semantics_voidscope(%w0: !quake.wire) {
-  cc.scope {
+  cc.scope atomic {
     %q = quake.alloca !quake.ref
     quake.h %q : (!quake.ref) -> ()
     quake.dealloc %q : !quake.ref
     %w1 = quake.h %w0 : (!quake.wire) -> !quake.wire
     cc.continue
-  } {atomic_quantum_region}
+  }
   return
 }
 
@@ -170,10 +171,10 @@ func.func @mixed_semantics_voidscope(%w0: !quake.wire) {
 // A `cc.scope` producing a result is left unmodified for now.
 
 func.func @nonzero_result(%w0: !quake.wire) -> !quake.wire {
-  %r = cc.scope -> (!quake.wire) {
+  %r = cc.scope -> (!quake.wire) atomic {
     %w1 = quake.h %w0 : (!quake.wire) -> !quake.wire
     cc.continue %w1 : !quake.wire
-  } {atomic_quantum_region}
+  }
   return %r : !quake.wire
 }
 
@@ -190,10 +191,10 @@ func.func @nonzero_result(%w0: !quake.wire) -> !quake.wire {
 // and is left unmodified.
 
 func.func @no_alloca(%q: !quake.ref) {
-  cc.scope {
+  cc.scope atomic {
     quake.h %q : (!quake.ref) -> ()
     cc.continue
-  } {atomic_quantum_region}
+  }
   return
 }
 
@@ -201,6 +202,64 @@ func.func @no_alloca(%q: !quake.ref) {
 // CHECK-SAME:                         %[[VAL_0:.*]]: !quake.ref) {
 // CHECK:           cc.scope atomic {
 // CHECK:             quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// A reference-semantics measurement whose measured qubit is used again
+// afterwards in the block (here, another gate) is not at the bottom of the
+// block, so sinking it would reorder it past that later use. It is left in
+// place (with a warning) rather than sunk.
+
+func.func @measurement_not_at_bottom() {
+  cc.scope atomic {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    // expected-warning@+1 {{measurement in an atomic quantum region will not be sunk out of the region because the measured reference is used again afterwards}}
+    %m = quake.mz %q : (!quake.ref) -> !quake.measure
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @measurement_not_at_bottom() {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:             cc.scope atomic {
+// CHECK:               quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:               %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+// CHECK:               quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:             }
+// CHECK:             quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// A reference-semantics measurement is still safely sunk if the only thing
+// following it (besides the dealloc) is `cc.continue` -- i.e. it truly is at
+// the bottom of the block.
+
+func.func @measurement_at_bottom() {
+  cc.scope atomic {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    %m = quake.mz %q : (!quake.ref) -> !quake.measure
+    quake.dealloc %q : !quake.ref
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @measurement_at_bottom() {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:             cc.scope atomic {
+// CHECK:               quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:             }
+// CHECK:             %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+// CHECK:             quake.dealloc %[[VAL_0]] : !quake.ref
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }

@@ -24,16 +24,16 @@ func.func @atomic_round_trip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
   %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
   %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
-  cc.scope {
+  cc.scope atomic {
     quake.h %q0 : (!quake.ref) -> ()
     quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
-  } {atomic_quantum_region}
-  cc.scope {
+  }
+  cc.scope atomic {
     quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
     quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     quake.h %q0 : (!quake.ref) -> ()
-  } {atomic_quantum_region}
+  }
   %m0 = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
   %m1 = quake.mz %q1 : (!quake.ref) -> !cc.measure_handle
   %m2 = quake.mz %q2 : (!quake.ref) -> !cc.measure_handle

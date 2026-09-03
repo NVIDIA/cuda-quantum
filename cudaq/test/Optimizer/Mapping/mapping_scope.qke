@@ -53,7 +53,7 @@ func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
     %q0 = quake.borrow_wire @wires[0] : !quake.wire
     %q1 = quake.borrow_wire @wires[1] : !quake.wire
     %q2 = quake.borrow_wire @wires[2] : !quake.wire
-    %outer:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %outer:2 = cc.scope -> (!quake.wire, !quake.wire) atomic {
       %inner:2 = cc.scope -> (!quake.wire, !quake.wire) {
         %gate:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
         cc.continue %gate#0, %gate#1 : !quake.wire, !quake.wire
@@ -61,7 +61,7 @@ func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
       %slot = cc.alloca i1
       cc.store %cond, %slot : !cc.ptr<i1>
       cc.continue %inner#0, %inner#1 : !quake.wire, !quake.wire
-    } {atomic_quantum_region}
+    }
     %if:1 = cc.if (%cond) ((%arg = %q1)) -> (!quake.wire) {
       %then = quake.h %arg : (!quake.wire) -> !quake.wire
       cc.continue %then : !quake.wire

@@ -94,7 +94,7 @@ func.func @scope_internal_alias(%idx: i64) {
   %r = quake.alloca !quake.ref
   %v = quake.concat %r : (!quake.ref) -> !quake.veq<1>
   quake.y %r : (!quake.ref) -> ()
-  cc.scope {
+  cc.scope atomic {
     %cond = arith.cmpi ugt, %idx, %c0 : i64
     cf.cond_br %cond, ^exit, ^body
   ^body:
@@ -105,7 +105,7 @@ func.func @scope_internal_alias(%idx: i64) {
   ^exit:
     quake.z %r : (!quake.ref) -> ()
     cc.continue
-  } {atomic_quantum_region}
+  }
   quake.dealloc %r : !quake.ref
   return
 }

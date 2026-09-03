@@ -10,11 +10,11 @@
 // RUN: cudaq-opt --verify-each --canonicalize %s | FileCheck --check-prefix=COUNT %s
 
 func.func @marked_scope(%arg: i64) -> i64 {
-  %result = cc.scope -> (i64) {
+  %result = cc.scope -> (i64) atomic {
     %zero = arith.constant 0 : i64
     %sum = arith.addi %arg, %zero : i64
     cc.continue %sum : i64
-  } {atomic_quantum_region}
+  }
   return %result : i64
 }
 

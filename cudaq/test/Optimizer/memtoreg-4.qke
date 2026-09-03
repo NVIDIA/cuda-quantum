@@ -271,12 +271,12 @@ func.func @scope_entry_alias(%idx: i64) {
   %r = quake.alloca !quake.ref
   %v = quake.concat %r : (!quake.ref) -> !quake.veq<1>
   quake.y %r : (!quake.ref) -> ()
-  cc.scope {
+  cc.scope atomic {
     %q = quake.extract_ref %v[%idx] : (!quake.veq<1>, i64) -> !quake.ref
     quake.h %q : (!quake.ref) -> ()
     quake.x %r : (!quake.ref) -> ()
     cc.continue
-  } {atomic_quantum_region}
+  }
   quake.dealloc %r : !quake.ref
   return
 }

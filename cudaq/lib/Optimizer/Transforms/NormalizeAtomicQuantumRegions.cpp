@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_NORMALIZEATOMICQUANTUMREGIONS
@@ -40,6 +41,31 @@ static bool hasValueSemantics(Region &region) {
     return WalkResult::advance();
   });
   return found;
+}
+
+/// Check that is it safe to sink a measurement.
+static bool isMeasurementSafeToSink(Operation *measureOp, Block &block) {
+  auto measure = cast<cudaq::quake::MeasurementInterface>(measureOp);
+  llvm::SmallPtrSet<Value, 4> targets;
+  for (Value target : measure.getTargets())
+    targets.insert(target);
+
+  bool afterMeasure = false;
+  for (Operation &op : block) {
+    if (&op == measureOp) {
+      afterMeasure = true;
+      continue;
+    }
+    if (!afterMeasure)
+      continue;
+    if (auto dealloc = dyn_cast<cudaq::quake::DeallocOp>(op))
+      if (targets.contains(dealloc.getReference()))
+        continue;
+    if (llvm::any_of(op.getOperands(),
+                      [&](Value v) { return targets.contains(v); }))
+      return false;
+  }
+  return true;
 }
 
 /// Attempt to hoist `quake.alloca`s (and sink their paired `quake.dealloc`s
@@ -93,9 +119,18 @@ static bool processAtomicScope(cudaq::cc::ScopeOp scope) {
   // outside this block (e.g. nested in nested control flow within the atomic
   // scope), bail rather than attempt an unsound partial hoist.
   SmallVector<Operation *> worklist;
-  for (Operation &op : block)
-    if (isa<cudaq::quake::MeasurementInterface>(op))
-      worklist.push_back(&op);
+  for (Operation &op : block) {
+    if (!isa<cudaq::quake::MeasurementInterface>(op))
+      continue;
+    if (!isMeasurementSafeToSink(&op, block)) {
+      op.emitWarning(
+          "measurement in an atomic quantum region will not be sunk out of "
+          "the region because the measured reference is used again "
+          "afterwards");
+      continue;
+    }
+    worklist.push_back(&op);
+  }
   while (!worklist.empty()) {
     Operation *op = worklist.pop_back_val();
     if (!sinkSet.insert(op).second)

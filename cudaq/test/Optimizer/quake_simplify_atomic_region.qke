@@ -17,20 +17,20 @@
 func.func @preserve_atomic_scope_entry() {
   %q0 = quake.null_wire
   %q1 = quake.h %q0 : (!quake.wire) -> !quake.wire
-  %q2 = cc.scope -> (!quake.wire) {
+  %q2 = cc.scope -> (!quake.wire) atomic {
     %q3 = quake.h %q1 : (!quake.wire) -> !quake.wire
     cc.continue %q3 : !quake.wire
-  } {atomic_quantum_region}
+  }
   quake.sink %q2 : !quake.wire
   return
 }
 
 func.func @simplify_inside_atomic_scope(%arg0: !quake.wire) -> !quake.wire {
-  %0 = cc.scope -> (!quake.wire) {
+  %0 = cc.scope -> (!quake.wire) atomic {
     %1 = quake.h %arg0 : (!quake.wire) -> !quake.wire
     %2 = quake.h %1 : (!quake.wire) -> !quake.wire
     cc.continue %2 : !quake.wire
-  } {atomic_quantum_region}
+  }
   return %0 : !quake.wire
 }
 
@@ -64,14 +64,14 @@ func.func @ordinary_scope_unresolved_swap_is_preserved(%arg0: !quake.wire, %arg1
 }
 
 func.func @nested_atomic_scopes_block(%arg0: !quake.wire) -> !quake.wire {
-  %0 = cc.scope -> (!quake.wire) {
+  %0 = cc.scope -> (!quake.wire) atomic {
     %1 = quake.h %arg0 : (!quake.wire) -> !quake.wire
-    %2 = cc.scope -> (!quake.wire) {
+    %2 = cc.scope -> (!quake.wire) atomic {
       %3 = quake.h %1 : (!quake.wire) -> !quake.wire
       cc.continue %3 : !quake.wire
-    } {atomic_quantum_region}
+    }
     cc.continue %2 : !quake.wire
-  } {atomic_quantum_region}
+  }
   return %0 : !quake.wire
 }
 
@@ -79,42 +79,42 @@ func.func @marked_scope_preserves_disjoint_outside_pair() -> (!quake.wire, !quak
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.x %0 : (!quake.wire) -> !quake.wire
-  %3 = cc.scope -> (!quake.wire) {
+  %3 = cc.scope -> (!quake.wire) atomic {
     %4 = quake.h %1 : (!quake.wire) -> !quake.wire
     cc.continue %4 : !quake.wire
-  } {atomic_quantum_region}
+  }
   %5 = quake.x %2 : (!quake.wire) -> !quake.wire
   return %5, %3 : !quake.wire, !quake.wire
 }
 
 func.func @conditional_region_stops_rewrite(%arg0: !quake.wire, %cond: i1) {
-  cc.scope {
+  cc.scope atomic {
     %0 = quake.h %arg0 : (!quake.wire) -> !quake.wire
     cc.if(%cond) {
       %1 = quake.h %0 : (!quake.wire) -> !quake.wire
       quake.sink %1 : !quake.wire
     }
     cc.continue
-  } {atomic_quantum_region}
+  }
   return
 }
 
 func.func @marked_scope_use_prevents_outside_rewrite(%arg0: !quake.wire) -> (!quake.wire, !quake.wire) {
   %0 = quake.h %arg0 : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> (!quake.wire) {
+  %1 = cc.scope -> (!quake.wire) atomic {
     %2 = quake.x %0 : (!quake.wire) -> !quake.wire
     cc.continue %2 : !quake.wire
-  } {atomic_quantum_region}
+  }
   %3 = quake.h %0 : (!quake.wire) -> !quake.wire
   return %1, %3 : !quake.wire, !quake.wire
 }
 
 func.func @preserve_swap_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) {
   %0:2 = quake.swap %arg0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %1:2 = cc.scope -> (!quake.wire, !quake.wire) {
+  %1:2 = cc.scope -> (!quake.wire, !quake.wire) atomic {
     %2:2 = quake.swap %0#1, %0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
     cc.continue %2#0, %2#1 : !quake.wire, !quake.wire
-  } {atomic_quantum_region}
+  }
   return %1#0, %1#1 : !quake.wire, !quake.wire
 }
 
@@ -122,12 +122,12 @@ func.func @preserve_phase_pairs_at_atomic_entry(%arg0: !quake.wire, %arg1: !quak
   %0 = quake.s %arg0 : (!quake.wire) -> !quake.wire
   %1 = quake.s %arg1 : (!quake.wire) -> !quake.wire
   %2 = quake.t %arg2 : (!quake.wire) -> !quake.wire
-  %3:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+  %3:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) atomic {
     %4 = quake.s<adj> %0 : (!quake.wire) -> !quake.wire
     %5 = quake.s %1 : (!quake.wire) -> !quake.wire
     %6 = quake.t %2 : (!quake.wire) -> !quake.wire
     cc.continue %4, %5, %6 : !quake.wire, !quake.wire, !quake.wire
-  } {atomic_quantum_region}
+  }
   return %3#0, %3#1, %3#2 : !quake.wire, !quake.wire, !quake.wire
 }
 
@@ -135,39 +135,39 @@ func.func @preserve_rotation_at_atomic_entry(%arg0: !quake.wire) -> !quake.wire 
   %a = arith.constant 1.0 : f64
   %b = arith.constant 2.0 : f64
   %0 = quake.rx (%a) %arg0 : (f64, !quake.wire) -> !quake.wire
-  %1 = cc.scope -> (!quake.wire) {
+  %1 = cc.scope -> (!quake.wire) atomic {
     %2 = quake.rx (%b) %0 : (f64, !quake.wire) -> !quake.wire
     cc.continue %2 : !quake.wire
-  } {atomic_quantum_region}
+  }
   return %1 : !quake.wire
 }
 
 func.func @preserve_ysx_at_atomic_entry(%arg0: !quake.wire) -> !quake.wire {
   %0 = quake.y %arg0 : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> (!quake.wire) {
+  %1 = cc.scope -> (!quake.wire) atomic {
     %2 = quake.s %0 : (!quake.wire) -> !quake.wire
     %3 = quake.x %2 : (!quake.wire) -> !quake.wire
     cc.continue %3 : !quake.wire
-  } {atomic_quantum_region}
+  }
   return %1 : !quake.wire
 }
 
 func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) {
   %0 = quake.reset %arg0 : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> (!quake.wire) {
+  %1 = cc.scope -> (!quake.wire) atomic {
     %2 = quake.reset %0 : (!quake.wire) -> !quake.wire
     cc.continue %2 : !quake.wire
-  } {atomic_quantum_region}
+  }
   %3 = quake.null_wire
-  %4 = cc.scope -> (!quake.wire) {
+  %4 = cc.scope -> (!quake.wire) atomic {
     %5 = quake.reset %3 : (!quake.wire) -> !quake.wire
     cc.continue %5 : !quake.wire
-  } {atomic_quantum_region}
+  }
   %6 = quake.reset %arg1 : (!quake.wire) -> !quake.wire
-  cc.scope {
+  cc.scope atomic {
     quake.sink %6 : !quake.wire
     cc.continue
-  } {atomic_quantum_region}
+  }
   return %1, %4 : !quake.wire, !quake.wire
 }
 
