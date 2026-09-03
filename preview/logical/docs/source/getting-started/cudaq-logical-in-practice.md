@@ -152,6 +152,8 @@ text — CUDA-Q Logical's secondary interchange path.
 -->
 
 ```python
+import cudaq.logical as ql
+
 build = ql.compile(steane_memory)
 emission = ql.lower.emit_stim_artifact(
     build.module, root_symbol=build.root.symbol)

@@ -31,7 +31,7 @@ then emit its selected P2 realization:
 % invisible-code-block: python
 %
 % steane_memory = load_ql_example(
-"preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+% "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
 -->
 
 ```python

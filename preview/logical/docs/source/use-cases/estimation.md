@@ -57,7 +57,7 @@ Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 % invisible-code-block: python
 %
 % gadget_build = load_ql_example(
-"preview/logical/examples/03_code_and_gadget.py", "gadget")
+% "preview/logical/examples/03_code_and_gadget.py", "gadget")
 -->
 
 ```python
