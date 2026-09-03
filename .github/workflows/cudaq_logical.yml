@@ -27,6 +27,19 @@ on:
         type: string
         description: Python version
         default: '3.11'
+    outputs:
+      wheel_name:
+        description: "Artifact name of the built cudaq-logical wheel."
+        value: ${{ jobs.build.outputs.wheel_name }}
+      runtime_artifact_name:
+        description: "Artifact name of the CUDA-Q runtime wheel."
+        value: ${{ jobs.retrieve_cudaq.outputs.runtime_artifact_name }}
+      metapackage_artifact_name:
+        description: "Artifact name of the cudaq metapackage."
+        value: ${{ jobs.retrieve_cudaq.outputs.metapackage_artifact_name }}
+      cudaq_version:
+        description: "The version of the resolved CUDA-Q wheels."
+        value: ${{ jobs.retrieve_cudaq.outputs.cudaq_version }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -118,7 +131,7 @@ jobs:
             "patchelf>=0.17" \
             "lit<23"
 
-          uv pip install -f dist cudaq-devel==$CUDAQ_VERSION
+          uv pip install -f dist "cudaq-devel==$CUDAQ_VERSION"
 
       - name: Build cudaq.logical
         id: build
@@ -226,12 +239,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          uv pip install -f dist cudaq-logical==$CUDAQ_VERSION
+          uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
 
       - name: Validate installed cudaq.logical tools
         shell: bash
-        env:
-          PYTHON_VERSION: ${{ needs.retrieve_cudaq.outputs.python_version }}
         run: |
           set -euo pipefail
 
