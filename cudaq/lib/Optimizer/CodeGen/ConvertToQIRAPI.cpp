@@ -1663,14 +1663,10 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
   matchAndRewrite(cudaq::quake::ApplyOp apply, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     // A plain (unpredicated, uncontrolled) apply with a direct callee is a
-    // vanilla call: e.g. `cable-rough-in` emits these to bridge wire/cable
-    // actuals to a reference-semantics callee, deliberately leaving them for
-    // apply-op-specialization's earlier pipeline pass to miss (that pass
-    // already ran before cable-rough-in), so they survive to this point.
-    // Lower it straight to a `func.call`, forwarding the (by now uniformly
-    // QIR-typed) quantum arguments to the results -- exactly like
-    // CallByRefOpRewrite below, since reference and value semantics are no
-    // longer distinguishable once quantum types have been converted to QIR.
+    // vanilla call. Lower them straight to a `func.call`, forwarding the
+    // quantum arguments to the results, exactly like CallByRefOpRewrite
+    // below, since reference and value semantics are no longer distinguishable
+    // once quantum types have been converted to QIR.
     if (!apply.getIsAdj() && apply.getControls().empty()) {
       if (auto callee = apply.getCallee()) {
         auto fn =
@@ -1746,9 +1742,8 @@ struct CustomUnitaryCallOpTrap
 };
 
 // quake.call_by_ref is deprecated: a plain quake.apply now subsumes its
-// capability (see the fast path in ApplyOpTrap above), and nothing in the
-// compiler still emits call_by_ref. This lowering is kept only so that
-// hand-written or previously-serialized IR using it continues to work.
+// capability. This lowering is kept only so that hand-written or previously
+// serialized IR using it continues to work.
 struct CallByRefOpRewrite
     : public OpConversionPattern<cudaq::quake::CallByRefOp> {
   using OpConversionPattern::OpConversionPattern;
