@@ -142,8 +142,8 @@ Steane [[7,1,3]] terminal-memory gadget:
   authored operations: {'reset': 2, 'h': 2, 'cx': 2, 'read_syndrome_ancillas': 1, 'mz': 1, 'dealloc': 1}
 ```
 
-`qlx.materialize` and `qlx.compile` lower both artifacts into the `fabric`
-dialect, where `qlx.analysis.count` reports the gadget's authored operations.
+`ql.materialize` and `ql.compile` lower both artifacts into the `fabric`
+dialect, where `ql.analysis.count` reports the gadget's authored operations.
 These verified, named gadgets are the atoms of every P2 static estimate — the
 surface-code counts in Step 1 are sums over exactly such calls.
 

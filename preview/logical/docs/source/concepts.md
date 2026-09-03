@@ -6,7 +6,7 @@ these eight and the rest of the system becomes predictable.
 ## 1. Three stages, one direction
 
 Executable intent is refined through exactly three semantic stages
-(`qlx.stages.Stage`):
+(`ql.stages.Stage`):
 
 | Stage                   | Question it answers                                              | Primary IR family |
 | ----------------------- | ---------------------------------------------------------------- | ----------------- |
@@ -17,15 +17,15 @@ Executable intent is refined through exactly three semantic stages
 A later stage only adds realization facts; it never silently reinterprets the
 requested logical behavior. Every stage root is verified and immutable, so a
 failed lowering returns to the retained earlier root rather than repairing in
-place. `qlx.compile` produces the P0 root of a `@qlx.program`,
-`qlx.compiler.place` refines it to a code-agnostic P1 placement, and selecting
-codes, gadgets, and protocols produces P2. Stim text emission consumes a P2
-build; it is an interchange product, not a stage.
+place. `ql.compile` produces the P0 root of a `@ql.program`, `ql.compiler.place`
+refines it to a code-agnostic P1 placement, and selecting codes, gadgets, and
+protocols produces P2. Stim text emission consumes a P2 build; it is an
+interchange product, not a stage.
 
 ## 2. Facets, not extra stages
 
 QEC specifications, gadget realizations, protocol networks, and patch graphs are
-**facets** (`qlx.stages.Facet`: `QEC_SPEC`, `QEC_REALIZATION`,
+**facets** (`ql.stages.Facet`: `QEC_SPEC`, `QEC_REALIZATION`,
 `PROTOCOL_NETWORK`, `PATCH_GRAPH`): independently verified facts attached to an
 immutable stage root, not additional points in the P0–P2 lowering order. Several
 facets coexist on one root without recompiling the program. Every pipeline pass
@@ -40,18 +40,18 @@ Quantum values are _linear_: one live owner, consumed and re-produced by every
 operation.
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-@qlx.program
+@ql.program
 def ownership() -> tuple[bool, bool]:
-    q = qlx.allocate(1, state=qlx.types.zero)
-    q[0] = qlx.h(q[0])                    # consume q[0], produce its successor
-    q[0], z = qlx.mpp(qlx.types.Z(q[0]))  # nondestructive: the owner survives
-    return z, qlx.measure_z(q[0])         # destructive: q[0] is gone
+    q = ql.allocate(1, state=ql.types.zero)
+    q[0] = ql.h(q[0])                    # consume q[0], produce its successor
+    q[0], z = ql.mpp(ql.types.Z(q[0]))  # nondestructive: the owner survives
+    return z, ql.measure_z(q[0])         # destructive: q[0] is gone
 ```
 
-Rebinding (`q[0] = qlx.h(q[0])`) is the visible spelling of that contract. Using
-a consumed value raises `qlx.errors.UseAfterConsume` at trace time, and the
+Rebinding (`q[0] = ql.h(q[0])`) is the visible spelling of that contract. Using
+a consumed value raises `ql.errors.UseAfterConsume` at trace time, and the
 canonical IR carries an independent linear-use verification: every linear SSA
 value must have exactly one owner along every execution path, so double
 consumption, use-after-measure, and leaks are typed failures, not runtime
@@ -61,7 +61,7 @@ surprises.
 
 - A **`Code`** is validated algebra: physical width `n`, logical width `k`, and
   independent stabilizer and logical operator bases, checked at construction.
-  Distance is _evidence_, held as a `qlx.codes.Distance`: a bare integer
+  Distance is _evidence_, held as a `ql.codes.Distance`: a bare integer
   normalizes to `claimed` — a recorded assertion, never a proof — while the
   evidence-bearing constructors (`exact`, `lower_bound`, `upper_bound`,
   `circuit`) require a method and provenance.
@@ -73,13 +73,13 @@ surprises.
   never executes circuits.
 
 Every code synthesizes a default profile and encoding; you author one only for a
-genuinely different view. The catalog (`qlx.codes`) ships `Steane`,
-`Repetition`, `rotated_surface(distance)`, `ReedMuller15`, and `BareQubit`:
+genuinely different view. The catalog (`ql.codes`) ships `Steane`, `Repetition`,
+`rotated_surface(distance)`, `ReedMuller15`, and `BareQubit`:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-steane = qlx.codes.Steane                      # the [[7,1,3]] CSS code
+steane = ql.codes.Steane                      # the [[7,1,3]] CSS code
 assert (steane.n, steane.k) == (7, 1)
 assert (steane.d.value, steane.d.status) == (3, "claimed")
 ```
@@ -99,25 +99,25 @@ gadget's signed symplectic action, matches it against the objective's Clifford
 action, and records the equivalence evidence — or fails with a typed diagnostic:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-@qlx.objective
-def terminal_memory(q: qlx.types.logical_qubit) -> None:
-    qlx.discard(q)
+@ql.objective
+def terminal_memory(q: ql.types.logical_qubit) -> None:
+    ql.discard(q)
 
-@qlx.gadget(implements=terminal_memory)
-def steane_memory(block: qlx.patch[qlx.codes.Steane]) -> None:
-    block, _ = qlx.extract_syndrome(block)
-    block, _ = qlx.mz(block.data)
-    qlx.discard(block)
+@ql.gadget(implements=terminal_memory)
+def steane_memory(block: ql.patch[ql.codes.Steane]) -> None:
+    block, _ = ql.extract_syndrome(block)
+    block, _ = ql.mz(block.data)
+    ql.discard(block)
 
-build = qlx.compile(steane_memory)
-assert build.stage == qlx.stages.P2
-assert build.facets == (qlx.stages.Facet.QEC_SPEC, qlx.stages.Facet.QEC_REALIZATION)
+build = ql.compile(steane_memory)
+assert build.stage == ql.stages.P2
+assert build.facets == (ql.stages.Facet.QEC_SPEC, ql.stages.Facet.QEC_REALIZATION)
 ```
 
 When several operand-to-port embeddings verify, the compiler refuses to pick one
-silently (`qlx.errors.AmbiguousLogicalPortMap`); an explicit `logical_ports=`
+silently (`ql.errors.AmbiguousLogicalPortMap`); an explicit `logical_ports=`
 mapping is a constraint the verifier checks, never evidence it trusts.
 
 A **protocol** composes gadget calls with operational policy: resource requests,
@@ -137,7 +137,7 @@ Every semantic transition emits evidence records — `pass`, `fail`, or
 lists them and `build.status` summarizes the build (root, stage, facets, and
 counts by result), as in the gadget build above. `build.serialize()` captures
 the whole build — selected definitions, evidence, and all — and
-`qlx.compiler.Build.replay` reopens it in a clean process with no ambient Python
+`ql.compiler.Build.replay` reopens it in a clean process with no ambient Python
 state. The same honesty applies to distances and estimates: a `claimed` distance
 stays a claim, and each estimation tier reports exactly which facts it consumed.
 
@@ -174,17 +174,17 @@ neither observable nor tracked.** The only observables are measurement outcomes,
 and those are invariant under an overall phase. Concretely:
 
 - **Synthesis** targets a projective operator-norm bound
-  (`qlx.compiler.synthesize(gate_set=..., precision=...)`), so `R_Z(kπ/4) = T^k`
+  (`ql.compiler.synthesize(gate_set=..., precision=...)`), so `R_Z(kπ/4) = T^k`
   holds up to phase.
 - **Rotations are 4π-periodic exactly and 2π-periodic up to phase.**
-  `qlx.algebra.Angle` keeps angles as exact rational multiples of π so this
-  stays precise — and the authored angle is preserved, never auto-reduced:
+  `ql.algebra.Angle` keeps angles as exact rational multiples of π so this stays
+  precise — and the authored angle is preserved, never auto-reduced:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-assert qlx.algebra.Angle(9, 4).pi_fraction == (9, 4)
-assert float(qlx.algebra.Angle(9, 4) - qlx.algebra.Angle(1, 4)) == float(2 * qlx.algebra.pi)
+assert ql.algebra.Angle(9, 4).pi_fraction == (9, 4)
+assert float(ql.algebra.Angle(9, 4) - ql.algebra.Angle(1, 4)) == float(2 * ql.algebra.pi)
 ```
 
 The boundary: dropping global phase is safe for a linear, classically
@@ -195,21 +195,21 @@ of scope.
 
 ## Where the pieces live
 
-| You write                            | You get                                          | Canonical home            |
-| ------------------------------------ | ------------------------------------------------ | ------------------------- |
-| `@qlx.program`                       | portable P0 logical program                      | your module               |
-| `@qlx.machine`                       | logical machine for P1 placement                 | `qlx.architecture`, yours |
-| `@qlx.code`                          | validated `Code` + default profile/encoding      | `qlx.codes`, yours        |
-| `@qlx.gadget` / `@qlx.protocol`      | verified realization / composition               | yours, `qlx.protocols`    |
-| `qlx.compile` / `qlx.compiler.place` | immutable, replayable `Build` roots              | `qlx.compiler`            |
-| `qlx.estimate(..., tier=...)`        | `Tier.LOGICAL` (P0) or `Tier.STATIC` (P2 counts) | `qlx.estimate`            |
-| `qlx.emit` / `qlx.targets`           | Stim circuit text from a P2 build                | `qlx.targets`             |
+| You write                          | You get                                          | Canonical home           |
+| ---------------------------------- | ------------------------------------------------ | ------------------------ |
+| `@ql.program`                      | portable P0 logical program                      | your module              |
+| `@ql.machine`                      | logical machine for P1 placement                 | `ql.architecture`, yours |
+| `@ql.code`                         | validated `Code` + default profile/encoding      | `ql.codes`, yours        |
+| `@ql.gadget` / `@ql.protocol`      | verified realization / composition               | yours, `ql.protocols`    |
+| `ql.compile` / `ql.compiler.place` | immutable, replayable `Build` roots              | `ql.compiler`            |
+| `ql.estimate(..., tier=...)`       | `Tier.LOGICAL` (P0) or `Tier.STATIC` (P2 counts) | `ql.estimate`            |
+| `ql.emit` / `ql.targets`           | Stim circuit text from a P2 build                | `ql.targets`             |
 
 Naming follows PEP 8 throughout — artifact classes are CamelCase (`Code`,
-`Encoding`), while operations, decorators, and constants are snake_case
-(`@qlx.machine`, `qlx.extract_syndrome`). One deliberate near-collision to know
-about: `qlx.types.X(q)` constructs a Pauli _factor_ for products, while
-`qlx.x(q)` applies the gate.
+`Encoding`), while operations, decorators, and constants are snake*case
+(`@ql.machine`, `ql.extract_syndrome`). One deliberate near-collision to know
+about: `ql.types.X(q)` constructs a Pauli \_factor* for products, while
+`ql.x(q)` applies the gate.
 
 ## Where to go next
 

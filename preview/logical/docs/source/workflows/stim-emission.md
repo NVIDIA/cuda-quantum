@@ -43,22 +43,22 @@ allocated and prepared inside the module — project to Stim.
 
 ## From Python, with types
 
-The same projection is available as a typed artifact: `qlx.lower.emit_stim`
-returns the text, while `qlx.lower.emit_stim_artifact` returns a
-`qlx.lower.StimEmission` — the text plus a `CompiledInterfaceManifest` recording
+The same projection is available as a typed artifact: `ql.lower.emit_stim`
+returns the text, while `ql.lower.emit_stim_artifact` returns a
+`ql.lower.StimEmission` — the text plus a `CompiledInterfaceManifest` recording
 the exact boundary the circuit was projected from. Emitting example 03's
 compiled Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
 % invisible-code-block: python
 %
-% steane_memory = load_qlx_example(
+% steane_memory = load_ql_example(
 %     "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-build = qlx.compile(steane_memory)
-emission = qlx.lower.emit_stim_artifact(
+build = ql.compile(steane_memory)
+emission = ql.lower.emit_stim_artifact(
     build.module, root_symbol=build.root.symbol)
 assert emission.text.startswith("R ")
 assert emission.interface is not None
@@ -73,7 +73,7 @@ H 7 8 9
 M 0 1 2 3 4 5 6
 ```
 
-The encoded `qlx.extract_syndrome` has become the physical circuit it stands
+The encoded `ql.extract_syndrome` has become the physical circuit it stands
 for: ancilla resets, the Steane stabilizer CNOT pattern, ancilla and data
 measurements — thirteen qubits, explicit.
 

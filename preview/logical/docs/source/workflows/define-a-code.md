@@ -12,8 +12,8 @@ CSS check rows once:
 
 ```{literalinclude} ../../../examples/03_code_and_gadget.py
 :language: python
-:start-at: "@qlx.code"
-:end-before: "@qlx.objective"
+:start-at: "@ql.code"
+:end-before: "@ql.objective"
 :caption: The Steane code, from examples/03_code_and_gadget.py.
 ```
 
@@ -26,12 +26,12 @@ six independent X/Z stabilizer checks. An algebra that does not close fails at
 construction:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
 try:
-    @qlx.code
+    @ql.code
     class Bad:
-        block = qlx.codes.CSSBlock(data=2, sx=1, sz=1)
+        block = ql.codes.CSSBlock(data=2, sx=1, sz=1)
         d = 1
         hx = ((0, 1),)
         hz = ((0, 1),)   # two checks for n-k-r = 1: overconstrained
@@ -45,16 +45,16 @@ For non-CSS stabilizer codes, the general Pauli spelling states generators as
 Pauli products instead of support rows:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-@qlx.code
+@ql.code
 class Repetition3:
-    block = qlx.codes.Block(data=3, syndrome=2)
-    d = qlx.codes.Distance.asymmetric(x=3, z=1)
-    stabilizers = (qlx.types.Z(0) @ qlx.types.Z(1),
-                   qlx.types.Z(1) @ qlx.types.Z(2))
-    lx = (qlx.types.X(0) @ qlx.types.X(1) @ qlx.types.X(2),)
-    lz = (qlx.types.Z(0),)
+    block = ql.codes.Block(data=3, syndrome=2)
+    d = ql.codes.Distance.asymmetric(x=3, z=1)
+    stabilizers = (ql.types.Z(0) @ ql.types.Z(1),
+                   ql.types.Z(1) @ ql.types.Z(2))
+    lx = (ql.types.X(0) @ ql.types.X(1) @ ql.types.X(2),)
+    lz = (ql.types.Z(0),)
 ```
 
 ## Distance is evidence, not an integer
@@ -62,12 +62,12 @@ class Repetition3:
 A distance in CUDA-Q Logical is a typed evidence value, not a bare integer:
 
 ```python
-claimed  = qlx.codes.Distance.claimed(12)
-proved   = qlx.codes.Distance.exact(12, method="exhaustive_search",
-                                    provenance=qlx.analysis.citation("search report"))
-bounded  = qlx.codes.Distance.lower_bound(5, method="topological_cycle_bound",
-                                          provenance=qlx.analysis.citation("geometry note"))
-unknown  = qlx.codes.Distance.unknown("derive by search")
+claimed  = ql.codes.Distance.claimed(12)
+proved   = ql.codes.Distance.exact(12, method="exhaustive_search",
+                                    provenance=ql.analysis.citation("search report"))
+bounded  = ql.codes.Distance.lower_bound(5, method="topological_cycle_bound",
+                                          provenance=ql.analysis.citation("geometry note"))
+unknown  = ql.codes.Distance.unknown("derive by search")
 ```
 
 A bare `d = 3` in a code body normalizes to `claimed` — a recorded assertion,
@@ -76,12 +76,12 @@ never a proof. The evidence-bearing constructors (`exact`, `lower_bound`,
 `TypeError` rather than silently upgrading the claim:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
 try:
     # TypeError: Distance.exact evidence requires method= and provenance=;
     # use Distance.claimed(...) to record an unproved assertion
-    qlx.codes.Distance.exact(12)
+    ql.codes.Distance.exact(12)
 except TypeError as exc:
     assert "method= and provenance=" in str(exc)
 ```
@@ -96,29 +96,29 @@ instead of inventing a number.
 The shipped catalog covers the standard teaching codes:
 
 ```python
-surface_3 = qlx.codes.Surface[3]        # the rotated [[9, 1, 3]] code
-assert surface_3 is qlx.codes.rotated_surface(3)
+surface_3 = ql.codes.Surface[3]        # the rotated [[9, 1, 3]] code
+assert surface_3 is ql.codes.rotated_surface(3)
 assert (surface_3.n, surface_3.k, surface_3.d.value) == (9, 1, 3)
 assert surface_3.block.size == 17       # 9 data + 8 syndrome carriers
 ```
 
-alongside `qlx.codes.Steane`, `qlx.codes.Repetition`, `qlx.codes.RM15` (the
-`[[15,1,3]]` Reed–Muller code), and `qlx.codes.BareQubit` (the trivial
+alongside `ql.codes.Steane`, `ql.codes.Repetition`, `ql.codes.RM15` (the
+`[[15,1,3]]` Reed–Muller code), and `ql.codes.BareQubit` (the trivial
 distance-1 code used by the Stim-emission fixture).
 
-A parameterized family is an ordinary function decorated with `@qlx.code` that
-returns a `qlx.codes.CSSCode`; bracket syntax specializes it:
+A parameterized family is an ordinary function decorated with `@ql.code` that
+returns a `ql.codes.CSSCode`; bracket syntax specializes it:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-@qlx.code
+@ql.code
 def repetition(distance: int):
     """The ``[[distance, 1, distance]]`` bit-flip repetition family."""
     checks = tuple((i, i + 1) for i in range(distance - 1))
-    return qlx.codes.CSSCode(
-        block=qlx.codes.CSSBlock(data=distance, sx=0, sz=distance - 1),
-        d=qlx.codes.Distance.asymmetric(x=distance, z=1),
+    return ql.codes.CSSCode(
+        block=ql.codes.CSSBlock(data=distance, sx=0, sz=distance - 1),
+        d=ql.codes.Distance.asymmetric(x=distance, z=1),
         hz=checks,
         lx=(tuple(range(distance)),),
         lz=((0,),),
@@ -128,23 +128,23 @@ rep5 = repetition(5)      # or: repetition[5]
 ```
 
 Specialization is interned — `repetition(5) is repetition(5)` and
-`qlx.codes.Surface[3] is qlx.codes.rotated_surface(3)` — so code identity, and
+`ql.codes.Surface[3] is ql.codes.rotated_surface(3)` — so code identity, and
 hence selection and cache keys, never depends on spelling.
 
 ## What you get for free
 
 Every validated code synthesizes a default encoding (all `k` logicals in
 canonical order) that gadget signatures reference by name — the compiled
-artifacts show it as `@Steane_default_encoding`. `qlx.materialize` lowers the
+artifacts show it as `@Steane_default_encoding`. `ql.materialize` lowers the
 code to a named `fabric.code` artifact, and the gadget factories consume the
 code directly:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-prep    = qlx.gadgets.prepare_zero(qlx.codes.Steane)     # |0>_L preparation
-round_  = qlx.gadgets.css_memory_round(qlx.codes.Steane) # one syndrome round
-readout = qlx.gadgets.logical_measure(qlx.codes.Steane, basis="z")
+prep    = ql.gadgets.prepare_zero(ql.codes.Steane)     # |0>_L preparation
+round_  = ql.gadgets.css_memory_round(ql.codes.Steane) # one syndrome round
+readout = ql.gadgets.logical_measure(ql.codes.Steane, basis="z")
 ```
 
 What those gadgets are, and how their logical claims are verified, is the

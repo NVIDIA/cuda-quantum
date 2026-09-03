@@ -16,11 +16,11 @@ to the Stim ecosystem.
 | You do this in Stim | You do this in CUDA-Q Logical |
 |---|---|
 | Write a circuit qubit-by-qubit | Write a *logical program*; the compiler selects code-specific realizations |
-| `stim.Circuit.generated("surface_code:rotated_memory_z", ...)` | `qlx.codes.Surface[d]` + the gadget factories (`qlx.gadgets.prepare_zero`, `css_memory_round`, `logical_measure`) selected for a memory objective |
-| `REPEAT 1000 { ... }` | `qlx.idle(q, rounds=1000)` — stays **folded** through compilation and estimation, never unrolled |
+| `stim.Circuit.generated("surface_code:rotated_memory_z", ...)` | `ql.codes.Surface[d]` + the gadget factories (`ql.gadgets.prepare_zero`, `css_memory_round`, `logical_measure`) selected for a memory objective |
+| `REPEAT 1000 { ... }` | `ql.idle(q, rounds=1000)` — stays **folded** through compilation and estimation, never unrolled |
 | Hand-maintain a circuit template per code | One portable program; swap `code=`/`Surface[d]` and recompile — the program is untouched |
-| Read the circuit to guess its cost | `qlx.estimate(build, tier=...)`: logical counts at P0, exact static gadget/operation counts at P2 |
-| Ship circuit text | `qlx-translate --fabric-to-stim` on a verified P2 program, or `qlx.lower.emit_stim(...)` from Python for the typed `StimEmission` (text plus its interface manifest) |
+| Read the circuit to guess its cost | `ql.estimate(build, tier=...)`: logical counts at P0, exact static gadget/operation counts at P2 |
+| Ship circuit text | `qlx-translate --fabric-to-stim` on a verified P2 program, or `ql.lower.emit_stim(...)` from Python for the typed `StimEmission` (text plus its interface manifest) |
 | (no equivalent) | Placement onto logical machines, verified gadget objectives, magic-state protocols, replayable builds with evidence |
 
 ## Worked emission: from a P2 fixture to Stim text
@@ -70,7 +70,7 @@ Stim-based analysis.
   (device-independent); `Tier.STATIC` reads the realized P2 fabric with
   folded repetition counted exactly.
 - **Evidence and replay.** Every build serializes and replays in a clean
-  process: `qlx.compiler.Build.replay(build.serialize())`.
+  process: `ql.compiler.Build.replay(build.serialize())`.
 
 ## When to just use Stim
 

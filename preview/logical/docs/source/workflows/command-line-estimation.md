@@ -69,7 +69,7 @@ counted, in the module, next to the numbers. The placed kernel records its
 placement policy and a SHA-256 commitment to the detached placement witness.
 
 The native `qlx-to-lvm` pass is a deterministic first-fit subset of the
-richer Python placement solver (`qlx.compiler.place`): it requires an
+richer Python placement solver (`ql.compiler.place`): it requires an
 explicit `lvm.domain`, rejects calls that have not been inlined, and fails if
 control-flow joins do not agree on slots. Stay inside that shared subset on
 the CLI, and use the Python route for research placement policies — both
@@ -119,7 +119,7 @@ annotations — a missing root or device is a hard error.
 
 The CLI does not guess missing facts, reinterpret earlier stages, or emit a
 partial result after a failed check. The two estimators above are exactly
-the tiers the Python `qlx.estimate` front door computes; the pass options
+the tiers the Python `ql.estimate` front door computes; the pass options
 (`root=`, `result=`, `device=`, `domain=`) only make explicit what Python
 infers from the build.
 

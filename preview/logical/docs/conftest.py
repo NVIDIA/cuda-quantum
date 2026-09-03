@@ -19,7 +19,7 @@ def _setup(namespace):
 
     import cudaq.logical.compiler.build as build_mod
 
-    # Sybil executes snippets with exec(), so @qlx.program providers keep
+    # Sybil executes snippets with exec(), so @ql.program providers keep
     # __module__ as None and serialized builds would record source_modules=[None].
     if not getattr(build_mod.Build.__init__, "_qlx_docs_patched", False):
 
@@ -44,13 +44,13 @@ def _setup(namespace):
             "could not locate preview/logical/examples; run doc tests from "
             "the repository root or preview/logical/docs")
 
-    def load_qlx_example(relpath, *names):
+    def load_ql_example(relpath, *names):
         mod = runpy.run_path(str(root / relpath))
         if len(names) == 1:
             return mod[names[0]]
         return tuple(mod[name] for name in names)
 
-    namespace["load_qlx_example"] = load_qlx_example
+    namespace["load_ql_example"] = load_ql_example
 
 
 pytest_collect_file = Sybil(

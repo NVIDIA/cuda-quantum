@@ -6,7 +6,7 @@ and a program can never branch on a later-stage cost fact it should not know.
 
 ## Machines, devices, architectures
 
-- A **logical machine** (`@qlx.machine`) is the P1 structure contract: regions,
+- A **logical machine** (`@ql.machine`) is the P1 structure contract: regions,
   resource streams, capabilities, and plain integer capacities. No codes, no
   error rates:
 
@@ -16,7 +16,7 @@ and a program can never branch on a later-stage cost fact it should not know.
   :caption: A logical machine with one capable region (examples/02_p1_placement.py).
   ```
 
-  Capabilities are typed keys in an open `qlx.machine` vocabulary —
+  Capabilities are typed keys in an open `ql.machine` vocabulary —
   `logical_compute`, `logical_measurement`, `logical_factory`, and
   `resource_transfer` are the ones the compiler itself interprets.
 
@@ -32,14 +32,14 @@ device builder separates logical region facts from the vertical encoding
 binding:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-builder = qlx.devices.DeviceBuilder("SteaneMemory")
+builder = ql.devices.DeviceBuilder("SteaneMemory")
 memory = builder.logical.add_memory(capacity=8)
-builder.qec.bind(memory, encoding=qlx.codes.Steane)
+builder.qec.bind(memory, encoding=ql.codes.Steane)
 SteaneMemory = builder.build()
 
-assert SteaneMemory.layers == (qlx.stages.P1, qlx.stages.P2)
+assert SteaneMemory.layers == (ql.stages.P1, ql.stages.P2)
 ```
 
 `builder.qec.bind(...)` fixes the QEC refinement of a logical region; the
@@ -47,7 +47,7 @@ singular name is deliberate — each region has one selected encoding.
 
 ### Stop at the layer your study needs
 
-`qlx.devices.DeviceBuilder` is progressively complete. `build()` does not demand
+`ql.devices.DeviceBuilder` is progressively complete. `build()` does not demand
 code facts that the requested compiler stage cannot use:
 
 | Declared layers | Builder boundary                                                                                                | Suitable work                                  |
@@ -58,11 +58,11 @@ code facts that the requested compiler stage cannot use:
 A placement-only device is therefore complete as written:
 
 ```python
-logical = qlx.devices.DeviceBuilder("LogicalPlacement")
+logical = ql.devices.DeviceBuilder("LogicalPlacement")
 logical.logical.add_compute(capacity=64)
 LogicalPlacement = logical.build()
 
-assert LogicalPlacement.layers == (qlx.stages.P1,)
+assert LogicalPlacement.layers == (ql.stages.P1,)
 ```
 
 The stack views contain only the layers actually declared, so a P1-only device
@@ -101,7 +101,7 @@ preference the solver had to give up, and the deterministic tie-break:
   region and slot;
 - `p1.placement.objective` and `p1.placement.relaxed_preferences` — what was
   optimized and what was surrendered;
-- `qlx.compiler.Build.replay(p1.serialize()).placement == p1.placement` — the
+- `ql.compiler.Build.replay(p1.serialize()).placement == p1.placement` — the
   witness is part of the immutable, replayable build.
 
 Hard constraints are hard. Requiring a capability that no region provides fails
@@ -109,17 +109,17 @@ closed:
 
 % invisible-code-block: python
 %
-% p0, TwoSlotMachine = load_qlx_example(
+% p0, TwoSlotMachine = load_ql_example(
 %     "preview/logical/examples/02_p1_placement.py", "p0", "TwoSlotMachine")
 
 ```python
 try:
     # ValueError: no machine space satisfies the placement constraints
-    qlx.compiler.place(
+    ql.compiler.place(
         p0,
         device=TwoSlotMachine,
-        placement=(qlx.architecture.require_capability(
-            qlx.architecture.capability.logical_factory),),
+        placement=(ql.architecture.require_capability(
+            ql.architecture.capability.logical_factory),),
     )
 except ValueError as exc:
     assert "no machine space satisfies the placement constraints" in str(exc)
@@ -129,23 +129,23 @@ What is refused is silently relaxing a hard requirement. Soft preferences,
 by contrast, may be surrendered — and the surrender is reported:
 
 ```python
-p1 = qlx.compiler.place(
+p1 = ql.compiler.place(
     p0,
     device=TwoSlotMachine,
     placement=(
-        qlx.architecture.colocate(p0.values.data),
-        qlx.architecture.prefer(
+        ql.architecture.colocate(p0.values.data),
+        ql.architecture.prefer(
             space=TwoSlotMachine.compute,
-            for_=qlx.architecture.lifecycle.ACTIVE,
+            for_=ql.architecture.lifecycle.ACTIVE,
         ),
     ),
-    objective=qlx.architecture.metric.expected_spacetime_volume,
+    objective=ql.architecture.metric.expected_spacetime_volume,
 )
 
 assert p1.placement.relaxed_preferences == ()
 ```
 
-The constraint vocabulary is `qlx.architecture`: `colocate`, `allow_spaces`,
+The constraint vocabulary is `ql.architecture`: `colocate`, `allow_spaces`,
 `require_capability`, `prefer`, and `local` for exact-slot pinning. Exact slots
 are singleton constraints, not a verification bypass — hand-authored placements
 produce the same verified witness as solved ones.
@@ -153,7 +153,7 @@ produce the same verified witness as solved ones.
 ## Code-agnostic P1
 
 P1 placement never selects an encoding.
-`qlx.architecture.colocate(p0.values.data)` keeps several logical owners in one
+`ql.architecture.colocate(p0.values.data)` keeps several logical owners in one
 logical region, but each owner consumes a distinct P1 slot, and a
 `PlacementBinding` carries no `encoding` field. Encodings enter at P2 — bound
 per region through `DeviceBuilder.qec.bind(...)` or carried by a compilation

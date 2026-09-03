@@ -7,17 +7,17 @@
 # ============================================================================ #
 """Define and statically estimate a concrete 15-to-1 T-state protocol."""
 
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
 
-@qlx.protocol(implements=qlx.std.produce(qlx.std.T_STATE))
-def distill_15to1() -> qlx.types.resource[qlx.std.T_STATE]:
+@ql.protocol(implements=ql.std.produce(ql.std.T_STATE))
+def distill_15to1() -> ql.types.resource[ql.std.T_STATE]:
     """Turn 15 noisy T states into one postselected T state."""
 
-    raw_states = qlx.request_many(qlx.std.RAW_T_STATE, count=15)
-    output = qlx.prepare_plus(
-        qlx.allocate_patch(
-            qlx.codes.BareQubit,
+    raw_states = ql.request_many(ql.std.RAW_T_STATE, count=15)
+    output = ql.prepare_plus(
+        ql.allocate_patch(
+            ql.codes.BareQubit,
             region="t_state_factory",
         ))
 
@@ -25,37 +25,37 @@ def distill_15to1() -> qlx.types.resource[qlx.std.T_STATE]:
     # is the odd row that survives as the output.
     checks = []
     for state in raw_states[:4]:
-        output, check = qlx.unpack_resource(
+        output, check = ql.unpack_resource(
             state,
             like=output,
-            encoding=qlx.codes.BareQubit,
+            encoding=ql.codes.BareQubit,
         )
         checks.append(check)
 
     rows = [*checks, output]
     for state, rotation in zip(
             raw_states[4:],
-            qlx.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS,
+            ql.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS,
     ):
         rows = list(rotation(*rows, state))
 
     # The positive-angle triorthogonal circuit produces T-dagger on the odd
     # row; S converts it to the canonical T|+> resource.
-    rows[4] = qlx.protocols.bare_s(rows[4])
+    rows[4] = ql.protocols.bare_s(rows[4])
 
     # Accept exactly when all four even rows measure +X.
     for check in rows[:4]:
-        qlx.postselect(
-            qlx.protocols.bare_measure_x(check),
+        ql.postselect(
+            ql.protocols.bare_measure_x(check),
             expected=False,
         )
 
-    return qlx.pack_resource(rows[4], kind=qlx.std.T_STATE)
+    return ql.pack_resource(rows[4], kind=ql.std.T_STATE)
 
 
-counts = qlx.estimate(
+counts = ql.estimate(
     distill_15to1,
-    tier=qlx.estimate.Tier.STATIC,
+    tier=ql.estimate.Tier.STATIC,
 )
 
 assert counts.operation_counts["resource_request"] == 15

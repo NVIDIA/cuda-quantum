@@ -19,11 +19,11 @@ remain visible.
 Nothing in the function says Steane, two compute slots, or distance three. At
 P0 those would be guesses, so CUDA-Q Logical does not make them.
 
-The reassignment `q[0] = qlx.h(q[0])` is part of the contract. Quantum values
+The reassignment `q[0] = ql.h(q[0])` is part of the contract. Quantum values
 are linear owners: the operation consumes one version and returns the only
 live successor.
 
-`qlx.compile(bell)` freezes the function as an immutable P0 build. Later
+`ql.compile(bell)` freezes the function as an immutable P0 build. Later
 stages never retrace the Python program and silently change its meaning; they
 refine the build.
 
@@ -43,7 +43,7 @@ capabilities. None of that policy belongs in `bell`.
 :lines: 32-37
 ```
 
-`qlx.compiler.place` continues the P0 build into a P1 build whose placement
+`ql.compiler.place` continues the P0 build into a P1 build whose placement
 record names the region and slot of every logical owner. This separation is
 what makes reuse meaningful: the same program can be placed against another
 compatible machine, and the same machine can place many programs.
@@ -60,7 +60,7 @@ Steane code declares its CSS checks and logical operators; the gadget's
 :caption: Code and gadget definitions carry the P2 facts (examples/03_code_and_gadget.py).
 ```
 
-`qlx.materialize(Steane)` produces a verified `fabric.code` definition;
+`ql.materialize(Steane)` produces a verified `fabric.code` definition;
 compiling the gadget produces a verified `fabric.gadget`. A matching name
 without those typed facts would not be enough.
 

@@ -2,7 +2,7 @@
 
 A gadget in CUDA-Q Logical is a bounded, typed realization of a logical
 objective. Three artifacts travel together through compilation: the
-`implements=` clause states the ideal logical claim, the `qlx.patch[...]`
+`implements=` clause states the ideal logical claim, the `ql.patch[...]`
 signature states the encoded boundary (code, encoding, ownership), and the body
 states the executable realization. The compiled `fabric` artifact keeps all
 three inspectable — and for supported realization classes the compiler proves
@@ -11,26 +11,26 @@ the claim instead of trusting it.
 ## Write the smallest gadget
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
 
-@qlx.gadget(implements=qlx.std.h)
-def steane_h(block: qlx.patch[qlx.codes.Steane]) -> qlx.patch[qlx.codes.Steane]:
-    return qlx.h(block.data)
+@ql.gadget(implements=ql.std.h)
+def steane_h(block: ql.patch[ql.codes.Steane]) -> ql.patch[ql.codes.Steane]:
+    return ql.h(block.data)
 
 
-build = qlx.compile(steane_h)
+build = ql.compile(steane_h)
 ```
 
 Three facts are enough:
 
 1. `implements=` states the ideal logical claim. Standard actions and
-   instruments live in `qlx.std` (`h`, `cx`, `idle`, `prepare_zero`,
-   `measure_z`, …); `@qlx.objective` authors new ones, as the quickstart's
-   terminal-memory objective shows.
-2. `qlx.patch[qlx.codes.Steane]` states the encoded input and output types. The
+   instruments live in `ql.std` (`h`, `cx`, `idle`, `prepare_zero`, `measure_z`,
+   …); `@ql.objective` authors new ones, as the quickstart's terminal-memory
+   objective shows.
+2. `ql.patch[ql.codes.Steane]` states the encoded input and output types. The
    signature derives one inout encoded port and its linear ownership.
-3. The body states the bounded realization. `qlx.h(block.data)` expands to one
+3. The body states the bounded realization. `ql.h(block.data)` expands to one
    carrier operation per data carrier — “transversal” is a property the compiler
    reads off the support map, not a separate instruction.
 
@@ -45,31 +45,31 @@ fabric.gadget @steane_h(%arg0: !fabric.patch<@Steane, …>) -> !fabric.patch<@St
 ```
 
 The typed claim is machine-readable from Python:
-`qlx.gadgets.clifford_action(qlx.std.h)` returns the action
+`ql.gadgets.clifford_action(ql.std.h)` returns the action
 `CliffordAction(matrix=((0, 1), (1, 0)), phases=(0, 0), …)` — the X/Z swap that
 _is_ H — and the same accessor applies to a compiled gadget.
 
 ## Typed records at the boundary
 
 Syndrome-extraction results are first-class typed values, not raw bit vectors:
-`qlx.types.record[Code]` names the record family of one code, and gadget
+`ql.types.record[Code]` names the record family of one code, and gadget
 signatures may take and return records directly. This is the idiom the shipped
 test suite exercises:
 
 ```python
-@qlx.gadget(implements=qlx.std.idle)
+@ql.gadget(implements=ql.std.idle)
 def extraction_round(
-    block: qlx.patch[qlx.codes.Steane],
-    previous: qlx.types.record[qlx.codes.Steane],
-) -> tuple[qlx.patch[qlx.codes.Steane], qlx.types.record[qlx.codes.Steane]]:
-    block, current = qlx.extract_syndrome(block)
+    block: ql.patch[ql.codes.Steane],
+    previous: ql.types.record[ql.codes.Steane],
+) -> tuple[ql.patch[ql.codes.Steane], ql.types.record[ql.codes.Steane]]:
+    block, current = ql.extract_syndrome(block)
     return block, current
 ```
 
 The compiled boundary speaks the typed `fabric.syndrome<@Steane, …>` form, and
 protocols compose such gadgets by passing records along — a two-round memory
 protocol is two ordinary calls, with no annotation glue. Inside a gadget,
-`qlx.analysis.count` reports the authored operations of the compiled realization
+`ql.analysis.count` reports the authored operations of the compiled realization
 (the quickstart shows it on the Steane terminal-memory gadget).
 
 ## Preparation and destructive measurement
@@ -77,7 +77,7 @@ protocol is two ordinary calls, with no annotation glue. Inside a gadget,
 Two boundary patterns cover most library gadgets:
 
 - **Preparation** has no encoded input seam and produces an encoded output — the
-  `qlx.gadgets.prepare_zero` / `prepare_plus` factories build exactly this shape
+  `ql.gadgets.prepare_zero` / `prepare_plus` factories build exactly this shape
   for any validated code.
 - **Destructive measurement** consumes its encoded input and returns classical
   results. It must not fabricate a live encoded output merely to make the
@@ -89,8 +89,8 @@ followed by data-qubit readout:
 
 ```{literalinclude} ../../../examples/03_code_and_gadget.py
 :language: python
-:start-at: "@qlx.objective"
-:end-before: "code = qlx.materialize"
+:start-at: "@ql.objective"
+:end-before: "code = ql.materialize"
 :caption: A terminal-memory objective and its gadget (examples/03_code_and_gadget.py).
 ```
 
@@ -100,26 +100,26 @@ still live, is a construction error (`UseAfterConsume`), never a silent no-op.
 ## Selection: retry and postselection belong to the protocol
 
 Execution policy is not hidden inside reusable gadgets; the consuming protocol
-states it. Acceptance is explicit with `qlx.postselect` — the shipped 15-to-1
+states it. Acceptance is explicit with `ql.postselect` — the shipped 15-to-1
 distillation protocol accepts exactly when all four even-parity checks measure
 +X:
 
 ```{literalinclude} ../../../examples/04_distillation.py
 :language: python
 :start-after: "# The positive-angle triorthogonal circuit"
-:end-before: "return qlx.pack_resource"
+:end-before: "return ql.pack_resource"
 :caption: Postselection in examples/04_distillation.py.
 ```
 
-Bounded retry is the same shape: `qlx.ops.retry` acts on a success predicate
+Bounded retry is the same shape: `ql.ops.retry` acts on a success predicate
 derived from one gadget attempt, and the policy — attempt budget, exhaustion
 behavior, commit point — is spelled out at the retry site:
 
 ```python
-policy = qlx.gadgets.RetryPolicy(
+policy = ql.gadgets.RetryPolicy(
     max_attempts=8,
-    exhaustion=qlx.gadgets.RetryExhaustion.REPORT_FAILURE,
-    commit_point=qlx.gadgets.before_output(),
+    exhaustion=ql.gadgets.RetryExhaustion.REPORT_FAILURE,
+    commit_point=ql.gadgets.before_output(),
 )
 ```
 
@@ -144,26 +144,26 @@ claims. Do not conflate the levels:
 | objective equivalence | the realization's induced action matches its `implements=` claim                |
 
 Objective equivalence is automatic for **code-automorphism realizations** —
-gadgets whose realization is a single typed `qlx.ops.permute`. The compiler
+gadgets whose realization is a single typed `ql.ops.permute`. The compiler
 derives the induced logical action from the code algebra and compares it with
 the claim, failing closed on mismatch:
 
 ```python
-@qlx.gadget(implements=qlx.std.idle)
-def steane_idle(block: qlx.patch[qlx.codes.Steane]) -> qlx.patch[qlx.codes.Steane]:
-    return qlx.ops.permute(block, tuple(range(7)))
+@ql.gadget(implements=ql.std.idle)
+def steane_idle(block: ql.patch[ql.codes.Steane]) -> ql.patch[ql.codes.Steane]:
+    return ql.ops.permute(block, tuple(range(7)))
 
-qlx.compile(steane_idle)   # verified_code_automorphism evidence recorded
+ql.compile(steane_idle)   # verified_code_automorphism evidence recorded
 
 
-@qlx.gadget(implements=qlx.std.h)
-def wrong(block: qlx.patch[qlx.codes.Steane]) -> qlx.patch[qlx.codes.Steane]:
-    return qlx.ops.permute(block, tuple(range(7)))
+@ql.gadget(implements=ql.std.h)
+def wrong(block: ql.patch[ql.codes.Steane]) -> ql.patch[ql.codes.Steane]:
+    return ql.ops.permute(block, tuple(range(7)))
 
 try:
     # ValueError: code automorphism logical action does not implement the
     # declared objective under any logical-port binding
-    qlx.compile(wrong)
+    ql.compile(wrong)
 except ValueError as exc:
     assert "does not implement the declared objective" in str(exc)
 ```

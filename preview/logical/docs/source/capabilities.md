@@ -34,15 +34,15 @@ Every row cites its exercising evidence in this repository.
 | CUDA-Q ingress — `@cudaq.kernel` programs through CUDA-Q Logical targets | shipped, exercised | `examples/00_cudaq_logical_resource_estimate.py`, `05_clifford_t.py` |
 | Static P2 estimation — gadget/operation counts with folding | shipped, exercised | `examples/00`, `04`; `fabric-count` in the CLI suite |
 | Analytical projections — Gidney–Ekerå RSA-2048 and Fermi–Hubbard envelopes | shipped, exercised | `examples/06_gidney_ekera.py`, `07_fermi_hubbard.py` (analytical projections, not further compilation stages) |
-| Stim text emission — `qlx-translate --fabric-to-stim`, typed `qlx.lower.emit_stim` | shipped, exercised | `examples/cli/stim_memory.mlir`; the CLI workflow lit test |
+| Stim text emission — `qlx-translate --fabric-to-stim`, typed `ql.lower.emit_stim` | shipped, exercised | `examples/cli/stim_memory.mlir`; the CLI workflow lit test |
 
 ## Present but not yet exercised
 
 These APIs exist in the package but carry no executed test or example in this
 release, so the documentation does not teach them yet: dynamic codes
 (`MeasurementPhase`, `EncodingEpoch`), code switching (`PatchTransform`),
-concatenation (`qlx.codes.Concatenated`), metachecks (`qlx.codes.MetaChecks`),
-and P2 block requests (`qlx.codes.qec_block`). Treat them as preview surface:
+concatenation (`ql.codes.Concatenated`), metachecks (`ql.codes.MetaChecks`),
+and P2 block requests (`ql.codes.qec_block`). Treat them as preview surface:
 usable at your own risk until exercised evidence lands.
 
 ## Documented boundaries (all fail closed)
@@ -53,7 +53,7 @@ detector error models, sample, or decode. Those studies belong downstream of
 the emitted text, in the Stim ecosystem.
 
 **Stages stop at P2.** There are no physical carriers, no routing or
-scheduling, and no runtime or hardware submission — `qlx.stages.Stage` has
+scheduling, and no runtime or hardware submission — `ql.stages.Stage` has
 exactly `P0`, `P1`, `P2`.
 
 **No simulator plugin surface.** Nothing in the package consumes or executes
@@ -61,7 +61,7 @@ physical simulations.
 
 **The native P1 placer is a subset.** `qlx-to-lvm` is a deterministic
 first-fit placement for explicitly machine-domained, inlined programs; the
-Python placement solver (`qlx.compiler.place`) is the rich path. The native
+Python placement solver (`ql.compiler.place`) is the rich path. The native
 pass fails on inputs outside the shared supported subset rather than
 approximating.
 
@@ -71,7 +71,7 @@ P2 entry gadget; a closed protocol is first legalized within P2
 an implementation that selection did not link.
 
 **Rotation synthesis is explicit, not automatic.**
-`qlx.compiler.synthesize` legalizes a logical program to a named gate set
+`ql.compiler.synthesize` legalizes a logical program to a named gate set
 (Clifford+T, example 05) under an operator-norm `precision=` bound;
 unsupported gate sets are rejected with a `ValueError` rather than
 approximated.

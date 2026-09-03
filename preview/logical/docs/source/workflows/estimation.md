@@ -3,17 +3,17 @@
 Estimation in CUDA-Q Logical is two explicit tiers over the _same_ linked
 definitions: device-independent logical counts, and static counts over a
 selected QEC realization. One call shape serves both —
-`qlx.estimate(value, tier=...)`. The value may be a `Build` or an authoring
+`ql.estimate(value, tier=...)`. The value may be a `Build` or an authoring
 definition; a definition is first compiled through its normal default pipeline,
 and the estimator then validates that the resulting stage matches the requested
 tier, failing with a typed diagnostic when they disagree.
 
 | Tier                        | Needs                                                     | Returns                                                                                                                                                          |
 | --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `qlx.estimate.Tier.LOGICAL` | a verified P0 program — no device, no code                | `qlx.estimate.LogicalProfile`: action/instrument totals, peak logical qubits, idle/discard counts, an action-depth upper bound, synthesis demand                 |
-| `qlx.estimate.Tier.STATIC`  | a selected P2 build — code, gadgets, and protocols chosen | `qlx.estimate.FabricCounts`: per-operation counts, gadget/protocol call totals, resource requests, postselection bookkeeping, syndrome rounds, peak live patches |
+| `ql.estimate.Tier.LOGICAL` | a verified P0 program — no device, no code                | `ql.estimate.LogicalProfile`: action/instrument totals, peak logical qubits, idle/discard counts, an action-depth upper bound, synthesis demand                 |
+| `ql.estimate.Tier.STATIC`  | a selected P2 build — code, gadgets, and protocols chosen | `ql.estimate.FabricCounts`: per-operation counts, gadget/protocol call totals, resource requests, postselection bookkeeping, syndrome rounds, peak live patches |
 
-`Tier.STATIC` is the default, so `qlx.estimate(p2_build)` needs no `tier=`
+`Tier.STATIC` is the default, so `ql.estimate(p2_build)` needs no `tier=`
 argument. Both result types are immutable plain-data values with `to_dict()`
 projections, and both record the `build_root` and `build_sha256` they were
 derived from.
@@ -24,16 +24,16 @@ The logical tier is valid with no device and no code at all — estimate the
 algorithm while it is still portable intent (`examples/01_p0_bell.py`):
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-@qlx.program
+@ql.program
 def bell() -> tuple[bool, bool]:
-    q = qlx.allocate(2, state=qlx.types.zero)
-    q[0] = qlx.h(q[0])
-    q[0], q[1] = qlx.cx(q[0], q[1])
-    return qlx.measure_z(q[0]), qlx.measure_z(q[1])
+    q = ql.allocate(2, state=ql.types.zero)
+    q[0] = ql.h(q[0])
+    q[0], q[1] = ql.cx(q[0], q[1])
+    return ql.measure_z(q[0]), ql.measure_z(q[1])
 
-profile = qlx.estimate(qlx.compile(bell), tier=qlx.estimate.Tier.LOGICAL)
+profile = ql.estimate(ql.compile(bell), tier=ql.estimate.Tier.LOGICAL)
 assert profile.logical_qubits_peak == 2
 assert profile.actions == {"qlx_standard_h": 1, "qlx_standard_cx": 1}
 assert profile.instruments == {
@@ -55,11 +55,11 @@ Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
 % invisible-code-block: python
 %
-% gadget_build = load_qlx_example(
+% gadget_build = load_ql_example(
 %     "preview/logical/examples/03_code_and_gadget.py", "gadget")
 
 ```python
-counts = qlx.estimate(gadget_build, tier=qlx.estimate.Tier.STATIC)
+counts = ql.estimate(gadget_build, tier=ql.estimate.Tier.STATIC)
 assert counts.patches_peak == 1
 assert counts.build_root == "steane_memory"
 assert counts.source_stage == "p2"
@@ -69,7 +69,7 @@ counts.operation_counts
 
 The syndrome-extraction gadget has been lowered to its physical primitives, so
 the counts are the reset/H/CX/measurement work of the actual circuit — not the
-one-line `qlx.extract_syndrome` the author wrote.
+one-line `ql.extract_syndrome` the author wrote.
 
 Protocols compose gadgets with resources and postselection, and the static tier
 keeps the bookkeeping visible. Example 04's 15-to-1 distillation is estimated
@@ -77,11 +77,11 @@ straight from the authoring definition:
 
 % invisible-code-block: python
 %
-% distill_15to1 = load_qlx_example(
+% distill_15to1 = load_ql_example(
 %     "preview/logical/examples/04_distillation.py", "distill_15to1")
 
 ```python
-counts = qlx.estimate(distill_15to1, tier=qlx.estimate.Tier.STATIC)
+counts = ql.estimate(distill_15to1, tier=ql.estimate.Tier.STATIC)
 assert counts.resource_requests == {"raw_t_state": 15}
 assert counts.success_count == 4
 assert counts.operation_counts["pack_resource"] == 1
@@ -112,42 +112,42 @@ that postselection may discard. Selection is never averaged away silently.
   computed number.
 - **Declared assumptions.** Where a fact is evidence rather than algebra — a
   code distance, say — the typed evidence constructors ask for a method and a
-  provenance, and `qlx.analysis` provides the provenance spellings:
+  provenance, and `ql.analysis` provides the provenance spellings:
   `citation(...)` for a published source, `report(...)` and `computation(...)`
   for internal analyses and recorded tool runs, and `user_assertion(...)` for an
   explicit, unproved statement.
 
 ## Direct spellings
 
-`qlx.analysis.logical_counts(p0)` and `qlx.analysis.count(build)` are the
+`ql.analysis.logical_counts(p0)` and `ql.analysis.count(build)` are the
 per-tier function forms of the same estimators. They remain useful when code
 intentionally selects one specialized analysis; product flows should prefer the
-unified `qlx.estimate(...)` front door.
+unified `ql.estimate(...)` front door.
 
 ## Sweeps and reproducibility
 
 Design-space sweeps are first-class artifacts:
-`qlx.compiler.compile_many(points, pipeline=...)` turns a tuple of
-`qlx.compiler.Experiment` values into an immutable, self-describing
+`ql.compiler.compile_many(points, pipeline=...)` turns a tuple of
+`ql.compiler.Experiment` values into an immutable, self-describing
 `ExperimentBundle` whose serialized form replays every build bit-identically in
 a clean process (`python/tests/cudaq/logical/test_experiments.py`):
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
-@qlx.program
+@ql.program
 def memory() -> bool:
-    q = qlx.prepare_zero()
-    q = qlx.idle(q, rounds=3)
-    return qlx.measure_z(q)
+    q = ql.prepare_zero()
+    q = ql.idle(q, rounds=3)
+    return ql.measure_z(q)
 
 points = tuple(
-    qlx.compiler.Experiment(root=memory, parameters={"p": p})
+    ql.compiler.Experiment(root=memory, parameters={"p": p})
     for p in (1e-4, 1e-3, 1e-2))
-bundle = qlx.compiler.compile_many(
-    points, pipeline=qlx.compiler.pipelines.logical())
+bundle = ql.compiler.compile_many(
+    points, pipeline=ql.compiler.pipelines.logical())
 assert len(bundle) == 3
-replayed = qlx.compiler.ExperimentBundle.replay(bundle.serialize())
+replayed = ql.compiler.ExperimentBundle.replay(bundle.serialize())
 ```
 
 A serialized bundle needs no ambient Python state, so an estimate quoted in a
@@ -161,7 +161,7 @@ every assumption is visible and editable, on top of a P0-backed logical profile.
 `examples/06_gidney_ekera.py` is the reference workout: a windowed-arithmetic
 RSA-2048 resource kernel whose folded logical profile feeds the published
 design-point equations, with the same calculation available through
-`qlx.algorithms.estimate_gidney_ekera`. `examples/07_fermi_hubbard.py` applies
+`ql.algorithms.estimate_gidney_ekera`. `examples/07_fermi_hubbard.py` applies
 the same pattern to a Trotterized Fermi–Hubbard evolution.
 
 ## Estimating ordinary CUDA-Q kernels
@@ -175,7 +175,7 @@ them:
 % invisible-code-block: python
 %
 % import cudaq
-% kernel = load_qlx_example(
+% kernel = load_ql_example(
 %     "preview/logical/examples/00_cudaq_logical_resource_estimate.py",
 %     "logical_zero_readout")
 

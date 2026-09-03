@@ -1,6 +1,6 @@
 # Logical Clifford+T synthesis
 
-Use `qlx.compiler.synthesize` when you want a device-independent logical program
+Use `ql.compiler.synthesize` when you want a device-independent logical program
 expressed in a specific gate set. The result is an ordinary immutable P0
 `Build`: inspect it, serialize it, or pass it to placement and QEC compilation
 later.
@@ -10,30 +10,30 @@ later.
 The supported gate set is positive-generator Clifford+T:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
 
 # Author the rotation at portable P0, before any code or machine is selected.
-@qlx.program
+@ql.program
 def ansatz(theta: float) -> bool:
-    q = qlx.allocate(2, state=qlx.types.zero)
-    q[0], q[1] = qlx.ops.rotate(
-        -(qlx.types.X(q[0]) @ qlx.types.Z(q[1])),
+    q = ql.allocate(2, state=ql.types.zero)
+    q[0], q[1] = ql.ops.rotate(
+        -(ql.types.X(q[0]) @ ql.types.Z(q[1])),
         angle=theta,
     )
-    qlx.discard(q[1])
-    return qlx.measure_z(q[0])
+    ql.discard(q[1])
+    return ql.measure_z(q[0])
 
 
 # Legalize only the logical unitary actions into the requested gate set.
-clifford_t = qlx.compiler.synthesize(
+clifford_t = ql.compiler.synthesize(
     ansatz,
-    gate_set=qlx.compiler.gate_sets.clifford_t,
-    parameters={"theta": qlx.algebra.pi / 4},
+    gate_set=ql.compiler.gate_sets.clifford_t,
+    parameters={"theta": ql.algebra.pi / 4},
     precision=1e-10,
 )
 
-assert clifford_t.stage == qlx.stages.P0
+assert clifford_t.stage == ql.stages.P0
 assert "pauli_rotation" not in clifford_t.to_mlir()
 print(clifford_t.synthesis.t_count)
 print(clifford_t.synthesis.clifford_count)
@@ -43,7 +43,7 @@ No `device=` is involved. Preparation, measurement, discard, structured
 classical control, source locations, and linear ownership remain P0 semantics;
 only logical unitary actions are legalized.
 
-`qlx.compiler.gate_sets.clifford_t` emits:
+`ql.compiler.gate_sets.clifford_t` emits:
 
 - `H`;
 - positive `S`;
@@ -64,9 +64,9 @@ rejects any logical action left outside the requested gate set.
 rotation:
 
 ```python
-result = qlx.compiler.synthesize(
+result = ql.compiler.synthesize(
     ansatz,
-    gate_set=qlx.compiler.gate_sets.clifford_t,
+    gate_set=ql.compiler.gate_sets.clifford_t,
     parameters={"theta": 0.3},
     precision=1e-8,
 )
@@ -75,20 +75,20 @@ result = qlx.compiler.synthesize(
 An explicitly authored rotation precision takes precedence:
 
 ```python
-@qlx.program
+@ql.program
 def rotation_precision() -> bool:
-    q = qlx.allocate(1, state=qlx.types.zero)
-    q[0], = qlx.ops.rotate(
-        qlx.types.Z(q[0]),
+    q = ql.allocate(1, state=ql.types.zero)
+    q[0], = ql.ops.rotate(
+        ql.types.Z(q[0]),
         angle=0.3,
         precision=1e-12,
     )
-    return qlx.measure_z(q[0])
+    return ql.measure_z(q[0])
 
-qlx.compile(rotation_precision)
+ql.compile(rotation_precision)
 ```
 
-Exact rational multiples written with `qlx.algebra.pi` retain exact source
+Exact rational multiples written with `ql.algebra.pi` retain exact source
 metadata and take the exact-word fast path (see
 [Magic states and protocols](magic-states-and-protocols.md)). For float-authored
 angles, an exact lattice word is used only when that word meets the requested
@@ -110,7 +110,7 @@ print(summary.precision)
 print(summary.h_count, summary.s_count, summary.t_count, summary.cx_count)
 
 payload = clifford_t.serialize()
-replayed = qlx.compiler.Build.replay(payload)
+replayed = ql.compiler.Build.replay(payload)
 assert replayed.synthesis == summary
 ```
 
@@ -125,10 +125,10 @@ The convenience API executes the pipeline owned by the gate-set value.
 Compiler-oriented code can request the same pipeline directly:
 
 ```python
-equivalent = qlx.compile(
+equivalent = ql.compile(
     ansatz,
-    pipeline=qlx.compiler.pipelines.clifford_t(precision=1e-10),
-    parameters={"theta": qlx.algebra.pi / 4},
+    pipeline=ql.compiler.pipelines.clifford_t(precision=1e-10),
+    parameters={"theta": ql.algebra.pi / 4},
 )
 
 assert equivalent.to_mlir() == clifford_t.to_mlir()
@@ -138,13 +138,13 @@ This is a real P0-to-P0 transformation. Passing an existing P0 `Build` creates a
 new `Build` and leaves the source unchanged:
 
 ```python
-source = qlx.compile(
+source = ql.compile(
     ansatz,
-    parameters={"theta": qlx.algebra.pi / 4},
+    parameters={"theta": ql.algebra.pi / 4},
 )
-legalized = qlx.compiler.synthesize(
+legalized = ql.compiler.synthesize(
     source,
-    gate_set=qlx.compiler.gate_sets.clifford_t,
+    gate_set=ql.compiler.gate_sets.clifford_t,
 )
 ```
 
@@ -154,12 +154,12 @@ An estimation flow that consumes Pauli-based computation can insert one more
 device-free P0 transform after synthesis:
 
 ```python
-pbc = qlx.compile(
+pbc = ql.compile(
     clifford_t,
-    pipeline=qlx.compiler.pipelines.pbc(),
+    pipeline=ql.compiler.pipelines.pbc(),
 )
 
-assert pbc.stage == qlx.stages.P0
+assert pbc.stage == ql.stages.P0
 assert "#qlx.action<h>" not in pbc.to_mlir()
 assert "#qlx.action<t>" not in pbc.to_mlir()
 assert "#qlx.action<pauli_rotation>" in pbc.to_mlir()

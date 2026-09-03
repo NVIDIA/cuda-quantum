@@ -30,7 +30,7 @@ or an estimation target.
 :caption: Portable P0 intent (examples/01_p0_bell.py).
 ```
 
-The linear spelling makes ownership visible: `q[0] = qlx.h(q[0])` consumes
+The linear spelling makes ownership visible: `q[0] = ql.h(q[0])` consumes
 one version of the qubit and returns the only live successor.
 
 Compiling freezes the program as an immutable P0 build, and the first

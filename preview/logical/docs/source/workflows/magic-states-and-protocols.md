@@ -6,19 +6,19 @@ and magic states come from distillation protocols. CUDA-Q Logical treats each
 protocol as a verified, inspectable definition — never a string-named leaf the
 compiler trusts.
 
-In the programming model, `qlx.ops.rotate` (Pauli-product rotation) and
-`qlx.mpp` (Pauli-product measurement) are _logical primitives_:
+In the programming model, `ql.ops.rotate` (Pauli-product rotation) and
+`ql.mpp` (Pauli-product measurement) are _logical primitives_:
 
 ```python
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
 
-@qlx.program
+@ql.program
 def parity_check() -> bool:
-    q = qlx.allocate(3, state=qlx.types.zero)
-    q[0], q[1], q[2], parity = qlx.mpp(
-        qlx.types.X(q[0]) @ qlx.types.Y(q[1]) @ qlx.types.Z(q[2]))
-    qlx.discard(q)
+    q = ql.allocate(3, state=ql.types.zero)
+    q[0], q[1], q[2], parity = ql.mpp(
+        ql.types.X(q[0]) @ ql.types.Y(q[1]) @ ql.types.Z(q[2]))
+    ql.discard(q)
     return parity
 ```
 
@@ -60,30 +60,30 @@ the native `qlx-synthesize-rotations` pass takes before ever calling gridsynth:
 $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is dropped
 throughout: it is unobservable and carries no logical content.
 
-### Authoring exact angles with `qlx.algebra.pi`
+### Authoring exact angles with `ql.algebra.pi`
 
 Writing `angle=0.7853981633974483` leaves the compiler to _infer_ that you meant
 $\pi/4$ from a float, within a tolerance. To state the intent exactly, author
-with the symbol `qlx.algebra.pi` — an exact rational multiple of $\pi$ that
+with the symbol `ql.algebra.pi` — an exact rational multiple of $\pi$ that
 arithmetic keeps exact:
 
 ```python
-@qlx.program
+@ql.program
 def exact_angles() -> bool:
-    q = qlx.allocate(1, state=qlx.types.zero)
-    q[0], = qlx.ops.rotate(qlx.types.Z(q[0]), angle=qlx.algebra.pi / 4)
-    q[0] = qlx.rz(q[0], 3 * qlx.algebra.pi / 4)
-    q[0] = qlx.rz(q[0], qlx.algebra.pi / 8)
-    return qlx.measure_z(q[0])
+    q = ql.allocate(1, state=ql.types.zero)
+    q[0], = ql.ops.rotate(ql.types.Z(q[0]), angle=ql.algebra.pi / 4)
+    q[0] = ql.rz(q[0], 3 * ql.algebra.pi / 4)
+    q[0] = ql.rz(q[0], ql.algebra.pi / 8)
+    return ql.measure_z(q[0])
 
-qlx.compile(exact_angles)
+ql.compile(exact_angles)
 ```
 
 An `Angle` authored this way stamps its reduced coefficient onto the rotation
 op, so the synthesis dispatch classifies it **authoritatively** —
-`qlx.algebra.pi / 2` is the Clifford point and `qlx.algebra.pi / 4` the magic
+`ql.algebra.pi / 2` is the Clifford point and `ql.algebra.pi / 4` the magic
 point by construction, never a near-lattice float that a tolerance might snap or
-miss. `float(qlx.algebra.pi / 4)` still yields the ordinary radian value, so a
+miss. `float(ql.algebra.pi / 4)` still yields the ordinary radian value, so a
 raw float angle (e.g. `0.3`) keeps the numeric path unchanged — both surfaces
 coexist.
 
@@ -93,12 +93,12 @@ Off-lattice rotations are legalized to Clifford+T by synthesis; see
 ## Typed resource kinds
 
 Magic states are typed resources, not ad-hoc qubits. The standard library
-declares the kinds — `qlx.std.T_STATE`, `RAW_T_STATE`, `Y_STATE`, `CCZ_STATE`,
+declares the kinds — `ql.std.T_STATE`, `RAW_T_STATE`, `Y_STATE`, `CCZ_STATE`,
 `CS_STATE`, `ENCODED_BELL_PAIR` — each with a typed consume action, and
-`qlx.std.produce(...)` builds the objective a production protocol claims to
-implement. A protocol body sees resources through `qlx.types.resource[...]`
-handles: `qlx.request_many` draws raw inputs, `qlx.unpack_resource` opens a
-resource into a patch, and `qlx.pack_resource` certifies the output kind.
+`ql.std.produce(...)` builds the objective a production protocol claims to
+implement. A protocol body sees resources through `ql.types.resource[...]`
+handles: `ql.request_many` draws raw inputs, `ql.unpack_resource` opens a
+resource into a patch, and `ql.pack_resource` certifies the output kind.
 
 ## 15-to-1: a concrete factory
 
@@ -113,10 +113,10 @@ with the root authoring facade — not an analytical placeholder:
 
 Fifteen linear raw-state inputs are unpacked onto bare patches; eleven
 resource-assisted product rotations from
-`qlx.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal circuit;
-`qlx.protocols.bare_s` converts the resulting T† on the odd row to the canonical
+`ql.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal circuit;
+`ql.protocols.bare_s` converts the resulting T† on the odd row to the canonical
 T|+⟩; and exactly the four even rows must measure $+X$ — recorded with
-`qlx.postselect`, so the acceptance condition is part of the definition rather
+`ql.postselect`, so the acceptance condition is part of the definition rather
 than a comment about it.
 
 Because the protocol is an ordinary compiled definition, the static estimation
@@ -143,12 +143,12 @@ The leading-order analytical curves attach to the _same_ protocol library entry
 for supply/demand studies — output error $35p^3$ and acceptance $1 - 15p$:
 
 ```python
-model = qlx.protocols.DISTILL_15TO1_T
+model = ql.protocols.DISTILL_15TO1_T
 assert model.output_error(1e-3) == 3.510537795740123e-08
 assert model.acceptance_probability(1e-3) == 0.9851045810483217
 ```
 
-The `qlx.protocols` library also exposes the reusable pieces —
+The `ql.protocols` library also exposes the reusable pieces —
 `FIFTEEN_TO_ONE_ROTATION_STEPS` and their supports, `bare_s`, `bare_measure_x`,
 and the ready-made `distill_15to1` definition — so a code library can compose
 its own production protocol from verified parts.
