@@ -70,7 +70,7 @@ static bool isScalarGateTarget(Value value) {
 
 static void lowerWithScalarControl(IRRewriter &rewriter,
                                    cudaq::quake::PhaseOp phase, Value angle,
-                                   SmallVector<Value> controls,
+                                   SmallVectorImpl<Value> &controls,
                                    ArrayRef<bool> polarities,
                                    unsigned selectedControl) {
   Value anchor = phase.getTarget();
@@ -114,7 +114,7 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
 
 static void lowerWithAnchorFallback(IRRewriter &rewriter,
                                     cudaq::quake::PhaseOp phase, Value angle,
-                                    SmallVector<Value> controls,
+                                    SmallVectorImpl<Value> &controls,
                                     ArrayRef<bool> polarities) {
   Value anchor = phase.getTarget();
   Location location = phase.getLoc();
@@ -171,9 +171,8 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   std::optional<unsigned> selected =
       positiveScalar ? positiveScalar : scalarControl;
   if (selected) {
-    lowerWithScalarControl(rewriter, phase, angle,
-                           std::move(predicate.controls), predicate.polarities,
-                           *selected);
+    lowerWithScalarControl(rewriter, phase, angle, predicate.controls,
+                           predicate.polarities, *selected);
     return success();
   }
 
@@ -186,7 +185,7 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
           "cannot lower with an anchor that aliases a control operand");
       return failure();
     }
-  lowerWithAnchorFallback(rewriter, phase, angle, std::move(predicate.controls),
+  lowerWithAnchorFallback(rewriter, phase, angle, predicate.controls,
                           predicate.polarities);
   return success();
 }
