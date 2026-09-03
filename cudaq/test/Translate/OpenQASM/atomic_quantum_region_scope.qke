@@ -14,10 +14,10 @@
 func.func @scope_result() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %q = quake.alloca !quake.ref
   %half = arith.constant 5.000000e-01 : f64
-  %theta = cc.scope -> (f64) {
+  %theta = cc.scope -> (f64) atomic {
     quake.h %q : (!quake.ref) -> ()
     cc.continue %half : f64
-  } {atomic_quantum_region}
+  }
   quake.rx (%theta) %q : (f64, !quake.ref) -> ()
   return
 }

@@ -112,15 +112,15 @@ func.func @atomic_scope_permitted(%inside: !quake.wire, %outer: !quake.wire,
                                   %nested: !quake.wire)
     -> (!quake.wire, !quake.wire, !quake.wire) {
   %0 = quake.t %outer : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> (!quake.wire) {
+  %1 = cc.scope -> (!quake.wire) atomic {
     %2 = quake.t %inside : (!quake.wire) -> !quake.wire
     %3 = quake.s %2 : (!quake.wire) -> !quake.wire
     %4 = quake.t %3 : (!quake.wire) -> !quake.wire
     cc.continue %4 : !quake.wire
-  } {atomic_quantum_region}
+  }
   %5 = quake.s %0 : (!quake.wire) -> !quake.wire
   %6 = quake.t %5 : (!quake.wire) -> !quake.wire
-  %7 = cc.scope -> (!quake.wire) {
+  %7 = cc.scope -> (!quake.wire) atomic {
     %8 = quake.t %nested : (!quake.wire) -> !quake.wire
     %9 = cc.scope -> (!quake.wire) {
       %10 = quake.s %8 : (!quake.wire) -> !quake.wire
@@ -128,7 +128,7 @@ func.func @atomic_scope_permitted(%inside: !quake.wire, %outer: !quake.wire,
     }
     %11 = quake.t %9 : (!quake.wire) -> !quake.wire
     cc.continue %11 : !quake.wire
-  } {atomic_quantum_region}
+  }
   return %1, %6, %7 : !quake.wire, !quake.wire, !quake.wire
 }
 
@@ -155,16 +155,16 @@ func.func @atomic_scope_permitted(%inside: !quake.wire, %outer: !quake.wire,
 func.func @atomic_scope_boundaries(%entry: !quake.wire, %exit: !quake.wire)
     -> (!quake.wire, !quake.wire) {
   %0 = quake.t %entry : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> (!quake.wire) {
+  %1 = cc.scope -> (!quake.wire) atomic {
     %2 = quake.s %0 : (!quake.wire) -> !quake.wire
     %3 = quake.t %2 : (!quake.wire) -> !quake.wire
     cc.continue %3 : !quake.wire
-  } {atomic_quantum_region}
-  %4 = cc.scope -> (!quake.wire) {
+  }
+  %4 = cc.scope -> (!quake.wire) atomic {
     %5 = quake.t %exit : (!quake.wire) -> !quake.wire
     %6 = quake.s %5 : (!quake.wire) -> !quake.wire
     cc.continue %6 : !quake.wire
-  } {atomic_quantum_region}
+  }
   %7 = quake.t %4 : (!quake.wire) -> !quake.wire
   return %1, %7 : !quake.wire, !quake.wire
 }
@@ -469,14 +469,14 @@ func.func @non_linear_boundary(%arg0: !quake.wire)
 // CHECK-NEXT:    return %[[LEFT_T1]], %[[RIGHT_T1]]
 
 func.func @sibling_atomic_scopes(%arg0: !quake.wire) -> !quake.wire {
-  %0 = cc.scope -> (!quake.wire) {
+  %0 = cc.scope -> (!quake.wire) atomic {
     %1 = quake.h %arg0 : (!quake.wire) -> !quake.wire
     cc.continue %1 : !quake.wire
-  } {atomic_quantum_region}
-  %2 = cc.scope -> (!quake.wire) {
+  }
+  %2 = cc.scope -> (!quake.wire) atomic {
     %3 = quake.h %0 : (!quake.wire) -> !quake.wire
     cc.continue %3 : !quake.wire
-  } {atomic_quantum_region}
+  }
   return %2 : !quake.wire
 }
 
