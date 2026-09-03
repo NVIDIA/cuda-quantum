@@ -53,13 +53,13 @@ equals the named gates **up to an unobservable global phase**:
 
 | angle $\theta$ | $R_Z(\theta)$                                         | equals (up to global phase)                                   | class     |
 | -------------- | ----------------------------------------------------- | ------------------------------------------------------------- | --------- |
-| $\pi/4$        | {math}`\operatorname{diag}(e^{-i\pi/8}, e^{+i\pi/8})` | $e^{-i\pi/8}\,T$, with $T=\operatorname{diag}(1, e^{i\pi/4})$ | magic (T) |
-| $\pi/2$        | {math}`\operatorname{diag}(e^{-i\pi/4}, e^{+i\pi/4})` | $e^{-i\pi/4}\,S$, with $S=\operatorname{diag}(1, i)=T^2$      | Clifford  |
-| $\pi$          | {math}`\operatorname{diag}(e^{-i\pi/2}, e^{+i\pi/2})` | $e^{-i\pi/2}\,Z$, with $Z=\operatorname{diag}(1, -1)=S^2=T^4$ | Pauli     |
+| $\pi/4$        | {math}`\operatorname{diag}(e^{-i\pi/8}, e^{+i\pi/8})` | $e^{-i\pi/8}\,T$, with {math}`T=\operatorname{diag}(1, e^{i\pi/4})` | magic (T) |
+| $\pi/2$        | {math}`\operatorname{diag}(e^{-i\pi/4}, e^{+i\pi/4})` | $e^{-i\pi/4}\,S$, with {math}`S=\operatorname{diag}(1, i)=T^2`      | Clifford  |
+| $\pi$          | {math}`\operatorname{diag}(e^{-i\pi/2}, e^{+i\pi/2})` | $e^{-i\pi/2}\,Z$, with {math}`Z=\operatorname{diag}(1, -1)=S^2=T^4` | Pauli     |
 
 So {math}`R_Z(k\,\pi/4) = T^k \pmod 8` up to global phase — the exact-word fast
 path the native `qlx-synthesize-rotations` pass takes before ever calling
-gridsynth: $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is
+`gridsynth`: $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is
 dropped throughout: it is unobservable and carries no logical content.
 
 ### Authoring exact angles with `ql.algebra.pi`

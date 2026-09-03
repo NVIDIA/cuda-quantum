@@ -109,8 +109,12 @@ preference the solver had to give up, and the deterministic tie-break:
 Hard constraints are hard. Requiring a capability that no region provides fails
 closed:
 
-% invisible-code-block: python % % p0, TwoSlotMachine = load_ql_example( %
-"preview/logical/examples/02_p1_placement.py", "p0", "TwoSlotMachine")
+<!--
+% invisible-code-block: python
+%
+% p0, TwoSlotMachine = load_ql_example(
+% "preview/logical/examples/02_p1_placement.py", "p0", "TwoSlotMachine")
+-->
 
 ```python
 try:
