@@ -1,0 +1,86 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(4) placement=identity search=none' %s | FileCheck %s
+
+// A `run` entry point records its per-shot results by index rather than by
+// global register order, so measurements need not be deferred and may live
+// inside nested control flow. Here a `quake.mz` sits inside a `cc.if` whose
+// condition is a plain classical value (not a measurement result). The mapper
+// must route the circuit (CX between wires 0 and 3 on path(4) forces swaps)
+// while leaving the measurement in its branch. A measurement whose result
+// instead drove the branch condition would be genuine feedback and is still
+// rejected by the measurement-dependence check.
+
+module attributes {quake.cudaq_run} {
+  quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+  func.func @kernel.run() attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [!cc.stdvec<i1>]} {
+    %c1_i64 = arith.constant 1 : i64
+    %true = arith.constant 1 : i1
+    %0 = cc.scope -> (!cc.stdvec<i1>) {
+      %3 = quake.borrow_wire @wires[0] : !quake.wire
+      %6 = quake.borrow_wire @wires[3] : !quake.wire
+      %7 = quake.h %3 : (!quake.wire) -> !quake.wire
+      %8:2 = quake.x [%7] %6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %9 = cc.alloca !cc.array<i8 x 1>
+      %r:2 = cc.if (%true) ((%a = %8#0)) -> (!quake.wire, i1) {
+        %measOut, %wires = quake.mz %a : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+        %d = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+        cc.continue %wires, %d : !quake.wire, i1
+      } else {
+        %measOut, %wires = quake.mz %a : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+        %d = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+        cc.continue %wires, %d : !quake.wire, i1
+      }
+      %11 = cc.cast %9 : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
+      %12 = cc.cast unsigned %r#1 : (i1) -> i8
+      cc.store %12, %11 : !cc.ptr<i8>
+      %22 = cc.cast %9 : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<!cc.array<i8 x ?>>
+      %23 = cc.stdvec_init %22, %c1_i64 : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.stdvec<i1>
+      quake.return_wire %r#0 : !quake.wire
+      quake.return_wire %8#1 : !quake.wire
+      cc.continue %23 : !cc.stdvec<i1>
+    }
+    %1 = cc.stdvec_size %0 : (!cc.stdvec<i1>) -> i64
+    %2 = cc.stdvec_data %0 : (!cc.stdvec<i1>) -> !cc.ptr<i8>
+    call @__quantum__rt__bool_span_record_output(%2, %1) : (!cc.ptr<i8>, i64) -> ()
+    return
+  }
+  func.func private @__quantum__rt__bool_span_record_output(!cc.ptr<i8>, i64)
+}
+
+// Mapping ran (attributes present), the body stays inside the cc.scope on the
+// mapped wire set, two swaps route the CX from wire 0 to wire 3 across path(4),
+// the measurement stays inside both branches of the cc.if and yields its wire
+// and discriminated bit, and the returned-vector plumbing is preserved.
+// CHECK-LABEL:   func.func @kernel.run() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}, quake.cudaq_run = {{.*}}} {
+// CHECK:           %[[VAL_0:.*]] = cc.scope -> (!cc.stdvec<i1>) {
+// CHECK:             quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:             quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:             quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:             quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:             %[[H:.*]] = quake.h %{{.*}} : (!quake.wire) -> !quake.wire
+// CHECK:             %[[S0:.*]]:2 = quake.swap %[[H]], %{{.*}} : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[S1:.*]]:2 = quake.swap %[[S0]]#1, %{{.*}} : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[CX:.*]]:2 = quake.x {{\[}}%[[S1]]#1] %{{.*}} : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[IF:.*]]:2 = cc.if({{.*}}) ((%[[A:.*]] = %[[CX]]#0)) -> (!quake.wire, i1) {
+// CHECK:               %[[MZT:.*]], %[[WT:.*]] = quake.mz %[[A]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:               %[[DT:.*]] = quake.discriminate %[[MZT]] : (!cc.measure_handle) -> i1
+// CHECK:               cc.continue %[[WT]], %[[DT]] : !quake.wire, i1
+// CHECK:             } else {
+// CHECK:               %[[MZE:.*]], %[[WE:.*]] = quake.mz %[[A]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:               %[[DE:.*]] = quake.discriminate %[[MZE]] : (!cc.measure_handle) -> i1
+// CHECK:               cc.continue %[[WE]], %[[DE]] : !quake.wire, i1
+// CHECK:             }
+// CHECK:             cc.store %{{.*}}, %{{.*}} : !cc.ptr<i8>
+// CHECK:             quake.return_wire %[[IF]]#0 : !quake.wire
+// CHECK:             cc.continue %{{.*}} : !cc.stdvec<i1>
+// CHECK:           }
+// CHECK:           cc.stdvec_size %[[VAL_0]]
+// CHECK:           call @__quantum__rt__bool_span_record_output
+// CHECK:           return
