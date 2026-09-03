@@ -49,9 +49,10 @@ returns the text, while `qlx.lower.emit_stim_artifact` returns a
 the exact boundary the circuit was projected from. Emitting example 03's
 compiled Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
-% invisible-code-block: python % % import runpy % \_memory_mod =
-runpy.run_path("preview/logical/examples/03_code_and_gadget.py") % steane_memory
-= \_memory_mod["steane_memory"]
+% invisible-code-block: python
+%
+% steane_memory = load_qlx_example(
+%     "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
 
 ```python
 import cudaq.logical as qlx

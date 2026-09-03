@@ -53,9 +53,10 @@ Once codes, gadgets, and protocols are selected, the static tier walks the
 executable Fabric closure and counts what would actually run. Example 03's
 Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
-% invisible-code-block: python % % import runpy % \_gadget_mod =
-runpy.run_path("preview/logical/examples/03_code_and_gadget.py") % gadget_build
-= \_gadget_mod["gadget"]
+% invisible-code-block: python
+%
+% gadget_build = load_qlx_example(
+%     "preview/logical/examples/03_code_and_gadget.py", "gadget")
 
 ```python
 counts = qlx.estimate(gadget_build, tier=qlx.estimate.Tier.STATIC)
@@ -74,9 +75,10 @@ Protocols compose gadgets with resources and postselection, and the static tier
 keeps the bookkeeping visible. Example 04's 15-to-1 distillation is estimated
 straight from the authoring definition:
 
-% invisible-code-block: python % % import runpy % \_distill_mod =
-runpy.run_path("preview/logical/examples/04_distillation.py") % distill_15to1 =
-\_distill_mod["distill_15to1"]
+% invisible-code-block: python
+%
+% distill_15to1 = load_qlx_example(
+%     "preview/logical/examples/04_distillation.py", "distill_15to1")
 
 ```python
 counts = qlx.estimate(distill_15to1, tier=qlx.estimate.Tier.STATIC)
@@ -170,10 +172,12 @@ selected (`examples/00_cudaq_logical_resource_estimate.py`,
 results as CUDA-Q annotations, and the typed views are rehydrated directly from
 them:
 
-% invisible-code-block: python % % import cudaq % from cudaq.logical.targets
-import surface_target % % @cudaq.kernel() % def kernel(): % qubits =
-cudaq.qvector(1) % mz(qubits[0]) % % cudaq.set_target(surface_target(distance=3,
-logical_capacity=1))
+% invisible-code-block: python
+%
+% import cudaq
+% kernel = load_qlx_example(
+%     "preview/logical/examples/00_cudaq_logical_resource_estimate.py",
+%     "logical_zero_readout")
 
 ```python
 from cudaq.logical.estimate import FabricCounts, LogicalEstimate
