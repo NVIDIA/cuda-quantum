@@ -1,5 +1,12 @@
 # CUDA-Q Logical — from logical intent to QEC resource estimates
 
+:::{admonition} Preview release
+
+`cudaq-logical` is currently in preview. Its APIs, behavior, and documentation
+may change substantially in upcoming versions.
+
+:::
+
 **CUDA-Q Logical** (`cudaq.logical`) is CUDA-Q's toolkit for estimating the
 resources required by fault-tolerant quantum computations. It connects ordinary
 CUDA-Q kernels and portable logical programs to logical placement, codes,
@@ -9,14 +16,15 @@ third party tools such as Stim.
 
 ## Installation
 
-In a Python 3.11+ environment:
+CUDA-Q Logical comes pre-installed with `cudaq`, so the following command is
+sufficient:
 
 ```bash
-pip install cudaq-logical
+pip install cudaq
 ```
 
-To build from source, see
-[Building against CUDA-Q](../reference/building-against-cudaq.md).
+For more installation options or to build from source, see
+[Quick start](getting-started/quickstart.md).
 
 ## An end-to-end estimate
 

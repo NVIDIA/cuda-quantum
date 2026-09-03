@@ -75,7 +75,7 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
   docs:
-    name: Run cudaq.logical docs examples
+    name: Build and test cudaq.logical docs
     needs: build
     # Run both after a successful fallback build and when it was skipped
     # because pre-built artifact names were passed in.
@@ -105,40 +105,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      - parallel:
-          - name: Check artifact inputs
-            shell: bash
-            run: |
-              set -euo pipefail
-              for v in CUDAQ_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
-                if [ -z "${!v}" ]; then
-                  echo "::error::$v is empty: pass all four artifact inputs together or none."
-                  exit 1
-                fi
-              done
-          - name: Download cudaq-logical wheel
-            uses: actions/download-artifact@v8
-            with:
-              name: ${{ env.WHEEL_NAME }}
-              path: dist
+      - name: Check artifact inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in CUDAQ_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v is empty: pass all four artifact inputs together or none."
+              exit 1
+            fi
+          done
 
-          - name: Download runtime wheel
-            uses: actions/download-artifact@v8
-            with:
-              name: ${{ env.RUNTIME_ARTIFACT_NAME }}
-              path: dist
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ inputs.python_version }}
+          activate-environment: true
 
-          - name: Download CUDA-Q metapackage
-            uses: actions/download-artifact@v8
-            with:
-              name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
-              path: dist
+      - name: Build docs
+        shell: bash
+        id: build-docs
+        background: true
+        run: |
+          set -euo pipefail
+          uv run --directory preview/logical/docs/ --extra build-deps --active build-docs
 
-          - name: Install uv
-            uses: astral-sh/setup-uv@v6
-            with:
-              python-version: ${{ inputs.python_version }}
-              activate-environment: true
+      - name: Download cudaq-logical wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.WHEEL_NAME }}
+          path: dist
+
+      - name: Download runtime wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.RUNTIME_ARTIFACT_NAME }}
+          path: dist
+
+      - name: Download CUDA-Q metapackage
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
+          path: dist
 
       - name: Install cudaq.logical
         shell: bash
@@ -149,9 +157,9 @@ jobs:
       - name: Test inline docs snippets
         shell: bash
         background: true
-        id: inline-docs-snippets
         timeout-minutes: 30
         run: |
+          set -euo pipefail
           uv run --directory preview/logical/docs/ --extra test-deps --active test-docs
 
       - name: Validate installed cudaq.logical tools
@@ -167,6 +175,7 @@ jobs:
 
       - name: Run cudaq.logical docs examples
         shell: bash
+        background: true
         timeout-minutes: 30
         run: |
           set -euo pipefail
@@ -196,14 +205,14 @@ jobs:
             tail -n 3 "example-logs/$name.log"
           done
 
+      - wait-all:
+
       - name: Upload example logs
         uses: actions/upload-artifact@v7
         with:
           name: cudaq_logical_docs_examples
           path: example-logs/
           if-no-files-found: error
-
-      - wait: inline-docs-snippets
 
       - name: Upload docs build
         uses: actions/upload-artifact@v7
