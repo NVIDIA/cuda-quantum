@@ -9,7 +9,6 @@ learning paths; this section is where precise boundaries live.
 | Reference | What it answers |
 |---|---|
 | [Building against CUDA-Q](building-against-cudaq.md) | How CUDA-Q Logical obtains LLVM, MLIR, and CUDA-Q's shared compiler library from one CUDA-Q installation — and how builds fail when that contract is violated |
-| [Developing CUDA-Q Logical](../developing.md) | Build, test, documentation, and contribution mechanics for the `preview/logical/` tree |
 
 Related scope statements, also exact rather than aspirational:
 

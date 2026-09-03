@@ -149,6 +149,7 @@ jobs:
       - name: Test inline docs snippets
         shell: bash
         background: true
+        id: inline-docs-snippets
         timeout-minutes: 30
         run: |
           uv run --directory preview/logical/docs/ --extra test-deps --active test-docs
@@ -201,3 +202,11 @@ jobs:
           name: cudaq_logical_docs_examples
           path: example-logs/
           if-no-files-found: error
+
+      - wait: inline-docs-snippets
+
+      - name: Upload docs build
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq_logical_docs
+          path: preview/logical/docs/_build/html
