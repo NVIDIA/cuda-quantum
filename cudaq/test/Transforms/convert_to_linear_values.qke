@@ -34,7 +34,7 @@ func.func @linear_values(%dynamic : !quake.veq<?>) {
 // SIMPLIFIED-NOT: quake.h
 // LINEAR:         %[[CONTROLLED:.*]]:3 = quake.x [%{{.*}}, %{{.*}}] %{{.*}} : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
 // LINEAR:         %[[CABLE:.*]] = quake.bundle_cable %{{.*}}, %{{.*}} : (!quake.wire, !quake.wire) -> !quake.cable<2>
-// LINEAR:         %[[CALL:.*]] = quake.call_by_ref @callee(%[[CABLE]]) : (!quake.cable<2>) -> !quake.cable<2>
+// LINEAR:         %[[CALL:.*]] = quake.apply @callee (%[[CABLE]]) : (!quake.cable<2>) -> !quake.cable<2>
 // LINEAR:         %[[SPLIT:.*]]:2 = quake.split_cable %[[CALL]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
 // LINEAR:         quake.sink %[[SPLIT]]#0 : !quake.wire
 // LINEAR:         quake.sink %[[SPLIT]]#1 : !quake.wire
