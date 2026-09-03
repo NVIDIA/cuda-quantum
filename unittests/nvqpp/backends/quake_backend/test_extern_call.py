@@ -13,7 +13,7 @@ cudaq.set_target("quake_fake")
 
 
 @cudaq.extern_kernel
-def wait(duration: float, q: cudaq.qubit) -> None:
+def wait(q: cudaq.qubit, duration: float) -> None:
     ...
 
 
@@ -21,7 +21,7 @@ def wait(duration: float, q: cudaq.qubit) -> None:
 def ramsey_single(wait_duration: float) -> bool:
     qubit = cudaq.qubit()
     rx(np.pi / 2, qubit)
-    wait(wait_duration, qubit)
+    wait(qubit, wait_duration)
     rx(np.pi / 2, qubit)
     return mz(qubit)
 

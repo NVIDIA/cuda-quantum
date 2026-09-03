@@ -785,14 +785,14 @@ def extern_kernel(function=None, backend_symbol=None):
     ordinary call.
     ```python
         @cudaq.extern_kernel
-        def wait(duration: float, q: cudaq.qubit) -> None:
+        def wait(q: cudaq.qubit, duration: float) -> None:
             ...
 
         @cudaq.kernel
         def ramsey(d: float):
             q = cudaq.qubit()
             rx(np.pi / 2, q)
-            wait(d, q)
+            wait(q, d)
     ```
     The backend symbol defaults to the function name.
     """
