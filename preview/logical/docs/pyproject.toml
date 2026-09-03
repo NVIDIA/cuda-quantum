@@ -14,7 +14,7 @@ build-backend = "hatchling.build"
 name = "cudaq-logical-docs"
 version = "0.1.0"
 description = "CUDA-Q Logical (cudaq.logical) documentation"
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
