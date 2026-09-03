@@ -14,9 +14,10 @@ encoding: for instance, a distance-3 surface code with room for one logical
 qubit. We can then lower any `cudaq.kernel` to a fault-tolerant program.
 `cudaq.estimate` returns the required resources for the encoded computation:
 
-```{literalinclude} ../../examples/00_cudaq_logical_resource_estimate.py
-:language: python
-:caption: An ordinary CUDA-Q kernel lowered through a surface-code encoding (examples/00_cudaq_logical_resource_estimate.py).
+```{eval-rst}
+.. literalinclude:: ../../examples/00_cudaq_logical_resource_estimate.py
+   :language: python
+   :caption: An ordinary CUDA-Q kernel lowered through a surface-code encoding (examples/00_cudaq_logical_resource_estimate.py).
 ```
 
 Behind `cudaq.estimate`, CUDA-Q Logical takes the kernel's logical intent,

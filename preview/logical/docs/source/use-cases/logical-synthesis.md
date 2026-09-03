@@ -52,8 +52,8 @@ only logical unitary actions are legalized.
 
 Inverse phase gates use positive generators. Pauli and Clifford actions, CZ, and
 CCZ are decomposed exactly. Static multi-qubit Pauli rotations use local basis
-changes, a CX parity ladder, one synthesized Z rotation, and uncomputation. The
-legalization is performed by the shared CUDA-Q cudaq-synth/gridsynth
+changes, a `CX` parity ladder, one synthesized `Z` rotation, and uncomputation.
+The legalization is performed by the shared CUDA-Q `cudaq-synth`/`gridsynth`
 implementation — recorded on the build's `logical_gate_set_legalization`
 evidence record — and a final independent verifier (`qlx-verify-clifford-t`)
 rejects any logical action left outside the requested gate set.

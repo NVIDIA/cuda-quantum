@@ -24,10 +24,11 @@ portable P0 intent  →  P1 placement  →  P2 QEC realization
 The application asks for a Bell pair. It does not choose a code, a machine, or
 an estimation target.
 
-```{literalinclude} ../../../examples/01_p0_bell.py
-:language: python
-:lines: 13-18
-:caption: Portable P0 intent (examples/01_p0_bell.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/01_p0_bell.py
+   :language: python
+   :lines: 13-18
+   :caption: Portable P0 intent (examples/01_p0_bell.py).
 ```
 
 The linear spelling makes ownership visible: `q[0] = ql.h(q[0])` consumes one
@@ -36,9 +37,11 @@ version of the qubit and returns the only live successor.
 Compiling freezes the program as an immutable P0 build, and the first estimation
 tier is already available:
 
-```{literalinclude} ../../../examples/01_p0_bell.py
-:language: python
-:lines: 21-27
+```{eval-rst}
+.. literalinclude:: ../../../examples/01_p0_bell.py
+   :language: python
+   :lines: 21-27
+   :caption: P0 estimate (examples/01_p0_bell.py).
 ```
 
 At P0, CUDA-Q Logical counts logical qubits, actions, and instruments. It cannot
@@ -55,15 +58,17 @@ Placement is a refinement of the P0 build, not a rewrite of the application. A
 logical machine declares regions, capabilities, and capacity; a placement
 constraint says the `data` qubits stay together.
 
-```{literalinclude} ../../../examples/02_p1_placement.py
-:language: python
-:lines: 13-21
-:caption: A two-slot logical machine (examples/02_p1_placement.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/02_p1_placement.py
+   :language: python
+   :lines: 13-21
+   :caption: A two-slot logical machine (examples/02_p1_placement.py).
 ```
 
-```{literalinclude} ../../../examples/02_p1_placement.py
-:language: python
-:lines: 32-43
+```{eval-rst}
+.. literalinclude:: ../../../examples/02_p1_placement.py
+   :language: python
+   :lines: 32-43
 ```
 
 The P1 build records the placement as inspectable evidence — which region and
@@ -78,10 +83,11 @@ P1 Bell: data[0:2] placed on compute[0:2]
 The QEC realization lives in its own definitions: a code with checks and logical
 operators, and gadgets that claim typed logical behavior.
 
-```{literalinclude} ../../../examples/03_code_and_gadget.py
-:language: python
-:lines: 13-34
-:caption: The Steane code and a terminal-memory gadget (examples/03_code_and_gadget.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/03_code_and_gadget.py
+   :language: python
+   :lines: 13-34
+   :caption: The Steane code and a terminal-memory gadget (examples/03_code_and_gadget.py).
 ```
 
 `implements=terminal_memory` tells the verifier which behavior is claimed. The
@@ -91,9 +97,10 @@ name without those typed facts would not be enough.
 Materializing the code and compiling the gadget produces verified P2 objects
 whose costs can be inspected directly:
 
-```{literalinclude} ../../../examples/03_code_and_gadget.py
-:language: python
-:lines: 37-45
+```{eval-rst}
+.. literalinclude:: ../../../examples/03_code_and_gadget.py
+   :language: python
+   :lines: 37-45
 ```
 
 ```text
@@ -117,10 +124,11 @@ logical structure. `Tier.STATIC` counts the P2 realization: encoded patches,
 gadget calls, and operations. The same ladder is reachable directly from an
 ordinary CUDA-Q kernel by compiling through a CUDA-Q Logical target:
 
-```{literalinclude} ../../../examples/00_cudaq_logical_resource_estimate.py
-:language: python
-:lines: 21-40
-:caption: A distance-3 surface-code target estimated from a CUDA-Q kernel (examples/00_cudaq_logical_resource_estimate.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/00_cudaq_logical_resource_estimate.py
+   :language: python
+   :lines: 21-40
+   :caption: A distance-3 surface-code target estimated from a CUDA-Q kernel (examples/00_cudaq_logical_resource_estimate.py).
 ```
 
 ```text
@@ -136,8 +144,12 @@ CUDA-Q logical-zero resources:
 A verified P2 entry gadget can be projected to standards-compatible Stim circuit
 text — CUDA-Q Logical's secondary interchange path.
 
-% invisible-code-block: python % % steane_memory = load_ql_example( %
-"preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+<!--
+% invisible-code-block: python
+%
+% steane_memory = load_ql_example(
+% "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+-->
 
 ```python
 build = ql.compile(steane_memory)

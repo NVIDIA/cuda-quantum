@@ -10,9 +10,9 @@ CUDA-Q Logical is built against CUDA-Q. The CUDA-Q installation supplies:
 
 Every MLIR symbol in CUDA-Q Logical's libraries, tools, and Python extensions
 has to resolve from the single `libcudaqMLIR` image provided by CUDA-Q.
-Otherwise the dialect registry, the pass registry, and MLIR TypeIDs are
-duplicated between CUDA-Q Logical and CUDA-Q, and in-process Quake import breaks
-in confusing ways.
+Otherwise the dialect registry, the pass registry, and MLIR `TypeID`s are
+duplicated between CUDA-Q Logical and CUDA-Q, and in-process `quake` import
+breaks in confusing ways.
 
 There are two supported ways to build CUDA-Q Logical against CUDA-Q:
 
@@ -46,7 +46,7 @@ Set `CUDAQ_INSTALL_PREFIX` to the install prefix of a CUDA-Q build. This is the
 route for validating a CUDA-Q Logical change against an unreleased CUDA-Q work
 tree.
 
-CUDA-Q must be built with the LLVM/MLIR revision it expects. It is therfore
+CUDA-Q must be built with the LLVM/MLIR revision it expects. It is therefore
 recommended to install CUDA-Q with `CUDAQ_BUNDLE_MLIR_INSTALL=ON` so the
 matching LLVM/MLIR development tree is colocated in the install prefix:
 
@@ -89,14 +89,14 @@ ctest --test-dir preview/logical/build
 pytest preview/logical/python
 ```
 
-The FileCheck suite needs `lit` plus the LLVM utilities `FileCheck`, `not`, and
-`count`, found under the CUDA-Q prefix or on `PATH`; CMake reports which suites
-it had to disable when one is missing.
+The `FileCheck` suite needs `lit` plus the LLVM utilities `FileCheck`, `not`,
+and `count`, found under the CUDA-Q prefix or on `PATH`; CMake reports which
+suites it had to disable when one is missing.
 
 ## Troubleshooting
 
-| Symptom                                                            | Cause                                                                                                                               |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `No CUDA-Q development installation under <prefix>`                | `cudaq-devel` is not installed in the resolved Python environment, or `CUDAQ_INSTALL_PREFIX` does not name a CUDA-Q install prefix. |
-| `Could NOT find MLIR` after CUDA-Q was found                       | The CUDA-Q installation was built without `CUDAQ_BUNDLE_MLIR_INSTALL=ON`, so LLVM/MLIR are not colocated.                           |
-| Duplicate dialect/pass registration or a TypeID mismatch at import | Two MLIR images in one process — usually an `LLVM_DIR`/`MLIR_DIR` override pointing outside the CUDA-Q prefix.                      |
+| Symptom                                                              | Cause                                                                                                                               |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `No CUDA-Q development installation under <prefix>`                  | `cudaq-devel` is not installed in the resolved Python environment, or `CUDAQ_INSTALL_PREFIX` does not name a CUDA-Q install prefix. |
+| `Could NOT find MLIR` after CUDA-Q was found                         | The CUDA-Q installation was built without `CUDAQ_BUNDLE_MLIR_INSTALL=ON`, so LLVM/MLIR are not colocated.                           |
+| Duplicate dialect/pass registration or a `TypeID` mismatch at import | Two MLIR images in one process — usually an `LLVM_DIR`/`MLIR_DIR` override pointing outside the CUDA-Q prefix.                      |

@@ -10,10 +10,11 @@ visible.
 
 ## The program stays portable
 
-```{literalinclude} ../../../examples/01_p0_bell.py
-:language: python
-:lines: 13-18
-:caption: P0 intent, unchanged from authoring to compilation (examples/01_p0_bell.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/01_p0_bell.py
+   :language: python
+   :lines: 13-18
+   :caption: P0 intent, unchanged from authoring to compilation (examples/01_p0_bell.py).
 ```
 
 Nothing in the function says Steane, two compute slots, or distance three. At P0
@@ -29,18 +30,20 @@ the build.
 
 ## Placement is owned by the machine
 
-```{literalinclude} ../../../examples/02_p1_placement.py
-:language: python
-:lines: 13-21
-:caption: The machine owns regions, capabilities, and capacity (examples/02_p1_placement.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/02_p1_placement.py
+   :language: python
+   :lines: 13-21
+   :caption: The machine owns regions, capabilities, and capacity (examples/02_p1_placement.py).
 ```
 
 The machine contributes a `compute` region with two slots and declared
 capabilities. None of that policy belongs in `bell`.
 
-```{literalinclude} ../../../examples/02_p1_placement.py
-:language: python
-:lines: 32-37
+```{eval-rst}
+.. literalinclude:: ../../../examples/02_p1_placement.py
+   :language: python
+   :lines: 32-37
 ```
 
 `ql.compiler.place` continues the P0 build into a P1 build whose placement
@@ -54,10 +57,11 @@ The QEC realization is a typed claim, not a name-based rewrite rule. The Steane
 code declares its CSS checks and logical operators; the gadget's `implements=`
 declares the objective it realizes.
 
-```{literalinclude} ../../../examples/03_code_and_gadget.py
-:language: python
-:lines: 13-34
-:caption: Code and gadget definitions carry the P2 facts (examples/03_code_and_gadget.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/03_code_and_gadget.py
+   :language: python
+   :lines: 13-34
+   :caption: Code and gadget definitions carry the P2 facts (examples/03_code_and_gadget.py).
 ```
 
 `ql.materialize(Steane)` produces a verified `fabric.code` definition; compiling
@@ -78,9 +82,10 @@ orthogonal verified facts that coexist beside one immutable stage root.
 
 ## Evidence is part of the result
 
-```{literalinclude} ../../../examples/03_code_and_gadget.py
-:language: python
-:lines: 41-45
+```{eval-rst}
+.. literalinclude:: ../../../examples/03_code_and_gadget.py
+   :language: python
+   :lines: 41-45
 ```
 
 The assertions are not incidental test scaffolding. They state the observable

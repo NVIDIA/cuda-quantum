@@ -3,9 +3,8 @@
 `cudaq.logical` is CUDA-Q's toolkit for estimating the resources required by
 fault-tolerant quantum computations. It connects ordinary CUDA-Q kernels and
 portable logical programs to logical placement, codes, gadgets, distillation
-protocols, and inspectable resource estimates. As a secondary interchange
-path, a selected P2 program can be emitted as standards-compatible Stim
-circuit text.
+protocols, and inspectable resource estimates. As a secondary interchange path,
+a selected P2 program can be emitted as standards-compatible Stim circuit text.
 
 `cudaq.logical` organizes compilation into explicit semantic stages:
 
@@ -31,13 +30,13 @@ The executable walkthroughs in [`examples/`](examples/README.md) cover:
 Command-line MLIR versions of the compiler and estimation workflows are in
 [`examples/cli/`](examples/cli/README.md).
 
-The full documentation (quickstart, concepts, workflow guides, and the
-example gallery) lives in [`docs/`](docs/README.md) and builds with
+The full documentation (quick start, concepts, workflow guides, and the example
+gallery) lives in [`docs/`](docs/README.md) and builds with
 `sphinx-build -W -b html docs/source docs/_build/html`.
 
 ## Build
 
-`cudaq.logical` builds against an *installed* CUDA-Q development SDK -- it is
+`cudaq.logical` builds against an _installed_ CUDA-Q development SDK -- it is
 never added to the CUDA-Q build as a sub-project, and it never fetches or builds
 a second LLVM/MLIR stack. The expected setup is a Python environment with the
 matching `cudaq-devel` wheel installed:

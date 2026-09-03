@@ -66,7 +66,7 @@ surprises.
   evidence-bearing constructors (`exact`, `lower_bound`, `upper_bound`,
   `circuit`) require a method and provenance.
 - A **`CodeProfile`** is an analysis convention over one code: effective
-  syndrome generators, metachecks, and derived boundary maps. Changing the
+  syndrome generators, meta-checks, and derived boundary maps. Changing the
   convention makes a new profile, not a new code.
 - An **`Encoding`** is a reusable logical view: named logical ports, a block ABI
   name, and layout facts. Preparation and conversion are _gadgets_ — an encoding
@@ -158,18 +158,18 @@ from exactly three places:
    and bare `import cudaq.logical` links nothing.
 
 The candidate set is derived fresh inside each compilation, filtered by
-objective and boundary types, and the _selected_ closure is snapshotted into the
+objective and boundary types, and the _selected_ closure is captured into the
 build: `build.source_modules` and `build.definitions` record exactly what was
 visible and what won. The consequences you feel day-to-day:
 
 - a gadget defined in a helper file you never imported is invisible — the
   failure is a typed "no feasible P2 implementation", not a mystery winner;
-- deleting an import genuinely unlinks its implementations;
+- deleting an import genuinely detaches its implementations;
 - replaying a build needs no ambient Python state at all.
 
 ## 8. Global phase is not observable
 
-**CUDA-Q Logical treats states and operators projectively: an overall phase is
+**CUDA-Q Logical treats states and operators as projective: an overall phase is
 neither observable nor tracked.** The only observables are measurement outcomes,
 and those are invariant under an overall phase. Concretely:
 
@@ -205,7 +205,7 @@ of scope.
 | `ql.estimate(..., tier=...)`       | `Tier.LOGICAL` (P0) or `Tier.STATIC` (P2 counts) | `ql.estimate`            |
 | `ql.emit` / `ql.targets`           | Stim circuit text from a P2 build                | `ql.targets`             |
 
-Naming follows PEP 8 throughout — artifact classes are CamelCase (`Code`,
+Naming follows PEP 8 throughout — artifact classes are camel case (`Code`,
 `Encoding`), while operations, decorators, and constants are snake*case
 (`@ql.machine`, `ql.extract_syndrome`). One deliberate near-collision to know
 about: `ql.types.X(q)` constructs a Pauli \_factor* for products, while

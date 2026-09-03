@@ -1,4 +1,4 @@
-# Quickstart
+# Quick start
 
 From a clean Python environment to a verified QEC resource estimate and emitted
 Stim circuit text. Every command on this page was run against the build it
@@ -66,9 +66,10 @@ The fastest route to a first number: take an ordinary CUDA-Q kernel, select a
 distance-3 rotated-surface-code target with room for one logical qubit, and
 estimate its resources through the CUDA-Q target integration.
 
-```{literalinclude} ../../../examples/00_cudaq_logical_resource_estimate.py
-:language: python
-:caption: examples/00_cudaq_logical_resource_estimate.py
+```{eval-rst}
+.. literalinclude:: ../../../examples/00_cudaq_logical_resource_estimate.py
+   :language: python
+   :caption: examples/00_cudaq_logical_resource_estimate.py
 ```
 
 ```bash
@@ -96,9 +97,10 @@ invents an implementation it cannot point to.
 The `cudaq.logical` facade authors logical programs directly. A P0 program names
 no code, no device, and no carrier — and it is already estimable.
 
-```{literalinclude} ../../../examples/01_p0_bell.py
-:language: python
-:caption: examples/01_p0_bell.py
+```{eval-rst}
+.. literalinclude:: ../../../examples/01_p0_bell.py
+   :language: python
+   :caption: examples/01_p0_bell.py
 ```
 
 ```bash
@@ -123,9 +125,10 @@ code as a CSS block, declares a terminal-memory objective, and authors a gadget
 that implements it — one syndrome-extraction pass followed by data-qubit
 readout.
 
-```{literalinclude} ../../../examples/03_code_and_gadget.py
-:language: python
-:caption: examples/03_code_and_gadget.py
+```{eval-rst}
+.. literalinclude:: ../../../examples/03_code_and_gadget.py
+   :language: python
+   :caption: examples/03_code_and_gadget.py
 ```
 
 ```bash
@@ -152,8 +155,12 @@ A verified P2 entry gadget can be emitted as standards-compatible Stim circuit
 text — CUDA-Q Logical's secondary interchange path. Compile the Steane memory
 gadget from Step 3 and request a typed emission artifact:
 
-% invisible-code-block: python % % steane_memory = load_ql_example( %
-"preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+<!--
+% invisible-code-block: python
+%
+% steane_memory = load_ql_example(
+% "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+-->
 
 ```python
 import cudaq.logical as ql
@@ -180,7 +187,7 @@ directly with the reference `stim` Python package.
 - Inspect compiler internals in the
   [architecture reference](../reference/architecture.md).
 
-To run the full conformance suite — the lit FileCheck tests plus the Python
+To run the full conformance suite — the lit `FileCheck` tests plus the Python
 suite that executes these examples:
 
 ```bash

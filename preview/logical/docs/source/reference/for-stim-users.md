@@ -27,8 +27,12 @@ studies start from the emitted circuit and belong to the Stim ecosystem.
 Compile the Steane terminal-memory gadget from `examples/03_code_and_gadget.py`,
 then emit its selected P2 realization:
 
-% invisible-code-block: python % % steane_memory = load_ql_example( %
+<!--
+% invisible-code-block: python
+%
+% steane_memory = load_ql_example(
 "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+-->
 
 ```python
 import cudaq.logical as ql

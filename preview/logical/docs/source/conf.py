@@ -20,9 +20,9 @@ from sphinx.highlighting import lexers as _sphinx_lexers
 project = "CUDA-Q Logical"
 copyright = "Copyright © 2026, NVIDIA Corporation & affiliates. All rights reserved."
 
-# The build is hermetic: no autodoc and no notebook execution, so the docs
+# The build is hermetic: no `autodoc` and no notebook execution, so the docs
 # environment never needs a built cudaq.logical package. Shipped examples are
-# embedded with literalinclude and executed by pytest/CI instead.
+# embedded with `literalinclude` and executed by `pytest`/CI instead.
 extensions = [
     "myst_parser",
     "sphinx_design",
@@ -97,9 +97,9 @@ for _cls in (_MLIRLexer, _QLXLexer, _StimLexer):
     for _alias in _cls.aliases:
         _sphinx_lexers[_alias] = _inst
 
-# Broken cross-references must fail the build: myst.xref_missing is
-# deliberately NOT suppressed. (toc.empty_glob is not suppressible: Sphinx
-# emits it without a warning type. Every glob toctree therefore keeps at
+# Broken cross-references must fail the build: `myst.xref_missing` is
+# deliberately NOT suppressed. (`toc.empty_glob` is not suppressible: Sphinx
+# emits it without a warning type. Every glob `toctree` therefore keeps at
 # least one real page at each merge point via section-index stubs.)
 suppress_warnings = [
     "misc.highlighting_failure",
@@ -118,7 +118,7 @@ myst_title_to_header = True
 
 exclude_patterns = ["_build"]
 
-# Theme parity with the main CUDA-Q documentation (docs/sphinx/conf.py).
+# Theme parity with the main CUDA-Q documentation (`docs/sphinx/conf.py`).
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     "collapse_navigation": False,

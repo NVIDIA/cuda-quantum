@@ -26,7 +26,7 @@ Three facts are enough:
 
 1. `implements=` states the ideal logical claim. Standard actions and
    instruments live in `ql.std` (`h`, `cx`, `idle`, `prepare_zero`, `measure_z`,
-   …); `@ql.objective` authors new ones, as the quickstart's terminal-memory
+   …); `@ql.objective` authors new ones, as the quick start's terminal-memory
    objective shows.
 2. `ql.patch[ql.codes.Steane]` states the encoded input and output types. The
    signature derives one inout encoded port and its linear ownership.
@@ -70,7 +70,7 @@ The compiled boundary speaks the typed `fabric.syndrome<@Steane, …>` form, and
 protocols compose such gadgets by passing records along — a two-round memory
 protocol is two ordinary calls, with no annotation glue. Inside a gadget,
 `ql.analysis.count` reports the authored operations of the compiled realization
-(the quickstart shows it on the Steane terminal-memory gadget).
+(the quick start shows it on the Steane terminal-memory gadget).
 
 ## Preparation and destructive measurement
 
@@ -87,11 +87,12 @@ The shipped Steane example pairs both halves of the pattern — a terminal
 objective and the gadget that realizes it by one syndrome-extraction pass
 followed by data-qubit readout:
 
-```{literalinclude} ../../../examples/03_code_and_gadget.py
-:language: python
-:start-at: "@ql.objective"
-:end-before: "code = ql.materialize"
-:caption: A terminal-memory objective and its gadget (examples/03_code_and_gadget.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/03_code_and_gadget.py
+   :language: python
+   :start-at: @ql.objective
+   :end-before: code = ql.materialize
+   :caption: A terminal-memory objective and its gadget (examples/03_code_and_gadget.py).
 ```
 
 Ownership is linear throughout: consuming a patch twice, or dropping one that is
@@ -104,11 +105,12 @@ states it. Acceptance is explicit with `ql.postselect` — the shipped 15-to-1
 distillation protocol accepts exactly when all four even-parity checks measure
 +X:
 
-```{literalinclude} ../../../examples/04_distillation.py
-:language: python
-:start-after: "# The positive-angle triorthogonal circuit"
-:end-before: "return ql.pack_resource"
-:caption: Postselection in examples/04_distillation.py.
+```{eval-rst}
+.. literalinclude:: ../../../examples/04_distillation.py
+   :language: python
+   :start-after: # The positive-angle triorthogonal circuit
+   :end-before: return ql.pack_resource
+   :caption: Postselection in examples/04_distillation.py.
 ```
 
 Bounded retry is the same shape: `ql.ops.retry` acts on a success predicate
@@ -192,7 +194,7 @@ never accepted as the proof; the derivation is.
 
 - [Defining codes](define-a-code.md) — the validated algebra gadgets build on,
   and the factories that consume it.
-- The [quickstart](../getting-started/quickstart.md) compiles a Steane gadget
+- The [quick start](../getting-started/quickstart.md) compiles a Steane gadget
   end to end and counts its authored operations.
 - [Examples](examples.md) links the shipped gadget and protocol sources,
   including 15-to-1 distillation.

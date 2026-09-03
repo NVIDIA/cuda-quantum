@@ -18,7 +18,7 @@ argument. Both result types are immutable plain-data values with `to_dict()`
 projections, and both record the `build_root` and `build_sha256` they were
 derived from.
 
-## Tier.LOGICAL — cost the algorithm before any QEC choice
+## `Tier.LOGICAL` — cost the algorithm before any QEC choice
 
 The logical tier is valid with no device and no code at all — estimate the
 algorithm while it is still portable intent (`examples/01_p0_bell.py`):
@@ -47,14 +47,18 @@ everything else and _additionally_ in `profile.synthesis_demand`, so the demand
 a Clifford+T synthesis pass will have to meet is visible before any gate-set
 commitment (exercised in `python/tests/cudaq/logical/test_quake_import.py`).
 
-## Tier.STATIC — count one selected P2 realization
+## `Tier.STATIC` — count one selected P2 realization
 
 Once codes, gadgets, and protocols are selected, the static tier walks the
 executable Fabric closure and counts what would actually run. Example 03's
 Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
-% invisible-code-block: python % % gadget_build = load_ql_example( %
+<!--
+% invisible-code-block: python
+%
+% gadget_build = load_ql_example(
 "preview/logical/examples/03_code_and_gadget.py", "gadget")
+-->
 
 ```python
 counts = ql.estimate(gadget_build, tier=ql.estimate.Tier.STATIC)
@@ -66,15 +70,19 @@ counts.operation_counts
 ```
 
 The syndrome-extraction gadget has been lowered to its physical primitives, so
-the counts are the reset/H/CX/measurement work of the actual circuit — not the
-one-line `ql.extract_syndrome` the author wrote.
+the counts are the reset/`H`/`CX`/measurement work of the actual circuit — not
+the one-line `ql.extract_syndrome` the author wrote.
 
 Protocols compose gadgets with resources and postselection, and the static tier
 keeps the bookkeeping visible. Example 04's 15-to-1 distillation is estimated
 straight from the authoring definition:
 
-% invisible-code-block: python % % distill_15to1 = load_ql_example( %
-"preview/logical/examples/04_distillation.py", "distill_15to1")
+<!--
+% invisible-code-block: python
+%
+% distill_15to1 = load_ql_example(
+% "preview/logical/examples/04_distillation.py", "distill_15to1")
+-->
 
 ```python
 counts = ql.estimate(distill_15to1, tier=ql.estimate.Tier.STATIC)
@@ -168,9 +176,14 @@ selected (`examples/00_cudaq_logical_resource_estimate.py`,
 results as CUDA-Q annotations, and the typed views are rehydrated directly from
 them:
 
-% invisible-code-block: python % % import cudaq % kernel = load_ql_example( %
-"preview/logical/examples/00_cudaq_logical_resource_estimate.py", %
-"logical_zero_readout")
+<!--
+% invisible-code-block: python
+%
+% import cudaq
+% kernel = load_ql_example(
+% "preview/logical/examples/00_cudaq_logical_resource_estimate.py",
+% "logical_zero_readout")
+-->
 
 ```python
 from cudaq.logical.estimate import FabricCounts, LogicalEstimate

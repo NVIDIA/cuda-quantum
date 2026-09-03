@@ -10,11 +10,12 @@ an algebraically invalid code and pass it to a gadget or a device.
 The shipped examples define the self-dual `[[7,1,3]]` Steane code by stating its
 CSS check rows once:
 
-```{literalinclude} ../../../examples/03_code_and_gadget.py
-:language: python
-:start-at: "@ql.code"
-:end-before: "@ql.objective"
-:caption: The Steane code, from examples/03_code_and_gadget.py.
+```{eval-rst}
+.. literalinclude:: ../../../examples/03_code_and_gadget.py
+   :language: python
+   :start-at: @ql.code
+   :end-before: @ql.objective
+   :caption: The Steane code, from examples/03_code_and_gadget.py.
 ```
 
 Check rows are carrier-index supports. `n` comes from the block, `k` from the
@@ -133,7 +134,7 @@ hence selection and cache keys, never depends on spelling.
 
 ## What you get for free
 
-Every validated code synthesizes a default encoding (all `k` logicals in
+Every validated code synthesizes a default encoding (all `k` logical qubits in
 canonical order) that gadget signatures reference by name — the compiled
 artifacts show it as `@Steane_default_encoding`. `ql.materialize` lowers the
 code to a named `fabric.code` artifact, and the gadget factories consume the
@@ -154,7 +155,7 @@ subject of [gadgets and verification](gadgets-and-verification.md).
 
 - [Gadgets and verification](gadgets-and-verification.md) — realize objectives
   on your code and check the claims.
-- The [quickstart](../getting-started/quickstart.md) runs the Steane code and
+- The [quick start](../getting-started/quickstart.md) runs the Steane code and
   gadget of this page end to end.
 - [Examples](examples.md) links the shipped, test-executed sources this page
   draws from.

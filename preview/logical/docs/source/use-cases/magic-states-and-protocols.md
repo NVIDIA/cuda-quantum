@@ -31,10 +31,10 @@ application author supplies.
 CUDA-Q Logical fixes one rotation convention everywhere — the frontend and the
 synthesis pass both assume it:
 
-$$
+```{math}
 R_P(\theta) = \exp\!\left(-\tfrac{i}{2}\,\theta P\right),
 \qquad P \in \{X, Y, Z, \dots\}.
-$$
+```
 
 This is the standard (Nielsen–Chuang) convention. Two consequences are worth
 stating outright because they trip up cross-checks against other tools:
@@ -48,20 +48,19 @@ stating outright because they trip up cross-checks against other tools:
   non-Clifford magic rotation that consumes one T state.
 
 Concretely, for $P = Z$ the diagonal rotation
-$R_Z(\theta) =
-\operatorname{diag}(e^{-i\theta/2},\, e^{+i\theta/2})$ equals the
-named gates **up to an unobservable global phase**:
+{math}`R_Z(\theta) = \operatorname{diag}(e^{-i\theta/2},\, e^{+i\theta/2})`
+equals the named gates **up to an unobservable global phase**:
 
-| angle $\theta$ | $R_Z(\theta)$                                   | equals (up to global phase)                                   | class     |
-| -------------- | ----------------------------------------------- | ------------------------------------------------------------- | --------- |
-| $\pi/4$        | $\operatorname{diag}(e^{-i\pi/8}, e^{+i\pi/8})$ | $e^{-i\pi/8}\,T$, with $T=\operatorname{diag}(1, e^{i\pi/4})$ | magic (T) |
-| $\pi/2$        | $\operatorname{diag}(e^{-i\pi/4}, e^{+i\pi/4})$ | $e^{-i\pi/4}\,S$, with $S=\operatorname{diag}(1, i)=T^2$      | Clifford  |
-| $\pi$          | $\operatorname{diag}(e^{-i\pi/2}, e^{+i\pi/2})$ | $e^{-i\pi/2}\,Z$, with $Z=\operatorname{diag}(1, -1)=S^2=T^4$ | Pauli     |
+| angle $\theta$ | $R_Z(\theta)$                                         | equals (up to global phase)                                   | class     |
+| -------------- | ----------------------------------------------------- | ------------------------------------------------------------- | --------- |
+| $\pi/4$        | {math}`\operatorname{diag}(e^{-i\pi/8}, e^{+i\pi/8})` | $e^{-i\pi/8}\,T$, with $T=\operatorname{diag}(1, e^{i\pi/4})$ | magic (T) |
+| $\pi/2$        | {math}`\operatorname{diag}(e^{-i\pi/4}, e^{+i\pi/4})` | $e^{-i\pi/4}\,S$, with $S=\operatorname{diag}(1, i)=T^2$      | Clifford  |
+| $\pi$          | {math}`\operatorname{diag}(e^{-i\pi/2}, e^{+i\pi/2})` | $e^{-i\pi/2}\,Z$, with $Z=\operatorname{diag}(1, -1)=S^2=T^4$ | Pauli     |
 
-So $R_Z(k\,\pi/4) = T^k \pmod 8$ up to global phase — the exact-word fast path
-the native `qlx-synthesize-rotations` pass takes before ever calling gridsynth:
-$k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is dropped
-throughout: it is unobservable and carries no logical content.
+So {math}`R_Z(k\,\pi/4) = T^k \pmod 8` up to global phase — the exact-word fast
+path the native `qlx-synthesize-rotations` pass takes before ever calling
+gridsynth: $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is
+dropped throughout: it is unobservable and carries no logical content.
 
 ### Authoring exact angles with `ql.algebra.pi`
 
@@ -108,10 +107,11 @@ resource into a patch, and `ql.pack_resource` certifies the output kind.
 `examples/04_distillation.py` authors the real five-row triorthogonal circuit
 with the root authoring facade — not an analytical placeholder:
 
-```{literalinclude} ../../../examples/04_distillation.py
-:language: python
-:lines: 13-53
-:caption: The 15-to-1 T-state protocol (examples/04_distillation.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/04_distillation.py
+   :language: python
+   :lines: 13-53
+   :caption: The 15-to-1 T-state protocol (examples/04_distillation.py).
 ```
 
 Fifteen linear raw-state inputs are unpacked onto bare patches; eleven
@@ -125,9 +125,10 @@ than a comment about it.
 Because the protocol is an ordinary compiled definition, the static estimation
 tier counts it directly:
 
-```{literalinclude} ../../../examples/04_distillation.py
-:language: python
-:lines: 56-65
+```{eval-rst}
+.. literalinclude:: ../../../examples/04_distillation.py
+   :language: python
+   :lines: 56-65
 ```
 
 ```text

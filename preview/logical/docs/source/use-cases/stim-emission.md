@@ -16,8 +16,12 @@ the text, while `ql.lower.emit_stim_artifact` returns a `ql.lower.StimEmission`
 circuit was projected from. Emitting example 03's compiled Steane
 terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
-% invisible-code-block: python % % steane_memory = load_ql_example( %
+<!--
+% invisible-code-block: python
+%
+% steane_memory = load_ql_example(
 "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+-->
 
 ```python
 import cudaq.logical as ql

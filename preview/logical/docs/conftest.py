@@ -19,7 +19,7 @@ def _setup(namespace):
 
     import cudaq.logical.compiler.build as build_mod
 
-    # Sybil executes snippets with exec(), so @ql.program providers keep
+    # Sybil executes snippets with `exec()`, so `@ql.program` providers keep
     # __module__ as None and serialized builds would record source_modules=[None].
     if not getattr(build_mod.Build.__init__, "_qlx_docs_patched", False):
 

@@ -3,9 +3,9 @@
 CUDA-Q Logical reports its own status the way it reports evidence: three-way,
 and only against executable artifacts. A capability is **shipped** when it is
 part of the installed `cudaq.logical` package, and **exercised** only when a
-shipped test or example executes it — the lit/FileCheck suites, the pytest suite
-(which runs every Python example under `preview/logical/examples/`) are the
-evidence. A capability that is neither is **out of scope**: stated here as a
+shipped test or example executes it — the `lit`/`FileCheck` suites, the `pytest`
+suite (which runs every Python example under `preview/logical/examples/`) are
+the evidence. A capability that is neither is **out of scope**: stated here as a
 deliberate boundary that fails closed, not approximated past an implemented
 edge.
 
@@ -40,9 +40,9 @@ Every row cites its exercising evidence in this repository.
 These APIs exist in the package but carry no executed test or example in this
 release, so the documentation does not teach them yet: dynamic codes
 (`MeasurementPhase`, `EncodingEpoch`), code switching (`PatchTransform`),
-concatenation (`ql.codes.Concatenated`), metachecks (`ql.codes.MetaChecks`), and
-P2 block requests (`ql.codes.qec_block`). Treat them as preview surface: usable
-at your own risk until exercised evidence lands.
+concatenation (`ql.codes.Concatenated`), meta-checks (`ql.codes.MetaChecks`),
+and P2 block requests (`ql.codes.qec_block`). Treat them as preview surface:
+usable at your own risk until exercised evidence lands.
 
 ## Documented boundaries (all fail closed)
 
@@ -59,9 +59,9 @@ and no runtime or hardware submission — `ql.stages.Stage` has exactly `P0`,
 physical simulations.
 
 **The native P1 placer is a subset.** `qlx-to-lvm` is a deterministic first-fit
-placement for explicitly machine-domained, inlined programs; the Python
-placement solver (`ql.compiler.place`) is the rich path. The native pass fails
-on inputs outside the shared supported subset rather than approximating.
+placement for explicitly machine-scoped, inlined programs; the Python placement
+solver (`ql.compiler.place`) is the rich path. The native pass fails on inputs
+outside the shared supported subset rather than approximating.
 
 **Stim emission is terminal and checked.** The Python emitter accepts a verified
 P2 entry gadget. Emission never invents an implementation that selection did not

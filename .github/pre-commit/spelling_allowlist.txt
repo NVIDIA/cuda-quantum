@@ -16,6 +16,7 @@ Braket
 Bytecode
 CAPI
 CCZ
+Chuang
 CLA
 CLI
 CMake
@@ -59,6 +60,7 @@ Fortran
 Fourier
 GF
 GHCR
+Gidney
 GMP
 GPL
 GPU
@@ -109,6 +111,7 @@ LVM
 Libraries
 Lindblad
 Lindbladians
+Litinski
 MCA
 MLIR
 MPFR
@@ -125,6 +128,7 @@ Meiboom
 Miniconda
 MultiGraph
 MyST
+Nielsen
 NGC
 NIC
 NVIDIA
@@ -265,6 +269,7 @@ arg
 args
 argval
 arity
+aspirational
 attr
 attrs
 automorphism
@@ -305,6 +310,7 @@ checkable
 cnot
 codebase
 coherences
+colocated
 combinatorics
 combinators
 comparator
@@ -541,10 +547,12 @@ popcount
 portably
 positionally
 postselected
+postselection
 pragma
 precompute
 precomputed
 prepend
+prepended
 preprocessing
 preprocessor
 probability
@@ -580,6 +588,7 @@ realtime
 rebindings
 reconfigurable
 recv
+rehydrated
 renderer
 replayable
 reproducibility
@@ -668,6 +677,7 @@ transpile
 triorthogonal
 trixie
 trotterization
+trotterized
 tunable
 tx
 uccsd
@@ -685,6 +695,7 @@ unitaryHACK
 unlookup
 unmarshal
 unmarshalling
+unobservable
 unoptimized
 unspecialized
 unsynthesized

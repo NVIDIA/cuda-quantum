@@ -10,10 +10,11 @@ and a program can never branch on a later-stage cost fact it should not know.
   resource streams, capabilities, and plain integer capacities. No codes, no
   error rates:
 
-  ```{literalinclude} ../../../examples/02_p1_placement.py
-  :language: python
-  :lines: 13-21
-  :caption: A logical machine with one capable region (examples/02_p1_placement.py).
+  ```{eval-rst}
+  .. literalinclude:: ../../../examples/02_p1_placement.py
+     :language: python
+     :lines: 13-21
+     :caption: A logical machine with one capable region (examples/02_p1_placement.py).
   ```
 
   Capabilities are typed keys in an open `ql.machine` vocabulary —
@@ -81,10 +82,11 @@ QEC machine under a logical machine without any hand-written builder code.
 Placement solves hard constraints and soft preferences over the machine, and the
 solution is inspectable evidence, not solver state:
 
-```{literalinclude} ../../../examples/02_p1_placement.py
-:language: python
-:lines: 32-43
-:caption: Placing the Bell program and inspecting the witness (examples/02_p1_placement.py).
+```{eval-rst}
+.. literalinclude:: ../../../examples/02_p1_placement.py
+   :language: python
+   :lines: 32-43
+   :caption: Placing the Bell program and inspecting the witness (examples/02_p1_placement.py).
 ```
 
 `place` materializes P0 before invoking the selector. Values are addressed
