@@ -215,3 +215,11 @@ Naming follows PEP 8 throughout — artifact classes are CamelCase (`Code`,
 (`@qlx.machine`, `qlx.extract_syndrome`). One deliberate near-collision to
 know about: `qlx.types.X(q)` constructs a Pauli *factor* for products, while
 `qlx.x(q)` applies the gate.
+
+## Where to go next
+
+- The [architecture page](architecture.md) describes the dialect stack and
+  pipeline presets that realize these concepts.
+- The [workflow guides](workflows/index.md) put them to work task by task.
+- The [example gallery](example-gallery/index.md) shows them in runnable,
+  shipped code.

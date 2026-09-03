@@ -24,6 +24,12 @@ later), install the SDK wheel and the build tools:
 pip install cudaq-devel nanobind lit cmake ninja
 ```
 
+```{note}
+While CUDA-Q Logical is in preview, `cudaq-devel` may not yet be on your
+package index — see [building against CUDA-Q](reference/building-against-cudaq.md)
+for the wheelhouse and source-prefix routes.
+```
+
 Then, from the repository root, configure and build:
 
 ```bash

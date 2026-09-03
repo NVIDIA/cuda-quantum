@@ -38,11 +38,11 @@ The documentation is organized by the result you want:
 
 | If you want to… | Go to |
 |---|---|
-| **Install and run a first estimate** | the quickstart |
-| **Browse runnable end-to-end examples** | the example gallery |
-| **Understand stages, ownership, and evidence** | the concepts guide |
-| **Do a specific job** (define a code, place, distill, estimate, emit Stim) | the workflow guides |
-| **Build against CUDA-Q or contribute** | the reference section |
+| **Install and run a first estimate** | the [quickstart](quickstart.md) |
+| **Browse runnable end-to-end examples** | the [example gallery](examples.md) |
+| **Understand stages, ownership, and evidence** | the [concepts guide](concepts.md) |
+| **Do a specific job** (define a code, place, distill, estimate, emit Stim) | the [workflow guides](workflows/index.md) |
+| **Build against CUDA-Q or contribute** | the [reference section](reference/index.md) |
 
 ```{toctree}
 :maxdepth: 2

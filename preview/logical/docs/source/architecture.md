@@ -207,3 +207,10 @@ lower-level builders. Pipelines are composable values, gate sets are declared
 as data (`GateSet`: actions plus legalization passes), and new CUDA-Q targets
 wrap a backend with `Target.from_backend(...)`. Device- and code-specific
 libraries are ordinary Python modules, not global registries.
+
+## Where to go next
+
+- The [core concepts](concepts.md) explain the stage, ownership, and
+  evidence model this architecture implements.
+- The [workflow guides](workflows/index.md) exercise each pipeline preset
+  end to end.

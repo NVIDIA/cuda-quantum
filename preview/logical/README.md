@@ -31,6 +31,10 @@ The executable walkthroughs in [`examples/`](examples/README.md) cover:
 Command-line MLIR versions of the compiler and estimation workflows are in
 [`examples/cli/`](examples/cli/README.md).
 
+The full documentation (quickstart, concepts, workflow guides, and the
+example gallery) lives in [`docs/`](docs/README.md) and builds with
+`sphinx-build -W -b html docs/source docs/_build/html`.
+
 ## Build
 
 `cudaq.logical` builds against an *installed* CUDA-Q development SDK -- it is
