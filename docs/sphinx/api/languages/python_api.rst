@@ -531,3 +531,20 @@ Trajectory and Selection Types
 
 .. autoclass:: cudaq.ptsbe.KrausSelection
     :members:
+
+Synth Submodule
+=============================
+
+.. _synth_api:
+
+The ``cudaq.synth`` submodule approximates rotations as Clifford+T gate
+sequences. It is not imported with ``cudaq``, so import it explicitly with
+``from cudaq import synth``. For a usage guide see
+:doc:`../../using/examples/rotation_synthesis`.
+
+.. autofunction:: cudaq.synth.gridsynth
+
+.. autofunction:: cudaq.synth.rz_error
+
+.. autoclass:: cudaq.synth.CliffordTSequence
+    :members:
