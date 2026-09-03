@@ -36,7 +36,7 @@ public:
       return;
     if (!funcOp->hasAttr(cudaq::entryPointAttrName))
       return;
-    // If the kernel already contains any quake.log_output ops at the top level,
+    // If the kernel already contains any quake.evince ops at the top level,
     // it has output: do not inject implicit output.
     //
     // Also collect quake.alloca ops at the top level of this func.func only.
@@ -46,11 +46,10 @@ public:
       for (Operation &op : block) {
         if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
           orderedAllocs.push_back(alloc);
-        } else if (isa<cudaq::quake::LogOutputOp, cudaq::quake::DeallocOp>(
-                       op)) {
+        } else if (isa<cudaq::quake::EvinceOp, cudaq::quake::DeallocOp>(op)) {
           LLVM_DEBUG({
-            if (isa<cudaq::quake::LogOutputOp>(op))
-              llvm::dbgs() << "kernel already has log_output ops, skipping.\n";
+            if (isa<cudaq::quake::EvinceOp>(op))
+              llvm::dbgs() << "kernel already has evince ops, skipping.\n";
             else
               llvm::dbgs() << "kernel already has deallocs, skipping.\n";
           });
@@ -66,27 +65,27 @@ public:
 
     // 1. At this point, we have a function that we want to process.
 
-    // λ to resolve the value to create a log_output for.
-    auto logValue = [](cudaq::quake::AllocaOp alloc) -> Value {
+    // λ to resolve the value to create an evince op for.
+    auto evinceValue = [](cudaq::quake::AllocaOp alloc) -> Value {
       if (alloc.hasInitializedState())
         return alloc.getInitializedState().getResult();
       return alloc.getResult();
     };
 
-    // λ to create compiler-generated log_output ops for a single value.
+    // λ to create compiler-generated evince ops for a single value.
     // Passes /*compilerGenerated=*/true to the builder so the attribute is
     // stored as a first-class op attribute rather than a discardable side attr.
-    auto emitLogOutput = [&](OpBuilder &b, Location l, Value v) {
-      // Emit a single log_output for the value regardless of whether it is a
-      // ref or a veq.  Using log_output %veq directly (rather than a per-
-      // element loop) is essential: the DQE pass recognises log_output as the
-      // keep-alive signal for a veq alloca.  A loop of extract_ref + log_output
+    auto emitEvince = [&](OpBuilder &b, Location l, Value v) {
+      // Emit a single evince for the value regardless of whether it is a
+      // ref or a veq.  Using evince %veq directly (rather than a per-
+      // element loop) is essential: the DQE pass recognises evince as the
+      // keep-alive signal for a veq alloca.  A loop of extract_ref + evince
       // %ref would hide the veq from DQE, causing the alloca to be treated as
-      // dead and eliminated.  log_output %veq also avoids the null-wire double-
-      // use issue in memtoreg because LogOutputOpPattern only fires on !ref
+      // dead and eliminated.  evince %veq also avoids the null-wire double-
+      // use issue in memtoreg because EvinceOpPattern only fires on !ref
       // operands (hasNonVectorReference returns false for veq).
-      cudaq::quake::LogOutputOp::create(b, l, ValueRange{v},
-                                        /*compilerGenerated=*/true);
+      cudaq::quake::EvinceOp::create(b, l, ValueRange{v},
+                                     /*compilerGenerated=*/true);
     };
 
     DominanceInfo dom(funcOp);
@@ -102,16 +101,16 @@ public:
     exitBlock->addArguments(returnTypes, returnLocs);
     funcOp.getBody().push_back(exitBlock);
 
-    // 3. Emit quake.log_output ops in declaration order into the new exit
+    // 3. Emit quake.evince ops in declaration order into the new exit
     // block.
     builder.setInsertionPointToEnd(exitBlock);
     for (auto alloc : orderedAllocs)
-      emitLogOutput(builder, alloc.getLoc(), logValue(alloc));
+      emitEvince(builder, alloc.getLoc(), evinceValue(alloc));
     func::ReturnOp::create(builder, loc, exitBlock->getArguments());
 
     // 3. Redirect all existing func.return ops to branch to the exit block,
     // provided the alloca set entirely dominates that return. Otherwise, emit
-    // log_output ops for the dominating subset inline before the return.
+    // evince ops for the dominating subset inline before the return.
     for (Block &block : funcOp.getBody()) {
       // Skip the exit block we just created.
       if (&block == exitBlock)
@@ -131,11 +130,11 @@ public:
                                ret.getOperands());
           ret.erase();
         } else {
-          // Fall back case. Emit log_output only for the allocas that dominate
+          // Fall back case. Emit evince only for the allocas that dominate
           // this return, preserving declaration order.
           for (auto alloc : orderedAllocs)
             if (dom.dominates(alloc.getOperation(), ret.getOperation()))
-              emitLogOutput(builder, alloc.getLoc(), logValue(alloc));
+              emitEvince(builder, alloc.getLoc(), evinceValue(alloc));
         }
       }
     }

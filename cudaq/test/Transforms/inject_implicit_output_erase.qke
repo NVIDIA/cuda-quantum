@@ -10,7 +10,7 @@
 // RUN:   FileCheck %s
 
 // Same kernel as inject_implicit_output.qke. After inject-implicit-output adds
-// the compiler-generated quake.log_output ops and erase-cg-log-output removes
+// the compiler-generated quake.evince ops and erase-implicit-output removes
 // them, the exit block should contain only the return.
 
 module {
@@ -32,10 +32,10 @@ module {
   func.func @nested_output() {
     %q = quake.alloca !quake.ref
     cc.scope {
-      quake.log_output %q : (!quake.ref) -> () {compilerGenerated}
+      quake.evince %q : (!quake.ref) -> () {compilerGenerated}
       cc.continue
     }
-    quake.log_output %q : (!quake.ref) -> ()
+    quake.evince %q : (!quake.ref) -> ()
     return
   }
 
@@ -47,13 +47,13 @@ module {
 // CHECK:         quake.h
 // CHECK:         cf.br ^[[EXIT:.*]]
 // CHECK:       ^[[EXIT]]:
-// CHECK-NOT:     quake.log_output
+// CHECK-NOT:     quake.evince
 // CHECK:         return
 
 // CHECK-LABEL: func.func @nested_output()
 // CHECK:         %[[Q:.*]] = quake.alloca !quake.ref
 // CHECK:         cc.scope {
-// CHECK-NOT:       quake.log_output
+// CHECK-NOT:       quake.evince
 // CHECK:         }
-// CHECK:         quake.log_output %[[Q]] : (!quake.ref) -> ()
+// CHECK:         quake.evince %[[Q]] : (!quake.ref) -> ()
 // CHECK:         return

@@ -10,7 +10,7 @@
 
 // Test a kernel with a mix of quake.alloca types: a single !quake.ref, a
 // statically-sized !quake.veq<N>, a dynamically-sized !quake.veq<?>, and a
-// !quake.veq<N> followed by a quake.init_state (where the log_output should
+// !quake.veq<N> followed by a quake.init_state (where the evince should
 // use the init_state result rather than the raw alloca).
 
 module {
@@ -24,7 +24,7 @@ module {
     // Dynamically-sized veq.
     %q2 = quake.alloca !quake.veq<?>[%arg0 : i64]
 
-    // veq with initialize_state — log_output should use the init_state result.
+    // veq with initialize_state — evince should use the init_state result.
     %0 = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
     %q3 = quake.alloca !quake.veq<4>
     %q3s = quake.init_state %q3, %0 : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
@@ -48,10 +48,10 @@ module {
 // CHECK:         quake.h %[[Q0]]
 // CHECK:         cf.br ^[[EXIT:.*]]
 
-// Exit block: log_output ops in declaration order, then return.
+// Exit block: evince ops in declaration order, then return.
 // CHECK:       ^[[EXIT]]:
-// CHECK:         quake.log_output %[[Q0]] : (!quake.ref) -> ()
-// CHECK:         quake.log_output %[[Q1]] : (!quake.veq<4>) -> ()
-// CHECK:         quake.log_output %[[Q2]] : (!quake.veq<?>) -> ()
-// CHECK:         quake.log_output %[[Q3S]] : (!quake.veq<4>) -> ()
+// CHECK:         quake.evince %[[Q0]] : (!quake.ref) -> ()
+// CHECK:         quake.evince %[[Q1]] : (!quake.veq<4>) -> ()
+// CHECK:         quake.evince %[[Q2]] : (!quake.veq<?>) -> ()
+// CHECK:         quake.evince %[[Q3S]] : (!quake.veq<4>) -> ()
 // CHECK:         return

@@ -41,7 +41,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_co
 // CHECK-NOT: call @__nvqpp_vectorCopyCtor
 // CHECK-NOT: call @malloc
 // CHECK-NOT: call @llvm.memcpy
-// CHECK: quake.log_output
+// CHECK: quake.evince
 // CHECK: return
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy.ruined()

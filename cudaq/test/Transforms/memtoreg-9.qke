@@ -51,7 +51,7 @@ func.func @nested_loop_wire_alias(%arg0: i64, %arg1: i64) {
     %5 = arith.addi %arg2, %c1_i64 : i64
     cc.continue %5, %arg3 : i64, i64
   } {normalized}
-  quake.log_output %3 : (!quake.veq<2>) -> () {compilerGenerated}
+  quake.evince %3 : (!quake.veq<2>) -> () {compilerGenerated}
   quake.dealloc %1 : !quake.ref
   quake.dealloc %2 : !quake.ref
   return
@@ -81,7 +81,7 @@ func.func @nested_loop_wire_alias(%arg0: i64, %arg1: i64) {
 // CHECK:             cc.continue %{{.*}}, %{{.*}}, %[[X_1]] : i64, i64, !quake.wire
 // CHECK:           } step {
 // CHECK:           }
-// CHECK:           quake.log_output %[[CONCAT_0]]
+// CHECK:           quake.evince %[[CONCAT_0]]
 // CHECK:           quake.sink
 // CHECK:           return
 // CHECK:         }
@@ -164,8 +164,8 @@ func.func @control_operand_alias(%arg0: i64) {
     %5 = arith.addi %arg1, %c1_i64 : i64
     cc.continue %5 : i64
   } {normalized}
-  quake.log_output %2 : (!quake.veq<2>) -> () {compilerGenerated}
-  quake.log_output %3 : (!quake.ref) -> () {compilerGenerated}
+  quake.evince %2 : (!quake.veq<2>) -> () {compilerGenerated}
+  quake.evince %3 : (!quake.ref) -> () {compilerGenerated}
   quake.dealloc %3 : !quake.ref
   quake.dealloc %0 : !quake.ref
   quake.dealloc %1 : !quake.ref
@@ -188,7 +188,7 @@ func.func @control_operand_alias(%arg0: i64) {
 // CHECK:             cc.continue %{{.*}}, %[[X_0]]#0 : i64, !quake.wire
 // CHECK:           } step {
 // CHECK:           }
-// CHECK:           quake.log_output %[[CONCAT_0]]
+// CHECK:           quake.evince %[[CONCAT_0]]
 // CHECK:           quake.sink
 // CHECK:           return
 // CHECK:         }

@@ -10,7 +10,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_ERASECOMPILERGENERATEDLOGOUTPUT
+#define GEN_PASS_DEF_ERASECOMPILERGENERATEDEVINCE
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -20,24 +20,23 @@ using namespace mlir;
 
 namespace {
 
-class EraseCompilerGeneratedLogOutputPass
-    : public cudaq::opt::impl::EraseCompilerGeneratedLogOutputBase<
-          EraseCompilerGeneratedLogOutputPass> {
+class EraseCompilerGeneratedEvincePass
+    : public cudaq::opt::impl::EraseCompilerGeneratedEvinceBase<
+          EraseCompilerGeneratedEvincePass> {
 public:
-  using EraseCompilerGeneratedLogOutputBase::
-      EraseCompilerGeneratedLogOutputBase;
+  using EraseCompilerGeneratedEvinceBase::EraseCompilerGeneratedEvinceBase;
 
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();
-    funcOp.walk([&](cudaq::quake::LogOutputOp logOut) {
-      if (!logOut.getCompilerGenerated())
+    funcOp.walk([&](cudaq::quake::EvinceOp evince) {
+      if (!evince.getCompilerGenerated())
         return;
       // For each wire/cable result, replace uses with the corresponding arg.
       unsigned resultIdx = 0;
-      for (Value arg : logOut.getArgs())
+      for (Value arg : evince.getArgs())
         if (cudaq::quake::isLinearType(arg.getType()))
-          logOut.getOuts()[resultIdx++].replaceAllUsesWith(arg);
-      logOut->erase();
+          evince.getOuts()[resultIdx++].replaceAllUsesWith(arg);
+      evince->erase();
     });
   }
 };

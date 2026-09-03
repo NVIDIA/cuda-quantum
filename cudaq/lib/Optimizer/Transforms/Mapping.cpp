@@ -2303,11 +2303,11 @@ Operation *findNonTerminalMeasuredWireUse(func::FuncOp func) {
       if (!isa<cudaq::quake::WireType>(result.getType()))
         continue;
       for (Operation *user : result.getUsers())
-        // quake.log_output is a transparent wire pass-through (compiler-
+        // quake.evince is a transparent wire pass-through (compiler-
         // generated bookkeeping that is erased before codegen); treat it
         // like a sink so it doesn't trigger a false mid-circuit diagnosis.
         if (!isa<cudaq::quake::ReturnWireOp, cudaq::quake::SinkOp,
-                 cudaq::quake::LogOutputOp>(user)) {
+                 cudaq::quake::EvinceOp>(user)) {
           found = measOp;
           return WalkResult::interrupt();
         }
@@ -2582,7 +2582,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         for (Value res : loopOp->getResults())
           if (isa<cudaq::quake::WireType>(res.getType()))
             finalQubitWire[wireToVirtualQ[res].index] = res;
-      } else if (isa<cudaq::quake::LogOutputOp>(op) &&
+      } else if (isa<cudaq::quake::EvinceOp>(op) &&
                  cudaq::quake::getQuantumOperands(&op).empty()) {
         // Scalar output values do not participate in qubit mapping.
         continue;
