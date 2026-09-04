@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt \
 // RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
-// RUN:   | FileCheck --implicit-check-not=quake.phase %s
+// RUN:   | FileCheck --implicit-check-not=quake.phase --implicit-check-not='llvm.func @generalizedInvokeWithRotationsControlsTargets' %s
 // RUN: cudaq-opt --dump-pass-pipeline \
 // RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
 // RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
@@ -63,6 +63,7 @@ func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 // CHECK-NEXT: llvm.call @__quantum__qis__h__body
 // CHECK: llvm.return
 
+// CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // PIPELINE-NOT: convert-to-cfg
 // PIPELINE-NOT: stack-frame-prealloc
 // PIPELINE: convert-to-cfg-prep,
