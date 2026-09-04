@@ -160,6 +160,7 @@ struct ExpandControlNegationsPass
                 ReplaceNegativeControl<cudaq::quake::U3Op>,
                 ReplaceNegativeControl<cudaq::quake::SwapOp>,
                 ReplaceNegativeControl<cudaq::quake::ExpPauliOp>,
+                ReplaceNegativeControl<cudaq::quake::PhaseOp>,
                 ReplaceNegativeControl<cudaq::quake::CustomUnitaryCallOp>,
                 ReplaceNegativeControl<cudaq::quake::CustomUnitaryConstantOp>>(
             ctx);
@@ -168,11 +169,6 @@ struct ExpandControlNegationsPass
                            LLVM::LLVMDialect>();
     target.addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>(
         [](Operation *op) {
-          // `quake.phase` handled during phase lifecycle pass so allow
-          // it to be legal here.
-          if (isa<cudaq::quake::PhaseOp>(op))
-            return true;
-
           auto quantumOp = dyn_cast<cudaq::quake::OperatorInterface>(op);
           if (!quantumOp)
             return true;
