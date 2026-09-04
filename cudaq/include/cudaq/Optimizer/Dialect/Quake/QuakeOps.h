@@ -37,18 +37,18 @@ void getResetEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    llvm::MutableArrayRef<mlir::OpOperand> targets);
+    mlir::MutableArrayRef<mlir::OpOperand> targets);
 void getMeasurementEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    llvm::MutableArrayRef<mlir::OpOperand> targets);
+    mlir::MutableArrayRef<mlir::OpOperand> targets);
 void getOperatorEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    llvm::MutableArrayRef<mlir::OpOperand> controls,
-    llvm::MutableArrayRef<mlir::OpOperand> targets);
+    mlir::MutableArrayRef<mlir::OpOperand> controls,
+    mlir::MutableArrayRef<mlir::OpOperand> targets);
 
 mlir::ParseResult genericOpParse(mlir::OpAsmParser &parser,
                                  mlir::OperationState &result);
@@ -264,17 +264,17 @@ bool hasUnresolvedControlVeq(mlir::ValueRange controls);
 
 /// Return one polarity per control, where `true` marks a negated control.
 /// Controls without an explicit polarity are positive.
-llvm::SmallVector<bool>
+mlir::SmallVector<bool>
 getControlPolarities(mlir::ValueRange controls,
-                     std::optional<llvm::ArrayRef<bool>> negatedControls = {});
-llvm::SmallVector<bool> getControlPolarities(OperatorInterface op);
+                     std::optional<mlir::ArrayRef<bool>> negatedControls = {});
+mlir::SmallVector<bool> getControlPolarities(OperatorInterface op);
 
 /// The controls and polarities resulting from expanding statically sized
 /// vector controls. Controls with unresolved vector sizes remain intact for
 /// callers that can lower them without making the predicate scalar.
 struct ExpandedControlVeqs {
-  llvm::SmallVector<mlir::Value> controls;
-  llvm::SmallVector<bool> polarities;
+  mlir::SmallVector<mlir::Value> controls;
+  mlir::SmallVector<bool> polarities;
   bool didExpand = false;
 };
 
@@ -284,32 +284,32 @@ struct ExpandedControlVeqs {
 ExpandedControlVeqs
 expandKnownSizedControlVeqs(mlir::OpBuilder &builder, mlir::Location location,
                             mlir::ValueRange controls,
-                            llvm::ArrayRef<bool> polarities);
+                            mlir::ArrayRef<bool> polarities);
 
 /// Return the types of a Quake operator's wire operands in wire-result order:
 /// controls first, then targets.
-llvm::SmallVector<mlir::Type> getWireResultTypes(mlir::ValueRange controls,
+mlir::SmallVector<mlir::Type> getWireResultTypes(mlir::ValueRange controls,
                                                  mlir::ValueRange targets);
 
 /// Collect the threaded values of a Quake operator's controls and targets in
 /// its wire-result order.
-llvm::SmallVector<mlir::Value> getWireValues(mlir::ValueRange controls,
+mlir::SmallVector<mlir::Value> getWireValues(mlir::ValueRange controls,
                                              mlir::ValueRange targets);
 
 /// Update controls and targets to the corresponding wire results of the
 /// newly created operator op. The ranges must hold the values op was
 /// created with.
 void threadWireResults(OperatorInterface op,
-                       llvm::MutableArrayRef<mlir::Value> controls,
-                       llvm::MutableArrayRef<mlir::Value> targets);
+                       mlir::MutableArrayRef<mlir::Value> controls,
+                       mlir::MutableArrayRef<mlir::Value> targets);
 
 /// Create a Quake gate and update controls and targets to its latest wire
 /// results. Reference operands are returned unchanged.
 template <typename Op>
 inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
                               mlir::UnitAttr isAdj, mlir::ValueRange parameters,
-                              llvm::MutableArrayRef<mlir::Value> controls,
-                              llvm::MutableArrayRef<mlir::Value> targets,
+                              mlir::MutableArrayRef<mlir::Value> controls,
+                              mlir::MutableArrayRef<mlir::Value> targets,
                               mlir::DenseBoolArrayAttr negatedControls = {}) {
   auto resultTypes = getWireResultTypes(controls, targets);
   auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
