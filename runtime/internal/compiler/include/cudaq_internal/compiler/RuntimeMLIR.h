@@ -19,6 +19,7 @@
 
 namespace mlir {
 class Dialect;
+class DialectRegistry;
 class MLIRContext;
 class ModuleOp;
 class Operation;
@@ -125,6 +126,11 @@ mlir::LogicalResult runPassManager(mlir::PassManager &pm, mlir::Operation *op);
 using RunPassManagerHook = mlir::LogicalResult (*)(mlir::PassManager &,
                                                    mlir::Operation *);
 void setRunPassManagerHook(RunPassManagerHook hook);
+
+/// Hook to register dialects from downstream extensions into the
+/// `MLIRContext`s created by CUDA-Q.
+using DialectRegistrationHook = void (*)(mlir::DialectRegistry &);
+void setDialectRegistrationHook(DialectRegistrationHook hook);
 
 /// Configure the pass manager according to environment variables
 void configurePassManagerFromEnv(mlir::PassManager &pm);

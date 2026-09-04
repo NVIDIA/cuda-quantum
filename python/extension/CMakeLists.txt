@@ -65,6 +65,11 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.SiteInitialize
     cudaqMLIR
 )
 
+declare_mlir_python_sources(CUDAQuantumPythonSources.SiteInitializeExtensions
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
+  ADD_TO_PARENT CUDAQuantumPythonSources
+  SOURCES _mlir_libs/_site_initialize_1.py)
+
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   MODULE_NAME _quakeDialects
   ADD_TO_PARENT CUDAQuantumPythonSources

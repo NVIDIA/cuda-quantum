@@ -12,35 +12,50 @@ The file layout follows standard MLIR conventions:
 include/Trivial/  - public headers for the dialect + pass
 lib/              - the pure MLIR library
 python/           - the nanobind extension built with the CUDA-Q helpers
+cudaq_mlir_extension/  - pip package stub and entry-point declaration
 ```
 
 The dialect and the `trivial-pass` are defined via TableGen, using the
 `mlir-tblgen` binary shipped in the `cudaq-devel` wheel.
 
+## Downstream dialect registration
+
+CUDA-Q discovers out-of-tree MLIR dialects through the `cudaq.mlir_dialects`
+entry point group. This example declares one entry point that forwards to
+`register_dialects` on the package:
+
+```toml
+[project.entry-points."cudaq.mlir_dialects"]
+trivial = "cudaq_mlir_extension:register_dialects"
+```
+
+After installation, importing `cudaq` seeds every `cudaq.mlir.ir.Context` with
+the `trivial` dialect automatically—no explicit registration call is required.
+
 ## Building
 
-Install the `cudaq-devel` wheel into the active Python environment. If you
-are using non-released versions of CUDA-Q (nightly or custom builds), make sure
-your Python package manager knows where to find the `cudaq-devel` wheel and a compatible
-core `cudaq` wheel.
-
-Then configure. CMake will look for a valid installation of CUDA-Q within the
-installed Python packages. Make sure to run this command in the same virtual Python
-environment used to install the `cudaq-devel` wheel, or pass the path to the correct
-Python interpreter explicitly using the `-DPython3_EXECUTABLE` flag.
+Install `cudaq-devel` and the matching `cudaq` runtime wheel into your virtual
+environment, then install this example as a normal pip package:
 
 ```bash
-pip install cudaq-devel
-pip install 'nanobind>=2.12.0,<3'
+pip install cudaq-devel cudaq
+pip install /path/to/examples/plugins/mlir_extension
 
-site=$(python -c 'import site; print(site.getsitepackages()[0])')
+python -c "import cudaq; from cudaq.mlir.ir import Context; \
+  ctx = Context(); assert ctx.dialects['trivial'] is not None"
+```
+
+The pip package uses `scikit-build-core` to drive the existing CMake project and
+registers the `cudaq.mlir_dialects` entry point declared in `pyproject.toml`.
+For development, you can also use `cmake` directly:
+
+```bash
+source /path/to/venv/bin/activate  # detects installed cudaq-devel in the venv
 cmake -S examples/plugins/mlir_extension -B build \
   -DCMAKE_BUILD_TYPE=Release \
   -G Ninja
 cmake --build build
-cmake --install build --prefix "$site" --component TrivialMLIRPythonModules
-
-python -c "import sys, glob; \
-  d=glob.glob('$site/cudaq_mlir_extension/mlir/_mlir_libs')[0]; sys.path.insert(0, d); \
-  import _mlirExtension; assert _mlirExtension.run_trivial_pass()"
 ```
+
+although `pip` or equivalent Python tooling will be required to register the
+`cudaq.mlir_dialects` entry point.

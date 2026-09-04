@@ -197,4 +197,31 @@ then
 fi
 
 echo ""
+echo "PASS: devel wheel validation succeeded (raw extension load)."
+
+echo ""
+echo "=== pip install example package ==="
+if ! pip install -q "$example_src" 2>&1; then
+  echo ""
+  echo "FAIL: pip install of example package failed." >&2
+  exit 1
+fi
+
+echo ""
+echo "=== Verify downstream dialect auto-registration ==="
+if ! python - << 'PY'
+import cudaq
+from cudaq.mlir.ir import Context
+
+with Context() as ctx:
+    _ = ctx.dialects["trivial"]
+print("  OK: trivial dialect auto-registered via cudaq.mlir_dialects entry point")
+PY
+then
+  echo ""
+  echo "FAIL: downstream dialect was not auto-registered in cudaq.mlir.ir.Context." >&2
+  exit 1
+fi
+
+echo ""
 echo "PASS: devel wheel validation succeeded."
