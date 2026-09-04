@@ -4,7 +4,7 @@ Rotation Synthesis (Clifford+T)
 .. _rotation_synthesis:
 
 It is typical in fault-tolerant quantum computing to consider only the discrete
-Cliffords augmented with the T gate for universality, Eg. ``H``, ``S``, ``T``,
+Cliffords augmented with the T gate for universality, like ``H``, ``S``, ``T``,
 ``X`` and ``CNOT``, the Clifford+T set. A continuous rotation such as
 ``rz(0.6)`` is not a member of this set, so before a kernel can run on such
 hardware every rotation must be synthesized into a sequence of digital

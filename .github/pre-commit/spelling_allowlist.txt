@@ -31,6 +31,7 @@ CPython
 CUDA
 Cartesian
 CentOS
+Cliffords
 CompileMetrics
 CompiledKernel
 Conda
@@ -67,6 +68,7 @@ Gantt
 GitHub
 GoogleTest
 GpuRoceTransceiver
+Gridsynth
 HEA
 HPC
 HSB
