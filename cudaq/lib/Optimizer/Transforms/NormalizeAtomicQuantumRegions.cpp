@@ -62,7 +62,7 @@ static bool isMeasurementSafeToSink(Operation *measureOp, Block &block) {
       if (targets.contains(dealloc.getReference()))
         continue;
     if (llvm::any_of(op.getOperands(),
-                      [&](Value v) { return targets.contains(v); }))
+                     [&](Value v) { return targets.contains(v); }))
       return false;
   }
   return true;
