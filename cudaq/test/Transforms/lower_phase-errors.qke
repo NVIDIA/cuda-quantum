@@ -9,7 +9,7 @@
 // RUN: not cudaq-opt --lower-phase %s -split-input-file 2>&1 | FileCheck %s
 
 // The exact fallback requires an anchor outside the control predicate.
-// CHECK-COUNT-2: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
+// CHECK-COUNT-7: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
 func.func @anchor_aliases_vector_control(%theta: f64,
                                          %controls: !quake.veq<?>) {
   %anchor = quake.extract_ref %controls[0]
@@ -26,6 +26,81 @@ func.func @concat_control_contains_anchor(%theta: f64,
   %controls = quake.concat %anchor
       : (!quake.ref) -> !quake.veq<?>
   quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// Aggregate views must retain the provenance of their source vector.
+func.func @subveq_control_contains_anchor(%theta: f64,
+                                          %controls: !quake.veq<?>) {
+  %sub = quake.subveq %controls, 0, 0
+      : (!quake.veq<?>) -> !quake.veq<1>
+  %anchor = quake.extract_ref %sub[0] : (!quake.veq<1>) -> !quake.ref
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// A wire target threaded through a gate retains the identity of the reference
+// it was unwrapped from.
+func.func @anchor_aliases_vector_control_through_wire(
+    %theta: f64, %controls: !quake.veq<?>) {
+  %anchor_ref = quake.extract_ref %controls[0]
+      : (!quake.veq<?>) -> !quake.ref
+  %anchor_wire = quake.unwrap %anchor_ref : (!quake.ref) -> !quake.wire
+  %threaded_anchor = quake.x %anchor_wire : (!quake.wire) -> !quake.wire
+  %result = quake.phase (%theta) [%controls] %threaded_anchor
+      : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire
+  quake.sink %result : !quake.wire
+  return
+}
+
+// -----
+
+// Rebinding a local reference to a control-derived wire destroys its fresh
+// anchor provenance.
+func.func @anchor_aliases_vector_control_through_wrap(
+    %theta: f64, %controls: !quake.veq<?>) {
+  %anchor = quake.alloca !quake.ref
+  %control = quake.extract_ref %controls[0] : (!quake.veq<?>) -> !quake.ref
+  %wire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %changed = quake.x %wire : (!quake.wire) -> !quake.wire
+  quake.wrap %changed to %anchor : !quake.wire, !quake.ref
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// Wrapping a control-derived wire in a new reference does not make it a
+// distinct anchor.
+func.func @anchor_aliases_vector_control_through_wrap_new(
+    %theta: f64, %controls: !quake.veq<?>) {
+  %extracted = quake.extract_ref %controls[0]
+      : (!quake.veq<?>) -> !quake.ref
+  %wire = quake.unwrap %extracted : (!quake.ref) -> !quake.wire
+  %anchor = quake.wrap_new %wire : (!quake.wire) -> !quake.ref
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  %reclaimed = quake.unwrap %anchor : (!quake.ref) -> !quake.wire
+  quake.sink %reclaimed : !quake.wire
+  return
+}
+
+// -----
+
+// The same conservative rule applies to CFG block arguments.
+func.func @opaque_block_arguments_may_alias(%theta: f64,
+                                            %controls: !quake.veq<?>,
+                                            %anchor: !quake.ref) {
+  cf.br ^alias(%controls, %anchor : !quake.veq<?>, !quake.ref)
+^alias(%block_controls: !quake.veq<?>, %block_anchor: !quake.ref):
+  quake.phase (%theta) [%block_controls] %block_anchor
       : (f64, !quake.veq<?>, !quake.ref) -> ()
   return
 }

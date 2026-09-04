@@ -1303,8 +1303,9 @@ void cudaq::quake::PhaseOp::getOperatorMatrix(Matrix &matrix) {
 
 void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseZeroPhasePattern, MergeAdjacentPhasePattern,
-               EraseEmptyVeqControlPattern<PhaseOp>>(context);
+  patterns.add<AdjustAdjointPhasePattern, EraseZeroPhasePattern,
+               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>>(
+      context);
 }
 
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
@@ -1658,7 +1659,8 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   MACRO(CustomUnitaryConstantOp)
 #define GATE_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) CUSTOM_GATE_OPS(MACRO)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
-#define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(ExpPauliOp) GATE_OPS(MACRO)    \
+#define QUANTUM_OPS(MACRO)                                                     \
+  MACRO(ResetOp) MACRO(ExpPauliOp) MACRO(PhaseOp) GATE_OPS(MACRO)              \
   MEASURE_OPS(MACRO)
 #define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullCableOp) \
   MACRO(NullWireOp) MACRO(UnwrapOp)
@@ -1672,7 +1674,6 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   }
 
 QUANTUM_OPS(INSTANTIATE_CALLBACKS)
-INSTANTIATE_CALLBACKS(PhaseOp)
 
 #define INSTANTIATE_LINEAR_TYPE_VERIFY(Op)                                     \
   LogicalResult cudaq::quake::Op::verify() {                                   \
@@ -1798,17 +1799,15 @@ cudaq::quake::expandKnownSizedControlVeqs(OpBuilder &builder, Location location,
   return expanded;
 }
 
-SmallVector<Type> cudaq::quake::getWireResultTypes(OpBuilder &builder,
-                                                   ValueRange controls,
+SmallVector<Type> cudaq::quake::getWireResultTypes(ValueRange controls,
                                                    ValueRange targets) {
-  auto wireType = cudaq::quake::WireType::get(builder.getContext());
   SmallVector<Type> resultTypes;
   for (Value control : controls)
     if (isa<cudaq::quake::WireType>(control.getType()))
-      resultTypes.push_back(wireType);
+      resultTypes.push_back(control.getType());
   for (Value target : targets)
     if (isa<cudaq::quake::WireType>(target.getType()))
-      resultTypes.push_back(wireType);
+      resultTypes.push_back(target.getType());
   return resultTypes;
 }
 
