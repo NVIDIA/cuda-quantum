@@ -19,7 +19,7 @@ The simplest way to install CUDA-Q Logical is to get it with the `cudaq` base
 package:
 
 ```bash
-pip install cudaq-logical
+pip install cudaq
 ```
 
 Alternatively, installing CUDA-Q Logical separately can be achieved with the
@@ -31,6 +31,15 @@ pip install cudaq-logical[cu13]
 
 where `[cu13]` should be replaced with `[cu12]` if you have a copy of CUDA 12
 installed on your machine.
+
+:::{admonition} Always include `[cu13]` or `[cu12]`
+
+If you opt to install `cudaq-logical` standalone, make sure to always suffix
+`cudaq-logical` with either `[cu13]` or `[cu12]`, defaulting to `[cu13]` if your
+machine does not have a CUDA installation. The required dependencies are not
+included in the bare package.
+
+:::
 
 To build from source against CUDA-Q, see
 [Building against CUDA-Q](../reference/building-against-cudaq.md).

@@ -1,4 +1,4 @@
-# CUDA-Q Logical — from logical intent to QEC resource estimates
+# CUDA-Q Logical — Develop and evaluate fault-tolerant quantum applications
 
 :::{admonition} Preview release
 
@@ -7,12 +7,22 @@ may change substantially in upcoming versions.
 
 :::
 
-**CUDA-Q Logical** (`cudaq.logical`) is CUDA-Q's toolkit for estimating the
-resources required by fault-tolerant quantum computations. It connects ordinary
-CUDA-Q kernels and portable logical programs to logical placement, codes,
-gadgets, distillation protocols, and inspectable resource estimates. CUDA-Q
-Logical also supports emitting a realized program for further processing in
-third party tools such as Stim.
+**CUDA-Q Logical** (`cudaq.logical`) expands CUDA-Q with an open, extensible
+logical layer for fault-tolerant quantum computing. It lets developers express
+fault-tolerant workloads, evaluate them across different QEC codes and system
+architectures, and understand the resources required to run them.
+
+Fault-tolerant quantum computing is a co-design problem. Choices in the
+application, QEC code, logical architecture, physical hardware, decoding,
+control, and classical computing can all change the qubits and runtime required
+for the same computation. CUDA-Q Logical keeps the workload fixed while these
+system choices change, enabling direct comparisons and making the assumptions
+behind each result inspectable.
+
+In this preview, you can start from a CUDA-Q kernel or author a portable logical
+program directly; configure codes, gadgets, placement, and distillation
+protocols; generate resource estimates; and emit realized programs for
+simulation and further analysis in tools such as Stim.
 
 ## Installation
 
