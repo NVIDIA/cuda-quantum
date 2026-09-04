@@ -42,7 +42,7 @@ a second LLVM/MLIR stack. The expected setup is a Python environment with the
 matching `cudaq-devel` wheel installed:
 
 ```bash
-pip install cudaq-devel nanobind lit
+pip install cudaq-devel "nanobind>=2.12,<3" "lit<23" pytest stim cmake ninja
 cmake -S preview/logical -B preview/logical/build -G Ninja
 cmake --build preview/logical/build
 ```
