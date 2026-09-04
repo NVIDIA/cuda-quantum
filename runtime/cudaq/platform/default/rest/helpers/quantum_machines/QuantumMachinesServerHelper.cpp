@@ -351,7 +351,7 @@ public:
     const std::string needle = "qubit-mapping{device=bypass}";
     const std::string replacement = "qubit-mapping{device=file('" +
                                     machineconfigFilePath +
-                                    "') placement=greedy}";
+                                    "') placement=greedy search=sabre}";
     return {{needle, replacement}};
   }
 };
