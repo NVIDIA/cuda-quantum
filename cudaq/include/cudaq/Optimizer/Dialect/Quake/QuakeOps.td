@@ -952,7 +952,8 @@ def quake_AttachWireOp : QuakeOp<"attach_wire", [Pure]> {
       %21:2 = quake.detach_wire %20[1] : (!cable<3>) -> (!wire, !cable<2>)
       // %21#0 contains wire 1 previous at position 1 in %20
       // %21#1 contains wire 0 at position 0, and wire 2 at position 1
-      %22 = quake.attach_wire %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
+      %22 = quake.attach_wire %21#0, %21#1[2] : (!wire, !cable<2>) ->
+            (!cable<3>)
       // %22 contains wire 0 at position 0, wire 2 at position 1,
       // and wire 1 at position 2 as they were originally created in %20
     ```
@@ -1317,11 +1318,14 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
 // Quantum gates
 //===----------------------------------------------------------------------===//
 
-class QuakeOperator<string mnemonic, list<Trait> traits = [],
+class QuakeOperator<string mnemonic, int numParameters = -1,
+                    int numTargets = -1, list<Trait> traits = [],
                     dag extraArgs = (ins)>
     : QuakeOp<mnemonic,
         !listconcat([QuantumGate, AttrSizedOperandSegments, OperatorInterface,
-          DeclareOpInterfaceMethods<MemoryEffectsOpInterface>], traits)> {
+          DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
+          NumParameters<numParameters>, NumTargets<numTargets>],
+          traits)> {
 
   let arguments = !con(extraArgs, (ins
     UnitAttr:$is_adj,
@@ -1413,10 +1417,21 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
     // Element Access
     //===------------------------------------------------------------------===//
 
-    mlir::Value getParameter(unsigned i = 0u) { return getParameters()[i]; }
+    unsigned getNumParameters() { return getParameters().size(); }
 
-    mlir::Value getTarget(unsigned i = 0u) { return getTargets()[i]; }
+    unsigned getNumTargets() { return getTargets().size(); }
 
+    unsigned getNumControls() { return getControls().size(); }
+  }]
+  # !if(!eq(numParameters, 0), "",
+      !if(!eq(numParameters, 1),
+        "    mlir::Value getParameter() { return getParameters()[0]; }\n",
+        "    mlir::Value getParameter(unsigned i) { return getParameters()[i]; }\n"))
+  # !if(!eq(numTargets, 0), "",
+      !if(!eq(numTargets, 1),
+        "    mlir::Value getTarget() { return getTargets()[0]; }\n",
+        "    mlir::Value getTarget(unsigned i) { return getTargets()[i]; }\n"))
+  # [{
     //===------------------------------------------------------------------===//
     // Operator interface
     //===------------------------------------------------------------------===//
@@ -1428,16 +1443,13 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
 }
 
 class OneTargetOp<string mnemonic, list<Trait> traits = []> :
-    QuakeOperator<mnemonic, !listconcat([NumParameters<0>, NumTargets<1>],
-                traits)>;
+    QuakeOperator<mnemonic, /*numParameters=*/0, /*numTargets=*/1, traits>;
 
 class OneTargetParamOp<string mnemonic, list<Trait> traits = []> :
-    QuakeOperator<mnemonic, !listconcat([NumParameters<1>, NumTargets<1>],
-                traits)>;
+    QuakeOperator<mnemonic, /*numParameters=*/1, /*numTargets=*/1, traits>;
 
 class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
-    QuakeOperator<mnemonic, !listconcat([NumParameters<0>, NumTargets<2>],
-                traits)>;
+    QuakeOperator<mnemonic, /*numParameters=*/0, /*numTargets=*/2, traits>;
 
 //===----------------------------------------------------------------------===//
 // Unitary quantum transformations
@@ -1628,8 +1640,8 @@ def PhaseOp : OneTargetParamOp<"phase", [Rotation]> {
   let hasCanonicalizer = 1;
 }
 
-def PhasedRxOp : QuakeOperator<"phased_rx",
-                   [NumParameters<2>, NumTargets<1>, Rotation]> {
+def PhasedRxOp : QuakeOperator<"phased_rx", /*numParameters=*/2,
+                   /*numTargets=*/1, [Rotation]> {
   let summary = "an arbitrary rotation θ around the cos(φ)x + sin(φ)y axis";
   let description = [{
     Matrix representation:
@@ -1781,7 +1793,8 @@ def TOp : OneTargetOp<"t"> {
   }];
 }
 
-def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
+def U2Op : QuakeOperator<"u2", /*numParameters=*/2, /*numTargets=*/1,
+             [Rotation]> {
   let summary = "generic rotation about the X+Z axis";
   let description = [{
     The two parameters are Euler angles: φ and λ.
@@ -1801,7 +1814,8 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
   }];
 }
 
-def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
+def U3Op : QuakeOperator<"u3", /*numParameters=*/3, /*numTargets=*/1,
+             [Rotation]> {
   let summary = "the universal three-parameters operator";
   let description = [{
     The three parameters are Euler angles: θ, φ, and λ.
@@ -1877,7 +1891,8 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call", [],
+def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call",
+    /*numParameters=*/-1, /*numTargets=*/-1, [],
     (ins SymbolRefAttr:$generator)> {
   let summary = "Custom unitary call operation.";
   let description = [{
@@ -1920,7 +1935,8 @@ def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call", [],
   let hasVerifier = 1;
 }
 
-def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant", [],
+def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant",
+    /*numParameters=*/-1, /*numTargets=*/-1, [],
     (ins SymbolRefAttr:$matrix)> {
   let summary = "Custom unitary constant operation.";
   let description = [{
@@ -1962,7 +1978,8 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
+      %0 = quake.create_state %data %len :
+           (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
     ```
   }];
 

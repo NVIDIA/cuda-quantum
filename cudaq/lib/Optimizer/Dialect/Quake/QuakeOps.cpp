@@ -1313,7 +1313,7 @@ void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
   // Get parameters
   double theta;
   double phi;
-  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+  if (failed(getParameterAsDouble(getParameter(0), theta)) ||
       failed(getParameterAsDouble(getParameter(1), phi)))
     return;
 
@@ -1401,7 +1401,7 @@ void cudaq::quake::U2Op::getOperatorMatrix(Matrix &matrix) {
   // Get parameters
   double phi;
   double lambda;
-  if (failed(getParameterAsDouble(getParameter(), phi)) ||
+  if (failed(getParameterAsDouble(getParameter(0), phi)) ||
       failed(getParameterAsDouble(getParameter(1), lambda)))
     return;
 
@@ -1422,7 +1422,7 @@ void cudaq::quake::U3Op::getOperatorMatrix(Matrix &matrix) {
   double theta;
   double phi;
   double lambda;
-  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+  if (failed(getParameterAsDouble(getParameter(0), theta)) ||
       failed(getParameterAsDouble(getParameter(1), phi)) ||
       failed(getParameterAsDouble(getParameter(2), lambda)))
     return;
