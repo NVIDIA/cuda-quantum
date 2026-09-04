@@ -131,13 +131,13 @@ set_target_properties(check-cudaq PROPERTIES FOLDER "Tools")
 
 # In case of standalone builds.
 if (CUDAQ_STANDALONE_BUILD)
-  add_lit_testsuites(NVQPP ${CMAKE_CURRENT_BINARY_DIR}
+  add_lit_testsuites(core ${CMAKE_CURRENT_BINARY_DIR}
     PARAMS ${CUDAQ_TEST_PARAMS}
     DEPENDS ${CUDAQ_TEST_DEPENDS}
     FOLDER "Tests/Subdirectories"
   )
 else()
-  add_lit_testsuites(NVQPP ${CMAKE_CURRENT_SOURCE_DIR}
+  add_lit_testsuites(core ${CMAKE_CURRENT_SOURCE_DIR}
     PARAMS ${CUDAQ_TEST_PARAMS}
     DEPENDS ${CUDAQ_TEST_DEPENDS}
     FOLDER "Tests/Subdirectories"

@@ -58,7 +58,7 @@ extern "C" void __quantum__rt__clear_result_maps();
 
 /// @brief Encode an `int64_t` chronological measurement index as the
 /// `Result*` bit pattern the QIR ABI delivers to the QEC runtime adapter.
-/// Mirrors the lowering pattern in `cudaq/test/Transforms/qir_api_qec.qke`.
+/// Mirrors the lowering pattern in `cudaq/test/Optimizer/qir_api_qec.qke`.
 static Result *measureIndexAsResultPtr(std::int64_t i) {
   return reinterpret_cast<Result *>(static_cast<std::intptr_t>(i));
 }

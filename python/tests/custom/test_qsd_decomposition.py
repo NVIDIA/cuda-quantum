@@ -22,7 +22,7 @@ import cudaq
 #        `synth_kernel8` is the exact gate sequence emitted by
 #        `cudaq-opt --unitary-synthesis` on `kernel8` (four inlined KAK children
 #        plus three gray-code uniformly-controlled multiplexors); the matrix
-#        matches the IR test `test/Transforms/UnitarySynthesis/random_unitary-5.qke`
+#        matches the IR test `test/Optimizer/UnitarySynthesis/random_unitary-5.qke`
 #        so the FileCheck and Python tests together cover the full path.
 
 
