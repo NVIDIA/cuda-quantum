@@ -13,7 +13,7 @@ from typing import Callable, List
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .kernel_builder import PyKernel, __generalCustomOperation
-from .utils import globalRegisteredOperations
+from .utils import ExtensionEntry, globalRegisteredExtensions
 
 
 def register_operation(operation_name: str, unitary):
@@ -30,7 +30,7 @@ def register_operation(operation_name: str, unitary):
     ```
     """
 
-    global globalRegisteredOperations
+    global globalRegisteredExtensions
 
     if not operation_name or not operation_name.strip():
         raise RuntimeError("custom operation name not provided.")
@@ -54,7 +54,8 @@ def register_operation(operation_name: str, unitary):
             "invalid matrix size, required 2^N * 2^N for N-qubit operation.")
 
     # Register the operation name so JIT AST can get it.
-    globalRegisteredOperations[operation_name] = matrix
+    globalRegisteredExtensions[operation_name] = ExtensionEntry(
+        operation_name, ExtensionEntry.CUSTOM_OP, unitary=matrix)
 
     # Make available to kernel builder object
     setattr(PyKernel, operation_name,

@@ -47,7 +47,18 @@ SERVER_EXECUTION_PIPELINE = (
     ")")
 
 
+def stripExternalDeclarations(decoded_payload):
+    """Drop `bodyless` `func.func private` lines.
+
+    An external quantum operation is declared in reference form and called in
+    wire form, so its declaration mentions `!quake.ref`.
+    """
+    return "\n".join(line for line in decoded_payload.splitlines()
+                     if not line.strip().startswith("func.func private"))
+
+
 def verifyValueSemanticsPayload(decoded_payload):
+    decoded_payload = stripExternalDeclarations(decoded_payload)
     required_tokens = ["quake.wire_set", "quake.borrow_wire"]
     for token in required_tokens:
         if token not in decoded_payload:
@@ -198,6 +209,47 @@ def verifyModule(module, stage):
         raise RuntimeError(f"MLIR verification failed for {stage} module.")
 
 
+def eraseExternalQuantumCalls(recovered_mod):
+    """Erase `quake.call_by_ref` ops whose `callee` has no body.
+
+    The mock server only has to prove the call arrived in wire form, so it
+    threads each operand to the matching result, keeping the wires linear.
+    """
+    erased = []
+    defined = set()
+    for op in recovered_mod.body.operations:
+        if isinstance(op, func.FuncOp) and not op.is_external:
+            defined.add(op.name.value)
+
+    def walk(op):
+        for region in op.regions:
+            for block in region.blocks:
+                for inner in list(block.operations):
+                    if inner.operation.name == "quake.call_by_ref":
+                        callee = inner.attributes["callee"]
+                        name = str(callee).lstrip("@")
+                        if name in defined:
+                            continue
+                        quantum = [
+                            o for o in inner.operands
+                            if str(o.type) == "!quake.wire"
+                        ]
+                        if len(quantum) != len(inner.results):
+                            raise RuntimeError(
+                                f"External call `{name}` has "
+                                f"{len(quantum)} wire operand(s) but "
+                                f"{len(inner.results)} result(s).")
+                        for result, operand in zip(inner.results, quantum):
+                            result.replace_all_uses_with(operand)
+                        inner.operation.erase()
+                        erased.append(name)
+                    else:
+                        walk(inner.operation)
+
+    walk(recovered_mod.operation)
+    return erased
+
+
 def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
     # The client/server contract is checked before this point. The client has
     # already run the target JIT pipeline through `wireset` assignment. For
@@ -256,6 +308,11 @@ async def postJob(request: Request):
     verifyExpectedMapping(decoded_payload, entry_func_name)
     verifyExpectedDirectionality(entry_func)
     verifyExpectedLoopCount(decoded_payload, entry_func_name)
+
+    # `lower-wireset-to-profile-qir` cannot lower these, so erase them once the
+    # payload has been checked.
+    for name in eraseExternalQuantumCalls(recovered_mod):
+        print(f"Erased external quantum call `{name}`")
 
     # Lower the module to LLVM IR.
     qir_code = lowerValueSemanticsPayloadForExecution(recovered_mod, ctx)

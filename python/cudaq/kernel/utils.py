@@ -34,8 +34,65 @@ nvqppPrefix = '__nvqpp__mlirgen__'
 
 ahkPrefix = '__analog_hamiltonian_kernel__'
 
+
+# One table of the names the bridge turns into IR, where `kind` selects how a
+# name is emitted. Custom operations are registered here by name. Extern
+# kernels resolve in the defining frame and answer with the same record.
+class ExtensionEntry:
+    """A name in a kernel body that the bridge turns into IR."""
+
+    CUSTOM_OP = 'custom_op'
+    EXTERN_KERNEL = 'extern_kernel'
+
+    def __init__(self,
+                 name,
+                 kind,
+                 unitary=None,
+                 signature=None,
+                 backendSymbol=None):
+        self.name = name
+        self.kind = kind
+        self.unitary = unitary
+        self.signature = signature
+        self.backendSymbol = backendSymbol
+
+
 # Keep a global registry of all registered custom operations.
-globalRegisteredOperations = {}
+globalRegisteredExtensions = {}
+
+
+class _CustomOperationsView:
+    """The custom operations in `globalRegisteredExtensions`, keyed by name.
+
+    Preserves the `name in ...` and `[name] -> unitary` spellings already in
+    use.
+    """
+
+    def __contains__(self, name):
+        entry = globalRegisteredExtensions.get(name)
+        return entry is not None and entry.kind == ExtensionEntry.CUSTOM_OP
+
+    def __getitem__(self, name):
+        if name not in self:
+            raise KeyError(name)
+        return globalRegisteredExtensions[name].unitary
+
+    def __setitem__(self, name, unitary):
+        globalRegisteredExtensions[name] = ExtensionEntry(
+            name, ExtensionEntry.CUSTOM_OP, unitary=unitary)
+
+    def __iter__(self):
+        return iter(name for name in globalRegisteredExtensions if name in self)
+
+    def __len__(self):
+        return sum(1 for _ in self)
+
+    def clear(self):
+        for name in list(self):
+            del globalRegisteredExtensions[name]
+
+
+globalRegisteredOperations = _CustomOperationsView()
 
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
@@ -166,15 +223,20 @@ def resolve_qualified_symbol(y):
                 obj = getattr(obj, attr)
         except AttributeError:
             return None
-        from .kernel_decorator import isa_kernel_decorator
-        if not isa_kernel_decorator(obj):
+        from .kernel_decorator import (isa_extern_kernel_decorator,
+                                       isa_kernel_decorator)
+
+        def isa_kernel_like(obj):
+            return isa_kernel_decorator(obj) or isa_extern_kernel_decorator(obj)
+
+        if not isa_kernel_like(obj):
             # FIXME: Legacy hack to support incorrect Python spellings of kernel
             # names.
             try:
                 obj = getattr(obj, parts[-1])
             except AttributeError:
                 pass
-        return obj if isa_kernel_decorator(obj) else None
+        return obj if isa_kernel_like(obj) else None
     return None
 
 

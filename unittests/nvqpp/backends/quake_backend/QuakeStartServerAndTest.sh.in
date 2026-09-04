@@ -123,6 +123,28 @@ else
   fi
 fi
 
+# External quantum call test. The mock server checks that the call reaches it
+# in wire form, then erases it.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_extern_call.cpp -o test_extern_call @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_extern_call"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_extern_call with nvq++"
+  CUDAQ_DUMP_JIT_IR=1 ./test_extern_call > test_extern_call.out 2>&1
+  if [ $? -ne 0 ]; then
+    echo ":x: test_extern_call failed"
+    cat test_extern_call.out
+    test_err_sum=$((test_err_sum+1))
+  elif ! grep -q "quake.call_by_ref @__qm__wait_function" test_extern_call.out; then
+    echo ":x: test_extern_call client IR is missing the wire-form external call"
+    cat test_extern_call.out
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_extern_call"
+  fi
+fi
+
 # Emulation test
 # Note: for emulation, we need to link in the device library. 
 PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
@@ -165,6 +187,20 @@ if [ $? -ne 0 ]; then
   test_err_sum=$((test_err_sum+1))
 else
   echo ":white_check_mark: Successfully ran Python test_app.py"
+fi
+
+# The `cudaq.extern_kernel` spelling of the C++ test above.
+CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_extern_call.py > test_extern_call.py.out 2>&1
+if [ $? -ne 0 ]; then
+  echo ":x: Python test_extern_call.py failed"
+  cat test_extern_call.py.out
+  test_err_sum=$((test_err_sum+1))
+elif ! grep -q "quake.call_by_ref @wait" test_extern_call.py.out; then
+  echo ":x: test_extern_call.py client IR is missing the wire-form external call"
+  cat test_extern_call.py.out
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully ran Python test_extern_call.py"
 fi
 
 # Python loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the Python

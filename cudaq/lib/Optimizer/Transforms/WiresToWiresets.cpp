@@ -85,8 +85,23 @@ struct AssignWireIndicesPass
           if (callee->hasAttr(cudaq::kernelAttrName))
             hasQuantumCall = true;
       });
-      func.walk([&](cudaq::quake::CallByRefOp) { hasQuantumCall = true; });
-      func.walk([&](cudaq::quake::ApplyOp) { hasQuantumCall = true; });
+      // Wires cross a function boundary when the callee has a body. A
+      // bodyless declaration threads its wires straight back out, so indices
+      // remain locally assignable. Treat an unknown callee as having a body.
+      auto calleeIsDefined = [&](std::optional<SymbolRefAttr> callee) {
+        if (!callee)
+          return true;
+        auto fn = module.lookupSymbol<func::FuncOp>(*callee);
+        return !fn || !fn.isExternal();
+      };
+      func.walk([&](cudaq::quake::CallByRefOp call) {
+        if (calleeIsDefined(call.getCalleeAttr()))
+          hasQuantumCall = true;
+      });
+      func.walk([&](cudaq::quake::ApplyOp apply) {
+        if (calleeIsDefined(apply.getCallee()))
+          hasQuantumCall = true;
+      });
       if (hasQuantumCall) {
         func.emitRemark(
             "AssignWireIndicesPass function has calls, pass will not be run.");

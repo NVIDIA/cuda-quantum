@@ -17,7 +17,7 @@ import sys
 from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.util import trace
-from cudaq.mlir.dialects import cc, func
+from cudaq.mlir.dialects import cc, func, quake
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
                            Type)
@@ -25,7 +25,7 @@ from .analysis import FunctionDefVisitor
 from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
                                KernelSignature)
 from .ast_bridge import compile_to_mlir
-from .utils import (emitFatalError, emitErrorIfInvalidPauli,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli, ExtensionEntry,
                     get_function_source_or_raise, get_module_name,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
@@ -734,6 +734,81 @@ def isa_kernel_decorator(object):
     Return True if and only if object is an instance of PyKernelDecorator.
     """
     return isinstance(object, PyKernelDecorator)
+
+
+class ExternKernelDecorator(object):
+    """
+    Declares a quantum operation that the backend implements. The decorated
+    function is a declaration, so its body is never compiled and a call to it
+    lowers to a call of `backend_symbol` taking quantum references.
+    """
+
+    def __init__(self, function, backend_symbol=None):
+        self.kernelFunction = function
+        self.name = function.__name__
+        self.backendSymbol = backend_symbol if backend_symbol else self.name
+        self.defFrame = _recover_defining_frame()
+
+        (src, self.location) = _get_source(function)
+        self.astModule = _parse_ast(src)
+        self.signature = KernelSignature.parse_from_ast(self.astModule,
+                                                        self.name)
+
+        self.entry = ExtensionEntry(self.name,
+                                    ExtensionEntry.EXTERN_KERNEL,
+                                    signature=self.signature,
+                                    backendSymbol=self.backendSymbol)
+
+        if self.signature.return_type is not None:
+            emitFatalError(
+                f"extern kernel '{self.name}' must return None, since the "
+                "compiler cannot know what the backend returns.")
+        for ty in self.signature.arg_types:
+            if quake.VeqType.isinstance(ty):
+                emitFatalError(
+                    f"extern kernel '{self.name}' takes a qvector, whose size "
+                    "a call cannot express. List the qubits individually.")
+
+    def arg_types(self):
+        return self.signature.arg_types
+
+    def __call__(self, *args, **kwargs):
+        emitFatalError(
+            f"'{self.name}' is an extern kernel implemented by the backend, "
+            "so it can only be called from inside a CUDA-Q kernel.")
+
+
+def extern_kernel(function=None, backend_symbol=None):
+    """
+    Declare a quantum operation implemented by the backend rather than by the
+    compiler. The declaration carries the signature and the call site is an
+    ordinary call.
+    ```python
+        @cudaq.extern_kernel
+        def wait(q: cudaq.qubit, duration: float) -> None:
+            ...
+
+        @cudaq.kernel
+        def ramsey(d: float):
+            q = cudaq.qubit()
+            rx(np.pi / 2, q)
+            wait(q, d)
+    ```
+    The backend symbol defaults to the function name.
+    """
+    if isinstance(function, str):
+        backend_symbol = function
+        function = None
+    if function is None:
+        return lambda f: ExternKernelDecorator(f, backend_symbol=backend_symbol)
+    return ExternKernelDecorator(function, backend_symbol=backend_symbol)
+
+
+def isa_extern_kernel_decorator(object):
+    """
+    Return True if and only if object is an instance of ExternKernelDecorator.
+    """
+    return isinstance(object, ExternKernelDecorator)
 
 
 def _get_source(function):
