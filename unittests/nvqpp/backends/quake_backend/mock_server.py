@@ -13,7 +13,7 @@ from llvmlite import binding as llvm
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.ir import Module
 from cudaq.kernel.utils import getMLIRContext
-from cudaq.mlir.dialects import func
+from cudaq.mlir.dialects import func, quake
 from cudaq.mlir.dialects import llvm as mlir_llvm
 
 # Define the REST Server App
@@ -82,6 +82,70 @@ def verifyExpectedMapping(decoded_payload, entry_func_name):
         if token not in decoded_payload:
             raise RuntimeError(
                 f"Mapped kernel `{entry_func_name}` is missing `{token}`.")
+
+
+def walkOperations(operation):
+    for region in operation.regions:
+        for block in region:
+            for op in block:
+                yield op
+                yield from walkOperations(op.operation)
+
+
+def verifyExpectedDirectionality(entry_func):
+    entry_func_name = entry_func.name.value
+    if "directional_mapping" not in entry_func_name:
+        return
+
+    # Mirror the forward-only line declared by
+    # `directional_mapping_device.txt`: 0 -> 1 -> ... -> 5.
+    native_edges = {(physical, physical + 1) for physical in range(5)}
+    wire_to_physical = {}
+    for op in walkOperations(entry_func.operation):
+        if isinstance(op, quake.BorrowWireOp):
+            if op.set_name.value == "mapped_wireset":
+                wire_to_physical[op.operation.results[0]] = op.identity.value
+            continue
+
+        if not all(
+                hasattr(op, field)
+                for field in ("controls", "targets", "wires")):
+            continue
+
+        quantum_operands = [*op.controls, *op.targets]
+        if any(operand not in wire_to_physical for operand in quantum_operands):
+            raise RuntimeError(
+                "Could not resolve the physical operands of mapped operation "
+                f"`{op.operation.name}`.")
+
+        # The target basis admits only single-qubit gates and CX/CZ: every
+        # operator has exactly one target and either zero or one control.
+        if len(op.targets) != 1 or len(op.controls) > 1:
+            raise RuntimeError(
+                f"Mapped operation `{op.operation.name}` must have exactly "
+                "one target and at most one control.")
+
+        if len(op.controls) == 1:
+            if not isinstance(op, (quake.XOp, quake.ZOp)):
+                raise RuntimeError(
+                    "Mapped controlled operation must be CX or CZ, got "
+                    f"`{op.operation.name}`.")
+            control_physical, target_physical = (
+                wire_to_physical[operand] for operand in quantum_operands)
+            # The test topology contains only the forward edges 0->1->...->5.
+            # Validate the ordered control-target pair, not just adjacency, so
+            # a CX mapped onto the reverse direction fails this request.
+            if (control_physical, target_physical) not in native_edges:
+                raise RuntimeError(
+                    "Mapped controlled gate uses unsupported physical "
+                    f"direction {control_physical}->{target_physical}.")
+
+        if len(quantum_operands) != len(op.wires):
+            raise RuntimeError(
+                f"Mapped operation `{op.operation.name}` does not thread one "
+                "wire result per quantum operand.")
+        for operand, result in zip(quantum_operands, op.wires):
+            wire_to_physical[result] = wire_to_physical[operand]
 
 
 def verifyExpectedLoopCount(decoded_payload, entry_func_name):
@@ -178,17 +242,19 @@ async def postJob(request: Request):
         raise RuntimeError(
             f"Failed to run pass manager on the recovered module: {e}")
 
-    entry_func_name = ""
+    entry_func = None
     for op in recovered_mod.body.operations:
         if isinstance(op, func.FuncOp):
             for attr in op.attributes:
                 if attr == "cudaq-entrypoint":
-                    entry_func_name = op.name.value
+                    entry_func = op
                     break
-    if not entry_func_name:
+    if entry_func is None:
         raise RuntimeError(
             "Remote payload is missing a `cudaq-entrypoint` function.")
+    entry_func_name = entry_func.name.value
     verifyExpectedMapping(decoded_payload, entry_func_name)
+    verifyExpectedDirectionality(entry_func)
     verifyExpectedLoopCount(decoded_payload, entry_func_name)
 
     # Lower the module to LLVM IR.
