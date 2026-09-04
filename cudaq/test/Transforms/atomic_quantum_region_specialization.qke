@@ -82,15 +82,15 @@ func.func @caller(%control: !quake.ref, %target: !quake.ref) {
 
 // INLINE-LABEL:   func.func @caller(
 // INLINE-SAME:      %[[ARG0:.*]]: !quake.ref, %[[ARG1:.*]]: !quake.ref) {
-// INLINE:           cc.scope {
+// INLINE:           cc.scope atomic {
 // INLINE:             quake.t<adj> %[[ARG1]] : (!quake.ref) -> ()
-// INLINE:           } {atomic_quantum_region}
+// INLINE:           }
 // INLINE:           %[[CONCAT_0:.*]] = quake.concat %[[ARG0]] : (!quake.ref) -> !quake.veq<1>
-// INLINE:           cc.scope {
+// INLINE:           cc.scope atomic {
 // INLINE:             quake.t {{\[}}%[[CONCAT_0]]] %[[ARG1]] : (!quake.veq<1>, !quake.ref) -> ()
-// INLINE:           } {atomic_quantum_region}
+// INLINE:           }
 // INLINE:           %[[CONCAT_1:.*]] = quake.concat %[[ARG0]] : (!quake.ref) -> !quake.veq<1>
-// INLINE:           cc.scope {
+// INLINE:           cc.scope atomic {
 // INLINE:             quake.t<adj> {{\[}}%[[CONCAT_1]]] %[[ARG1]] : (!quake.veq<1>, !quake.ref) -> ()
-// INLINE:           } {atomic_quantum_region}
+// INLINE:           }
 // INLINE:           quake.t<adj> %[[ARG1]] : (!quake.ref) -> ()

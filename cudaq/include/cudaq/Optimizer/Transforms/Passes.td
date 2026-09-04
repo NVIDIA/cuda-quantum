@@ -1444,6 +1444,34 @@ def MultiControlDecomposition :
   }];
 }
 
+def NormalizeAtomicQuantumRegions :
+    Pass<"normalize-atomic-quantum-regions"> {
+  let summary =
+      "Hoist/sink non-unitary operations from marked atomic quantum region.";
+  let description = [{
+    An `atomic_quantum_region` `cc.scope` marks a sequence of quantum
+    operations that must execute without interleaving with allocations,
+    deallocations, or measurements. When such a scope contains its own
+    `quake.alloca`s, those allocations (and their associated `quake.dealloc`s)
+    are not something that needs to stay inside the atomic region but need to
+    be moved outside of it.
+
+    This pass wraps a `cc.scope` carrying the `atomic_quantum_region`
+    attribute with a new, plain (non-atomic) `cc.scope`. Any `quake.alloca`
+    found directly in the atomic scope's body is hoisted into the new outer
+    scope, ahead of the (now-nested) atomic scope. Any `quake.dealloc` that
+    deallocates one of those hoisted allocations is sunk into the outer scope.
+    Additionally any measurement op found in the body and the transitive closure
+    of every op that consumes a measurement's result is also sunk out of the
+    region. This means an atomic region may not contain mid-circuit
+    measurements.
+
+    For now, this pass only handles reference-semantics Quake IR and requires
+    the atomic scope to have a single block and zero results; it leaves any
+    other atomic scope unmodified.
+  }];
+}
+
 def NormalizePhasePlacement :
     Pass<"normalize-phase-placement", "mlir::func::FuncOp"> {
   let summary = "Normalize block-local placement of phase corrections";

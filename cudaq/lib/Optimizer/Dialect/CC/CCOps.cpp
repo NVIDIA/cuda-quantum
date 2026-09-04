@@ -2132,10 +2132,15 @@ void cudaq::cc::ScopeOp::print(OpAsmPrinter &p) {
     // Print terminator explicitly if the op defines values.
     printBlockTerminators = true;
   }
+  if (getAtomicQuantumRegionAttr())
+    p << " atomic";
   p << ' ';
   p.printRegion(getRegion(), /*printEntryBlockArgs=*/false,
                 printBlockTerminators);
-  p.printOptionalAttrDict((*this)->getAttrs());
+  // The `atomic_quantum_region` attribute is represented by the `atomic`
+  // keyword above, not the generic attribute dictionary.
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          /*elidedAttrs=*/{atomicQuantumRegionAttrName});
 }
 
 static void ensureScopeRegionTerminator(OpBuilder &builder,
@@ -2158,6 +2163,9 @@ ParseResult cudaq::cc::ScopeOp::parse(OpAsmParser &parser,
                                       OperationState &result) {
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
+  if (succeeded(parser.parseOptionalKeyword("atomic")))
+    result.addAttribute(atomicQuantumRegionAttrName,
+                        UnitAttr::get(parser.getContext()));
   auto *body = result.addRegion();
   if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseOptionalAttrDict(result.attributes))

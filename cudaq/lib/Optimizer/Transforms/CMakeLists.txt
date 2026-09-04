@@ -62,6 +62,7 @@ add_cudaq_library(OptTransforms
   MemToReg.cpp
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
+  NormalizeAtomicQuantumRegions.cpp
   NormalizePhasePlacement.cpp
   ObserveAnsatz.cpp
   OptimizeSingleQubitCliffordT.cpp
