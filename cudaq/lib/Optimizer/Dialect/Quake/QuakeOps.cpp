@@ -1057,21 +1057,19 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
   // from the operand index.
   SmallVector<Type> myResultTypes{getResultTypes().begin(),
                                   getResultTypes().end()};
-  const std::size_t numQuantumArgs =
-      llvm::count_if(getOperandTypes(), [](Type ty) {
-        return cudaq::quake::isQuantumValueType(ty);
-      });
-  if (myResultTypes.size() != formalResultsSize + numQuantumArgs)
+  const std::size_t numQuantumValueArgs =
+      llvm::count_if(getOperandTypes(), cudaq::quake::isQuantumValueType);
+  if (myResultTypes.size() != formalResultsSize + numQuantumValueArgs)
     return emitOpError("must return exactly one quantum value per quantum "
                        "argument, in addition to the callee's results");
 
-  std::size_t quantumArgIndex = 0;
+  std::size_t quantumValueIdx = 0;
   for (auto iter :
        llvm::enumerate(llvm::zip(getOperandTypes(), asSig.getInputs()))) {
     auto i = iter.index();
     auto [operTy, sigTy] = iter.value();
     if (cudaq::quake::isQuantumValueType(operTy)) {
-      const std::size_t resultIndex = formalResultsSize + quantumArgIndex++;
+      const std::size_t resultIndex = formalResultsSize + quantumValueIdx++;
       if (!quake::isQuantumReferenceType(sigTy))
         return emitOpError("argument #" + std::to_string(i) +
                            " must be a quantum type");
