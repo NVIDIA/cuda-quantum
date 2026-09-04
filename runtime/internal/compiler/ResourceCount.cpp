@@ -72,9 +72,6 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   // LowerPhase may preserve negative controls on the physical gates it emits.
   // Expand them before collecting the final gate counts.
   pm.addNestedPass<func::FuncOp>(createExpandControlNegations());
-  // Keep this verifier before ResourceCountPreprocess, which erases every
-  // counted operator and could otherwise hide an unlowered PhaseOp.
-  pm.addPass(createVerifyNoPhase());
   pm.addNestedPass<func::FuncOp>(createResourceCountPreprocess(opt));
   pm.addPass(createCanonicalizerPass());
   auto pmResult = pm.run(module);

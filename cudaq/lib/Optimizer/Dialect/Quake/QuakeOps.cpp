@@ -319,7 +319,8 @@ void cudaq::quake::AllocaOp::getCanonicalizationPatterns(
   // Use a canonicalization pattern as folding the constant into the veq type
   // changes the type. Uses may still expect a veq with unspecified size.
   // Folding is strictly reductive and doesn't allow the creation of ops.
-  patterns.add<FuseConstantToAllocaPattern>(context);
+  patterns.add<ReplaceZeroSizeAllocaPattern, FuseConstantToAllocaPattern>(
+      context);
 }
 
 cudaq::quake::InitializeStateOp cudaq::quake::AllocaOp::getInitializedState() {
@@ -329,6 +330,11 @@ cudaq::quake::InitializeStateOp cudaq::quake::AllocaOp::getInitializedState() {
     return dyn_cast<cudaq::quake::InitializeStateOp>(*x);
   }
   return {};
+}
+
+void cudaq::quake::DeallocOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseEmptyVeqDeallocPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -464,6 +470,11 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
           "appended result types must match linear-type actuals in order");
 
   return success();
+}
+
+void cudaq::quake::ApplyOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseApplyEmptyVeqControlPattern>(context);
 }
 
 void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
@@ -659,6 +670,11 @@ LogicalResult cudaq::quake::ApplyNoiseOp::verify() {
   return success();
 }
 
+void cudaq::quake::ApplyNoiseOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseApplyNoiseEmptyVeqQubitPattern>(context);
+}
+
 //===----------------------------------------------------------------------===//
 // BorrowWire
 //===----------------------------------------------------------------------===//
@@ -683,8 +699,9 @@ LogicalResult cudaq::quake::BorrowWireOp::verify() {
 
 void cudaq::quake::ConcatOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ConcatSizePattern, ConcatNoOpPattern, UselessConcatOpPattern,
-               ConcatFlattenPattern>(context);
+  patterns.add<DropEmptyVeqConcatOperandsPattern, ConcatSizePattern,
+               ConcatNoOpPattern, UselessConcatOpPattern, ConcatFlattenPattern>(
+      context);
 }
 
 LogicalResult cudaq::quake::ConcatOp::verify() {
@@ -748,7 +765,8 @@ void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
 
 void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern>(context);
+  patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern,
+               EraseEmptyVeqControlPattern<ExpPauliOp>>(context);
 }
 
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
@@ -807,7 +825,8 @@ void printRawIndex(OpAsmPrinter &printer, OP refOp, Value index,
 
 void cudaq::quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
+  patterns.add<ReplaceEmptyVeqExtractRefPattern,
+               FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
                ForwardConcatExtractPattern, ExtractRefFromSubVeqPattern>(
       context);
 }
@@ -850,7 +869,7 @@ LogicalResult cudaq::quake::GetMemberOp::verify() {
 
 void cudaq::quake::GetMemberOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<BypassMakeStruq>(context);
+  patterns.add<ReplaceEmptyVeqGetMemberPattern, BypassMakeStruq>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -878,7 +897,8 @@ LogicalResult cudaq::quake::InitializeStateOp::verify() {
 
 void cudaq::quake::InitializeStateOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardAllocaTypePattern>(context);
+  patterns.add<ForwardEmptyVeqInitStatePattern, ForwardAllocaTypePattern>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -946,8 +966,9 @@ LogicalResult cudaq::quake::SubVeqOp::verify() {
 
 void cudaq::quake::SubVeqOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FixUnspecifiedSubveqPattern, FuseConstantToSubveqPattern,
-               RemoveSubVeqNoOpPattern, CombineSubVeqsPattern>(context);
+  patterns.add<ReplaceEmptyVeqSubVeqPattern, FixUnspecifiedSubveqPattern,
+               FuseConstantToSubveqPattern, RemoveSubVeqNoOpPattern,
+               CombineSubVeqsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1282,7 +1303,8 @@ void cudaq::quake::PhaseOp::getOperatorMatrix(Matrix &matrix) {
 
 void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseZeroPhasePattern, MergeAdjacentPhasePattern>(context);
+  patterns.add<EraseZeroPhasePattern, MergeAdjacentPhasePattern,
+               EraseEmptyVeqControlPattern<PhaseOp>>(context);
 }
 
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
@@ -1441,6 +1463,11 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
   return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
+void cudaq::quake::CustomUnitaryCallOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>>(context);
+}
+
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
   matrix.clear();
   // The unitary is held in a `cc.global` constant referenced by this op. Read
@@ -1528,6 +1555,11 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
   }
 
   return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
+}
+
+void cudaq::quake::CustomUnitaryConstantOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1656,6 +1688,14 @@ INSTANTIATE_CALLBACKS(PhaseOp)
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_VERIFY)
 WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 
+#define INSTANTIATE_OPERATOR_CANONICALIZATION(Op)                              \
+  void cudaq::quake::Op::getCanonicalizationPatterns(                          \
+      RewritePatternSet &patterns, MLIRContext *context) {                     \
+    patterns.add<EraseEmptyVeqControlPattern<Op>>(context);                    \
+  }
+
+BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)
+
 //===----------------------------------------------------------------------===//
 // LogOutputOp
 //===----------------------------------------------------------------------===//
@@ -1670,6 +1710,11 @@ LogicalResult cudaq::quake::LogOutputOp::verify() {
     return emitOpError("result types must mirror wire/cable operand types "
                        "in left-to-right order");
   return success();
+}
+
+void cudaq::quake::LogOutputOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<DropEmptyVeqLogOutputArgsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

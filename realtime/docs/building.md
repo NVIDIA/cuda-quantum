@@ -34,6 +34,20 @@ for more information about these tests.
 the basic CUDA-Q Realtime library, e.g., the dispatch library
 and host API; no networking transport layer is included.
 
+## Using the build script
+
+`realtime/scripts/build_realtime.sh` wraps the steps above: it configures,
+builds and installs CUDA-Q Realtime, mirroring the options of the top-level
+`scripts/build_cudaq.sh`. Run it from anywhere in the CUDA-Q source tree:
+
+```bash
+# Release build, installed into $HOME/.cudaq_realtime
+bash realtime/scripts/build_realtime.sh
+
+# Debug build with Address and Undefined Behavior Sanitizers
+bash realtime/scripts/build_realtime.sh -c Debug -s
+```
+
 ## Enable Holoscan Sensor Bridge Support
 
 [Holoscan Sensor Bridge](https://www.nvidia.com/en-us/technologies/holoscan-sensor-bridge/)

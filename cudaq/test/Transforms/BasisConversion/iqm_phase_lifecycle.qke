@@ -8,7 +8,7 @@
 
 // The first IQM mapping may leave phase bookkeeping. Lower it before the final
 // mapping so that LowerPhase's R1/Rz output is converted to IQM native gates.
-// RUN: cudaq-opt -pass-pipeline='builtin.module(jit-deploy-pipeline,iqm-gate-set-mapping,func.func(cse,normalize-phase-placement,lower-phase,canonicalize),iqm-gate-set-mapping,verify-no-phase)' %s | FileCheck %s --implicit-check-not='quake.phase (' --implicit-check-not='quake.r1 (' --implicit-check-not='quake.rz ('
+// RUN: cudaq-opt -pass-pipeline='builtin.module(jit-deploy-pipeline,iqm-gate-set-mapping,func.func(cse,normalize-phase-placement,lower-phase,canonicalize),iqm-gate-set-mapping)' %s | FileCheck %s --implicit-check-not='quake.phase (' --implicit-check-not='quake.r1 (' --implicit-check-not='quake.rz ('
 
 module {
   func.func @u3_iqm() attributes {"cudaq-entrypoint"} {

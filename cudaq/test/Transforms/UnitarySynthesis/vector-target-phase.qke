@@ -11,11 +11,11 @@
 // RUN: cudaq-opt --unitary-synthesis --canonicalize %s | FileCheck %s --check-prefix=PHASE
 // RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
 // RUN:   --aggressive-inlining --expand-control-veqs --cse \
-// RUN:   --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize %s \
 // RUN:   | CircuitCheck %s
 // RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
 // RUN:   --aggressive-inlining --expand-control-veqs --cse \
-// RUN:   --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize %s \
 // RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 
 module {

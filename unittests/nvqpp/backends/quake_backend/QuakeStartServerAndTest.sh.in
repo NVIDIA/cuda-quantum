@@ -78,6 +78,23 @@ else
   fi
 fi
 
+# Verify a nontrivial CX network against a forward-only device topology. The
+# mock server checks every mapped CX direction before executing the payload.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --mapping-file @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/directional_mapping_device.txt @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_directional_mapping_app.cpp -o test_directional_mapping_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_directional_mapping_app"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_directional_mapping_app with nvq++"
+  ./test_directional_mapping_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_directional_mapping_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_directional_mapping_app"
+  fi
+fi
+
 # Loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the client
 # preserves cc.loop operations, and the mock server validates and executes the
 # submitted payload.

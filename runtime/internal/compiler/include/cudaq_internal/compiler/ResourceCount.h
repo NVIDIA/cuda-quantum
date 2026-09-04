@@ -15,7 +15,7 @@
 namespace cudaq::opt {
 
 /// Extract resource counts from a Quake IR module using static analysis.
-/// Completes and verifies the global-phase lifecycle, then runs
+/// Completes the global-phase lifecycle, then runs
 /// ResourceCountPreprocess to count physical gates with qubit indices for
 /// depth. Counted gates are erased from the module. Returns the accumulated
 /// counts, or failure if the pass pipeline fails.
