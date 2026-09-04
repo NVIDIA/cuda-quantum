@@ -396,7 +396,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param cudaq_site_config=build/targettests/lit.site.cfg.py ${filtered} && \
-    filtered=""; \
+    filtered="" && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         # The test is marked correctly as requiring nvcc, but since nvcc
         # is available during the build we need to filter it manually.
