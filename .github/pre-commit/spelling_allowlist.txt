@@ -6,6 +6,7 @@ APIs
 AST
 Aer
 AlmaLinux
+Amano
 Anyon
 AquSim
 Asynchronous
@@ -30,6 +31,7 @@ CPython
 CUDA
 Cartesian
 CentOS
+Cliffords
 CompileMetrics
 CompiledKernel
 Conda
@@ -66,6 +68,7 @@ Gantt
 GitHub
 GoogleTest
 GpuRoceTransceiver
+Gridsynth
 HEA
 HPC
 HSB
@@ -199,6 +202,7 @@ SLURM
 SVD
 SX
 Scaleway
+Selinger
 Sqale
 Stim
 Superpositions
