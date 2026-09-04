@@ -384,7 +384,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         # The tests is marked correctly as requiring nvcc, but since nvcc
         # is available during the build we need to filter it manually.
         filtered=" --filter-out MixedLanguage/cuda-1"; \
-	filtered+="|AST-Quake/calling_convention|test_argument_conversion"; \
+	filtered+="|Frontend/calling_convention|test_argument_conversion"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/cudaq/test \
         --param cudaq_site_config=build/cudaq/test/lit.site.cfg.py ${filtered} && \

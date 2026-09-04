@@ -171,4 +171,4 @@ Quake, CC, and QEC declarations are under
 ``cudaq/include/cudaq/Optimizer/CodeGen``, and their implementations are under
 ``cudaq/lib/Optimizer``. Focused C++ tests for dialect operations and interfaces
 are under ``cudaq/unittests/Optimizer``. Textual IR coverage is under
-``cudaq/test/Transforms``, ``cudaq/test/AST-Quake``, and ``python/tests/mlir``.
+``cudaq/test/Transforms``, ``cudaq/test/Frontend``, and ``python/tests/mlir``.
