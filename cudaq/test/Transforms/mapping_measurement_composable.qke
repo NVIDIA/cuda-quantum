@@ -70,6 +70,6 @@ func.func @adaptive_cfg_feedback_run() attributes {quake.cudaq_run = [i1]} {
 ^done:
   // CHECK: unsupported measurement-dependent behavior
   quake.return_wire %wire : !quake.wire
-  quake.log_output %bit : (i1) -> ()
+  quake.evince %bit : (i1) -> ()
   return
 }

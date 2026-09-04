@@ -67,7 +67,7 @@ CUDAQ_TEST(QuantumMachinesTester, gates) {
 namespace {
 constexpr std::string_view currentQuakeIR = R"mlir(module {
   func.func @kernel(%arg0: !cc.sequence<i64>) {
-    quake.log_output %arg0 : (!cc.sequence<i64>) -> ()
+    quake.evince %arg0 : (!cc.sequence<i64>) -> ()
     return
   }
 })mlir";
@@ -98,7 +98,7 @@ CUDAQ_TEST(QuantumMachinesTester, rewritesLegacySpellings) {
   EXPECT_NE(submittedIR.find("cc.log_output %arg0 : !cc.stdvec<i64>"),
             std::string::npos);
   EXPECT_EQ(submittedIR.find("cc.sequence"), std::string::npos);
-  EXPECT_EQ(submittedIR.find("quake.log_output"), std::string::npos);
+  EXPECT_EQ(submittedIR.find("quake.evince"), std::string::npos);
 }
 
 int main(int argc, char **argv) {

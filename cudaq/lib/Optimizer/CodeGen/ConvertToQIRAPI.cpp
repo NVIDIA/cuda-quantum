@@ -2708,9 +2708,9 @@ struct QuakeToQIRAPIPass
     target.addIllegalDialect<cudaq::quake::QuakeDialect,
                              cudaq::codegen::CodeGenDialect,
                              cudaq::qec::QECDialect>();
-    // quake.log_output is lowered by ReturnToOutputLog (which runs after this
+    // quake.evince is lowered by ReturnToOutputLog (which runs after this
     // pass), not by QuakeToQIRAPI, so mark it legal to pass through unchanged.
-    target.addLegalOp<cudaq::quake::LogOutputOp>();
+    target.addLegalOp<cudaq::quake::EvinceOp>();
     target.addLegalOp<cudaq::codegen::MaterializeConstantArrayOp>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
       return !needsTypeConversion(fn.getFunctionType()) &&
@@ -3113,8 +3113,8 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
   pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createEraseCompilerGeneratedLogOutput());
-  // Fuse SSI blocks after erasure of all fake quake.log_output.
+      cudaq::opt::createEraseCompilerGeneratedEvince());
+  // Fuse SSI blocks after erasure of all fake quake.evince.
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createLowerToCG());
   QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};

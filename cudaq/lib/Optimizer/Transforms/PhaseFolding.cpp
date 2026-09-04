@@ -740,7 +740,7 @@ class PhaseFoldingPass
         store.addRotation(opi, p);
         wirePhase[op->getResult(0)] = p;
       } else if (auto phase = dyn_cast<cudaq::quake::PhaseOp>(op)) {
-        wirePhase[phase->getResult(0)] = getWirePhase(phase.getTarget(0));
+        wirePhase[phase->getResult(0)] = getWirePhase(phase.getTarget());
       } else if (auto swap = dyn_cast<cudaq::quake::SwapOp>(op)) {
         Phase p0 = getWirePhase(swap.getTarget(0));
         Phase p1 = getWirePhase(swap.getTarget(1));
