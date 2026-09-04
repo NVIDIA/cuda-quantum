@@ -44,9 +44,13 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
 )
 
-# cudaq/mlir is excluded: the MLIR machinery in extension/ stages it, and
-# a second producer for the same outputs races it. No CONFIGURE_DEPENDS:
-# a mid-ctest reconfigure relinks libraries under running tests. Adding a
+# cudaq/mlir is excluded: the dialect bindings under it are staged by
+# cudaq/python/CMakeLists.txt (CUDAQCorePythonModules) and the extension/
+# module here (CUDAQuantumPythonModules); a second producer for the same
+# outputs would race them. In practice this directory no longer exists under
+# python/cudaq/ (the bindings moved to cudaq/python/mlir/), but the filter is
+# kept as a guard against reintroducing the race. No CONFIGURE_DEPENDS: a
+# mid-ctest reconfigure relinks libraries under running tests. Adding a
 # python file requires a reconfigure.
 file(GLOB_RECURSE _cudaq_package_sources
   RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
