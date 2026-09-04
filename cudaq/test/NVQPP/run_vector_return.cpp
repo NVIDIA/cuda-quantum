@@ -49,5 +49,5 @@ int main() {
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__run_vector_return.run()
 // CHECK-NOT:   call @malloc
 // CHECK-NOT:   call @llvm.memcpy
-// CHECK:       quake.log_output
+// CHECK:       quake.evince
 // CHECK:       return

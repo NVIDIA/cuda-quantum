@@ -92,7 +92,6 @@ void cudaq::opt::addConvertToLinearValues(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createRepairLinearType());
   pm.addNestedPass<func::FuncOp>(createLinearCtrlRelations());
 }
 

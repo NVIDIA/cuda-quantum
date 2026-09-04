@@ -153,23 +153,23 @@ func.func @get_member_empty_veq(%s: !quake.struq<!quake.veq<0>, !quake.ref>) -> 
 
 // An empty veq has no observable qubit, so it contributes nothing to what's
 // being logged and is dropped from the IR. We can't observe nothing.
-func.func @log_output_drop_empty_veq_arg(%r: !quake.ref, %e: !quake.veq<0>) {
-  quake.log_output %r, %e : (!quake.ref, !quake.veq<0>) -> ()
+func.func @evince_drop_empty_veq_arg(%r: !quake.ref, %e: !quake.veq<0>) {
+  quake.evince %r, %e : (!quake.ref, !quake.veq<0>) -> ()
   return
 }
 
-// CHECK-LABEL: func.func @log_output_drop_empty_veq_arg(
+// CHECK-LABEL: func.func @evince_drop_empty_veq_arg(
 // CHECK-SAME:    %[[R:[a-zA-Z0-9_.$-]+]]: !quake.ref
-// CHECK:         quake.log_output %[[R]] : (!quake.ref) -> ()
+// CHECK:         quake.evince %[[R]] : (!quake.ref) -> ()
 
-func.func @log_output_erase_all_empty_veq_args(%e0: !quake.veq<0>,
+func.func @evince_erase_all_empty_veq_args(%e0: !quake.veq<0>,
                                                %e1: !quake.veq<0>) {
-  quake.log_output %e0, %e1 : (!quake.veq<0>, !quake.veq<0>) -> ()
+  quake.evince %e0, %e1 : (!quake.veq<0>, !quake.veq<0>) -> ()
   return
 }
 
-// CHECK-LABEL: func.func @log_output_erase_all_empty_veq_args(
-// CHECK-NOT:     quake.log_output
+// CHECK-LABEL: func.func @evince_erase_all_empty_veq_args(
+// CHECK-NOT:     quake.evince
 // CHECK:         return
 
 // There are no qubits to free in an empty veq, so the dealloc is dead.

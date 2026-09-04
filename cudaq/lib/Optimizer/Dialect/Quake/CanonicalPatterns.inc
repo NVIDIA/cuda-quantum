@@ -280,21 +280,21 @@ struct EraseApplyNoiseEmptyVeqQubitPattern
   }
 };
 
-// quake.log_output %r, %empty, %w : (..., !quake.veq<0>, ...) -> (...)
+// quake.evince %r, %empty, %w : (..., !quake.veq<0>, ...) -> (...)
 // ───────────────────────────────────────────────────────────────────
-// quake.log_output %r, %w : (..., ...) -> (...)
+// quake.evince %r, %w : (..., ...) -> (...)
 //
 // An empty veq has no observable qubit -- there is nothing there to log --
 // so it contributes nothing to what's being observed. A veq is never a
 // linear type, so dropping it never touches `outs`. If nothing observable
 // remains, the whole op is dead and is erased.
-struct DropEmptyVeqLogOutputArgsPattern
-    : public OpRewritePattern<cudaq::quake::LogOutputOp> {
+struct DropEmptyVeqEvinceArgsPattern
+    : public OpRewritePattern<cudaq::quake::EvinceOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::LogOutputOp log,
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
                                 PatternRewriter &rewriter) const override {
-    auto args = log.getArgs();
+    auto args = evin.getArgs();
     SmallVector<Value> keep;
     for (Value arg : args)
       if (!isEmptyVeqType(arg))
@@ -303,12 +303,12 @@ struct DropEmptyVeqLogOutputArgsPattern
       return failure();
 
     if (keep.empty()) {
-      rewriter.eraseOp(log);
+      rewriter.eraseOp(evin);
       return success();
     }
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::LogOutputOp>(
-        log, keep, log.getCompilerGenerated());
+    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
+        evin, keep, evin.getCompilerGenerated());
     return success();
   }
 };
