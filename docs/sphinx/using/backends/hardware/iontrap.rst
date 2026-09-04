@@ -18,6 +18,9 @@ it as an environment variable:
 
   export IONQ_API_KEY="ionq_generated_api_key"
 
+Alternatively, pass the key with the ``api_key`` argument to
+``cudaq.set_target`` or the ``--ionq-api-key`` flag to ``nvq++``.
+
 
 Submitting
 `````````````````````````

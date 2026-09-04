@@ -9,7 +9,7 @@
 add_backend_unittest_executable(test_ionq 
   SOURCES IonQTester.cpp
   BACKEND ionq
-  BACKEND_CONFIG "ionq emulate=false url=http://localhost:62441"
+  BACKEND_CONFIG "ionq emulate=false url=http://localhost:62441 api_key=00000000000000000000000000000000"
 )
 
 
