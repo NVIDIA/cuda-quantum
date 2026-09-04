@@ -1662,6 +1662,66 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
   LogicalResult
   matchAndRewrite(cudaq::quake::ApplyOp apply, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    // A plain (unpredicated, uncontrolled) apply with a direct callee is a
+    // vanilla call. Lower it straight to a `func.call`. In the normal
+    // pipeline apply-op-specialization eliminates these before they ever
+    // reach codegen; this handles one that reaches here unresolved anyway
+    // (e.g. a forward-declared callee, or cudaq-opt invoked directly without
+    // that pass, as in a `--convert-to-qir-api`-only run).
+    if (!apply.getIsAdj() && apply.getControls().empty()) {
+      if (auto callee = apply.getCallee()) {
+        auto fn =
+            SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply, *callee);
+        if (fn) {
+          SmallVector<Value> quantumArgs;
+          for (auto [valarg, qirarg] :
+               llvm::zip(apply.getActuals(), adaptor.getActuals()))
+            if (cudaq::quake::isQuantumValueType(valarg.getType()))
+              quantumArgs.push_back(qirarg);
+          // `fn`'s formal types can't tell us which actuals were coerced
+          // (wire/cable actual -> ref/veq formal) versus passed straight
+          // through to an already-linear formal: by this point
+          // FuncSignaturePattern may already have converted both shapes to
+          // the same QIR type. Distinguish the two provably-sound shapes
+          // from apply's own result arity instead (quake.apply's verifier
+          // guarantees exactly one appended result per coerced actual, in
+          // order, and none otherwise):
+          unsigned formalResultCount = fn.getFunctionType().getResults().size();
+          unsigned appliedResultCount = apply.getResultTypes().size();
+          auto loc = apply.getLoc();
+          if (appliedResultCount == formalResultCount) {
+            // No actual was coerced: every quantum-value actual already
+            // matched an already-linear formal, so the callee's own
+            // results (which already carry the threaded-through
+            // wires/cables) replace apply's results directly.
+            auto call = func::CallOp::create(
+                rewriter, loc, callee->getRootReference().getValue(),
+                fn.getFunctionType().getResults(), adaptor.getActuals());
+            rewriter.replaceOp(apply, call.getResults());
+            return success();
+          }
+          if (appliedResultCount == formalResultCount + quantumArgs.size()) {
+            // Every quantum-value actual was coerced to a reference-typed
+            // formal (the cable-rough-in shape): each gets an appended
+            // result recovering the same value passed in, exactly like
+            // CallByRefOpRewrite below, since a ref-taking callee mutates
+            // in place rather than returning a new handle.
+            auto call = func::CallOp::create(
+                rewriter, loc, callee->getRootReference().getValue(),
+                fn.getFunctionType().getResults(), adaptor.getActuals());
+            SmallVector<Value> results{call.getResults().begin(),
+                                       call.getResults().end()};
+            results.append(quantumArgs.begin(), quantumArgs.end());
+            rewriter.replaceOp(apply, results);
+            return success();
+          }
+          // A mix of coerced and passthrough quantum-value actuals: which
+          // ones were coerced can't be recovered here. Fall through to the
+          // trap below rather than construct a replacement with the wrong
+          // arity or the wrong values.
+        }
+      }
+    }
     if (auto callee = apply.getCallee())
       apply.emitWarning("could not generate the specialized form of kernel '")
           << callee->getRootReference().getValue()
@@ -1714,6 +1774,9 @@ struct CustomUnitaryCallOpTrap
   mutable llvm::SmallDenseSet<StringAttr> reported;
 };
 
+// quake.call_by_ref is deprecated: a plain quake.apply now subsumes its
+// capability. This lowering is kept only so that hand-written or previously
+// serialized IR using it continues to work.
 struct CallByRefOpRewrite
     : public OpConversionPattern<cudaq::quake::CallByRefOp> {
   using OpConversionPattern::OpConversionPattern;

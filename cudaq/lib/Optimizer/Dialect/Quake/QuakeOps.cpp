@@ -399,11 +399,19 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
         isa<cudaq::quake::RefType>(formal))
       return true;
     // (c) cable<N> → veq<N> or unsized veq<?>
-    if (isa<cudaq::quake::CableType>(actual))
+    if (isa<cudaq::quake::CableType>(actual)) {
       if (auto veqFormal = dyn_cast<cudaq::quake::VeqType>(formal))
         return !veqFormal.hasSpecifiedSize() ||
                cudaq::quake::getWireCount(actual) ==
                    cudaq::quake::getAllocationSize(formal);
+      // (d) cable<N> → struq, provided the struq's constant member sizes sum
+      // to N. Like (c), the individual wires making up the cable become the
+      // wrapped refs threaded into the struq's ref/veq members.
+      if (isa<cudaq::quake::StruqType>(formal))
+        return cudaq::quake::isConstantQuantumRefType(formal) &&
+               cudaq::quake::getWireCount(actual) ==
+                   cudaq::quake::getAllocationSize(formal);
+    }
     return false;
   };
 
