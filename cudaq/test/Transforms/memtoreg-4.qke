@@ -376,7 +376,7 @@ func.func @bug_5286() {
     %2 = arith.addi %arg0, %c1_i64 : i64
     cc.continue %2 : i64
   }
-  quake.log_output %0 : (!quake.ref) -> () {compilerGenerated}
+  quake.evince %0 : (!quake.ref) -> () {compilerGenerated}
   quake.dealloc %0 : !quake.ref
   return
 }
@@ -405,7 +405,7 @@ func.func @bug_5286() {
 // CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_6]], %[[CONSTANT_0]] : i64
 // CHECK:             cc.continue %[[ADDI_0]], %[[VAL_7]] : i64, !quake.wire
 // CHECK:           }
-// CHECK:           %[[LOG_OUTPUT_0:.*]] = quake.log_output %[[LOOP_0]]#1 : (!quake.wire) -> !quake.wire {compilerGenerated}
-// CHECK:           quake.sink %[[LOG_OUTPUT_0]] : !quake.wire
+// CHECK:           %[[EVINCE_0:.*]] = quake.evince %[[LOOP_0]]#1 : (!quake.wire) -> !quake.wire {compilerGenerated}
+// CHECK:           quake.sink %[[EVINCE_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }

@@ -23,8 +23,11 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipeline
+  # Decompose source operations before mapping so the mapper sees only gates
+  # supported by its two-qubit coupling graph. Keep the second decomposition
+  # after mapping to lower any SWAP operations introduced by routing.
   jit-high-level-pipeline: "func.func(add-measurements)"
-  jit-mid-level-pipeline: "prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true},qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
+  jit-mid-level-pipeline: "prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)},qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
   jit-low-level-pipeline: "symbol-dce"
   # Tell the rest-qpu that the required output format is quake.
   codegen-emission: nop

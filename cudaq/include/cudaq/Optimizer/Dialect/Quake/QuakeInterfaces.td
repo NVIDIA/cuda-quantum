@@ -74,7 +74,7 @@ def OperatorInterface : OpInterface<"OperatorInterface"> {
       /*retType=*/ "mlir::Value",
       /*methodName=*/ "getTarget",
       /*args=*/ (ins "unsigned":$index),
-      /*methodBody=*/ "return $_op.getTarget(index);"
+      /*methodBody=*/ "return $_op.getTargets()[index];"
     >,
     InterfaceMethod<
       /*desc=*/ [{ Set `matrix` to the operator's unitary matrix as a
