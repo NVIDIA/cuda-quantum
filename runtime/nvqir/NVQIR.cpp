@@ -212,8 +212,7 @@ constexpr std::string_view typeName() {
 template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
                                                      std::size_t numQubits) {
-  // The state size is `2^numQubits`
-  auto size = pow(2, numQubits);
+  auto size = 1ULL << numQubits;
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
   CUDAQ_INFO("copying {} complex<{}> values to complex<{}>", size, fromType,
@@ -231,8 +230,7 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
 template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
                                                      std::size_t numQubits) {
-  // The state size is `2^numQubits`
-  auto size = pow(2, numQubits);
+  auto size = 1ULL << numQubits;
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
   CUDAQ_INFO("copying {} {} values to complex<{}>", size, fromType, toType);
@@ -421,8 +419,8 @@ void __quantum__rt__qubit_release_array(Array *arr) {
     nvqir::getCircuitSimulatorInternal()->deallocate(idxVal->idx);
     delete idxVal;
   }
-  delete arr;
   nvqir::ArrayTracker::getInstance().untrack(arr);
+  delete arr;
   return;
 }
 
@@ -906,6 +904,9 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
       try {
         channelName = noise->get_channel(key, paramVec).get_type_name();
       } catch (...) {
+        CUDAQ_DBG("Failed to resolve noise channel name in tracer mode for "
+                  "key {}, falling back to 'apply_noise'",
+                  key);
       }
     }
     ctx->kernelTrace.appendNoiseInstruction(
@@ -947,6 +948,9 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
       try {
         channelName = noise->get_channel(key, paramVec).get_type_name();
       } catch (...) {
+        CUDAQ_DBG("Failed to resolve noise channel name in tracer mode for "
+                  "key {}, falling back to 'apply_noise'",
+                  key);
       }
     }
     ctx->kernelTrace.appendNoiseInstruction(
@@ -1055,8 +1059,7 @@ __quantum__qis__convert_array_to_stdvector(Array *arr) {
   std::vector<details::FakeQubit> *result = new std::vector<details::FakeQubit>;
   result->reserve(size);
   for (std::size_t i = 0; i < size; ++i) {
-    (*result)[i].id = (*arr)[i];
-    (*result)[i].negated = false;
+    result->emplace_back(details::FakeQubit{(*arr)[i], false});
   }
   return result;
 }
