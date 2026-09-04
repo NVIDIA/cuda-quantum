@@ -1,0 +1,20 @@
+@LIT_SITE_CFG_IN_HEADER@
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                        #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
+config.runtime_obj_root = "@CUDAQ_BINARY_DIR@"
+config.runtime_src_dir = "@CUDAQ_SOURCE_DIR@"
+config.runtime_tools_dir = "@CUDAQ_TOOLS_DIR@"
+
+import lit.llvm
+lit.llvm.initialize(lit_config, config)
+
+# Let the main config do the real work.
+lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/runtime/test/lit.cfg.py")

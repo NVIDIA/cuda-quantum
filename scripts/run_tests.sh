@@ -106,7 +106,7 @@ fi
 # On machines without a GPU, $gpu_excludes skips gpu_required tests.
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
-  -E "^(ctest-cudaq|ctest-targettests|pycudaq-mlir)$" $gpu_excludes
+  -E "^(ctest-cudaq|ctest-targettests|ctest-runtime|pycudaq-mlir)$" $gpu_excludes
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
@@ -124,7 +124,18 @@ if [ $lit_status -ne 0 ]; then
   status_sum=$((status_sum + 1))
 fi
 
-# 3. Target tests
+# 3. Runtime tests
+echo "=== Running llvm-lit (build/runtime/test) ==="
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
+  --param cudaq_site_config="$build_dir/runtime/test/lit.site.cfg.py" \
+  "$build_dir/runtime/test"
+runtime_status=$?
+if [ $runtime_status -ne 0 ]; then
+  echo "::error::llvm-lit (build/runtime/test) failed with status $runtime_status"
+  status_sum=$((status_sum + 1))
+fi
+
+# 4. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
 "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
   --param cudaq_site_config="$build_dir/targettests/lit.site.cfg.py" \
@@ -135,7 +146,7 @@ if [ $targ_status -ne 0 ]; then
   status_sum=$((status_sum + 1))
 fi
 
-# 4. Python MLIR tests
+# 5. Python MLIR tests
 echo "=== Running llvm-lit (python/tests/mlir) ==="
 "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
   --param cudaq_site_config="$build_dir/python/tests/mlir/lit.site.cfg.py" \
@@ -146,7 +157,7 @@ if [ $pymlir_status -ne 0 ]; then
   status_sum=$((status_sum + 1))
 fi
 
-# 5. Python interop tests
+# 6. Python interop tests
 echo "=== Running pytest (interop tests) ==="
 python3 -m pytest $verbose --durations=0 "$build_dir/python/tests/interop/"
 pytest_status=$?
