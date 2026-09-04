@@ -2,14 +2,14 @@
 
 ## From logical intent to an inspectable estimate
 
-Start with the result: one portable Bell program becomes a logical resource
-estimate, a replayable placement on a logical machine, and a verified
-Steane-code realization — and a selected P2 program can be emitted as
-standards-compatible Stim circuit text.
+Start with the result. You write one portable Bell program, and CUDA-Q Logical
+turns it into a logical resource estimate, a replayable placement on a logical
+machine, and a verified Steane-code realization. A selected P2 program can also
+be emitted as standards-compatible Stim circuit text.
 
-The point is not that CUDA-Q Logical has one special path to Stim. The point is
-that every fact enters at its owning stage, and each refinement remains
-inspectable before anything downstream consumes it.
+There is no special path to Stim here. What matters is the staging: every fact
+enters at its owning stage, and you can inspect each refinement before anything
+downstream consumes it.
 
 ```text
 portable P0 intent  →  P1 placement  →  P2 QEC realization
@@ -21,8 +21,8 @@ portable P0 intent  →  P1 placement  →  P2 QEC realization
 
 ## Begin with intent
 
-The application asks for a Bell pair. It does not choose a code, a machine, or
-an estimation target.
+You start with a program that asks for a Bell pair. It does not choose a code,
+a machine, or an estimation target.
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/01_p0_bell.py
@@ -34,8 +34,8 @@ an estimation target.
 The linear spelling makes ownership visible: `q[0] = ql.h(q[0])` consumes one
 version of the qubit and returns the only live successor.
 
-Compiling freezes the program as an immutable P0 build, and the first estimation
-tier is already available:
+Compile the program, and it freezes into an immutable P0 build. The first
+estimation tier is already available:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/01_p0_bell.py
@@ -45,8 +45,8 @@ tier is already available:
 ```
 
 At P0, CUDA-Q Logical counts logical qubits, actions, and instruments. It cannot
-yet claim a syndrome round or an encoded-patch count, because none of those
-facts has been supplied.
+yet report a syndrome-round count or an encoded-patch count, because you have
+not supplied those facts.
 
 ```text
 P0 Bell: 2 logical qubits
@@ -54,9 +54,9 @@ P0 Bell: 2 logical qubits
 
 ## Place the program without choosing a code
 
-Placement is a refinement of the P0 build, not a rewrite of the application. A
-logical machine declares regions, capabilities, and capacity; a placement
-constraint says the `data` qubits stay together.
+Placement refines the P0 build; it does not rewrite your application. You
+declare a logical machine with regions, capabilities, and capacity, and a
+placement constraint says the `data` qubits stay together.
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/02_p1_placement.py
@@ -71,8 +71,9 @@ constraint says the `data` qubits stay together.
    :lines: 32-43
 ```
 
-The P1 build records the placement as inspectable evidence — which region and
-slot each logical owner occupies — and replays exactly from its serialization.
+The P1 build records the placement as evidence you can inspect — which region
+and slot each logical owner occupies — and it replays exactly from its
+serialization.
 
 ```text
 P1 Bell: data[0:2] placed on compute[0:2]
@@ -80,8 +81,8 @@ P1 Bell: data[0:2] placed on compute[0:2]
 
 ## Supply a realization, not a rewritten application
 
-The QEC realization lives in its own definitions: a code with checks and logical
-operators, and gadgets that claim typed logical behavior.
+The QEC realization lives in its own definitions. You write a code with checks
+and logical operators, and gadgets that claim typed logical behavior.
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/03_code_and_gadget.py
@@ -90,12 +91,12 @@ operators, and gadgets that claim typed logical behavior.
    :caption: The Steane code and a terminal-memory gadget (examples/03_code_and_gadget.py).
 ```
 
-`implements=terminal_memory` tells the verifier which behavior is claimed. The
-patch type tells selection which boundary the realization accepts. A matching
-name without those typed facts would not be enough.
+`implements=terminal_memory` tells the verifier which behavior the gadget
+claims. The patch type tells selection which boundary the realization accepts.
+A matching name without those typed facts is not enough.
 
-Materializing the code and compiling the gadget produces verified P2 objects
-whose costs can be inspected directly:
+Materialize the code and compile the gadget, and you get verified P2 objects.
+You can inspect their costs directly:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/03_code_and_gadget.py
@@ -119,10 +120,11 @@ Steane [[7,1,3]] terminal-memory gadget:
 
 ## Estimate at the honest tier
 
-Estimation comes in exactly two tiers. `Tier.LOGICAL`, seen above at P0, counts
-logical structure. `Tier.STATIC` counts the P2 realization: encoded patches,
-gadget calls, and operations. The same ladder is reachable directly from an
-ordinary CUDA-Q kernel by compiling through a CUDA-Q Logical target:
+Estimation comes in exactly two tiers. `Tier.LOGICAL`, which you saw at P0,
+counts logical structure. `Tier.STATIC` counts the P2 realization: encoded
+patches, gadget calls, and operations. You can also climb the same ladder
+directly from an ordinary CUDA-Q kernel, by compiling through a CUDA-Q Logical
+target:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/00_cudaq_logical_resource_estimate.py
@@ -141,7 +143,7 @@ CUDA-Q logical-zero resources:
 
 ## Emit Stim text at the boundary
 
-A verified P2 entry gadget can be projected to standards-compatible Stim circuit
+You can project a verified P2 entry gadget to standards-compatible Stim circuit
 text — CUDA-Q Logical's secondary interchange path.
 
 <!--
@@ -161,21 +163,22 @@ assert emission.text.startswith("R ")
 assert emission.interface is not None
 ```
 
-The Python emitter accepts only a verified P2 entry gadget. Emission fails
-closed at the stage boundary rather than guessing at unrealized operations.
+The Python emitter accepts only a verified P2 entry gadget. Hand it anything
+else, and emission fails closed at the stage boundary rather than guessing at
+unrealized operations.
 
 :::{admonition} Evidence boundary :class: note
 
-These are logical and static resource estimates of declared codes and machines,
-plus a strict Stim text projection. CUDA-Q Logical does not model physical
-noise, does not sample or decode detector events, and does not claim
+These results are logical and static resource estimates of declared codes and
+machines, plus a strict Stim text projection. CUDA-Q Logical does not model
+physical noise, does not sample or decode detector events, and does not claim
 hardware-calibrated counts. The estimates state what the declared realization
 costs; they are not simulated executions. :::
 
 ## Continue from here
 
 - [How CUDA-Q Logical refines a program](how-cudaq-logical-refines-a-program.md)
-  develops stage and facet ownership in more detail.
+  goes deeper into stage and facet ownership.
 - [Examples](../use-cases/examples/index.md) collects every shipped Python
   example, including distillation, Clifford+T synthesis, and the Gidney–Ekerå
   projection.

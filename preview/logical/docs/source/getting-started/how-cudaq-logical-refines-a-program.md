@@ -1,7 +1,7 @@
 # How CUDA-Q Logical refines a program
 
 A CUDA-Q Logical program describes logical behavior once. Machines, codes,
-gadgets, and protocols refine that behavior without being smuggled into the
+gadgets, and protocols refine that behavior without leaking into the
 application.
 
 This walkthrough follows one small program — a Bell pair — through the entire
@@ -47,9 +47,9 @@ capabilities. None of that policy belongs in `bell`.
 ```
 
 `ql.compiler.place` continues the P0 build into a P1 build whose placement
-record names the region and slot of every logical owner. This separation is what
-makes reuse meaningful: the same program can be placed against another
-compatible machine, and the same machine can place many programs.
+record names the region and slot of every logical owner. This separation makes
+reuse meaningful: you can place the same program against another compatible
+machine, and the same machine can place many programs.
 
 ## A gadget claims the logical action
 
@@ -98,7 +98,7 @@ placement, or estimate a tier whose facts were never supplied.
 
 ## A practical reading rule
 
-When reading or writing `cudaq.logical` code, ask two questions at every line:
+When you read or write `cudaq.logical` code, ask two questions at every line:
 
 1. Which stage or facet owns this fact?
 2. Did the user supply it, or can CUDA-Q Logical derive and verify it?
@@ -108,6 +108,6 @@ placement; code and gadget libraries own reusable realizations; compiler passes
 derive later-stage artifacts; emitters consume only the verified stage and
 facets they advertise.
 
-The [CUDA-Q Logical in practice](cudaq-logical-in-practice.md) walkthrough shows
-the same discipline ending at a static estimate and emitted Stim text.
+The [CUDA-Q Logical in practice](cudaq-logical-in-practice.md) walkthrough
+follows the same discipline through to a static estimate and emitted Stim text.
 [Examples](../use-cases/examples/index.md) covers the full shipped set.

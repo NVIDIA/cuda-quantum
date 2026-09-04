@@ -1,12 +1,12 @@
 # Resource estimation
 
-Estimation in CUDA-Q Logical is two explicit tiers over the _same_ linked
-definitions: device-independent logical counts, and static counts over a
+Estimation in CUDA-Q Logical comes in two explicit tiers over the _same_
+linked definitions: device-independent logical counts, and static counts over a
 selected QEC realization. One call shape serves both —
-`ql.estimate(value, tier=...)`. The value may be a `Build` or an authoring
-definition; a definition is first compiled through its normal default pipeline,
-and the estimator then validates that the resulting stage matches the requested
-tier, failing with a typed diagnostic when they disagree.
+`ql.estimate(value, tier=...)`. You can pass a `Build` or an authoring
+definition. A definition is first compiled through its normal default pipeline;
+the estimator then checks that the resulting stage matches the tier you asked
+for, and fails with a typed diagnostic when they disagree.
 
 | Tier                       | Needs                                                     | Returns                                                                                                                                                         |
 | -------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,7 +20,7 @@ derived from.
 
 ## `Tier.LOGICAL` — cost the algorithm before any QEC choice
 
-The logical tier is valid with no device and no code at all — estimate the
+The logical tier works with no device and no code at all. You can estimate the
 algorithm while it is still portable intent (`examples/01_p0_bell.py`):
 
 ```python
@@ -42,16 +42,17 @@ assert profile.instruments == {
 }
 ```
 
-Non-Clifford standard actions (T, T†, CCZ) are counted in `actions` like
-everything else and _additionally_ in `profile.synthesis_demand`, so the demand
-a Clifford+T synthesis pass will have to meet is visible before any gate-set
-commitment (exercised in `python/tests/cudaq/logical/test_quake_import.py`).
+Non-Clifford standard actions (T, T†, CCZ) show up in `actions` like
+everything else, and _additionally_ in `profile.synthesis_demand`. That way you
+can see the demand a Clifford+T synthesis pass will have to meet before you
+commit to any gate set (exercised in
+`python/tests/cudaq/logical/test_quake_import.py`).
 
 ## `Tier.STATIC` — count one selected P2 realization
 
-Once codes, gadgets, and protocols are selected, the static tier walks the
-executable Fabric closure and counts what would actually run. Example 03's
-Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
+Once you have selected codes, gadgets, and protocols, the static tier walks
+the executable Fabric closure and counts what would actually run. Here is
+Example 03's Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
 <!--
 % invisible-code-block: python
@@ -70,12 +71,12 @@ counts.operation_counts
 ```
 
 The syndrome-extraction gadget has been lowered to its physical primitives, so
-the counts are the reset/`H`/`CX`/measurement work of the actual circuit — not
-the one-line `ql.extract_syndrome` the author wrote.
+the counts report the reset/`H`/`CX`/measurement work of the actual circuit —
+not the one-line `ql.extract_syndrome` the author wrote.
 
-Protocols compose gadgets with resources and postselection, and the static tier
-keeps the bookkeeping visible. Example 04's 15-to-1 distillation is estimated
-straight from the authoring definition:
+Protocols compose gadgets with resources and postselection, and the static
+tier keeps the bookkeeping visible. You can estimate Example 04's 15-to-1
+distillation straight from its authoring definition:
 
 <!--
 % invisible-code-block: python
@@ -124,16 +125,16 @@ that postselection may discard. Selection is never averaged away silently.
 ## Direct spellings
 
 `ql.analysis.logical_counts(p0)` and `ql.analysis.count(build)` are the per-tier
-function forms of the same estimators. They remain useful when code
+function forms of the same estimators. Reach for them when your code
 intentionally selects one specialized analysis; product flows should prefer the
 unified `ql.estimate(...)` front door.
 
 ## Sweeps and reproducibility
 
-Design-space sweeps are first-class artifacts:
+Design-space sweeps are first-class artifacts.
 `ql.compiler.compile_many(points, pipeline=...)` turns a tuple of
 `ql.compiler.Experiment` values into an immutable, self-describing
-`ExperimentBundle` whose serialized form replays every build bit-identically in
+`ExperimentBundle`. Its serialized form replays every build bit-identically in
 a clean process (`python/tests/cudaq/logical/test_experiments.py`):
 
 ```python
@@ -154,27 +155,28 @@ assert len(bundle) == 3
 replayed = ql.compiler.ExperimentBundle.replay(bundle.serialize())
 ```
 
-A serialized bundle needs no ambient Python state, so an estimate quoted in a
-paper can be re-derived from the bundle alone.
+A serialized bundle needs no ambient Python state, so you can re-derive an
+estimate quoted in a paper from the bundle alone.
 
 ## Analytical projections live in the open
 
 Physical-qubit, runtime, and retry-risk numbers are _not_ a hidden estimation
 tier. They are explicit arithmetic, written in the example or library code where
 every assumption is visible and editable, on top of a P0-backed logical profile.
-`examples/06_gidney_ekera.py` is the reference workout: a windowed-arithmetic
-RSA-2048 resource kernel whose folded logical profile feeds the published
-design-point equations, with the same calculation available through
-`ql.algorithms.estimate_gidney_ekera`. `examples/07_fermi_hubbard.py` applies
-the same pattern to a Trotterized Fermi–Hubbard evolution.
+For the full workout, read
+`examples/06_gidney_ekera.py`: a windowed-arithmetic RSA-2048 resource kernel
+whose folded logical profile feeds the published design-point equations — the
+same calculation is available through `ql.algorithms.estimate_gidney_ekera`.
+`examples/07_fermi_hubbard.py` applies the same pattern to a Trotterized
+Fermi–Hubbard evolution.
 
 ## Estimating ordinary CUDA-Q kernels
 
-CUDA-Q kernels compile through the same stages when a `cudaq.logical` target is
-selected (`examples/00_cudaq_logical_resource_estimate.py`,
-`examples/05_clifford_t.py`). `cudaq.estimate(kernel)` then returns the per-tier
-results as CUDA-Q annotations, and the typed views are rehydrated directly from
-them:
+When you select a `cudaq.logical` target, ordinary CUDA-Q kernels compile
+through the same stages (`examples/00_cudaq_logical_resource_estimate.py`,
+`examples/05_clifford_t.py`). `cudaq.estimate(kernel)` then returns the
+per-tier results as CUDA-Q annotations, and the typed views are rehydrated
+directly from them:
 
 <!--
 % invisible-code-block: python

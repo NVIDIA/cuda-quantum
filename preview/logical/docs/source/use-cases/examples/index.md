@@ -1,7 +1,7 @@
 # CUDA-Q Logical by Example
 
 These executable Python programs ship under `preview/logical/examples/` and run
-in the test suite. Start with an ordinary CUDA-Q kernel and then use the
+in the test suite. Start with an ordinary CUDA-Q kernel, then use the
 remaining examples to inspect each stage of the fault-tolerant lowering.
 
 ```{toctree}

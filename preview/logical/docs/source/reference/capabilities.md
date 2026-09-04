@@ -3,11 +3,11 @@
 CUDA-Q Logical reports its own status the way it reports evidence: three-way,
 and only against executable artifacts. A capability is **shipped** when it is
 part of the installed `cudaq.logical` package, and **exercised** only when a
-shipped test or example executes it — the `lit`/`FileCheck` suites, the `pytest`
-suite (which runs every Python example under `preview/logical/examples/`) are
-the evidence. A capability that is neither is **out of scope**: stated here as a
-deliberate boundary that fails closed, not approximated past an implemented
-edge.
+shipped test or example executes it — the `lit`/`FileCheck` suites and the
+`pytest` suite (which runs every Python example under
+`preview/logical/examples/`) are the evidence. A capability that is neither is
+**out of scope**: a deliberate boundary, stated here, that fails closed instead
+of approximating past an implemented edge.
 
 ## What the product is
 
@@ -42,7 +42,7 @@ release, so the documentation does not teach them yet: dynamic codes
 (`MeasurementPhase`, `EncodingEpoch`), code switching (`PatchTransform`),
 concatenation (`ql.codes.Concatenated`), meta-checks (`ql.codes.MetaChecks`),
 and P2 block requests (`ql.codes.qec_block`). Treat them as preview surface:
-usable at your own risk until exercised evidence lands.
+use them at your own risk until exercised evidence lands.
 
 ## Documented boundaries (all fail closed)
 

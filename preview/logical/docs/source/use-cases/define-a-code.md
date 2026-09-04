@@ -2,8 +2,8 @@
 
 A code in CUDA-Q Logical is validated algebra: constructing one **proves** its
 stabilizer and logical structure — mutual commutation, canonical pairing, and
-rank against `n - k - r` — or fails with a diagnostic. There is no way to hold
-an algebraically invalid code and pass it to a gadget or a device.
+rank against `n - k - r` — or fails with a diagnostic. You cannot hold an
+algebraically invalid code and pass it to a gadget or a device.
 
 ## CSS codes: state the checks once
 
@@ -19,12 +19,12 @@ CSS check rows once:
 ```
 
 Check rows are carrier-index supports. `n` comes from the block, `k` from the
-logical pairs, and `r` from the (absent) gauge declarations — supplying any of
-them explicitly is a checked assertion, never a hint. Construction derives the
-remaining structure, so downstream code can trust it; the same shipped example
-asserts `Steane.n == 7`, `Steane.k == 1`, and `Steane.d.value == 3` and finds
-six independent X/Z stabilizer checks. An algebra that does not close fails at
-construction:
+logical pairs, and `r` from the (absent) gauge declarations — if you supply any
+of them explicitly, it counts as a checked assertion, never a hint.
+Construction derives the remaining structure, so downstream code can trust it.
+The same shipped example asserts `Steane.n == 7`, `Steane.k == 1`, and
+`Steane.d.value == 3` and finds six independent X/Z stabilizer checks. An
+algebra that does not close fails at construction:
 
 ```python
 import cudaq.logical as ql
@@ -73,8 +73,8 @@ unknown  = ql.codes.Distance.unknown("derive by search")
 
 A bare `d = 3` in a code body normalizes to `claimed` — a recorded assertion,
 never a proof. The evidence-bearing constructors (`exact`, `lower_bound`,
-`upper_bound`) require `method=` and `provenance=`; omitting them raises
-`TypeError` rather than silently upgrading the claim:
+`upper_bound`) require `method=` and `provenance=`; omit them and you get a
+`TypeError`, not a silent upgrade of the claim:
 
 ```python
 import cudaq.logical as ql
@@ -103,12 +103,13 @@ assert (surface_3.n, surface_3.k, surface_3.d.value) == (9, 1, 3)
 assert surface_3.block.size == 17       # 9 data + 8 syndrome carriers
 ```
 
-alongside `ql.codes.Steane`, `ql.codes.Repetition`, `ql.codes.RM15` (the
-`[[15,1,3]]` Reed–Muller code), and `ql.codes.BareQubit` (the trivial distance-1
-code used by the Stim-emission fixture).
+Alongside the surface family, the catalog ships `ql.codes.Steane`,
+`ql.codes.Repetition`, `ql.codes.RM15` (the `[[15,1,3]]` Reed–Muller code), and
+`ql.codes.BareQubit` (the trivial distance-1 code used by the Stim-emission
+fixture).
 
-A parameterized family is an ordinary function decorated with `@ql.code` that
-returns a `ql.codes.CSSCode`; bracket syntax specializes it:
+To define a parameterized family, decorate an ordinary function with
+`@ql.code` and return a `ql.codes.CSSCode`; bracket syntax specializes it:
 
 ```python
 import cudaq.logical as ql
@@ -134,8 +135,8 @@ hence selection and cache keys, never depends on spelling.
 
 ## What you get for free
 
-Every validated code synthesizes a default encoding (all `k` logical qubits in
-canonical order) that gadget signatures reference by name — the compiled
+Every validated code synthesizes a default encoding — all `k` logical qubits
+in canonical order — and gadget signatures reference it by name; the compiled
 artifacts show it as `@Steane_default_encoding`. `ql.materialize` lowers the
 code to a named `fabric.code` artifact, and the gadget factories consume the
 code directly:

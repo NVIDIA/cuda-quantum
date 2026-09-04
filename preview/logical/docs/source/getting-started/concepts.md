@@ -1,7 +1,7 @@
 # Core concepts
 
-Everything in CUDA-Q Logical follows from a small set of ideas. Internalize
-these eight and the rest of the system becomes predictable.
+Everything in CUDA-Q Logical follows from a small set of ideas. Learn these
+eight, and the rest of the system becomes predictable.
 
 ## 1. Three stages, one direction
 
@@ -14,30 +14,30 @@ Executable intent is refined through exactly three semantic stages
 | **P1** placed logical   | Where may each logical owner reside on a logical machine?        | `lvm`             |
 | **P2** QEC realization  | Which code, gadgets, and protocols realize it, and at what cost? | `fabric`          |
 
-A later stage only adds realization facts; it never silently reinterprets the
-requested logical behavior. Every stage root is verified and immutable, so a
-failed lowering returns to the retained earlier root rather than repairing in
-place. `ql.compile` produces the P0 root of a `@ql.program`, `ql.compiler.place`
-refines it to a code-agnostic P1 placement, and selecting codes, gadgets, and
-protocols produces P2. Stim text emission consumes a P2 build; it is an
-interchange product, not a stage.
+A later stage only adds realization facts — it never silently reinterprets the
+logical behavior you asked for. Every stage root is verified and immutable, so
+when a lowering fails you fall back to the retained earlier root instead of
+repairing in place. `ql.compile` produces the P0 root of a `@ql.program`,
+`ql.compiler.place` refines it to a code-agnostic P1 placement, and selecting
+codes, gadgets, and protocols produces P2. Emitting Stim text consumes a P2
+build; it is an interchange product, not a stage.
 
 ## 2. Facets, not extra stages
 
-QEC specifications, gadget realizations, protocol networks, and patch graphs are
-**facets** (`ql.stages.Facet`: `QEC_SPEC`, `QEC_REALIZATION`,
-`PROTOCOL_NETWORK`, `PATCH_GRAPH`): independently verified facts attached to an
-immutable stage root, not additional points in the P0–P2 lowering order. Several
-facets coexist on one root without recompiling the program. Every pipeline pass
-declares the facets it requires, provides, and invalidates, and a facet survives
-a pass unless that pass explicitly invalidates or recomputes it. A compiled
-gadget build, for example, is a P2 root carrying exactly `QEC_SPEC` and
-`QEC_REALIZATION` — see `build.facets` in concept 5.
+QEC specifications, gadget realizations, protocol networks, and patch graphs
+are **facets** (`ql.stages.Facet`: `QEC_SPEC`, `QEC_REALIZATION`,
+`PROTOCOL_NETWORK`, `PATCH_GRAPH`). A facet is an independently verified fact
+attached to an immutable stage root, not another point in the P0–P2 lowering
+order. Several facets can coexist on one root without recompiling the program.
+Every pipeline pass declares the facets it requires, provides, and invalidates;
+a facet survives a pass unless that pass explicitly invalidates or recomputes
+it. A compiled gadget build, for example, is a P2 root carrying exactly
+`QEC_SPEC` and `QEC_REALIZATION` — see `build.facets` in concept 5.
 
 ## 3. Linear ownership
 
-Quantum values are _linear_: one live owner, consumed and re-produced by every
-operation.
+Quantum values are _linear_: each value has one live owner, and every
+operation consumes that owner and produces its successor.
 
 ```python
 import cudaq.logical as ql
@@ -50,31 +50,31 @@ def ownership() -> tuple[bool, bool]:
     return z, ql.measure_z(q[0])         # destructive: q[0] is gone
 ```
 
-Rebinding (`q[0] = ql.h(q[0])`) is the visible spelling of that contract. Using
-a consumed value raises `ql.errors.UseAfterConsume` at trace time, and the
-canonical IR carries an independent linear-use verification: every linear SSA
-value must have exactly one owner along every execution path, so double
-consumption, use-after-measure, and leaks are typed failures, not runtime
-surprises.
+Rebinding — `q[0] = ql.h(q[0])` — is how you write that contract. Using a
+consumed value raises `ql.errors.UseAfterConsume` at trace time. The canonical
+IR checks the same contract independently: every linear SSA value must have
+exactly one owner along every execution path. Double consumption,
+use-after-measure, and leaks are typed failures, not runtime surprises.
 
 ## 4. Codes, profiles, encodings — three different things
 
-- A **`Code`** is validated algebra: physical width `n`, logical width `k`, and
-  independent stabilizer and logical operator bases, checked at construction.
-  Distance is _evidence_, held as a `ql.codes.Distance`: a bare integer
-  normalizes to `claimed` — a recorded assertion, never a proof — while the
-  evidence-bearing constructors (`exact`, `lower_bound`, `upper_bound`,
-  `circuit`) require a method and provenance.
+- A **`Code`** is validated algebra: a physical width `n`, a logical width
+  `k`, and independent stabilizer and logical-operator bases, all checked at
+  construction. Distance is _evidence_, held as a `ql.codes.Distance`: a bare
+  integer normalizes to `claimed` — a recorded assertion, never a proof —
+  while the evidence-bearing constructors (`exact`, `lower_bound`,
+  `upper_bound`, `circuit`) require a method and provenance.
 - A **`CodeProfile`** is an analysis convention over one code: effective
-  syndrome generators, meta-checks, and derived boundary maps. Changing the
-  convention makes a new profile, not a new code.
+  syndrome generators, meta-checks, and derived boundary maps. Change the
+  convention and you get a new profile, not a new code.
 - An **`Encoding`** is a reusable logical view: named logical ports, a block ABI
   name, and layout facts. Preparation and conversion are _gadgets_ — an encoding
   never executes circuits.
 
-Every code synthesizes a default profile and encoding; you author one only for a
-genuinely different view. The catalog (`ql.codes`) ships `Steane`, `Repetition`,
-`rotated_surface(distance)`, `ReedMuller15`, and `BareQubit`:
+Every code synthesizes a default profile and encoding, so you write your own
+only when you need a genuinely different view. The catalog (`ql.codes`) ships
+`Steane`, `Repetition`, `rotated_surface(distance)`, `ReedMuller15`, and
+`BareQubit`:
 
 ```python
 import cudaq.logical as ql
@@ -93,10 +93,11 @@ The two structures most worth keeping apart, side by side:
 
 ## 5. Objectives, gadgets, protocols — claims and proofs
 
-A **gadget** is a realization — a typed circuit over encoded patches — plus a
-claim: `implements=<objective>`. The claim is checked. The compiler derives the
-gadget's signed symplectic action, matches it against the objective's Clifford
-action, and records the equivalence evidence — or fails with a typed diagnostic:
+A **gadget** is a realization — a typed circuit over encoded patches — plus
+a claim: `implements=<objective>`. That claim is checked. The compiler derives
+the gadget's signed symplectic action, matches it against the objective's
+Clifford action, and records the equivalence evidence — or fails with a typed
+diagnostic:
 
 ```python
 import cudaq.logical as ql
@@ -116,14 +117,16 @@ assert build.stage == ql.stages.P2
 assert build.facets == (ql.stages.Facet.QEC_SPEC, ql.stages.Facet.QEC_REALIZATION)
 ```
 
-When several operand-to-port embeddings verify, the compiler refuses to pick one
-silently (`ql.errors.AmbiguousLogicalPortMap`); an explicit `logical_ports=`
-mapping is a constraint the verifier checks, never evidence it trusts.
+When several operand-to-port embeddings verify, the compiler refuses to pick
+one silently and raises `ql.errors.AmbiguousLogicalPortMap`. An explicit
+`logical_ports=` mapping is a constraint the verifier checks, never evidence it
+trusts.
 
-A **protocol** composes gadget calls with operational policy: resource requests,
-postselection, and bounded retry with explicit commit points (the 15-to-1
-distillation of `examples/04_distillation.py` is the shipped workout). Retry
-policy is normalized at construction into immutable, type-checked structures:
+A **protocol** composes gadget calls with operational policy: resource
+requests, postselection, and bounded retry with explicit commit points — the
+shipped 15-to-1 distillation in `examples/04_distillation.py` exercises them
+all. Retry policy is normalized at construction into immutable, type-checked
+structures:
 
 | Type          | Fields                                                                                                                     |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -133,20 +136,22 @@ policy is normalized at construction into immutable, type-checked structures:
 ## 6. Evidence follows the program
 
 Every semantic transition emits evidence records — `pass`, `fail`, or
-`unresolved` — or an explicit missing-evidence declaration. `build.evidence`
-lists them and `build.status` summarizes the build (root, stage, facets, and
-counts by result), as in the gadget build above. `build.serialize()` captures
-the whole build — selected definitions, evidence, and all — and
-`ql.compiler.Build.replay` reopens it in a clean process with no ambient Python
-state. The same honesty applies to distances and estimates: a `claimed` distance
-stays a claim, and each estimation tier reports exactly which facts it consumed.
+`unresolved` — or an explicit declaration that evidence is missing.
+`build.evidence` lists the records, and `build.status` summarizes the build
+(root, stage, facets, and counts by result), as in the gadget build above.
+`build.serialize()` captures the whole build — selected definitions, evidence,
+and all — and `ql.compiler.Build.replay` reopens it in a clean process with no
+ambient Python state. The same honesty applies to distances and estimates: a
+`claimed` distance stays a claim, and each estimation tier reports exactly
+which facts it consumed.
 
 ## 7. There is no registry — imports are the linker
 
-CUDA-Q Logical deliberately has no global implementation table, because a
-registry makes _import order_ part of your program's semantics: two sessions
-that import modules in a different order could select different physics, and a
-serialized build could not say what was visible when it was compiled.
+CUDA-Q Logical has no global implementation table, and that is deliberate.
+A registry would make _import order_ part of your program's semantics: two
+sessions that import modules in a different order could select different
+physics, and a serialized build could not say what was visible when it was
+compiled.
 
 Instead, discovery is scoped and explicit. Each compilation collects candidates
 from exactly three places:
@@ -157,10 +162,10 @@ from exactly three places:
    imported** into one of those modules — the import statement is the link act,
    and bare `import cudaq.logical` links nothing.
 
-The candidate set is derived fresh inside each compilation, filtered by
-objective and boundary types, and the _selected_ closure is captured into the
-build: `build.source_modules` and `build.definitions` record exactly what was
-visible and what won. The consequences you feel day-to-day:
+Each compilation derives this candidate set fresh, filters it by objective
+and boundary types, and captures the _selected_ closure into the build:
+`build.source_modules` and `build.definitions` record exactly what was visible
+and what won. Day to day, you feel three consequences:
 
 - a gadget defined in a helper file you never imported is invisible — the
   failure is a typed "no feasible P2 implementation", not a mystery winner;
@@ -177,8 +182,8 @@ and those are invariant under an overall phase. Concretely:
   (`ql.compiler.synthesize(gate_set=..., precision=...)`), so `R_Z(kπ/4) = T^k`
   holds up to phase.
 - **Rotations are 4π-periodic exactly and 2π-periodic up to phase.**
-  `ql.algebra.Angle` keeps angles as exact rational multiples of π so this stays
-  precise — and the authored angle is preserved, never auto-reduced:
+  `ql.algebra.Angle` keeps angles as exact rational multiples of π, so this
+  stays precise — and the angle you authored is preserved, never auto-reduced:
 
 ```python
 import cudaq.logical as ql
@@ -189,9 +194,9 @@ assert float(ql.algebra.Angle(9, 4) - ql.algebra.Angle(1, 4)) == float(2 * ql.al
 
 The boundary: dropping global phase is safe for a linear, classically
 conditioned program measured at the end. CUDA-Q Logical's conditionals are
-classical (measurement-conditioned), so no shipped surface needs to track phase;
-introducing quantum-controlled arbitrary unitaries would change that and is out
-of scope.
+classical — they condition on measurement outcomes — so no shipped surface needs
+to track phase. Quantum-controlled arbitrary unitaries would change that, and
+they are out of scope.
 
 ## Where the pieces live
 
@@ -206,10 +211,10 @@ of scope.
 | `ql.emit` / `ql.targets`           | Stim circuit text from a P2 build                | `ql.targets`             |
 
 Naming follows PEP 8 throughout — artifact classes are camel case (`Code`,
-`Encoding`), while operations, decorators, and constants are snake*case
+`Encoding`), while operations, decorators, and constants are snake_case
 (`@ql.machine`, `ql.extract_syndrome`). One deliberate near-collision to know
-about: `ql.types.X(q)` constructs a Pauli \_factor* for products, while
-`ql.x(q)` applies the gate.
+about: `ql.types.X(q)` constructs a Pauli factor for products, while `ql.x(q)`
+applies the gate.
 
 ## Where to go next
 

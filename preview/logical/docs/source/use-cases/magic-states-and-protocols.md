@@ -59,8 +59,8 @@ equals the named gates **up to an unobservable global phase**:
 
 So {math}`R_Z(k\,\pi/4) = T^k \pmod 8` up to global phase — the exact-word fast
 path the native `qlx-synthesize-rotations` pass takes before ever calling
-`gridsynth`: $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. Global phase is
-dropped throughout: it is unobservable and carries no logical content.
+`gridsynth`: $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. We drop
+global phase throughout: it is unobservable and carries no logical content.
 
 ### Authoring exact angles with `ql.algebra.pi`
 
@@ -89,7 +89,7 @@ miss. `float(ql.algebra.pi / 4)` still yields the ordinary radian value, so a
 raw float angle (e.g. `0.3`) keeps the numeric path unchanged — both surfaces
 coexist.
 
-Off-lattice rotations are legalized to Clifford+T by synthesis; see
+Synthesis legalizes off-lattice rotations to Clifford+T; see
 [Logical Clifford+T synthesis](logical-synthesis.md).
 
 ## Typed resource kinds
@@ -114,8 +114,8 @@ with the root authoring facade — not an analytical placeholder:
    :caption: The 15-to-1 T-state protocol (examples/04_distillation.py).
 ```
 
-Fifteen linear raw-state inputs are unpacked onto bare patches; eleven
-resource-assisted product rotations from
+The protocol unpacks fifteen linear raw-state inputs onto bare patches;
+eleven resource-assisted product rotations from
 `ql.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal circuit;
 `ql.protocols.bare_s` converts the resulting T† on the odd row to the canonical
 T|+⟩; and exactly the four even rows must measure $+X$ — recorded with
@@ -154,15 +154,15 @@ assert model.acceptance_probability(1e-3) == 0.9851045810483217
 
 The `ql.protocols` library also exposes the reusable pieces —
 `FIFTEEN_TO_ONE_ROTATION_STEPS` and their supports, `bare_s`, `bare_measure_x`,
-and the ready-made `distill_15to1` definition — so a code library can compose
-its own production protocol from verified parts.
+and the ready-made `distill_15to1` definition — so you can compose your own
+production protocol from verified parts.
 
 :::{admonition} Evidence boundary :class: note
 
 A static estimate counts what the declared protocol costs; it does not sample
 the factory, decode its checks, or model the noise that makes distillation
-necessary. Postselection is reported as counts and success rows, not as
-simulated accept/reject statistics. :::
+necessary. The estimate reports postselection as counts and success rows, not
+as simulated accept/reject statistics. :::
 
 ## Continue from here
 
@@ -170,5 +170,5 @@ simulated accept/reject statistics. :::
   off-lattice rotations.
 - [Devices and placement](devices-and-placement.md) — where factory regions and
   resource streams live on a machine.
-- [Examples](examples/index.md) — the distillation example in context of the
-  full shipped set.
+- [Examples](examples/index.md) — the distillation example in the context of
+  the full shipped set.

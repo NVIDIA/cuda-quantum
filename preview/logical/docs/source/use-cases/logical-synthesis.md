@@ -39,9 +39,9 @@ print(clifford_t.synthesis.t_count)
 print(clifford_t.synthesis.clifford_count)
 ```
 
-No `device=` is involved. Preparation, measurement, discard, structured
+You pass no `device=`. Preparation, measurement, discard, structured
 classical control, source locations, and linear ownership remain P0 semantics;
-only logical unitary actions are legalized.
+only the logical unitary actions are legalized.
 
 `ql.compiler.gate_sets.clifford_t` emits:
 
@@ -50,13 +50,14 @@ only logical unitary actions are legalized.
 - positive `T`; and
 - `CX`.
 
-Inverse phase gates use positive generators. Pauli and Clifford actions, CZ, and
-CCZ are decomposed exactly. Static multi-qubit Pauli rotations use local basis
-changes, a `CX` parity ladder, one synthesized `Z` rotation, and uncomputation.
-The legalization is performed by the shared CUDA-Q `cudaq-synth`/`gridsynth`
-implementation — recorded on the build's `logical_gate_set_legalization`
-evidence record — and a final independent verifier (`qlx-verify-clifford-t`)
-rejects any logical action left outside the requested gate set.
+Inverse phase gates use positive generators. Pauli and Clifford actions, CZ,
+and CCZ are decomposed exactly. Static multi-qubit Pauli rotations become local
+basis changes, a `CX` parity ladder, one synthesized `Z` rotation, and
+uncomputation. The shared CUDA-Q `cudaq-synth`/`gridsynth` implementation
+performs the legalization, and the build records it on its
+`logical_gate_set_legalization` evidence record. A final independent verifier
+(`qlx-verify-clifford-t`) rejects any logical action left outside the requested
+gate set.
 
 ## Precision
 
@@ -91,8 +92,8 @@ ql.compile(rotation_precision)
 Exact rational multiples written with `ql.algebra.pi` retain exact source
 metadata and take the exact-word fast path (see
 [Magic states and protocols](magic-states-and-protocols.md)). For float-authored
-angles, an exact lattice word is used only when that word meets the requested
-precision.
+angles, synthesis uses an exact lattice word only when that word meets the
+requested precision.
 
 Grid synthesis needs a static angle. Specialize runtime ABI parameters through
 `parameters=` as shown above. Without specialization, synthesis fails rather
@@ -114,15 +115,16 @@ replayed = ql.compiler.Build.replay(payload)
 assert replayed.synthesis == summary
 ```
 
-The `Build` evidence records the gate-set obligation, positive-generator
-convention, precision policy, and projective error metric. The resolved
-legalization pass recipe is serialized with the `Build`, so a replayed build
+The `Build` evidence records the gate-set obligation, the positive-generator
+convention, the precision policy, and the projective error metric. The `Build`
+also serializes the resolved legalization pass recipe, so a replayed build
 carries the same summary.
 
 ## Use the pipeline form
 
-The convenience API executes the pipeline owned by the gate-set value.
-Compiler-oriented code can request the same pipeline directly:
+`ql.compiler.synthesize` is the convenience API: it executes the pipeline
+owned by the gate-set value. Compiler-oriented code can request the same
+pipeline directly:
 
 ```python
 equivalent = ql.compile(
@@ -134,8 +136,8 @@ equivalent = ql.compile(
 assert equivalent.to_mlir() == clifford_t.to_mlir()
 ```
 
-This is a real P0-to-P0 transformation. Passing an existing P0 `Build` creates a
-new `Build` and leaves the source unchanged:
+This is a real P0-to-P0 transformation. If you pass an existing P0 `Build`,
+you get a new `Build`, and the source is left unchanged:
 
 ```python
 source = ql.compile(
@@ -150,7 +152,7 @@ legalized = ql.compiler.synthesize(
 
 ## Pauli-based computation, still at P0
 
-An estimation flow that consumes Pauli-based computation can insert one more
+An estimation flow that consumes Pauli-based computation can add one more
 device-free P0 transform after synthesis:
 
 ```python
@@ -166,8 +168,8 @@ assert "#qlx.action<pauli_rotation>" in pbc.to_mlir()
 ```
 
 The `qlx-to-pbc` pass absorbs the Clifford frame and returns an immutable P0
-build containing signed π/4 Pauli-product rotations and pairwise-commuting
-terminal product measurements; `qlx-verify-pbc` then checks that contract.
+build holding signed π/4 Pauli-product rotations and pairwise-commuting
+terminal product measurements. `qlx-verify-pbc` then checks that contract.
 Neither pass chooses a code, requests magic states, or inspects a machine.
 
 ## When not to synthesize

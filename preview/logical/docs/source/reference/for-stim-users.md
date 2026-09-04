@@ -1,7 +1,7 @@
 # CUDA-Q Logical for Stim users
 
 You know Stim: circuits as text, `REPEAT` blocks, fast stabilizer simulation.
-This page maps that world onto CUDA-Q Logical — whose scope is deliberately
+This page maps that world onto CUDA-Q Logical, whose scope is deliberately
 narrower in one direction and much wider in another.
 
 The one-sentence version: **Stim is the assembly language of QEC experiments;
@@ -50,11 +50,11 @@ H 7 8 9
 M 0 1 2 3 4 5 6
 ```
 
-Encoded codes expand to their full verified gadget bodies. Emission is terminal
-and checked: it accepts a verified P2 entry gadget and never invents an
-implementation that selection did not link. The output is standard Stim text; it
-loads directly with the reference `stim` Python package and drops into any
-downstream Stim-based analysis.
+Encoded codes expand to their full verified gadget bodies. Emission is
+terminal and checked: it accepts a verified P2 entry gadget and never invents
+an implementation that selection did not link. The output is standard Stim
+text — it loads directly with the reference `stim` Python package and drops
+into any downstream Stim-based analysis.
 
 ## What has no Stim equivalent
 

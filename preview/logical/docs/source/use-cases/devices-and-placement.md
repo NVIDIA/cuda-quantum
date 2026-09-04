@@ -17,16 +17,16 @@ and a program can never branch on a later-stage cost fact it should not know.
      :caption: A logical machine with one capable region (examples/02_p1_placement.py).
   ```
 
-  Capabilities are typed keys in an open `ql.machine` vocabulary —
-  `logical_compute`, `logical_measurement`, `logical_factory`, and
-  `resource_transfer` are the ones the compiler itself interprets.
+  Capabilities are typed keys in an open `ql.machine` vocabulary; the
+  compiler itself interprets `logical_compute`, `logical_measurement`,
+  `logical_factory`, and `resource_transfer`.
 
 - A **QEC machine** carries the P2 refinement: encoded block pools, one selected
   encoding per region, and block capacities.
 
 - An immutable **device** binds adjacent machines explicitly. A device with only
   a logical machine is complete for placement work; binding an encoding per
-  region grows it to a QEC device.
+  region grows it into a QEC device.
 
 For homogeneous cases you never write the normalized containers explicitly. The
 device builder separates logical region facts from the vertical encoding
@@ -43,7 +43,7 @@ SteaneMemory = builder.build()
 assert SteaneMemory.layers == (ql.stages.P1, ql.stages.P2)
 ```
 
-`builder.qec.bind(...)` fixes the QEC refinement of a logical region; the
+`builder.qec.bind(...)` sets the QEC refinement of a logical region; the
 singular name is deliberate — each region has one selected encoding.
 
 ### Stop at the layer your study needs
@@ -67,10 +67,10 @@ assert LogicalPlacement.layers == (ql.stages.P1,)
 ```
 
 The stack views contain only the layers actually declared, so a P1-only device
-cannot accidentally display P2 block pools. Common member labels are inferred:
-`add_compute`, `add_memory`, and `add_factory` attach typed capabilities and
-generate region and resource-stream labels with suffixes as needed.
-`DeviceBuilder` itself always has an explicit stable name.
+cannot accidentally display P2 block pools. The builder infers common member
+labels: `add_compute`, `add_memory`, and `add_factory` attach typed
+capabilities and generate region and resource-stream labels with suffixes as
+needed. `DeviceBuilder` itself always has an explicit stable name.
 
 Ready-made QEC device stacks also ship as compilation targets — the
 `surface_target(distance=3, logical_capacity=1)` stack in
@@ -89,12 +89,11 @@ solution is inspectable evidence, not solver state:
    :caption: Placing the Bell program and inspecting the witness (examples/02_p1_placement.py).
 ```
 
-`place` materializes P0 before invoking the selector. Values are addressed
-through its typed view — `p0.values.data` for a named allocation group,
-`p0.values[0]` for structural ordinals — and resolved immediately to
-`LogicalValueRef`s; Python variable names are diagnostics, never placement
-identity. Pass an existing P0 `Build` only when you intentionally inspected or
-reused it.
+`place` materializes P0 before invoking the selector. Address values through
+its typed view — `p0.values.data` for a named allocation group, `p0.values[0]`
+for structural ordinals — and they resolve immediately to `LogicalValueRef`s;
+Python variable names are diagnostics, never placement identity. Pass an
+existing P0 `Build` only when you intentionally inspected or reused it.
 
 The witness records every binding, the machine, the objective, any _soft_
 preference the solver had to give up, and the deterministic tie-break:
@@ -129,7 +128,7 @@ except ValueError as exc:
     assert "no machine space satisfies the placement constraints" in str(exc)
 ```
 
-What is refused is silently relaxing a hard requirement. Soft preferences, by
+Placement never silently relaxes a hard requirement. Soft preferences, by
 contrast, may be surrendered — and the surrender is reported:
 
 ```python
@@ -167,10 +166,10 @@ encoding does not rewrite the verified P1 artifact.
 ## Where the firewall pays off
 
 Placement constraints speak machine vocabulary — regions, slots, capabilities —
-so a portable program re-places by swapping `device=`, and a machine can be
-reused across many programs. Because capacities and capabilities live on the
-machine and encodings live on the device binding, neither the program nor the
-estimate code changes when the study moves from one machine to another.
+so a portable program re-places when you swap `device=`, and you can reuse one
+machine across many programs. Capacities and capabilities live on the machine;
+encodings live on the device binding. So when a study moves from one machine to
+another, neither the program nor the estimate code changes.
 
 ## Continue from here
 
@@ -178,5 +177,5 @@ estimate code changes when the study moves from one machine to another.
   supply and a concrete 15-to-1 factory.
 - [Logical Clifford+T synthesis](logical-synthesis.md) — legalizing logical
   rotations before placement.
-- [Examples](examples/index.md) — the placement example in context of the full
-  shipped set.
+- [Examples](examples/index.md) — the placement example in the context of the
+  full shipped set.

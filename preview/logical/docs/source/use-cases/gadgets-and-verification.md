@@ -5,7 +5,7 @@ objective. Three artifacts travel together through compilation: the
 `implements=` clause states the ideal logical claim, the `ql.patch[...]`
 signature states the encoded boundary (code, encoding, ownership), and the body
 states the executable realization. The compiled `fabric` artifact keeps all
-three inspectable — and for supported realization classes the compiler proves
+three inspectable, and for supported realization classes the compiler proves
 the claim instead of trusting it.
 
 ## Write the smallest gadget
@@ -26,8 +26,8 @@ Three facts are enough:
 
 1. `implements=` states the ideal logical claim. Standard actions and
    instruments live in `ql.std` (`h`, `cx`, `idle`, `prepare_zero`, `measure_z`,
-   …); `@ql.objective` authors new ones, as the quick start's terminal-memory
-   objective shows.
+   …); you author new ones with `@ql.objective`, as the quick start's
+   terminal-memory objective shows.
 2. `ql.patch[ql.codes.Steane]` states the encoded input and output types. The
    signature derives one inout encoded port and its linear ownership.
 3. The body states the bounded realization. `ql.h(block.data)` expands to one
@@ -47,7 +47,7 @@ fabric.gadget @steane_h(%arg0: !fabric.patch<@Steane, …>) -> !fabric.patch<@St
 The typed claim is machine-readable from Python:
 `ql.gadgets.clifford_action(ql.std.h)` returns the action
 `CliffordAction(matrix=((0, 1), (1, 0)), phases=(0, 0), …)` — the X/Z swap that
-_is_ H — and the same accessor applies to a compiled gadget.
+_is_ H. The same accessor applies to a compiled gadget.
 
 ## Typed records at the boundary
 
@@ -114,8 +114,8 @@ distillation protocol accepts exactly when all four even-parity checks measure
 ```
 
 Bounded retry is the same shape: `ql.ops.retry` acts on a success predicate
-derived from one gadget attempt, and the policy — attempt budget, exhaustion
-behavior, commit point — is spelled out at the retry site:
+derived from one gadget attempt, and you spell out the policy — attempt budget,
+exhaustion behavior, commit point — at the retry site:
 
 ```python
 policy = ql.gadgets.RetryPolicy(
@@ -170,8 +170,8 @@ except ValueError as exc:
     assert "does not implement the declared objective" in str(exc)
 ```
 
-The checks layer in order: a permutation that does not preserve the stabilizer
-group is rejected before any objective comparison
+The checks layer in order: the compiler rejects a permutation that does not
+preserve the stabilizer group before any objective comparison
 (`permutation does not preserve the X-stabilizer group`), and a realization that
 matches its claim under _several_ logical-port bindings raises an ambiguity
 error — constrain it explicitly with `logical_ports=`. Evidence strings are
@@ -192,8 +192,8 @@ never accepted as the proof; the derivation is.
 
 ## Where to go next
 
-- [Defining codes](define-a-code.md) — the validated algebra gadgets build on,
-  and the factories that consume it.
+- [Defining codes](define-a-code.md) — the validated algebra that gadgets build
+  on, and the factories that consume it.
 - The [quick start](../getting-started/quickstart.md) compiles a Steane gadget
   end to end and counts its authored operations.
 - [Examples](examples/index.md) links the shipped gadget and protocol sources,

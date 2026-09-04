@@ -1,15 +1,15 @@
 # Architecture
 
-This advanced reference is for contributors and users inspecting dialects,
-passes, or intermediate representations. For the Python interface, start with
-[Getting started](../getting-started/quickstart.md) and the
+This advanced reference is for contributors and for users who inspect
+dialects, passes, or intermediate representations. For the Python interface,
+start with [Getting started](../getting-started/quickstart.md) and the
 [use cases](../use-cases/define-a-code.md).
 
 CUDA-Q Logical has one user surface over three semantic stages, orthogonal
 analysis facets, and one primary MLIR dialect family per stage. This page walks
-the whole machine: the dialect stack, the artifact model, the ownership
-contract, the compile pipeline, and the verification layers that hold it
-together.
+you through the whole machine: the dialect stack, the artifact model, the
+ownership contract, the compile pipeline, and the verification layers that hold
+it together.
 
 ## The dialect stack
 
@@ -74,17 +74,17 @@ reproduces it, witness included.
 
 Three clusters of artifacts carry the system's semantics.
 
-**The QEC algebra.** A `@ql.code` is authored as data — block shape, stabilizer
-checks, logical operators, distance — validated at construction and materialized
-into the `fabric` dialect on demand. Reusable families live in
+**The QEC algebra.** You author a `@ql.code` as data — block shape, stabilizer
+checks, logical operators, distance. CUDA-Q Logical validates it at construction
+and materializes it into the `fabric` dialect on demand. Reusable families live in
 `cudaq.logical.codes` (Steane, rotated surface, repetition, Reed–Muller 15, bare
 qubit); `ql.codes.BareQubit` is the honest no-protection boundary used by
 protocol factories.
 
-**The gadget stack.** A gadget claims an objective through `implements=` and is
-realized by an ordinary authored body over typed patches. Matching compares the
-derived Clifford action of the body against the claimed objective — a typed
-contract, not a naming convention. Compilation materializes typed gadget records
+**The gadget stack.** A gadget claims an objective through `implements=`; an
+ordinary authored body over typed patches realizes it. Matching compares the
+body's derived Clifford action against the claimed objective — a typed contract,
+not a naming convention. Compilation materializes typed gadget records
 (`fabric-materialize-record-schemas`) before verification.
 
 **Machines, placement, and builds.** A `@ql.machine` declares regions with
@@ -142,33 +142,34 @@ and `remove` compose them without string surgery.
 Topology survives as _inspectable evidence_, not as a physical-lowering stage. A
 selected P2 build exposes `build.patch_graph`: a typed, read-only view
 (`PatchGraphView`) of the patch instances and logical interactions the
-realization implies, derived from canonical `fabric` IR facts. The view converts
-to NetworkX or renders to PNG when the optional packages are present. Placement
-stays code-agnostic at P1, and the interaction structure that a placement
-implies becomes checkable at P2 — that is the whole of the topology story in the
+realization implies, derived from canonical `fabric` IR facts. You can convert
+the view to NetworkX or render it to PNG when the optional packages are
+installed. Placement stays
+code-agnostic at P1, and the interaction structure that a placement implies
+becomes checkable at P2 — that is the whole of the topology story in the
 trimmed product.
 
 ## Verification layers
 
-Correctness is enforced at three independent layers:
+Three independent layers enforce correctness:
 
-- **Construction**: a code definition is validated as it is authored —
-  stabilizer shape, logical operators, and distance evidence must agree before a
-  `@ql.code` exists at all.
+- **Construction**: CUDA-Q Logical validates a code definition as you author
+  it — stabilizer shape, logical operators, and distance evidence must agree
+  before a `@ql.code` exists at all.
 - **IR verifiers (C++)**: every stage boundary has a verify pass —
   `qlx-verify-p0`, `lvm-verify-p1`, `fabric-verify-p2s` / `-p2a` / `-p2n`,
   `fabric-verify-machine`, plus the gate-set verifiers `qlx-verify-clifford-t`
   and `qlx-verify-pbc`. Missing or inconsistent evidence fails closed. A Python
   linear-use analysis (`compiler/linearity.py`) and strict link completeness
   (`compiler/link_check.py`) back them on the authoring side.
-- **Semantic verification**: a gadget's Clifford action is derived from its body
-  and compared against the claimed objective
+- **Semantic verification**: the analysis derives a gadget's Clifford action
+  from its body and compares it against the claimed objective
   (`cudaq.logical.gadgets.analysis.clifford_action`); names never select
   semantics.
 
 ## Typed inspection
 
-Builds are inspected through typed APIs, not text scraping: `build.stage`,
+You inspect builds through typed APIs, not text scraping: `build.stage`,
 `build.placement`, `build.definitions`, `build.calls(symbol)`,
 `build.protocol_for(objective)`, `build.status`, `build.synthesis`,
 `build.patch_graph`, `build.to_mlir()`, `build.content_sha256`, and
@@ -204,10 +205,10 @@ cudaq/logical/
 
 ## Extensibility
 
-The same typed values the decorator surface produces are writable through the
-lower-level builders. Pipelines are composable values, gate sets are declared as
-data (`GateSet`: actions plus legalization passes), and new CUDA-Q targets wrap
-a backend with `Target.from_backend(...)`. Device- and code-specific libraries
+You can write the same typed values the decorator surface produces through the
+lower-level builders. Pipelines are composable values, gate sets are data
+(`GateSet`: actions plus legalization passes), and new CUDA-Q targets wrap a
+backend with `Target.from_backend(...)`. Device- and code-specific libraries
 are ordinary Python modules, not global registries.
 
 ## Where to go next

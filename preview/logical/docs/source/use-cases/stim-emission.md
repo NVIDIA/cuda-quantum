@@ -3,18 +3,18 @@
 A selected P2 program can leave CUDA-Q Logical as standards-compatible
 [Stim](https://github.com/quantumlib/Stim) circuit text. This is an interchange
 path: Stim is the assembly language the realization is projected onto — explicit
-physical qubits, Clifford operations, and measurements — so the result can be
-inspected, diffed, archived, and consumed by any Stim-speaking tool. Emission
+physical qubits, Clifford operations, and measurements — so you can inspect,
+diff, and archive the result, or feed it to any Stim-speaking tool. Emission
 consumes a P2 build; it never changes the program's semantics, and it is not an
 execution or sampling service.
 
 ## Emit from Python
 
-The projection is available as a typed artifact: `ql.lower.emit_stim` returns
-the text, while `ql.lower.emit_stim_artifact` returns a `ql.lower.StimEmission`
-— the text plus a `CompiledInterfaceManifest` recording the exact boundary the
-circuit was projected from. Emitting example 03's compiled Steane
-terminal-memory gadget (`examples/03_code_and_gadget.py`):
+The projection comes as a typed artifact: `ql.lower.emit_stim` returns the
+text, while `ql.lower.emit_stim_artifact` returns a `ql.lower.StimEmission` —
+the text plus a `CompiledInterfaceManifest` recording the exact boundary the
+circuit was projected from. The snippet below emits example 03's compiled
+Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
 
 <!--
 % invisible-code-block: python
@@ -59,6 +59,6 @@ Emission refuses rather than approximates:
   code (`n=1, k=1, r=0`); encoded preparation is rejected;
 - recursive Fabric call graphs are rejected.
 
-What Stim cannot express is out of scope for this surface entirely: noise
-models, detectors, sampling, and decoding are not part of the trimmed product,
-so no DEM or shot-level target exists to emit toward.
+Stim cannot express noise models, detectors, sampling, or decoding. The
+trimmed product does not include them, so no DEM or shot-level target exists to
+emit toward.

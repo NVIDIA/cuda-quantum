@@ -1,8 +1,8 @@
 # Quick start
 
-From a clean Python environment to a verified QEC resource estimate and emitted
-Stim circuit text. Every command on this page assumes `cudaq-logical` is
-installed, and every embedded program is one of the shipped, test-executed
+This page takes you from a clean Python environment to a verified QEC resource
+estimate and emitted Stim circuit text. Every command assumes `cudaq-logical`
+is installed, and every program shown is one of the shipped, test-executed
 examples under `preview/logical/examples/`.
 
 You will:
@@ -15,29 +15,25 @@ You will:
 
 ## Install
 
-The simplest way to install CUDA-Q Logical is to get it with the `cudaq` base
-package:
+The simplest way to install CUDA-Q Logical is with the `cudaq` base package:
 
 ```bash
 pip install cudaq
 ```
 
-Alternatively, installing CUDA-Q Logical separately can be achieved with the
-following command:
+To install CUDA-Q Logical on its own instead, run:
 
 ```bash
 pip install cudaq-logical[cu13]
 ```
 
-where `[cu13]` should be replaced with `[cu12]` if you have a copy of CUDA 12
-installed on your machine.
+Replace `[cu13]` with `[cu12]` if you have CUDA 12 installed.
 
 :::{admonition} Always include `[cu13]` or `[cu12]`
 
-If you opt to install `cudaq-logical` standalone, make sure to always suffix
-`cudaq-logical` with either `[cu13]` or `[cu12]`, defaulting to `[cu13]` if your
-machine does not have a CUDA installation. The required dependencies are not
-included in the bare package.
+If you install `cudaq-logical` standalone, always suffix it with `[cu13]` or
+`[cu12]`, defaulting to `[cu13]` if your machine has no CUDA installation. The
+bare package does not include the required dependencies.
 
 :::
 
@@ -46,7 +42,7 @@ To build from source against CUDA-Q, see
 
 ## Running the shipped examples
 
-From a checkout of this repository, run any example file with:
+From a checkout of this repository, run any example with:
 
 ```bash
 python3 preview/logical/examples/01_p0_bell.py
@@ -71,8 +67,8 @@ estimate its resources through the CUDA-Q target integration.
 python3 preview/logical/examples/00_cudaq_logical_resource_estimate.py
 ```
 
-The example prints the selected backend stack and finishes with the annotated
-resource counts of the resulting P2 build:
+The example prints the selected backend stack, then the annotated resource
+counts of the resulting P2 build:
 
 ```text
 CUDA-Q logical-zero resources:
@@ -82,14 +78,15 @@ CUDA-Q logical-zero resources:
   CUDA-Q Logical gadget calls: {'rotated_surface_3_measure_z0': 1, 'rotated_surface_3_prepare_zero': 1}
 ```
 
-One encoded patch protects one logical qubit through preparation and Z readout,
-and every step is a named, inspectable gadget call — CUDA-Q Logical never
-invents an implementation it cannot point to.
+One encoded patch protects one logical qubit through preparation and Z readout.
+Every step is a named, inspectable gadget call: CUDA-Q Logical never invents an
+implementation it cannot point to.
 
 ## Step 2 — Author a portable P0 program
 
-The `cudaq.logical` facade authors logical programs directly. A P0 program names
-no code, no device, and no carrier — and it is already estimable.
+You author logical programs directly through the `cudaq.logical` facade. A P0
+program names no code, no device, and no carrier — and you can already estimate
+it.
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/01_p0_bell.py
@@ -143,8 +140,8 @@ surface-code counts in Step 1 are sums over exactly such calls.
 
 ## Step 4 — Emit Stim text from Python
 
-A verified P2 entry gadget can be emitted as standards-compatible Stim circuit
-text — CUDA-Q Logical's secondary interchange path. Compile the Steane memory
+You can emit a verified P2 entry gadget as standards-compatible Stim circuit
+text, CUDA-Q Logical's secondary interchange path. Compile the Steane memory
 gadget from Step 3 and request a typed emission artifact:
 
 <!--
@@ -164,9 +161,9 @@ print(emission.text)
 ```
 
 The resulting Stim circuit contains the explicit resets, Clifford operations,
-and measurements in the selected encoded gadget. `emission.interface` records
-the compiled boundary from which the text was projected, and the text loads
-directly with the reference `stim` Python package.
+and measurements of the selected encoded gadget. `emission.interface` records
+the compiled boundary the text was projected from, and the text loads directly
+with the reference `stim` Python package.
 
 ## Where to go next
 
