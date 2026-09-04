@@ -3,13 +3,14 @@ Rotation Synthesis (Clifford+T)
 
 .. _rotation_synthesis:
 
-Fault-tolerant quantum hardware runs only a small, discrete set of gates —
-typically ``H``, ``S``, ``T``, ``X`` and ``CNOT``, the *Clifford+T* set.
-Arbitrary rotations such as ``rz(0.6)`` are not among them, so before a kernel
-can run on such hardware every rotation has to be replaced by a sequence of
-gates that approximates it.
+It is typical in fault-tolerant quantum computing to consider only the discrete
+Cliffords augmented with the T gate for universality, Eg. ``H``, ``S``, ``T``,
+``X`` and ``CNOT``, the Clifford+T set. A continuous rotation such as
+``rz(0.6)`` is not a member of this set, so before a kernel can run on such
+hardware every rotation must be synthesized into a sequence of digital
+operations which approximates it.
 
-CUDA-Q does this with grid synthesis (Ross and Selinger, `arXiv:1403.2975
+CUDA-Q does this with Gridsynth (Ross and Selinger, `arXiv:1403.2975
 <https://arxiv.org/abs/1403.2975>`__). Given an angle and a tolerance
 ``epsilon``, it finds a short Clifford+T sequence :math:`U` satisfying
 :math:`\|R_z(\theta) - U\| \le \epsilon` in the operator norm.
@@ -43,8 +44,8 @@ T gates, and ``str()`` gives the gate string over ``{H, S, T, X, W}``, where
 matrix-multiplication order, so as a circuit they apply right to left.
 
 ``cudaq.synth.rz_error`` reports the error the sequence actually achieves. It
-is computed exactly in arbitrary precision, so it does not depend on the
-precision of any simulator, and it never exceeds the ``epsilon`` you asked for.
+is computed exactly in arbitrary precision, and it never exceeds the
+``epsilon`` you asked for.
 
 A ``CliffordTSequence`` can also be built directly from a gate string, which is
 useful for inspecting Clifford+T circuits that came from somewhere else.

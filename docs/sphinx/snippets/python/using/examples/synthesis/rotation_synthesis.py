@@ -41,17 +41,16 @@ cudaq.reset_target()
 # [Begin Single]
 from cudaq import synth
 
+# Approximate a rotation of `theta` radians about the Z axis to within an
+# operator-norm error of `epsilon`.
 theta, epsilon = 0.6, 1e-10
-
-# `seed` is optional. Passing one makes the result reproducible. Without it,
-# repeated calls may return different sequences of the same length.
 seq = synth.gridsynth(theta, epsilon, seed=1234)
 
 print(f"T count: {seq.t_count}")
 print(f"gates:   {str(seq)[:32]}...")
 
-# The achieved error never exceeds the epsilon that was asked for. This is
-# computed exactly, independent of any simulator's precision.
+# The achieved error is computed exactly and never exceeds the epsilon that was
+# asked for.
 print(f"error:   {synth.rz_error(theta, seq):.3e}")
 assert synth.rz_error(theta, seq) <= epsilon
 # [End Single]

@@ -538,9 +538,10 @@ Synth Submodule
 .. _synth_api:
 
 The ``cudaq.synth`` submodule approximates rotations as Clifford+T gate
-sequences. It is not imported with ``cudaq``, so import it explicitly with
-``from cudaq import synth``. For a usage guide see
-:doc:`../../using/examples/rotation_synthesis`.
+sequences, providing an implementation of the Gridsynth algorithm of Ross and
+Selinger (`arXiv:1403.2975 <https://arxiv.org/abs/1403.2975>`__). It is not
+imported with ``cudaq``, so import it explicitly with ``from cudaq import
+synth``. For a usage guide see :doc:`../../using/examples/rotation_synthesis`.
 
 .. autofunction:: cudaq.synth.gridsynth
 
