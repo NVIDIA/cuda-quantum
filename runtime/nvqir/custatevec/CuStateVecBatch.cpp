@@ -71,6 +71,8 @@ CuStateVecBatch<Scalar>::CuStateVecBatch(int32_t numWires, std::size_t capacity,
     throw std::invalid_argument("Invalid batched state-vector dimensions.");
   HANDLE_CUSTATEVEC_ERROR(custatevecCreate(/*handle=*/&m_handle));
   try {
+    HANDLE_CUSTATEVEC_ERROR(
+        custatevecGetStream(/*handle=*/m_handle, /*streamId=*/&m_stream));
     HANDLE_CUSTATEVEC_ERROR(custatevecSetMathMode(
         /*handle=*/m_handle,
         /*mode=*/allowFp32Emulation
@@ -121,6 +123,7 @@ void CuStateVecBatch<Scalar>::reset() noexcept {
   m_states = nullptr;
   m_blasHandle = nullptr;
   m_handle = nullptr;
+  m_stream = nullptr;
   m_workspaceBytes = 0;
   m_stateSize = 0;
   m_size = 0;
@@ -569,6 +572,10 @@ CuStateVecBatch<Scalar>::applyNoise(const NoiseTask<Scalar> &task,
         /*nBasisBits=*/task.wires.size(),
         /*computeType=*/computeType<Scalar>(), /*extraWorkspace=*/m_workspace,
         /*extraWorkspaceSizeInBytes=*/m_workspaceBytes));
+    // On platforms with CPU-GPU coherent memory, cuStateVec may update the
+    // host-resident `probabilities` vector asynchronously. Synchronize before
+    // reading its values.
+    HANDLE_CUDA_ERROR(cudaStreamSynchronize(m_stream));
 
     for (std::size_t stateIndex = 0; stateIndex < m_size; ++stateIndex) {
       auto [branch, probability] = sampleBranch(stateIndex, [&](std::size_t b) {
@@ -647,6 +654,9 @@ CuStateVecBatch<Scalar>::measure(const std::vector<int32_t> &wires,
       /*bitStrings=*/bitStrings.data(), /*bitOrdering=*/wires.data(),
       /*bitStringLen=*/wires.size(), /*randnums=*/randomNumbers.data(),
       /*collapse=*/CUSTATEVEC_COLLAPSE_NONE));
+  // cuStateVec may populate the host-resident `bitStrings` vector
+  // asynchronously. Synchronize before returning its values to the caller.
+  HANDLE_CUDA_ERROR(cudaStreamSynchronize(m_stream));
   return bitStrings;
 }
 
@@ -679,6 +689,9 @@ cudaq::ExecutionResult CuStateVecBatch<Scalar>::sample(
         /*bitStringLen=*/wires.size(), /*randnums=*/randomNumbers.data(),
         /*nShots=*/randomNumbers.size(),
         /*output=*/CUSTATEVEC_SAMPLER_OUTPUT_ASCENDING_ORDER));
+    // cuStateVec may populate the host-resident `bitStrings` vector
+    // asynchronously. Synchronize before decoding its values on the CPU.
+    HANDLE_CUDA_ERROR(cudaStreamSynchronize(m_stream));
 
     cudaq::ExecutionResult result;
     for (std::size_t index = 0; index < bitStrings.size();) {

@@ -24,7 +24,7 @@ func.func @if_mixed_promotion(%c: i1, %k: i32) {
   }
   quake.y %q : (!quake.ref) -> ()
   %f = cc.load %m : !cc.ptr<i32>
-  quake.log_output %f : (i32) -> () {compilerGenerated}
+  quake.evince %f : (i32) -> () {compilerGenerated}
   quake.dealloc %q : !quake.ref
   return
 }
@@ -40,7 +40,7 @@ func.func @if_mixed_promotion(%c: i1, %k: i32) {
 // CHECK:             cc.continue %[[ARG]], %[[UNDEF_0]] : !quake.wire, i32
 // CHECK:           }
 // CHECK:           %[[Y_0:.*]] = quake.y %[[IF_0]]#0 : (!quake.wire) -> !quake.wire
-// CHECK:           quake.log_output %[[IF_0]]#1 : (i32) -> () {compilerGenerated}
+// CHECK:           quake.evince %[[IF_0]]#1 : (i32) -> () {compilerGenerated}
 // CHECK:           quake.sink %[[Y_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }

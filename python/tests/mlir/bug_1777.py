@@ -66,7 +66,7 @@ def test_bug_1777():
 # CHECK:           } else {
 # CHECK:             cc.continue %[[UNDEF_0]] : !cc.sequence<!cc.measure_handle>
 # CHECK:           }
-# CHECK:           quake.log_output %[[ALLOCA_0]] : (!quake.veq<2>) -> ()
+# CHECK:           quake.evince %[[ALLOCA_0]] : (!quake.veq<2>) -> ()
 # CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<2>
 # CHECK:           return
 # CHECK:         }

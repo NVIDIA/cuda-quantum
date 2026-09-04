@@ -340,7 +340,7 @@ struct FreeRangeChicken {
 // CHECK:             cc.condition %[[VAL_20]](%[[VAL_18]], %[[VAL_19]] : i64, i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_21:.*]]: i64, %[[VAL_22:.*]]: i64):
-// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_21]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_22]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.h %[[VAL_23]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_21]], %[[VAL_22]] : i64, i64
 // CHECK:           } step {

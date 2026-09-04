@@ -28,16 +28,11 @@ func.func @phase_lifecycle(%theta: f64, %outer: !quake.ref,
 // CHECK: llvm.call @__quantum__qis__r1(%[[THETA]], %[[OUTER]])
 // CHECK-NOT: quake.phase
 
-// handle negative controls on the inner phase
-// should be intermediately translated to
-// ```
-// quake.x %inner
-// quake.r1 (%theta) [%inner] %outer
-// quake.x %inner
-// ```
-// after `r1` with negative control is emitted during phase lifecycle pass.
-// Then the `ExpandControlNegations` pass should expand the negative control
-//on the R1 to X-R1-X.
+// Negation expansion runs before apply specialization in the QIR codegen
+// pipeline. It first produces X--positive-phase--X on the inner control;
+// specialization then adds the outer control to all three operations.
+// LowerPhase selects the inner control as the R1 target, leaving the outer
+// control on the R1 and on both surrounding X operations.
 func.func private @negative_phase_helper(
     %theta: f64, %inner: !quake.ref, %anchor: !quake.ref) {
   quake.phase (%theta) [%inner neg [true]] %anchor
@@ -58,20 +53,26 @@ func.func @negative_phase_lifecycle(
 // CHECK-SAME: %[[NEG_OUTER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
 // CHECK-SAME: %[[NEG_INNER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
 
-// Select the controlled R1 implementation.
+// Select the controlled R1 and X implementations.
 // CHECK: %[[R1_CTL:[a-zA-Z0-9_.$-]+]] = llvm.mlir.addressof @__quantum__qis__r1__ctl
+// CHECK: %[[X_CTL:[a-zA-Z0-9_.$-]+]] = llvm.mlir.addressof @__quantum__qis__x__ctl
 
-// Convert the negative inner control into a positive control.
-// CHECK: llvm.call @__quantum__qis__x(%[[NEG_INNER]])
+// Apply the first X to inner under the outer control.
+// CHECK: %[[OUTER_X0:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_OUTER]]
+// CHECK: %[[X_CTL_X0:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[X_CTL]]
+// CHECK: %[[INNER_X0:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_INNER]]
+// CHECK: llvm.call @generalizedInvokeWithRotationsControlsTargets({{.*}}%[[X_CTL_X0]], %[[OUTER_X0]], %[[INNER_X0]])
 
-// CHECK: %[[INNER_CAST:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_INNER]]
+// Apply the controlled R1 to inner with outer as its predicate.
+// CHECK: %[[OUTER_R1:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_OUTER]]
 // CHECK: %[[R1_CTL_CAST:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[R1_CTL]]
-// CHECK: %[[OUTER_CAST:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_OUTER]]
+// CHECK: %[[INNER_R1:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_INNER]]
+// CHECK: llvm.call @generalizedInvokeWithRotationsControlsTargets({{.*}}%[[R1_CTL_CAST]], %[[NEG_THETA]], %[[OUTER_R1]], %[[INNER_R1]])
 
-// Inner is the control; outer is the R1 target.
-// CHECK: llvm.call @generalizedInvokeWithRotationsControlsTargets({{.*}}%[[R1_CTL_CAST]], %[[NEG_THETA]], %[[INNER_CAST]], %[[OUTER_CAST]])
-
-// Restore the inner qubit.
-// CHECK: llvm.call @__quantum__qis__x(%[[NEG_INNER]])
+// Restore inner under the outer control.
+// CHECK: %[[OUTER_X1:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_OUTER]]
+// CHECK: %[[X_CTL_X1:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[X_CTL]]
+// CHECK: %[[INNER_X1:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_INNER]]
+// CHECK: llvm.call @generalizedInvokeWithRotationsControlsTargets({{.*}}%[[X_CTL_X1]], %[[OUTER_X1]], %[[INNER_X1]])
 // CHECK: llvm.return
 // CHECK-NOT: quake.phase

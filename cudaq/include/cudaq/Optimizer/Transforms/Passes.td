@@ -951,10 +951,10 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
 }
 
 def InjectImplicitOutput : Pass<"inject-implicit-output", "mlir::func::FuncOp"> {
-  let summary = "Inject quake.log_output ops for implicitly output quantum values.";
+  let summary = "Inject quake.evince ops for implicitly output quantum values.";
   let description = [{
-    This pass inserts `quake.log_output` operations for each `quake.alloca` at
-    the top level of a `func.func`. The log_output ops are added to a new exit
+    This pass inserts `quake.evince` operations for each `quake.alloca` at
+    the top level of a `func.func`. The evince ops are added to a new exit
     block that all return ops are redirected through, preserving the declaration
     order of the allocations. Unlike `add-dealloc`, this pass does not recurse
     into nested regions.
