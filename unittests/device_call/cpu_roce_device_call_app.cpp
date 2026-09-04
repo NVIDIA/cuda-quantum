@@ -10,7 +10,7 @@
 /// @brief Compiler-driven proof that cc.device_call lowers and runs over the
 ///        cpu_roce DeviceCallChannel.
 ///
-/// This is the cpu_roce analogue of cudaq/test/NVQPP/device_call_realtime_*.cpp
+/// This is the cpu_roce analogue of cudaq/test/Driver/device_call_realtime_*.cpp
 /// (which prove the shared-memory / host-dispatch channels through the
 /// compiler).  It compiles a real __qpu__ kernel with
 ///   nvq++ --target qpp-cpu -frealtime-lowering
