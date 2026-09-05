@@ -78,8 +78,16 @@ gtest_discover_tests(custatevec_trajectory_fp64
   DISCOVERY_TIMEOUT 120)
 
 
+# Gives HostDeviceTester.cpp the simulator's own memory-capacity queries.
+function(link_state_vector_memory_probe target)
+  target_include_directories(${target} PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime/nvqir/custatevec)
+  target_link_libraries(${target} PRIVATE nvqir-custatevec-components)
+endfunction()
+
 add_custatevec_backend_test(custatevec_host_migration
   HostDeviceTester.cpp custatevec-fp64 FP64)
+link_state_vector_memory_probe(custatevec_host_migration)
 add_test(NAME CuStateVecEx.HostMigration COMMAND ${CMAKE_COMMAND} -E env
   CUDAQ_MAX_GPU_MEMORY_GB=1 CUDAQ_MAX_CPU_MEMORY_GB=32
   $<TARGET_FILE:custatevec_host_migration>
@@ -134,6 +142,7 @@ if(MPI_CXX_FOUND)
     MGpuTester.cpp nvidia-mgpu-fp32 FP32 MPI)
   add_custatevec_backend_test(custatevec_mgpu_host_migration
     HostDeviceTester.cpp nvidia-mgpu FP64 MPI)
+  link_state_vector_memory_probe(custatevec_mgpu_host_migration)
 
   add_custatevec_mgpu_test(CuStateVecEx.MGPU
     ENVIRONMENT "CUDAQ_MGPU_NQUBITS_THRESH=5"
