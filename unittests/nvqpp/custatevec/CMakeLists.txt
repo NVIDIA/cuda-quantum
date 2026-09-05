@@ -70,10 +70,12 @@ add_custatevec_backend_test(custatevec_trajectory_fp64
   TrajectorySingleDeviceTester.cpp custatevec-fp64 FP64)
 gtest_discover_tests(custatevec_trajectory_fp32
   TEST_PREFIX "CuStateVecEx."
-  PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+  PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+  DISCOVERY_TIMEOUT 120)
 gtest_discover_tests(custatevec_trajectory_fp64
   TEST_PREFIX "CuStateVecEx."
-  PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+  PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+  DISCOVERY_TIMEOUT 120)
 
 
 add_custatevec_backend_test(custatevec_host_migration

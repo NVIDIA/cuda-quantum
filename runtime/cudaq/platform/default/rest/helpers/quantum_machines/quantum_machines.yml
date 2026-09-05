@@ -14,13 +14,20 @@ config:
   platform-qpu: remote_rest
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-rest-qpu"]
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipeline
+  # Decompose source operations before mapping so the mapper sees only gates
+  # supported by its two-qubit coupling graph. Keep the second decomposition
+  # after mapping to lower any SWAP operations introduced by routing.
   jit-high-level-pipeline: "func.func(add-measurements)"
-  jit-mid-level-pipeline: "prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true},qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
+  jit-mid-level-pipeline: "prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)},qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
   jit-low-level-pipeline: "symbol-dce"
   # Tell the rest-qpu that the required output format is quake.
   codegen-emission: nop

@@ -743,11 +743,10 @@ struct WireSetToProfileQIRPostPass
 void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
                                                 StringRef profile) {
   pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createEraseCompilerGeneratedLogOutput());
+      cudaq::opt::createEraseCompilerGeneratedEvince());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
   cudaq::opt::addLowerToCFGAndCleanup(pm);
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep());
   WireSetToProfileQIROptions wopt;

@@ -18,11 +18,12 @@
 #      shipped binary exports GMP/MPFR symbols itself (which would indicate an
 #      accidentally statically linked copy).
 #   4. The libraries can be replaced by substituting the shared library files:
-#      Clifford+T rotation synthesis works, stops working when the shipped
-#      libgmp (and, in turn, libmpfr) is replaced with an invalid file
-#      (proving the file is really loaded at runtime rather than a hidden
-#      static copy being used), and works again once a valid replacement is
-#      put in place.
+#      Clifford+T rotation synthesis works, the shipped libgmp/libmpfr are the
+#      files the loader maps (proving no hidden static copy is used), synthesis
+#      stops working when the shipped libgmp (and, in turn, libmpfr) is
+#      replaced with an invalid file, and works again once a valid replacement
+#      is put in place. The invalidation step is skipped where another copy of
+#      the library is reachable and the loader can fall through to it.
 #
 # Usage:
 #   validate_license_compliance.sh [install_root]
@@ -37,7 +38,7 @@ report() {
     if [ "$1" -eq 0 ]; then
         echo "  [OK] $2"
     else
-        echo -e "  \e[01;31m[FAILED] $2\e[0m" >&2
+        echo -e "  \033[01;31m[FAILED] $2\033[0m" >&2
         failures=$((failures + 1))
     fi
 }
@@ -59,7 +60,7 @@ echo "Validating LGPL compliance for the redistributed GMP/MPFR libraries."
 if $wheel_mode; then
     site_packages=$(python3 -c "import cudaq, os; print(os.path.dirname(os.path.dirname(os.path.abspath(cudaq.__file__))))" 2>/dev/null)
     if [ -z "$site_packages" ]; then
-        echo -e "\e[01;31mError: failed to locate the installed cudaq Python package.\e[0m" >&2
+        echo -e "\033[01;31mError: failed to locate the installed cudaq Python package.\033[0m" >&2
         exit 10
     fi
     echo "Validating Python wheel installation in $site_packages."
@@ -73,7 +74,7 @@ if $wheel_mode; then
 else
     install_root="${1:-$CUDA_QUANTUM_PATH}"
     if [ -z "$install_root" ] || [ ! -d "$install_root" ]; then
-        echo -e "\e[01;31mError: no CUDA-Q installation found; pass the install root or set CUDA_QUANTUM_PATH.\e[0m" >&2
+        echo -e "\033[01;31mError: no CUDA-Q installation found; pass the install root or set CUDA_QUANTUM_PATH.\033[0m" >&2
         exit 10
     fi
     echo "Validating CUDA-Q installation in $install_root."
@@ -200,7 +201,7 @@ else
     # Missing binutils is a property of the environment the script runs in, not
     # of the distribution under test, so it must not be reported as a compliance
     # failure. CI installs binutils to make sure the check does run there.
-    echo -e "\e[01;33mWarning: none of nm, readelf, objdump is available; install binutils to enable the scan for statically linked GMP/MPFR copies.\e[0m" >&2
+    echo -e "\033[01;33mWarning: none of nm, readelf, objdump is available; install binutils to enable the scan for statically linked GMP/MPFR copies.\033[0m" >&2
     echo "  [SKIPPED] no CUDA-Q binary contains a statically linked GMP/MPFR copy (no symbol listing tool available)"
 fi
 
@@ -224,7 +225,7 @@ if [ -n "$unwritable" ]; then
     # Like a missing binutils, a read-only installation says nothing about
     # compliance, so skip rather than fail. Elevating was already attempted
     # above; reaching this point means sudo was not available either.
-    echo -e "\e[01;33mWarning: no write access to$unwritable.\e[0m" >&2
+    echo -e "\033[01;33mWarning: no write access to$unwritable.\033[0m" >&2
     echo "  The library replacement checks modify the shipped libraries in place;" >&2
     echo "  re-run this script with write access to $lib_dir (for example as root)." >&2
     echo "  [SKIPPED] the GMP/MPFR library replacement checks"
@@ -243,26 +244,52 @@ func.func @rz() {
   return
 }
 EOF
-    synthesis_smoke_test() {
-        # Load the shipped libgmp/libmpfr first so the replacement checks act on
-        # them, not a same-soname copy elsewhere on the search path.
-        LD_LIBRARY_PATH="$lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-            "$install_root/bin/cudaq-opt" --clifford-t-synthesis='epsilon=1e-3' \
-            "$smoke_dir/rz.qke" 2>/dev/null | grep -q "__cliffordt_rz_"
-    }
+    synthesis_cmd=("$install_root/bin/cudaq-opt" --clifford-t-synthesis='epsilon=1e-3' \
+                   "$smoke_dir/rz.qke")
+    use_cudaq_opt=true
 else
-    synthesis_smoke_test() {
-        LD_LIBRARY_PATH="$lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-            python3 -c "import cudaq; gates = cudaq.synth.gridsynth(0.7853981633974483, 1e-3); assert 'T' in gates, gates" 2>/dev/null
-    }
+    synthesis_cmd=(python3 -c "import cudaq; gates = cudaq.synth.gridsynth(0.7853981633974483, 1e-3); assert 'T' in gates, gates")
+    use_cudaq_opt=false
 fi
+
+if $is_darwin; then
+    lib_path_var=DYLD_LIBRARY_PATH
+    loader_trace_var=DYLD_PRINT_LIBRARIES=1
+else
+    lib_path_var=LD_LIBRARY_PATH
+    loader_trace_var=LD_DEBUG=libs
+fi
+
+# Searches the shipped libgmp/libmpfr first, so the replacement checks act on
+# them and not on a same-soname copy elsewhere on the search path.
+run_synthesis() {
+    local search=${!lib_path_var}
+    env "$@" "$lib_path_var=$lib_dir${search:+:$search}" "${synthesis_cmd[@]}"
+}
+
+synthesis_smoke_test() {
+    if $use_cudaq_opt; then
+        run_synthesis 2>/dev/null | grep -q "__cliffordt_rz_"
+    else
+        run_synthesis >/dev/null 2>&1
+    fi
+}
+
+# The GMP resp. MPFR files the loader maps. Empty means the trace is
+# unavailable (macOS strips DYLD_* for hardened binaries), not that nothing was
+# loaded, so callers must treat it as "unknown".
+loaded_lib_files() {
+    run_synthesis "$loader_trace_var" 2>&1 >/dev/null \
+        | grep -oE "/[^ ]*lib$1[^ ]*" | sort -u
+}
 
 # Back up the shipped libgmp/libmpfr files and guarantee they are restored.
 backup_dir=$(mktemp -d)
 shipped_libs="$gmp_libs $mpfr_libs"
 restore_shipped_libs() {
     for f in $shipped_libs; do
-        cp -f "$backup_dir/$(basename "$f")" "$f" 2>/dev/null
+        cp -f "$backup_dir/$(basename "$f")" "$f.restored" 2>/dev/null \
+            && mv -f "$f.restored" "$f" 2>/dev/null
     done
 }
 trap restore_shipped_libs EXIT
@@ -278,22 +305,49 @@ if synthesis_smoke_test; then
             libgmp)  lib_files="$gmp_libs" ;;
             libmpfr) lib_files="$mpfr_libs" ;;
         esac
+        short_name=${lib_name#lib}
+
+        loaded=$(loaded_lib_files "$short_name")
+        if [ -z "$loaded" ]; then
+            echo "  [SKIPPED] the shipped $lib_name is the file loaded at runtime (loader tracing unavailable)"
+        else
+            echo "$loaded" | grep -qF "$lib_dir/"
+            report $? "the shipped $lib_name is the file loaded at runtime"
+            other=$(echo "$loaded" | grep -vF "$lib_dir/" | tr '\n' ' ')
+            [ -z "$other" ] || echo "  Note: the run also mapped $other" >&2
+        fi
 
         # Replacing the library with an invalid file must break synthesis:
         # this proves the shipped file is what is loaded at runtime. A hidden
         # statically linked copy would keep working here.
         for f in $lib_files; do
-            echo "not a shared library" > "$f"
+            echo "not a shared library" > "$f.invalid" && mv -f "$f.invalid" "$f"
         done
-        ! synthesis_smoke_test
-        report $? "synthesis stops working when $lib_name is replaced with an invalid file (the shipped library is really used)"
+        if ! synthesis_smoke_test; then
+            report 0 "synthesis stops working when $lib_name is replaced with an invalid file (the shipped library is really used)"
+        else
+            # A hidden static copy is a failure. A fallback to another copy
+            # on the system says nothing about the distribution.
+            fallback=$(loaded_lib_files "$short_name" | grep -vF "$lib_dir/" | head -1)
+            if [ -n "$fallback" ]; then
+                echo -e "\033[01;33mWarning: the loader fell back to $fallback once the shipped $lib_name was invalidated.\033[0m" >&2
+                echo "  Remove that copy from the loader's search path to run this check." >&2
+                echo "  [SKIPPED] synthesis stops working when $lib_name is replaced with an invalid file (another $lib_name is reachable)"
+            else
+                report 1 "synthesis stops working when $lib_name is replaced with an invalid file (the shipped library is really used)"
+            fi
+        fi
 
         # Substituting a valid library must make synthesis work again. The
         # pristine copy stands in for a user-provided compatible build; this
         # exercises the replacement mechanism the LGPL requires us to support.
         restore_shipped_libs
-        synthesis_smoke_test
-        report $? "synthesis works again after substituting the $lib_name files"
+        if synthesis_smoke_test; then
+            report 0 "synthesis works again after substituting the $lib_name files"
+        else
+            report 1 "synthesis works again after substituting the $lib_name files"
+            run_synthesis 2>&1 >/dev/null | tail -3 | sed 's/^/    /' >&2
+        fi
     done
 
     # Informational only: if the system provides its own libgmp with the same

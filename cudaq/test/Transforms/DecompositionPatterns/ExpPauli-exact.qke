@@ -13,9 +13,10 @@
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition})' %s > %t.actual
 // RUN: FileCheck %s --check-prefix=DECOMP < %t.actual
 // RUN: CircuitCheck --input=%t.actual %t.reference.qke
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s > %t.lower.actual
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition},func.func(cse,normalize-phase-placement,lower-phase,canonicalize))' %s > %t.lower.actual
 // RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.lower.actual
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %t.reference.qke > %t.lower.reference
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(cse,normalize-phase-placement,lower-phase,canonicalize))' %t.reference.qke > %t.lower.reference
+// RUN: FileCheck %s --check-prefix=LOWER-REFERENCE --implicit-check-not=quake.phase < %t.lower.reference
 // RUN: CircuitCheck --input=%t.lower.actual %t.lower.reference
 
 quake.wire_set @exp_pauli_wires[2]
@@ -236,6 +237,9 @@ func.func @nonidentity_mixed_targets(%first: !quake.ref, %rest: !quake.veq<2>) {
 // LOWER: quake.x
 // LOWER-LABEL: func.func @identity_wire
 // LOWER: quake.r1
+
+// LOWER-REFERENCE-LABEL: func.func @identity_forward(
+// LOWER-REFERENCE: return
 
 // The comment-prefixed source below is extracted for CircuitCheck.
 // REFERENCE: // ========================================================================== //

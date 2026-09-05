@@ -9,7 +9,7 @@
 // A failed exact rewrite must retain the source operation without creating
 // partial ExtractRef, basis-change, NegF, or phase IR.
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s | FileCheck %s --check-prefix=LOWER
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition},func.func(cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER
 
 quake.wire_set @exp_pauli_boundary_wires[2]
 

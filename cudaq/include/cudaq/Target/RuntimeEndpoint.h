@@ -86,6 +86,8 @@ struct RuntimeEndpoint {
   bool isRemote = false;
   /// Whether the RuntimeEndpoint executes an emulation of a remote QPU.
   bool isEmulated = false;
+  /// Whether the RuntimeEndpoint consumes JIT-compiled artifacts.
+  bool supportsJit = true;
 
   /// Store any RuntimeEndpoint state here. Passed by mutable reference to each
   /// launch invocation.

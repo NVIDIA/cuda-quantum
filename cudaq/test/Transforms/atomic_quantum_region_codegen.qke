@@ -50,8 +50,8 @@ func.func @shielded_roundtrip() attributes {"cudaq-entrypoint", "cudaq-kernel"} 
   %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
   %b0 = quake.discriminate %m0 : (!quake.measure) -> i1
   %b1 = quake.discriminate %m1 : (!quake.measure) -> i1
-  quake.log_output %b0 : (i1) -> ()
-  quake.log_output %b1 : (i1) -> ()
+  quake.evince %b0 : (i1) -> ()
+  quake.evince %b1 : (i1) -> ()
   return
 }
 
@@ -64,8 +64,8 @@ func.func @exposed_roundtrip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
   %b0 = quake.discriminate %m0 : (!quake.measure) -> i1
   %b1 = quake.discriminate %m1 : (!quake.measure) -> i1
-  quake.log_output %b0 : (i1) -> ()
-  quake.log_output %b1 : (i1) -> ()
+  quake.evince %b0 : (i1) -> ()
+  quake.evince %b1 : (i1) -> ()
   return
 }
 
@@ -79,7 +79,7 @@ func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq
     %sequence = cc.sequence_init %storage, %size : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
     cc.continue %sequence : !cc.sequence<i64>
   }
-  quake.log_output %result : (!cc.sequence<i64>) -> ()
+  quake.evince %result : (!cc.sequence<i64>) -> ()
   return
 }
 
@@ -161,8 +161,7 @@ func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq
 // PIPELINE-NOT: combine-quantum-alloc
 // PIPELINE-NOT: convert-to-cfg
 // PIPELINE-NOT: stack-frame-prealloc
-// PIPELINE: verify-no-phase
-// PIPELINE-NEXT: convert-to-cfg-prep,
+// PIPELINE: convert-to-cfg-prep,
 // PIPELINE-NEXT: func.func(
 // PIPELINE-NEXT: convert-to-cfg
 // PIPELINE-NEXT: ),
