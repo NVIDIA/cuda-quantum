@@ -698,6 +698,17 @@ class PyASTBridge(ast.NodeVisitor):
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
+    def __integerLiteralValue(self, node):
+        """Return the value of an AST node that is an integer literal, possibly
+        negated, and `None` for any other node.
+        """
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+            value = self.__integerLiteralValue(node.operand)
+            return None if value is None else -value
+        if isinstance(node, ast.Constant) and isinstance(node.value, int):
+            return node.value
+        return None
+
     def __arithmetic_to_bool(self, value):
         """Converts an integer or floating point value to a bool by comparing it
         to zero."""
@@ -5985,11 +5996,13 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             cc.ContinueOp([])
 
-    def __process_binary_op(self, left, right, nodeType):
+    def __process_binary_op(self, left, right, nodeType, rightNode=None):
         """Process a binary operation in the AST and map them to equivalents in
         the MLIR.
 
-        This method handles arithmetic operations between values.
+        This method handles arithmetic operations between values. `rightNode` is
+        the AST node the `right` value was created from, if available; it is
+        used to detect literal operands.
         """
 
         # `measure_handle` operands in arithmetic context discriminate
@@ -6102,6 +6115,21 @@ class PyASTBridge(ast.NodeVisitor):
         if issubclass(nodeType, ast.Pow):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
+                # Python raises an integer to a negative integer power in
+                # floating point (`2 ** -1` is `0.5`), and only keeps the
+                # integer type for a non-negative exponent. `math.ipowi` is an
+                # integer power that returns 0 for a negative exponent unless
+                # the base is +/-1, so promote the base and use the
+                # floating-point power when the exponent is a negative literal.
+                # The sign of an exponent that is only known at run time cannot
+                # be taken into account here, since the type of the expression
+                # has to be determined at compile time.
+                exponent = (None if rightNode is None else
+                            self.__integerLiteralValue(rightNode))
+                if exponent is not None and exponent < 0:
+                    left = self.changeOperandToType(self.getFloatType(), left)
+                    self.pushValue(math.FPowIOp(left, right).result)
+                    return
                 # `math.ipowi` does not lower to LLVM as is
                 # workaround, use math to function conversion
                 self.pushValue(math.IPowIOp(left, right).result)
@@ -6194,7 +6222,7 @@ class PyASTBridge(ast.NodeVisitor):
         right = self.popValue()
 
         # pushes to the value stack
-        self.__process_binary_op(left, right, type(node.op))
+        self.__process_binary_op(left, right, type(node.op), node.right)
 
     def visit_AugAssign(self, node):
         """Visit augment-assign operations (e.g. +=)."""
@@ -6229,7 +6257,7 @@ class PyASTBridge(ast.NodeVisitor):
         # some complexity. We hence effectively disallow using any kind of
         # assignment as expression.
         self.valueStack.pushFrame()
-        self.__process_binary_op(loaded, value, type(node.op))
+        self.__process_binary_op(loaded, value, type(node.op), node.value)
         self.valueStack.popFrame()
         res = self.popValue()
 
