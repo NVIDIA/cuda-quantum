@@ -83,3 +83,43 @@ def test_continue():
 # CHECK-LABEL: kernel:
 # CHECK-NEXT: object is not callable
 # CHECK-NEXT: offending source -> x(q
+
+
+def test_bare_continue():
+    # A `continue` that is *not* nested in an `if` must still forward the
+    # loop-carried block arguments to the `cc.continue` terminator.
+
+    @cudaq.kernel
+    def bare_continue_kernel(x: float):
+        q = cudaq.qvector(4)
+        for i in range(4):
+            ry(x, q[i])
+            continue
+
+    print(bare_continue_kernel)
+    bare_continue_kernel(1.2)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__bare_continue_kernel..
+# CHECK-SAME:      %[[VAL_40:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-DAG:       %[[VAL_41:.*]] = arith.constant 1 : i64
+# CHECK-DAG:       %[[VAL_42:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_43:.*]] = arith.constant 4 : i64
+# CHECK-DAG:       %[[VAL_44:.*]] = cc.undef i64
+# CHECK-DAG:       %[[VAL_45:.*]] = quake.alloca !quake.veq<4>
+# CHECK:           %[[VAL_46:.*]]:2 = cc.loop while ((%[[VAL_47:.*]] = %[[VAL_42]], %[[VAL_48:.*]] = %[[VAL_44]]) -> (i64, i64)) {
+# CHECK:             %[[VAL_49:.*]] = arith.cmpi slt, %[[VAL_47]], %[[VAL_43]] : i64
+# CHECK:             cc.condition %[[VAL_49]](%[[VAL_47]], %[[VAL_48]] : i64, i64)
+# CHECK:           } do {
+# CHECK:           ^bb0(%[[VAL_50:.*]]: i64, %[[VAL_51:.*]]: i64):
+# CHECK:             %[[VAL_52:.*]] = quake.extract_ref %[[VAL_45]]{{\[}}%[[VAL_50]]] : (!quake.veq<4>, i64) -> !quake.ref
+# CHECK:             quake.ry (%[[VAL_40]]) %[[VAL_52]] : (f64, !quake.ref) -> ()
+# CHECK:             cc.continue %[[VAL_50]], %[[VAL_50]] : i64, i64
+# CHECK:           } step {
+# CHECK:           ^bb0(%[[VAL_53:.*]]: i64, %[[VAL_54:.*]]: i64):
+# CHECK:             %[[VAL_55:.*]] = arith.addi %[[VAL_53]], %[[VAL_41]] : i64
+# CHECK:             cc.continue %[[VAL_55]], %[[VAL_54]] : i64, i64
+# CHECK:           }
+# CHECK:           quake.dealloc %[[VAL_45]] : !quake.veq<4>
+# CHECK:           return
+# CHECK:         }

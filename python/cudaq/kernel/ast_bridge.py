@@ -5963,12 +5963,12 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError("break statement outside of for loop body.",
                                 node)
 
+        # Get the innermost enclosing `for` or `while` loop
+        inArgs = [b for b in self.inForBodyStack[-1]]
         if self.isInIfStmtBlock():
-            # Get the innermost enclosing `for` or `while` loop
-            inArgs = [b for b in self.inForBodyStack[-1]]
             cc.UnwindBreakOp(inArgs)
         else:
-            cc.BreakOp([])
+            cc.BreakOp(inArgs)
 
         return
 
@@ -5978,12 +5978,12 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError("continue statement outside of for loop body.",
                                 node)
 
+        # Get the innermost enclosing `for` or `while` loop
+        inArgs = [b for b in self.inForBodyStack[-1]]
         if self.isInIfStmtBlock():
-            # Get the innermost enclosing `for` or `while` loop
-            inArgs = [b for b in self.inForBodyStack[-1]]
             cc.UnwindContinueOp(inArgs)
         else:
-            cc.ContinueOp([])
+            cc.ContinueOp(inArgs)
 
     def __process_binary_op(self, left, right, nodeType):
         """Process a binary operation in the AST and map them to equivalents in
