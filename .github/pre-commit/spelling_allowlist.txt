@@ -316,6 +316,7 @@ cuTensor
 cudaq
 cudaqPulseRunCanonicalize
 cudm
+cx
 dataclass
 dataflow
 datagram
@@ -527,6 +528,7 @@ queryable
 qumode
 qumodes
 qvec
+qvector
 rabi
 reStructuredText
 realtime
