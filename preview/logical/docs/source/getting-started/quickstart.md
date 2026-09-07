@@ -167,8 +167,8 @@ with the reference `stim` Python package.
 
 ## Where to go next
 
-- Continue with [CUDA-Q Logical in practice](cudaq-logical-in-practice.md) for
-  the complete staged lowering.
+- Continue with [Build, place, and estimate a logical
+  program](cudaq-logical-in-practice.md) for a step-by-step guide.
 - Use the task-oriented [code](../use-cases/define-a-code.md),
   [placement](../use-cases/devices-and-placement.md), and
   [estimation](../use-cases/estimation.md) guides.

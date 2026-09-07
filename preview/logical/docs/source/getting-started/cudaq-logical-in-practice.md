@@ -1,102 +1,115 @@
-# CUDA-Q Logical in practice
+# The logical programming stack
 
-## From logical intent to an inspectable estimate
+This guide uses a few small examples to show how CUDA-Q Logical turns an idea
+into something you can place on fault-tolerant hardware and estimate. In this
+short walk-through, you will write and place a Bell-pair program, define a
+quantum-error-correction (QEC) realization, and inspect its outputs.
 
-Start with the result. You write one portable Bell program, and CUDA-Q Logical
-turns it into a logical resource estimate, a replayable placement on a logical
-machine, and a verified Steane-code realization. A selected P2 program can also
-be emitted as standards-compatible Stim circuit text.
-
-There is no special path to Stim here. What matters is the staging: every fact
-enters at its owning stage, and you can inspect each refinement before anything
-downstream consumes it.
+CUDA-Q Logical formalizes the layers of abstraction involved in this process as
+**P0**, **P1**, and **P2**:
 
 ```text
-portable P0 intent  →  P1 placement  →  P2 QEC realization
-        │                  │                   │
- logical estimate    slot bindings      static estimate
-                                            │
-                                       Stim text
+P0: logical program  →  P1: placement  →  P2: QEC realization
+       │                       │                    │
+ logical estimate          region and slots         static estimate
+                                                        │
+                                                    Stim text
 ```
 
-## Begin with intent
+Each compilation stage adds detail without changing the behavior of the original
+program.
 
-You start with a program that asks for a Bell pair. It does not choose a code,
-a machine, or an estimation target.
+## 1. Write the logical program
+
+Start with a program that prepares and measures a Bell pair:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/01_p0_bell.py
    :language: python
-   :lines: 13-18
-   :caption: Portable P0 intent (examples/01_p0_bell.py).
+   :lines: 13-27
+   :caption: Define, compile, and estimate a Bell program (examples/01_p0_bell.py).
 ```
 
-The linear spelling makes ownership visible: `q[0] = ql.h(q[0])` consumes one
-version of the qubit and returns the only live successor.
+The program says what to compute, but not where to place the qubits or which QEC
+code to use. That makes it portable.
 
-Compile the program, and it freezes into an immutable P0 build. The first
-estimation tier is already available:
+The assignments are important. A quantum value has one live owner, so an
+operation consumes the current value and returns its successor. For example,
+`q[0] = ql.h(q[0])` replaces the old value of `q[0]` with the one returned by
+`h`. This rule prevents stale or duplicated quantum values from reaching the
+compiled program.
 
-```{eval-rst}
-.. literalinclude:: ../../../examples/01_p0_bell.py
-   :language: python
-   :lines: 21-27
-   :caption: P0 estimate (examples/01_p0_bell.py).
-```
-
-At P0, CUDA-Q Logical counts logical qubits, actions, and instruments. It cannot
-yet report a syndrome-round count or an encoded-patch count, because you have
-not supplied those facts.
+`ql.compile(bell)` produces an immutable P0 build. At this point, a logical
+estimate can count the program's logical qubits and operations:
 
 ```text
 P0 Bell: 2 logical qubits
 ```
 
-## Place the program without choosing a code
+It cannot yet count encoded patches or syndrome rounds because you have not
+chosen a realization. Those figures become available later, when the compiler
+has the facts needed to calculate them.
 
-Placement refines the P0 build; it does not rewrite your application. You
-declare a logical machine with regions, capabilities, and capacity, and a
-placement constraint says the `data` qubits stay together.
+## 2. Place the qubits on a logical machine
+
+Next, describe the available logical machine. This one has a `compute` region
+with two slots and supports logical computation and measurement:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/02_p1_placement.py
    :language: python
    :lines: 13-21
-   :caption: A two-slot logical machine (examples/02_p1_placement.py).
+   :caption: Define a two-slot logical machine (examples/02_p1_placement.py).
 ```
+
+Keep this information out of the Bell program. The same program can then be
+placed on another compatible machine, and the same machine can host other
+programs.
+
+Compile the program and ask the placement solver to keep its two `data` qubits
+together:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/02_p1_placement.py
    :language: python
    :lines: 32-43
+   :caption: Place the Bell program and inspect the result.
 ```
 
-The P1 build records the placement as evidence you can inspect — which region
-and slot each logical owner occupies — and it replays exactly from its
-serialization.
+The resulting P1 build records the region and slot assigned to each logical
+value:
 
 ```text
 P1 Bell: data[0:2] placed on compute[0:2]
 ```
 
-## Supply a realization, not a rewritten application
+Placement refines the P0 build; it does not retrace or rewrite the Python
+program. The recorded placement is also replayable, as the final assertion in
+the example demonstrates.
 
-The QEC realization lives in its own definitions. You write a code with checks
-and logical operators, and gadgets that claim typed logical behavior.
+## 3. Define a QEC realization
+
+At P2, codes and gadgets describe how to realize logical behavior. The next
+example defines the Steane code, an objective for terminal memory, and a gadget
+that implements that objective:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/03_code_and_gadget.py
    :language: python
    :lines: 13-34
-   :caption: The Steane code and a terminal-memory gadget (examples/03_code_and_gadget.py).
+   :caption: Define a Steane code and terminal-memory gadget (examples/03_code_and_gadget.py).
 ```
 
-`implements=terminal_memory` tells the verifier which behavior the gadget
-claims. The patch type tells selection which boundary the realization accepts.
-A matching name without those typed facts is not enough.
+The code supplies its CSS checks, logical operators, and distance. The gadget
+works on a typed Steane patch, extracts its syndrome, measures its data qubits,
+and ends their lifetime.
 
-Materialize the code and compile the gadget, and you get verified P2 objects.
-You can inspect their costs directly:
+`implements=terminal_memory` is a checked claim about the gadget's behavior.
+CUDA-Q Logical compares the gadget with the objective using their types and
+derived actions; a matching Python name alone is not enough.
+
+Materialize the code and compile the gadget to inspect the verified P2
+definitions and their operation counts:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/03_code_and_gadget.py
@@ -112,25 +125,28 @@ Steane [[7,1,3]] terminal-memory gadget:
   authored operations: {'reset': 2, 'h': 2, 'cx': 2, 'read_syndrome_ancillas': 1, 'mz': 1, 'dealloc': 1}
 ```
 
-| The author supplies                         | CUDA-Q Logical derives and verifies                        |
-| ------------------------------------------- | ---------------------------------------------------------- |
-| portable logical intent                     | typed logical ownership and stage tracking                 |
-| a logical machine with regions and capacity | a replayable placement with exact slot bindings            |
-| code checks and a gadget body               | verified code and gadget definitions with operation counts |
+The assertions are useful beyond testing the example: they show which code and
+gadget reached the P2 representation and which code properties were available to
+selection.
 
-## Estimate at the honest tier
+## 4. Estimate a selected realization
 
-Estimation comes in exactly two tiers. `Tier.LOGICAL`, which you saw at P0,
-counts logical structure. `Tier.STATIC` counts the P2 realization: encoded
-patches, gadget calls, and operations. You can also climb the same ladder
-directly from an ordinary CUDA-Q kernel, by compiling through a CUDA-Q Logical
-target:
+CUDA-Q Logical offers two estimation tiers:
+
+| Tier        | Available from | What it counts                                      |
+| ----------- | -------------- | --------------------------------------------------- |
+| **LOGICAL** | P0             | logical qubits, actions, and instruments            |
+| **STATIC**  | P2             | encoded patches, gadget calls, and authored actions |
+
+You can also enter this pipeline from a regular CUDA-Q kernel. The following
+example selects a distance-3 surface-code target and asks `cudaq.estimate` for
+the cost of preparing and measuring a logical zero:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/00_cudaq_logical_resource_estimate.py
    :language: python
-   :lines: 21-40
-   :caption: A distance-3 surface-code target estimated from a CUDA-Q kernel (examples/00_cudaq_logical_resource_estimate.py).
+   :lines: 13-40
+   :caption: Estimate a CUDA-Q kernel with a surface-code target (examples/00_cudaq_logical_resource_estimate.py).
 ```
 
 ```text
@@ -141,10 +157,12 @@ CUDA-Q logical-zero resources:
   CUDA-Q Logical gadget calls: {'rotated_surface_3_measure_z0': 1, 'rotated_surface_3_prepare_zero': 1}
 ```
 
-## Emit Stim text at the boundary
+These numbers describe the selected logical realization. They are not results
+from a noise simulation or a hardware-calibrated execution.
 
-You can project a verified P2 entry gadget to standards-compatible Stim circuit
-text — CUDA-Q Logical's secondary interchange path.
+## 5. Emit a verified gadget as Stim
+
+A verified P2 entry gadget can also be projected to Stim circuit text:
 
 <!--
 % invisible-code-block: python
@@ -163,22 +181,49 @@ assert emission.text.startswith("R ")
 assert emission.interface is not None
 ```
 
-The Python emitter accepts only a verified P2 entry gadget. Hand it anything
-else, and emission fails closed at the stage boundary rather than guessing at
-unrealized operations.
+The emitter accepts a verified P2 entry gadget. If the required realization is
+missing, it stops at that boundary instead of filling in an implementation.
 
-:::{admonition} Evidence boundary :class: note
+Stim emission is an interchange format, not another compilation stage. The
+output contains the explicit resets, Clifford operations, and measurements in
+the selected gadget; CUDA-Q Logical does not use it to sample or decode detector
+events.
 
-These results are logical and static resource estimates of declared codes and
-machines, plus a strict Stim text projection. CUDA-Q Logical does not model
-physical noise, does not sample or decode detector events, and does not claim
-hardware-calibrated counts. The estimates state what the declared realization
-costs; they are not simulated executions. :::
+## What each stage owns
 
-## Continue from here
+Each kind of information belongs to a specific stage:
 
-- [How CUDA-Q Logical refines a program](how-cudaq-logical-refines-a-program.md)
-  goes deeper into stage and facet ownership.
-- [Examples](../use-cases/examples/index.md) collects every shipped Python
-  example, including distillation, Clifford+T synthesis, and the Gidney–Ekerå
-  projection.
+| Stage                  | Adds                                          | Does not change               |
+| ---------------------- | --------------------------------------------- | ----------------------------- |
+| **P0** logical build   | logical actions and value ownership           | —                             |
+| **P1** placed build    | regions, slot bindings, placement evidence    | requested logical behavior    |
+| **P2** QEC realization | codes, patches, gadgets, and protocol details | logical behavior or placement |
+
+Some verified facts sit alongside a stage rather than extending this sequence.
+CUDA-Q Logical calls them _facets_. Code specifications, gadget realizations,
+protocol networks, and patch graphs are all facets that downstream tools can
+request and inspect.
+
+Builds retain this evidence and can be serialized and replayed. When a required
+fact is absent, CUDA-Q Logical reports the missing requirement rather than
+choosing a machine, code, or gadget on your behalf.
+
+When reading or writing CUDA-Q Logical code, two questions are usually enough to
+orient yourself:
+
+1. Which stage or facet owns this fact?
+2. Did I supply it, or can CUDA-Q Logical derive and verify it?
+
+## Where to go next
+
+- Work through the task-oriented guides for
+  [defining a code](../use-cases/define-a-code.md),
+  [placing a program](../use-cases/devices-and-placement.md), and
+  [estimating resources](../use-cases/estimation.md).
+- Browse the complete set of runnable
+  [examples](../use-cases/examples/index.md), including distillation, Clifford+T
+  synthesis, and the Gidney–Ekerå projection.
+- Read [Core concepts](concepts.md) for linear ownership, evidence, and
+  implementation discovery in more detail.
+- See the [architecture reference](../reference/architecture.md) for compiler
+  stages, dialects, and pipelines.

@@ -2,8 +2,8 @@
 
 :::{admonition} Preview release
 
-`cudaq-logical` is in preview. Its APIs, behavior, and documentation may
-change substantially in upcoming versions.
+`cudaq-logical` is in preview. Its APIs, behavior, and documentation may change
+substantially in upcoming versions.
 
 :::
 
@@ -51,14 +51,14 @@ qubit. You can then lower any `cudaq.kernel` to a fault-tolerant program.
 When you call `cudaq.estimate`, CUDA-Q Logical takes the kernel's logical
 intent, realizes it with the code and gadgets the target names, and reports the
 cost of that choice (peak encoded patches, peak protected logical qubits, and
-the named gadget calls that make up the estimate).
-The [examples](use-cases/examples/index.md) page shows more of what CUDA-Q
-Logical can do.
+the named gadget calls that make up the estimate). The
+[examples](use-cases/examples/index.md) page shows more of what CUDA-Q Logical
+can do.
 
 CUDA-Q kernels are only one entry point. You can also author portable logical
 programs directly, define your own codes and gadgets, and place computations on
-a logical machine. The compiler refines a program through strict
-semantic stages, producing immutable evidence at each transition; see the
+a logical machine. The compiler refines a program through strict semantic
+stages, producing immutable evidence at each transition; see the
 [architecture reference](reference/architecture.md) for the advanced staged
 model.
 
@@ -66,13 +66,13 @@ model.
 
 Start from the result you want:
 
-| If you want to…                                                            | Go to                                                                                          |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **Install and run a first estimate**                                       | [Getting started](getting-started/quickstart.md)                                               |
-| **Understand stages, ownership, and evidence**                             | [How CUDA-Q Logical refines a program](getting-started/how-cudaq-logical-refines-a-program.md) |
-| **Do a specific job** (define a code, place, distill, estimate, emit Stim) | [Use cases](use-cases/define-a-code.md)                                                        |
-| **Browse runnable end-to-end examples**                                    | [Examples](use-cases/examples/index.md)                                                        |
-| **Inspect advanced internals or build against CUDA-Q**                     | [Reference](reference/architecture.md)                                                         |
+| If you want to…                                                            | Go to                                                                         |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Install and run a first estimate**                                       | [Getting started](getting-started/quickstart.md)                              |
+| **Build, place, and estimate a logical program**                           | [The logical programming stack](getting-started/cudaq-logical-in-practice.md) |
+| **Do a specific job** (define a code, place, distill, estimate, emit Stim) | [Use cases](use-cases/define-a-code.md)                                       |
+| **Browse runnable end-to-end examples**                                    | [Examples](use-cases/examples/index.md)                                       |
+| **Inspect advanced internals or build against CUDA-Q**                     | [Reference](reference/architecture.md)                                        |
 
 ```{toctree}
 :maxdepth: 2
@@ -81,7 +81,6 @@ Start from the result you want:
 
 getting-started/quickstart
 getting-started/cudaq-logical-in-practice
-getting-started/how-cudaq-logical-refines-a-program
 getting-started/concepts
 use-cases/examples/index
 ```
