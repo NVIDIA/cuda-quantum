@@ -68,6 +68,6 @@ corresponding ``Pipelines.cpp`` files.
 the standalone translation path, while ``cudaq-target-conf`` reads target
 configuration for the C++ driver. Representative lit tests are grouped under
 ``cudaq/test/AST-Quake``, ``cudaq/test/Transforms``, and
-``cudaq/test/Translate``. Python MLIR regression tests are under
+``cudaq/test/CodeGen``. Python MLIR regression tests are under
 ``python/tests/mlir``, with broader frontend behavior tested under
 ``python/tests/kernel``.
