@@ -255,4 +255,16 @@ class CudaqMetadataHook(MetadataHookInterface):
         # installed CUDA version.
         with (curr_dir / "_version.txt").open("r") as f:
             version = f.read().strip()
-        metadata["dependencies"] = [f"{_infer_best_package()}=={version}"]
+        bdist = _infer_best_package()
+        # cudaq-logical is runtime-agnostic: pull it in with the extra
+        # matching the CUDA-Q runtime wheel selected above. The exact pin
+        # mirrors the exact cudaq pin; loosen it when cudaq-logical
+        # versioning evolves.
+        logical_extra = {
+            'cuda-quantum-cu12': 'cu12',
+            'cuda-quantum-cu13': 'cu13',
+        }[bdist]
+        metadata["dependencies"] = [
+            f"{bdist}=={version}",
+            f"cudaq-logical[{logical_extra}]==0.1.0",
+        ]
