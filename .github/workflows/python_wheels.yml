@@ -523,7 +523,7 @@ jobs:
 
       - name: Create job summary
         id: job_summary
-        if: always() && !cancelled() 
+        if: always() && !cancelled()
         run: |
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
@@ -687,13 +687,8 @@ jobs:
     if:
       ${{ !cancelled() && inputs.build_logical_wheel &&
       needs.build_devel_wheel.result == 'success' }}
-    uses: ./.github/workflows/cudaq_logical.yml
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    uses: ./.github/workflows/cudaq_logical_build.yml
     with:
-      platform: ${{ inputs.platform }}
-      python_version: ${{ inputs.python_version }}
       cudaq_version: ${{ needs.wheel_info.outputs.cudaq_version }}
       runtime_artifact_name:
         ${{ needs.build_wheel.outputs.artifact_name ||

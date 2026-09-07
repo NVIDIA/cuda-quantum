@@ -39,39 +39,19 @@ jobs:
       python_version: ${{ steps.resolve.outputs.python_version }}
 
     steps:
-      - id: resolve
-        name: Infer platform and Python version from wheel name
-        shell: bash
-        env:
-          WHEEL_NAME: ${{ inputs.cudaq_logical_wheel }}
-        run: |
-          set -euo pipefail
-
-          if [[ ! "$WHEEL_NAME" =~ -cp([0-9]{2,3})- ]]; then
-            echo "::error::Could not parse Python version from wheel name: $WHEEL_NAME"
-            exit 1
-          fi
-          py_tag="${BASH_REMATCH[1]}"
-          python_version="${py_tag:0:1}.${py_tag:1}"
-
-          if [[ "$WHEEL_NAME" =~ (aarch64|arm64) ]]; then
-            platform="linux/arm64"
-          elif [[ "$WHEEL_NAME" =~ (x86_64|amd64) ]]; then
-            platform="linux/amd64"
-          else
-            echo "::error::Could not parse platform from wheel name: $WHEEL_NAME"
-            exit 1
-          fi
-
-          echo "platform=$platform" >> "$GITHUB_OUTPUT"
-          echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
-
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           sparse-checkout: |
+            .github/actions/parse-wheel-name
             .github/workflows/config/validation_config.json
           sparse-checkout-cone-mode: false
+
+      - id: resolve
+        name: Infer platform and Python version from wheel name
+        uses: ./.github/actions/parse-wheel-name
+        with:
+          wheel_name: ${{ inputs.cudaq_logical_wheel }}
 
       - id: config
         run: |
