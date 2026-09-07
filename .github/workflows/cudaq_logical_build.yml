@@ -24,9 +24,7 @@ on:
         description: Pre-built cudaq-devel wheel artifact.
       metapackage_artifact_name:
         type: string
-        description:
-          cudaq metapackage artifact (optional; python_wheels.yml does not build
-          one).
+        description: cudaq metapackage artifact (optional).
         default: ""
     outputs:
       wheel_name:
@@ -149,7 +147,15 @@ jobs:
             "patchelf>=0.17" \
             "lit<23"
 
-          uv pip install -f dist "cudaq-devel==$CUDAQ_VERSION"
+          # Skip metapackage sdist: Install the local runtime wheel and
+          # cudaq-devel without resolving the `cudaq` PyPI dependency.
+          RUNTIME_WHEEL="$(find dist -name 'cuda_quantum_cu*.whl' -print -quit)"
+          if [ -z "$RUNTIME_WHEEL" ]; then
+            echo "::error::Missing runtime wheel under dist/."
+            exit 1
+          fi
+          uv pip install "$RUNTIME_WHEEL"
+          uv pip install --no-deps -f dist "cudaq-devel==$CUDAQ_VERSION"
 
       - name: Build cudaq.logical
         id: build
