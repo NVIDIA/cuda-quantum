@@ -67,20 +67,36 @@ static void createPrepareForWiresetPipeline(
   funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   funcPM.addPass(createCanonicalizerPass());
   funcPM.addPass(cudaq::opt::createLoopNormalize());
-  funcPM.addPass(cudaq::opt::createLoopUnroll(loopUnrollOptions));
-  funcPM.addPass(createCanonicalizerPass());
-  funcPM.addPass(createCSEPass());
+  // Unroll and fold together. A loop whose trip count is a constant array
+  // element indexed by an outer induction variable only becomes counted once
+  // that outer loop is unrolled and the array is lifted back out of memory, so
+  // the two have to be interleaved.
+  cudaq::opt::createClassicalOptimizationPipeline(
+      pm, loopUnrollOptions.threshold, loopUnrollOptions.allowBreak,
+      /*allowClosedInterval=*/std::nullopt, /*disableLoopUnrolling=*/false,
+      loopUnrollOptions.unrollOnlyAliasingQuantumAccessLoops,
+      loopUnrollOptions.unrollOnlyIndexUseLoops);
+  // That pipeline nests its own func.func passes on pm, so continue in a fresh
+  // nest to keep the order clear.
+  auto &postFuncPM = pm.nest<func::FuncOp>();
+  // Classical optimization never signals failure, so run the unroller again to
+  // report anything left rolled.
+  postFuncPM.addPass(cudaq::opt::createLoopUnroll(loopUnrollOptions));
+  postFuncPM.addPass(createCanonicalizerPass());
+  postFuncPM.addPass(createCSEPass());
   // Fold constant array element reads now that the loop is unrolled and the
   // indices are constants. Kernels that interpret a captured gate array reach
   // memtoreg with a dynamic `quake.extract_ref` index otherwise, and the
   // register cannot be promoted to wires.
-  funcPM.addPass(cudaq::opt::createConstantPropagation());
-  funcPM.addPass(createCanonicalizerPass());
+  postFuncPM.addPass(cudaq::opt::createConstantPropagation());
+  postFuncPM.addPass(createCanonicalizerPass());
   // Classically scalarize and promote Pauli words for early exp_pauli
-  // decomposition because quantum mem2reg cannot handle that operation.
-  funcPM.addPass(cudaq::opt::createSROA());
-  funcPM.addPass(cudaq::opt::createClassicalMemToReg());
-  funcPM.addPass(createCanonicalizerPass());
+  // decomposition because quantum mem2reg cannot handle that operation. The
+  // pipeline above runs these too, but too early to help: a Pauli word is only
+  // promotable once the loop reading it has been unrolled.
+  postFuncPM.addPass(cudaq::opt::createSROA());
+  postFuncPM.addPass(cudaq::opt::createClassicalMemToReg());
+  postFuncPM.addPass(createCanonicalizerPass());
   cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition"});
   cudaq::opt::addConvertToLinearValues(pm);
   pm.addPass(createCanonicalizerPass());

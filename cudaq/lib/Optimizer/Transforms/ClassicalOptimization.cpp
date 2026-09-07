@@ -43,6 +43,12 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+    if (unrollOnlyAliasingQuantumAccessLoops && unrollOnlyIndexUseLoops) {
+      op->emitOpError("unroll-only-aliasing-quantum-access-loops and "
+                      "unroll-only-index-use-loops are mutually exclusive");
+      signalPassFailure();
+      return;
+    }
     DominanceInfo domInfo(op);
     auto func = dyn_cast<func::FuncOp>(op);
     auto numLoops = countLoopOps(op);
@@ -61,9 +67,10 @@ public:
     patterns.insert<AllocaPattern>(
         ctx, domInfo, func == nullptr ? "unknown" : func.getName());
     if (numLoops && !disableLoopUnrolling)
-      patterns.insert<UnrollCountedLoop>(ctx, threshold,
-                                         /*signalFailure=*/false, allowBreak,
-                                         progress);
+      patterns.insert<UnrollCountedLoop>(
+          ctx, threshold,
+          /*signalFailure=*/false, allowBreak, progress,
+          unrollOnlyAliasingQuantumAccessLoops, unrollOnlyIndexUseLoops);
 
     FrozenRewritePatternSet frozen(std::move(patterns));
     // Iterate over the loops until a fixed-point is reached. Some loops can
@@ -118,6 +125,18 @@ struct ClassicalOptimizationPipelineOptions
       llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations. "
                      "(default: false)"),
       llvm::cl::init(false)};
+  PassOptions::Option<bool> unrollOnlyAliasingQuantumAccessLoops{
+      *this, "unroll-only-aliasing-quantum-access-loops",
+      llvm::cl::desc(
+          "Unroll only loops containing aliasing quantum accesses or "
+          "exp_pauli operands that must be resolved for wire-set lowering. "
+          "(default: false)"),
+      llvm::cl::init(false)};
+  PassOptions::Option<bool> unrollOnlyIndexUseLoops{
+      *this, "unroll-only-index-use-loops",
+      llvm::cl::desc("Unroll only loops whose induction variable is used in "
+                     "the loop body. (default: false)"),
+      llvm::cl::init(false)};
 };
 } // namespace
 
@@ -137,6 +156,9 @@ static void createClassicalOptPipeline(
   opts.allowClosedInterval = options.allowClosedInterval;
   opts.allowBreak = options.allowBreak;
   opts.disableLoopUnrolling = options.disableLoopUnrolling;
+  opts.unrollOnlyAliasingQuantumAccessLoops =
+      options.unrollOnlyAliasingQuantumAccessLoops;
+  opts.unrollOnlyIndexUseLoops = options.unrollOnlyIndexUseLoops;
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
@@ -146,7 +168,9 @@ static void createClassicalOptPipeline(
 void cudaq::opt::createClassicalOptimizationPipeline(
     OpPassManager &pm, std::optional<unsigned> threshold,
     std::optional<bool> allowBreak, std::optional<bool> allowClosedInterval,
-    std::optional<bool> disableLoopUnrolling) {
+    std::optional<bool> disableLoopUnrolling,
+    std::optional<bool> unrollOnlyAliasingQuantumAccessLoops,
+    std::optional<bool> unrollOnlyIndexUseLoops) {
   ClassicalOptimizationPipelineOptions options;
   if (threshold.has_value())
     options.threshold = *threshold;
@@ -156,6 +180,11 @@ void cudaq::opt::createClassicalOptimizationPipeline(
     options.allowBreak = *allowBreak;
   if (disableLoopUnrolling.has_value())
     options.disableLoopUnrolling = *disableLoopUnrolling;
+  if (unrollOnlyAliasingQuantumAccessLoops.has_value())
+    options.unrollOnlyAliasingQuantumAccessLoops =
+        *unrollOnlyAliasingQuantumAccessLoops;
+  if (unrollOnlyIndexUseLoops.has_value())
+    options.unrollOnlyIndexUseLoops = *unrollOnlyIndexUseLoops;
   ::createClassicalOptPipeline(pm, options);
 }
 
