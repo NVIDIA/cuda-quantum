@@ -12,59 +12,31 @@ on:
       - "pull-request/[0-9]+"
 
 jobs:
-  changes:
-    name: Check for cudaq.logical changes
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      logical: ${{ steps.filter.outputs.matched }}
-    steps:
-      - name: Checkout changed-path action
-        uses: actions/checkout@v6
-        with:
-          sparse-checkout: .github/actions/check-changed-paths
-          sparse-checkout-cone-mode: false
-
-      - name: Check changed paths
-        id: filter
-        uses: ./.github/actions/check-changed-paths
-        with:
-          paths: |
-            preview/logical/
-            preview/logical/ci/
-            .github/workflows/cudaq_logical.yml
-            .github/workflows/cudaq_logical_docs.yml
-            .github/workflows/cudaq_logical_distros.yml
-            .github/workflows/cudaq_logical_on_push.yml
-            .github/workflows/retrieve_python_wheels.yml
-            .github/actions/check-changed-paths/
-
   build_and_test_amd64_py311:
-    needs: changes
-    if: needs.changes.outputs.logical == 'true'
     name: Build and test cudaq.logical (linux/amd64, 3.11)
     uses: ./.github/workflows/cudaq_logical.yml
     with:
       platform: linux/amd64
-      python_version: '3.11'
+      python_version: "3.11"
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
   docs:
-    needs: [changes, build_and_test_amd64_py311]
-    if: needs.changes.outputs.logical == 'true'
+    needs: [build_and_test_amd64_py311]
     name: Build cudaq.logical docs
     uses: ./.github/workflows/cudaq_logical_docs.yml
     with:
       platform: linux/amd64
-      python_version: '3.11'
+      python_version: "3.11"
       wheel_name: ${{ needs.build_and_test_amd64_py311.outputs.wheel_name }}
-      runtime_artifact_name: ${{ needs.build_and_test_amd64_py311.outputs.runtime_artifact_name }}
-      metapackage_artifact_name: ${{ needs.build_and_test_amd64_py311.outputs.metapackage_artifact_name }}
-      cudaq_version: ${{ needs.build_and_test_amd64_py311.outputs.cudaq_version }}
+      runtime_artifact_name:
+        ${{ needs.build_and_test_amd64_py311.outputs.runtime_artifact_name }}
+      metapackage_artifact_name:
+        ${{ needs.build_and_test_amd64_py311.outputs.metapackage_artifact_name
+        }}
+      cudaq_version:
+        ${{ needs.build_and_test_amd64_py311.outputs.cudaq_version }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
@@ -86,8 +58,6 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
   build_and_test:
-    needs: changes
-    if: needs.changes.outputs.logical == 'true'
     strategy:
       matrix:
         platform: [linux/amd64, linux/arm64]

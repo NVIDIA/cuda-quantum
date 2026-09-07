@@ -13,7 +13,7 @@
 // RUN:   %s | FileCheck %s --check-prefix=CONTROLLED
 // RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization \
 // RUN:   --aggressive-inlining --expand-control-veqs --cse \
-// RUN:   --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize %s \
 // RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 
 module {

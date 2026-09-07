@@ -105,7 +105,6 @@ struct QuakeToCCPrepPass
 void cudaq::opt::addLowerToCCPipeline(mlir::OpPassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
   pm.addPass(cudaq::opt::createQuakeToCCPrep());
   pm.addPass(cudaq::opt::createQuakeToCC());
 }

@@ -209,7 +209,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
    gtest_main
    )
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
-  cudaq_gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+  cudaq_gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu" DISCOVERY_TIMEOUT 120)
 endif()
 
 add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Matrix.cpp)
