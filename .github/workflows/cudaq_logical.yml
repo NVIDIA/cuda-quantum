@@ -1,6 +1,8 @@
 # Build, test and upload the cudaq-logical wheel for the specified platform and python version.
-# 
-# This gets triggered on relevant PRs by the `cudaq-logical_on_push.yml` workflow.
+#
+# This gets triggered
+#  - by `cudaq-logical_on_push.yml` for PRs.
+#  - by `python_wheels.yml` as part of the full CI job.
 
 name: Build and test cudaq.logical
 
@@ -10,13 +12,13 @@ on:
       platform:
         type: choice
         description: Wheel platform
-        options: ['linux/amd64', 'linux/arm64']
+        options: ["linux/amd64", "linux/arm64"]
         default: linux/amd64
       python_version:
         type: choice
         description: Python version
-        options: ['3.11', '3.13', '3.14']
-        default: '3.11'
+        options: ["3.11", "3.13", "3.14"]
+        default: "3.11"
   workflow_call:
     inputs:
       platform:
@@ -26,20 +28,39 @@ on:
       python_version:
         type: string
         description: Python version
-        default: '3.11'
+        default: "3.11"
+      # ----- provide the following inputs to use pre-built CUDA-Q wheels -----
+      cudaq_version:
+        type: string
+        description:
+          CUDA-Q version. Pass along wheel artifact names to skip
+          retrieve_cudaq.
+        default: ""
+      runtime_artifact_name:
+        type: string
+        description: Pre-built cudaq wheel artifact.
+        default: ""
+      devel_artifact_name:
+        type: string
+        description: Pre-built cudaq-devel wheel artifact.
+        default: ""
+      metapackage_artifact_name:
+        type: string
+        description: cudaq metapackage artifact.
+        default: ""
     outputs:
       wheel_name:
         description: "Artifact name of the built cudaq-logical wheel."
         value: ${{ jobs.build.outputs.wheel_name }}
       runtime_artifact_name:
         description: "Artifact name of the CUDA-Q runtime wheel."
-        value: ${{ jobs.retrieve_cudaq.outputs.runtime_artifact_name }}
+        value: ${{ jobs.resolve_cudaq.outputs.runtime_artifact_name }}
       metapackage_artifact_name:
         description: "Artifact name of the cudaq metapackage."
-        value: ${{ jobs.retrieve_cudaq.outputs.metapackage_artifact_name }}
+        value: ${{ jobs.resolve_cudaq.outputs.metapackage_artifact_name }}
       cudaq_version:
         description: "The version of the resolved CUDA-Q wheels."
-        value: ${{ jobs.retrieve_cudaq.outputs.cudaq_version }}
+        value: ${{ jobs.resolve_cudaq.outputs.cudaq_version }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -49,6 +70,10 @@ on:
 jobs:
   retrieve_cudaq:
     name: Retrieve current CUDAQ wheels
+    # Skip when the caller already resolved version + runtime/devel artifacts.
+    if:
+      ${{ inputs.cudaq_version == '' || inputs.runtime_artifact_name == '' ||
+      inputs.devel_artifact_name == '' }}
     uses: ./.github/workflows/retrieve_python_wheels.yml
     secrets:
       # used if the wheels must be built
@@ -60,12 +85,61 @@ jobs:
       metapackage_sdist: true
       devel_wheel: true
       run_validation: false
-      bundle_wheels: true
+      bundle_wheels: false
+
+  # Resolve wheels either from pre-built artifacts passed as inputs or using
+  # outputs from `retrieve_cudaq`.
+  resolve_cudaq:
+    name: Resolve CUDA-Q wheels
+    needs: retrieve_cudaq
+    if:
+      ${{ always() && !cancelled() && (needs.retrieve_cudaq.result == 'success'
+      || needs.retrieve_cudaq.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      cudaq_version: ${{ steps.resolve.outputs.cudaq_version }}
+      runtime_artifact_name: ${{ steps.resolve.outputs.runtime_artifact_name }}
+      devel_artifact_name: ${{ steps.resolve.outputs.devel_artifact_name }}
+      metapackage_artifact_name:
+        ${{ steps.resolve.outputs.metapackage_artifact_name }}
+    steps:
+      - name: Resolve wheel sources
+        id: resolve
+        shell: bash
+        env:
+          CUDAQ_VERSION:
+            ${{ inputs.cudaq_version ||
+            needs.retrieve_cudaq.outputs.cudaq_version }}
+          RUNTIME_ARTIFACT_NAME:
+            ${{ inputs.runtime_artifact_name ||
+            needs.retrieve_cudaq.outputs.runtime_artifact_name }}
+          DEVEL_ARTIFACT_NAME:
+            ${{ inputs.devel_artifact_name ||
+            needs.retrieve_cudaq.outputs.devel_artifact_name }}
+          METAPACKAGE_ARTIFACT_NAME:
+            ${{ inputs.metapackage_artifact_name ||
+            needs.retrieve_cudaq.outputs.metapackage_artifact_name }}
+        run: |
+          set -euo pipefail
+          # cudaq_version + runtime + devel are always required; the metapackage
+          # is optional (python_wheels.yml does not build one).
+          for v in CUDAQ_VERSION RUNTIME_ARTIFACT_NAME DEVEL_ARTIFACT_NAME; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v is empty. Pass cudaq_version, runtime_artifact_name and devel_artifact_name together, or none."
+              exit 1
+            fi
+            echo "${v,,}=${!v}" >> "$GITHUB_OUTPUT"
+          done
+          echo "metapackage_artifact_name=$METAPACKAGE_ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build and test cudaq.logical
-    needs: retrieve_cudaq
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    needs: resolve_cudaq
+    runs-on:
+      ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') ||
+      'linux-amd64-cpu8' }}
     permissions:
       contents: read
       actions: read
@@ -73,7 +147,7 @@ jobs:
       wheel_name: ${{ steps.build.outputs.wheel_name }}
     env:
       PYTHON_VERSION: ${{ inputs.python_version }}
-      CUDAQ_VERSION: ${{ needs.retrieve_cudaq.outputs.cudaq_version }}
+      CUDAQ_VERSION: ${{ needs.resolve_cudaq.outputs.cudaq_version }}
 
     steps:
       - name: Checkout repository
@@ -81,10 +155,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download CUDA-Q wheels
+      - name: Download runtime wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.retrieve_cudaq.outputs.bundle_artifact_name }}
+          name: ${{ needs.resolve_cudaq.outputs.runtime_artifact_name }}
+          path: dist
+
+      - name: Download devel wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.resolve_cudaq.outputs.devel_artifact_name }}
           path: dist
 
       - name: Install uv
@@ -197,10 +277,16 @@ jobs:
 
   test:
     name: Test cudaq.logical
-    needs: [build, retrieve_cudaq]
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    needs: [build, resolve_cudaq]
+    runs-on:
+      ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') ||
+      'linux-amd64-cpu8' }}
     env:
-      CUDAQ_VERSION: ${{ needs.retrieve_cudaq.outputs.cudaq_version }}
+      CUDAQ_VERSION: ${{ needs.resolve_cudaq.outputs.cudaq_version }}
+      RUNTIME_ARTIFACT_NAME:
+        ${{ needs.resolve_cudaq.outputs.runtime_artifact_name }}
+      METAPACKAGE_ARTIFACT_NAME:
+        ${{ needs.resolve_cudaq.outputs.metapackage_artifact_name }}
     permissions:
       contents: read
       actions: read
@@ -216,17 +302,18 @@ jobs:
         with:
           name: ${{ needs.build.outputs.wheel_name }}
           path: dist
-        
+
       - name: Download runtime wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.retrieve_cudaq.outputs.runtime_artifact_name }}
+          name: ${{ env.RUNTIME_ARTIFACT_NAME }}
           path: dist
 
       - name: Download CUDA-Q metapackage
+        if: ${{ env.METAPACKAGE_ARTIFACT_NAME != '' }}
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.retrieve_cudaq.outputs.metapackage_artifact_name }}
+          name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
           path: dist
 
       - name: Install uv
@@ -234,12 +321,25 @@ jobs:
         with:
           python-version: ${{ inputs.python_version }}
           activate-environment: true
-      
+
       - name: Install test dependencies
         shell: bash
         run: |
           set -euo pipefail
-          uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
+          if [ -n "$METAPACKAGE_ARTIFACT_NAME" ]; then
+            uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
+          else
+            # No metapackage sdist: install the local runtime wheel and
+            # cudaq-logical without resolving the `cudaq` PyPI dependency.
+            RUNTIME_WHEEL="$(find dist -name 'cuda_quantum_cu*.whl' -print -quit)"
+            if [ -z "$RUNTIME_WHEEL" ]; then
+              echo "::error::Missing runtime wheel under dist/."
+              exit 1
+            fi
+            uv pip install "$RUNTIME_WHEEL"
+            uv pip install -f dist --no-deps "cudaq-logical==$CUDAQ_VERSION"
+            uv pip install "stim>=1.16,<2"
+          fi
 
       - name: Validate installed cudaq.logical tools
         shell: bash

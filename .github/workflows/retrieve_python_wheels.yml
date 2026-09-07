@@ -299,6 +299,7 @@ jobs:
       build_devel_wheel: ${{ needs.resolve.outputs.need_devel_build == 'true' }}
       runtime_artifact_name: ${{ needs.resolve.outputs.runtime_artifact_name }}
       run_validation: ${{ inputs.run_validation }}
+      build_logical_wheel: false
 
   metapackage:
     name: Build cudaq metapackage

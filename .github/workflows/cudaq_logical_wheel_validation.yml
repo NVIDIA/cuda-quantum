@@ -1,53 +1,24 @@
 # Validate the cudaq-logical wheel across Linux distros in docker containers,
 # mirroring `python_wheels.yml` (job `validation`). The distro matrix is read
-# per python version from the shared config/validation_config.json (read-only);
-# each distro leg runs with a plain install and with `pip install --user`.
-# Callers pass the four artifact names of an existing build leg; otherwise the
-# `build` job below builds the wheel first.
+# per python version from the shared config/validation_config.json.
 
 name: Validate cudaq.logical wheel across distros
 
 on:
-  workflow_dispatch:
-    inputs:
-      platform:
-        type: choice
-        description: Wheel platform
-        options: ['linux/amd64', 'linux/arm64']
-        default: linux/amd64
-      python_version:
-        type: choice
-        description: Python version
-        options: ['3.11', '3.13', '3.14']
-        default: '3.11'
   workflow_call:
     inputs:
-      platform:
-        type: string
-        description: Wheel platform
-        default: linux/amd64
-      python_version:
-        type: string
-        description: Python version
-        default: '3.11'
-      # Artifact inputs: set all four together to reuse a pre-built wheel
-      # (matching platform/python_version); leave empty to build it first.
-      wheel_name:
+      cudaq_logical_wheel:
         type: string
         description: Artifact name of a pre-built cudaq-logical wheel to reuse.
-        default: ''
-      runtime_artifact_name:
+      cudaq_wheel:
         type: string
         description: Artifact name of the matching CUDA-Q runtime wheel.
-        default: ''
-      metapackage_artifact_name:
+      cudaq_metapackage:
         type: string
         description: Artifact name of the matching cudaq metapackage.
-        default: ''
       cudaq_version:
         type: string
         description: Version of the pre-built wheels.
-        default: ''
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -55,19 +26,7 @@ on:
         required: true
 
 jobs:
-  # Skipped when the caller passes pre-built artifact names.
-  build:
-    name: Build and test cudaq.logical
-    if: ${{ !inputs.wheel_name }}
-    uses: ./.github/workflows/cudaq_logical.yml
-    with:
-      platform: ${{ inputs.platform }}
-      python_version: ${{ inputs.python_version }}
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
-
-  # Distro list per python version, copied from `create_test_config` in python_wheels.yml.
+  # Get distro test matrix from `create_test_config` and wheel platform.
   config:
     name: Prepare validation
     runs-on: ubuntu-latest
@@ -76,67 +35,90 @@ jobs:
 
     outputs:
       json: "${{ steps.config.outputs.json }}"
+      platform: ${{ steps.resolve.outputs.platform }}
+      python_version: ${{ steps.resolve.outputs.python_version }}
 
     steps:
+      - id: resolve
+        name: Infer platform and Python version from wheel name
+        shell: bash
+        env:
+          WHEEL_NAME: ${{ inputs.cudaq_logical_wheel }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$WHEEL_NAME" =~ -cp([0-9]{2,3})- ]]; then
+            echo "::error::Could not parse Python version from wheel name: $WHEEL_NAME"
+            exit 1
+          fi
+          py_tag="${BASH_REMATCH[1]}"
+          python_version="${py_tag:0:1}.${py_tag:1}"
+
+          if [[ "$WHEEL_NAME" =~ (aarch64|arm64) ]]; then
+            platform="linux/arm64"
+          elif [[ "$WHEEL_NAME" =~ (x86_64|amd64) ]]; then
+            platform="linux/amd64"
+          else
+            echo "::error::Could not parse platform from wheel name: $WHEEL_NAME"
+            exit 1
+          fi
+
+          echo "platform=$platform" >> "$GITHUB_OUTPUT"
+          echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/workflows/config/validation_config.json
+          sparse-checkout-cone-mode: false
 
       - id: config
         run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
-          operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ inputs.python_version }}").operating_systems'`
+          operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ steps.resolve.outputs.python_version }}").operating_systems'`
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validate:
     name: Validate wheel (${{ matrix.os_image }}${{ matrix.pip_install_flags }})
-    needs: [build, config]
-    # Run after a successful fallback build or when it was skipped (pre-built artifacts passed in).
-    if: ${{ always() && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.config.result == 'success' }}
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    needs: [config]
+    runs-on:
+      ${{ (contains(needs.config.outputs.platform, 'arm') && 'linux-arm64-cpu8')
+      || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: read
       actions: read
     env:
-      CUDAQ_VERSION: ${{ inputs.cudaq_version || needs.build.outputs.cudaq_version }}
-      WHEEL_NAME: ${{ inputs.wheel_name || needs.build.outputs.wheel_name }}
-      RUNTIME_ARTIFACT_NAME: ${{ inputs.runtime_artifact_name || needs.build.outputs.runtime_artifact_name }}
-      METAPACKAGE_ARTIFACT_NAME: ${{ inputs.metapackage_artifact_name || needs.build.outputs.metapackage_artifact_name }}
+      CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+      CUDAQ_LOGICAL_WHEEL: ${{ inputs.cudaq_logical_wheel }}
+      CUDAQ_WHEEL: ${{ inputs.cudaq_wheel }}
+      CUDAQ_METAPACKAGE: ${{ inputs.cudaq_metapackage }}
 
     strategy:
       matrix:
         os_image: ${{ fromJSON(needs.config.outputs.json).os_images }}
-        pip_install_flags: ['', '--user']
+        pip_install_flags: ["", "--user"]
       fail-fast: false
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Check artifact inputs
-        run: |
-          set -euo pipefail
-          for v in CUDAQ_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
-            if [ -z "${!v}" ]; then
-              echo "::error::$v is empty: pass all four artifact inputs together or none."
-              exit 1
-            fi
-          done
-
       - name: Download cudaq-logical wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ env.WHEEL_NAME }}
+          name: ${{ env.CUDAQ_LOGICAL_WHEEL }}
           path: dist
       - name: Download runtime wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ env.RUNTIME_ARTIFACT_NAME }}
+          name: ${{ env.CUDAQ_WHEEL }}
           path: dist
       - name: Download CUDA-Q metapackage
         uses: actions/download-artifact@v8
         with:
-          name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
+          name: ${{ env.CUDAQ_METAPACKAGE }}
           path: dist
 
       - name: Log in to GitHub CR
@@ -147,20 +129,24 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build validation image
+        env:
+          PYTHON_VERSION: ${{ needs.config.outputs.python_version }}
+          CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+          PIP_INSTALL_FLAGS: ${{ matrix.pip_install_flags }}
+          OS_IMAGE: ${{ matrix.os_image }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
-          os_image=${{ matrix.os_image }}
           # Validate images pushed to GHCR to limit pull rate on public registries (python_wheels.yml rewrite).
-          repo_owner=${{ github.repository_owner }}
-          image_tag=`echo $os_image | sed -e 's@.*\.io/\(\)@\1@'`
-          base_image=ghcr.io/${repo_owner,,}/${image_tag#${repo_owner,,}}
+          IMAGE_TAG=`echo $OS_IMAGE | sed -e 's@.*\.io/\(\)@\1@'`
+          BASE_IMAGE=ghcr.io/${REPO_OWNER,,}/${IMAGE_TAG#${REPO_OWNER,,}}
 
           docker build --network host -t cudaq_logical_wheel_validation:local -f preview/logical/ci/wheel-validation.Dockerfile . \
-            --build-arg base_image=$base_image \
-            --build-arg python_version=${{ inputs.python_version }} \
+            --build-arg base_image=$BASE_IMAGE \
+            --build-arg python_version=$PYTHON_VERSION \
             --build-arg cudaq_version=$CUDAQ_VERSION \
             --build-arg preinstalled_modules="pytest" \
-            --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
+            --build-arg pip_install_flags=$PIP_INSTALL_FLAGS \
 
       - name: Validate installed cudaq.logical tools
         uses: ./.github/actions/run-in-docker
@@ -173,14 +159,14 @@ jobs:
             # (containers run as root), so pick them up on the --user leg.
             export PATH="$HOME/.local/bin:$PATH"
 
-            python${{ inputs.python_version }} -c "import cudaq.logical"
+            python${{ needs.config.outputs.python_version }} -c "import cudaq.logical"
             printf 'module {}\n' | qlx-opt
             qlx-translate \
               /tmp/cudaq-logical/examples/cli/stim_memory.mlir --fabric-to-stim \
               | grep -q '^M '
             # The source-only package copy under /tmp/cudaq-logical/python
             # must not shadow the installed wheel (with its compiled extensions).
-            logical_path="$(python${{ inputs.python_version }} -c 'import cudaq.logical; print(cudaq.logical.__file__)')"
+            logical_path="$(python${{ needs.config.outputs.python_version }} -c 'import cudaq.logical; print(cudaq.logical.__file__)')"
             echo "Testing installed cudaq.logical: $logical_path"
             case "$logical_path" in
               */tmp/cudaq-logical/*)
@@ -197,4 +183,4 @@ jobs:
           run: |
             # Full test suite, incl. all examples end-to-end via
             # test_examples_execute.
-            python${{ inputs.python_version }} -m pytest /tmp/cudaq-logical/python/tests/cudaq/logical -v
+            python${{ needs.config.outputs.python_version }} -m pytest /tmp/cudaq-logical/python/tests/cudaq/logical -v
