@@ -1,0 +1,44 @@
+# Nightly full-coverage validation of the cudaq.logical wheel across distros.
+#
+# Event topology (mirrors the main cudaq CI topology in ci.yml):
+#
+# | Check              | per-PR (cudaq_logical_on_push.yml)       | nightly (this workflow)                |
+# |--------------------|------------------------------------------|----------------------------------------|
+# | build + test       | 2 platforms x 3 python versions          | via the distros workflow's fallback    |
+# |                    |                                          | build (full 6-leg matrix)              |
+# | docs examples      | linux/amd64, python 3.11                 | - (examples also run inside pytest)    |
+# | distro validation  | trimmed: linux/amd64 x python 3.11 x the | full: 2 platforms x 3 python versions  |
+# |                    | python 3.11 distro list x ['', '--user'] | x per-python distro lists x            |
+# |                    |                                          | ['', '--user']                         |
+#
+# A future `cudaq_logical_on_merge.yml` (`merge_group: types: [checks_requested]`,
+# full matrix — the non-fast `merge_group` analog of ci.yml) slots in next to this
+# workflow when the mirror enables merge queues.
+
+name: Nightly cudaq.logical
+
+on:
+  # Daily full-coverage run on the default branch.
+  schedule:
+    - cron: '0 6 * * 1-5'  # 06:00 UTC, Mon-Fri
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate_distros:
+    name: Validate cudaq.logical wheel across distros
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        python_version: ['3.11', '3.13', '3.14']
+    uses: ./.github/workflows/cudaq_logical_distros.yml
+    with:
+      platform: ${{ matrix.platform }}
+      python_version: ${{ matrix.python_version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
