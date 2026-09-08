@@ -221,12 +221,12 @@ jobs:
         working-directory: preview/logical
         run: |
           python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
-            --distribution cudaq \
+            --distribution cuda-quantum-cu12 \
+            --distribution cuda-quantum-cu13 \
             --version "$CUDAQ_VERSION"
 
           mkdir -p .wheel-raw
-          SETUPTOOLS_SCM_PRETEND_VERSION="$CUDAQ_VERSION" \
-            SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
             uv build --wheel --no-build-isolation \
               --out-dir .wheel-raw python
 
@@ -336,7 +336,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$METAPACKAGE_ARTIFACT_NAME" ]; then
-            uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
+            uv pip install -f dist "cudaq==$CUDAQ_VERSION"
           else
             # No metapackage sdist: install the local runtime wheel and
             # cudaq-logical without resolving the `cudaq` PyPI dependency.
@@ -346,7 +346,7 @@ jobs:
               exit 1
             fi
             uv pip install "$RUNTIME_WHEEL"
-            uv pip install -f dist --no-deps "cudaq-logical==$CUDAQ_VERSION"
+            uv pip install -f dist --no-deps "cudaq-logical==0.1.0"
             uv pip install "stim>=1.16,<2"
           fi
 

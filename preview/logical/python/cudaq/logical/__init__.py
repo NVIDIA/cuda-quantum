@@ -16,12 +16,43 @@ nouns remain available through exact lazy aliases but are not advertised by
 
 from __future__ import annotations
 
+import warnings as _warnings
 from importlib.metadata import (
     PackageNotFoundError as _PackageNotFoundError,
     distribution as _distribution,
 )
 from importlib.util import find_spec as _find_spec
 from pathlib import Path as _Path
+
+
+def _require_cudaq_runtime() -> None:
+    """Fail fast with actionable guidance when the CUDA-Q runtime is absent.
+
+    The base cudaq-logical wheel is runtime-agnostic: the CUDA-Q runtime
+    arrives through the ``cu12``/``cu13`` extras or the ``cudaq``
+    metapackage. It provides the ``cudaq`` import package
+    (``cudaq/__init__.py``); without it, ``cudaq`` resolves as a bare
+    namespace holding only this subpackage and the compiled modules below
+    fail with inscrutable errors.
+    """
+    spec = _find_spec("cudaq")
+    if spec is None or spec.origin is None:
+        raise ImportError(
+            "cudaq.logical requires the CUDA-Q runtime, which is not "
+            "installed. Install it with "
+            'pip install "cudaq-logical[cu13]" (CUDA 13) or '
+            'pip install "cudaq-logical[cu12]" (CUDA 12), or with '
+            "pip install cudaq."
+        )
+
+
+_require_cudaq_runtime()
+
+_warnings.warn(
+    "cudaq-logical is in preview. Its APIs, behavior, and documentation "
+    "may change substantially in upcoming versions.",
+    stacklevel=2,
+)
 
 from . import (  # noqa: E402
     analysis, algebra, architecture, codes, compiler, devices, errors, estimate,
@@ -59,7 +90,7 @@ except _PackageNotFoundError:
     # Source-tree and staged-build imports do not necessarily have wheel
     # metadata beside them.  Keep their development identity explicit while
     # installed packages always report the distribution version.
-    __version__ = "0.3.0.dev0"
+    __version__ = "0.1.0.dev0"
 finally:
     globals().pop("_installed", None)
     globals().pop("_package_root", None)
