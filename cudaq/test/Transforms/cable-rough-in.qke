@@ -158,3 +158,34 @@ func.func @struq_alloca_member() {
 // CHECK:           quake.wrap %[[MS]]#0 to %[[M0]] :
 // CHECK:           quake.wrap %[[MS]]#1 to %[[M1]] :
 // CHECK:           quake.wrap %[[MS]]#2 to %[[M2]] :
+
+// A veq sized at runtime cannot be given a cable arity, so the call is left in
+// reference form. A call to a kernel compiled separately has the same shape
+// and is resolved at link time, so this is not an error.
+
+func.func @dynamic_size(%n: i64, %d: f64) {
+  %0 = quake.alloca !quake.veq<?>[%n : i64]
+  call @callee(%0, %d) : (!quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic_size(
+// CHECK:           %[[D:.*]] = quake.alloca !quake.veq<?>
+// CHECK:           call @callee(%[[D]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
+
+// An argument this pass cannot resolve must not leave an earlier one
+// half-rewritten. No unwrap may be stranded without its matching wrap.
+
+func.func private @two_vecs(!quake.veq<?>, !quake.veq<?>)
+
+func.func @static_then_dynamic(%n: i64) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.relax_size %0 : (!quake.veq<2>) -> !quake.veq<?>
+  %2 = quake.alloca !quake.veq<?>[%n : i64]
+  call @two_vecs(%1, %2) : (!quake.veq<?>, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @static_then_dynamic(
+// CHECK-NOT:       quake.unwrap
+// CHECK:           call @two_vecs

@@ -269,24 +269,7 @@ public:
     patterns.insert<CallPattern>(ctx);
     cudaq::quake::ExtractRefOp::getCanonicalizationPatterns(patterns, ctx);
     cudaq::quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
-    if (failed(applyPatternsGreedily(funcOp, std::move(patterns)))) {
-      signalPassFailure();
-      return;
-    }
-
-    // A call left in reference form would reach the backend with its qubits
-    // never threaded through it.
-    bool hasUnconvertedCall = false;
-    funcOp.walk([&](func::CallOp call) {
-      for (auto arg : call.getOperands())
-        if (cudaq::quake::isQuantumReferenceType(arg.getType())) {
-          call.emitOpError("cannot be put in wire form. The qubits passed to "
-                           "a call must be a statically sized set");
-          hasUnconvertedCall = true;
-          break;
-        }
-    });
-    if (hasUnconvertedCall)
+    if (failed(applyPatternsGreedily(funcOp, std::move(patterns))))
       signalPassFailure();
   }
 };
