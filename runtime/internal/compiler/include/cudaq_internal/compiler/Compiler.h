@@ -8,11 +8,11 @@
 #pragma once
 
 #include "common/CompileOptions.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
-#include "common/CompileTarget.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <memory>

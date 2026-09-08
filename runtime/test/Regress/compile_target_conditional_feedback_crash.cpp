@@ -13,10 +13,10 @@
 
 // RUN: not --crash compile_target_conditional_feedback_crash
 
+#include "common/CompileTarget.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "common/CompileTarget.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Parser/Parser.h"
 

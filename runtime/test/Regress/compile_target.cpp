@@ -11,11 +11,11 @@
 
 // RUN: compile_target | FileCheck %s
 
+#include "common/CompileTarget.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "common/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"

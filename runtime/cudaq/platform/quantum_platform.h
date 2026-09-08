@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -18,9 +19,8 @@
 #include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
-#include "common/CompileTarget.h"
-#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"

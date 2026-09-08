@@ -9,8 +9,8 @@
 #pragma once
 
 #include "OrcaExecutor.h"
-#include "common/CompiledModule.h"
 #include "common/CompileTarget.h"
+#include "common/CompiledModule.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "cudaq/utils/owning_ptr.h"

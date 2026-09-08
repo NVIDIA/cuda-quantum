@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 #include "ProgramFingerprint.h"
+#include "common/CompileTarget.h"
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "utils/OpaqueArguments.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "common/CompileTarget.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SHA256.h"
 #include "llvm/Support/raw_ostream.h"

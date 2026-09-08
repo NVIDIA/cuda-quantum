@@ -16,8 +16,8 @@
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
 
-#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/algorithms/evolve_internal.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <cstdio>
 #include <future>
