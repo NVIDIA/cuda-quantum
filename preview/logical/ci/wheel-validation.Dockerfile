@@ -66,9 +66,9 @@ RUN if [ -n "$preinstalled_modules" ]; then \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
-# dist/ holds the cudaq-logical wheel under test plus the matching CUDA-Q
-# runtime wheel and cudaq metapackage it depends on.
-COPY dist/ /tmp/dist/
+# wheel-validation/ holds the cudaq-logical wheel under test plus the
+# matching CUDA-Q runtime wheel and cudaq metapackage it depends on.
+COPY wheel-validation/ /tmp/dist/
 # The test suite reads files across the cudaq-logical source tree
 # (python/tests/cudaq/logical/test_*.py resolve the tree root via parents[4]),
 # so the full preview/logical tree must be present, not just the tests.
