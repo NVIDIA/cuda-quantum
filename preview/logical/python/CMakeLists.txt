@@ -314,11 +314,10 @@ add_cudaq_python_modules(QLXPythonModules
     cudaq::MLIRPythonSupport
 )
 
-# MLIRPythonSupport and nanobind live in the runtime wheel's
-# cudaq/mlir/_mlir_libs, not in lib/. The build-tree output directory is
-# also named _mlir_libs, so CMake warns about an RPATH cycle; the installed
-# wheel path must still be on BUILD_RPATH for the DSOs to load from the
-# build tree.
+# MLIRPythonSupport lives in the CUDA-Q install's cudaq/mlir/_mlir_libs, not
+# in lib/. The build-tree output directory is also named _mlir_libs, so CMake
+# warns about an RPATH cycle; that path must still be on BUILD_RPATH for the
+# DSOs to load from the build tree.
 set(_qlx_cudaq_py_libs "${QLX_CUDAQ_PREFIX}/cudaq/mlir/_mlir_libs")
 set_property(TARGET QLXPythonCAPI APPEND PROPERTY
   BUILD_RPATH "${_qlx_cudaq_py_libs}")
@@ -328,25 +327,6 @@ foreach(_qlx_py_dso IN LISTS _qlx_py_targets)
   set_property(TARGET ${_qlx_py_dso} APPEND PROPERTY
     BUILD_RPATH "${_qlx_cudaq_py_libs}")
 endforeach()
-
-# MLIR rebuilds libnanobind-cudaq.so for NB_DOMAIN=cudaq and would otherwise
-# stage/install it next to CUDA-Q's copy. Keep one image: the runtime wheel's.
-if(TARGET nanobind-cudaq)
-  set_target_properties(nanobind-cudaq PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-  # Undo the install() issued by build_nanobind_lib into cudaq/mlir/_mlir_libs.
-  install(CODE "
-    foreach(_nb_name IN ITEMS
-        libnanobind-cudaq.so libnanobind-cudaq.dylib nanobind-cudaq.dll)
-      set(_nb_path \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${MLIR_BINDINGS_PYTHON_INSTALL_PREFIX}/_mlir_libs/\${_nb_name}\")
-      if(EXISTS \"\${_nb_path}\")
-        file(REMOVE \"\${_nb_path}\")
-      endif()
-    endforeach()
-  " COMPONENT QLXPythonModules)
-endif()
 
 # --------------------------------------------------------------------------- #
 # Post-assembly: link in non-exported deps and wire compile defs.
