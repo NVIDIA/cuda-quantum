@@ -344,6 +344,13 @@ def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
     This prerequisite pass will "rough-in" cabling abstractions, which are part
     of value semantics to reduce the switching cost of having both value and
     reference semantics present at the same time in the IR.
+
+    A cable has a static arity, so the qubits passed to a call must be a
+    statically sized set: individual qubits, a `veq` of known size, or a slice
+    of one. A `veq` whose size is not known until runtime cannot be cabled. The
+    pass reports any call it could not put in wire form rather than leaving it
+    in reference form, where the qubits would never be threaded through the
+    call.
   }];
 }
 

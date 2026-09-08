@@ -73,17 +73,3 @@ func.func @from_subveq(%d: f64) {
 // CHECK:           %[[VS:.*]]:2 = quake.split_cable
 // CHECK:           quake.wrap %[[VS]]#0 to %[[V1]] :
 // CHECK:           quake.wrap %[[VS]]#1 to %[[V2]] :
-
-// A veq of unknown size cannot be given a cable arity, so the call is left
-// alone.
-
-func.func @dynamic_size(%n: i64, %d: f64) {
-  %0 = quake.alloca !quake.veq<?>[%n : i64]
-  call @callee(%0, %d) : (!quake.veq<?>, f64) -> ()
-  return
-}
-
-// CHECK-LABEL:   func.func @dynamic_size(
-// CHECK:           %[[D:.*]] = quake.alloca !quake.veq<?>
-// CHECK:           call @callee(%[[D]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
-// CHECK-NOT:       quake.call_by_ref
