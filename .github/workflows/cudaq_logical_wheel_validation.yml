@@ -1,0 +1,165 @@
+# Validate the cudaq-logical wheel across Linux distros in docker containers,
+# mirroring `python_wheels.yml` (job `validation`). The distro matrix is read
+# per python version from the shared config/validation_config.json.
+
+name: Validate cudaq.logical wheel across distros
+
+on:
+  workflow_call:
+    inputs:
+      cudaq_logical_wheel:
+        type: string
+        description: Artifact name of a pre-built cudaq-logical wheel to reuse.
+      cudaq_wheel:
+        type: string
+        description: Artifact name of the matching CUDA-Q runtime wheel.
+      cudaq_metapackage:
+        type: string
+        description: Artifact name of the matching cudaq metapackage.
+      cudaq_version:
+        type: string
+        description: Version of the pre-built wheels.
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_READONLY_TOKEN:
+        required: true
+
+jobs:
+  # Get distro test matrix from `create_test_config` and wheel platform.
+  config:
+    name: Prepare validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      json: "${{ steps.config.outputs.json }}"
+      platform: ${{ steps.resolve.outputs.platform }}
+      python_version: ${{ steps.resolve.outputs.python_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/actions/parse-wheel-name
+            .github/workflows/config/validation_config.json
+          sparse-checkout-cone-mode: false
+
+      - id: resolve
+        name: Infer platform and Python version from wheel name
+        uses: ./.github/actions/parse-wheel-name
+        with:
+          wheel_name: ${{ inputs.cudaq_logical_wheel }}
+
+      - id: config
+        run: |
+          python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
+          operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ steps.resolve.outputs.python_version }}").operating_systems'`
+          echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
+
+  validate:
+    name: Validate wheel (${{ matrix.os_image }}${{ matrix.pip_install_flags }})
+    needs: [config]
+    runs-on:
+      ${{ (contains(needs.config.outputs.platform, 'arm') && 'linux-arm64-cpu8')
+      || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+    env:
+      CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+      CUDAQ_LOGICAL_WHEEL: ${{ inputs.cudaq_logical_wheel }}
+      CUDAQ_WHEEL: ${{ inputs.cudaq_wheel }}
+      CUDAQ_METAPACKAGE: ${{ inputs.cudaq_metapackage }}
+
+    strategy:
+      matrix:
+        os_image: ${{ fromJSON(needs.config.outputs.json).os_images }}
+        pip_install_flags: ["", "--user"]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download cudaq-logical wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.CUDAQ_LOGICAL_WHEEL }}
+          path: wheel-validation
+      - name: Download runtime wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.CUDAQ_WHEEL }}
+          path: wheel-validation
+      - name: Download CUDA-Q metapackage
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.CUDAQ_METAPACKAGE }}
+          path: wheel-validation
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build validation image
+        env:
+          PYTHON_VERSION: ${{ needs.config.outputs.python_version }}
+          CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+          PIP_INSTALL_FLAGS: ${{ matrix.pip_install_flags }}
+          OS_IMAGE: ${{ matrix.os_image }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          # Validate images pushed to GHCR to limit pull rate on public registries (python_wheels.yml rewrite).
+          IMAGE_TAG=`echo $OS_IMAGE | sed -e 's@.*\.io/\(\)@\1@'`
+          BASE_IMAGE=ghcr.io/${REPO_OWNER,,}/${IMAGE_TAG#${REPO_OWNER,,}}
+
+          docker build --network host -t cudaq_logical_wheel_validation:local -f preview/logical/ci/wheel-validation.Dockerfile . \
+            --build-arg base_image=$BASE_IMAGE \
+            --build-arg python_version=$PYTHON_VERSION \
+            --build-arg cudaq_version=$CUDAQ_VERSION \
+            --build-arg preinstalled_modules="pytest" \
+            --build-arg pip_install_flags=$PIP_INSTALL_FLAGS \
+
+      - name: Validate installed cudaq.logical tools
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cudaq_logical_wheel_validation:local
+          shell: bash
+          run: |
+            set -euo pipefail
+            # Console scripts of user-site installs land in ~/.local/bin
+            # (containers run as root), so pick them up on the --user leg.
+            export PATH="$HOME/.local/bin:$PATH"
+
+            python${{ needs.config.outputs.python_version }} -c "import cudaq.logical"
+            printf 'module {}\n' | qlx-opt
+            qlx_out="$(qlx-translate /tmp/cudaq-logical/examples/cli/stim_memory.mlir --fabric-to-stim)"
+            grep -q '^M ' <<< "$qlx_out"
+            # The source-only package copy under /tmp/cudaq-logical/python
+            # must not shadow the installed wheel (with its compiled extensions).
+            logical_path="$(python${{ needs.config.outputs.python_version }} -c 'import cudaq.logical; print(cudaq.logical.__file__)')"
+            echo "Testing installed cudaq.logical: $logical_path"
+            case "$logical_path" in
+              */tmp/cudaq-logical/*)
+                echo "::error::cudaq.logical resolved to the source tree, not the installed wheel."
+                exit 1
+                ;;
+            esac
+
+      - name: Run cudaq.logical Python tests
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cudaq_logical_wheel_validation:local
+          shell: bash
+          run: |
+            # Full test suite, incl. all examples end-to-end via
+            # test_examples_execute.
+            python${{ needs.config.outputs.python_version }} -m pytest /tmp/cudaq-logical/python/tests/cudaq/logical -v

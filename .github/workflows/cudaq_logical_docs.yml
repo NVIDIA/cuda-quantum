@@ -9,8 +9,8 @@
 #
 # On PRs, `cudaq_logical_on_push.yml` passes the artifact names of its
 # dedicated linux/amd64 + Python 3.11 build leg, so no wheel is rebuilt here.
-# When dispatched manually, the `build` job below first builds the wheel for
-# the requested platform/python_version.
+# When dispatched manually, the `build` job below first retrieves CUDA-Q wheels
+# and builds the cudaq-logical wheel for the requested platform/python_version.
 
 name: Build cudaq.logical docs
 
@@ -66,7 +66,7 @@ jobs:
   build:
     name: Build and test cudaq.logical
     if: ${{ !inputs.wheel_name }}
-    uses: ./.github/workflows/cudaq_logical.yml
+    uses: ./.github/workflows/cudaq_logical_build_or_retrieve.yml
     with:
       platform: ${{ inputs.platform }}
       python_version: ${{ inputs.python_version }}

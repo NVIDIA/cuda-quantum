@@ -1,0 +1,68 @@
+# Retrieve CUDA-Q wheels then build and test cudaq.logical.
+#
+# Used by `cudaq_logical_on_push.yml` when the caller does not already have
+# wheel artifacts. A reusable-workflow matrix cannot pass per-cell outputs to
+# a sibling job, so retrieve and build stay in this nested workflow.
+
+name: Retrieve wheels and build cudaq.logical
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        description: Wheel platform
+        default: linux/amd64
+      python_version:
+        type: string
+        description: Python version
+        default: "3.11"
+    outputs:
+      wheel_name:
+        description: "Artifact name of the built cudaq-logical wheel."
+        value: ${{ jobs.build.outputs.wheel_name }}
+      runtime_artifact_name:
+        description: "Artifact name of the CUDA-Q runtime wheel."
+        value: ${{ jobs.retrieve_cudaq.outputs.runtime_artifact_name }}
+      devel_artifact_name:
+        description: "Artifact name of the CUDA-Q devel wheel."
+        value: ${{ jobs.retrieve_cudaq.outputs.devel_artifact_name }}
+      metapackage_artifact_name:
+        description: "Artifact name of the cudaq metapackage."
+        value: ${{ jobs.retrieve_cudaq.outputs.metapackage_artifact_name }}
+      cudaq_version:
+        description: "The version of the retrieved CUDA-Q wheels."
+        value: ${{ jobs.retrieve_cudaq.outputs.cudaq_version }}
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_READONLY_TOKEN:
+        required: true
+
+jobs:
+  retrieve_cudaq:
+    name: Retrieve current CUDAQ wheels
+    uses: ./.github/workflows/retrieve_python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ inputs.platform }}
+      python_version: ${{ inputs.python_version }}
+      metapackage_sdist: true
+      devel_wheel: true
+      run_validation: false
+      bundle_wheels: false
+
+  build:
+    name: Build and test cudaq.logical
+    needs: retrieve_cudaq
+    uses: ./.github/workflows/cudaq_logical_build.yml
+    with:
+      cudaq_version: ${{ needs.retrieve_cudaq.outputs.cudaq_version }}
+      runtime_artifact_name:
+        ${{ needs.retrieve_cudaq.outputs.runtime_artifact_name }}
+      devel_artifact_name:
+        ${{ needs.retrieve_cudaq.outputs.devel_artifact_name }}
+      metapackage_artifact_name:
+        ${{ needs.retrieve_cudaq.outputs.metapackage_artifact_name }}

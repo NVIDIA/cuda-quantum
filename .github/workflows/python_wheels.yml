@@ -45,6 +45,13 @@ on:
         type: boolean
         default: false
         description: Build the cudaq-devel wheel.
+      build_logical_wheel:
+        required: false
+        type: boolean
+        default: false
+        description:
+          Build and test the cudaq-logical wheel from the wheels produced by
+          this workflow. Requires build_devel_wheel.
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
@@ -55,6 +62,9 @@ on:
       devel_artifact_name:
         description: "Artifact name of the devel wheel, if requested."
         value: ${{ jobs.build_devel_wheel.outputs.artifact_name }}
+      logical_artifact_name:
+        description: "Artifact name of the cudaq-logical wheel, if requested."
+        value: ${{ jobs.build_logical_wheel.outputs.wheel_name }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -513,7 +523,7 @@ jobs:
 
       - name: Create job summary
         id: job_summary
-        if: always() && !cancelled() 
+        if: always() && !cancelled()
         run: |
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
@@ -670,6 +680,20 @@ jobs:
         run: |
           PYTHON="${{ steps.setup.outputs.python_executable }}" \
             bash scripts/validate_devel_wheel.sh -i dist -r dist
+
+  build_logical_wheel:
+    name: Build and test cudaq.logical
+    needs: [wheel_info, build_wheel, build_devel_wheel]
+    if:
+      ${{ !cancelled() && inputs.build_logical_wheel &&
+      needs.build_devel_wheel.result == 'success' }}
+    uses: ./.github/workflows/cudaq_logical_build.yml
+    with:
+      cudaq_version: ${{ needs.wheel_info.outputs.cudaq_version }}
+      runtime_artifact_name:
+        ${{ needs.build_wheel.outputs.artifact_name ||
+        inputs.runtime_artifact_name }}
+      devel_artifact_name: ${{ needs.build_devel_wheel.outputs.artifact_name }}
 
   staging:
     name: Staging
