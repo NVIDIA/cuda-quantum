@@ -775,11 +775,6 @@ class ExternKernelDecorator(object):
                 f"extern kernel '{self.name}' cannot return a quantum type. "
                 "Qubits it takes as arguments are threaded back to the caller "
                 "already.")
-        for ty in self.signature.arg_types:
-            if quake.VeqType.isinstance(ty):
-                emitFatalError(
-                    f"extern kernel '{self.name}' takes a qvector, whose size "
-                    "a call cannot express. List the qubits individually.")
 
     def arg_types(self):
         return self.signature.arg_types

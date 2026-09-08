@@ -89,6 +89,31 @@ def test_extern_kernel_returning_a_value():
 # CHECK:         func.func private @probe(!quake.ref) -> f64
 
 
+@cudaq.extern_kernel
+def wait_vec(q: cudaq.qvector, duration: float) -> None:
+    ...
+
+
+def test_extern_kernel_taking_a_qvector():
+    """A qvector argument needs no size in the declaration."""
+
+    @cudaq.kernel
+    def vectored(d: float):
+        q = cudaq.qvector(3)
+        h(q[0])
+        wait_vec(q, d)
+        mz(q)
+
+    print(vectored)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__vectored
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+# CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<3>) -> !quake.veq<?>
+# CHECK:           call @wait_vec(%[[VAL_1]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
+# CHECK:         func.func private @wait_vec(!quake.veq<?>, f64)
+
+
 def test_extern_kernel_declaration_errors():
     with pytest.raises(RuntimeError) as e:
 
@@ -105,14 +130,6 @@ def test_extern_kernel_declaration_errors():
             ...
 
     assert 'cannot return a quantum type' in str(e.value)
-
-    with pytest.raises(RuntimeError) as e:
-
-        @cudaq.extern_kernel
-        def takes_a_qvector(d: float, q: cudaq.qvector) -> None:
-            ...
-
-    assert 'takes a qvector' in str(e.value)
 
 
 def test_extern_kernel_call_errors():
