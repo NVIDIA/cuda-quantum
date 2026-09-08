@@ -32,15 +32,15 @@ _logger = logging.getLogger("cudaq.logical")
 # it changes the allocation normalization order and leaves !quake.ref values
 # at the typed Quake-to-P0 boundary.
 # Passes bracketing `prepare-for-wireset` are QLX-specific and deliberately live
-# here rather than in the shared CUDA-Q pipeline. In particular,
-# U3s must be decomposed for CUDA-Q Logical, which then requires `phase` gates to be handled.
+# here rather than in the shared CUDA-Q pipeline. The decomposition basis is the
+# gate set Quake-to-P0 accepts.
 CUDAQ_TO_P0_PREPARATION_PIPELINE = ",".join((
     "expand-measurements",
     "canonicalize",
     "globalize-array-values",
     "canonicalize",
     "prepare-for-wireset{unroll-only-index-use-loops=true maximum-iterations=2048000}",
-    "decomposition{enable-patterns=U3ToRotations}",
+    "decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}",
     "canonicalize",
     "func.func(normalize-phase-placement)",
     "func.func(lower-phase)",
