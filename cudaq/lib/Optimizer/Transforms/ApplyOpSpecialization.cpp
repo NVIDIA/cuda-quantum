@@ -311,16 +311,15 @@ private:
 /// Clone \p apply with new controls and adjoint flag, preserving its callee,
 /// be it a symbol or a callable value.
 static cudaq::quake::ApplyOp
-createApplyLike(OpBuilder &builder, cudaq::quake::ApplyOp apply,
-                UnitAttr isAdj, ValueRange controls, ValueRange actuals) {
+createApplyLike(OpBuilder &builder, cudaq::quake::ApplyOp apply, UnitAttr isAdj,
+                ValueRange controls, ValueRange actuals) {
   if (auto calleeAttr = apply.getCalleeAttr())
     return cudaq::quake::ApplyOp::create(builder, apply.getLoc(),
                                          apply.getResultTypes(), calleeAttr,
                                          isAdj, controls, actuals);
-  return cudaq::quake::ApplyOp::create(builder, apply.getLoc(),
-                                       apply.getResultTypes(),
-                                       apply.getIndirectCallee(), isAdj,
-                                       controls, actuals);
+  return cudaq::quake::ApplyOp::create(
+      builder, apply.getLoc(), apply.getResultTypes(),
+      apply.getIndirectCallee(), isAdj, controls, actuals);
 }
 
 static std::string getAdjCtrlVariantFunctionName(const std::string &n) {
@@ -1276,7 +1275,7 @@ public:
     auto loc = func.getLoc();
     SmallVector<Type> inTys = {veqTy};
     auto callTy = isSelfClosureHandle(func, 0) ? dynamicArgType(funcTy, 0)
-                                              : cudaq::cc::CallableType{};
+                                               : cudaq::cc::CallableType{};
     if (callTy) {
       SmallVector<Type> newInTys = {veqTy};
       newInTys.append(funcTy.getInputs().begin() + 1, funcTy.getInputs().end());
