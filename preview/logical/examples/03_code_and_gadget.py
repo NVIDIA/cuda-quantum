@@ -7,14 +7,14 @@
 # ============================================================================ #
 """Define a Steane code and inspect a concrete syndrome-extraction gadget."""
 
-import cudaq.logical as qlx
+import cudaq.logical as ql
 
 
-@qlx.code
+@ql.code
 class Steane:
     """The self-dual ``[[7,1,3]]`` CSS code."""
 
-    block = qlx.codes.CSSBlock(data=7, sx=3, sz=3)
+    block = ql.codes.CSSBlock(data=7, sx=3, sz=3)
     d = 3
     hx = ((0, 1, 2, 3), (0, 1, 4, 5), (0, 2, 4, 6))
     hz = hx
@@ -22,21 +22,21 @@ class Steane:
     lz = lx
 
 
-@qlx.objective
-def terminal_memory(q: qlx.types.logical_qubit) -> None:
-    qlx.discard(q)
+@ql.objective
+def terminal_memory(q: ql.types.logical_qubit) -> None:
+    ql.discard(q)
 
 
-@qlx.gadget(implements=terminal_memory)
-def steane_memory(block: qlx.patch[Steane]) -> None:
-    block, _ = qlx.extract_syndrome(block)
-    block, _ = qlx.mz(block.data)
-    qlx.discard(block)
+@ql.gadget(implements=terminal_memory)
+def steane_memory(block: ql.patch[Steane]) -> None:
+    block, _ = ql.extract_syndrome(block)
+    block, _ = ql.mz(block.data)
+    ql.discard(block)
 
 
-code = qlx.materialize(Steane)
-gadget = qlx.compile(steane_memory)
-counts = qlx.analysis.count(gadget)
+code = ql.materialize(Steane)
+gadget = ql.compile(steane_memory)
+counts = ql.analysis.count(gadget)
 
 assert "fabric.code @Steane" in code.to_mlir()
 assert "fabric.gadget @steane_memory" in gadget.to_mlir()

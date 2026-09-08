@@ -577,7 +577,7 @@ def compile(
             linearity,
         ),
         value_groups=transaction.value_groups_of(definition),
-        source_modules=(definition.__module__,),
+        source_modules=(getattr(definition, "__module__", None) or "__main__",),
         experiment=_experiment,
     )
 

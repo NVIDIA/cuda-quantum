@@ -26,7 +26,7 @@ By default, CUDA-Q is taken from the ``cudaq-devel`` wheel installed in the
 Python environment resolved by ``QLXPythonEnv``.
 
 Alternatively, CMake will look for an installation of CUDA-Q at
-``QLX_CUDAQ_INSTALL_DIR`` if that variable is. Use ``-DCUDAQ_BUNDLE_MLIR_INSTALL=ON``
+``CUDAQ_INSTALL_PREFIX`` if that variable is. Use ``-DCUDAQ_BUNDLE_MLIR_INSTALL=ON``
 when building CUDA-Q to colocate the LLVM/MLIR installation in the same place.
 Otherwise, specify the installation prefix of LLVM/MLIR using the usual
 ``LLVM_DIR`` and/or ``MLIR_DIR`` variables.
@@ -48,15 +48,15 @@ include_guard(GLOBAL)
 # --------------------------------------------------------------------------- #
 # Resolve the CUDA-Q prefix
 # --------------------------------------------------------------------------- #
-set(QLX_CUDAQ_INSTALL_DIR "" CACHE PATH
+set(CUDAQ_INSTALL_PREFIX "" CACHE PATH
   "Prefix of a pre-built CUDA-Q installation to build against instead of the \
 cudaq-devel wheel installed in the active Python environment")
 
-if(QLX_CUDAQ_INSTALL_DIR)
-  set(_qlx_cudaq_prefix "${QLX_CUDAQ_INSTALL_DIR}")
-  set(_qlx_cudaq_origin "QLX_CUDAQ_INSTALL_DIR")
+if(CUDAQ_INSTALL_PREFIX)
+  set(_qlx_cudaq_prefix "${CUDAQ_INSTALL_PREFIX}")
+  set(_qlx_cudaq_origin "CUDAQ_INSTALL_PREFIX")
   set(_qlx_cudaq_hint
-    "Point -DQLX_CUDAQ_INSTALL_DIR at the CMAKE_INSTALL_PREFIX of a CUDA-Q "
+    "Point -DCUDAQ_INSTALL_PREFIX at the CMAKE_INSTALL_PREFIX of a CUDA-Q "
     "build, or leave it empty to auto-detect the cudaq-devel SDK from the active Python environment.")
 else()
   execute_process(
@@ -73,7 +73,7 @@ else()
   set(_qlx_cudaq_origin "cudaq-devel wheel")
   set(_qlx_cudaq_hint
     "Install the CUDA-Q development wheel into ${Python3_EXECUTABLE} "
-    "('pip install cudaq-devel'), or pass -DQLX_CUDAQ_INSTALL_DIR=<prefix> to "
+    "('pip install cudaq-devel'), or pass -DCUDAQ_INSTALL_PREFIX=<prefix> to "
     "build against a CUDA-Q installation built from source.")
 endif()
 

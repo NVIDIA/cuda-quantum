@@ -51,6 +51,7 @@
 /dist/
 /*egg*/
 /python/*egg*
+**/*.egg-info
 /*tmp*/
 /wheelhouse/
 **/.ipynb_checkpoints

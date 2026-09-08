@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" style="background:#ffffff;font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" viewBox="0 0 1060 400" role="img" aria-label="The three dialect families, their lowering passes, and the emitter boundary">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5"
+            markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/>
+    </marker>
+  </defs>
+<rect x="40" y="24" width="980" height="74" rx="10" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+<rect x="40" y="24" width="6" height="74" rx="3" fill="#2563eb"/>
+<text x="58" y="48" font-size="13" font-weight="750" fill="#2563eb" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">qlx</text>
+<text x="1005" y="48" font-size="10.5" text-anchor="end" fill="#2563eb" opacity="0.75">P0 — unplaced logical intent</text>
+<text x="58" y="68" font-size="10.5" fill="#334155">typed linear values · actions · instruments · resources · structured control</text>
+<text x="1005" y="68" font-size="9.5" text-anchor="end" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">estimate: qlx-estimate-logical</text>
+<line x1="90" y1="98" x2="90" y2="122" stroke="#64748b" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="104" y="116" font-size="10" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">qlx-place · qlx-to-lvm   (compiler/place.py)</text>
+<rect x="40" y="122" width="980" height="74" rx="10" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5"/>
+<rect x="40" y="122" width="6" height="74" rx="3" fill="#0d9488"/>
+<text x="58" y="146" font-size="13" font-weight="750" fill="#0d9488" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">lvm</text>
+<text x="1005" y="146" font-size="10.5" text-anchor="end" fill="#0d9488" opacity="0.75">P1 — placed logical</text>
+<text x="58" y="166" font-size="10.5" fill="#334155">domain-bound kernels · slot bindings · support · communication intent · placement witness</text>
+<line x1="90" y1="196" x2="90" y2="220" stroke="#64748b" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="104" y="214" font-size="10" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">lvm-select · lvm-apply-qec-lowerings · lvm-to-fabric   (compiler/qec_lower.py)</text>
+<rect x="40" y="220" width="980" height="74" rx="10" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5"/>
+<rect x="40" y="220" width="6" height="74" rx="3" fill="#7c3aed"/>
+<text x="58" y="244" font-size="13" font-weight="750" fill="#7c3aed" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">fabric</text>
+<text x="1005" y="244" font-size="10.5" text-anchor="end" fill="#7c3aed" opacity="0.75">P2 — QEC realization</text>
+<text x="58" y="264" font-size="10.5" fill="#334155">codes · encodings · gadgets · protocols · patch graph · resource evidence</text>
+<text x="1005" y="264" font-size="9.5" text-anchor="end" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">estimate: fabric-count</text>
+<line x1="90" y1="294" x2="90" y2="318" stroke="#64748b" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="104" y="312" font-size="10" fill="#64748b" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">emit_stim   (lower/stim.py)</text>
+<rect x="40" y="318" width="980" height="56" rx="10" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+<text x="58" y="340" font-size="12" font-weight="750" fill="#16a34a">target emitters</text>
+<text x="58" y="359" font-size="10.5" fill="#166534">Stim circuit text from verified P2 entry gadgets · CUDA-Q estimate annotations (LogicalEstimate / FabricCounts) via cudaq.estimate</text>
+</svg>

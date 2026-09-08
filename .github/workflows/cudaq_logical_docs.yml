@@ -20,13 +20,13 @@ on:
       platform:
         type: choice
         description: Wheel platform
-        options: ['linux/amd64', 'linux/arm64']
+        options: ["linux/amd64", "linux/arm64"]
         default: linux/amd64
       python_version:
         type: choice
         description: Python version
-        options: ['3.11', '3.13', '3.14']
-        default: '3.11'
+        options: ["3.11", "3.13", "3.14"]
+        default: "3.11"
   workflow_call:
     inputs:
       platform:
@@ -36,25 +36,25 @@ on:
       python_version:
         type: string
         description: Python version
-        default: '3.11'
+        default: "3.11"
       # Artifact inputs: set all four together to reuse a pre-built wheel
       # (matching platform/python_version); leave empty to build it first.
       wheel_name:
         type: string
         description: Artifact name of a pre-built cudaq-logical wheel to reuse.
-        default: ''
+        default: ""
       runtime_artifact_name:
         type: string
         description: Artifact name of the matching CUDA-Q runtime wheel.
-        default: ''
+        default: ""
       metapackage_artifact_name:
         type: string
         description: Artifact name of the matching cudaq metapackage.
-        default: ''
+        default: ""
       cudaq_version:
         type: string
         description: Version of the pre-built wheels.
-        default: ''
+        default: ""
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -75,20 +75,29 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
   docs:
-    name: Run cudaq.logical docs examples
+    name: Build and test cudaq.logical docs
     needs: build
     # Run both after a successful fallback build and when it was skipped
     # because pre-built artifact names were passed in.
-    if: ${{ always() && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    if:
+      ${{ always() && (needs.build.result == 'success' || needs.build.result ==
+      'skipped') }}
+    runs-on:
+      ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') ||
+      'linux-amd64-cpu8' }}
     permissions:
       contents: read
       actions: read
     env:
-      CUDAQ_VERSION: ${{ inputs.cudaq_version || needs.build.outputs.cudaq_version }}
+      CUDAQ_VERSION:
+        ${{ inputs.cudaq_version || needs.build.outputs.cudaq_version }}
       WHEEL_NAME: ${{ inputs.wheel_name || needs.build.outputs.wheel_name }}
-      RUNTIME_ARTIFACT_NAME: ${{ inputs.runtime_artifact_name || needs.build.outputs.runtime_artifact_name }}
-      METAPACKAGE_ARTIFACT_NAME: ${{ inputs.metapackage_artifact_name || needs.build.outputs.metapackage_artifact_name }}
+      RUNTIME_ARTIFACT_NAME:
+        ${{ inputs.runtime_artifact_name ||
+        needs.build.outputs.runtime_artifact_name }}
+      METAPACKAGE_ARTIFACT_NAME:
+        ${{ inputs.metapackage_artifact_name ||
+        needs.build.outputs.metapackage_artifact_name }}
 
     steps:
       - name: Checkout repository
@@ -106,6 +115,20 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ inputs.python_version }}
+          activate-environment: true
+
+      - name: Build docs
+        shell: bash
+        id: build-docs
+        background: true
+        run: |
+          set -euo pipefail
+          uv run --directory preview/logical/docs/ --extra build-deps --active build-docs
 
       - name: Download cudaq-logical wheel
         uses: actions/download-artifact@v8
@@ -125,20 +148,23 @@ jobs:
           name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
           path: dist
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: ${{ inputs.python_version }}
-          activate-environment: true
-
       - name: Install cudaq.logical
         shell: bash
         run: |
           set -euo pipefail
           uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
 
+      - name: Test inline docs snippets
+        shell: bash
+        background: true
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          uv run --directory preview/logical/docs/ --extra test-deps --active test-docs
+
       - name: Validate installed cudaq.logical tools
         shell: bash
+        background: true
         run: |
           set -euo pipefail
 
@@ -149,6 +175,7 @@ jobs:
 
       - name: Run cudaq.logical docs examples
         shell: bash
+        background: true
         timeout-minutes: 30
         run: |
           set -euo pipefail
@@ -178,9 +205,17 @@ jobs:
             tail -n 3 "example-logs/$name.log"
           done
 
+      - wait-all:
+
       - name: Upload example logs
         uses: actions/upload-artifact@v7
         with:
           name: cudaq_logical_docs_examples
           path: example-logs/
           if-no-files-found: error
+
+      - name: Upload docs build
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq_logical_docs
+          path: preview/logical/docs/_build/html

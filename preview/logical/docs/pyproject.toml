@@ -1,0 +1,33 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cudaq-logical-docs"
+version = "0.1.0"
+description = "CUDA-Q Logical (cudaq.logical) documentation"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+build-docs = "cudaq_logical_docs:main"
+test-docs = "cudaq_logical_docs:test_main"
+
+[project.optional-dependencies]
+build-deps = [
+    "sphinx>=8.1,<9",
+    "sphinx-rtd-theme>=3.0,<4",
+    "myst-parser>=3,<5",
+    "sphinx-design>=0.6,<0.7",
+]
+# Note: tests will fail if cudaq-logical is not installed in the environment.
+# If using `uv run`, make sure to pass the `--active` flag to run within your activated `venv`.
+test-deps = ["pytest>=7.0", "sybil>=6"]

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" style="background:#ffffff;font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" viewBox="0 0 1060 340" role="img" aria-label="The semantic spine and its facets">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5"
+            markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/>
+    </marker>
+  </defs>
+<rect x="40" y="26" width="460" height="78" rx="10" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+<rect x="40" y="26" width="6" height="78" rx="3" fill="#2563eb"/>
+<text x="58" y="48" font-size="13.5" font-weight="750" fill="#2563eb">P0 — unplaced logical</text>
+<text x="492" y="48" font-size="11" text-anchor="end" fill="#2563eb" opacity="0.8" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">qlx</text>
+<text x="58" y="68" font-size="10.5" fill="#334155">What logical computation is requested?</text>
+<text x="58" y="84" font-size="10.5" fill="#64748b">linear values · typed actions · resources · structured control</text>
+<line x1="270" y1="104" x2="270" y2="130" stroke="#64748b" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="282" y="121" font-size="10.5" fill="#64748b" font-style="italic">logical placement + support</text>
+<rect x="40" y="130" width="460" height="78" rx="10" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5"/>
+<rect x="40" y="130" width="6" height="78" rx="3" fill="#0d9488"/>
+<text x="58" y="152" font-size="13.5" font-weight="750" fill="#0d9488">P1 — placed logical</text>
+<text x="492" y="152" font-size="11" text-anchor="end" fill="#0d9488" opacity="0.8" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">lvm</text>
+<text x="58" y="172" font-size="10.5" fill="#334155">Where may each logical owner reside?</text>
+<text x="58" y="188" font-size="10.5" fill="#64748b">spaces · residency · support · communication · witness</text>
+<line x1="270" y1="208" x2="270" y2="234" stroke="#64748b" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="282" y="225" font-size="10.5" fill="#64748b" font-style="italic">QEC selection + expansion</text>
+<rect x="40" y="234" width="460" height="78" rx="10" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5"/>
+<rect x="40" y="234" width="6" height="78" rx="3" fill="#7c3aed"/>
+<text x="58" y="256" font-size="13.5" font-weight="750" fill="#7c3aed">P2 — QEC realization</text>
+<text x="492" y="256" font-size="11" text-anchor="end" fill="#7c3aed" opacity="0.8" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">fabric</text>
+<text x="58" y="276" font-size="10.5" fill="#334155">Which code, gadgets, and protocols realize it — at what cost?</text>
+<text x="58" y="292" font-size="10.5" fill="#64748b">codes · encodings · gadgets · protocols · patch graph</text>
+<rect x="570" y="96" width="220" height="176" rx="10" fill="#fdf2f8" stroke="#fbcfe8" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="680" y="118" font-size="12" text-anchor="middle" font-weight="800" fill="#db2777">FACETS</text>
+<text x="680" y="134" font-size="9.5" text-anchor="middle" fill="#64748b" font-style="italic">attach to immutable roots</text>
+<text x="590" y="158" font-size="10.8" fill="#9d174d">· qec_spec — code definitions</text>
+<text x="590" y="183" font-size="10.8" fill="#9d174d">· qec_realization — gadgets</text>
+<text x="590" y="208" font-size="10.8" fill="#9d174d">· protocol_network</text>
+<text x="590" y="233" font-size="10.8" fill="#9d174d">· patch_graph — interactions</text>
+<text x="590" y="258" font-size="10.8" fill="#9d174d">· estimates — typed results</text>
+<path d="M 570 242 L 508 242" fill="none" stroke="#db2777" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<rect x="830" y="60" width="200" height="230" rx="10" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+<text x="930" y="84" font-size="12" text-anchor="middle" font-weight="800" fill="#16a34a">CONSUME / EMIT</text>
+<text x="930" y="100" font-size="9.5" text-anchor="middle" fill="#64748b" font-style="italic">orthogonal to the spine</text>
+<text x="846" y="126" font-size="10.5" fill="#166534">targets consume verified</text>
+<text x="846" y="148" font-size="10.5" fill="#166534">builds at their stage:</text>
+<text x="846" y="172" font-size="10.5" fill="#166534">· estimator → P0 profile</text>
+<text x="846" y="194" font-size="10.5" fill="#166534">· clifford_t → H/S/T counts</text>
+<text x="846" y="216" font-size="10.5" fill="#166534">· surface_target → P2 counts</text>
+<text x="846" y="238" font-size="10.5" fill="#166534">· fabric-to-stim → Stim text</text>
+<path d="M 500 50 L 830 95" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<path d="M 500 300 L 830 275" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<rect x="40" y="316" width="460" height="24" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.3"/>
+<text x="270" y="332" font-size="10" text-anchor="middle" fill="#475569" font-style="italic">evidence plane: every transition proves, assumes, or declares missing</text>
+</svg>
