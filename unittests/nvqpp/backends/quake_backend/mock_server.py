@@ -220,7 +220,7 @@ def verifyModule(module, stage):
 def stubExternalQuantumCalls(recovered_mod):
     """Treat a call the backend is meant to implement as the identity.
 
-    `lower-wireset-to-profile-qir` marks `quake.call_by_ref` illegal, and the
+    `lower-wireset-to-profile-qir` marks `quake.apply` illegal, and the
     mock has no implementation to offer, so each wire operand is threaded to
     the matching result. Only a symbol the payload declares without a body is
     stubbed; anything else is reported.
@@ -236,7 +236,7 @@ def stubExternalQuantumCalls(recovered_mod):
         for region in op.regions:
             for block in region.blocks:
                 for inner in list(block.operations):
-                    if inner.operation.name != "quake.call_by_ref":
+                    if inner.operation.name != "quake.apply":
                         walk(inner.operation)
                         continue
                     name = str(inner.attributes["callee"]).lstrip("@")

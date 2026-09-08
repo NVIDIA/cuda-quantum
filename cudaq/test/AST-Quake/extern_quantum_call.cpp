@@ -41,7 +41,7 @@ __qpu__ void ramsey(double d) {
 // WIRE-LABEL: func.func @__nvqpp__mlirgen__function_ramsey.
 // WIRE: %[[W0:.*]] = quake.null_wire
 // WIRE: %[[W1:.*]] = quake.rx {{.*}} %[[W0]] :
-// WIRE: %[[W2:.*]] = quake.call_by_ref @__qm__wait_function(%{{.*}}, %[[W1]]) :
+// WIRE: %[[W2:.*]] = quake.apply @__qm__wait_function (%{{.*}}, %[[W1]]) :
 // WIRE-SAME: (f64, !quake.wire) -> !quake.wire
 // WIRE: quake.rx {{.*}} %[[W2]] :
 // WIRE: func.func private @__qm__wait_function(f64, !quake.ref)

@@ -136,7 +136,7 @@ else
     echo ":x: test_extern_call failed"
     cat test_extern_call.out
     test_err_sum=$((test_err_sum+1))
-  elif ! grep -q "quake.call_by_ref @__qm__wait_function" test_extern_call.out; then
+  elif ! grep -q "quake.apply @__qm__wait_function" test_extern_call.out; then
     echo ":x: test_extern_call client IR is missing the wire-form external call"
     cat test_extern_call.out
     test_err_sum=$((test_err_sum+1))
@@ -195,7 +195,7 @@ if [ $? -ne 0 ]; then
   echo ":x: Python test_extern_call.py failed"
   cat test_extern_call.py.out
   test_err_sum=$((test_err_sum+1))
-elif ! grep -q "quake.call_by_ref @wait" test_extern_call.py.out; then
+elif ! grep -q "quake.apply @wait" test_extern_call.py.out; then
   echo ":x: test_extern_call.py client IR is missing the wire-form external call"
   cat test_extern_call.py.out
   test_err_sum=$((test_err_sum+1))

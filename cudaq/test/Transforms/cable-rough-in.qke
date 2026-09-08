@@ -27,7 +27,7 @@ func.func @from_concat(%d: f64) {
 // CHECK:           %[[CU0:.*]] = quake.unwrap %[[C0]] :
 // CHECK:           %[[CU1:.*]] = quake.unwrap %[[C1]] :
 // CHECK:           %[[CB:.*]] = quake.bundle_cable %[[CU0]], %[[CU1]] : {{.*}} -> !quake.cable<2>
-// CHECK:           %[[CC:.*]] = quake.call_by_ref @callee(%[[CB]], %{{.*}}) : (!quake.cable<2>, f64) -> !quake.cable<2>
+// CHECK:           %[[CC:.*]] = quake.apply @callee (%[[CB]], %{{.*}}) : (!quake.cable<2>, f64) -> !quake.cable<2>
 // CHECK:           %[[CS:.*]]:2 = quake.split_cable %[[CC]] :
 // CHECK:           quake.wrap %[[CS]]#0 to %[[C0]] :
 // CHECK:           quake.wrap %[[CS]]#1 to %[[C1]] :
@@ -47,7 +47,7 @@ func.func @from_alloca(%d: f64) {
 // CHECK:           %[[A1:.*]] = quake.extract_ref %[[A]][1] :
 // CHECK:           %[[A2:.*]] = quake.extract_ref %[[A]][2] :
 // CHECK:           quake.bundle_cable {{.*}} -> !quake.cable<3>
-// CHECK:           quake.call_by_ref @callee({{.*}}) : (!quake.cable<3>, f64) -> !quake.cable<3>
+// CHECK:           quake.apply @callee ({{.*}}) : (!quake.cable<3>, f64) -> !quake.cable<3>
 // CHECK:           %[[AS:.*]]:3 = quake.split_cable
 // CHECK:           quake.wrap %[[AS]]#0 to %[[A0]] :
 // CHECK:           quake.wrap %[[AS]]#1 to %[[A1]] :
@@ -69,22 +69,21 @@ func.func @from_subveq(%d: f64) {
 // CHECK:           %[[V1:.*]] = quake.extract_ref %[[V]][1] :
 // CHECK:           %[[V2:.*]] = quake.extract_ref %[[V]][2] :
 // CHECK:           quake.bundle_cable {{.*}} -> !quake.cable<2>
-// CHECK:           quake.call_by_ref @callee({{.*}}) : (!quake.cable<2>, f64) -> !quake.cable<2>
+// CHECK:           quake.apply @callee ({{.*}}) : (!quake.cable<2>, f64) -> !quake.cable<2>
 // CHECK:           %[[VS:.*]]:2 = quake.split_cable
 // CHECK:           quake.wrap %[[VS]]#0 to %[[V1]] :
 // CHECK:           quake.wrap %[[VS]]#1 to %[[V2]] :
 
 // A struq flattens to a single cable, member by member.
 
-func.func private @struq_callee(!quake.struq<!quake.ref, !quake.veq<?>>)
+func.func private @struq_callee(!quake.struq<!quake.ref, !quake.veq<1>>)
 
 func.func @from_struq() {
   %0 = quake.alloca !quake.ref
   %1 = quake.alloca !quake.ref
   %2 = quake.concat %1 : (!quake.ref) -> !quake.veq<1>
-  %3 = quake.relax_size %2 : (!quake.veq<1>) -> !quake.veq<?>
-  %4 = quake.make_struq %0, %3 : (!quake.ref, !quake.veq<?>) -> !quake.struq<!quake.ref, !quake.veq<?>>
-  call @struq_callee(%4) : (!quake.struq<!quake.ref, !quake.veq<?>>) -> ()
+  %3 = quake.make_struq %0, %2 : (!quake.ref, !quake.veq<1>) -> !quake.struq<!quake.ref, !quake.veq<1>>
+  call @struq_callee(%3) : (!quake.struq<!quake.ref, !quake.veq<1>>) -> ()
   return
 }
 
@@ -94,7 +93,7 @@ func.func @from_struq() {
 // CHECK:           %[[SU0:.*]] = quake.unwrap %[[S0]] :
 // CHECK:           %[[SU1:.*]] = quake.unwrap %[[S1]] :
 // CHECK:           %[[SB:.*]] = quake.bundle_cable %[[SU0]], %[[SU1]] : {{.*}} -> !quake.cable<2>
-// CHECK:           %[[SC:.*]] = quake.call_by_ref @struq_callee(%[[SB]]) : (!quake.cable<2>) -> !quake.cable<2>
+// CHECK:           %[[SC:.*]] = quake.apply @struq_callee (%[[SB]]) : (!quake.cable<2>) -> !quake.cable<2>
 // CHECK:           %[[SS:.*]]:2 = quake.split_cable %[[SC]] :
 // CHECK:           quake.wrap %[[SS]]#0 to %[[S0]] :
 // CHECK:           quake.wrap %[[SS]]#1 to %[[S1]] :
@@ -113,7 +112,7 @@ func.func @with_result() -> f64 {
 // CHECK-LABEL:   func.func @with_result(
 // CHECK:           %[[R:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[RU:.*]] = quake.unwrap %[[R]] :
-// CHECK:           %[[RC:.*]]:2 = quake.call_by_ref @probe(%[[RU]]) : (!quake.wire) -> (f64, !quake.wire)
+// CHECK:           %[[RC:.*]]:2 = quake.apply @probe (%[[RU]]) : (!quake.wire) -> (f64, !quake.wire)
 // CHECK:           quake.wrap %[[RC]]#1 to %[[R]] :
 // CHECK:           return %[[RC]]#0 : f64
 
@@ -131,19 +130,20 @@ func.func @classical_and_result(%d: f64) -> i32 {
 // CHECK-SAME:      %[[D:.*]]: f64
 // CHECK:           %[[M:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[MU:.*]] = quake.unwrap %[[M]] :
-// CHECK:           %[[MC:.*]]:2 = quake.call_by_ref @mixed_result(%[[D]], %[[MU]]) : (f64, !quake.wire) -> (i32, !quake.wire)
+// CHECK:           %[[MC:.*]]:2 = quake.apply @mixed_result (%[[D]], %[[MU]]) : (f64, !quake.wire) -> (i32, !quake.wire)
 // CHECK:           quake.wrap %[[MC]]#1 to %[[M]] :
 // CHECK:           return %[[MC]]#0 : i32
 
 // A struq member is resolved the same way as a bare veq argument, so an
 // allocation-backed member works too.
 
+func.func private @struq_alloca_callee(!quake.struq<!quake.ref, !quake.veq<2>>)
+
 func.func @struq_alloca_member() {
   %0 = quake.alloca !quake.ref
   %1 = quake.alloca !quake.veq<2>
-  %2 = quake.relax_size %1 : (!quake.veq<2>) -> !quake.veq<?>
-  %3 = quake.make_struq %0, %2 : (!quake.ref, !quake.veq<?>) -> !quake.struq<!quake.ref, !quake.veq<?>>
-  call @struq_callee(%3) : (!quake.struq<!quake.ref, !quake.veq<?>>) -> ()
+  %2 = quake.make_struq %0, %1 : (!quake.ref, !quake.veq<2>) -> !quake.struq<!quake.ref, !quake.veq<2>>
+  call @struq_alloca_callee(%2) : (!quake.struq<!quake.ref, !quake.veq<2>>) -> ()
   return
 }
 
@@ -153,7 +153,7 @@ func.func @struq_alloca_member() {
 // CHECK:           %[[M1:.*]] = quake.extract_ref %[[MV]][0] :
 // CHECK:           %[[M2:.*]] = quake.extract_ref %[[MV]][1] :
 // CHECK:           quake.bundle_cable {{.*}} -> !quake.cable<3>
-// CHECK:           quake.call_by_ref @struq_callee({{.*}}) : (!quake.cable<3>) -> !quake.cable<3>
+// CHECK:           quake.apply @struq_alloca_callee ({{.*}}) : (!quake.cable<3>) -> !quake.cable<3>
 // CHECK:           %[[MS:.*]]:3 = quake.split_cable
 // CHECK:           quake.wrap %[[MS]]#0 to %[[M0]] :
 // CHECK:           quake.wrap %[[MS]]#1 to %[[M1]] :
