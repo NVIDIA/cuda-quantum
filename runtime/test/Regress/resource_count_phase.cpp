@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: test_resource_count_phase | FileCheck %s
+// RUN: resource_count_phase | FileCheck %s
 
 #include "cudaq_internal/compiler/ResourceCount.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"

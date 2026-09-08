@@ -368,6 +368,14 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     - lift-array-alloc
     - cc-loop-normalize
     - cc-loop-unroll
+
+    Running these together to a fix point unrolls loops that a fixed sequence
+    of the individual passes cannot, such as one whose trip count is a constant
+    array element indexed by an outer induction variable.
+
+    The two selective unrolling options mirror cc-loop-unroll and are mutually
+    exclusive. Unlike cc-loop-unroll, this pass never reports a loop it could
+    not unroll.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
@@ -382,7 +390,17 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
       "Allow unrolling of loop with early exit (i.e. break statement).">,
     Option<"disableLoopUnrolling", "no-loop-unroll", "bool",
       /*default=*/"false",
-      "Disable loop unrolling and preserve cc.loop operations.">
+      "Disable loop unrolling and preserve cc.loop operations.">,
+    Option<"unrollOnlyAliasingQuantumAccessLoops",
+      "unroll-only-aliasing-quantum-access-loops", "bool",
+      /*default=*/"false",
+      "Unroll only loops containing aliasing quantum accesses or exp_pauli "
+      "operands that must be resolved for wire-set lowering. See "
+      "cc-loop-unroll.">,
+    Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
+      /*default=*/"false",
+      "Unroll only index use loops, i.e. loops whose induction variable is "
+      "used in the loop body. See cc-loop-unroll.">
   ];
 }
 

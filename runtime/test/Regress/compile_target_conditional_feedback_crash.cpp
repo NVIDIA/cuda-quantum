@@ -11,7 +11,7 @@
 // reliably catchable in this test binary (RTTI disabled), so this runs in its
 // own process and expects a crash.
 
-// RUN: not --crash test_compile_target_conditional_feedback_crash
+// RUN: not --crash compile_target_conditional_feedback_crash
 
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/Compiler.h"
