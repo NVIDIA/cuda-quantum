@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "py_compile_target.h"
-#include "cudaq/Target/CompileTarget.h"
+#include "common/CompileTarget.h"
 #include "cudaq/platform.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>

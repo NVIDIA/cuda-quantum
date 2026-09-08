@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/Support/Hash.h"
-#include "cudaq/Target/CompileTarget.h"
+#include "common/CompileTarget.h"
 #include <cstddef>
 
 namespace cudaq {

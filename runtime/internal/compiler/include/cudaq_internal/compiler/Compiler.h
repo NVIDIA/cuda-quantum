@@ -12,7 +12,7 @@
 #include "common/Environment.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
-#include "cudaq/Target/CompileTarget.h"
+#include "common/CompileTarget.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <memory>

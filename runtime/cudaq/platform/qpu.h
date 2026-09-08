@@ -13,7 +13,7 @@
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
-#include "cudaq/Target/CompileTarget.h"
+#include "common/CompileTarget.h"
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/remote_capabilities.h"
 

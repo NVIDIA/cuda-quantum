@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "common/CompiledModule.h"
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/orca.h"
 #include "cudaq/platform.h"

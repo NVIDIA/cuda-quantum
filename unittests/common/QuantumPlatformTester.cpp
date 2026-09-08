@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "common/CompiledModule.h"
-#include "cudaq/Target/CompileTarget.h"
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "common/CompileTarget.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/algorithms/msm/policy.h"
