@@ -3026,8 +3026,11 @@ class PyASTBridge(ast.NodeVisitor):
             values = groupValues(node.args, [(len(argTys), len(argTys))])
             values = convertArguments(argTys, values)
 
+            returnTy = entry.signature.return_type
+            resTys = [returnTy] if returnTy is not None else []
+
             symbol = entry.backendSymbol
-            fnTy = FunctionType.get(argTys, [])
+            fnTy = FunctionType.get(argTys, resTys)
             currentST = SymbolTable(self.module.operation)
             if symbol in currentST:
                 declaredTy = currentST[symbol].type
@@ -3038,10 +3041,12 @@ class PyASTBridge(ast.NodeVisitor):
                         f"{declaredTy}.", node)
             else:
                 with InsertionPoint(self.module.body):
-                    declOp = func.FuncOp(symbol, (argTys, []))
+                    declOp = func.FuncOp(symbol, (argTys, resTys))
                     declOp.sym_visibility = StringAttr.get("private")
 
-            func.CallOp([], symbol, values)
+            call = func.CallOp(resTys, symbol, values)
+            if resTys:
+                self.pushValue(call.result)
             return True
 
         def processDecoratorCall(symName):

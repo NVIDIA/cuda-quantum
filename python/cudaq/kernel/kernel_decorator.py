@@ -27,9 +27,9 @@ from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
 from .ast_bridge import compile_to_mlir
 from .utils import (emitFatalError, emitErrorIfInvalidPauli, ExtensionEntry,
                     get_function_source_or_raise, get_module_name,
-                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
-                    nvqppPrefix, getMLIRContext, recover_func_op,
-                    recover_value_of)
+                    globalRegisteredTypes, isQuantumType, mlirTypeFromPyType,
+                    mlirTypeToPyType, nvqppPrefix, getMLIRContext,
+                    recover_func_op, recover_value_of)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -759,10 +759,22 @@ class ExternKernelDecorator(object):
                                     signature=self.signature,
                                     backendSymbol=self.backendSymbol)
 
-        if self.signature.return_type is not None:
+        # A declaration has no body, so its annotations are the only
+        # description of its signature. Require them all, including the return
+        # annotation, which `KernelSignature` would otherwise let us omit
+        # because a declaration never has a return statement.
+        visitor = FunctionDefVisitor(self.name)
+        visitor.visit(self.astModule)
+        if visitor.return_annotation is None:
             emitFatalError(
-                f"extern kernel '{self.name}' must return None, since the "
-                "compiler cannot know what the backend returns.")
+                f"extern kernel '{self.name}' is missing a return type "
+                "annotation. Write `-> None` if it returns nothing.")
+        returnTy = self.signature.return_type
+        if returnTy is not None and isQuantumType(returnTy):
+            emitFatalError(
+                f"extern kernel '{self.name}' cannot return a quantum type. "
+                "Qubits it takes as arguments are threaded back to the caller "
+                "already.")
         for ty in self.signature.arg_types:
             if quake.VeqType.isinstance(ty):
                 emitFatalError(

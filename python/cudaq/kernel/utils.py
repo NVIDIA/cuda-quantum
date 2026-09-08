@@ -457,6 +457,14 @@ def get_function_source_or_raise(function):
     return src, (filename, first_line)
 
 
+def isQuantumType(ty):
+    """
+    Return True if and only if `ty` is a quantum type.
+    """
+    return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+        ty) or quake.StruqType.isinstance(ty)
+
+
 def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
@@ -466,10 +474,6 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
 
     name = name or "tuple"
-
-    def isQuantumType(ty):
-        return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
-            ty) or quake.StruqType.isinstance(ty)
 
     numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
     if numQuantumMembers == 0:

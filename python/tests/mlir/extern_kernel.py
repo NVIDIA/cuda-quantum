@@ -62,14 +62,49 @@ def test_extern_kernel_backend_symbol():
 # CHECK:         func.func private @__qm__wait_function(f64, !quake.ref)
 
 
+@cudaq.extern_kernel
+def probe(q: cudaq.qubit) -> float:
+    ...
+
+
+def test_extern_kernel_returning_a_value():
+    """A declared return type is carried through to the call."""
+
+    @cudaq.kernel
+    def measure_and_rotate():
+        q = cudaq.qubit()
+        h(q)
+        angle = probe(q)
+        ry(angle, q)
+        mz(q)
+
+    print(measure_and_rotate)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__measure_and_rotate
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           quake.h
+# CHECK:           %[[VAL_1:.*]] = call @probe(%[[VAL_0]]) : (!quake.ref) -> f64
+# CHECK:           quake.ry (%[[VAL_1]])
+# CHECK:         func.func private @probe(!quake.ref) -> f64
+
+
 def test_extern_kernel_declaration_errors():
     with pytest.raises(RuntimeError) as e:
 
         @cudaq.extern_kernel
-        def returns_a_value(d: float, q: cudaq.qubit) -> int:
+        def no_return_annotation(d: float, q: cudaq.qubit):
             ...
 
-    assert 'must return None' in str(e.value)
+    assert 'missing a return type annotation' in str(e.value)
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.extern_kernel
+        def returns_a_qubit(d: float, q: cudaq.qubit) -> cudaq.qubit:
+            ...
+
+    assert 'cannot return a quantum type' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
 
