@@ -1,0 +1,89 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cable-rough-in %s | FileCheck %s
+
+func.func private @callee(!quake.veq<?>, f64)
+
+// A concat names the references, so they are used directly.
+
+func.func @from_concat(%d: f64) {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.concat %0, %1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %3 = quake.relax_size %2 : (!quake.veq<2>) -> !quake.veq<?>
+  call @callee(%3, %d) : (!quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @from_concat(
+// CHECK:           %[[C0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[C1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[CU0:.*]] = quake.unwrap %[[C0]] :
+// CHECK:           %[[CU1:.*]] = quake.unwrap %[[C1]] :
+// CHECK:           %[[CB:.*]] = quake.bundle_cable %[[CU0]], %[[CU1]] : {{.*}} -> !quake.cable<2>
+// CHECK:           %[[CC:.*]] = quake.call_by_ref @callee(%[[CB]], %{{.*}}) : (!quake.cable<2>, f64) -> !quake.cable<2>
+// CHECK:           %[[CS:.*]]:2 = quake.split_cable %[[CC]] :
+// CHECK:           quake.wrap %[[CS]]#0 to %[[C0]] :
+// CHECK:           quake.wrap %[[CS]]#1 to %[[C1]] :
+
+// Any statically sized veq works, a reference is materialized per qubit.
+
+func.func @from_alloca(%d: f64) {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.relax_size %0 : (!quake.veq<3>) -> !quake.veq<?>
+  call @callee(%1, %d) : (!quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @from_alloca(
+// CHECK:           %[[A:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[A0:.*]] = quake.extract_ref %[[A]][0] :
+// CHECK:           %[[A1:.*]] = quake.extract_ref %[[A]][1] :
+// CHECK:           %[[A2:.*]] = quake.extract_ref %[[A]][2] :
+// CHECK:           quake.bundle_cable {{.*}} -> !quake.cable<3>
+// CHECK:           quake.call_by_ref @callee({{.*}}) : (!quake.cable<3>, f64) -> !quake.cable<3>
+// CHECK:           %[[AS:.*]]:3 = quake.split_cable
+// CHECK:           quake.wrap %[[AS]]#0 to %[[A0]] :
+// CHECK:           quake.wrap %[[AS]]#1 to %[[A1]] :
+// CHECK:           quake.wrap %[[AS]]#2 to %[[A2]] :
+
+// Including a subveq slice, which used to be left in reference form. The
+// subveq folds away, so the references are indexed against the parent.
+
+func.func @from_subveq(%d: f64) {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.subveq %0, 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
+  %2 = quake.relax_size %1 : (!quake.veq<2>) -> !quake.veq<?>
+  call @callee(%2, %d) : (!quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @from_subveq(
+// CHECK:           %[[V:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[V1:.*]] = quake.extract_ref %[[V]][1] :
+// CHECK:           %[[V2:.*]] = quake.extract_ref %[[V]][2] :
+// CHECK:           quake.bundle_cable {{.*}} -> !quake.cable<2>
+// CHECK:           quake.call_by_ref @callee({{.*}}) : (!quake.cable<2>, f64) -> !quake.cable<2>
+// CHECK:           %[[VS:.*]]:2 = quake.split_cable
+// CHECK:           quake.wrap %[[VS]]#0 to %[[V1]] :
+// CHECK:           quake.wrap %[[VS]]#1 to %[[V2]] :
+
+// A veq of unknown size cannot be given a cable arity, so the call is left
+// alone.
+
+func.func @dynamic_size(%n: i64, %d: f64) {
+  %0 = quake.alloca !quake.veq<?>[%n : i64]
+  call @callee(%0, %d) : (!quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic_size(
+// CHECK:           %[[D:.*]] = quake.alloca !quake.veq<?>
+// CHECK:           call @callee(%[[D]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
+// CHECK-NOT:       quake.call_by_ref

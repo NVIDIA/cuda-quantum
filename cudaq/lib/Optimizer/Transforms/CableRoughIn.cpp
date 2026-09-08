@@ -46,6 +46,93 @@ using namespace mlir;
 
 namespace {
 
+// Collect the individual qubit references behind a `veq` argument. The cable's
+// arity has to be known here, so the argument must resolve to a statically
+// sized collection of references.
+static LogicalResult collectVeqRefs(PatternRewriter &rewriter, Location loc,
+                                    Value arg, SmallVectorImpl<Value> &refs) {
+  auto refTy = cudaq::quake::RefType::get(rewriter.getContext());
+  if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    arg = relax.getInputVec();
+
+  // A concat already names the references, so use them directly and thread the
+  // wires back to the values the caller is holding.
+  if (auto concat = arg.getDefiningOp<cudaq::quake::ConcatOp>()) {
+    for (auto carg : concat.getTargets()) {
+      if (carg.getType() != refTy) {
+        LLVM_DEBUG(llvm::dbgs() << concat << " must have ref arguments.\n");
+        return failure();
+      }
+      refs.push_back(carg);
+    }
+    return success();
+  }
+
+  // Otherwise any statically sized veq will do, such as a subveq with constant
+  // bounds. Materialize a reference per qubit.
+  auto veqTy = cast<cudaq::quake::VeqType>(arg.getType());
+  if (!veqTy.hasSpecifiedSize()) {
+    LLVM_DEBUG(llvm::dbgs() << arg << " does not have a static size.\n");
+    return failure();
+  }
+  for (std::size_t i = 0, n = veqTy.getSize(); i < n; ++i)
+    refs.push_back(cudaq::quake::ExtractRefOp::create(rewriter, loc, arg, i));
+  return success();
+}
+
+// Whether a `veq` nested in a struq can be lowered. The struq case below
+// bundles a member's references straight from a concat, so nothing else will
+// do.
+static LogicalResult checkStruqMember(Value arg) {
+  auto refTy = cudaq::quake::RefType::get(arg.getType().getContext());
+  if (arg.getType() == refTy)
+    return success();
+  if (!isa<cudaq::quake::VeqType>(arg.getType()))
+    return failure();
+  if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    arg = relax.getInputVec();
+  auto concat = arg.getDefiningOp<cudaq::quake::ConcatOp>();
+  if (!concat)
+    return failure();
+  for (auto carg : concat.getTargets())
+    if (carg.getType() != refTy)
+      return failure();
+  return success();
+}
+
+// Whether a quantum argument can be lowered to a cable. Checked without
+// touching the IR, so that a call with an argument this pattern cannot handle
+// is left exactly as it was. Creating operations first and failing afterwards
+// would strand an unwrap with no matching wrap.
+static LogicalResult checkQuantumArg(Value arg) {
+  Type argTy = arg.getType();
+  auto refTy = cudaq::quake::RefType::get(argTy.getContext());
+  if (argTy == refTy)
+    return success();
+  if (isa<cudaq::quake::VeqType>(argTy)) {
+    if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+      arg = relax.getInputVec();
+    if (auto concat = arg.getDefiningOp<cudaq::quake::ConcatOp>()) {
+      for (auto carg : concat.getTargets())
+        if (carg.getType() != refTy)
+          return failure();
+      return success();
+    }
+    auto veqTy = dyn_cast<cudaq::quake::VeqType>(arg.getType());
+    return success(veqTy && veqTy.hasSpecifiedSize());
+  }
+  if (isa<cudaq::quake::StruqType>(argTy)) {
+    auto mkStruq = arg.getDefiningOp<cudaq::quake::MakeStruqOp>();
+    if (!mkStruq)
+      return failure();
+    for (auto member : mkStruq.getVeqs())
+      if (failed(checkStruqMember(member)))
+        return failure();
+    return success();
+  }
+  return failure();
+}
+
 class CallPattern : public OpRewritePattern<func::CallOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -63,6 +150,15 @@ public:
       return failure();
     }
 
+    // Check every argument before creating anything, so a call this pattern
+    // cannot handle is left untouched rather than half-rewritten.
+    for (auto arg : call.getOperands())
+      if (cudaq::quake::isQuantumReferenceType(arg.getType()) &&
+          failed(checkQuantumArg(arg))) {
+        LLVM_DEBUG(llvm::dbgs() << arg << " cannot be put in wire form.\n");
+        return failure();
+      }
+
     auto loc = call.getLoc();
     auto *ctx = rewriter.getContext();
     auto refTy = cudaq::quake::RefType::get(ctx);
@@ -71,6 +167,9 @@ public:
     // Walk arguments and map them to value types and keep track of the new wire
     // types in left-to-right order.
     SmallVector<Value> newArgs;
+    // The references behind each veq argument, in argument order. Kept so the
+    // wrap-back loop below does not have to re-derive them.
+    SmallVector<SmallVector<Value>> veqRefs;
     const std::size_t origCoarity = call.getResultTypes().size();
     SmallVector<Type> resultTys{call.getResultTypes().begin(),
                                 call.getResultTypes().end()};
@@ -83,28 +182,18 @@ public:
         continue;
       }
       if (isa<cudaq::quake::VeqType>(argTy)) {
-        // Cases we handle are concat or concat + relax_size.
-        if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
-          arg = relax.getInputVec();
-        auto concat = arg.getDefiningOp<cudaq::quake::ConcatOp>();
-        if (!concat) {
-          LLVM_DEBUG(llvm::dbgs() << arg << " is not a concat.\n");
+        SmallVector<Value> refs;
+        if (failed(collectVeqRefs(rewriter, loc, arg, refs)))
           return failure();
-        }
-        for (auto carg : concat.getTargets())
-          if (carg.getType() != refTy) {
-            LLVM_DEBUG(llvm::dbgs() << concat << " must have ref arguments.\n");
-            return failure();
-          }
-        const std::size_t cableSize = concat.getTargets().size();
-        auto cableTy = cudaq::quake::CableType::get(ctx, cableSize);
+        auto cableTy = cudaq::quake::CableType::get(ctx, refs.size());
         SmallVector<Value> unwraps;
-        for (auto carg : concat.getTargets())
+        for (auto ref : refs)
           unwraps.push_back(
-              cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, carg));
+              cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, ref));
         newArgs.push_back(cudaq::quake::BundleCableOp::create(
             rewriter, loc, cableTy, unwraps));
         resultTys.push_back(cableTy);
+        veqRefs.push_back(std::move(refs));
         continue;
       }
       if (isa<cudaq::quake::StruqType>(argTy)) {
@@ -162,6 +251,7 @@ public:
 
     // Wrap the wires and cables.
     std::size_t i = origCoarity;
+    std::size_t veqIdx = 0;
     SmallVector<Value> results{callByRef.getResults().begin(),
                                callByRef.getResults().end()};
     for (auto arg : call.getOperands()) {
@@ -171,19 +261,12 @@ public:
         continue;
       }
       if (isa<cudaq::quake::VeqType>(argTy)) {
-        if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
-          arg = relax.getInputVec();
-        auto concat = arg.getDefiningOp<cudaq::quake::ConcatOp>();
-        const std::size_t cableSize =
-            cast<cudaq::quake::CableType>(resultTys[i]).getSize();
-        SmallVector<Type> wireTys(cableSize);
-        std::fill(wireTys.begin(), wireTys.end(), wireTy);
+        ArrayRef<Value> refs = veqRefs[veqIdx++];
+        SmallVector<Type> wireTys(refs.size(), wireTy);
         auto split = cudaq::quake::SplitCableOp::create(rewriter, loc, wireTys,
                                                         results[i++]);
-        SmallVector<Value> concatTargs{concat.getTargets().begin(),
-                                       concat.getTargets().end()};
-        for (auto [j, wire] : llvm::enumerate(split.getResults()))
-          cudaq::quake::WrapOp::create(rewriter, loc, wire, concatTargs[j]);
+        for (auto [wire, ref] : llvm::zip(split.getResults(), refs))
+          cudaq::quake::WrapOp::create(rewriter, loc, wire, ref);
       }
       if (isa<cudaq::quake::StruqType>(argTy)) {
         auto mkStruq = arg.getDefiningOp<cudaq::quake::MakeStruqOp>();
