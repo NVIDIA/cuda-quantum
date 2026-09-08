@@ -34,17 +34,17 @@ def stamp_runtime_dependency(
 
     normalized_version = str(Version(version))
     text = pyproject.read_text()
-    pattern = re.compile(
-        rf'^(?P<indent>\s*)"{re.escape(distribution)}",\s*$',
-        re.MULTILINE,
-    )
+    # Match the bare quoted dependency wherever it sits in the TOML array
+    # (its own line, or collapsed onto one line by a formatter) rather than
+    # requiring it to be the sole content of its line.
+    pattern = re.compile(rf'"{re.escape(distribution)}"')
     matches = tuple(pattern.finditer(text))
     if len(matches) != 1:
         raise RuntimeError(
             f"{pyproject} must contain exactly one bare \"{distribution}\" "
             f"dependency entry; found {len(matches)}")
     dependency = f"{distribution}=={normalized_version}"
-    replacement = f'{matches[0].group("indent")}"{dependency}",'
+    replacement = f'"{dependency}"'
     pyproject.write_text(pattern.sub(replacement, text, count=1))
     return dependency
 

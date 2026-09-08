@@ -22,6 +22,14 @@ on:
         type: string
         default: 'cudaq_logical-*'
         description: A pattern that matches cudaq-logical wheel artifacts.
+      cudaq_logical_version:
+        required: false
+        type: string
+        default: ''
+        description:
+          Version of the already-built cudaq-logical wheel. When set, this
+          authoritative value is used instead of recomputing the version
+          independently via setuptools-scm.
       github_commit:
         required: false
         type: string
@@ -67,7 +75,8 @@ jobs:
       - name: Build metapackages
         id: metapackage_build
         env:
-          CUDAQ_LOGICAL_VERSION: ${{ steps.version.outputs.cudaq_logical_version }}
+          CUDAQ_LOGICAL_VERSION:
+            ${{ inputs.cudaq_logical_version || steps.version.outputs.cudaq_logical_version }}
         run: |
             retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml

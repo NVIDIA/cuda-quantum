@@ -224,7 +224,6 @@ jobs:
         id: build
         working-directory: preview/logical
         run: |
-          # TODO: I don't understand this comment and what this is working around of -------------------------------
           # Resolve the version while the checkout is still clean. Stamping
           # the runtime dependencies below intentionally modifies pyproject,
           # which must not add setuptools-scm's dirty-tree date suffix.
