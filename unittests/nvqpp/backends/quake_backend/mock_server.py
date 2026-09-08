@@ -63,13 +63,8 @@ def isQuantumReferenceType(ty):
 
 
 def verifyValueSemanticsPayload(module):
-    """Check that the kernels in the payload are in value-semantics form.
-
-    Only function bodies are checked. A kernel the backend implements is
-    declared in reference form and called in wire form, so its declaration
-    names `!quake.ref` by design and says nothing about the form of the
-    payload.
-    """
+    """Check that the kernel bodies in the payload are in value-semantics
+    form."""
     seen = set()
     for op in module.body.operations:
         seen.add(op.operation.name)
@@ -223,16 +218,12 @@ def verifyModule(module, stage):
 
 
 def stubExternalQuantumCalls(recovered_mod):
-    """Stub out calls to quantum operations the backend implements.
+    """Treat a call the backend is meant to implement as the identity.
 
-    `lower-wireset-to-profile-qir` marks `quake.call_by_ref` illegal, so the
-    mock cannot execute one. It has no implementation to offer either, so it
-    treats the operation as the identity: each wire operand is threaded to the
-    matching result, keeping the wires linear.
-
-    Only a call to a symbol the payload declares without a body is stubbed,
-    since that declaration is what says the backend implements it. Anything
-    else is a call the mock was not meant to swallow, and is reported.
+    `lower-wireset-to-profile-qir` marks `quake.call_by_ref` illegal, and the
+    mock has no implementation to offer, so each wire operand is threaded to
+    the matching result. Only a symbol the payload declares without a body is
+    stubbed; anything else is reported.
     """
     stubbed = []
     declared = set()
@@ -311,7 +302,19 @@ async def postJob(request: Request):
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)
     verifyModule(recovered_mod, "submitted")
+
+    # Stub first, so `symbol-dce` can drop the declarations left behind.
+    for name in stubExternalQuantumCalls(recovered_mod):
+        print(f"Stubbed external quantum call `{name}`")
+    dce = PassManager.parse("builtin.module(symbol-dce)", context=ctx)
+    try:
+        dce.run(recovered_mod.operation)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to run `symbol-dce` on the recovered module: {e}")
+
     verifyValueSemanticsPayload(recovered_mod)
+
     pm = PassManager.parse(
         "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
     try:
@@ -334,10 +337,6 @@ async def postJob(request: Request):
     verifyExpectedMapping(decoded_payload, entry_func_name)
     verifyExpectedDirectionality(entry_func)
     verifyExpectedLoopCount(decoded_payload, entry_func_name)
-
-    # Stub these out once the payload has been checked; see the `docstring`.
-    for name in stubExternalQuantumCalls(recovered_mod):
-        print(f"Stubbed external quantum call `{name}`")
 
     # Lower the module to LLVM IR.
     qir_code = lowerValueSemanticsPayloadForExecution(recovered_mod, ctx)
