@@ -335,7 +335,7 @@ async def postJob(request: Request):
     verifyExpectedDirectionality(entry_func)
     verifyExpectedLoopCount(decoded_payload, entry_func_name)
 
-    # Stub these out once the payload has been checked; see the docstring.
+    # Stub these out once the payload has been checked; see the `docstring`.
     for name in stubExternalQuantumCalls(recovered_mod):
         print(f"Stubbed external quantum call `{name}`")
 
