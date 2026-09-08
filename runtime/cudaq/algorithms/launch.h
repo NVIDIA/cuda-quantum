@@ -152,7 +152,6 @@ msm_result launch(msm_policy policy, Callable &&f, Args &&...args) {
   ctx.kernelName = policy.kernelName;
   policy.noiseModel = platform.get_noise(qpu_id);
   ctx.noiseModel = policy.noiseModel;
-  ctx.msm_dimensions = policy.dimensions;
   return detail::launch(policy, qpu_id, ctx, platform,
                         std::forward<Callable>(f), std::forward<Args>(args)...);
 }
