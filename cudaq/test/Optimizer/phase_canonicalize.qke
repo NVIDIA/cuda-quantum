@@ -136,6 +136,12 @@ func.func @normalize_adjoint_reference(%a: f64, %control: !quake.ref,
 // CHECK-NOT: quake.phase<adj>
 
 // Adjoint phase with negated controls
+func.func @normalize_adjoint_reference_with_neg_control(%a: f64, %control: !quake.ref,
+                                       %anchor: !quake.ref) {
+  quake.phase<adj> (%a) [%control neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
 // CHECK-LABEL:   func.func @normalize_adjoint_reference_with_neg_control(
 // CHECK-SAME:      %[[ARG0:.*]]: f64,
 // CHECK-SAME:      %[[ARG1:.*]]: !quake.ref,
@@ -144,12 +150,6 @@ func.func @normalize_adjoint_reference(%a: f64, %control: !quake.ref,
 // CHECK:           quake.phase (%[[NEGF_0]]) {{\[}}%[[ARG1]] neg [true]] %[[ARG2]] : (f64, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
-func.func @normalize_adjoint_reference_with_neg_control(%a: f64, %control: !quake.ref,
-                                       %anchor: !quake.ref) {
-  quake.phase<adj> (%a) [%control neg [true]] %anchor
-      : (f64, !quake.ref, !quake.ref) -> ()
-  return
-}
 
 // In wire form, every operand of the second phase is the corresponding result
 // of the first phase. The merged operation starts from the original wires and
@@ -206,8 +206,6 @@ func.func @merge_wire_two_adj(%a: f64, %b: f64) {
 // CHECK:           %[[NEG_B:.*]] = arith.negf %[[ARG1]] : f64
 // CHECK:           %[[ADDF_0:.*]] = arith.addf %[[NEG_A]], %[[NEG_B]] : f64
 // CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[ADDF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[ADDF_0:.*]] = arith.addf %[[NEG_A]], %[[NEG_B]] : f64
-// CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[ADDF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           quake.sink %[[PHASE_0]]#0 : !quake.wire
 // CHECK:           quake.sink %[[PHASE_0]]#1 : !quake.wire
 // CHECK:           return
@@ -232,8 +230,6 @@ func.func @merge_wire_first_normal_second_adj(%a: f64, %b: f64) {
 // CHECK:           %[[NEG_B:.*]] = arith.negf %[[ARG1]] : f64
 // CHECK:           %[[ADDF_0:.*]] = arith.addf %[[ARG0]], %[[NEG_B]] : f64
 // CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[ADDF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[SUBF_0:.*]] = arith.subf %[[ARG0]], %[[ARG1]] : f64
-// CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[SUBF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           quake.sink %[[PHASE_0]]#0 : !quake.wire
 // CHECK:           quake.sink %[[PHASE_0]]#1 : !quake.wire
 // CHECK:           return
@@ -258,8 +254,6 @@ func.func @merge_wire_first_adj_second_normal(%a: f64, %b: f64) {
 // CHECK:           %[[NEG_A:.*]] = arith.negf %[[ARG0]] : f64
 // CHECK:           %[[ADDF_0:.*]] = arith.addf %[[NEG_A]], %[[ARG1]] : f64
 // CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[ADDF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[SUBF_0:.*]] = arith.subf %[[ARG1]], %[[ARG0]] : f64
-// CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[SUBF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           quake.sink %[[PHASE_0]]#0 : !quake.wire
 // CHECK:           quake.sink %[[PHASE_0]]#1 : !quake.wire
 // CHECK:           return
@@ -343,3 +337,44 @@ func.func @do_not_merge_repairable_multiuse(%a: f64, %b: f64, %cond: i1) {
 }
 // CHECK-LABEL: func.func @do_not_merge_repairable_multiuse(
 // CHECK-COUNT-2: quake.phase
+
+// Merge two phases separated by 2nd phase's negate angle
+func.func @merge_with_negate_in_between(%theta0: f64, %theta1: f64) {
+  %anchor = quake.null_wire
+  %next_0 = quake.phase (%theta0) %anchor : (f64, !quake.wire) -> (!quake.wire)
+  %neg_theta1 = arith.negf %theta1 : f64
+  %next_1 = quake.phase (%neg_theta1) %next_0 : (f64, !quake.wire) -> (!quake.wire)
+  quake.sink %next_1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @merge_with_negate_in_between(
+// CHECK-SAME:      %[[ARG0:.*]]: f64,
+// CHECK-SAME:      %[[ARG1:.*]]: f64) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NEGF_0:.*]] = arith.negf %[[ARG1]] : f64
+// CHECK:           %[[ADDF_0:.*]] = arith.addf %[[ARG0]], %[[NEGF_0]] : f64
+// CHECK:           %[[PHASE_0:.*]] = quake.phase (%[[ADDF_0]]) %[[NULL_WIRE_0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[PHASE_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// Merge two phases where the second phase's angle is negated and hoisted to the beginning of the block
+func.func @merge_with_hoisted_negated_parameter(%theta0: f64, %theta1: f64) {
+  %neg_theta1 = arith.negf %theta1 : f64
+  %anchor = quake.null_wire
+  %next_0 = quake.phase (%theta0) %anchor : (f64, !quake.wire) -> (!quake.wire)
+  %next_1 = quake.phase (%neg_theta1) %next_0 : (f64, !quake.wire) -> (!quake.wire)
+  quake.sink %next_1 : !quake.wire
+  return
+}
+// CHECK-LABEL:   func.func @merge_with_hoisted_negated_parameter(
+// CHECK-SAME:      %[[ARG0:.*]]: f64,
+// CHECK-SAME:      %[[ARG1:.*]]: f64) {
+// CHECK:           %[[NEGF_0:.*]] = arith.negf %[[ARG1]] : f64
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[ADDF_0:.*]] = arith.addf %[[ARG0]], %[[NEGF_0]] : f64
+// CHECK:           %[[PHASE_0:.*]] = quake.phase (%[[ADDF_0]]) %[[NULL_WIRE_0]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[PHASE_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }

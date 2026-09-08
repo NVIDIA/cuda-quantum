@@ -1215,11 +1215,10 @@ struct MergeAdjacentPhasePattern
     // Adjoint normalization materializes a negation immediately before the
     // phase. It has no quantum effect, so it does not break adjacency when it
     // defines this phase's parameter.
-    if (previous) {
-      if (auto negatedAngle = dyn_cast<arith::NegFOp>(previous);
-          negatedAngle && phase.getParameter() == negatedAngle.getResult())
-        previous = previous->getPrevNode();
-    }
+    auto negateAngleOp = phase.getParameter().getDefiningOp<arith::NegFOp>();
+    if (negateAngleOp && previous == negateAngleOp.getOperation())
+      previous = previous->getPrevNode();
+
     if (!previous)
       return failure();
     auto input = dyn_cast<cudaq::quake::PhaseOp>(previous);
