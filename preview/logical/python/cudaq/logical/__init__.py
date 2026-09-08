@@ -26,15 +26,7 @@ from pathlib import Path as _Path
 
 
 def _require_cudaq_runtime() -> None:
-    """Fail fast with actionable guidance when the CUDA-Q runtime is absent.
-
-    The base cudaq-logical wheel is runtime-agnostic: the CUDA-Q runtime
-    arrives through the ``cu12``/``cu13`` extras or the ``cudaq``
-    metapackage. It provides the ``cudaq`` import package
-    (``cudaq/__init__.py``); without it, ``cudaq`` resolves as a bare
-    namespace holding only this subpackage and the compiled modules below
-    fail with inscrutable errors.
-    """
+    """Fail fast with actionable guidance when the CUDA-Q runtime is absent."""
     spec = _find_spec("cudaq")
     if spec is None or spec.origin is None:
         raise ImportError(
@@ -42,8 +34,7 @@ def _require_cudaq_runtime() -> None:
             "installed. Install it with "
             'pip install "cudaq-logical[cu13]" (CUDA 13) or '
             'pip install "cudaq-logical[cu12]" (CUDA 12), or with '
-            "pip install cudaq."
-        )
+            "pip install cudaq.")
 
 
 _require_cudaq_runtime()
