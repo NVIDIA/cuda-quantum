@@ -1,0 +1,61 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_three.txt) placement=identity search=none' %s | \
+// RUN:   FileCheck --implicit-check-not=quake.swap \
+// RUN:     --implicit-check-not=quake.h --implicit-check-not=quake.x %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_three.txt) placement=greedy search=sabre' %s | \
+// RUN:   FileCheck --check-prefix=SABRE --implicit-check-not=quake.h \
+// RUN:     --implicit-check-not=quake.x %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @route_across_one_way_edge() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %x:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %x#0 : !quake.wire
+  quake.return_wire %q1 : !quake.wire
+  quake.return_wire %x#1 : !quake.wire
+  return
+}
+
+// The route requires one SWAP on 0 -> 1. Its three-CX expansion contains one
+// reverse CX, which requires four Hadamards, followed by the original CX.
+
+// CHECK-LABEL:   func.func @route_across_one_way_edge
+// CHECK-SAME:      mapping_reorder_idx = [1, 0, 2]
+// CHECK-SAME:      mapping_v2p = [1, 0, 2]
+// CHECK:           %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
+// CHECK:           %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
+// CHECK:           %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2]
+// CHECK:           %[[CX0:.*]]:2 = quake.x {{\[}}%[[Q0]]] %[[Q1]]
+// CHECK:           %[[H0:.*]] = quake.h %[[CX0]]#1
+// CHECK:           %[[H1:.*]] = quake.h %[[CX0]]#0
+// CHECK:           %[[CX1:.*]]:2 = quake.x {{\[}}%[[H1]]] %[[H0]]
+// CHECK:           %[[H2:.*]] = quake.h %[[CX1]]#1
+// CHECK:           %[[H3:.*]] = quake.h %[[CX1]]#0
+// CHECK:           %[[CX2:.*]]:2 = quake.x {{\[}}%[[H3]]] %[[H2]]
+// CHECK:           %[[CX3:.*]]:2 = quake.x {{\[}}%[[CX2]]#1] %[[Q2]]
+
+// Greedy placement with SABRE maps the interacting qubits adjacently, so no
+// routing expansion is needed. The selected physical CX direction is
+// reverse-only, producing exactly four Hadamards around one CX.
+
+// SABRE-LABEL:   func.func @route_across_one_way_edge() attributes {mapping_reorder_idx = [1, 2, 0], mapping_v2p = [1, 2, 0]} {
+// SABRE:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// SABRE:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
+// SABRE:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// SABRE:           %[[H_0:.*]] = quake.h %[[BORROW_WIRE_0]] : (!quake.wire) -> !quake.wire
+// SABRE:           %[[H_1:.*]] = quake.h %[[BORROW_WIRE_2]] : (!quake.wire) -> !quake.wire
+// SABRE:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[H_1]]] %[[H_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// SABRE:           %[[H_2:.*]] = quake.h %[[X_0]]#1 : (!quake.wire) -> !quake.wire
+// SABRE:           %[[H_3:.*]] = quake.h %[[X_0]]#0 : (!quake.wire) -> !quake.wire
+// SABRE:           return{{$}}
+// SABRE:         }

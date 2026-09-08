@@ -379,6 +379,7 @@ if $build_logical; then
     -DCMAKE_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX \
     -DLLVM_DIR=$LLVM_DIR \
     -DCUDAQ_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX"
+    -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake \
   if $verbose; then
     echo "cmake $logical_cmake_args"
     cmake $logical_cmake_args

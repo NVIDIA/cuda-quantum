@@ -25,7 +25,9 @@ Provides:
   bindings see the same interpreter.  When nanobind is found, caches
   ``nanobind_DIR`` so MLIR's ``MLIRDetectPythonEnv`` skips its own
   ``import nanobind`` probe and ``find_package(nanobind)`` succeeds
-  immediately.
+  immediately.  ``nanobind_DIR`` is resolved from an explicit
+  ``-Dnanobind_DIR``, then ``$ENV{NANOBIND_INSTALL_PREFIX}`` (the nanobind
+  CUDA-Q itself was built against), then the active environment.
 
   Sets ``QLX_PYTHON_ENV_FOUND`` to ``TRUE``/``FALSE`` to indicate
   whether a usable environment was found (always ``TRUE`` when
@@ -134,11 +136,29 @@ macro(qlx_configure_python_env)
       message(STATUS "  extension SOABI: ${Python3_SOABI}")
     endif()
 
-    # Probe nanobind once and cache its CMake config dir.  This makes
+    # Resolve nanobind once and cache its CMake config dir.  This makes
     # MLIRDetectPythonEnv's nanobind probe a no-op (it skips the
     # `python -c "import nanobind"` call when nanobind_DIR is already
     # set) and ensures the qlx Python extension can call
     # nanobind_add_module().
+    #
+    # CUDA-Q Logical's MLIR extensions share NB_DOMAIN=cudaq -- and therefore
+    # a single libnanobind-cudaq image -- with CUDA-Q's own bindings, so both
+    # must compile against the same nanobind.  build_cudaq.sh passes
+    # -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake, so prefer that
+    # same prefix here; a pip-installed nanobind in the active environment is
+    # a fallback and may be a different version.
+    if(nanobind_DIR)
+      message(STATUS "  nanobind:        ${nanobind_DIR} (preset)")
+    elseif(DEFINED ENV{NANOBIND_INSTALL_PREFIX})
+      set(_qlx_nanobind_sdk "$ENV{NANOBIND_INSTALL_PREFIX}/nanobind/cmake")
+      if(EXISTS "${_qlx_nanobind_sdk}/nanobind-config.cmake")
+        set(nanobind_DIR "${_qlx_nanobind_sdk}" CACHE PATH
+          "Path to nanobind's CMake config (from NANOBIND_INSTALL_PREFIX)")
+        message(STATUS
+          "  nanobind:        ${nanobind_DIR} (NANOBIND_INSTALL_PREFIX)")
+      endif()
+    endif()
     if(NOT nanobind_DIR)
       execute_process(
         COMMAND "${Python3_EXECUTABLE}" -c
@@ -161,8 +181,6 @@ macro(qlx_configure_python_env)
           "  nanobind:        not found "
           "('pip install nanobind' to enable Python bindings)")
       endif()
-    else()
-      message(STATUS "  nanobind:        ${nanobind_DIR} (preset)")
     endif()
 
     set(QLX_PYTHON_ENV_FOUND TRUE)
@@ -174,4 +192,5 @@ macro(qlx_configure_python_env)
   unset(_qlx_py_required)
   unset(_qlx_nanobind_rc)
   unset(_qlx_nanobind_dir)
+  unset(_qlx_nanobind_sdk)
 endmacro()

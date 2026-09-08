@@ -16,8 +16,9 @@
 // RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.decomp > %t.decomp.phase
 // RUN: FileCheck %s --check-prefix=PHASE < %t.decomp.phase
 // RUN: CircuitCheck --input=%t.decomp.phase %t.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.source.qke > %t.lower.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %t.decomp > %t.decomp.lower
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %t.source.qke > %t.lower.source
+// RUN: FileCheck %s --check-prefix=LOWER-SOURCE --implicit-check-not=quake.phase < %t.lower.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %t.decomp > %t.decomp.lower
 // RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.decomp.lower
 // RUN: CircuitCheck --input=%t.decomp.lower %t.lower.source
 
@@ -139,6 +140,9 @@ func.func @crx_outer(%outer: !quake.ref, %inner: !quake.ref,
 // LOWER-LABEL: func.func @crx_outer
 // LOWER: quake.r1
 // LOWER: return
+
+// LOWER-SOURCE-LABEL: func.func @h_outer(
+// LOWER-SOURCE: return
 
 // SOURCE: func.func private @h_helper(%target: !quake.ref) {
 // SOURCE:   quake.h %target : (!quake.ref) -> ()

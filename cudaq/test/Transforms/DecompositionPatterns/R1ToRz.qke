@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s | FileCheck %s --check-prefix=DECOMP
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 
 func.func @dynamic(%theta: f64, %target: !quake.ref) {
   quake.r1 (%theta) %target : (f64, !quake.ref) -> ()

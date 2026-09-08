@@ -338,6 +338,7 @@ jobs:
         python_version: ['3.11', '3.12', '3.13', '3.14']
       fail-fast: false
     runs-on: macos-26
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository

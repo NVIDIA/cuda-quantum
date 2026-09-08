@@ -238,6 +238,38 @@ scheduled in a pipeline, expose options, emit diagnostics, or coordinate a
 bounded set of rewrites, conversions, and analyses. These mechanisms are often
 components of the pass rather than alternatives to it.
 
+Pass performance
+================
+
+When developing a pass, benchmark it on inputs of increasing size to understand
+how its run time scales. Measure the pass on its own and in the compiler
+pipelines that use it. The following practices can help keep pass time under
+control:
+
+- **Avoid unnecessary greedy rewrite work.** If a pass uses
+  ``applyPatternsGreedily`` across an entire region, consider passing an
+  initial ``worklist`` of matching operations to ``applyOpPatternsGreedily``. Do
+  this only when it preserves the required folding and newly exposed matches.
+  Otherwise, keep the region-wide driver and use
+  ``containsAnyOperationOfType`` to skip it when no patterns can match.
+
+- **Choose a rewrite driver that matches the transformation.**
+  ``walkAndApplyPatterns`` can suit independent rewrites that need only one
+  visit. ``applyPatternsGreedily`` is appropriate when rewrites expose further
+  matches or the pass relies on folding or region simplification.
+
+- **Reduce repeated traversal and bookkeeping.** Use SSA use-def chains, local
+  indexes, or batched analysis when a pass would otherwise scan the same IR for
+  each candidate. When mutation invalidates information needed by later
+  queries, collect decisions before applying rewrites. Use data structures that
+  make the pass's common operations inexpensive.
+
+Use ``--mlir-timing`` and CUDA-Q compiler traces to identify slow passes. If a
+pass has several stages, add focused trace spans to find where time is spent.
+Test inputs with different sizes and numbers of matching operations, verify that
+the required transformation behavior is preserved, and check the effect on
+full compiler time.
+
 Implement and register a built-in pass
 ======================================
 

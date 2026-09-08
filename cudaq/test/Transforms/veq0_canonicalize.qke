@@ -1,0 +1,183 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+
+// `!quake.veq<0>` has no semantics of its own. These tests exercise the
+// canonicalization patterns that treat it as baggage to be erased, dropped,
+// or forwarded through, rather than special-cased downstream.
+
+// A zero-size alloca has no useful semantics; it is replaced with an explicit
+// poison value of the same type.
+func.func @erase_zero_size_alloca() -> !quake.veq<0> {
+  %0 = quake.alloca !quake.veq<0>
+  return %0 : !quake.veq<0>
+}
+
+// CHECK-LABEL: func.func @erase_zero_size_alloca
+// CHECK:         %[[V:.*]] = cc.poison !quake.veq<0>
+
+// An empty control register can never gate an operator, so it is dropped
+// and the polarity array is shrunk to match the remaining control.
+func.func @erase_empty_veq_control(%c0: !quake.ref, %c1: !quake.veq<0>,
+                                   %t: !quake.ref) {
+  quake.x [%c0, %c1 neg [true, false]] %t
+      : (!quake.ref, !quake.veq<0>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @erase_empty_veq_control(
+// CHECK-SAME:    %[[C0:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[C1:[a-zA-Z0-9_.$-]+]]: !quake.veq<0>, %[[T:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK:         quake.x {{\[}}%[[C0]] neg [true]{{\]}} %[[T]] : (!quake.ref, !quake.ref) -> ()
+
+func.func @erase_empty_veq_control_exp_pauli(%theta: f64, %c0: !quake.ref,
+                                             %c1: !quake.veq<0>,
+                                             %t: !quake.ref) {
+  quake.exp_pauli (%theta) [%c0, %c1] %t to "X"
+      : (f64, !quake.ref, !quake.veq<0>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @erase_empty_veq_control_exp_pauli(
+// CHECK-SAME:    %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[C0:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[C1:[a-zA-Z0-9_.$-]+]]: !quake.veq<0>, %[[T:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK:         quake.exp_pauli (%[[THETA]]) {{\[}}%[[C0]]{{\]}} %[[T]] to "X"
+
+func.func private @apply_callee(!quake.ref)
+
+func.func @erase_apply_empty_veq_control(%c: !quake.ref, %e: !quake.veq<0>,
+                                         %t: !quake.ref) {
+  quake.apply @apply_callee [%c, %e] (%t)
+      : (!quake.ref, !quake.veq<0>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @erase_apply_empty_veq_control(
+// CHECK-SAME:    %[[C:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[E:[a-zA-Z0-9_.$-]+]]: !quake.veq<0>, %[[T:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK:         quake.apply @apply_callee {{\[}}%[[C]]{{\]}} (%[[T]]) : (!quake.ref, !quake.ref) -> ()
+
+// An empty state vector has nothing to initialize, so `quake.init_state` is
+// erased and its `targets` operand forwarded (relaxed to the result type).
+func.func @forward_empty_veq_init_state(
+    %t: !quake.veq<0>, %s: !cc.ptr<!cc.array<f64 x 1>>) -> !quake.veq<?> {
+  %0 = quake.init_state %t, %s
+      : (!quake.veq<0>, !cc.ptr<!cc.array<f64 x 1>>) -> !quake.veq<?>
+  return %0 : !quake.veq<?>
+}
+
+// CHECK-LABEL: func.func @forward_empty_veq_init_state(
+// CHECK-SAME:    %[[T:[a-zA-Z0-9_.$-]+]]: !quake.veq<0>
+// CHECK:         %[[R:.*]] = quake.relax_size %[[T]] : (!quake.veq<0>) -> !quake.veq<?>
+// CHECK-NOT:     quake.init_state
+// CHECK:         return %[[R]] : !quake.veq<?>
+
+// An empty veq contributes zero qubits to a concatenation.
+func.func @drop_empty_veq_concat_operand(
+    %r0: !quake.ref, %e: !quake.veq<0>, %r1: !quake.ref) -> !quake.veq<2> {
+  %0 = quake.concat %r0, %e, %r1
+      : (!quake.ref, !quake.veq<0>, !quake.ref) -> !quake.veq<2>
+  return %0 : !quake.veq<2>
+}
+
+// CHECK-LABEL: func.func @drop_empty_veq_concat_operand(
+// CHECK-SAME:    %[[R0:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[E:[a-zA-Z0-9_.$-]+]]: !quake.veq<0>, %[[R1:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK:         %[[V:.*]] = quake.concat %[[R0]], %[[R1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:         return %[[V]] : !quake.veq<2>
+
+// There is no valid index into an empty veq, so extracting from one is replaced
+// with a poison ref instead of generating an out-of-bounds access.
+func.func @extract_ref_empty_veq(%v: !quake.veq<0>, %i: i64) -> !quake.ref {
+  %0 = quake.extract_ref %v[%i] : (!quake.veq<0>, i64) -> !quake.ref
+  return %0 : !quake.ref
+}
+
+// CHECK-LABEL: func.func @extract_ref_empty_veq(
+// CHECK:         %[[R:.*]] = cc.poison !quake.ref
+// CHECK-NOT:     quake.extract_ref
+// CHECK:         return %[[R]] : !quake.ref
+
+// There is no valid subrange of an empty veq, so `quake.subveq` is replaced
+// with a poison value of the result type.
+func.func @replace_empty_veq_subveq(%v: !quake.veq<0>, %lo: i64,
+                                    %hi: i64) -> !quake.veq<?> {
+  %0 = quake.subveq %v, %lo, %hi : (!quake.veq<0>, i64, i64) -> !quake.veq<?>
+  return %0 : !quake.veq<?>
+}
+
+// CHECK-LABEL: func.func @replace_empty_veq_subveq(
+// CHECK:         %[[R:.*]] = cc.poison !quake.veq<?>
+// CHECK-NOT:     quake.subveq
+// CHECK:         return %[[R]] : !quake.veq<?>
+
+// A noise channel applied to an empty qubit register touches nothing, so the
+// empty operand is dropped.
+func.func @apply_noise_drop_empty_veq_qubit(%r: !quake.ref,
+                                            %e: !quake.veq<0>) {
+  quake.apply_noise @noise_chan() %r, %e
+      : (!quake.ref, !quake.veq<0>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @apply_noise_drop_empty_veq_qubit(
+// CHECK-SAME:    %[[R:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK:         quake.apply_noise @noise_chan() %[[R]] : (!quake.ref) -> ()
+
+// `apply_noise` requires at least one qubit operand, so if every qubit is empty
+// the whole op is dead and erased outright.
+func.func @apply_noise_erase_all_empty_veq_qubits(%e0: !quake.veq<0>,
+                                                  %e1: !quake.veq<0>) {
+  quake.apply_noise @noise_chan() %e0, %e1
+      : (!quake.veq<0>, !quake.veq<0>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @apply_noise_erase_all_empty_veq_qubits(
+// CHECK-NOT:     quake.apply_noise
+// CHECK:         return
+
+// A struq member that is statically empty carries no qubits, so extracting
+// it is replaced with a poison value, just like a zero-size alloca.
+func.func @get_member_empty_veq(%s: !quake.struq<!quake.veq<0>, !quake.ref>) -> !quake.veq<0> {
+  %0 = quake.get_member %s[0] : (!quake.struq<!quake.veq<0>, !quake.ref>) -> !quake.veq<0>
+  return %0 : !quake.veq<0>
+}
+
+// CHECK-LABEL: func.func @get_member_empty_veq(
+// CHECK:         %[[R:.*]] = cc.poison !quake.veq<0>
+// CHECK-NOT:     quake.get_member
+// CHECK:         return %[[R]] : !quake.veq<0>
+
+// An empty veq has no observable qubit, so it contributes nothing to what's
+// being logged and is dropped from the IR. We can't observe nothing.
+func.func @log_output_drop_empty_veq_arg(%r: !quake.ref, %e: !quake.veq<0>) {
+  quake.log_output %r, %e : (!quake.ref, !quake.veq<0>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @log_output_drop_empty_veq_arg(
+// CHECK-SAME:    %[[R:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK:         quake.log_output %[[R]] : (!quake.ref) -> ()
+
+func.func @log_output_erase_all_empty_veq_args(%e0: !quake.veq<0>,
+                                               %e1: !quake.veq<0>) {
+  quake.log_output %e0, %e1 : (!quake.veq<0>, !quake.veq<0>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @log_output_erase_all_empty_veq_args(
+// CHECK-NOT:     quake.log_output
+// CHECK:         return
+
+// There are no qubits to free in an empty veq, so the dealloc is dead.
+func.func @erase_empty_veq_dealloc(%e: !quake.veq<0>) {
+  quake.dealloc %e : !quake.veq<0>
+  return
+}
+
+// CHECK-LABEL: func.func @erase_empty_veq_dealloc(
+// CHECK-NOT:     quake.dealloc
+// CHECK:         return
