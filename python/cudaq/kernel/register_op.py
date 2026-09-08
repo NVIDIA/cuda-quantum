@@ -30,8 +30,6 @@ def register_operation(operation_name: str, unitary):
     ```
     """
 
-    global globalRegisteredExtensions
-
     if not operation_name or not operation_name.strip():
         raise RuntimeError("custom operation name not provided.")
 
