@@ -40,6 +40,11 @@ on:
         type: string
         default: ''
         description: Artifact name of the cuda_quantum wheel, if build_runtime_wheel is false.
+      devel_artifact_name:
+        required: false
+        type: string
+        default: ''
+        description: Artifact name of an existing cudaq-devel wheel.
       build_devel_wheel:
         required: false
         type: boolean
@@ -51,7 +56,7 @@ on:
         default: false
         description:
           Build and test the cudaq-logical wheel from the wheels produced by
-          this workflow. Requires build_devel_wheel.
+          this workflow. Requires build_devel_wheel or devel_artifact_name.
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
@@ -65,6 +70,9 @@ on:
       logical_artifact_name:
         description: "Artifact name of the cudaq-logical wheel, if requested."
         value: ${{ jobs.build_logical_wheel.outputs.wheel_name }}
+      logical_version:
+        description: "Version of the cudaq-logical wheel, if requested."
+        value: ${{ jobs.build_logical_wheel.outputs.logical_version }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -88,6 +96,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Compute CUDA-Q version
         id: version
@@ -686,14 +696,17 @@ jobs:
     needs: [wheel_info, build_wheel, build_devel_wheel]
     if:
       ${{ !cancelled() && inputs.build_logical_wheel &&
-      needs.build_devel_wheel.result == 'success' }}
+      (needs.build_devel_wheel.result == 'success' ||
+      inputs.devel_artifact_name != '') }}
     uses: ./.github/workflows/cudaq_logical_build.yml
     with:
       cudaq_version: ${{ needs.wheel_info.outputs.cudaq_version }}
       runtime_artifact_name:
         ${{ needs.build_wheel.outputs.artifact_name ||
         inputs.runtime_artifact_name }}
-      devel_artifact_name: ${{ needs.build_devel_wheel.outputs.artifact_name }}
+      devel_artifact_name:
+        ${{ needs.build_devel_wheel.outputs.artifact_name ||
+        inputs.devel_artifact_name }}
 
   staging:
     name: Staging

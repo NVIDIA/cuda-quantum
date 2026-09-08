@@ -60,10 +60,12 @@ core-metadata-version = "2.3"
 [tool.hatch.build.targets.sdist]
 include = [
   "_version.txt",
+  "_logical_version.txt",
   "_deprecated.txt",
 ]
 
 [tool.hatch.build.targets.wheel]
 include = [
     "_version.txt",
+  "_logical_version.txt",
 ]

@@ -17,6 +17,11 @@ on:
         required: true
         type: string
         description: A pattern that matches all artifacts that contain wheels that the metapackages depend on.
+      logical_wheel_artifacts:
+        required: false
+        type: string
+        default: 'cudaq_logical-*'
+        description: A pattern that matches cudaq-logical wheel artifacts.
       github_commit:
         required: false
         type: string
@@ -53,9 +58,16 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: "${{ inputs.github_commit || '' }}"
+          fetch-depth: 0
+
+      - name: Compute package versions
+        id: version
+        uses: ./.github/actions/compute-cudaq-version
 
       - name: Build metapackages
         id: metapackage_build
+        env:
+          CUDAQ_LOGICAL_VERSION: ${{ steps.version.outputs.cudaq_logical_version }}
         run: |
             retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
@@ -84,7 +96,9 @@ jobs:
             fi
 
             echo "Building cudaq metapackage ..."
-            cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
+            cd python/metapackages
+            echo "${{ inputs.cudaq_version }}" > _version.txt
+            echo "$CUDAQ_LOGICAL_VERSION" > _logical_version.txt
             CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
             mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
             rm -rf dist
@@ -148,13 +162,31 @@ jobs:
           path: /tmp/wheels/
           merge-multiple: true
 
+      - name: Load cudaq-logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.logical_wheel_artifacts }}
+          path: /tmp/logical-wheels/
+          merge-multiple: true
+
       - name: Test installation
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
+
+          python_tag="${{ matrix.python_version }}"
+          python_tag="${python_tag/./}"
+          logical_wheel="$(find /tmp/logical-wheels -name "cudaq_logical-*-cp${python_tag}-*.whl" -print -quit)"
+          if [ -z "$logical_wheel" ]; then
+            echo "::error file=python_metapackages.yml::Missing cudaq-logical wheel for Python ${{ matrix.python_version }}."
+            exit 1
+          fi
+
           mkdir -p /tmp/packages
-          mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
-          rmdir /tmp/wheels /tmp/metapackages
+          mv /tmp/wheels/* /tmp/packages
+          mv /tmp/logical-wheels/* /tmp/packages
+          mv /tmp/metapackages/* /tmp/packages
+          rmdir /tmp/wheels /tmp/logical-wheels /tmp/metapackages
 
           if [ -n "${{ matrix.cuda_version }}" ]; then
             CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos

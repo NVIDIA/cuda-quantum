@@ -5,8 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
-"""Packaging contract tests: runtime extras, static version, import guards."""
+"""Packaging contract tests: runtime extras, dynamic version, import guards."""
 
 from __future__ import annotations
 
@@ -41,16 +40,20 @@ def _load_pyproject(path: Path = PYPROJECT) -> dict:
 
 
 def _run_python(tmp_path: Path, code: str) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, "-c", code], capture_output=True,
-                          text=True, cwd=tmp_path, check=False)
+    return subprocess.run([sys.executable, "-c", code],
+                          capture_output=True,
+                          text=True,
+                          cwd=tmp_path,
+                          check=False)
 
 
 def test_base_dependencies_exclude_the_cudaq_runtime():
     project = _load_pyproject()["project"]
     dependencies = project["dependencies"]
     assert any(d.startswith("stim") for d in dependencies)
-    offenders = [d for d in dependencies
-                 if d.startswith(("cudaq", "cuda-quantum"))]
+    offenders = [
+        d for d in dependencies if d.startswith(("cudaq", "cuda-quantum"))
+    ]
     assert offenders == []
 
 
@@ -60,17 +63,23 @@ def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
     assert extras["cu13"] == ["cuda-quantum-cu13"]
 
 
-def test_version_is_static_and_reported_as_0_1_0():
+def test_version_is_dynamic_and_uses_logical_tags():
     from packaging.version import Version
 
     import cudaq.logical
 
-    project = _load_pyproject()["project"]
-    assert project["version"] == "0.1.0"
-    assert "version" not in project.get("dynamic", [])
-    # Installed wheels report the distribution version; source-tree and
-    # staged-build imports report the 0.1.0.dev0 fallback.
-    assert Version(cudaq.logical.__version__).base_version == "0.1.0"
+    pyproject = _load_pyproject()
+    project = pyproject["project"]
+    assert "version" not in project
+    assert "version" in project["dynamic"]
+
+    provider = pyproject["tool"]["scikit-build"]["metadata"]["version"]
+    assert provider["provider"].endswith(".metadata.setuptools_scm")
+
+    scm = pyproject["tool"]["setuptools_scm"]
+    assert "cudaq-logical/v" in scm["tag_regex"]
+    assert scm["git_describe_command"][-1] == "cudaq-logical/v*"
+    assert str(Version(cudaq.logical.__version__))
 
 
 def test_preview_warning_is_emitted_once_on_import(tmp_path):
@@ -109,8 +118,9 @@ def test_stamp_script_pins_both_runtime_extras(tmp_path):
     stamped = tmp_path / "pyproject.toml"
     stamped.write_text(PYPROJECT.read_text())
     for distribution in ("cuda-quantum-cu12", "cuda-quantum-cu13"):
-        dependency = stamp_runtime_dependency(
-            stamped, distribution=distribution, version="0.16.0")
+        dependency = stamp_runtime_dependency(stamped,
+                                              distribution=distribution,
+                                              version="0.16.0")
         assert dependency == f"{distribution}==0.16.0"
 
     project = _load_pyproject(stamped)["project"]
@@ -118,8 +128,9 @@ def test_stamp_script_pins_both_runtime_extras(tmp_path):
     assert extras["cu12"] == ["cuda-quantum-cu12==0.16.0"]
     assert extras["cu13"] == ["cuda-quantum-cu13==0.16.0"]
     # The base dependency list stays runtime-free after stamping.
-    assert not any(d.startswith(("cudaq", "cuda-quantum"))
-                   for d in project["dependencies"])
+    assert not any(
+        d.startswith(("cudaq", "cuda-quantum"))
+        for d in project["dependencies"])
 
 
 def test_stamp_script_requires_exactly_one_bare_entry_per_distribution(
@@ -129,14 +140,15 @@ def test_stamp_script_requires_exactly_one_bare_entry_per_distribution(
     missing = tmp_path / "missing.toml"
     missing.write_text('[project]\ndependencies = [\n  "stim",\n]\n')
     with pytest.raises(RuntimeError, match="exactly one bare"):
-        stamp_runtime_dependency(
-            missing, distribution="cuda-quantum-cu12", version="0.16.0")
+        stamp_runtime_dependency(missing,
+                                 distribution="cuda-quantum-cu12",
+                                 version="0.16.0")
 
     duplicated = tmp_path / "duplicated.toml"
-    duplicated.write_text(
-        "[project.optional-dependencies]\n"
-        'cu12 = [\n  "cuda-quantum-cu12",\n]\n'
-        'cu12-alias = [\n  "cuda-quantum-cu12",\n]\n')
+    duplicated.write_text("[project.optional-dependencies]\n"
+                          'cu12 = [\n  "cuda-quantum-cu12",\n]\n'
+                          'cu12-alias = [\n  "cuda-quantum-cu12",\n]\n')
     with pytest.raises(RuntimeError, match="found 2"):
-        stamp_runtime_dependency(
-            duplicated, distribution="cuda-quantum-cu12", version="0.16.0")
+        stamp_runtime_dependency(duplicated,
+                                 distribution="cuda-quantum-cu12",
+                                 version="0.16.0")

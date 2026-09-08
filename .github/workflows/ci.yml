@@ -365,10 +365,42 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
       environment: ghcr-ci
 
+  python_devel_wheel:
+    name: Create shared Python development wheel
+    needs: [metadata, config_wheeldeps]
+    if:
+      github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast !=
+      'true'
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: linux/amd64
+      python_version: "3.11"
+      cuda_version: "13.0"
+      devdeps_image:
+        ${{
+        fromJson(needs.config_wheeldeps.outputs.json).image_hash['amd64-cu13.0-python']
+        }}
+      devdeps_cache:
+        ${{
+        fromJson(needs.config_wheeldeps.outputs.json).cache_key['amd64-cu13.0-python']
+        }}
+      devdeps_archive:
+        ${{
+        fromJson(needs.config_wheeldeps.outputs.json).tar_archive['amd64-cu13.0-python']
+        }}
+      build_runtime_wheel: false
+      build_devel_wheel: true
+      run_validation: false
+
   python_wheels:
     name: Create Python wheels
-    needs: [metadata, config_wheeldeps]
-    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
+    needs: [metadata, config_wheeldeps, python_devel_wheel]
+    if:
+      github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast !=
+      'true'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -383,10 +415,26 @@ jobs:
       platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}
       cuda_version: ${{ matrix.cuda_version }}
-      devdeps_image: ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
-      devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
-      devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
-      build_devel_wheel: ${{ matrix.python_version == '3.11' && matrix.cuda_version == '13.0' }}
+      devdeps_image:
+        ${{
+        fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python',
+        matrix.platform, matrix.cuda_version)] }}
+      devdeps_cache:
+        ${{
+        fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python',
+        matrix.platform, matrix.cuda_version)] }}
+      devdeps_archive:
+        ${{
+        fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python',
+        matrix.platform, matrix.cuda_version)] }}
+      devel_artifact_name:
+        ${{ matrix.platform == 'amd64' &&
+        needs.python_devel_wheel.outputs.devel_artifact_name || '' }}
+      build_devel_wheel:
+        ${{ matrix.platform == 'arm64' && matrix.python_version == '3.11' &&
+        matrix.cuda_version == '13.0' }}
+      build_logical_wheel:
+        ${{ matrix.platform == 'amd64' && matrix.cuda_version == '13.0' }}
 
   python_metapackages:
     name: Create Python metapackages
@@ -397,7 +445,8 @@ jobs:
       cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
       python_versions: "['3.11', '3.13', '3.14']"
       cuda_versions: "['', '12.6', '13.0']"
-      wheel_artifacts: 'pycudaq-*'
+      wheel_artifacts: "pycudaq-*"
+      logical_wheel_artifacts: "cudaq_logical-*"
 
   # Installer builds are packaging, not correctness — only built on merge_group/dispatch.
   binaries:

@@ -21,6 +21,7 @@ FROM ${base_image}
 
 ARG python_version=3.11
 ARG cudaq_version
+ARG cudaq_logical_version
 ARG pip_install_flags=""
 ARG preinstalled_modules="pytest"
 
@@ -83,4 +84,6 @@ RUN for i in 1 2 3; do \
         || { echo "gha-tools download attempt $i failed; retrying..."; sleep 5; }; \
     done && rm -f /tmp/tools.tar.gz && \
     RAPIDS_PIP_EXE="python${python_version} -m pip" \
-    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} --find-links /tmp/dist "cudaq-logical==$cudaq_version"
+    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} --find-links /tmp/dist \
+        "cudaq==$cudaq_version" \
+        "cudaq-logical==$cudaq_logical_version"

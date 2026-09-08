@@ -90,7 +90,7 @@ except _PackageNotFoundError:
     # Source-tree and staged-build imports do not necessarily have wheel
     # metadata beside them.  Keep their development identity explicit while
     # installed packages always report the distribution version.
-    __version__ = "0.1.0.dev0"
+    __version__ = "0.0.0.dev0"
 finally:
     globals().pop("_installed", None)
     globals().pop("_package_root", None)

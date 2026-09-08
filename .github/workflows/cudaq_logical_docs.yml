@@ -37,7 +37,7 @@ on:
         type: string
         description: Python version
         default: "3.11"
-      # Artifact inputs: set all four together to reuse a pre-built wheel
+      # Artifact inputs: set all five together to reuse a pre-built wheel
       # (matching platform/python_version); leave empty to build it first.
       wheel_name:
         type: string
@@ -54,6 +54,10 @@ on:
       cudaq_version:
         type: string
         description: Version of the pre-built wheels.
+        default: ""
+      cudaq_logical_version:
+        type: string
+        description: Version of the pre-built cudaq-logical wheel.
         default: ""
     secrets:
       DOCKERHUB_USERNAME:
@@ -91,6 +95,9 @@ jobs:
     env:
       CUDAQ_VERSION:
         ${{ inputs.cudaq_version || needs.build.outputs.cudaq_version }}
+      CUDAQ_LOGICAL_VERSION:
+        ${{ inputs.cudaq_logical_version || needs.build.outputs.logical_version
+        }}
       WHEEL_NAME: ${{ inputs.wheel_name || needs.build.outputs.wheel_name }}
       RUNTIME_ARTIFACT_NAME:
         ${{ inputs.runtime_artifact_name ||
@@ -109,9 +116,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for v in CUDAQ_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
+          for v in CUDAQ_VERSION CUDAQ_LOGICAL_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
             if [ -z "${!v}" ]; then
-              echo "::error::$v is empty: pass all four artifact inputs together or none."
+              echo "::error::$v is empty: pass all five artifact inputs together or none."
               exit 1
             fi
           done
@@ -152,7 +159,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
+          uv pip install -f dist \
+            "cudaq==$CUDAQ_VERSION" \
+            "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
 
       - name: Test inline docs snippets
         shell: bash
