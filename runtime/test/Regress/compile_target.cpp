@@ -9,7 +9,7 @@
 // This test is compiled inside the runtime directory tree. We include it as a
 // regression test and use FileCheck to verify the output.
 
-// RUN: test_compile_target | FileCheck %s
+// RUN: compile_target | FileCheck %s
 
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
