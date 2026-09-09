@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s | FileCheck %s
+// RUN: cudaq-opt --verify-each %s | FileCheck %s
 
 // A classical argument precedes the quantum one, so the result index trails
 // the operand index.
