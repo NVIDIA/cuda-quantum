@@ -1688,6 +1688,33 @@ class PyASTBridge(ast.NodeVisitor):
                                     pyVals[idx if len(pyVals) > 1 else 0])
         return startVal, endVal, stepVal, isDecrementing
 
+    def __processDecorator(self, name, path=None):
+        """Captures `name` as a callable argument if it is a kernel decorator;
+        returns None otherwise."""
+        from .kernel_decorator import isa_kernel_decorator
+
+        if path:
+            name = f"{path}.{name}"
+
+        if name in self.qualifiedDecoratorCache:
+            decorator = self.qualifiedDecoratorCache[name]
+        else:
+            decorator = recover_value_of_or_none(name, self.defFrame)
+            self.qualifiedDecoratorCache[name] = decorator
+        if decorator is None or not isa_kernel_decorator(decorator):
+            return None
+
+        if not name in self.symbolTable:
+            callableTy = decorator.signature.get_callable_type()
+
+            # `callee` will be a new `BlockArgument`
+            callee = cudaq_runtime.appendKernelArgument(self.kernelFuncOp,
+                                                        callableTy)
+            self.signature.add_variable_capture(name, callableTy)
+            self.symbolTable[name] = callee
+
+        return name
+
     def __groupValues(self, pyvals, groups: list[int | tuple[int, int]]):
         """Helper function that visits the given AST nodes (`pyvals`), and
         groups them according to the specified list.  The list contains integers
@@ -2963,30 +2990,7 @@ class PyASTBridge(ast.NodeVisitor):
                 processQuantumOperation(opName, controls, targets, [], params,
                                         **kwargs)
 
-        def processDecorator(name, path=None):
-            from .kernel_decorator import isa_kernel_decorator
-
-            if path:
-                name = f"{path}.{name}"
-
-            if name in self.qualifiedDecoratorCache:
-                decorator = self.qualifiedDecoratorCache[name]
-            else:
-                decorator = recover_value_of_or_none(name, self.defFrame)
-                self.qualifiedDecoratorCache[name] = decorator
-            if decorator is None or not isa_kernel_decorator(decorator):
-                return None
-
-            if not name in self.symbolTable:
-                callableTy = decorator.signature.get_callable_type()
-
-                # `callee` will be a new `BlockArgument`
-                callee = cudaq_runtime.appendKernelArgument(
-                    self.kernelFuncOp, callableTy)
-                self.signature.add_variable_capture(name, callableTy)
-                self.symbolTable[name] = callee
-
-            return name
+        processDecorator = self.__processDecorator
 
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
@@ -6267,9 +6271,13 @@ class PyASTBridge(ast.NodeVisitor):
         if is_recovered_value_ok(value):
             from .kernel_decorator import isa_kernel_decorator
             from .kernel_builder import isa_dynamic_kernel
-            if isa_kernel_decorator(value) or isa_dynamic_kernel(value):
-                # Not a data variable. Symbol bound to kernel object. This case
-                # is handled elsewhere.
+            if isa_kernel_decorator(value):
+                symName = self.__processDecorator(node.id)
+                self.pushValue(self.symbolTable[symName])
+                return
+            if isa_dynamic_kernel(value):
+                # Not a data variable. Symbol bound to kernel object. This
+                # case is handled elsewhere.
                 return
 
             # If `node.id` is already captured, it should be in the symbol table

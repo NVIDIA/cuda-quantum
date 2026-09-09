@@ -24,7 +24,7 @@ func.func @test() {
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
 // CHECK:           %[[VAL_3:.*]] = quake.bundle_cable %[[VAL_1]], %[[VAL_2]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
-// CHECK:           %[[VAL_4:.*]] = quake.call_by_ref @callee(%[[VAL_3]], %[[VAL_0]]) : (!quake.cable<2>, f32) -> !quake.cable<2>
+// CHECK:           %[[VAL_4:.*]] = quake.apply @callee (%[[VAL_3]], %[[VAL_0]]) : (!quake.cable<2>, f32) -> !quake.cable<2>
 // CHECK:           %[[VAL_5:.*]]:2 = quake.split_cable %[[VAL_4]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
 // CHECK:           quake.sink %[[VAL_5]]#0 : !quake.wire
 // CHECK:           quake.sink %[[VAL_5]]#1 : !quake.wire
@@ -52,7 +52,7 @@ func.func @test_a() {
 // CHECK:           %[[VAL_4:.*]] = quake.null_wire
 // CHECK:           %[[VAL_5:.*]] = quake.bundle_cable %[[VAL_0]], %[[VAL_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
 // CHECK:           %[[VAL_6:.*]] = quake.bundle_cable %[[VAL_2]], %[[VAL_3]], %[[VAL_4]] : (!quake.wire, !quake.wire, !quake.wire) -> !quake.cable<3>
-// CHECK:           %[[VAL_7:.*]]:2 = quake.call_by_ref @callee_a(%[[VAL_5]], %[[VAL_6]]) : (!quake.cable<2>, !quake.cable<3>) -> (!quake.cable<2>, !quake.cable<3>)
+// CHECK:           %[[VAL_7:.*]]:2 = quake.apply @callee_a (%[[VAL_5]], %[[VAL_6]]) : (!quake.cable<2>, !quake.cable<3>) -> (!quake.cable<2>, !quake.cable<3>)
 // CHECK:           %[[VAL_8:.*]]:2 = quake.split_cable %[[VAL_7]]#0 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[VAL_9:.*]]:3 = quake.split_cable %[[VAL_7]]#1 : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
 // CHECK:           quake.sink %[[VAL_8]]#0 : !quake.wire
@@ -86,7 +86,7 @@ func.func @test_b() {
 // CHECK:           %[[VAL_5:.*]] = quake.null_wire
 // CHECK:           %[[VAL_6:.*]] = quake.bundle_cable %[[VAL_0]], %[[VAL_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
 // CHECK:           %[[VAL_7:.*]] = quake.bundle_cable %[[VAL_2]], %[[VAL_3]], %[[VAL_4]] : (!quake.wire, !quake.wire, !quake.wire) -> !quake.cable<3>
-// CHECK:           %[[VAL_8:.*]]:3 = quake.call_by_ref @callee_b(%[[VAL_6]], %[[VAL_5]], %[[VAL_7]]) : (!quake.cable<2>, !quake.wire, !quake.cable<3>) -> (!quake.cable<2>, !quake.wire, !quake.cable<3>)
+// CHECK:           %[[VAL_8:.*]]:3 = quake.apply @callee_b (%[[VAL_6]], %[[VAL_5]], %[[VAL_7]]) : (!quake.cable<2>, !quake.wire, !quake.cable<3>) -> (!quake.cable<2>, !quake.wire, !quake.cable<3>)
 // CHECK:           %[[VAL_9:.*]]:2 = quake.split_cable %[[VAL_8]]#0 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[VAL_10:.*]]:3 = quake.split_cable %[[VAL_8]]#2 : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
 // CHECK:           quake.sink %[[VAL_9]]#0 : !quake.wire
@@ -120,7 +120,7 @@ func.func @test_d() {
 // CHECK:           %[[VAL_7:.*]] = quake.null_wire
 // CHECK:           %[[VAL_8:.*]] = quake.bundle_cable %[[VAL_0]], %[[VAL_1]], %[[VAL_2]] : (!quake.wire, !quake.wire, !quake.wire) -> !quake.cable<3>
 // CHECK:           %[[VAL_9:.*]] = quake.bundle_cable %[[VAL_3]], %[[VAL_4]], %[[VAL_5]], %[[VAL_6]], %[[VAL_7]] : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<5>
-// CHECK:           %[[VAL_10:.*]]:2 = quake.call_by_ref @callee_d(%[[VAL_8]], %[[VAL_9]]) : (!quake.cable<3>, !quake.cable<5>) -> (!quake.cable<3>, !quake.cable<5>)
+// CHECK:           %[[VAL_10:.*]]:2 = quake.apply @callee_d (%[[VAL_8]], %[[VAL_9]]) : (!quake.cable<3>, !quake.cable<5>) -> (!quake.cable<3>, !quake.cable<5>)
 // CHECK:           %[[VAL_11:.*]]:3 = quake.split_cable %[[VAL_10]]#0 : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
 // CHECK:           %[[VAL_12:.*]]:5 = quake.split_cable %[[VAL_10]]#1 : (!quake.cable<5>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
 // CHECK:           quake.sink %[[VAL_12]]#0 : !quake.wire
@@ -145,6 +145,6 @@ func.func @test_e() -> i1 {
 
 // CHECK-LABEL:   func.func @test_e() -> i1 {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
-// CHECK:           %[[VAL_1:.*]]:2 = quake.call_by_ref @callee_e(%[[VAL_0]]) : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_1:.*]]:2 = quake.apply @callee_e (%[[VAL_0]]) : (!quake.wire) -> (i1, !quake.wire)
 // CHECK:           return %[[VAL_1]]#0 : i1
 // CHECK:         }

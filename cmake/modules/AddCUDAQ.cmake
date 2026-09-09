@@ -179,6 +179,17 @@ function(cudaq_check_mlir_symbol_closure name)
     VERBATIM)
 endfunction()
 
+# CUDAQ_PYTHON_BINDINGS_SHARED_LIBS controls whether the common CAPI
+# aggregate built by add_cudaq_python_common_capi_library() (below) is a
+# shared or static library. It defaults to ON: the aggregate is loaded
+# directly by a Python interpreter via the nanobind extension modules, so a
+# shared library is the correct default. A build engineer embedding these
+# bindings into a fully static, custom Python interpreter (or otherwise
+# assembling their own deployment) can flip this OFF.
+option(CUDAQ_PYTHON_BINDINGS_SHARED_LIBS
+  "Build the cudaq/ Python bindings' common CAPI library as a shared library."
+  ON)
+
 # --------------------------------------------------------------------------- #
 # add_cudaq_python_common_capi_library(<name> ...)``
 #
@@ -228,13 +239,22 @@ function(add_cudaq_python_common_capi_library name)
     endif()
   endforeach()
 
-  # 3. Create the shared library, with hidden visibility and linking to cudaqMLIR
+  # 3. Create the library, with hidden visibility and linking to cudaqMLIR
   #
   # We use the MLIR-provided aggregation utility but modify it to exclude any
   # libraries provided by `libcudaqMLIR.so` and instead link in `cudaq::cudaqMLIR`.
   # We then hide all symbols by default (same as add_mlir_python_common_capi_library).
+  #
+  # SHARED by default (CUDAQ_PYTHON_BINDINGS_SHARED_LIBS): this is what a
+  # Python interpreter dlopen()s. See that option's docstring for the STATIC
+  # override use case.
+  if(CUDAQ_PYTHON_BINDINGS_SHARED_LIBS)
+    set(_cudaq_python_capi_libtype SHARED)
+  else()
+    set(_cudaq_python_capi_libtype STATIC)
+  endif()
   add_mlir_aggregate(${name}
-    SHARED
+    ${_cudaq_python_capi_libtype}
     DISABLE_INSTALL
     EMBED_LIBS ${_embed_libs}
     PUBLIC_LIBS cudaq::cudaqMLIR)

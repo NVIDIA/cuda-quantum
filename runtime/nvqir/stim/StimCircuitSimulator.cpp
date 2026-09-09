@@ -918,13 +918,6 @@ public:
     StimSimulatorBase::configureExecutionContextImpl(policy);
   }
 
-  // TODO - remove after CUDAQX use of the ExecutionContext is removed
-  void configureExecutionContext(cudaq::ExecutionContext &context) override {
-    is_msm_mode = context.name == "msm";
-    activeMsmDimensions = context.msm_dimensions;
-    StimSimulatorBase::configureExecutionContext(context);
-  }
-
   NVQIR_SIMULATOR_CLONE_IMPL(StimCircuitSimulator)
 };
 
