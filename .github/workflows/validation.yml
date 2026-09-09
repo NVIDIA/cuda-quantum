@@ -564,14 +564,13 @@ jobs:
       # scripts/build_wheel.sh usage), so it must be a separate build, not a
       # build-arg on the step above -- that silently replaced the amd64/cu13/
       # py3.11 runtime wheel with a devel wheel and broke that cell entirely.
-      # One devel wheel (amd64/cu13/py3.11) is reused across python versions
-      # to build cudaq-logical below -- same pattern as ci.yml's shared
+      # One devel wheel per architecture (cu13/py3.11) is reused across python
+      # versions to build cudaq-logical below -- same pattern as ci.yml's shared
       # python_devel_wheel job.
       - name: Build cudaq-devel wheel
         id: build_devel_wheel
         if: >-
           matrix.python_version == '3.11' &&
-          steps.release_info.outputs.platform_arch == 'x86_64' &&
           steps.release_info.outputs.cuda_major_version == '13'
         uses: docker/build-push-action@v7
         env:
@@ -589,30 +588,29 @@ jobs:
       - name: Upload cudaq-devel wheel
         if: >-
           matrix.python_version == '3.11' &&
-          steps.release_info.outputs.platform_arch == 'x86_64' &&
           steps.release_info.outputs.cuda_major_version == '13'
         uses: actions/upload-artifact@v7
         with:
-          name: x86_64-cu13-devel-wheel
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu13-devel-wheel
           path: /tmp/wheels-devel/cudaq_devel*.whl
           retention-days: 1
           if-no-files-found: error
 
   cudaq_logical_wheels:
-    name: Build cudaq.logical (py${{ matrix.python_version }})
+    name:
+      Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
     needs: [metadata, cudaq_wheels]
-    if: >-
-      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files,
-      'python_amd64_cu13_publishing') }}
     strategy:
       matrix:
-        python_version: ['3.11', '3.12', '3.13', '3.14']
+        arch: ["x86_64", "aarch64"]
+        python_version: ["3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
     uses: ./.github/workflows/cudaq_logical_build.yml
     with:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
-      runtime_artifact_name: x86_64-cu13-py${{ matrix.python_version }}-wheels
-      devel_artifact_name: x86_64-cu13-devel-wheel
+      runtime_artifact_name:
+        ${{ matrix.arch }}-cu13-py${{ matrix.python_version }}-wheels
+      devel_artifact_name: ${{ matrix.arch }}-cu13-devel-wheel
 
   cudaq_metapackages:
     name: CUDA-Q metapackages
@@ -1235,7 +1233,22 @@ jobs:
     name: CUDA-Q Release (draft)
     # Validation jobs stay in needs so the draft runs after them, but the if:
     # does not require them to pass.
-    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
+    needs:
+      [
+        metadata,
+        cudaq_installers,
+        cudaq_wheels,
+        cudaq_logical_wheels,
+        cudaq_metapackages,
+        macos_artifacts,
+        realtime_artifacts,
+        release_image_validation,
+        debug_image_validation,
+        installer_validation,
+        wheel_validation_piponly,
+        metapackage_validation_conda,
+        metapackage_validation_macos,
+      ]
     # Draft on a requested release title; tolerate validation flakes but require
     # the build jobs (nothing to attach otherwise).
     if: >-
@@ -1293,6 +1306,7 @@ jobs:
               dir=$(basename $fulldir)
               mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
             done
+            mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/ || exit 1
             zip -r wheelhouse-${p}.zip wheelhouse-${p}
           done
           zip -r metapackages.zip metapackages

@@ -365,6 +365,7 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
       environment: ghcr-ci
 
+  # Build the devel wheel first so that all jobs in the `python_wheels` matrix can reuse it
   python_devel_wheel:
     name: Create shared Python development wheel
     needs: [metadata, config_wheeldeps]
