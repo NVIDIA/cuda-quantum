@@ -2017,8 +2017,8 @@ registered MLIR passes. [`cudaq-translate`{.docutils .literal
 .notranslate}]{.pre} owns the standalone translation path, while
 [`cudaq-target-conf`{.docutils .literal .notranslate}]{.pre} reads
 target configuration for the C++ driver. Representative lit tests are
-grouped under [`cudaq/test/AST-Quake`{.docutils .literal
-.notranslate}]{.pre}, [`cudaq/test/Transforms`{.docutils .literal
+grouped under [`cudaq/test/Frontend`{.docutils .literal
+.notranslate}]{.pre}, [`cudaq/test/Optimizer`{.docutils .literal
 .notranslate}]{.pre}, and [`cudaq/test/CodeGen`{.docutils .literal
 .notranslate}]{.pre}. Python MLIR regression tests are under
 [`python/tests/mlir`{.docutils .literal .notranslate}]{.pre}, with
