@@ -1182,6 +1182,39 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
+def LoopCableRotation : Pass<"loop-cable-rotation", "mlir::func::FuncOp"> {
+  let summary = "Rotate a cable around a counted loop over a fixed-size veq.";
+  let description = [{
+    A `cc.loop` that is a compile-time counted loop (a normalized, definite
+    trip count, no early exit - see `isaCountedLoop` in `LoopAnalysis.h`)
+    whose body contains exactly one `quake.extract_ref` indexing a
+    statically sized `veq` by the loop's own induction variable touches
+    every qubit of that `veq` exactly once, in order. Each iteration
+    ordinarily still pays for reference-form traffic (`unwrap`/gate/`wrap`)
+    even though the whole access pattern is known statically.
+
+    This pass rewrites that shape to thread a single `!quake.cable<C>`
+    value around the loop instead of leaving the `veq` in reference form:
+    a `quake.detach_wire` pulls the front wire off the cable in place of
+    the `extract_ref` each iteration, and a `quake.attach_wire` puts it
+    back on the back before the iteration ends, so after all `C`
+    iterations the cable is back in its original order. The detached wire
+    is bound to a fresh reference with `quake.wrap_new` so the body's gate
+    ops are left completely unchanged in reference form; this pass does
+    not itself linearize them; the existing `memtoreg` pass, run
+    afterwards, threads `quake.wrap_new`'s fresh reference into proper wire
+    SSA form the same way it already does elsewhere.
+
+    This pass is independent of, and does not modify, `cable-rough-in` -
+    that pass handles a whole veq passed to a call; this one handles a veq
+    walked element-by-element inside a loop. A loop that does not match
+    the required shape exactly (early exit, non-constant trip count, more
+    than one `extract_ref` in the body, an index expression other than the
+    bare induction variable, a `veq` of unknown size, or a `veq` with any
+    other use inside the loop) is left completely untouched.
+  }];
+}
+
 def LoopInductionFusion : Pass<"cc-loop-induction-fusion"> {
   let summary = "Fuse secondary loop inductions into the primary induction.";
   let description = [{
