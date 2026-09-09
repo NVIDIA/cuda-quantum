@@ -52,9 +52,9 @@ using namespace mlir;
 
 namespace {
 
-// Collect the individual qubit references behind a `veq` argument. The cable's
-// arity has to be known here, so the argument must resolve to a statically
-// sized collection of references.
+// Collect the individual quantum references behind a `veq` argument. The
+// cable's arity has to be known here, so the argument must resolve to a
+// statically sized collection of references.
 static LogicalResult collectVeqRefs(PatternRewriter &rewriter, Location loc,
                                     Value arg, SmallVectorImpl<Value> &refs) {
   auto refTy = cudaq::quake::RefType::get(rewriter.getContext());
@@ -75,7 +75,7 @@ static LogicalResult collectVeqRefs(PatternRewriter &rewriter, Location loc,
   }
 
   // Otherwise any statically sized veq will do, such as a subveq with constant
-  // bounds. Materialize a reference per qubit.
+  // bounds. Materialize one reference per element.
   auto veqTy = cast<cudaq::quake::VeqType>(arg.getType());
   if (!veqTy.hasSpecifiedSize()) {
     LLVM_DEBUG(llvm::dbgs() << arg << " does not have a static size.\n");
@@ -121,8 +121,8 @@ static LogicalResult checkQuantumArg(Value arg) {
   return failure();
 }
 
-// Collect the qubit references behind a struq argument, member by member and
-// in order.
+// Collect the quantum references behind a struq argument, member by member
+// and in order.
 static LogicalResult collectStruqRefs(PatternRewriter &rewriter, Location loc,
                                       Value arg, SmallVectorImpl<Value> &refs) {
   auto mkStruq = arg.getDefiningOp<cudaq::quake::MakeStruqOp>();
