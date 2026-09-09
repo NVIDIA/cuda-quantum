@@ -720,7 +720,9 @@ def kernel(function=None, external=False, backend_symbol=None, **kwargs):
     declaration. It is never compiled, and a call to it from another kernel
     reaches the backend as a call of `backend_symbol` (the function name by
     default).
-    ```python
+
+    .. code-block:: python
+
         @cudaq.kernel(external=True)
         def wait(q: cudaq.qubit, duration: float) -> None:
             ...
@@ -730,7 +732,6 @@ def kernel(function=None, external=False, backend_symbol=None, **kwargs):
             q = cudaq.qubit()
             rx(np.pi / 2, q)
             wait(q, d)
-    ```
     """
     if external:
         if kwargs:
