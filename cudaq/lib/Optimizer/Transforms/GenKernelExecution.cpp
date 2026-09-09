@@ -964,7 +964,7 @@ public:
           auto kern = func::CallOp::create(
               builder, loc, epKern.getFunctionType().getResults(),
               epKern.getName(), entry->getArguments());
-          cudaq::quake::LogOutputOp::create(builder, loc, kern.getResults());
+          cudaq::quake::EvinceOp::create(builder, loc, kern.getResults());
           func::ReturnOp::create(builder, loc);
           runKernels.push_back(runKern);
         }

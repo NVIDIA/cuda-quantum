@@ -1,0 +1,33 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)},qubit-mapping{device=file(%S/mapping_directional.txt) placement=identity search=none})' %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)},qubit-mapping{device=file(%S/mapping_directional.txt) placement=identity search=none})' %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @decompose_before_directional_mapping() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %angle = arith.constant 5.000000e-01 : f64
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %rx:2 = quake.rx (%angle) [%q0] %q1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r1:2 = quake.r1 (%angle) [%rx#0] %rx#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %r1#0 : !quake.wire
+  quake.return_wire %r1#1 : !quake.wire
+  return
+}
+
+// Decomposition is a separate pipeline pass. It lowers controlled rotations
+// before the directional mapper enforces its CX/CZ allowlist.
+
+// CHECK-LABEL:   func.func @decompose_before_directional_mapping
+// CHECK-NOT:       quake.rx {{.*}}{{\[}}
+// CHECK-NOT:       quake.r1 {{.*}}{{\[}}
+// CHECK:           quake.x {{\[}}
+// CHECK-NOT:       quake.rx {{.*}}{{\[}}
+// CHECK-NOT:       quake.r1 {{.*}}{{\[}}

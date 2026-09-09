@@ -368,6 +368,14 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     - lift-array-alloc
     - cc-loop-normalize
     - cc-loop-unroll
+
+    Running these together to a fix point unrolls loops that a fixed sequence
+    of the individual passes cannot, such as one whose trip count is a constant
+    array element indexed by an outer induction variable.
+
+    The two selective unrolling options mirror cc-loop-unroll and are mutually
+    exclusive. Unlike cc-loop-unroll, this pass never reports a loop it could
+    not unroll.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
@@ -382,7 +390,17 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
       "Allow unrolling of loop with early exit (i.e. break statement).">,
     Option<"disableLoopUnrolling", "no-loop-unroll", "bool",
       /*default=*/"false",
-      "Disable loop unrolling and preserve cc.loop operations.">
+      "Disable loop unrolling and preserve cc.loop operations.">,
+    Option<"unrollOnlyAliasingQuantumAccessLoops",
+      "unroll-only-aliasing-quantum-access-loops", "bool",
+      /*default=*/"false",
+      "Unroll only loops containing aliasing quantum accesses or exp_pauli "
+      "operands that must be resolved for wire-set lowering. See "
+      "cc-loop-unroll.">,
+    Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
+      /*default=*/"false",
+      "Unroll only index use loops, i.e. loops whose induction variable is "
+      "used in the loop body. See cc-loop-unroll.">
   ];
 }
 
@@ -951,10 +969,10 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
 }
 
 def InjectImplicitOutput : Pass<"inject-implicit-output", "mlir::func::FuncOp"> {
-  let summary = "Inject quake.log_output ops for implicitly output quantum values.";
+  let summary = "Inject quake.evince ops for implicitly output quantum values.";
   let description = [{
-    This pass inserts `quake.log_output` operations for each `quake.alloca` at
-    the top level of a `func.func`. The log_output ops are added to a new exit
+    This pass inserts `quake.evince` operations for each `quake.alloca` at
+    the top level of a `func.func`. The evince ops are added to a new exit
     block that all return ops are redirected through, preserving the declaration
     order of the allocations. Unlike `add-dealloc`, this pass does not recurse
     into nested regions.

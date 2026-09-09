@@ -2136,7 +2136,7 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     }
 
     // Necessary/Helpful constants
-    Type angleType = op.getParameter().getType();
+    Type angleType = op.getParameter(0).getType();
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
     Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 

@@ -139,7 +139,7 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, ResetOp, SinkOp,
-             ReturnWireOp, LogOutputOp>(op);
+             ReturnWireOp, EvinceOp>(op);
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {
@@ -401,11 +401,19 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
         isa<cudaq::quake::RefType>(formal))
       return true;
     // (c) cable<N> → veq<N> or unsized veq<?>
-    if (isa<cudaq::quake::CableType>(actual))
+    if (isa<cudaq::quake::CableType>(actual)) {
       if (auto veqFormal = dyn_cast<cudaq::quake::VeqType>(formal))
         return !veqFormal.hasSpecifiedSize() ||
                cudaq::quake::getWireCount(actual) ==
                    cudaq::quake::getAllocationSize(formal);
+      // (d) cable<N> → struq, provided the struq's constant member sizes sum
+      // to N. Like (c), the individual wires making up the cable become the
+      // wrapped refs threaded into the struq's ref/veq members.
+      if (isa<cudaq::quake::StruqType>(formal))
+        return cudaq::quake::isConstantQuantumRefType(formal) &&
+               cudaq::quake::getWireCount(actual) ==
+                   cudaq::quake::getAllocationSize(formal);
+    }
     return false;
   };
 
@@ -1315,7 +1323,7 @@ void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
   // Get parameters
   double theta;
   double phi;
-  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+  if (failed(getParameterAsDouble(getParameter(0), theta)) ||
       failed(getParameterAsDouble(getParameter(1), phi)))
     return;
 
@@ -1403,7 +1411,7 @@ void cudaq::quake::U2Op::getOperatorMatrix(Matrix &matrix) {
   // Get parameters
   double phi;
   double lambda;
-  if (failed(getParameterAsDouble(getParameter(), phi)) ||
+  if (failed(getParameterAsDouble(getParameter(0), phi)) ||
       failed(getParameterAsDouble(getParameter(1), lambda)))
     return;
 
@@ -1424,7 +1432,7 @@ void cudaq::quake::U3Op::getOperatorMatrix(Matrix &matrix) {
   double theta;
   double phi;
   double lambda;
-  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+  if (failed(getParameterAsDouble(getParameter(0), theta)) ||
       failed(getParameterAsDouble(getParameter(1), phi)) ||
       failed(getParameterAsDouble(getParameter(2), lambda)))
     return;
@@ -1699,10 +1707,10 @@ WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)
 
 //===----------------------------------------------------------------------===//
-// LogOutputOp
+// EvinceOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult cudaq::quake::LogOutputOp::verify() {
+LogicalResult cudaq::quake::EvinceOp::verify() {
   SmallVector<Type> expected;
   for (Value v : getArgs())
     if (isLinearType(v.getType()))
@@ -1714,9 +1722,9 @@ LogicalResult cudaq::quake::LogOutputOp::verify() {
   return success();
 }
 
-void cudaq::quake::LogOutputOp::getCanonicalizationPatterns(
+void cudaq::quake::EvinceOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<DropEmptyVeqLogOutputArgsPattern>(context);
+  patterns.add<DropEmptyVeqEvinceArgsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
