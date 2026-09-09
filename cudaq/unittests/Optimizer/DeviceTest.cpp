@@ -49,6 +49,45 @@ TEST(DeviceTest, ConnectedPathDistances) {
   EXPECT_TRUE(device.hasPath(Qubit(0), Qubit(3)));
 }
 
+TEST(DeviceTest, FileCouplingsDefaultToBidirectional) {
+  Device device = deviceFromTopology("Number of nodes: 2\n"
+                                     "0 --> {1}\n");
+
+  EXPECT_TRUE(device.isBidirectional());
+  EXPECT_FALSE(device.hasUnidirectionalCoupling());
+  EXPECT_TRUE(device.supportsDirection(Qubit(0), Qubit(1)));
+  EXPECT_TRUE(device.supportsDirection(Qubit(1), Qubit(0)));
+}
+
+TEST(DeviceTest, DirectionalFilePreservesRoutingConnectivity) {
+  Device device = deviceFromTopology("Bidirectional: false\n"
+                                     "Number of nodes: 2\n"
+                                     "0 --> {1}\n");
+
+  EXPECT_FALSE(device.isBidirectional());
+  EXPECT_TRUE(device.hasUnidirectionalCoupling());
+  EXPECT_TRUE(device.areConnected(Qubit(0), Qubit(1)));
+  EXPECT_TRUE(device.areConnected(Qubit(1), Qubit(0)));
+  EXPECT_TRUE(device.supportsDirection(Qubit(0), Qubit(1)));
+  EXPECT_FALSE(device.supportsDirection(Qubit(1), Qubit(0)));
+  EXPECT_EQ(device.getShortestPath(Qubit(1), Qubit(0)),
+            Device::Path({Qubit(1), Qubit(0)}));
+}
+
+TEST(DeviceTest, DirectionalFileCanDeclareBothDirections) {
+  // Put the option after the edges to verify that metadata order is
+  // independent of graph parsing.
+  Device device = deviceFromTopology("Number of nodes: 2\n"
+                                     "0 --> {1}\n"
+                                     "1 --> {0}\n"
+                                     "bidirectional: false\n");
+
+  EXPECT_FALSE(device.isBidirectional());
+  EXPECT_FALSE(device.hasUnidirectionalCoupling());
+  EXPECT_TRUE(device.supportsDirection(Qubit(0), Qubit(1)));
+  EXPECT_TRUE(device.supportsDirection(Qubit(1), Qubit(0)));
+}
+
 TEST(DeviceTest, DisconnectedComponentsAreUnreachable) {
   // Two islands: {0,1,2} (a line) and {3,4} (an edge).
   Device device = deviceFromTopology("Number of nodes: 5\n"

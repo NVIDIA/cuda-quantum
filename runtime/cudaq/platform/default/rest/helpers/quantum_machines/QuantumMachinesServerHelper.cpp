@@ -39,9 +39,10 @@ constexpr const char *decoderConfigJobJsonPath = "/decoder_config";
 std::string rewriteLegacySpellings(std::string ir) {
   // Renamed the legacy `!cc.stdvec` type to `!cc.sequence`.
   ir = std::regex_replace(ir, std::regex(R"(cc\.sequence)"), "cc.stdvec");
-  // Moved output logging from `cc.log_output` to `quake.log_output`.
+  // Moved output logging from `cc.log_output` to `quake.evince` (renamed
+  // from `quake.log_output`).
   ir = std::regex_replace(
-      ir, std::regex(R"(quake\.log_output ([^\n]+) : \(([^\n]*)\) -> \(\))"),
+      ir, std::regex(R"(quake\.evince ([^\n]+) : \(([^\n]*)\) -> \(\))"),
       "cc.log_output $1 : $2");
   return ir;
 }
@@ -351,7 +352,7 @@ public:
     const std::string needle = "qubit-mapping{device=bypass}";
     const std::string replacement = "qubit-mapping{device=file('" +
                                     machineconfigFilePath +
-                                    "') placement=greedy}";
+                                    "') placement=greedy search=sabre}";
     return {{needle, replacement}};
   }
 };

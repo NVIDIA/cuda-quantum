@@ -241,6 +241,19 @@ constexpr bool isMeasure = std::is_same_v<OP, cudaq::quake::MxOp> ||
                            std::is_same_v<OP, cudaq::quake::MyOp> ||
                            std::is_same_v<OP, cudaq::quake::MzOp>;
 
+/// Return true when \p op is a one-target operator for which a `veq` operand
+/// in the target position means "apply this operator to every element of the
+/// vector". Multi-qubit operators (`swap`, `exp_pauli`, custom unitaries) are
+/// excluded: for those a `veq` target is the operand list of a single N-qubit
+/// gate, not a broadcast.
+inline bool isBroadcastOperator(mlir::Operation *op) {
+  return mlir::isa<cudaq::quake::HOp, cudaq::quake::PhasedRxOp,
+                   cudaq::quake::R1Op, cudaq::quake::RxOp, cudaq::quake::RyOp,
+                   cudaq::quake::RzOp, cudaq::quake::SOp, cudaq::quake::TOp,
+                   cudaq::quake::U2Op, cudaq::quake::U3Op, cudaq::quake::XOp,
+                   cudaq::quake::YOp, cudaq::quake::ZOp>(op);
+}
+
 //===----------------------------------------------------------------------===//
 // Control and wire helpers.
 //===----------------------------------------------------------------------===//

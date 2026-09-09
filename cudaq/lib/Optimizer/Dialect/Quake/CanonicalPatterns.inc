@@ -156,7 +156,11 @@ struct ReplaceZeroSizeAllocaPattern
 // every later pass special-case a zero-size veq.
 static bool isEmptyVeqType(Value value) {
   auto veqTy = dyn_cast<cudaq::quake::VeqType>(value.getType());
-  return veqTy && veqTy.hasSpecifiedSize() && veqTy.getSize() == 0;
+  if (veqTy && veqTy.hasSpecifiedSize() && veqTy.getSize() == 0)
+    return true;
+  if (auto relax = value.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    return isEmptyVeqType(relax.getInputVec());
+  return false;
 }
 
 // quake.dealloc %empty : !quake.veq<0>
@@ -276,21 +280,21 @@ struct EraseApplyNoiseEmptyVeqQubitPattern
   }
 };
 
-// quake.log_output %r, %empty, %w : (..., !quake.veq<0>, ...) -> (...)
+// quake.evince %r, %empty, %w : (..., !quake.veq<0>, ...) -> (...)
 // ───────────────────────────────────────────────────────────────────
-// quake.log_output %r, %w : (..., ...) -> (...)
+// quake.evince %r, %w : (..., ...) -> (...)
 //
 // An empty veq has no observable qubit -- there is nothing there to log --
 // so it contributes nothing to what's being observed. A veq is never a
 // linear type, so dropping it never touches `outs`. If nothing observable
 // remains, the whole op is dead and is erased.
-struct DropEmptyVeqLogOutputArgsPattern
-    : public OpRewritePattern<cudaq::quake::LogOutputOp> {
+struct DropEmptyVeqEvinceArgsPattern
+    : public OpRewritePattern<cudaq::quake::EvinceOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::LogOutputOp log,
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
                                 PatternRewriter &rewriter) const override {
-    auto args = log.getArgs();
+    auto args = evin.getArgs();
     SmallVector<Value> keep;
     for (Value arg : args)
       if (!isEmptyVeqType(arg))
@@ -299,12 +303,12 @@ struct DropEmptyVeqLogOutputArgsPattern
       return failure();
 
     if (keep.empty()) {
-      rewriter.eraseOp(log);
+      rewriter.eraseOp(evin);
       return success();
     }
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::LogOutputOp>(
-        log, keep, log.getCompilerGenerated());
+    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
+        evin, keep, evin.getCompilerGenerated());
     return success();
   }
 };
@@ -838,8 +842,7 @@ struct ReplaceEmptyVeqSubVeqPattern
                                 PatternRewriter &rewriter) const override {
     if (!isEmptyVeqType(subveq.getVeq()))
       return failure();
-    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(subveq,
-                                                     subveq.getType());
+    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(subveq, subveq.getType());
     return success();
   }
 };
@@ -1232,10 +1235,10 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
   LogicalResult matchAndRewrite(OP rotate,
                                 PatternRewriter &rewriter) const override {
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
-    if (rotate.getTarget(0).getType() != wireTy ||
+    if (rotate.getTarget().getType() != wireTy ||
         !rotate.getControls().empty() || rotate.getNegatedQubitControls())
       return failure();
-    auto input = rotate.getTarget(0).template getDefiningOp<OP>();
+    auto input = rotate.getTarget().template getDefiningOp<OP>();
     if (!input || !input.getControls().empty() ||
         input.getNegatedQubitControls())
       return failure();
@@ -1246,8 +1249,8 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
     // Replace those ops with
     //   %new    = quake.rotate (%angle1 + %angle2), %wire
     auto loc = rotate.getLoc();
-    auto angle1 = input.getParameter(0);
-    auto angle2 = rotate.getParameter(0);
+    auto angle1 = input.getParameter();
+    auto angle2 = rotate.getParameter();
     if (angle1.getType() != angle2.getType())
       return failure();
     auto adjAttr = rotate.getIsAdjAttr();
@@ -1262,7 +1265,7 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
     }();
     rewriter.replaceOpWithNewOp<OP>(rotate, rotate.getResultTypes(), adjAttr,
                                     ValueRange{newAngle}, ValueRange{},
-                                    ValueRange{input.getTarget(0)},
+                                    ValueRange{input.getTarget()},
                                     rotate.getNegatedQubitControlsAttr());
     return success();
   }

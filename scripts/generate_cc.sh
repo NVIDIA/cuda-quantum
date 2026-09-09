@@ -98,17 +98,19 @@ if $gen_cpp_coverage; then
 
     # Run tests (C++ Unittests)
     python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
-    ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-cudaq -E ctest-targettests
+    ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-cudaq -E ctest-targettests -E ctest-runtime
     ctest_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param cudaq_site_config=${repo_root}/build/cudaq/test/lit.site.cfg.py ${repo_root}/build/cudaq/test
     lit_status=$?
+    /usr/local/llvm/bin/llvm-lit -v --param cudaq_site_config=${repo_root}/build/runtime/test/lit.site.cfg.py ${repo_root}/build/runtime/test
+    runtime_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param cudaq_site_config=${repo_root}/build/targettests/lit.site.cfg.py ${repo_root}/build/targettests
     targ_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param cudaq_site_config=${repo_root}/build/python/tests/mlir/lit.site.cfg.py ${repo_root}/build/python/tests/mlir
     pymlir_status=$?
-    if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
+    if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $runtime_status -ne 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
         echo "::error C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
-    target tests status $targ_status, Python MLIR status $pymlir_status)."
+    runtime tests status $runtime_status, target tests status $targ_status, Python MLIR status $pymlir_status)."
         exit 1
     fi
 

@@ -92,6 +92,7 @@ private:
   void reset() noexcept;
 
   custatevecHandle_t m_handle = nullptr;
+  cudaStream_t m_stream = nullptr;
   cublasHandle_t m_blasHandle = nullptr;
   void *m_states = nullptr;
   /// Device-side scratch copy of the batched states used to evaluate
