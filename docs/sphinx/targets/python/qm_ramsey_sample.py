@@ -3,13 +3,11 @@ import numpy as np
 
 # The default executor is mock, use executor name to run on another backend (real or simulator).
 # Configure the address of the QOperator server in the `url` argument, and set the `api_key`.
-cudaq.set_target(
-    "quantum_machines",
-    url="http://host.docker.internal:8000",
-    #url="http://172.16.32.154:8000",
-    #api_key="1234567890",
-    qubit_mapping_mode="backend",
-    executor="sim")
+cudaq.set_target("quantum_machines",
+                 url="http://host.docker.internal:8000",
+                 api_key="1234567890",
+                 qubit_mapping_mode="backend",
+                 executor="sim")
 
 
 # `wait` is implemented by the backend rather than the compiler.
