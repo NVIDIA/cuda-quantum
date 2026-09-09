@@ -48,7 +48,7 @@ def _parameter_docs(param_name: str, docs: Optional[str]) -> str:
     # Also, Python caches already used patterns, so compiling on
     # the fly seems fine.
     def keyword_pattern(word):
-        return r"(?:^\s*" + word + r":\s*\r?\n)"
+        return r"(?:^\s*(?:" + word + r"):\s*\r?\n)"
 
     def param_pattern(param_name):
         return r"(?:^\s*" + param_name + r"\s*(\(.*\))?:)\s*(.*)$"
