@@ -825,10 +825,35 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  python_wheels:
-    name: Create Python wheels
+  # Build the devel wheel first so that all jobs in the `python_wheels` matrix can reuse it
+  python_devel_wheel:
+    name: Create shared Python development wheel (${{ matrix.platform }})
     needs: [metadata, config]
     if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      python_version: "3.11"
+      cuda_version: "13.0"
+      devdeps_image:
+        ${{
+        fromJson(needs.config.outputs.json).image_hash[format('{0}-cu13.0-python',
+        matrix.platform)] }}
+      build_runtime_wheel: false
+      build_devel_wheel: true
+      run_validation: false # validation runs in the Validation workflow
+
+  python_wheels:
+    name: Create Python wheels
+    needs: [metadata, config, python_devel_wheel]
+    if: ${{ !cancelled() && ! inputs.devcontainer_only && needs.metadata.result == 'success' && needs.config.result == 'success' }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -846,6 +871,12 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
       run_validation: false # validation runs in the Validation workflow
+      # cudaq-devel-<platform> is deterministic (build-wheel-in-docker: "the
+      # devel wheel is CUDA- and Python-agnostic"), so this is constructed
+      # directly rather than read from needs.python_devel_wheel.outputs --
+      # that output is ambiguous across a matrixed job's instances.
+      devel_artifact_name: cudaq-devel-${{ matrix.platform }}
+      build_logical_wheel: ${{ matrix.cuda_version == '13.0' }}
 
   binaries:
     name: Create CUDA Quantum installer
