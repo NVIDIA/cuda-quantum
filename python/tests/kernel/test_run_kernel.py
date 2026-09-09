@@ -1600,6 +1600,54 @@ def test_return_from_outside_the_for_loop():
     assert results[0] == 0
 
 
+def test_return_only_inside_for_loop_over_dynamic_range_is_rejected():
+    # A `for` loop whose trip count is a runtime value may execute zero
+    # times, so a return statement that only exists inside its body does not
+    # guarantee the function returns. Compiling this must raise the same
+    # error as any other missing-return kernel, not silently accept it and
+    # read the return slot uninitialized when the loop is skipped.
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(n: int) -> int:
+            for i in range(n):
+                return 5
+
+        kernel.compile()
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_only_inside_while_loop_over_dynamic_condition_is_rejected():
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(n: int) -> int:
+            i = 0
+            while i < n:
+                return 5
+                i = i + 1
+
+        kernel.compile()
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_inside_for_loop_over_statically_nonzero_range_is_allowed():
+    # A literal, statically non-empty `range(...)` is provably entered at
+    # least once, so a return inside its body does guarantee the function
+    # returns -- this must keep compiling as before.
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            return 3
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 3
+
+
 def test_return_with_true_condition_with_variable_defined_outside_the_loop():
 
     @cudaq.kernel
