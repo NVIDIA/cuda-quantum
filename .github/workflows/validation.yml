@@ -550,6 +550,7 @@ jobs:
             base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}
             release_version=${{ needs.metadata.outputs.cudaq_version }}
             python_version=${{ matrix.python_version }}
+            build_devel=${{ (matrix.python_version == '3.11' && steps.release_info.outputs.platform_arch == 'x86_64' && steps.release_info.outputs.cuda_major_version == '13' && '1') || '' }}
           outputs: ${{ steps.release_info.outputs.docker_output }}
 
       - name: Upload wheels
@@ -560,15 +561,53 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      # Single devel wheel (amd64/cu13/py3.11), reused across python versions
+      # to build cudaq-logical below -- same pattern as ci.yml's shared
+      # python_devel_wheel job. Uploaded separately so it never mixes with a
+      # runtime wheel of a different python version in the same dist/ dir.
+      - name: Upload cudaq-devel wheel
+        if: >-
+          matrix.python_version == '3.11' &&
+          steps.release_info.outputs.platform_arch == 'x86_64' &&
+          steps.release_info.outputs.cuda_major_version == '13'
+        uses: actions/upload-artifact@v7
+        with:
+          name: x86_64-cu13-devel-wheel
+          path: /tmp/wheels/cudaq_devel*.whl
+          retention-days: 1
+          if-no-files-found: error
+
+  cudaq_logical_wheels:
+    name: Build cudaq.logical (py${{ matrix.python_version }})
+    needs: [metadata, cudaq_wheels]
+    if: >-
+      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files,
+      'python_amd64_cu13_publishing') }}
+    strategy:
+      matrix:
+        python_version: ['3.11', '3.12', '3.13', '3.14']
+      fail-fast: false
+    uses: ./.github/workflows/cudaq_logical_build.yml
+    with:
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
+      runtime_artifact_name: x86_64-cu13-py${{ matrix.python_version }}-wheels
+      devel_artifact_name: x86_64-cu13-devel-wheel
+
   cudaq_metapackages:
     name: CUDA-Q metapackages
-    needs: [metadata, cudaq_wheels]
+    needs: [metadata, cudaq_wheels, cudaq_logical_wheels]
+    if: >-
+      ${{ !cancelled() && needs.metadata.result == 'success' &&
+      needs.cudaq_wheels.result == 'success' &&
+      needs.cudaq_logical_wheels.result != 'failure' }}
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
       python_versions: "['3.11', '3.12', '3.13', '3.14']"
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: '*-wheels'
+      logical_wheel_artifacts: 'cudaq_logical-*'
+      cudaq_logical_version: ${{ needs.cudaq_logical_wheels.outputs.logical_version }}
       github_commit: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
 
   macos_artifacts:
