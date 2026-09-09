@@ -2993,9 +2993,9 @@ class PyASTBridge(ast.NodeVisitor):
         processDecorator = self.__processDecorator
 
         def lookupExternKernel(name, path=None):
-            """Return the extern kernel declared for a name, or None.
+            """Return the `extern` kernel declared for a name, or None.
 
-            An extern kernel is resolved in the frame that defines it.
+            An `extern` kernel is resolved in the frame that defines it.
             """
             from .kernel_decorator import isa_extern_kernel_decorator
 
