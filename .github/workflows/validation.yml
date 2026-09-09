@@ -940,7 +940,7 @@ jobs:
 
   wheel_validation_piponly:
     name: Wheel validation, pip only
-    needs: [metadata, cudaq_wheels, cudaq_metapackages]
+    needs: [metadata, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages]
     permissions:
       contents: read
 
@@ -965,10 +965,17 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
 
-      - name: Load wheels
+      - name: Load CUDA-Q wheels
         uses: actions/download-artifact@v8
         with:
           pattern: '*-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load CUDA-Q Logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_logical-*'
           path: /tmp/wheels
           merge-multiple: true
 
@@ -1072,7 +1079,7 @@ jobs:
 
   metapackage_validation_conda:
     name: Python metapackage validation, conda environment
-    needs: [metadata, cudaq_wheels, cudaq_metapackages]
+    needs: [metadata, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
       contents: read
@@ -1102,10 +1109,17 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
 
-      - name: Load wheels
+      - name: Load CUDA-Q wheels
         uses: actions/download-artifact@v8
         with:
           pattern: '*-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load CUDA-Q Logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_logical-*'
           path: /tmp/wheels
           merge-multiple: true
 
