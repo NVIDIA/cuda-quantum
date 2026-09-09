@@ -32,6 +32,10 @@ qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
 
+# The name of the cudaq module, as written in a kernel's annotations. A kernel
+# may reach it by an alias (`import cudaq as cq`), so this is only the default.
+cudaqModuleName = 'cudaq'
+
 ahkPrefix = '__analog_hamiltonian_kernel__'
 
 
@@ -495,7 +499,7 @@ def mlirTypeFromAnnotation(annotation,
     type annotation.  Throws an exception if the programmer did not annotate
     function argument types.
     """
-    _cudaq_names = cudaqAliases if cudaqAliases else {'cudaq'}
+    _cudaq_names = cudaqAliases if cudaqAliases else {cudaqModuleName}
 
     localEmitFatalError = emitFatalError
     if raiseError:

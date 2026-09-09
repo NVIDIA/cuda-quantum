@@ -44,3 +44,31 @@ func.func @calls_defined_kernel(%arg0: f64) attributes {"cudaq-entrypoint"} {
 // CHECK-LABEL:   func.func @calls_defined_kernel(
 // CHECK:           %[[VAL_3:.*]] = quake.null_wire
 // CHECK:           quake.sink
+
+// The pass walks quake.call_by_ref separately from quake.apply, so the same
+// two cases hold for it.
+
+func.func @external_callee_by_ref(%arg0: f64) attributes {"cudaq-entrypoint"} {
+  %0 = quake.null_wire
+  func.call @some_classical(%arg0) : (f64) -> ()
+  %1 = quake.call_by_ref @__qm__wait_function(%0, %arg0) : (!quake.wire, f64) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @external_callee_by_ref(
+// CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.call_by_ref @__qm__wait_function(%[[VAL_1]], %{{.*}}) : (!quake.wire, f64) -> !quake.wire
+// CHECK:           quake.return_wire %[[VAL_2]] : !quake.wire
+
+func.func @calls_defined_kernel_by_ref(%arg0: f64) attributes {"cudaq-entrypoint"} {
+  %0 = quake.null_wire
+  func.call @some_classical(%arg0) : (f64) -> ()
+  %1 = quake.call_by_ref @defined_callee(%0, %arg0) : (!quake.wire, f64) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @calls_defined_kernel_by_ref(
+// CHECK:           %[[VAL_3:.*]] = quake.null_wire
+// CHECK:           quake.sink

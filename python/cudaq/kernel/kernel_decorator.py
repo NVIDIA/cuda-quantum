@@ -25,11 +25,11 @@ from .analysis import FunctionDefVisitor
 from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
                                KernelSignature)
 from .ast_bridge import compile_to_mlir
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, ExtensionEntry,
-                    get_function_source_or_raise, get_module_name,
-                    globalRegisteredTypes, isQuantumType, mlirTypeFromPyType,
-                    mlirTypeToPyType, nvqppPrefix, getMLIRContext,
-                    recover_func_op, recover_value_of)
+from .utils import (cudaqModuleName, emitFatalError, emitErrorIfInvalidPauli,
+                    ExtensionEntry, get_function_source_or_raise,
+                    get_module_name, globalRegisteredTypes, isQuantumType,
+                    mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix,
+                    getMLIRContext, recover_func_op, recover_value_of)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -203,12 +203,8 @@ class PyKernelDecorator(object):
             # bridge can recognize them alongside the canonical 'cudaq' name.
             # Check both local and global scope since the alias may be at
             # module level while the kernel is defined inside a function.
-            self.cudaqAliases = {'cudaq'}
-            for scope in (parentVars, self.parentFrame.f_globals):
-                for vname, var in scope.items():
-                    if (isinstance(var, types.ModuleType) and
-                            getattr(var, '__name__', None) == 'cudaq'):
-                        self.cudaqAliases.add(vname)
+            self.cudaqAliases = _collect_cudaq_aliases(
+                parentVars, self.parentFrame.f_globals)
 
             self.astModule = _parse_ast(self.funcSrc, self.verbose)
             self.signature = KernelSignature.parse_from_ast(
@@ -751,8 +747,11 @@ class ExternKernelDecorator(object):
 
         (src, self.location) = _get_source(function)
         self.astModule = _parse_ast(src)
-        self.signature = KernelSignature.parse_from_ast(self.astModule,
-                                                        self.name)
+        self.cudaqAliases = _collect_cudaq_aliases(
+            self.defFrame.f_locals if self.defFrame else None,
+            self.defFrame.f_globals if self.defFrame else None)
+        self.signature = KernelSignature.parse_from_ast(
+            self.astModule, self.name, cudaqAliases=self.cudaqAliases)
 
         self.entry = ExtensionEntry(self.name,
                                     ExtensionEntry.EXTERN_KERNEL,
@@ -822,6 +821,22 @@ def _get_source(function):
     if function is None:
         return None, None
     return get_function_source_or_raise(function)
+
+
+def _collect_cudaq_aliases(*scopes):
+    """
+    The names bound to the `cudaq` module in the given scopes, so an
+    annotation written against an alias (`import cudaq as cq`) resolves.
+    """
+    aliases = {cudaqModuleName}
+    for scope in scopes:
+        if not scope:
+            continue
+        for name, var in scope.items():
+            if (isinstance(var, types.ModuleType) and
+                    getattr(var, '__name__', None) == cudaqModuleName):
+                aliases.add(name)
+    return aliases
 
 
 def _recover_defining_frame():

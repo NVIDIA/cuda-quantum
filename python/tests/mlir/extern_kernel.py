@@ -114,6 +114,28 @@ def test_extern_kernel_taking_a_qvector():
 # CHECK:         func.func private @wait_vec(!quake.veq<?>, f64)
 
 
+def test_extern_kernel_module_alias():
+    """An annotation written against a `cudaq` alias resolves."""
+    import cudaq as cq
+
+    @cq.extern_kernel
+    def aliased_wait(q: cq.qubit, duration: float) -> None:
+        ...
+
+    @cq.kernel
+    def aliased(d: float):
+        q = cq.qubit()
+        aliased_wait(q, d)
+        mz(q)
+
+    print(aliased)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__aliased
+# CHECK:           call @aliased_wait(%{{.*}}, %{{.*}}) : (!quake.ref, f64) -> ()
+# CHECK:         func.func private @aliased_wait(!quake.ref, f64)
+
+
 def test_extern_kernel_declaration_errors():
     with pytest.raises(RuntimeError) as e:
 
