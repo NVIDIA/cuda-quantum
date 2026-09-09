@@ -345,12 +345,24 @@ def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
     of value semantics to reduce the switching cost of having both value and
     reference semantics present at the same time in the IR.
 
-    A cable has a static arity, so only a call whose qubits are a statically
-    sized set can be put in wire form (individual qubits, a `veq` of known
-    size, or a slice of one). A call this pass cannot convert, such as one
-    passing a `veq` sized at runtime, is left in reference form. That is also
-    the shape of a call to a kernel compiled separately, which is resolved at
-    link time, so it is not treated as an error here.
+    A cable's arity is static, so the rewrite applies only when the extent of
+    each quantum argument is known at the call site: a `ref`, a `veq` of
+    constant size, or a slice of one. This is a constraint on the actual
+    argument, not on the callee's signature. The formal parameter may be an
+    unsized `veq<?>`, which a `cable` is a legal argument for.
+
+    ```mlir
+      func.func private @foo(!quake.veq<?>)
+      ...
+      %c = quake.bundle_cable %w0, %w1 : (!quake.wire, !quake.wire) ->
+                                          !quake.cable<2>
+      %d = quake.apply @foo (%c) : (!quake.cable<2>) -> !quake.cable<2>
+    ```
+
+    A call whose actual cannot be sized here, such as one passing a `veq`
+    allocated at runtime, is left in reference form. That is also the shape of
+    a call to a kernel compiled separately, which is resolved at link time, so
+    it is not treated as an error here.
   }];
 }
 
