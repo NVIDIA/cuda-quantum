@@ -61,7 +61,8 @@ constexpr std::uint32_t RAM_NUM = 16;
 constexpr std::uint32_t RAM_DEPTH = 512;
 
 constexpr std::uint32_t PLAYER_ENABLE_SINGLEPASS = 0x0000'000D;
-constexpr std::uint32_t PLAYER_ENABLE_LOOP = 0x0000'0003;
+// ram_ena | ptp_bram_ena: continuously replay the programmed BRAM payload.
+constexpr std::uint32_t PLAYER_ENABLE_LOOP = 0x0000'0009;
 constexpr std::uint32_t PLAYER_DISABLE = 0x0000'0000;
 
 constexpr std::uint32_t SIF_TX_THRESHOLD_ADDR = 0x0120'0000;

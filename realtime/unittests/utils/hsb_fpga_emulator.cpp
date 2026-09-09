@@ -84,7 +84,8 @@ static constexpr uint32_t PLAYER_ENABLE = PLAYER_BASE + 0x04;
 static constexpr uint32_t PLAYER_TIMER = PLAYER_BASE + 0x08;
 static constexpr uint32_t PLAYER_WIN_SIZE = PLAYER_BASE + 0x0C;
 static constexpr uint32_t PLAYER_WIN_NUM = PLAYER_BASE + 0x10;
-static constexpr uint32_t PLAYER_ENABLE_LOOP = 0x00000003;
+// ram_ena | ptp_bram_ena: continuously replay the programmed BRAM payload.
+static constexpr uint32_t PLAYER_ENABLE_LOOP = 0x00000009;
 // LOOP_STATS register map — must match hsb_fpga_syndrome_playback.cpp in the
 // cudaqx repository.
 static constexpr uint32_t LOOP_STATS_BASE = 0xE0000000;
@@ -1154,6 +1155,12 @@ int main(int argc, char *argv[]) {
           std::cerr << "ERROR: RDMA WRITE failed for window " << window
                     << std::endl;
           send_errors++;
+          if (loop_mode) {
+            // A bounded loop regression must fail promptly rather than retry
+            // the same failed transport operation until the client stops it.
+            playback_complete = true;
+            break;
+          }
           continue;
         }
 
@@ -1182,8 +1189,15 @@ int main(int argc, char *argv[]) {
             break;
           }
         }
-        if (!send_ok)
+        if (!send_ok) {
+          if (loop_mode) {
+            // See the RDMA post failure above: the loop acceptance criteria
+            // require a complete, error-free transport sequence.
+            playback_complete = true;
+            break;
+          }
           continue;
+        }
 
         // Wait for correction response (natural pacing)
         bool corr_ok = false;
@@ -1209,19 +1223,28 @@ int main(int argc, char *argv[]) {
               uint32_t rx_slot = wc.wr_id % NUM_BUFFERS;
               uint8_t *resp_data = static_cast<uint8_t *>(rx_buffer.data()) +
                                    (rx_slot * args.page_size);
-              if (wc.byte_len < sizeof(cudaq::realtime::RPCResponse)) {
+              if (wc.byte_len < sizeof(cudaq::realtime::RPCHeader)) {
                 std::cerr << "ERROR: Short RPC response for window " << window
                           << std::endl;
                 response_failures++;
               } else {
-                cudaq::realtime::RPCResponse response{};
-                std::memcpy(&response, resp_data, sizeof(response));
-                if (response.magic != cudaq::realtime::RPC_MAGIC_RESPONSE ||
-                    response.status != 0) {
+                cudaq::realtime::RPCHeader header{};
+                std::memcpy(&header, resp_data, sizeof(header));
+                if (header.magic == cudaq::realtime::RPC_MAGIC_RESPONSE) {
+                  cudaq::realtime::RPCResponse response{};
+                  std::memcpy(&response, resp_data, sizeof(response));
+                  if (response.status != 0) {
+                    std::cerr << "ERROR: Failed RPC response for window "
+                              << window << " (status=" << response.status
+                              << ")" << std::endl;
+                    response_failures++;
+                  }
+                } else if (header.magic !=
+                           cudaq::realtime::RPC_MAGIC_REQUEST) {
                   std::cerr
                       << "ERROR: Failed RPC response for window " << window
-                      << " (magic=0x" << std::hex << response.magic << std::dec
-                      << ", status=" << response.status << ")" << std::endl;
+                      << " (magic=0x" << std::hex << header.magic << std::dec
+                      << ")" << std::endl;
                   response_failures++;
                 }
               }
