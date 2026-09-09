@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include <nanobind/nanobind.h>
 
 namespace cudaq {

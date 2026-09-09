@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/CompileTarget.h"
+#include "common/CompileTarget.h"
 #include "cudaq/Support/Hash.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <cctype>
