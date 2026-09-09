@@ -48,3 +48,38 @@ func.func @f(%arg : i1) {
 // CHECK:           quake.sink %[[VAL_0]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+// A terminator's double-use of a wire is always a legitimate sigma node --
+// even when that same wire also has a separate, genuinely-repairable use
+// elsewhere. The terminator's own two uses must be left untouched (not
+// treated as an "unrepairable same-op double-use"); only the unrelated use
+// needs a wrap/unwrap.
+func.func @sigma_terminator_plus_unrelated_use(%arg : i1) -> !quake.wire {
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  cf.cond_br %arg, ^bb0(%1 : !quake.wire), ^bb1(%1 : !quake.wire)
+ ^bb0(%2: !quake.wire):
+  %3 = quake.z %1 : (!quake.wire) -> !quake.wire
+  quake.sink %3 : !quake.wire
+  cf.br ^bb2(%2 : !quake.wire)
+ ^bb1(%4: !quake.wire):
+  cf.br ^bb2(%4 : !quake.wire)
+ ^bb2(%5: !quake.wire):
+  return %5 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @sigma_terminator_plus_unrelated_use(
+// CHECK-SAME:      %[[ARG0:.*]]: i1) -> !quake.wire {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[H_0]] : (!quake.wire) -> !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           cf.cond_br %[[ARG0]], ^bb1(%[[UNWRAP_0]] : !quake.wire), ^bb2(%[[UNWRAP_0]] : !quake.wire)
+// CHECK:         ^bb1(%[[VAL_0:.*]]: !quake.wire):
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[Z_0:.*]] = quake.z %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[Z_0]] : !quake.wire
+// CHECK:           cf.br ^bb2(%[[VAL_0]] : !quake.wire)
+// CHECK:         ^bb2(%[[VAL_1:.*]]: !quake.wire):
+// CHECK:           return %[[VAL_1]] : !quake.wire
+// CHECK:         }
