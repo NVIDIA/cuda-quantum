@@ -7,6 +7,7 @@
 # ============================================================================ #
 """Exercise the `cudaq.logical` installation as the release image's CUDA-Q user."""
 
+from importlib.metadata import distribution
 import os
 from pathlib import Path
 import subprocess
@@ -14,7 +15,10 @@ import subprocess
 import cudaq.logical as ql
 
 prefix = Path(os.environ["CUDA_QUANTUM_PATH"]).resolve()
+metadata = distribution("cudaq-logical")
 assert Path(ql.__file__).resolve().is_relative_to(prefix / "cudaq/logical")
+assert Path(metadata.locate_file("")).resolve() == prefix
+assert ql.__version__ == metadata.version
 
 # Simple program to exercise the `cudaq.logical` installation.
 # TODO: Use `examples` directory once location is finalized.
@@ -37,4 +41,4 @@ subprocess.run(["qlx-opt"], input="module {}\n", text=True, check=True)
 subprocess.run(["qlx-translate", "--help"],
                check=True,
                stdout=subprocess.DEVNULL)
-print("CUDA-Q Logical: image validation passed")
+print(f"CUDA-Q Logical {ql.__version__}: image validation passed")
