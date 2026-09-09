@@ -30,6 +30,9 @@ on:
       wheel_name:
         description: "Artifact name of the built cudaq-logical wheel."
         value: ${{ jobs.build.outputs.wheel_name }}
+      logical_version:
+        description: "Version of the built cudaq-logical wheel."
+        value: ${{ jobs.build.outputs.logical_version }}
 
 jobs:
   resolve:
@@ -105,6 +108,7 @@ jobs:
       actions: read
     outputs:
       wheel_name: ${{ steps.repair.outputs.wheel_name }}
+      logical_version: ${{ steps.repair.outputs.logical_version }}
 
     # Build in a vanilla manylinux_2_28 container (AlmaLinux 8, glibc 2.28).
     container:
@@ -220,12 +224,20 @@ jobs:
         id: build
         working-directory: preview/logical
         run: |
+          # Resolve the version while the checkout is still clean. Stamping
+          # the runtime dependencies below intentionally modifies pyproject,
+          # which must not add setuptools-scm's dirty-tree date suffix.
+          logical_version="$(
+            python -m setuptools_scm -c python/pyproject.toml
+          )"
+
           python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
-            --distribution cudaq \
+            --distribution cuda-quantum-cu12 \
+            --distribution cuda-quantum-cu13 \
             --version "$CUDAQ_VERSION"
 
           mkdir -p .wheel-raw
-          SETUPTOOLS_SCM_PRETEND_VERSION="$CUDAQ_VERSION" \
+          SETUPTOOLS_SCM_PRETEND_VERSION="$logical_version" \
             SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
             uv build --wheel --no-build-isolation \
               --out-dir .wheel-raw python
@@ -265,10 +277,15 @@ jobs:
 
           echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
           echo "wheel_name=$(basename "$wheel")" >> "$GITHUB_OUTPUT"
+          wheel_basename="$(basename "$wheel")"
+          logical_version="${wheel_basename#cudaq_logical-}"
+          logical_version="${logical_version%%-cp*}"
+          echo "logical_version=$logical_version" >> "$GITHUB_OUTPUT"
 
       - name: Upload cudaq-logical wheel
         uses: actions/upload-artifact@v7
         with:
+          name: ${{ steps.repair.outputs.wheel_name }}
           path: ${{ steps.repair.outputs.wheel_path }}
           archive: false
           if-no-files-found: error
@@ -294,6 +311,7 @@ jobs:
       'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     env:
       CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+      CUDAQ_LOGICAL_VERSION: ${{ needs.build.outputs.logical_version }}
       RUNTIME_ARTIFACT_NAME: ${{ inputs.runtime_artifact_name }}
       METAPACKAGE_ARTIFACT_NAME: ${{ inputs.metapackage_artifact_name }}
     permissions:
@@ -336,7 +354,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$METAPACKAGE_ARTIFACT_NAME" ]; then
-            uv pip install -f dist "cudaq-logical==$CUDAQ_VERSION"
+            uv pip install -f dist "cudaq==$CUDAQ_VERSION"
           else
             # No metapackage sdist: install the local runtime wheel and
             # cudaq-logical without resolving the `cudaq` PyPI dependency.
@@ -346,7 +364,8 @@ jobs:
               exit 1
             fi
             uv pip install "$RUNTIME_WHEEL"
-            uv pip install -f dist --no-deps "cudaq-logical==$CUDAQ_VERSION"
+            uv pip install -f dist --no-deps \
+              "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
             uv pip install "stim>=1.16,<2"
           fi
 

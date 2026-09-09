@@ -21,6 +21,9 @@ on:
       wheel_name:
         description: "Artifact name of the built cudaq-logical wheel."
         value: ${{ jobs.build.outputs.wheel_name }}
+      logical_version:
+        description: "Version of the built cudaq-logical wheel."
+        value: ${{ jobs.build.outputs.logical_version }}
       runtime_artifact_name:
         description: "Artifact name of the CUDA-Q runtime wheel."
         value: ${{ jobs.retrieve_cudaq.outputs.runtime_artifact_name }}

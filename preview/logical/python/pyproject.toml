@@ -10,7 +10,7 @@ requires = [
   "nanobind>=2.4,<3",
   "scikit-build-core==0.12.2",
   "setuptools-scm>=8,<9",
-  "cudaq-devel"
+  "cudaq-devel",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -21,11 +21,10 @@ description = "Fault-tolerant logical resource estimation for CUDA-Q (cudaq.logi
 requires-python = ">=3.11"
 license = "Apache-2.0"
 dependencies = [
-  # The standard CUDA-Q metapackage is the runtime contract. The much larger
-  # CUDA-Q development SDK wheel is installed only in the isolated CI build
-  # environment and must never appear in this list. Release CI replaces this
-  # one bare template entry with cudaq==CUDAQ_VERSION before building.
-  "cudaq",
+  # The base package is runtime-agnostic: the CUDA-Q runtime arrives through
+  # the cu12/cu13 extras below, and the much larger CUDA-Q development SDK
+  # wheel is installed only in the isolated CI build environment. Neither may
+  # ever appear in this list.
   "stim>=1.16,<2",
 ]
 classifiers = ["Private :: Do Not Upload"]
@@ -35,7 +34,12 @@ qlx-opt = "cudaq.logical._cli:qlx_opt"
 qlx-translate = "cudaq.logical._cli:qlx_translate"
 
 [project.optional-dependencies]
-mlir = []   # MLIR Python bindings are supplied by the matching CUDA-Q SDK.
+# The CUDA-Q runtime is an opt-in extra so that the base wheel stays
+# runtime-agnostic. Release CI stamps both bare entries with ==CUDAQ_VERSION
+# before building (scripts/stamp_cudaq_runtime_dependency.py).
+cu12 = ["cuda-quantum-cu12"]
+cu13 = ["cuda-quantum-cu13"]
+mlir = []                    # MLIR Python bindings are supplied by the matching CUDA-Q SDK.
 dev = ["pytest>=7.0"]
 [tool.scikit-build]
 minimum-version = "build-system.requires"
@@ -63,8 +67,19 @@ CMAKE_DISABLE_FIND_PACKAGE_CUDAToolkit = "ON"
 provider = "scikit_build_core.metadata.setuptools_scm"
 
 [tool.setuptools_scm]
-root = ".."
-fallback_version = "0.3.0.dev0"
+# CUDA-Q Logical versions independently of CUDA-Q.
+root = "../../.."
+tag_regex = '^cudaq-logical/v(?P<version>\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
+git_describe_command = [
+  "git",
+  "describe",
+  "--dirty",
+  "--tags",
+  "--long",
+  "--match",
+  "cudaq-logical/v*",
+]
+fallback_version = "0.0.0"
 
 [tool.mypy]
 python_version = "3.10"
@@ -89,6 +104,4 @@ addopts = "--import-mode=importlib"
 # (rootdir/..) must be importable regardless of the invocation directory. It
 # holds no top-level cudaq package, so this cannot shadow the built one.
 pythonpath = [".."]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]

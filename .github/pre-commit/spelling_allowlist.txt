@@ -319,6 +319,7 @@ compat
 composability
 composable
 config
+conftest
 constructible
 controlled
 coprocessing
@@ -342,6 +343,7 @@ cuTensor
 cudaq
 cudaqPulseRunCanonicalize
 cudm
+cwd
 dataclass
 dataflow
 datagram
@@ -418,6 +420,7 @@ filesystems
 finalizer
 finalizers
 fn
+formatter
 fourier
 frac
 frontend
@@ -553,6 +556,7 @@ precompute
 precomputed
 prepend
 prepended
+prepends
 preprocessing
 preprocessor
 probability
@@ -646,6 +650,7 @@ sublattices
 submodule
 submodules
 subprocess
+subprocesses
 subscriptable
 subscripted
 subtype
@@ -659,6 +664,7 @@ sx
 symlink
 symlinks
 symplectic
+sys
 tablegen
 templated
 testability

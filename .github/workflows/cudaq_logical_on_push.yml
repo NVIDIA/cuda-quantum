@@ -39,6 +39,8 @@ jobs:
         }}
       cudaq_version:
         ${{ needs.build_and_test_amd64_py311.outputs.cudaq_version }}
+      cudaq_logical_version:
+        ${{ needs.build_and_test_amd64_py311.outputs.logical_version }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
@@ -57,6 +59,8 @@ jobs:
         }}
       cudaq_version:
         ${{ needs.build_and_test_amd64_py311.outputs.cudaq_version }}
+      cudaq_logical_version:
+        ${{ needs.build_and_test_amd64_py311.outputs.logical_version }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}

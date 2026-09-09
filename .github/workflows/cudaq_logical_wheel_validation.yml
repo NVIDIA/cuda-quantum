@@ -19,6 +19,9 @@ on:
       cudaq_version:
         type: string
         description: Version of the pre-built wheels.
+      cudaq_logical_version:
+        type: string
+        description: Version of the pre-built cudaq-logical wheel.
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -71,6 +74,7 @@ jobs:
       actions: read
     env:
       CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+      CUDAQ_LOGICAL_VERSION: ${{ inputs.cudaq_logical_version }}
       CUDAQ_LOGICAL_WHEEL: ${{ inputs.cudaq_logical_wheel }}
       CUDAQ_WHEEL: ${{ inputs.cudaq_wheel }}
       CUDAQ_METAPACKAGE: ${{ inputs.cudaq_metapackage }}
@@ -125,6 +129,7 @@ jobs:
             --build-arg base_image=$BASE_IMAGE \
             --build-arg python_version=$PYTHON_VERSION \
             --build-arg cudaq_version=$CUDAQ_VERSION \
+            --build-arg cudaq_logical_version=$CUDAQ_LOGICAL_VERSION \
             --build-arg preinstalled_modules="pytest" \
             --build-arg pip_install_flags=$PIP_INSTALL_FLAGS \
 
