@@ -1301,7 +1301,11 @@ jobs:
               dir=$(basename $fulldir)
               mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
             done
-            mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/ || exit 1
+            if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then
+              echo "::error::No cudaq-logical wheel found for platform ${p} in logical-wheels/."
+              exit 1
+            fi
+            mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
             zip -r wheelhouse-${p}.zip wheelhouse-${p}
           done
           zip -r metapackages.zip metapackages
