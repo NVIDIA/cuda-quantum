@@ -2278,7 +2278,7 @@ class PyASTBridge(ast.NodeVisitor):
             # Handle assignment `var = expr`
             if isinstance(target, ast.Name):
 
-                # Every variable is itself a preallocated header. For immutable
+                # Every variable is itself a pre-allocated header. For immutable
                 # types, the header is erased. The mutable types, the header may
                 # be two or one words long, depending on whether the extent of
                 # the data buffer is dynamic or not, respectively.
@@ -2297,7 +2297,7 @@ class PyASTBridge(ast.NodeVisitor):
                 storeAsVal = storedAsValue(value)
 
                 def toHandleIfBareStruct(value):
-                    # Non-tuple dataclasses need their field data in a
+                    # Non-tuple `dataclasses` need their field data in a
                     # separately allocated buffer, exactly like a list. `value`
                     # here may be a bare struct (from construction, a function
                     # call, etc.) in which case allocate a fresh buffer and
@@ -2497,7 +2497,7 @@ class PyASTBridge(ast.NodeVisitor):
         # A dataclass local's own slot holds a pointer-to-handle (double
         # indirection: variable slot -> handle -> separately allocated
         # buffer). When `pushPointerValue` requested the raw, unloaded
-        # slot value above, dereference once to reach the handle - a
+        # slot value above, `dereference` once to reach the handle - a
         # single-indirection pointer to the struct - before the existing
         # single-indirection logic below applies.
         if cc.PointerType.isinstance(value.type):
@@ -5747,7 +5747,7 @@ class PyASTBridge(ast.NodeVisitor):
                                      length=dynSize).result
 
         # A returned list is unconditionally promoted to storage that
-        # survives this frame's teardown, regardless of whether its data
+        # survives this frame's `teardown`, regardless of whether its data
         # traces back to a function argument, a locally allocated list, or
         # an alias of either: an argument-derived list is an ordinary local
         # like any other (its data pointer just happens to point at a
@@ -6128,7 +6128,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(value)
                 return
 
-            # Fully dereference, one level at a time: a scalar/tuple/list
+            # Fully `dereference`, one level at a time: a scalar/tuple/list
             # local's own slot only ever needs one load to reach its
             # fully-realized value, but a dataclass local's slot holds a
             # pointer to a handle (itself a pointer to a separately
