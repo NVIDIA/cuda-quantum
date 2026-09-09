@@ -573,7 +573,10 @@ def __dir__():
 
 def parse_args(args: Sequence[str] | None = None):
     """
-    Parse command line arguments and initialize the CUDA-Q environment.
+    Parse CUDA-Q command-line arguments and initialize the CUDA-Q environment.
+
+    This function must be called explicitly. Importing ``cudaq`` does not
+    inspect or parse command-line arguments.
     """
     import argparse
 
