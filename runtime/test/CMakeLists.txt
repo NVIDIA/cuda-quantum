@@ -27,6 +27,14 @@ function(add_cudaq_hybrid_test TEST_NAME)
       cudaq-platform-default
       cudaqMLIR)
 
+  # On GCC, the default is --as-needed for linking, so the nvqir
+  # simulation plugin (whose symbols are only referenced by JIT-generated
+  # code, never directly by this executable's own compiled sources) may
+  # get dropped. This works as-is on Clang; force it here for GCC.
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(${TEST_NAME} PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+  endif()
+
   set_property(TARGET ${TEST_NAME} PROPERTY FOLDER test)
 endfunction()
 
