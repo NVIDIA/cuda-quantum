@@ -209,6 +209,37 @@ jobs:
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-cpu-roce-transport.a"
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-device-call-runtime.so"
 
+  logical_release_image_validation:
+    name: CUDA-Q Logical image validation (${{ matrix.arch }})
+    needs: metadata
+    if: ${{ needs.metadata.outputs.release_images != '[]' }}
+    runs-on: linux-${{ matrix.arch }}-cpu8
+    timeout-minutes: 20
+    permissions:
+      packages: read
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        image: ${{ fromJson(needs.metadata.outputs.release_images) }}
+
+    container:
+      image: ${{ matrix.image }}
+      credentials:
+        username: ${{ startsWith(matrix.image, 'nvcr.io/') && '$oauthtoken' || (startsWith(matrix.image, 'ghcr.io/') && github.actor || '') }}
+        password: ${{ startsWith(matrix.image, 'nvcr.io/') && secrets.NGC_CREDENTIALS || (startsWith(matrix.image, 'ghcr.io/') && github.token || '') }}
+      options: --user root
+
+    steps:
+      - name: Import cudaq.logical
+        shell: bash
+        run: python3 -c 'import cudaq.logical'
+
   release_image_validation:
     name: Release image validation
     needs: metadata
@@ -600,12 +631,15 @@ jobs:
     name: Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
     needs: [metadata, cudaq_wheels]
     if: >-
-      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files,
-      format('python_{0}_cu13_publishing', (matrix.arch == 'x86_64' &&
-      'amd64') || 'arm64')) }}
+      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') ||
+      contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') }}
     strategy:
       matrix:
-        arch: ["x86_64", "aarch64"]
+        arch: >-
+          ${{ fromJson(
+          contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') &&
+          (contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') &&
+          '["x86_64", "aarch64"]' || '["x86_64"]') || '["aarch64"]') }}
         python_version: ['3.11', '3.12', '3.13', '3.14']
       fail-fast: false
     uses: ./.github/workflows/cudaq_logical_build.yml
@@ -1249,7 +1283,7 @@ jobs:
     name: CUDA-Q Release (draft)
     # Validation jobs stay in needs so the draft runs after them, but the if:
     # does not require them to pass.
-    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
+    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, logical_release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
     # Draft on a requested release title; tolerate validation flakes but require
     # the build jobs (nothing to attach otherwise).
     if: >-
@@ -1338,6 +1372,7 @@ jobs:
           # Flag a draft cut despite validation failure so reviewers see it.
           validation_ok=true
           for r in "${{ needs.release_image_validation.result }}" \
+                   "${{ needs.logical_release_image_validation.result }}" \
                    "${{ needs.debug_image_validation.result }}" \
                    "${{ needs.installer_validation.result }}" \
                    "${{ needs.wheel_validation_piponly.result }}" \
