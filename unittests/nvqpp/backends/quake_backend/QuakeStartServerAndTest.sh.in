@@ -189,7 +189,7 @@ else
   echo ":white_check_mark: Successfully ran Python test_app.py"
 fi
 
-# The `cudaq.extern_kernel` spelling of the C++ test above.
+# The `cudaq.kernel(external=True)` spelling of the C++ test above.
 CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_extern_call.py > test_extern_call.py.out 2>&1
 if [ $? -ne 0 ]; then
   echo ":x: Python test_extern_call.py failed"

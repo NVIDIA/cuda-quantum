@@ -13,7 +13,7 @@ cudaq.set_target(
 
 
 # `wait` is implemented by the backend rather than the compiler.
-@cudaq.extern_kernel
+@cudaq.kernel(external=True)
 def wait(q: cudaq.qubit, duration: float) -> None:
     ...
 

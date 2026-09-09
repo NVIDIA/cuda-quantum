@@ -14,12 +14,12 @@ import pytest
 import cudaq
 
 
-@cudaq.extern_kernel
+@cudaq.kernel(external=True)
 def wait(duration: float, q: cudaq.qubit) -> None:
     ...
 
 
-@cudaq.extern_kernel("__qm__wait_function")
+@cudaq.kernel(external=True, backend_symbol="__qm__wait_function")
 def renamed_wait(duration: float, q: cudaq.qubit) -> None:
     ...
 
@@ -62,7 +62,7 @@ def test_extern_kernel_backend_symbol():
 # CHECK:         func.func private @__qm__wait_function(f64, !quake.ref)
 
 
-@cudaq.extern_kernel
+@cudaq.kernel(external=True)
 def probe(q: cudaq.qubit) -> float:
     ...
 
@@ -89,7 +89,7 @@ def test_extern_kernel_returning_a_value():
 # CHECK:         func.func private @probe(!quake.ref) -> f64
 
 
-@cudaq.extern_kernel
+@cudaq.kernel(external=True)
 def wait_vec(q: cudaq.qvector, duration: float) -> None:
     ...
 
@@ -118,7 +118,7 @@ def test_extern_kernel_module_alias():
     """An annotation written against a `cudaq` alias resolves."""
     import cudaq as cq
 
-    @cq.extern_kernel
+    @cq.kernel(external=True)
     def aliased_wait(q: cq.qubit, duration: float) -> None:
         ...
 
@@ -139,7 +139,7 @@ def test_extern_kernel_module_alias():
 def test_extern_kernel_declaration_errors():
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.extern_kernel
+        @cudaq.kernel(external=True)
         def no_return_annotation(d: float, q: cudaq.qubit):
             ...
 
@@ -147,11 +147,30 @@ def test_extern_kernel_declaration_errors():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.extern_kernel
+        @cudaq.kernel(external=True)
         def returns_a_qubit(d: float, q: cudaq.qubit) -> cudaq.qubit:
             ...
 
     assert 'cannot return a quantum type' in str(e.value)
+
+
+def test_extern_kernel_option_errors():
+    """The two options only make sense together."""
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel(backend_symbol="__qm__wait_function")
+        def not_external(d: float):
+            ...
+
+    assert 'requires `external=True`' in str(e.value)
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel(external=True, verbose=True)
+        def compiled_option(d: float, q: cudaq.qubit) -> None:
+            ...
+
+    assert 'takes no other `cudaq.kernel` options' in str(e.value)
 
 
 def test_extern_kernel_call_errors():

@@ -705,7 +705,7 @@ def mk_decorator(builder):
     return decorator
 
 
-def kernel(function=None, **kwargs):
+def kernel(function=None, external=False, backend_symbol=None, **kwargs):
     """
     The `cudaq.kernel` represents the CUDA-Q language function attribute that
     programmers leverage to indicate the following function is a CUDA-Q kernel
@@ -714,7 +714,40 @@ def kernel(function=None, **kwargs):
     Verbose logging can be enabled via `verbose=True`. Set
     `atomic_quantum_region=True` to preserve the boundary around each kernel
     invocation from cross-boundary quantum optimization.
+
+    Set `external=True` to declare a quantum operation that the backend
+    implements rather than the compiler. The decorated function is a
+    declaration. It is never compiled, and a call to it from another kernel
+    reaches the backend as a call of `backend_symbol` (the function name by
+    default).
+    ```python
+        @cudaq.kernel(external=True)
+        def wait(q: cudaq.qubit, duration: float) -> None:
+            ...
+
+        @cudaq.kernel
+        def ramsey(d: float):
+            q = cudaq.qubit()
+            rx(np.pi / 2, q)
+            wait(q, d)
+    ```
     """
+    if external:
+        if kwargs:
+            emitFatalError(
+                "an external kernel is a declaration and takes no other "
+                "`cudaq.kernel` options, but got "
+                f"{', '.join(sorted(kwargs))}.")
+        if function:
+            return ExternKernelDecorator(function,
+                                         backend_symbol=backend_symbol)
+        return lambda f: ExternKernelDecorator(f, backend_symbol=backend_symbol)
+
+    if backend_symbol is not None:
+        emitFatalError(
+            "`backend_symbol` names the symbol the backend implements, so it "
+            "requires `external=True`.")
+
     if function:
         return PyKernelDecorator(function, **kwargs)
     else:
@@ -782,32 +815,6 @@ class ExternKernelDecorator(object):
         emitFatalError(
             f"'{self.name}' is an extern kernel implemented by the backend, "
             "so it can only be called from inside a CUDA-Q kernel.")
-
-
-def extern_kernel(function=None, backend_symbol=None):
-    """
-    Declare a quantum operation implemented by the backend rather than by the
-    compiler. The declaration carries the signature and the call site is an
-    ordinary call.
-    ```python
-        @cudaq.extern_kernel
-        def wait(q: cudaq.qubit, duration: float) -> None:
-            ...
-
-        @cudaq.kernel
-        def ramsey(d: float):
-            q = cudaq.qubit()
-            rx(np.pi / 2, q)
-            wait(q, d)
-    ```
-    The backend symbol defaults to the function name.
-    """
-    if isinstance(function, str):
-        backend_symbol = function
-        function = None
-    if function is None:
-        return lambda f: ExternKernelDecorator(f, backend_symbol=backend_symbol)
-    return ExternKernelDecorator(function, backend_symbol=backend_symbol)
 
 
 def isa_extern_kernel_decorator(object):

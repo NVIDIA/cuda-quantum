@@ -3015,8 +3015,8 @@ class PyASTBridge(ast.NodeVisitor):
 
         def processExternKernel(name, path=None):
             """Emit a direct call to a function declared with
-            `cudaq.extern_kernel`. The declaration stays in reference form and
-            `cable-rough-in` rewrites the call into wire form later.
+            `cudaq.kernel(external=True)`. The declaration stays in reference
+            form and `cable-rough-in` rewrites the call into wire form later.
             """
             entry = lookupExtension(name, path=path)
             if entry is None or entry.kind != ExtensionEntry.EXTERN_KERNEL:

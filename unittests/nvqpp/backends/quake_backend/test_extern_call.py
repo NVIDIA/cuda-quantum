@@ -12,7 +12,7 @@ import sys
 cudaq.set_target("quake_fake")
 
 
-@cudaq.extern_kernel
+@cudaq.kernel(external=True)
 def wait(q: cudaq.qubit, duration: float) -> None:
     ...
 

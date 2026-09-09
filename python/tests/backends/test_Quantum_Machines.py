@@ -83,7 +83,7 @@ def test_async_with_args():
 def test_extern_kernel_ramsey():
     # The payload carries a call the compiler never lowers.
 
-    @cudaq.extern_kernel
+    @cudaq.kernel(external=True)
     def wait(duration: float, q: cudaq.qubit) -> None:
         ...
 
