@@ -1235,16 +1235,14 @@ int main(int argc, char *argv[]) {
                   std::memcpy(&response, resp_data, sizeof(response));
                   if (response.status != 0) {
                     std::cerr << "ERROR: Failed RPC response for window "
-                              << window << " (status=" << response.status
-                              << ")" << std::endl;
+                              << window << " (status=" << response.status << ")"
+                              << std::endl;
                     response_failures++;
                   }
-                } else if (header.magic !=
-                           cudaq::realtime::RPC_MAGIC_REQUEST) {
-                  std::cerr
-                      << "ERROR: Failed RPC response for window " << window
-                      << " (magic=0x" << std::hex << header.magic << std::dec
-                      << ")" << std::endl;
+                } else if (header.magic != cudaq::realtime::RPC_MAGIC_REQUEST) {
+                  std::cerr << "ERROR: Failed RPC response for window "
+                            << window << " (magic=0x" << std::hex
+                            << header.magic << std::dec << ")" << std::endl;
                   response_failures++;
                 }
               }
