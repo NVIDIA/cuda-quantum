@@ -631,12 +631,15 @@ jobs:
     name: Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
     needs: [metadata, cudaq_wheels]
     if: >-
-      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files,
-      format('python_{0}_cu13_publishing', (matrix.arch == 'x86_64' &&
-      'amd64') || 'arm64')) }}
+      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') ||
+      contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') }}
     strategy:
       matrix:
-        arch: ["x86_64", "aarch64"]
+        arch: >-
+          ${{ fromJson(
+          contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') &&
+          (contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') &&
+          '["x86_64", "aarch64"]' || '["x86_64"]') || '["aarch64"]') }}
         python_version: ['3.11', '3.12', '3.13', '3.14']
       fail-fast: false
     uses: ./.github/workflows/cudaq_logical_build.yml
