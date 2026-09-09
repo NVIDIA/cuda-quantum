@@ -391,6 +391,45 @@ def test_callable_kernel_arg_signature_mismatch_arity():
         caller(callee)
 
 
+def test_control_and_adjoint_of_callable_kernel_arg():
+    # https://github.com/NVIDIA/cuda-quantum/issues/3499
+
+    @cudaq.kernel
+    def x_gate(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def apply_control(callee: Callable[[cudaq.qubit], None], q: cudaq.qubit,
+                      control_q: cudaq.qubit):
+        cudaq.control(callee, control_q, q)
+
+    @cudaq.kernel
+    def apply_adjoint(callee: Callable[[cudaq.qubit], None], q: cudaq.qubit):
+        cudaq.adjoint(callee, q)
+
+    @cudaq.kernel
+    def control_fires():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        x(c)
+        apply_control(x_gate, q, c)
+
+    @cudaq.kernel
+    def control_off():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        apply_control(x_gate, q, c)
+
+    @cudaq.kernel
+    def adjoint():
+        q = cudaq.qubit()
+        apply_adjoint(x_gate, q)
+
+    assert '11' in cudaq.sample(control_fires)
+    assert '00' in cudaq.sample(control_off)
+    assert '1' in cudaq.sample(adjoint)
+
+
 def test_observe():
 
     @cudaq.kernel(disable_quantum_optimization=True)
