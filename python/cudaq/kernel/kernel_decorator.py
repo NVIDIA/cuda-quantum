@@ -27,9 +27,9 @@ from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
 from .ast_bridge import compile_to_mlir
 from .utils import (cudaqModuleName, emitFatalError, emitErrorIfInvalidPauli,
                     get_function_source_or_raise, get_module_name,
-                    globalRegisteredTypes, isQuantumType, mlirTypeFromPyType,
-                    mlirTypeToPyType, nvqppPrefix, getMLIRContext,
-                    recover_func_op, recover_value_of)
+                    globalRegisteredTypes, isQuantumReferenceType,
+                    mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix,
+                    getMLIRContext, recover_func_op, recover_value_of)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -798,7 +798,7 @@ class ExternKernelDecorator(object):
                 f"extern kernel '{self.name}' is missing a return type "
                 "annotation. Write `-> None` if it returns nothing.")
         returnTy = self.signature.return_type
-        if returnTy is not None and isQuantumType(returnTy):
+        if returnTy is not None and isQuantumReferenceType(returnTy):
             emitFatalError(
                 f"extern kernel '{self.name}' cannot return a quantum type. "
                 "Qubits it takes as arguments are threaded back to the caller "

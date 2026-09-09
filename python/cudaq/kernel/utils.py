@@ -404,9 +404,11 @@ def get_function_source_or_raise(function):
     return src, (filename, first_line)
 
 
-def isQuantumType(ty):
+def isQuantumReferenceType(ty):
     """
-    Return True if and only if `ty` is a quantum type.
+    Return True if and only if `ty` is a quantum reference type, matching
+    `isQuantumReferenceType` in `QuakeTypes.h`. The quantum value types (wire,
+    cable, control) are not reference types and are not included.
     """
     return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
         ty) or quake.StruqType.isinstance(ty)
@@ -422,7 +424,7 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
 
     name = name or "tuple"
 
-    numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
+    numQuantumMembers = sum((isQuantumReferenceType(t) for t in mlirEleTypes))
     if numQuantumMembers == 0:
         if any((cc.PointerType.isinstance(t) for t in mlirEleTypes)):
             return None
