@@ -351,6 +351,8 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
     asSig = fn.getFunctionType();
   } else {
     Value callable = getIndirectCallee();
+    if (!callable)
+      return emitOpError("must have a callee or an indirect callee");
     asSig = cast<cudaq::cc::CallableType>(callable.getType()).getSignature();
   }
 
