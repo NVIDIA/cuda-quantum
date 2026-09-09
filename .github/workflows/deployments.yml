@@ -826,7 +826,7 @@ jobs:
           if-no-files-found: error
 
   # Build the devel wheel first so that all jobs in the `python_wheels` matrix can reuse it
-  python_devel_wheel:
+  python_devel_wheel_amd64:
     name: Create shared Python development wheel (amd64)
     needs: [metadata, config]
     if: >-
@@ -870,11 +870,8 @@ jobs:
 
   python_wheels:
     name: Create Python wheels
-    needs:
-      [metadata, config, python_devel_wheel_amd64, python_devel_wheel_arm64]
-    if: >-
-      ${{ !cancelled() && ! inputs.devcontainer_only && needs.metadata.result ==
-      'success' && needs.config.result == 'success' }}
+    needs: [metadata, config, python_devel_wheel_amd64, python_devel_wheel_arm64]
+    if: ${{ !cancelled() && ! inputs.devcontainer_only && needs.metadata.result == 'success' && needs.config.result == 'success' }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -892,11 +889,7 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
       run_validation: false # validation runs in the Validation workflow
-      devel_artifact_name:
-        ${{ (matrix.platform == 'amd64' &&
-        needs.python_devel_wheel_amd64.outputs.devel_artifact_name) ||
-        (matrix.platform == 'arm64' &&
-        needs.python_devel_wheel_arm64.outputs.devel_artifact_name) || '' }}
+      devel_artifact_name: ${{ (matrix.platform == 'amd64' && needs.python_devel_wheel_amd64.outputs.devel_artifact_name) || (matrix.platform == 'arm64' && needs.python_devel_wheel_arm64.outputs.devel_artifact_name) || '' }}
       build_logical_wheel: ${{ matrix.cuda_version == '13.0' }}
 
   binaries:

@@ -597,19 +597,17 @@ jobs:
           if-no-files-found: error
 
   cudaq_logical_wheels:
-    name:
-      Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
+    name: Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
     needs: [metadata, cudaq_wheels]
     strategy:
       matrix:
         arch: ["x86_64", "aarch64"]
-        python_version: ["3.11", "3.12", "3.13", "3.14"]
+        python_version: ['3.11', '3.12', '3.13', '3.14']
       fail-fast: false
     uses: ./.github/workflows/cudaq_logical_build.yml
     with:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
-      runtime_artifact_name:
-        ${{ matrix.arch }}-cu13-py${{ matrix.python_version }}-wheels
+      runtime_artifact_name: ${{ matrix.arch }}-cu13-py${{ matrix.python_version }}-wheels
       devel_artifact_name: ${{ matrix.arch }}-cu13-devel-wheel
 
   cudaq_metapackages:
@@ -1233,22 +1231,7 @@ jobs:
     name: CUDA-Q Release (draft)
     # Validation jobs stay in needs so the draft runs after them, but the if:
     # does not require them to pass.
-    needs:
-      [
-        metadata,
-        cudaq_installers,
-        cudaq_wheels,
-        cudaq_logical_wheels,
-        cudaq_metapackages,
-        macos_artifacts,
-        realtime_artifacts,
-        release_image_validation,
-        debug_image_validation,
-        installer_validation,
-        wheel_validation_piponly,
-        metapackage_validation_conda,
-        metapackage_validation_macos,
-      ]
+    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
     # Draft on a requested release title; tolerate validation flakes but require
     # the build jobs (nothing to attach otherwise).
     if: >-

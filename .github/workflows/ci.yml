@@ -496,6 +496,7 @@ jobs:
       - gen_code_coverage
       - docker_image
       - python_wheels
+      - python_devel_wheel
       - python_metapackages
       - binaries
     # Run on success, failure, or per-job cancellation — but NOT when the
