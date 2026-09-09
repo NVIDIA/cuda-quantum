@@ -492,6 +492,7 @@ jobs:
       - config_wheeldeps
       - config_source_build
       - build_and_test
+      - python_devel_wheel
       - gen_code_coverage
       - docker_image
       - python_wheels

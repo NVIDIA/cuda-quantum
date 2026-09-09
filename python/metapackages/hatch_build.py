@@ -264,5 +264,5 @@ class CudaqMetadataHook(MetadataHookInterface):
         }[bdist]
         metadata["dependencies"] = [
             f"{bdist}=={version}",
-            f"cudaq-logical[{logical_extra}]=={logical_version}",
+            f"cudaq-logical[{logical_extra}]=={logical_version}; sys_platform == 'linux'",
         ]
