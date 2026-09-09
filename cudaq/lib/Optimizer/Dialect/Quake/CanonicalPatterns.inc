@@ -1145,7 +1145,7 @@ struct AdjustAdjointPhasePattern
         arith::NegFOp::create(rewriter, phase.getLoc(), phase.getParameter());
     auto dict = phase->getDiscardableAttrDictionary();
     auto newPhase = rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
-        phase, phase.getResultTypes(), UnitAttr{}, ValueRange{negatedAngle},
+        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{negatedAngle},
         phase.getControls(), phase.getTargets(),
         phase.getNegatedQubitControlsAttr());
     newPhase->setDiscardableAttrs(std::move(dict));
@@ -1237,7 +1237,7 @@ struct MergeAdjacentPhasePattern
         arith::AddFOp::create(rewriter, loc, firstAngle, secondAngle);
 
     rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
-        phase, phase.getResultTypes(), UnitAttr{}, ValueRange{mergedAngle},
+        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{mergedAngle},
         input.getControls(), input.getTargets(),
         input.getNegatedQubitControlsAttr());
     rewriter.eraseOp(input);
