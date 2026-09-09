@@ -2303,7 +2303,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # call, etc.) in which case allocate a fresh buffer and
                     # store it there; the result is the handle (a pointer to
                     # that buffer). If `value` is already a handle (the aliasing
-                    # case, from the single-load Name-RHS fetch above), it's
+                    # case, from the single-load Name-`RHS` fetch above), it's
                     # returned as-is and we alias the existing buffer, Python
                     # semantics, instead of allocating a new one.
                     if (cc.StructType.isinstance(value.type) and
