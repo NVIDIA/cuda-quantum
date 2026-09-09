@@ -112,6 +112,9 @@ struct ApplyOpAnalysis {
         auto &variant = pr.second;
         func->walk([&](cudaq::quake::ApplyOp apply) {
           auto callee = lookupCallee(apply);
+          // Callee not known yet; leave it for a later run of this pass.
+          if (!callee)
+            return;
           auto iter = infoMap.find(callee);
           if (iter == infoMap.end()) {
             infoMap.insert(std::make_pair(callee.getOperation(), variant));
@@ -305,6 +308,20 @@ private:
 };
 } // namespace
 
+/// Clone \p apply with new controls and adjoint flag, preserving its callee,
+/// be it a symbol or a callable value.
+static cudaq::quake::ApplyOp
+createApplyLike(OpBuilder &builder, cudaq::quake::ApplyOp apply, UnitAttr isAdj,
+                ValueRange controls, ValueRange actuals) {
+  if (auto calleeAttr = apply.getCalleeAttr())
+    return cudaq::quake::ApplyOp::create(builder, apply.getLoc(),
+                                         apply.getResultTypes(), calleeAttr,
+                                         isAdj, controls, actuals);
+  return cudaq::quake::ApplyOp::create(
+      builder, apply.getLoc(), apply.getResultTypes(),
+      apply.getIndirectCallee(), isAdj, controls, actuals);
+}
+
 static std::string getAdjCtrlVariantFunctionName(const std::string &n) {
   return n + ".adj.ctrl";
 }
@@ -403,6 +420,18 @@ static cudaq::cc::CallableType dynamicArgType(FunctionType ty,
   if (callTy.getSignature().getInputs() != ArrayRef<Type>(rest))
     return {};
   return callTy;
+}
+
+/// Return true if argument \p argIdx of \p func is used only to unpack closure
+/// captures, as the dynamic trampoline convention uses a handle to itself. Any
+/// other use makes it a kernel this function uses, whatever its signature.
+static bool isSelfClosureHandle(func::FuncOp func, unsigned argIdx) {
+  if (func.getBody().empty() || func.getNumArguments() <= argIdx)
+    return false;
+  for (auto *user : func.getArgument(argIdx).getUsers())
+    if (!isa<cudaq::cc::CallableClosureOp>(user))
+      return false;
+  return true;
 }
 
 /// If \p targetFnTy - a `.ctrl`/`.adj.ctrl` variant's own function type - keeps
@@ -1303,7 +1332,8 @@ public:
     auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto loc = func.getLoc();
     SmallVector<Type> inTys = {veqTy};
-    auto callTy = dynamicArgType(funcTy, 0);
+    auto callTy = isSelfClosureHandle(func, 0) ? dynamicArgType(funcTy, 0)
+                                               : cudaq::cc::CallableType{};
     if (callTy) {
       SmallVector<Type> newInTys = {veqTy};
       newInTys.append(funcTy.getInputs().begin() + 1, funcTy.getInputs().end());
@@ -1379,10 +1409,8 @@ public:
         SmallVector<Value> newControls = {newCond};
         newControls.append(apply.getControls().begin(),
                            apply.getControls().end());
-        auto newApply = cudaq::quake::ApplyOp::create(
-            builder, apply.getLoc(), apply.getResultTypes(),
-            apply.getCalleeAttr(), apply.getIsAdjAttr(), newControls,
-            apply.getActuals());
+        auto newApply = createApplyLike(builder, apply, apply.getIsAdjAttr(),
+                                        newControls, apply.getActuals());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();
       } else if (auto call = dyn_cast<CallOpInterface>(op)) {
@@ -1790,10 +1818,9 @@ public:
         UnitAttr newIsAdj = applyOp.getIsAdj()
                                 ? UnitAttr{}
                                 : UnitAttr::get(builder.getContext());
-        [[maybe_unused]] auto newCall = cudaq::quake::ApplyOp::create(
-            builder, applyOp.getLoc(), applyOp.getResultTypes(),
-            applyOp.getCalleeAttr(), newIsAdj, applyOp.getControls(),
-            applyOp.getActuals());
+        [[maybe_unused]] auto newCall =
+            createApplyLike(builder, applyOp, newIsAdj, applyOp.getControls(),
+                            applyOp.getActuals());
         LLVM_DEBUG(llvm::dbgs() << "toggled as: " << newCall << ".\n");
         applyOp->erase();
         continue;
