@@ -599,6 +599,10 @@ jobs:
   cudaq_logical_wheels:
     name: Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
     needs: [metadata, cudaq_wheels]
+    if: >-
+      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files,
+      format('python_{0}_cu13_publishing', (matrix.arch == 'x86_64' &&
+      'amd64') || 'arm64')) }}
     strategy:
       matrix:
         arch: ["x86_64", "aarch64"]
@@ -1240,6 +1244,7 @@ jobs:
       && inputs.github_commit == ''
       && needs.cudaq_installers.result == 'success'
       && needs.cudaq_wheels.result == 'success'
+      && needs.cudaq_logical_wheels.result == 'success'
       && needs.cudaq_metapackages.result == 'success'
     runs-on: ubuntu-latest
 
@@ -1274,6 +1279,13 @@ jobs:
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: metapackages
+
+      - name: Download CUDA-Q Logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_logical-*'
+          path: logical-wheels
+          merge-multiple: true
 
       # Wheels are attached as release assets only; PyPI push is manual.
       - name: Create draft release
