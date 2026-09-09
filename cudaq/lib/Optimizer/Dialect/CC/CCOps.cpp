@@ -2559,22 +2559,10 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
             .wasInterrupted())
       return failure();
 
-    // Simple case: a single block, which must end with a cc.continue. Splice
-    // the block in place of the cc.if.
-    if (region.hasOneBlock()) {
-      auto *block = &region.front();
-      auto contOp = cast<cudaq::cc::ContinueOp>(block->getTerminator());
-      auto results = llvm::to_vector(contOp.getOperands());
-      rewriter.eraseOp(contOp);
-      rewriter.inlineBlockBefore(block, ifOp, ifOp.getLinearArgs());
-      rewriter.replaceOp(ifOp, results);
-      return success();
-    }
-
-    // General case: the region has multiple exits, so split the parent block at
-    // the cc.if and stitch the region in with branches. That requires that the
-    // region containing the cc.if can hold more than one block.
-    if (!takesMultipleBlocks(*ifOp->getParentRegion()))
+    // Split the parent block at the cc.if and stitch the region in with
+    // branches. That requires that the region containing the cc.if can hold
+    // more than one block.
+    if (!region.hasOneBlock() && !takesMultipleBlocks(*ifOp->getParentRegion()))
       return failure();
     auto *ifBlock = rewriter.getInsertionBlock();
     auto *splitBlock =
