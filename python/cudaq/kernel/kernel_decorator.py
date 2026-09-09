@@ -26,10 +26,10 @@ from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
                                KernelSignature)
 from .ast_bridge import compile_to_mlir
 from .utils import (cudaqModuleName, emitFatalError, emitErrorIfInvalidPauli,
-                    ExtensionEntry, get_function_source_or_raise,
-                    get_module_name, globalRegisteredTypes, isQuantumType,
-                    mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix,
-                    getMLIRContext, recover_func_op, recover_value_of)
+                    get_function_source_or_raise, get_module_name,
+                    globalRegisteredTypes, isQuantumType, mlirTypeFromPyType,
+                    mlirTypeToPyType, nvqppPrefix, getMLIRContext,
+                    recover_func_op, recover_value_of)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -786,11 +786,6 @@ class ExternKernelDecorator(object):
             self.defFrame.f_globals if self.defFrame else None)
         self.signature = KernelSignature.parse_from_ast(
             self.astModule, self.name, cudaqAliases=self.cudaqAliases)
-
-        self.entry = ExtensionEntry(self.name,
-                                    ExtensionEntry.EXTERN_KERNEL,
-                                    signature=self.signature,
-                                    backendSymbol=self.backendSymbol)
 
         # A declaration has no body, so its annotations are the only
         # description of its signature. Require them all, including the return

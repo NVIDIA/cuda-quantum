@@ -32,7 +32,6 @@ from cudaq.util import trace
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
 from .kernel_signature import KernelSignature
 from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
-                    ExtensionEntry, globalRegisteredExtensions,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
@@ -2993,10 +2992,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         processDecorator = self.__processDecorator
 
-        def lookupExtension(name, path=None):
-            """Return the `ExtensionEntry` for a name, or None.
+        def lookupExternKernel(name, path=None):
+            """Return the extern kernel declared for a name, or None.
 
-            Registered by name, or resolved in the defining frame.
+            An extern kernel is resolved in the frame that defines it.
             """
             from .kernel_decorator import isa_extern_kernel_decorator
 
@@ -3009,38 +3008,38 @@ class PyASTBridge(ast.NodeVisitor):
                 decorator = recover_value_of_or_none(name, self.defFrame)
                 self.qualifiedDecoratorCache[name] = decorator
             if decorator is not None and isa_extern_kernel_decorator(decorator):
-                return decorator.entry
+                return decorator
 
-            return globalRegisteredExtensions.get(name)
+            return None
 
         def processExternKernel(name, path=None):
             """Emit a direct call to a function declared with
             `cudaq.kernel(external=True)`. The declaration stays in reference
             form and `cable-rough-in` rewrites the call into wire form later.
             """
-            entry = lookupExtension(name, path=path)
-            if entry is None or entry.kind != ExtensionEntry.EXTERN_KERNEL:
+            externKernel = lookupExternKernel(name, path=path)
+            if externKernel is None:
                 return False
 
-            argTys = entry.signature.arg_types
+            argTys = externKernel.arg_types()
             if len(node.args) != len(argTys):
                 self.emitFatalError(
-                    f"extern kernel '{entry.name}' takes {len(argTys)} "
+                    f"extern kernel '{externKernel.name}' takes {len(argTys)} "
                     f"argument(s), but {len(node.args)} were given.", node)
             values = groupValues(node.args, [(len(argTys), len(argTys))])
             values = convertArguments(argTys, values)
 
-            returnTy = entry.signature.return_type
+            returnTy = externKernel.signature.return_type
             resTys = [returnTy] if returnTy is not None else []
 
-            symbol = entry.backendSymbol
+            symbol = externKernel.backendSymbol
             fnTy = FunctionType.get(argTys, resTys)
             currentST = SymbolTable(self.module.operation)
             if symbol in currentST:
                 declaredTy = currentST[symbol].type
                 if declaredTy != fnTy:
                     self.emitFatalError(
-                        f"extern kernel '{entry.name}' declares symbol "
+                        f"extern kernel '{externKernel.name}' declares symbol "
                         f"'{symbol}' as {fnTy}, but it is already declared as "
                         f"{declaredTy}.", node)
             else:
@@ -3542,11 +3541,9 @@ class PyASTBridge(ast.NodeVisitor):
                                         pauli=pauliWord)
                 return
 
-            customOp = lookupExtension(node.func.id)
-            if (customOp is not None and
-                    customOp.kind == ExtensionEntry.CUSTOM_OP):
+            if node.func.id in globalRegisteredOperations:
                 with trace.span("ast_bridge.call.emit_custom_operation"):
-                    unitary = customOp.unitary
+                    unitary = globalRegisteredOperations[node.func.id]
                     numTargets = int(np.log2(np.sqrt(unitary.size)))
                     targets = self.__expandCustomOpTargets(
                         node.args, numTargets, node)
@@ -4450,9 +4447,7 @@ class PyASTBridge(ast.NodeVisitor):
                         f'unknown attribute {node.func.attr} on u3', node)
 
                 # custom `ctrl` and `adj`
-                customOp = lookupExtension(node.func.value.id)
-                if (customOp is not None and
-                        customOp.kind == ExtensionEntry.CUSTOM_OP):
+                if node.func.value.id in globalRegisteredOperations:
                     with trace.span("ast_bridge.call.emit_custom_operation"):
                         if (not node.func.attr == 'ctrl' and
                                 not node.func.attr == 'adj'):
@@ -4460,7 +4455,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 f'Unknown attribute on custom operation '
                                 f'{node.func.value.id} ({node.func.attr}).')
 
-                        unitary = customOp.unitary
+                        unitary = globalRegisteredOperations[node.func.value.id]
                         numTargets = int(np.log2(np.sqrt(unitary.size)))
                         globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
                         currentST = SymbolTable(self.module.operation)
