@@ -10,6 +10,7 @@
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -17,6 +18,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/FunctionInterfaces.h"
 #include <cassert>
 
@@ -215,46 +217,56 @@ inline bool isFunctionEntryBlockArgument(mlir::BlockArgument argument) {
          &function.getFunctionBody().front() == owner;
 }
 
-/// Collect the physical-qubit origins of a phase operand for the anchored
-/// fallback. Unlike collectPhaseAnchorRoots, this tracks unresolved value
-/// provenance so the fallback rejects overlap visible in this function while
-/// relying on the PhaseOp producer contract for opaque function inputs.
-inline void collectPhaseAnchorFallbackRoots(
+/// Recursively collect fallback roots while expanding each wire block argument
+/// at most once. Ordinary SSA defining-op chains cannot cycle; loop-carried
+/// provenance cycles necessarily revisit a block argument.
+inline void collectPhaseAnchorFallbackRootsImpl(
     mlir::Value value, llvm::SmallVectorImpl<PhaseAnchorFallbackRoot> &roots,
-    mlir::Operation *at) {
+    mlir::Operation *at, llvm::DenseSet<mlir::Value> &visitedWireArguments) {
   if (mlir::isa<cudaq::quake::RefType>(value.getType()) &&
       mayHaveReboundPhaseRoot(value, at)) {
     roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
     return;
   }
   if (auto unwrap = value.getDefiningOp<cudaq::quake::UnwrapOp>())
-    return collectPhaseAnchorFallbackRoots(unwrap.getRefValue(), roots,
-                                           unwrap.getOperation());
+    return collectPhaseAnchorFallbackRootsImpl(unwrap.getRefValue(), roots,
+                                               unwrap.getOperation(),
+                                               visitedWireArguments);
   if (auto wrapNew = value.getDefiningOp<cudaq::quake::WrapNewOp>())
-    return collectPhaseAnchorFallbackRoots(wrapNew.getWireValue(), roots,
-                                           wrapNew.getOperation());
+    return collectPhaseAnchorFallbackRootsImpl(wrapNew.getWireValue(), roots,
+                                               wrapNew.getOperation(),
+                                               visitedWireArguments);
   if (auto toControl = value.getDefiningOp<cudaq::quake::ToControlOp>())
-    return collectPhaseAnchorFallbackRoots(toControl.getQubit(), roots, at);
+    return collectPhaseAnchorFallbackRootsImpl(toControl.getQubit(), roots, at,
+                                               visitedWireArguments);
   if (auto fromControl = value.getDefiningOp<cudaq::quake::FromControlOp>())
-    return collectPhaseAnchorFallbackRoots(fromControl.getCtrlbit(), roots, at);
+    return collectPhaseAnchorFallbackRootsImpl(fromControl.getCtrlbit(), roots,
+                                               at, visitedWireArguments);
   if (auto extract = value.getDefiningOp<cudaq::quake::ExtractRefOp>())
-    return collectPhaseAnchorFallbackRoots(extract.getVeq(), roots, at);
+    return collectPhaseAnchorFallbackRootsImpl(extract.getVeq(), roots, at,
+                                               visitedWireArguments);
   if (auto relax = value.getDefiningOp<cudaq::quake::RelaxSizeOp>())
-    return collectPhaseAnchorFallbackRoots(relax.getInputVec(), roots, at);
+    return collectPhaseAnchorFallbackRootsImpl(relax.getInputVec(), roots, at,
+                                               visitedWireArguments);
   if (auto subveq = value.getDefiningOp<cudaq::quake::SubVeqOp>())
-    return collectPhaseAnchorFallbackRoots(subveq.getVeq(), roots, at);
+    return collectPhaseAnchorFallbackRootsImpl(subveq.getVeq(), roots, at,
+                                               visitedWireArguments);
   if (auto init = value.getDefiningOp<cudaq::quake::InitializeStateOp>())
-    return collectPhaseAnchorFallbackRoots(init.getTargets(), roots, at);
+    return collectPhaseAnchorFallbackRootsImpl(init.getTargets(), roots, at,
+                                               visitedWireArguments);
   if (auto member = value.getDefiningOp<cudaq::quake::GetMemberOp>())
-    return collectPhaseAnchorFallbackRoots(member.getStruq(), roots, at);
+    return collectPhaseAnchorFallbackRootsImpl(member.getStruq(), roots, at,
+                                               visitedWireArguments);
   if (auto concat = value.getDefiningOp<cudaq::quake::ConcatOp>()) {
     for (mlir::Value member : concat.getTargets())
-      collectPhaseAnchorFallbackRoots(member, roots, at);
+      collectPhaseAnchorFallbackRootsImpl(member, roots, at,
+                                          visitedWireArguments);
     return;
   }
   if (auto struq = value.getDefiningOp<cudaq::quake::MakeStruqOp>()) {
     for (mlir::Value member : struq.getVeqs())
-      collectPhaseAnchorFallbackRoots(member, roots, at);
+      collectPhaseAnchorFallbackRootsImpl(member, roots, at,
+                                          visitedWireArguments);
     return;
   }
 
@@ -262,8 +274,8 @@ inline void collectPhaseAnchorFallbackRoots(
     if (auto flow = cudaq::quake::detail::getThreadedWireFlow(def))
       for (auto [index, result] : llvm::enumerate(flow->results))
         if (value == result)
-          return collectPhaseAnchorFallbackRoots(flow->inputs[index], roots,
-                                                 def);
+          return collectPhaseAnchorFallbackRootsImpl(flow->inputs[index], roots,
+                                                     def, visitedWireArguments);
 
     if (mlir::isa<cudaq::quake::AllocaOp>(def)) {
       roots.push_back({value, mayHaveReboundPhaseRoot(value, at)
@@ -276,13 +288,74 @@ inline void collectPhaseAnchorFallbackRoots(
       return;
     }
   } else if (auto argument = mlir::dyn_cast<mlir::BlockArgument>(value)) {
-    roots.push_back({value, isFunctionEntryBlockArgument(argument)
-                                ? PhaseAnchorFallbackRootKind::FunctionInput
-                                : PhaseAnchorFallbackRootKind::Unknown});
+    if (isFunctionEntryBlockArgument(argument)) {
+      roots.push_back({value, PhaseAnchorFallbackRootKind::FunctionInput});
+      return;
+    }
+
+    // Only scalar wires have an explicit linear CFG flow. Keep other
+    // non-entry block arguments conservative.
+    if (!mlir::isa<cudaq::quake::WireType>(argument.getType())) {
+      roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+      return;
+    }
+
+    // The first visit explores every incoming edge. Seeing this argument again
+    // only means that a loop backedge has returned to it.
+    if (!visitedWireArguments.insert(argument).second)
+      return;
+
+    mlir::Block *block = argument.getOwner();
+    bool hasPredecessor = false;
+    // Iterate edges because one branch may target this block more than once
+    // with different forwarded operands.
+    for (auto pred = block->pred_begin(), end = block->pred_end(); pred != end;
+         ++pred) {
+      hasPredecessor = true;
+      mlir::Operation *terminator = (*pred)->getTerminator();
+      auto branch = mlir::dyn_cast<mlir::BranchOpInterface>(terminator);
+      if (!branch) {
+        roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+        continue;
+      }
+
+      mlir::SuccessorOperands operands =
+          branch.getSuccessorOperands(pred.getSuccessorIndex());
+      unsigned index = argument.getArgNumber();
+      if (index >= operands.size() || operands.isOperandProduced(index)) {
+        roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+        continue;
+      }
+
+      mlir::Value incoming = operands[index];
+      if (!incoming || !mlir::isa<cudaq::quake::WireType>(incoming.getType())) {
+        roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+        continue;
+      }
+      collectPhaseAnchorFallbackRootsImpl(incoming, roots, terminator,
+                                          visitedWireArguments);
+    }
+    if (!hasPredecessor)
+      roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
     return;
   }
 
   roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+}
+
+/// Collect the physical-qubit origins of a phase operand for the anchored
+/// fallback. Unlike collectPhaseAnchorRoots, this tracks unresolved value
+/// provenance so the fallback rejects overlap visible in this function while
+/// relying on the PhaseOp producer contract for opaque function inputs.
+inline void collectPhaseAnchorFallbackRoots(
+    mlir::Value value, llvm::SmallVectorImpl<PhaseAnchorFallbackRoot> &roots,
+    mlir::Operation *at) {
+  llvm::DenseSet<mlir::Value> visitedWireArguments;
+  collectPhaseAnchorFallbackRootsImpl(value, roots, at, visitedWireArguments);
+
+  // A closed cycle without a concrete root does not prove provenance.
+  if (roots.empty())
+    roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
 }
 
 /// Return whether an anchor and control may overlap when the phase lowering

@@ -140,6 +140,32 @@ func.func @vector_fallback_reference(%theta: f64, %size: i32) {
 // CHECK-COUNT-2: quake.rz (%[[VECTOR_NEG]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
 // CHECK-NOT: quake.phase
 
+func.func @loop_wire_anchor(%theta: f64, %controls: !quake.veq<?>, %n: i64) {
+  %w0 = quake.null_wire
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  cf.br ^body(%c0, %w0 : i64, !quake.wire)
+^body(%i: i64, %w: !quake.wire):
+  %r = quake.phase (%theta) [%controls] %w : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire
+  %inext = arith.addi %i, %c1 : i64
+  %done = arith.cmpi slt, %inext, %n : i64
+  cf.cond_br %done, ^body(%inext, %r : i64, !quake.wire), ^exit(%r : !quake.wire)
+^exit(%wend: !quake.wire):
+  quake.sink %wend : !quake.wire
+  return
+}
+// CHECK-LABEL: func.func @loop_wire_anchor(
+// CHECK-SAME: %[[L_THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[L_CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>
+// CHECK: ^[[L_BODY:[a-zA-Z0-9_.$-]+]](%{{.*}}: i64, %[[L_WIRE:.*]]: !quake.wire):
+// CHECK-NEXT: %[[L_NEG:.*]] = arith.negf %[[L_THETA]] : f64
+// CHECK-NEXT: %[[L_R1_0:.*]] = quake.r1 (%[[L_THETA]]) {{\[}}%[[L_CONTROLS]]{{\]}} %[[L_WIRE]]
+// CHECK-NEXT: %[[L_R1_1:.*]] = quake.r1 (%[[L_THETA]]) {{\[}}%[[L_CONTROLS]]{{\]}} %[[L_R1_0]]
+// CHECK-NEXT: %[[L_RZ_0:.*]] = quake.rz (%[[L_NEG]]) {{\[}}%[[L_CONTROLS]]{{\]}} %[[L_R1_1]]
+// CHECK-NEXT: %[[L_RZ_1:.*]] = quake.rz (%[[L_NEG]]) {{\[}}%[[L_CONTROLS]]{{\]}} %[[L_RZ_0]]
+// CHECK: cf.cond_br {{.*}}, ^[[L_BODY]]({{.*}}, %[[L_RZ_1]] : i64, !quake.wire),
+// CHECK-NOT: quake.phase
+
+
 
 // A scalar control remains a valid R1 target when vector controls are also
 // present in the predicate, avoiding the anchored fallback.
