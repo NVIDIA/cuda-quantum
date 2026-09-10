@@ -139,7 +139,8 @@ static void lowerWithAnchorFallback(IRRewriter &rewriter,
 }
 
 static LogicalResult lowerPhase(IRRewriter &rewriter,
-                                cudaq::quake::PhaseOp phase) {
+                                cudaq::quake::PhaseOp phase,
+                                const cudaq::opt::PhaseWrapMap &wrapsByRoot) {
   rewriter.setInsertionPoint(phase);
 
   auto predicate = cudaq::quake::expandKnownSizedControlVeqs(
@@ -179,7 +180,7 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   // control branch and preserves the complete ordered predicate.
   for (Value control : predicate.controls)
     if (cudaq::opt::phaseFallbackAnchorMayAliasControl(
-            phase.getTarget(), control, phase.getOperation())) {
+            phase.getTarget(), control, phase.getOperation(), wrapsByRoot)) {
       phase.emitOpError(
           "cannot lower with an anchor that aliases a control operand");
       return failure();
@@ -194,13 +195,16 @@ struct LowerPhasePass
   using LowerPhaseBase::LowerPhaseBase;
 
   void runOnOperation() override {
+    auto function = getOperation();
+    auto wrapsByRoot = cudaq::opt::collectNonSelfPhaseWraps(function);
+
     SmallVector<cudaq::quake::PhaseOp> phases;
-    getOperation().walk(
+    function.walk(
         [&](cudaq::quake::PhaseOp phase) { phases.push_back(phase); });
 
     IRRewriter rewriter(&getContext());
     for (cudaq::quake::PhaseOp phase : phases)
-      if (failed(lowerPhase(rewriter, phase))) {
+      if (failed(lowerPhase(rewriter, phase, wrapsByRoot))) {
         signalPassFailure();
         return;
       }

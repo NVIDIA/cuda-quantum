@@ -300,6 +300,26 @@ func.func @vector_fallback_self_wrapped_anchor(%theta: f64, %size: i32) {
   return
 }
 
+// A non-self wrap later in the same block does not invalidate the anchor at
+// the earlier phase. This keeps the rebound query dependent on its location.
+func.func @vector_fallback_before_later_wrap(%theta: f64, %size: i32) {
+  %controls = quake.alloca !quake.veq<?>[%size : i32]
+  %anchor = quake.alloca !quake.ref
+  %replacement = quake.alloca !quake.ref
+  %replacement_wire = quake.unwrap %replacement : (!quake.ref) -> !quake.wire
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  quake.wrap %replacement_wire to %anchor : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @vector_fallback_before_later_wrap(
+// CHECK-SAME: %[[LATER_THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[LATER_NEG:.*]] = arith.negf %[[LATER_THETA]] : f64
+// CHECK-COUNT-2: quake.r1 (%[[LATER_THETA]])
+// CHECK-COUNT-2: quake.rz (%[[LATER_NEG]])
+// CHECK: quake.wrap
+// CHECK-NOT: quake.phase
+
 // Avoiding explicit angle doubling keeps the aggregate fallback finite even at
 // the largest representable source angle.
 func.func @max_f32_vector_fallback(%size: i32) {

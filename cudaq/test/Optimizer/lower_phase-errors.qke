@@ -103,4 +103,4 @@ func.func @opaque_block_arguments_may_alias(%theta: f64,
       : (f64, !quake.veq<?>, !quake.ref) -> ()
   return
 }
-// CHECK-COUNT-8: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
+// CHECK-COUNT-7: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
