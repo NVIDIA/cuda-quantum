@@ -351,6 +351,8 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
     asSig = fn.getFunctionType();
   } else {
     Value callable = getIndirectCallee();
+    if (!callable)
+      return emitOpError("must have a callee or an indirect callee");
     asSig = cast<cudaq::cc::CallableType>(callable.getType()).getSignature();
   }
 
@@ -399,11 +401,19 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
         isa<cudaq::quake::RefType>(formal))
       return true;
     // (c) cable<N> → veq<N> or unsized veq<?>
-    if (isa<cudaq::quake::CableType>(actual))
+    if (isa<cudaq::quake::CableType>(actual)) {
       if (auto veqFormal = dyn_cast<cudaq::quake::VeqType>(formal))
         return !veqFormal.hasSpecifiedSize() ||
                cudaq::quake::getWireCount(actual) ==
                    cudaq::quake::getAllocationSize(formal);
+      // (d) cable<N> → struq, provided the struq's constant member sizes sum
+      // to N. Like (c), the individual wires making up the cable become the
+      // wrapped refs threaded into the struq's ref/veq members.
+      if (isa<cudaq::quake::StruqType>(formal))
+        return cudaq::quake::isConstantQuantumRefType(formal) &&
+               cudaq::quake::getWireCount(actual) ==
+                   cudaq::quake::getAllocationSize(formal);
+    }
     return false;
   };
 
@@ -1052,23 +1062,24 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
   //   . The next output type in the results exactly
   //   . The arity of a ref type argument in the `as_signature` function type.
   // - Each classical argument should match exactly.
+  // The results after the formal ones correspond one-to-one with the quantum
+  // value arguments, in left-to-right order, so track that index separately
+  // from the operand index.
   SmallVector<Type> myResultTypes{getResultTypes().begin(),
                                   getResultTypes().end()};
-  // Only quantum value (wire) operands consume a promoted result slot, so the
-  // required result count depends on how many operands are quantum-valued,
-  // not on the total operand count (e.g. a leading `cc.callable` operand from
-  // a ctrl-closure wrapper is classical and consumes no slot).
-  std::size_t numQuantumValueArgs =
+  const std::size_t numQuantumValueArgs =
       llvm::count_if(getOperandTypes(), cudaq::quake::isQuantumValueType);
-  if (myResultTypes.size() < formalResultsSize + numQuantumValueArgs)
-    return emitOpError("number of results must account for each quantum "
-                       "value argument");
+  if (myResultTypes.size() != formalResultsSize + numQuantumValueArgs)
+    return emitOpError("must return exactly one quantum value per quantum "
+                       "argument, in addition to the callee's results");
+
   std::size_t quantumValueIdx = 0;
   for (auto iter :
        llvm::enumerate(llvm::zip(getOperandTypes(), asSig.getInputs()))) {
     auto i = iter.index();
     auto [operTy, sigTy] = iter.value();
     if (cudaq::quake::isQuantumValueType(operTy)) {
+      const std::size_t resultIndex = formalResultsSize + quantumValueIdx++;
       if (!quake::isQuantumReferenceType(sigTy))
         return emitOpError("argument #" + std::to_string(i) +
                            " must be a quantum type");
@@ -1077,10 +1088,9 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
               cudaq::quake::getAllocationSize(sigTy))
         return emitOpError("argument #" + std::to_string(i) +
                            " must match in size");
-      auto resultIdx = formalResultsSize + quantumValueIdx++;
-      if (operTy != myResultTypes[resultIdx])
+      if (operTy != myResultTypes[resultIndex])
         return emitOpError(
-            "result quantum value type #" + std::to_string(resultIdx) +
+            "result quantum value type #" + std::to_string(resultIndex) +
             " must match argument value type #" + std::to_string(i));
     } else {
       if (operTy != sigTy)

@@ -112,6 +112,9 @@ struct ApplyOpAnalysis {
         auto &variant = pr.second;
         func->walk([&](cudaq::quake::ApplyOp apply) {
           auto callee = lookupCallee(apply);
+          // Callee not known yet; leave it for a later run of this pass.
+          if (!callee)
+            return;
           auto iter = infoMap.find(callee);
           if (iter == infoMap.end()) {
             infoMap.insert(std::make_pair(callee.getOperation(), variant));
@@ -305,6 +308,20 @@ private:
 };
 } // namespace
 
+/// Clone \p apply with new controls and adjoint flag, preserving its callee,
+/// be it a symbol or a callable value.
+static cudaq::quake::ApplyOp
+createApplyLike(OpBuilder &builder, cudaq::quake::ApplyOp apply, UnitAttr isAdj,
+                ValueRange controls, ValueRange actuals) {
+  if (auto calleeAttr = apply.getCalleeAttr())
+    return cudaq::quake::ApplyOp::create(builder, apply.getLoc(),
+                                         apply.getResultTypes(), calleeAttr,
+                                         isAdj, controls, actuals);
+  return cudaq::quake::ApplyOp::create(
+      builder, apply.getLoc(), apply.getResultTypes(),
+      apply.getIndirectCallee(), isAdj, controls, actuals);
+}
+
 static std::string getAdjCtrlVariantFunctionName(const std::string &n) {
   return n + ".adj.ctrl";
 }
@@ -403,6 +420,18 @@ static cudaq::cc::CallableType dynamicArgType(FunctionType ty,
   if (callTy.getSignature().getInputs() != ArrayRef<Type>(rest))
     return {};
   return callTy;
+}
+
+/// Return true if argument \p argIdx of \p func is used only to unpack closure
+/// captures, as the dynamic trampoline convention uses a handle to itself. Any
+/// other use makes it a kernel this function uses, whatever its signature.
+static bool isSelfClosureHandle(func::FuncOp func, unsigned argIdx) {
+  if (func.getBody().empty() || func.getNumArguments() <= argIdx)
+    return false;
+  for (auto *user : func.getArgument(argIdx).getUsers())
+    if (!isa<cudaq::cc::CallableClosureOp>(user))
+      return false;
+  return true;
 }
 
 /// If \p targetFnTy - a `.ctrl`/`.adj.ctrl` variant's own function type - keeps
@@ -891,6 +920,37 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
                                                      unsizedVeqTy, veqVal);
         linearActuals.push_back({static_cast<unsigned>(idx), veqVal, n});
         arg = veqVal;
+      } else if (auto cableTy = dyn_cast<cudaq::quake::CableType>(v.getType());
+                 cableTy && isa<cudaq::quake::StruqType>(toTy)) {
+        // cable<N> actual → struq formal: coercion required.
+        //   split_cable → wrap_new each wire → group per member (ref used
+        //   directly, veq member built via concat) → make_struq.
+        auto struqTy = cast<cudaq::quake::StruqType>(toTy);
+        unsigned n = cudaq::quake::getWireCount(v.getType());
+        SmallVector<Type> wireTys(n, wireTy);
+        auto split =
+            cudaq::quake::SplitCableOp::create(rewriter, loc, wireTys, v);
+        SmallVector<Value> memberVals;
+        unsigned wireIdx = 0;
+        for (Type memberTy : struqTy.getMembers()) {
+          if (isa<cudaq::quake::RefType>(memberTy)) {
+            memberVals.push_back(cudaq::quake::WrapNewOp::create(
+                rewriter, loc, refTy, split.getResult(wireIdx++)));
+            continue;
+          }
+          auto veqMemberTy = cast<cudaq::quake::VeqType>(memberTy);
+          unsigned memberSize = veqMemberTy.getSize();
+          SmallVector<Value> memberRefs;
+          for (unsigned i = 0; i < memberSize; ++i)
+            memberRefs.push_back(cudaq::quake::WrapNewOp::create(
+                rewriter, loc, refTy, split.getResult(wireIdx++)));
+          memberVals.push_back(cudaq::quake::ConcatOp::create(
+              rewriter, loc, veqMemberTy, memberRefs));
+        }
+        Value struqVal = cudaq::quake::MakeStruqOp::create(rewriter, loc,
+                                                           struqTy, memberVals);
+        linearActuals.push_back({static_cast<unsigned>(idx), struqVal, n});
+        arg = struqVal;
         // wire→wire or cable→cable: formal already accepts the linear type,
         // no coercion or extra result needed - pass through unchanged.
       } else if (toTy == unsizedVeqTy && arg.getType() != toTy) {
@@ -1004,11 +1064,13 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     // left-to-right order the apply op appended them to its result list.
     SmallVector<Value> recoveredLinear;
     for (auto &info : linearActuals) {
-      if (info.numWires == 1) {
+      if (isa<cudaq::quake::RefType>(info.refOrVeq.getType())) {
         // ref → wire via unwrap.
         recoveredLinear.push_back(cudaq::quake::UnwrapOp::create(
             rewriter, loc, wireTy, info.refOrVeq));
-      } else {
+        continue;
+      }
+      if (isa<cudaq::quake::VeqType>(info.refOrVeq.getType())) {
         // veq → individual refs → unwrap each → bundle_cable.
         unsigned n = info.numWires;
         // Recover the sized veq in case we had relaxed to unsized.
@@ -1027,7 +1089,32 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
         auto cableTy = cudaq::quake::CableType::get(ctx, n);
         recoveredLinear.push_back(cudaq::quake::BundleCableOp::create(
             rewriter, loc, cableTy, extractedWires));
+        continue;
       }
+      // struq → per-member refs (ref used directly, veq member indexed via
+      // extract_ref) → unwrap each → bundle_cable, in member order.
+      auto struqTy = cast<cudaq::quake::StruqType>(info.refOrVeq.getType());
+      SmallVector<Value> extractedWires;
+      for (auto [memberIdx, memberTy] : llvm::enumerate(struqTy.getMembers())) {
+        Value member = cudaq::quake::GetMemberOp::create(
+            rewriter, loc, memberTy, info.refOrVeq,
+            static_cast<uint32_t>(memberIdx));
+        if (isa<cudaq::quake::RefType>(memberTy)) {
+          extractedWires.push_back(
+              cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, member));
+          continue;
+        }
+        auto veqMemberTy = cast<cudaq::quake::VeqType>(memberTy);
+        for (unsigned i = 0, msize = veqMemberTy.getSize(); i < msize; ++i) {
+          Value ref =
+              cudaq::quake::ExtractRefOp::create(rewriter, loc, member, i);
+          extractedWires.push_back(
+              cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, ref));
+        }
+      }
+      auto cableTy = cudaq::quake::CableType::get(ctx, info.numWires);
+      recoveredLinear.push_back(cudaq::quake::BundleCableOp::create(
+          rewriter, loc, cableTy, extractedWires));
     }
 
     // Recover wire controls: unwrap each wrapped-ref back to its wire.
@@ -1245,7 +1332,8 @@ public:
     auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto loc = func.getLoc();
     SmallVector<Type> inTys = {veqTy};
-    auto callTy = dynamicArgType(funcTy, 0);
+    auto callTy = isSelfClosureHandle(func, 0) ? dynamicArgType(funcTy, 0)
+                                               : cudaq::cc::CallableType{};
     if (callTy) {
       SmallVector<Type> newInTys = {veqTy};
       newInTys.append(funcTy.getInputs().begin() + 1, funcTy.getInputs().end());
@@ -1321,10 +1409,8 @@ public:
         SmallVector<Value> newControls = {newCond};
         newControls.append(apply.getControls().begin(),
                            apply.getControls().end());
-        auto newApply = cudaq::quake::ApplyOp::create(
-            builder, apply.getLoc(), apply.getResultTypes(),
-            apply.getCalleeAttr(), apply.getIsAdjAttr(), newControls,
-            apply.getActuals());
+        auto newApply = createApplyLike(builder, apply, apply.getIsAdjAttr(),
+                                        newControls, apply.getActuals());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();
       } else if (auto call = dyn_cast<CallOpInterface>(op)) {
@@ -1732,10 +1818,9 @@ public:
         UnitAttr newIsAdj = applyOp.getIsAdj()
                                 ? UnitAttr{}
                                 : UnitAttr::get(builder.getContext());
-        [[maybe_unused]] auto newCall = cudaq::quake::ApplyOp::create(
-            builder, applyOp.getLoc(), applyOp.getResultTypes(),
-            applyOp.getCalleeAttr(), newIsAdj, applyOp.getControls(),
-            applyOp.getActuals());
+        [[maybe_unused]] auto newCall =
+            createApplyLike(builder, applyOp, newIsAdj, applyOp.getControls(),
+                            applyOp.getActuals());
         LLVM_DEBUG(llvm::dbgs() << "toggled as: " << newCall << ".\n");
         applyOp->erase();
         continue;

@@ -30,9 +30,9 @@ public:
       return;
 
     auto *ctx = &getContext();
-    funcOp.walk([&](Operation *op) {
+    funcOp.walk([&](Operation *op) -> WalkResult {
       if (!hasLinearTypeResult(op))
-        return;
+        return WalkResult::advance();
       for (auto result : op->getOpResults()) {
         // Perform the same checks as the verifier (from QuakeOps.cpp).
         if (!cudaq::quake::isLinearType(result.getType()))
@@ -48,6 +48,24 @@ public:
         if (uniqs.size() == 1 &&
             (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
           continue;
+
+        bool unrepairable = llvm::any_of(uniqs, [&](Operation *user) {
+          if (user->hasTrait<OpTrait::IsTerminator>())
+            return false;
+          return llvm::count_if(user->getOpOperands(), [&](OpOperand &opnd) {
+                   return opnd.get() == result;
+                 }) > 1;
+        });
+        if (unrepairable) {
+          // This is a hard failure as the IR is in a truly broken state. The
+          // alternative here would be to replace `result` with Poison, but that
+          // would just propagate what is now broken IR forward.
+          op->emitOpError("linear-typed result is used more than once by "
+                          "the same operation and cannot be repaired to a "
+                          "single use");
+          signalPassFailure();
+          return WalkResult::interrupt();
+        }
 
         LLVM_DEBUG(
             llvm::dbgs()
@@ -103,8 +121,10 @@ public:
         if (!result.hasOneUse()) {
           op->emitOpError("Failed to be restored to a linear-type");
           signalPassFailure();
+          return WalkResult::interrupt();
         }
       }
+      return WalkResult::advance();
     });
   }
 
