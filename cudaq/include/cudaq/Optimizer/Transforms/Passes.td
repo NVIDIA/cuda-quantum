@@ -443,6 +443,11 @@ def CombineQuantumAllocations :
     This pass will only process `quake.alloca` operations at the top-level of
     a function. It assumes all calls have been inlined, loops unrolled, etc.
 
+    To keep the greedy rewrite worklist small, the pass starts with only
+    existing `quake.alloca`, `quake.extract_ref`, `quake.get_member`,
+    `quake.subveq`, and `quake.concat` operations. It also considers any
+    operations created while rewriting them.
+
     If the function contains deallocations, these are combined as well. The
     combined deallocation will be added to each exit block.
   }];
@@ -1961,6 +1966,32 @@ def SROA : Pass<"cc-sroa"> {
     To be implemented: handling recursive compositions of aggregate types.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
+def ShrinkWrap : Pass<"shrink-wrap", "mlir::func::FuncOp"> {
+  let summary = "Sink stack allocations into the conditional region that "
+                "actually needs them.";
+  let description = [{
+    A `cc.alloca` that lives at the top of a function is allocated (and, per
+    the rest of its lifetime, stored to and loaded from) on every call, even
+    when the variable it backs is only used along a specific control-flow path.
+    This pass moves such an allocation into a `cc.scope` nested within the
+    control-flow path, distributing the overhead and minimizing the variable's
+    lifetime to where it is actually used.
+
+    This is the exact converse of `stack-frame-prealloc`. It is a near converse
+    of `variable-coalesce`, which hoists allocations in the other direction
+    (into the entry block) but also performs merging on same-type,
+    disjoint-lifetime variables into a single slot to shrink total stack
+    footprint. This pass and `variable-coalesse` then are not merely
+    independent. `variable-coalesce`'s own candidate search only considers
+    allocations already nested inside a `cc.scope`. Since some front ends place
+    every local's `cc.alloca` in the entry block unconditionally, they leave
+    `variable-coalesce` no nested-scope candidates to find and coalesce at all.
+    Running `shrink-wrap` first, to push locals back down into the narrowest
+    scope their uses actually require, is what gives `variable-coalesce`
+    disjoint-lifetime candidates to work with in the first place.
+  }];
 }
 
 def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
