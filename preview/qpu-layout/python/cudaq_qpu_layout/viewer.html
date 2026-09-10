@@ -1,0 +1,1099 @@
+<!doctype html>
+<!-- =========================================================================== #
+ Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.
+ All rights reserved.
+
+ This source code and the accompanying materials are made available under
+ the terms of the Apache License 2.0 which accompanies this distribution.
+# ========================================================================== -->
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CUDA-Q QPU layout trace viewer</title>
+<style>
+  /* Palette roles. Categorical slots 1-3 only: the layout view is an
+     all-pairs comparison, which caps at three hues. Qubit identity is carried
+     by the visible label, never by color, so any number of qubits is fine. */
+  .viz-root {
+    color-scheme: light;
+    --surface-0:      #f5f4f1;   /* page */
+    --surface-1:      #fcfcfb;   /* card / chart surface */
+    --surface-2:      #efeeea;   /* recessive fill: an empty wire */
+    --hairline:       #e0dfda;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #85837c;
+    --series-1:       #2a78d6;   /* a gate is running on this qubit */
+    --series-2:       #eb6834;   /* inter-region transfer */
+    --series-3:       #1baf7a;   /* compute <-> port hop */
+    --series-1-wash:  #e2ecfb;
+    --series-2-wash:  #fbe6dd;
+    --series-3-wash:  #dcf2e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-0:      #111110;
+      --surface-1:      #1a1a19;
+      --surface-2:      #262625;
+      --hairline:       #383835;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #8f8e85;
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+      --series-3:       #199e70;
+      --series-1-wash:  #1b2f47;
+      --series-2-wash:  #3a2318;
+      --series-3-wash:  #14302639;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-0:      #111110;
+    --surface-1:      #1a1a19;
+    --surface-2:      #262625;
+    --hairline:       #383835;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #8f8e85;
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --series-3:       #199e70;
+    --series-1-wash:  #1b2f47;
+    --series-2-wash:  #3a2318;
+    --series-3-wash:  #143026;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  h1 { font-size: 19px; font-weight: 600; margin: 0 0 2px; }
+  .sub { color: var(--text-secondary); margin: 0 0 20px; }
+  .sub code { color: var(--text-primary); }
+
+  /* --- Filters / controls: one row, above the content it scopes. --- */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin-bottom: 18px;
+  }
+  button, .filebtn {
+    font: inherit; color: var(--text-primary);
+    background: var(--surface-1);
+    border: 1px solid var(--hairline); border-radius: 7px;
+    padding: 6px 12px; cursor: pointer; min-height: 34px;
+  }
+  button:hover:not(:disabled), .filebtn:hover { background: var(--surface-2); }
+  button:disabled { color: var(--text-muted); cursor: default; }
+  button:focus-visible, .filebtn:focus-visible, input:focus-visible {
+    outline: 2px solid var(--series-1); outline-offset: 2px;
+  }
+  .step-readout {
+    font-variant-numeric: tabular-nums; color: var(--text-secondary);
+    padding: 0 4px; min-width: 148px;
+  }
+  .step-readout b { color: var(--text-primary); font-size: 16px; }
+  input[type=range] { accent-color: var(--series-1); flex: 1 1 180px; min-width: 140px; }
+  .spacer { flex: 1 1 auto; }
+  input[type=file] { display: none; }
+
+  /* --- KPI row --- */
+  .kpis { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+  .kpi {
+    background: var(--surface-1); border: 1px solid var(--hairline);
+    border-radius: 9px; padding: 9px 14px; min-width: 96px;
+  }
+  .kpi .v { font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .kpi .k { color: var(--text-secondary); font-size: 12px; }
+
+  /* --- The QPU layout --- */
+  .stage { position: relative; margin-bottom: 8px; }
+  /* Gate view: qubits are rows, op-bearing timesteps are columns. */
+  .gatestage {
+    position: relative; margin-bottom: 8px; overflow: auto;
+    max-height: 60vh; background: var(--surface-1);
+    border: 1px solid var(--hairline); border-radius: 11px; padding: 4px;
+  }
+  .gatestage .col:hover { cursor: pointer; }
+  .regions { display: flex; flex-wrap: wrap; gap: 16px; }
+  .region {
+    background: var(--surface-1); border: 1px solid var(--hairline);
+    border-radius: 11px; padding: 13px 15px 15px; flex: 1 1 260px;
+  }
+  .region h2 {
+    font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--text-secondary);
+    margin: 0 0 3px; display: flex; justify-content: space-between;
+  }
+  .region h2 .occ { font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .lane-label {
+    font-size: 11px; color: var(--text-muted); margin: 0 0 5px;
+  }
+  .subbox {
+    border: 1px solid var(--hairline); border-radius: 9px;
+    padding: 9px 11px; margin-top: 10px;
+  }
+  /* Ports sit side by side so separating them costs no extra height. */
+  .ports { display: flex; gap: 10px; }
+  .ports .subbox { flex: 1; margin-top: 10px; }
+  .subbox.port { border-style: dashed; }
+  /* 2px surface gap between cells rather than borders to separate them. */
+  .lane { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cell {
+    width: 52px; height: 42px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums; position: relative;
+  }
+  .cell .slot {
+    position: absolute; top: 2px; left: 5px;
+    font-size: 9px; color: var(--text-muted);
+  }
+  .cell .q { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+  /* Gate-label mode needs room for `CX(q51,q58)`. */
+  .regions.labels .cell { width: 104px; }
+  .regions.labels .cell .q { font-size: 11px; letter-spacing: -.01em; }
+  .cell.empty .q { color: var(--text-muted); font-weight: 400; }
+  /* Ports are the same size as compute wires: a qubit sitting on one is the
+     same object, just parked somewhere that cannot run a gate. */
+  .cell.port .slot { color: var(--series-2); }
+  /* State ring: what is happening to this qubit right now. */
+  .cell.occupied { background: var(--surface-1); }
+  .cell.gate     { background: var(--series-1-wash); border-color: var(--series-1); box-shadow: 0 0 0 1px var(--series-1); }
+  .cell.transfer { background: var(--series-2-wash); border-color: var(--series-2); box-shadow: 0 0 0 1px var(--series-2); }
+  .cell.hop      { background: var(--series-3-wash); border-color: var(--series-3); box-shadow: 0 0 0 1px var(--series-3); }
+  .cell.trail    { outline: 2px dotted var(--text-muted); outline-offset: 2px; }
+  /* A qubit whose wire was returned: still shown where it last sat, but the
+     slot is free, so it must not read as occupancy. */
+  .cell.ghost { background: transparent; border-style: dashed; }
+  .cell.ghost .q { color: var(--text-muted); font-weight: 400; }
+  .cell:hover, .cell:focus-visible { filter: brightness(1.04); }
+  .cell[tabindex]:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+
+  /* Arrows connecting a move's source and destination. */
+  #links { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+
+  /* --- Qubits that are not on a wire at this step --- */
+  .tray { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+          margin-top: 14px; }
+  .tray .traylbl { font-size: 11px; color: var(--text-muted);
+                   text-transform: uppercase; letter-spacing: .04em; }
+  .chip { display: flex; align-items: center; gap: 6px; padding: 4px 9px;
+          border-radius: 8px; border: 1px dashed var(--hairline);
+          color: var(--text-secondary); font-size: 13px; }
+  .chip b { color: var(--text-primary); font-weight: 600; }
+
+  /* --- Events at this step --- */
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--hairline);
+    border-radius: 11px; padding: 13px 15px; margin-top: 16px;
+  }
+  .panel h2 {
+    font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--text-secondary); margin: 0 0 8px;
+  }
+  .ev { display: flex; gap: 9px; align-items: baseline; padding: 3px 0; }
+  .ev .key { width: 3px; height: 13px; border-radius: 2px; flex: none;
+             position: relative; top: 2px; }
+  .ev .what { font-weight: 600; }
+  .ev .detail { color: var(--text-secondary); }
+  .quiet { color: var(--text-muted); }
+
+  /* --- Legend: always present, mirrors the mark. --- */
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; }
+  .legend span { display: flex; align-items: center; gap: 7px;
+                 color: var(--text-secondary); font-size: 13px; }
+  .swatch { width: 15px; height: 15px; border-radius: 5px;
+            border: 1px solid var(--hairline); }
+
+  /* --- Table view: every value reachable without hovering. --- */
+  details { margin-top: 16px; }
+  summary { cursor: pointer; color: var(--text-secondary); }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px;
+          font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 5px 9px; border-bottom: 1px solid var(--hairline); }
+  th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+  tbody tr.here { background: var(--series-1-wash); }
+
+  /* --- Tooltip --- */
+  #tip {
+    position: fixed; z-index: 20; pointer-events: none; opacity: 0;
+    transition: opacity .1s; max-width: 260px;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px;
+    box-shadow: 0 4px 18px rgba(0,0,0,.13);
+  }
+  #tip .val { font-weight: 600; }
+  #tip .lbl { color: var(--text-secondary); }
+
+  .drop { outline: 2px dashed var(--series-1); outline-offset: -6px; }
+  .err { color: var(--text-primary); background: var(--series-2-wash);
+         border: 1px solid var(--series-2); border-radius: 8px;
+         padding: 9px 12px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root">
+<div class="wrap">
+
+  <h1>QPU layout trace</h1>
+  <p class="sub" id="subtitle"></p>
+
+  <div id="error" class="err" hidden></div>
+
+  <div class="controls">
+    <button id="prev" title="Previous step (left arrow)">&#9664; Prev</button>
+    <button id="next" title="Next step (right arrow)">Next &#9654;</button>
+    <button id="play" title="Play through the trace">Play</button>
+    <button id="mode" title="Cycle qubit residence, gate labels, timeline (v)">
+      Gate labels</button>
+    <span class="step-readout" id="readout"></span>
+    <input type="range" id="scrub" min="0" value="0" aria-label="Timestep">
+    <span class="spacer"></span>
+    <label class="filebtn" for="file">Load trace&hellip;</label>
+    <input type="file" id="file" accept="application/json,.json">
+    <button id="theme" title="Toggle light and dark">Dark</button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="stage" id="qpustage">
+    <div class="regions" id="regions"></div>
+    <svg id="links"></svg>
+  </div>
+
+  <div class="gatestage" id="gatestage" hidden>
+    <svg id="gatesvg"></svg>
+  </div>
+
+  <div class="tray" id="offwire"></div>
+
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--surface-1)"></i> occupied, idle</span>
+    <span><i class="swatch" style="background:var(--series-1-wash);border-color:var(--series-1)"></i> gate running</span>
+    <span><i class="swatch" style="background:var(--series-2-wash);border-color:var(--series-2)"></i> inter-region crossing</span>
+    <span><i class="swatch" style="background:var(--series-3-wash);border-color:var(--series-3)"></i> compute &harr; port hop</span>
+    <span><i class="swatch" style="background:var(--surface-2)"></i> free wire</span>
+    <span><i class="swatch" style="background:transparent;border-style:dashed"></i> wire returned &mdash; slot free</span>
+  </div>
+
+  <div class="panel">
+    <h2>Events at this step</h2>
+    <div id="events"></div>
+  </div>
+
+  <details id="tabledetails">
+    <summary>Table view &mdash; every step, every event</summary>
+    <table>
+      <thead><tr><th>t</th><th>Ops</th><th>Moves</th><th>Occupancy</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </details>
+
+</div>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script id="trace-data" type="application/json">{"schema":"cudaq-qpu-layout-trace/3","entry":"bell_cross","model":{"num_regions":2,"region_size":2,"gate_cost":1,"move_cost":4,"port_cost":1},"steps":[{"t":0,"ops":[{"gate":"h","region":0,"controls":[],"targets":[{"vq":0,"region":0,"slot":0}],"params":[]},{"gate":"h","region":1,"controls":[],"targets":[{"vq":2,"region":1,"slot":0}],"params":[]}],"moves":[],"deltas":[{"event":"assign","vq":0,"to":{"region":0,"kind":"compute","slot":0}},{"event":"assign","vq":2,"to":{"region":1,"kind":"compute","slot":0}}]},{"t":1,"ops":[{"gate":"x","region":0,"controls":[{"vq":0,"region":0,"slot":0}],"targets":[{"vq":1,"region":0,"slot":1}],"params":[]},{"gate":"x","region":1,"controls":[{"vq":2,"region":1,"slot":0}],"targets":[{"vq":3,"region":1,"slot":1}],"params":[]}],"moves":[],"deltas":[{"event":"assign","vq":1,"to":{"region":0,"kind":"compute","slot":1}},{"event":"assign","vq":3,"to":{"region":1,"kind":"compute","slot":1}}]},{"t":2,"ops":[],"moves":[{"vq":0,"kind":"port-out","from":{"region":0,"kind":"compute","slot":0},"to":{"region":0,"kind":"out","slot":0},"cost":1},{"vq":2,"kind":"port-out","from":{"region":1,"kind":"compute","slot":0},"to":{"region":1,"kind":"out","slot":0},"cost":1}],"deltas":[{"event":"move","vq":0,"from":{"region":0,"kind":"compute","slot":0},"to":{"region":0,"kind":"out","slot":0}},{"event":"move","vq":2,"from":{"region":1,"kind":"compute","slot":0},"to":{"region":1,"kind":"out","slot":0}},{"event":"release","vq":3,"from":{"region":1,"kind":"compute","slot":1}}]},{"t":3,"ops":[],"moves":[{"vq":2,"kind":"cross","from":{"region":1,"kind":"out","slot":0},"to":{"region":0,"kind":"in","slot":0},"cost":4},{"vq":0,"kind":"cross","from":{"region":0,"kind":"out","slot":0},"to":{"region":1,"kind":"in","slot":0},"cost":4}],"deltas":[{"event":"move","vq":2,"from":{"region":1,"kind":"out","slot":0},"to":{"region":0,"kind":"in","slot":0}},{"event":"move","vq":0,"from":{"region":0,"kind":"out","slot":0},"to":{"region":1,"kind":"in","slot":0}}]},{"t":7,"ops":[],"moves":[{"vq":2,"kind":"port-in","from":{"region":0,"kind":"in","slot":0},"to":{"region":0,"kind":"compute","slot":0},"cost":1},{"vq":0,"kind":"port-in","from":{"region":1,"kind":"in","slot":0},"to":{"region":1,"kind":"compute","slot":0},"cost":1}],"deltas":[{"event":"move","vq":2,"from":{"region":0,"kind":"in","slot":0},"to":{"region":0,"kind":"compute","slot":0}},{"event":"move","vq":0,"from":{"region":1,"kind":"in","slot":0},"to":{"region":1,"kind":"compute","slot":0}}]},{"t":8,"ops":[{"gate":"x","region":0,"controls":[{"vq":1,"region":0,"slot":1}],"targets":[{"vq":2,"region":0,"slot":0}],"params":[]}],"moves":[],"deltas":[{"event":"release","vq":0,"from":{"region":1,"kind":"compute","slot":0}}]},{"t":9,"ops":[],"moves":[],"deltas":[{"event":"release","vq":1,"from":{"region":0,"kind":"compute","slot":1}},{"event":"release","vq":2,"from":{"region":0,"kind":"compute","slot":0}}]}],"summary":{"depth":9,"num_vqubits":4,"num_measurements":0,"moves":{"cross":2,"port":4},"total_move_cost":12,"region_utilization":[{"region":0,"peak":2,"busy_steps":3},{"region":1,"peak":2,"busy_steps":2}],"unmodeled_ops":[]}}</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var COMPUTE = "compute", IN = "in", OUT = "out";
+  var CROSS = "cross";
+
+  var trace = null, states = [], qubits = [], portCount = [], idx = 0,
+      timer = null;
+  var tableRows = [], hereRow = null;
+  var mode = "qpu", opSteps = [], gatesFrom = -1, hereCol = null;
+  var MODES = ["qpu", "qpu-labels", "gates"];
+  var MODE_NEXT = { "qpu": "Gate labels", "qpu-labels": "Timeline",
+                    "gates": "QPU view" };
+  var gateText = {};   // vq -> the gate acting on it at this step
+  var SVGNS = "http://www.w3.org/2000/svg";
+  /* A long trace has far more columns than fit on screen, so the gate view
+     draws a window of op-bearing steps around the current one. */
+  var GATE_WINDOW = 28, COLW = 30, ROWH = 15, GUTTER = 42;
+  var hoverQubit = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function text(el, s) { el.textContent = s == null ? "" : String(s); }
+
+  function siteKey(s) { return s.region + "/" + s.kind + "/" + s.slot; }
+
+  /* Two classes of movement, two hues. A `cross` leaves the region and is the
+     expensive one; `port-out`/`port-in` only step between a compute wire and a
+     port of the same region. Colour is a reinforcement, never the only cue --
+     light-mode aqua is sub-3:1, so the move kind stays spelled out in the
+     events panel and the table. */
+  function isCrossing(kind) { return kind === CROSS; }
+  function moveHue(kind) {
+    return isCrossing(kind) ? "var(--series-2)" : "var(--series-3)";
+  }
+
+  /* Reconstruct occupancy by replaying the delta stream, exactly as
+     trace.replay() does on the Python side. `live` is that occupancy; the
+     model places a qubit lazily on first use and frees its wire at its last
+     use, so `retired` (returned, slot now free) and the qubits not yet placed
+     are tracked alongside it -- every qubit stays on screen for the whole
+     trace rather than blinking in and out. */
+  function buildStates(tr) {
+    var pos = {}, last = {}, out = [];
+    tr.steps.forEach(function (step) {
+      (step.deltas || []).forEach(function (d) {
+        if (d.event === "release") {
+          last[d.vq] = pos[d.vq] || d.from;
+          delete pos[d.vq];
+        } else {
+          pos[d.vq] = d.to;
+          delete last[d.vq];
+        }
+      });
+      var live = {}, retired = {};
+      Object.keys(pos).forEach(function (k) { live[k] = pos[k]; });
+      Object.keys(last).forEach(function (k) { retired[k] = last[k]; });
+      out.push({ live: live, retired: retired });
+    });
+    return out;
+  }
+
+  /* Every virtual qubit the trace mentions, so none is missed if the summary
+     count and the delta stream ever disagree. */
+  function allQubits(tr) {
+    var seen = {};
+    for (var i = 0; i < (tr.summary && tr.summary.num_vqubits || 0); i++) {
+      seen[i] = true;
+    }
+    tr.steps.forEach(function (step) {
+      (step.deltas || []).forEach(function (d) { seen[d.vq] = true; });
+      (step.moves || []).forEach(function (m) { seen[m.vq] = true; });
+      (step.ops || []).forEach(function (o) {
+        o.controls.concat(o.targets).forEach(function (q) { seen[q.vq] = true; });
+      });
+    });
+    return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+  }
+
+  /* Ports are unbounded, so the diagram shows as many lanes as the trace
+     actually used -- at least one, so the lane is never a bare label. */
+  function countPorts(tr) {
+    var n = [];
+    for (var r = 0; r < tr.model.num_regions; r++) n.push({ "in": 1, "out": 1 });
+    tr.steps.forEach(function (step) {
+      (step.deltas || []).forEach(function (d) {
+        [d.from, d.to].forEach(function (s) {
+          if (s && s.kind !== COMPUTE && n[s.region]) {
+            n[s.region][s.kind] = Math.max(n[s.region][s.kind], s.slot + 1);
+          }
+        });
+      });
+    });
+    return n;
+  }
+
+  /* What is happening to each qubit at this step: gate | transfer. */
+  function activity(step) {
+    var a = {};
+    (step.moves || []).forEach(function (m) {
+      a[m.vq] = isCrossing(m.kind) ? "transfer" : "hop";
+    });
+    (step.ops || []).forEach(function (o) {
+      o.controls.concat(o.targets).forEach(function (q) { a[q.vq] = "gate"; });
+    });
+    return a;
+  }
+
+  /* `h(q51)`, or `CX(q51,q58)` on *both* cells of a two-qubit gate: in label
+     mode a cell answers "what is happening here", not "who lives here". */
+  function gateCallLabel(o) {
+    var cs = o.controls.map(function (q) { return "q" + q.vq; });
+    var ts = o.targets.map(function (q) { return "q" + q.vq; });
+    var name = cs.length
+      ? new Array(cs.length + 1).join("C") + o.gate.toUpperCase()
+      : o.gate;
+    return name + "(" + cs.concat(ts).join(",") + ")";
+  }
+
+  function gateLabels(step) {
+    var out = {};
+    (step.ops || []).forEach(function (o) {
+      var label = gateCallLabel(o);
+      o.controls.concat(o.targets).forEach(function (q) {
+        out[q.vq] = label;
+      });
+    });
+    return out;
+  }
+
+  function opLabel(o) {
+    var qs = o.controls.map(function (q) { return "q" + q.vq; });
+    var ts = o.targets.map(function (q) { return "q" + q.vq; });
+    return o.gate + (qs.length ? " [" + qs.join(", ") + "]" : "") + " " + ts.join(", ");
+  }
+
+  function siteLabel(s) {
+    return "r" + s.region + "." + (s.kind === COMPUTE ? "c" : s.kind) + "[" + s.slot + "]";
+  }
+
+  // ---- rendering ---------------------------------------------------------
+
+  function renderKpis() {
+    var s = trace.summary, m = trace.model;
+    var items = [
+      ["qubits", s.num_vqubits],
+      ["QPU", m.num_regions + " x " + m.region_size],
+      // Everything below is a product of the placement policy, which is still
+      // a stub -- flagged so the numbers are not read as settled.
+      ["WIP: depth", s.depth + " cycles"],
+      ["WIP: crossings", s.moves.cross],
+      ["WIP: port hops", s.moves.port],
+      ["WIP: move cost", s.total_move_cost]
+    ];
+    var host = $("kpis");
+    host.innerHTML = "";
+    items.forEach(function (it) {
+      var d = document.createElement("div"); d.className = "kpi";
+      var v = document.createElement("div"); v.className = "v"; text(v, it[1]);
+      var k = document.createElement("div"); k.className = "k"; text(k, it[0]);
+      d.appendChild(v); d.appendChild(k); host.appendChild(d);
+    });
+  }
+
+  function makeCell(region, kind, slot, occupantVq, act, ghostVq) {
+    var c = document.createElement("div");
+    c.className = "cell" + (kind === COMPUTE ? "" : " port");
+    c.dataset.site = region + "/" + kind + "/" + slot;
+    if (occupantVq == null && ghostVq != null) {
+      occupantVq = ghostVq;
+      c.classList.add("ghost");
+    }
+
+    var tag = document.createElement("span");
+    tag.className = "slot";
+    text(tag, kind === COMPUTE ? "c" + slot : kind + slot);
+    c.appendChild(tag);
+
+    var q = document.createElement("span");
+    q.className = "q";
+    if (occupantVq == null) {
+      c.classList.add("empty");
+      text(q, "·");
+    } else {
+      if (!c.classList.contains("ghost")) c.classList.add("occupied");
+      text(q, mode === "qpu-labels" && gateText[occupantVq] != null
+              ? gateText[occupantVq] : "q" + occupantVq);
+      c.dataset.vq = occupantVq;
+      c.tabIndex = 0;
+      if (act[occupantVq] && !c.classList.contains("ghost")) {
+        c.classList.add(act[occupantVq]);
+      }
+      if (String(occupantVq) === String(hoverQubit)) c.classList.add("trail");
+    }
+    c.appendChild(q);
+    return c;
+  }
+
+  function renderRegions() {
+    var step = trace.steps[idx], st = states[idx], act = activity(step);
+    gateText = mode === "qpu-labels" ? gateLabels(step) : {};
+    var byIdSite = {}, ghostBySite = {}, placed = {};
+    Object.keys(st.live).forEach(function (vq) {
+      byIdSite[siteKey(st.live[vq])] = vq;
+    });
+    /* A returned qubit keeps its last cell only while that cell is free -- if
+       something took the slot, the live occupant wins and the qubit falls
+       through to the tray, so it is still shown exactly once. */
+    Object.keys(st.retired).forEach(function (vq) {
+      var k = siteKey(st.retired[vq]);
+      if (byIdSite[k] == null && ghostBySite[k] == null) ghostBySite[k] = vq;
+    });
+
+    var host = $("regions");
+    host.className = "regions" + (mode === "qpu-labels" ? " labels" : "");
+    host.innerHTML = "";
+    for (var r = 0; r < trace.model.num_regions; r++) {
+      var card = document.createElement("div");
+      card.className = "region";
+
+      var h = document.createElement("h2");
+      var nm = document.createElement("span"); text(nm, "Region " + r);
+      var occ = document.createElement("span"); occ.className = "occ";
+      var used = 0;
+      for (var s = 0; s < trace.model.region_size; s++) {
+        if (byIdSite[r + "/" + COMPUTE + "/" + s] != null) used++;
+      }
+      text(occ, used + " / " + trace.model.region_size + " wires");
+      h.appendChild(nm); h.appendChild(occ); card.appendChild(h);
+
+      card.appendChild(lane("compute wires", r, COMPUTE,
+                            trace.model.region_size, byIdSite, act,
+                            ghostBySite, placed));
+      /* Ports are not compute: a qubit on one is in transit, not resident, so
+         they get their own boxes rather than reading as extra capacity. */
+      var ports = document.createElement("div");
+      ports.className = "ports";
+      ports.appendChild(lane("in-ports", r, IN, portCount[r]["in"], byIdSite,
+                             act, ghostBySite, placed));
+      ports.appendChild(lane("out-ports", r, OUT, portCount[r]["out"], byIdSite,
+                             act, ghostBySite, placed));
+      card.appendChild(ports);
+      host.appendChild(card);
+    }
+    renderTray(st, placed);
+  }
+
+  /* Whatever the region grid could not show: qubits the model has not placed
+     yet, and returned qubits whose old slot has been taken. */
+  function renderTray(st, placed) {
+    var host = $("offwire");
+    host.innerHTML = "";
+    var items = [];
+    qubits.forEach(function (vq) {
+      if (st.live[vq] != null) return;
+      if (st.retired[vq] != null) {
+        if (!placed[vq]) items.push([vq, "wire returned"]);
+      } else {
+        items.push([vq, "not yet placed"]);
+      }
+    });
+    if (!items.length) { host.hidden = true; return; }
+    host.hidden = false;
+    var l = document.createElement("span");
+    l.className = "traylbl"; text(l, "off-wire");
+    host.appendChild(l);
+    items.forEach(function (it) {
+      var chip = document.createElement("div");
+      chip.className = "chip";
+      var b = document.createElement("b"); text(b, "q" + it[0]);
+      var d = document.createElement("span"); text(d, it[1]);
+      chip.appendChild(b); chip.appendChild(d);
+      host.appendChild(chip);
+    });
+  }
+
+  function lane(label, region, kind, n, byIdSite, act, ghostBySite, placed) {
+    var frag = document.createDocumentFragment();
+    var l = document.createElement("div"); l.className = "lane-label";
+    text(l, label); frag.appendChild(l);
+    var row = document.createElement("div"); row.className = "lane";
+    for (var s = 0; s < n; s++) {
+      var key = region + "/" + kind + "/" + s, ghost = ghostBySite[key];
+      if (byIdSite[key] == null && ghost != null) placed[ghost] = true;
+      row.appendChild(makeCell(region, kind, s, byIdSite[key], act, ghost));
+    }
+    frag.appendChild(row);
+    var box = document.createElement("div");
+    box.className = "subbox" + (kind === COMPUTE ? " compute" : " port");
+    box.appendChild(frag);
+    return box;
+  }
+
+  function svgEl(name, attrs) {
+    var el = document.createElementNS(SVGNS, name);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  /* Gate view: one row per virtual qubit, one column per op-bearing step.
+     Steps with no ops are skipped -- on a move-heavy trace they are most of
+     the timeline, and a column of empty cells says nothing. */
+  function renderGates() {
+    var svg = $("gatesvg");
+    if (!opSteps.length) {
+      svg.innerHTML = "";
+      svg.setAttribute("height", 40);
+      svg.appendChild(svgEl("text", { x: 12, y: 24, fill: "var(--text-muted)",
+                                      "font-size": 13 }));
+      svg.lastChild.textContent = "This trace has no gates.";
+      return;
+    }
+    // The window follows the current step, snapping to the nearest column.
+    var here = 0;
+    for (var i = 0; i < opSteps.length; i++) {
+      if (opSteps[i] <= idx) here = i;
+    }
+    var half = Math.floor(GATE_WINDOW / 2);
+    var from = Math.max(0, Math.min(here - half,
+                                    opSteps.length - GATE_WINDOW));
+    if (from < 0) from = 0;
+    var count = Math.min(GATE_WINDOW, opSteps.length - from);
+
+    if (from !== gatesFrom) {
+      gatesFrom = from;
+      drawGateWindow(svg, from, count);
+    }
+    if (hereCol) {
+      var at = here - from;
+      var inWindow = at >= 0 && at < count;
+      hereCol.setAttribute("x", GUTTER + at * COLW);
+      hereCol.setAttribute("visibility", inWindow ? "visible" : "hidden");
+    }
+  }
+
+  function drawGateWindow(svg, from, count) {
+    svg.innerHTML = "";
+    var h = qubits.length * ROWH + 26, w = GUTTER + count * COLW + 8;
+    svg.setAttribute("width", w);
+    svg.setAttribute("height", h);
+    svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+
+    var row = {};
+    qubits.forEach(function (vq, i) { row[vq] = 20 + i * ROWH + ROWH / 2; });
+
+    hereCol = svgEl("rect", { x: GUTTER, y: 14, width: COLW, height: h - 18,
+                              rx: 5, fill: "var(--series-1-wash)" });
+    svg.appendChild(hereCol);
+
+    // Qubit rails and labels.
+    qubits.forEach(function (vq) {
+      svg.appendChild(svgEl("line", { x1: GUTTER, y1: row[vq],
+                                      x2: GUTTER + count * COLW, y2: row[vq],
+                                      stroke: "var(--hairline)",
+                                      "stroke-width": 1 }));
+      var t = svgEl("text", { x: GUTTER - 7, y: row[vq] + 4,
+                              "text-anchor": "end", "font-size": 11,
+                              fill: "var(--text-secondary)" });
+      t.textContent = "q" + vq;
+      svg.appendChild(t);
+    });
+
+    for (var c = 0; c < count; c++) {
+      var si = opSteps[from + c];
+      var step = trace.steps[si];
+      var cx = GUTTER + c * COLW + COLW / 2;
+
+      var hit = svgEl("rect", { x: GUTTER + c * COLW, y: 14, width: COLW,
+                                height: h - 18, fill: "transparent" });
+      hit.setAttribute("class", "col");
+      (function (target) {
+        hit.addEventListener("click", function () { stop(); go(target); });
+      })(si);
+      svg.appendChild(hit);
+
+      var tl = svgEl("text", { x: cx, y: 10, "text-anchor": "middle",
+                               "font-size": 9, fill: "var(--text-muted)" });
+      tl.textContent = step.t;
+      svg.appendChild(tl);
+
+      (step.ops || []).forEach(function (o) {
+        var ctrls = o.controls.map(function (q) { return q.vq; });
+        var tgts = o.targets.map(function (q) { return q.vq; });
+        var ys = ctrls.concat(tgts).map(function (vq) { return row[vq]; })
+                      .filter(function (y) { return y != null; });
+        if (!ys.length) return;
+        if (ys.length > 1) {
+          svg.appendChild(svgEl("line", {
+            x1: cx, y1: Math.min.apply(null, ys),
+            x2: cx, y2: Math.max.apply(null, ys),
+            stroke: "var(--series-1)", "stroke-width": 1.5 }));
+        }
+        ctrls.forEach(function (vq) {
+          svg.appendChild(svgEl("circle", { cx: cx, cy: row[vq], r: 3.2,
+                                            fill: "var(--series-1)" }));
+        });
+        tgts.forEach(function (vq) {
+          svg.appendChild(svgEl("rect", {
+            x: cx - 9, y: row[vq] - 6, width: 18, height: 12, rx: 3,
+            fill: "var(--series-1-wash)", stroke: "var(--series-1)" }));
+          var g = svgEl("text", { x: cx, y: row[vq] + 3.5,
+                                  "text-anchor": "middle", "font-size": 9,
+                                  fill: "var(--text-primary)" });
+          g.textContent = o.gate;
+          svg.appendChild(g);
+        });
+      });
+    }
+  }
+
+  function setMode(next) {
+    mode = next;
+    var gates = mode === "gates";
+    $("qpustage").hidden = gates;
+    $("gatestage").hidden = !gates;
+    text($("mode"), MODE_NEXT[mode]);
+    gatesFrom = -1;
+    render();
+  }
+
+  function cycleMode() {
+    setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
+  }
+
+  /* Draw each of this step's moves as an arrow between the two cells. */
+  function renderLinks() {
+    var svg = $("links");
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var stage = svg.parentNode.getBoundingClientRect();
+    svg.setAttribute("viewBox", "0 0 " + stage.width + " " + stage.height);
+    svg.setAttribute("width", stage.width);
+    svg.setAttribute("height", stage.height);
+
+    function boxOf(site) {
+      var el = document.querySelector('.cell[data-site="' + siteKey(site) + '"]');
+      if (!el) return null;
+      var b = el.getBoundingClientRect();
+      return { x: b.left - stage.left + b.width / 2,
+               y: b.top - stage.top + b.height / 2,
+               w: b.width, h: b.height };
+    }
+
+    /* Stop the line at the cell's edge, not its center, so the stroke and
+       arrowhead never cover the qubit label. */
+    function edge(box, toward) {
+      var dx = toward.x - box.x, dy = toward.y - box.y;
+      if (!dx && !dy) return { x: box.x, y: box.y };
+      var hw = box.w / 2 + 5, hh = box.h / 2 + 5;
+      var sx = dx ? hw / Math.abs(dx) : Infinity;
+      var sy = dy ? hh / Math.abs(dy) : Infinity;
+      var s = Math.min(sx, sy);
+      return { x: box.x + dx * s, y: box.y + dy * s };
+    }
+
+    (trace.steps[idx].moves || []).forEach(function (m) {
+      var ba = boxOf(m.from), bb = boxOf(m.to);
+      if (!ba || !bb) return;
+      var a = edge(ba, bb), b = edge(bb, ba);
+      var color = moveHue(m.kind);
+      /* The head is drawn rather than left to `marker-end`, whose angle comes
+         from the curve's end tangent -- that made it read as crooked whenever
+         the bow was large relative to the move. Here the head is built straight
+         from the a->b direction, so its angle is exact by construction and the
+         shaft is simply shortened to meet its base. */
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var ux = dx / len, uy = dy / len;
+      /* On a very short hop the head must not outrun the shaft. */
+      var HEAD = Math.min(9, len * 0.5), HALF = HEAD * 0.47;
+      var tipx = b.x, tipy = b.y;
+      var basex = b.x - ux * HEAD, basey = b.y - uy * HEAD;
+      var bow = Math.min(40, len / 5);
+      var c1x = a.x + dx * 0.35 + uy * bow, c1y = a.y + dy * 0.35 - ux * bow;
+      var c2x = basex - ux * len * 0.15, c2y = basey - uy * len * 0.15;
+
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M" + a.x + "," + a.y + " C" + c1x + "," + c1y +
+                             " " + c2x + "," + c2y + " " + basex + "," + basey);
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", color);
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("stroke-linecap", "round");
+      svg.appendChild(path);
+
+      var head = document.createElementNS("http://www.w3.org/2000/svg",
+                                          "polygon");
+      head.setAttribute("points",
+        tipx + "," + tipy + " " +
+        (basex - uy * HALF) + "," + (basey + ux * HALF) + " " +
+        (basex + uy * HALF) + "," + (basey - ux * HALF));
+      head.setAttribute("fill", color);
+      svg.appendChild(head);
+    });
+  }
+
+  function renderEvents() {
+    var step = trace.steps[idx];
+    var host = $("events");
+    host.innerHTML = "";
+
+    (step.ops || []).forEach(function (o) {
+      host.appendChild(evRow("var(--series-1)", opLabel(o),
+        "region " + o.region +
+        (o.params.length ? " · params " + o.params.map(function (p) {
+          return p == null ? "?" : (+p).toFixed(4);
+        }).join(", ") : "")));
+    });
+
+    (step.moves || []).forEach(function (m) {
+      var detail = siteLabel(m.from) + " → " + siteLabel(m.to) +
+                   " · cost " + m.cost;
+      host.appendChild(evRow(moveHue(m.kind), m.kind + " q" + m.vq, detail));
+    });
+
+    var releases = (step.deltas || []).filter(function (d) {
+      return d.event === "release";
+    });
+    releases.forEach(function (d) {
+      host.appendChild(evRow("var(--text-muted)", "release q" + d.vq,
+                             "frees " + siteLabel(d.from)));
+    });
+
+    if (!host.childNodes.length) {
+      var p = document.createElement("div");
+      p.className = "quiet";
+      text(p, "Nothing happens at this timestep — qubits are in flight or idle.");
+      host.appendChild(p);
+    }
+  }
+
+  function evRow(color, what, detail) {
+    var row = document.createElement("div"); row.className = "ev";
+    var key = document.createElement("i"); key.className = "key";
+    key.style.background = color;
+    var w = document.createElement("span"); w.className = "what"; text(w, what);
+    var d = document.createElement("span"); d.className = "detail"; text(d, detail);
+    row.appendChild(key); row.appendChild(w); row.appendChild(d);
+    return row;
+  }
+
+  /* Built once per trace, not once per step: a long trace has thousands of
+     rows, and rebuilding them on every arrow key made scrubbing crawl. Step
+     changes only move the `here` class -- see `markRow`. */
+  function buildTable() {
+    var tb = $("tbody");
+    tb.innerHTML = "";
+    tableRows = [];
+    trace.steps.forEach(function (step, i) {
+      var tr = document.createElement("tr");
+      var cells = [
+        String(step.t),
+        (step.ops || []).map(opLabel).join("; ") || "—",
+        (step.moves || []).map(function (m) {
+          return m.kind + " q" + m.vq + ": " + siteLabel(m.from) + "→" +
+                 siteLabel(m.to);
+        }).join("; ") || "—",
+        Object.keys(states[i].live).sort(function (a, b) { return a - b; })
+          .map(function (vq) {
+            return "q" + vq + "@" + siteLabel(states[i].live[vq]);
+          })
+          .join(" ") || "—"
+      ];
+      cells.forEach(function (c) {
+        var td = document.createElement("td"); text(td, c); tr.appendChild(td);
+      });
+      tr.addEventListener("click", function () { go(i); });
+      tb.appendChild(tr);
+      tableRows.push(tr);
+    });
+    hereRow = null;
+  }
+
+  /* Move the row highlight, and keep it in view only when the table is open so
+     stepping never yanks the page around. */
+  function markRow() {
+    if (hereRow) hereRow.className = "";
+    hereRow = tableRows[idx] || null;
+    if (!hereRow) return;
+    hereRow.className = "here";
+    if ($("tabledetails").open) {
+      hereRow.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function renderReadout() {
+    var step = trace.steps[idx];
+    var host = $("readout");
+    host.innerHTML = "";
+    var b = document.createElement("b"); text(b, "t = " + step.t);
+    var rest = document.createTextNode("  ·  step " + (idx + 1) + " of " +
+                                       trace.steps.length);
+    host.appendChild(b); host.appendChild(rest);
+    $("prev").disabled = idx === 0;
+    $("next").disabled = idx === trace.steps.length - 1;
+    $("scrub").value = idx;
+  }
+
+  function render() {
+    renderReadout();
+    renderEvents();
+    markRow();
+    if (mode === "gates") {
+      renderGates();
+    } else {
+      renderRegions();
+      renderLinks();
+    }
+  }
+
+  function go(i) {
+    idx = Math.max(0, Math.min(trace.steps.length - 1, i));
+    render();
+  }
+
+  // ---- tooltip -----------------------------------------------------------
+
+  var tip = $("tip");
+  function showTip(e) {
+    var cell = e.target.closest ? e.target.closest(".cell") : null;
+    if (!cell) return hideTip();
+    var parts = cell.dataset.site.split("/");
+    var site = { region: +parts[0], kind: parts[1], slot: +parts[2] };
+    var vq = cell.dataset.vq;
+    tip.innerHTML = "";
+    var head = document.createElement("div"); head.className = "val";
+    text(head, vq == null ? "free wire" : "q" + vq);
+    var sub = document.createElement("div"); sub.className = "lbl";
+    text(sub, siteLabel(site) + (site.kind === COMPUTE ? " compute wire" :
+              " " + site.kind + "-port"));
+    tip.appendChild(head); tip.appendChild(sub);
+    if (vq != null && cell.classList.contains("ghost")) {
+      var g = document.createElement("div"); g.className = "lbl";
+      text(g, "wire returned to the pool — this slot is free");
+      tip.appendChild(g);
+    } else if (vq != null) {
+      var act = activity(trace.steps[idx])[vq];
+      if (act) {
+        var a = document.createElement("div"); a.className = "lbl";
+        text(a, act === "gate" ? "a gate is running on it" :
+                act === "transfer" ? "crossing between regions" :
+                "moving between a compute wire and a port");
+        tip.appendChild(a);
+      }
+    }
+    var b = cell.getBoundingClientRect();
+    tip.style.left = Math.min(window.innerWidth - 270, b.left) + "px";
+    tip.style.top = (b.bottom + 8) + "px";
+    tip.style.opacity = "1";
+
+    if (vq !== hoverQubit) { hoverQubit = vq == null ? null : vq; renderRegions(); }
+  }
+  function hideTip() {
+    tip.style.opacity = "0";
+    if (hoverQubit !== null) { hoverQubit = null; renderRegions(); renderLinks(); }
+  }
+
+  // ---- loading -----------------------------------------------------------
+
+  function load(tr) {
+    if (!tr || !tr.schema || tr.schema.indexOf("cudaq-qpu-layout-trace/") !== 0) {
+      throw new Error("Not a CUDA-Q layout trace (missing or unknown 'schema').");
+    }
+    if (!tr.steps || !tr.steps.length) throw new Error("Trace has no steps.");
+    trace = tr;
+    states = buildStates(tr);
+    qubits = allQubits(tr);
+    portCount = countPorts(tr);
+    idx = 0;
+    $("scrub").max = tr.steps.length - 1;
+    var sub = $("subtitle");
+    sub.innerHTML = "";
+    sub.appendChild(document.createTextNode("Kernel "));
+    var c = document.createElement("code"); text(c, tr.entry);
+    sub.appendChild(c);
+    sub.appendChild(document.createTextNode(
+      " · " + tr.schema + " · " + tr.summary.num_measurements +
+      " measurements"));
+    opSteps = [];
+    tr.steps.forEach(function (step, i) {
+      if ((step.ops || []).length) opSteps.push(i);
+    });
+    gatesFrom = -1;
+    renderKpis();
+    buildTable();
+    render();
+  }
+
+  function fail(msg) {
+    var e = $("error");
+    text(e, msg);
+    e.hidden = false;
+  }
+
+  function readFile(f) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        $("error").hidden = true;
+        load(JSON.parse(fr.result));
+      } catch (err) { fail("Could not load " + f.name + ": " + err.message); }
+    };
+    fr.readAsText(f);
+  }
+
+  // ---- wiring ------------------------------------------------------------
+
+  $("mode").addEventListener("click", cycleMode);
+  $("prev").addEventListener("click", function () { stop(); go(idx - 1); });
+  $("next").addEventListener("click", function () { stop(); go(idx + 1); });
+  $("scrub").addEventListener("input", function (e) { stop(); go(+e.target.value); });
+  $("file").addEventListener("change", function (e) {
+    if (e.target.files[0]) readFile(e.target.files[0]);
+  });
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; text($("play"), "Play"); }
+  }
+  $("play").addEventListener("click", function () {
+    if (timer) return stop();
+    text($("play"), "Pause");
+    timer = setInterval(function () {
+      if (idx >= trace.steps.length - 1) { stop(); return; }
+      go(idx + 1);
+    }, 900);
+  });
+
+  $("theme").addEventListener("click", function () {
+    var dark = document.documentElement.getAttribute("data-theme") === "dark";
+    document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+    text($("theme"), dark ? "Dark" : "Light");
+    renderLinks();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT") return;
+    if (e.key === "ArrowLeft") { stop(); go(idx - 1); }
+    else if (e.key === "ArrowRight") { stop(); go(idx + 1); }
+    else if (e.key === "v") { cycleMode(); }
+  });
+
+  var stage = document.querySelector(".stage");
+  stage.addEventListener("pointermove", showTip);
+  stage.addEventListener("pointerleave", hideTip);
+  stage.addEventListener("focusin", showTip);
+  stage.addEventListener("focusout", hideTip);
+
+  window.addEventListener("resize", function () { if (trace) renderLinks(); });
+
+  var root = $("root");
+  ["dragenter", "dragover"].forEach(function (t) {
+    root.addEventListener(t, function (e) {
+      e.preventDefault(); root.classList.add("drop");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (t) {
+    root.addEventListener(t, function (e) {
+      e.preventDefault(); root.classList.remove("drop");
+    });
+  });
+  root.addEventListener("drop", function (e) {
+    if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+  });
+
+  try {
+    load(JSON.parse($("trace-data").textContent));
+  } catch (err) {
+    fail("Embedded trace failed to load: " + err.message);
+  }
+
+  /* Served over HTTP, ?trace=NAME loads a trace sitting beside this file.
+     Relative names only -- this must not become a fetch-anything proxy. */
+  var want = new URLSearchParams(location.search).get("trace");
+  if (want && !/^[\w.\-]+$/.test(want)) {
+    fail("Refusing to load '" + want + "': ?trace= takes a plain filename.");
+  } else if (want) {
+    fetch(want).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (doc) {
+      $("error").hidden = true;
+      load(doc);
+    }).catch(function (e) {
+      fail("Could not load " + want + ": " + e.message);
+    });
+  }
+})();
+</script>
+</body>
+</html>
