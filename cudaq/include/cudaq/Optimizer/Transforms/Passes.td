@@ -1981,13 +1981,13 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
 
-    The pass can run over IR that still has high-level control flow
-    (`cc.scope`, `cc.if`, `cc.loop`) present, rather than requiring it to
-    have already been lowered to a plain CFG first: `cc.scope`/`cc.if` act as
-    region fences, a structural analogue of the stacksave/stackrestore-pair
-    fencing recognized for already-lowered CFG form, and `cc.loop` is
-    treated as a loop boundary in its own right, exactly like a strongly
-    connected component of a lowered CFG.
+    The pass can be run on IR that still has high-level control flow
+    (`cc.scope`, `cc.if`, `cc.loop`) present and does not require lowering
+    to a plain CFG first. As `cc.scope` gives rise to the `stacksave` /
+    `stackrestore` primitives, it is treated as simply another form of the
+    same fencing. `cc.scope` that is in place to delimit atomic quantum regions
+    may or may not have classical allocations, and will be treated no different
+    by this pass.
 
     Not all allocations can be moved in this way, which implies that not all
     stack guards can be safely removed.  Transport layer conformity tools may
