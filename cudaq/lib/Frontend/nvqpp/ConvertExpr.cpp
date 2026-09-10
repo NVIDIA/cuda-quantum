@@ -1143,6 +1143,8 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   case clang::BinaryOperatorKind::BO_XorAssign:
   case clang::BinaryOperatorKind::BO_AndAssign:
     return true; // see CompoundAssignOperator
+  case clang::BinaryOperatorKind::BO_Comma:
+    return pushValue(rhs);
   default:
     break;
   }
