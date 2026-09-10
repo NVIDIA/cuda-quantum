@@ -99,3 +99,16 @@ def test_amplitude_encode_zero_vector():
 def test_amplitude_encode_2d_rejected():
     with pytest.raises(ValueError, match="1D vector"):
         cudaq.contrib.amplitude_encode(np.eye(2), pad=0)
+
+
+@pytest.mark.parametrize("nested", [
+    [[0.5, 0.5], [0.5, 0.5]],  # nested list
+    ((0.5, 0.5), (0.5, 0.5)),  # nested tuple
+])
+def test_amplitude_encode_2d_sequence_rejected(nested):
+    # A nested Python sequence (list or tuple) must be rejected like the
+    # equivalent 2-D array, rather than being silently flattened into a 1-D
+    # vector. Both types convert to the same 2-D array, so one parametrized
+    # test covers both without duplicating the assertion.
+    with pytest.raises(ValueError, match="1D vector"):
+        cudaq.contrib.amplitude_encode(nested, pad=0)
