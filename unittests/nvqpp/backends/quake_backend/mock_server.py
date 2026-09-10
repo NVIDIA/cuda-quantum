@@ -46,31 +46,50 @@ SERVER_EXECUTION_PIPELINE = (
     "lower-to-cfg,symbol-dce,cc-to-llvm"
     ")")
 
+REFERENCE_SEMANTICS_OPS = {
+    "quake.alloca",
+    "quake.extract_ref",
+    "quake.subveq",
+    "quake.concat",
+    "quake.relax_size",
+    "quake.unwrap",
+    "quake.wrap",
+}
 
-def verifyValueSemanticsPayload(decoded_payload):
-    required_tokens = ["quake.wire_set", "quake.borrow_wire"]
-    for token in required_tokens:
-        if token not in decoded_payload:
-            raise RuntimeError(
-                f"Remote payload is missing `{token}`. The server must receive"
-                " value-semantics MLIR with an assigned wireset.")
 
-    forbidden_tokens = [
-        "quake.alloca",
-        "quake.extract_ref",
-        "quake.subveq",
-        "quake.concat",
-        "quake.relax_size",
-        "quake.unwrap",
-        "quake.wrap",
-        "!quake.ref",
-        "!quake.veq",
-    ]
-    for token in forbidden_tokens:
-        if token in decoded_payload:
+def isQuantumReferenceType(ty):
+    return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+        ty) or quake.StruqType.isinstance(ty)
+
+
+def verifyValueSemanticsPayload(module):
+    """Check that the kernel bodies in the payload are in value-semantics
+    form."""
+    seen = set()
+    for op in module.body.operations:
+        seen.add(op.operation.name)
+        if not isinstance(op, func.FuncOp) or op.is_external:
+            continue
+        for inner in walkOperations(op.operation):
+            name = inner.operation.name
+            seen.add(name)
+            if name in REFERENCE_SEMANTICS_OPS:
+                raise RuntimeError(
+                    f"Remote payload still contains reference-semantics"
+                    f" operation `{name}` in `{op.name.value}`. The server"
+                    " must receive wireset MLIR.")
+            for value in list(inner.operands) + list(inner.results):
+                if isQuantumReferenceType(value.type):
+                    raise RuntimeError(
+                        f"Remote payload still contains a quantum reference"
+                        f" value of type `{value.type}` in `{op.name.value}`."
+                        " The server must receive wireset MLIR.")
+
+    for required in ["quake.wire_set", "quake.borrow_wire"]:
+        if required not in seen:
             raise RuntimeError(
-                f"Remote payload still contains reference-semantics token"
-                f" `{token}`. The server must receive wireset MLIR.")
+                f"Remote payload is missing `{required}`. The server must"
+                " receive value-semantics MLIR with an assigned wireset.")
 
 
 def verifyExpectedMapping(decoded_payload, entry_func_name):
@@ -198,6 +217,58 @@ def verifyModule(module, stage):
         raise RuntimeError(f"MLIR verification failed for {stage} module.")
 
 
+def stubExternalQuantumCalls(recovered_mod):
+    """Treat a call the backend is meant to implement as the identity.
+
+    `lower-wireset-to-profile-qir` marks external quantum calls illegal, and
+    the mock has no implementation to offer, so each wire operand is threaded
+    to the matching result. Only a symbol the payload declares without a body
+    is stubbed; anything else is reported.
+    """
+    stubbed = []
+    declared = set()
+    defined = set()
+    for op in recovered_mod.body.operations:
+        if isinstance(op, func.FuncOp):
+            (declared if op.is_external else defined).add(op.name.value)
+
+    def walk(op):
+        for region in op.regions:
+            for block in region.blocks:
+                for inner in list(block.operations):
+                    if inner.operation.name not in ("quake.apply",
+                                                    "quake.call_by_ref"):
+                        walk(inner.operation)
+                        continue
+                    name = str(inner.attributes["callee"]).lstrip("@")
+                    if name in defined:
+                        raise RuntimeError(
+                            f"Call to `{name}` reached the server in wire "
+                            "form, but the payload defines it. A call to a "
+                            "kernel with a body should have been inlined.")
+                    if name not in declared:
+                        raise RuntimeError(
+                            f"Call to `{name}` reached the server, but the "
+                            "payload does not declare it. The mock only "
+                            "stubs operations the backend is meant to "
+                            "implement.")
+                    quantum = [
+                        o for o in inner.operands
+                        if str(o.type) == "!quake.wire"
+                    ]
+                    if len(quantum) != len(inner.results):
+                        raise RuntimeError(
+                            f"External call `{name}` has {len(quantum)} wire "
+                            f"operand(s) but {len(inner.results)} result(s).")
+                    for result, operand in zip(inner.results, quantum):
+                        result.replace_all_uses_with(operand)
+                    inner.operation.erase()
+                    stubbed.append(name)
+
+    walk(recovered_mod.operation)
+    return stubbed
+
+
 def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
     # The client/server contract is checked before this point. The client has
     # already run the target JIT pipeline through `wireset` assignment. For
@@ -229,11 +300,22 @@ async def postJob(request: Request):
             "Input MLIR contains malloc or memcpy calls. These should have been"
             " eliminated by the eliminate-dead-heap-copy pass.")
 
-    verifyValueSemanticsPayload(decoded_payload)
-
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)
     verifyModule(recovered_mod, "submitted")
+
+    # Stub first, so `symbol-dce` can drop the declarations left behind.
+    for name in stubExternalQuantumCalls(recovered_mod):
+        print(f"Stubbed external quantum call `{name}`")
+    dce = PassManager.parse("builtin.module(symbol-dce)", context=ctx)
+    try:
+        dce.run(recovered_mod.operation)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to run `symbol-dce` on the recovered module: {e}")
+
+    verifyValueSemanticsPayload(recovered_mod)
+
     pm = PassManager.parse(
         "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
     try:

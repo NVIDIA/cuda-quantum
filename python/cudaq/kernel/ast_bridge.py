@@ -2988,6 +2988,66 @@ class PyASTBridge(ast.NodeVisitor):
 
             return name
 
+        def lookupExternKernel(name, path=None):
+            """Return the `extern` kernel declared for a name, or None.
+
+            An `extern` kernel is resolved in the frame that defines it.
+            """
+            from .kernel_decorator import isa_extern_kernel_decorator
+
+            if path:
+                name = f"{path}.{name}"
+
+            if name in self.qualifiedDecoratorCache:
+                decorator = self.qualifiedDecoratorCache[name]
+            else:
+                decorator = recover_value_of_or_none(name, self.defFrame)
+                self.qualifiedDecoratorCache[name] = decorator
+            if decorator is not None and isa_extern_kernel_decorator(decorator):
+                return decorator
+
+            return None
+
+        def processExternKernel(name, path=None):
+            """Emit a direct call to a function declared with
+            `cudaq.kernel(external=True)`. The declaration stays in reference
+            form and `cable-rough-in` rewrites the call into wire form later.
+            """
+            externKernel = lookupExternKernel(name, path=path)
+            if externKernel is None:
+                return False
+
+            argTys = externKernel.arg_types()
+            if len(node.args) != len(argTys):
+                self.emitFatalError(
+                    f"extern kernel '{externKernel.name}' takes {len(argTys)} "
+                    f"argument(s), but {len(node.args)} were given.", node)
+            values = groupValues(node.args, [(len(argTys), len(argTys))])
+            values = convertArguments(argTys, values)
+
+            returnTy = externKernel.signature.return_type
+            resTys = [returnTy] if returnTy is not None else []
+
+            symbol = externKernel.backendSymbol
+            fnTy = FunctionType.get(argTys, resTys)
+            currentST = SymbolTable(self.module.operation)
+            if symbol in currentST:
+                declaredTy = currentST[symbol].type
+                if declaredTy != fnTy:
+                    self.emitFatalError(
+                        f"extern kernel '{externKernel.name}' declares symbol "
+                        f"'{symbol}' as {fnTy}, but it is already declared as "
+                        f"{declaredTy}.", node)
+            else:
+                with InsertionPoint(self.module.body):
+                    declOp = func.FuncOp(symbol, (argTys, resTys))
+                    declOp.sym_visibility = StringAttr.get("private")
+
+            call = func.CallOp(resTys, symbol, values)
+            if resTys:
+                self.pushValue(call.result)
+            return True
+
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
             self.visit(ast.Name(symName))
@@ -3124,6 +3184,10 @@ class PyASTBridge(ast.NodeVisitor):
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
+                # Handle kernels the backend implements
+                if processExternKernel(name, path=devKey):
+                    return
+
                 # Handle debug functions
                 if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
                         node.func):
@@ -3162,6 +3226,9 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
         if isinstance(node.func, ast.Name):
+            if processExternKernel(node.func.id):
+                return
+
             symName = (node.func.id if node.func.id in self.symbolTable else
                        processDecorator(node.func.id))
             if symName:

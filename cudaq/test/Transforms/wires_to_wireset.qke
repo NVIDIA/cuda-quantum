@@ -110,7 +110,8 @@ func.func @__nvqpp__mlirgen__callee() -> !quake.wire attributes {"cudaq-kernel"}
 // CHECK:           return %[[VAL_1]] : !quake.wire
 // CHECK:         }
 
-// Kernel with a quake.call_by_ref — assign-wire-indices should bail out.
+// Kernel with a quake.call_by_ref (assign-wire-indices should bail out). The
+// pass walks call_by_ref and apply separately, so both are covered.
 
 func.func @__nvqpp__mlirgen__cbr_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.null_wire
