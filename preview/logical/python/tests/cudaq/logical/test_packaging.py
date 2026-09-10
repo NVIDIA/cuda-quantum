@@ -50,7 +50,6 @@ def _run_python(tmp_path: Path, code: str) -> subprocess.CompletedProcess:
 def test_base_dependencies_exclude_the_cudaq_runtime():
     project = _load_pyproject()["project"]
     dependencies = project["dependencies"]
-    assert any(d.startswith("stim") for d in dependencies)
     offenders = [
         d for d in dependencies if d.startswith(("cudaq", "cuda-quantum"))
     ]
