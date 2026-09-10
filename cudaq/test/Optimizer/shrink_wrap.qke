@@ -219,13 +219,13 @@ func.func @atomic_scope_reused(%cond: i1) -> i64 {
   %j = cc.alloca i64
   %c4 = arith.constant 4 : i64
   cc.if(%cond) {
-    cc.scope {
+    cc.scope atomic {
       cc.store %c4, %j : !cc.ptr<i64>
       %v = cc.load %j : !cc.ptr<i64>
       %v2 = arith.addi %v, %c4 : i64
       cc.store %v2, %j : !cc.ptr<i64>
       cc.continue
-    } {atomic_quantum_region}
+    }
     cc.continue
   }
   %c0 = arith.constant 0 : i64
@@ -236,13 +236,13 @@ func.func @atomic_scope_reused(%cond: i1) -> i64 {
 // CHECK-SAME:      %[[ARG0:.*]]: i1) -> i64 {
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant 4 : i64
 // CHECK:           cc.if(%[[ARG0]]) {
-// CHECK:             cc.scope {
+// CHECK:             cc.scope atomic {
 // CHECK:               %[[ALLOCA_0:.*]] = cc.alloca i64
 // CHECK:               cc.store %[[CONSTANT_0]], %[[ALLOCA_0]] : !cc.ptr<i64>
 // CHECK:               %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i64>
 // CHECK:               %[[ADDI_0:.*]] = arith.addi %[[LOAD_0]], %[[CONSTANT_0]] : i64
 // CHECK:               cc.store %[[ADDI_0]], %[[ALLOCA_0]] : !cc.ptr<i64>
-// CHECK:             } {atomic_quantum_region}
+// CHECK:             }
 // CHECK:           }
 // CHECK:           %[[CONSTANT_1:.*]] = arith.constant 0 : i64
 // CHECK:           return %[[CONSTANT_1]] : i64
@@ -275,4 +275,238 @@ func.func @sink_dynamic_size(%cond: i1, %n: i64) -> i64 {
 // CHECK:           }
 // CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
 // CHECK:           return %[[CONSTANT_1]] : i64
+// CHECK:         }
+
+// A `cc.if` arm whose `cc.continue` carries an operand computed from the
+// sunk variable: the value can't simply stay defined outside the new
+// `cc.scope`, so the scope must be built to yield it as its own result, and
+// the arm's `cc.continue` rewritten to forward that result instead.
+func.func @sink_with_operand_continue(%cond: i1) -> i64 {
+  %j = cc.alloca i64
+  %c4 = arith.constant 4 : i64
+  %r = cc.if(%cond) -> i64 {
+    cc.store %c4, %j : !cc.ptr<i64>
+    %v = cc.load %j : !cc.ptr<i64>
+    %v2 = arith.addi %v, %c4 : i64
+    cc.continue %v2 : i64
+  } else {
+    cc.continue %c4 : i64
+  }
+  return %r : i64
+}
+
+// CHECK-LABEL:   func.func @sink_with_operand_continue(
+// CHECK-SAME:      %[[ARG0:.*]]: i1) -> i64 {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 4 : i64
+// CHECK:           %[[IF:.*]] = cc.if(%[[ARG0]]) -> i64 {
+// CHECK:             %[[SCOPE:.*]] = cc.scope -> (i64) {
+// CHECK:               %[[ALLOCA_0:.*]] = cc.alloca i64
+// CHECK:               cc.store %[[CONSTANT_0]], %[[ALLOCA_0]] : !cc.ptr<i64>
+// CHECK:               %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i64>
+// CHECK:               %[[ADDI_0:.*]] = arith.addi %[[LOAD_0]], %[[CONSTANT_0]] : i64
+// CHECK:               cc.continue %[[ADDI_0]] : i64
+// CHECK:             }
+// CHECK:             cc.continue %[[SCOPE]] : i64
+// CHECK:           } else {
+// CHECK:             cc.continue %[[CONSTANT_0]] : i64
+// CHECK:           }
+// CHECK:           return %[[IF]] : i64
+// CHECK:         }
+
+// A `cc.loop` whose body unconditionally breaks. `cc.break` can never
+// terminate a `cc.scope`, so the whole body (here, its one block) is moved
+// wholesale into a new scope that also yields a trailing `i1` discriminant,
+// and the body region is rebuilt as three blocks: the scope followed by a
+// `cf.cond_br` on that `i1`, branching to a block re-issuing the real
+// `cc.break` or one re-issuing the real `cc.continue`.
+func.func @sink_loop_body_unconditional_break(%cond: i1) -> i64 {
+  %j = cc.alloca i64
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %r = cc.loop while ((%i = %c0) -> (i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    cc.store %c4, %j : !cc.ptr<i64>
+    %v = cc.load %j : !cc.ptr<i64>
+    cc.break %v : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return %r : i64
+}
+
+// CHECK-LABEL:   func.func @sink_loop_body_unconditional_break(
+// CHECK:           cc.loop while
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[I:.*]]: i64):
+// CHECK:             %[[SCOPE:.*]]:2 = cc.scope -> (i64, i1) {
+// CHECK:               %[[ALLOCA_0:.*]] = cc.alloca i64
+// CHECK:               cc.store {{.*}}, %[[ALLOCA_0]]
+// CHECK:               %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]]
+// CHECK:               %[[TRUE:.*]] = arith.constant true
+// CHECK:               cc.continue %[[LOAD_0]], %[[TRUE]] : i64, i1
+// CHECK:             }
+// CHECK:             cf.cond_br %[[SCOPE]]#1, ^bb1, ^bb2
+// CHECK:           ^bb1:
+// CHECK:             cc.break %[[SCOPE]]#0 : i64
+// CHECK:           ^bb2:
+// CHECK:             cc.continue %[[SCOPE]]#0 : i64
+// CHECK:           } step {
+
+// The genuinely conditional case: the original body already branches (via
+// `cf.cond_br`) to two separate exits, one `cc.break`, one `cc.continue`.
+// The scope retains that internal branch as-is, with each exit's terminator
+// rewritten to carry the discriminant; only the region-level reconstruction
+// outside the scope is new.
+func.func @sink_loop_body_conditional_break(%cond: i1) -> i64 {
+  %j = cc.alloca i64
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %r = cc.loop while ((%i = %c0) -> (i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    cc.store %c4, %j : !cc.ptr<i64>
+    %v = cc.load %j : !cc.ptr<i64>
+    cf.cond_br %cond, ^bb1, ^bb2
+  ^bb1:
+    cc.break %v : i64
+  ^bb2:
+    cc.continue %v : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return %r : i64
+}
+
+// CHECK-LABEL:   func.func @sink_loop_body_conditional_break(
+// CHECK:           cc.loop while
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[I:.*]]: i64):
+// CHECK:             %[[SCOPE:.*]]:2 = cc.scope -> (i64, i1) {
+// CHECK:               %[[ALLOCA_0:.*]] = cc.alloca i64
+// CHECK:               cc.store {{.*}}, %[[ALLOCA_0]]
+// CHECK:               %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]]
+// CHECK:               cf.cond_br %{{.*}}, ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               %[[TRUE:.*]] = arith.constant true
+// CHECK:               cc.continue %[[LOAD_0]], %[[TRUE]] : i64, i1
+// CHECK:             ^bb2:
+// CHECK:               %[[FALSE:.*]] = arith.constant false
+// CHECK:               cc.continue %[[LOAD_0]], %[[FALSE]] : i64, i1
+// CHECK:             }
+// CHECK:             cf.cond_br %[[SCOPE]]#1, ^bb1, ^bb2
+// CHECK:           ^bb1:
+// CHECK:             cc.break %[[SCOPE]]#0 : i64
+// CHECK:           ^bb2:
+// CHECK:             cc.continue %[[SCOPE]]#0 : i64
+// CHECK:           } step {
+
+// Moving the whole region wholesale is the general case, not just something
+// done for a `cc.loop` body with a `cc.break`: a `cc.if` arm can equally
+// well have multiple blocks (here, from an ordinary internal `cf.cond_br`
+// unrelated to any break/continue split - there is none, `cc.break` can
+// never occur in an `if` arm at all). With no `cc.break` among its exits,
+// no `i1` discriminant is needed - the scope just yields the shared payload
+// and a single `cc.continue` follows it.
+func.func @sink_multiblock_if_arm(%cond: i1, %branch: i1) -> i64 {
+  %j = cc.alloca i64
+  %c4 = arith.constant 4 : i64
+  %c9 = arith.constant 9 : i64
+  %r = cc.if(%cond) -> i64 {
+    cc.store %c4, %j : !cc.ptr<i64>
+    %v = cc.load %j : !cc.ptr<i64>
+    cf.cond_br %branch, ^bb1, ^bb2
+  ^bb1:
+    %v2 = arith.addi %v, %c9 : i64
+    cc.continue %v2 : i64
+  ^bb2:
+    cc.continue %v : i64
+  } else {
+    cc.continue %c4 : i64
+  }
+  return %r : i64
+}
+
+// CHECK-LABEL:   func.func @sink_multiblock_if_arm(
+// CHECK-SAME:      %[[ARG0:.*]]: i1, %[[ARG1:.*]]: i1) -> i64 {
+// CHECK:           %[[IF:.*]] = cc.if(%[[ARG0]]) -> i64 {
+// CHECK:             %[[SCOPE:.*]] = cc.scope -> (i64) {
+// CHECK:               %[[ALLOCA_0:.*]] = cc.alloca i64
+// CHECK:               cc.store {{.*}}, %[[ALLOCA_0]]
+// CHECK:               %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]]
+// CHECK:               cf.cond_br %[[ARG1]], ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               %[[ADDI_0:.*]] = arith.addi %[[LOAD_0]], %{{.*}} : i64
+// CHECK:               cc.continue %[[ADDI_0]] : i64
+// CHECK:             ^bb2:
+// CHECK:               cc.continue %[[LOAD_0]] : i64
+// CHECK:             }
+// CHECK:             cc.continue %[[SCOPE]] : i64
+// CHECK:           } else {
+// CHECK:             cc.continue %{{.*}} : i64
+// CHECK:           }
+// CHECK:           return %[[IF]] : i64
+// CHECK:         }
+
+// The same for a `cc.loop`'s `else` region: multiple blocks, no `cc.break`
+// possible there either, so no discriminant - only its own (loop-carried)
+// block arguments need threading into the relocated scope.
+func.func @sink_multiblock_loop_else(%n: i64, %branch: i1) -> i64 {
+  %j = cc.alloca i64
+  %c0 = arith.constant 0 : i64
+  %c9 = arith.constant 9 : i64
+  %r:2 = cc.loop while ((%i = %c0, %acc = %c0) -> (i64, i64)) {
+    %cmp = arith.cmpi slt, %i, %n : i64
+    cc.condition %cmp(%i, %acc : i64, i64)
+  } do {
+  ^bb0(%i: i64, %acc: i64):
+    %next = arith.addi %i, %c0 : i64
+    cc.continue %next, %acc : i64, i64
+  } step {
+  ^bb0(%i: i64, %acc: i64):
+    %next = arith.addi %i, %c0 : i64
+    cc.continue %next, %acc : i64, i64
+  } else {
+  ^bb0(%i: i64, %acc: i64):
+    cc.store %c9, %j : !cc.ptr<i64>
+    %v = cc.load %j : !cc.ptr<i64>
+    cf.cond_br %branch, ^bb1, ^bb2
+  ^bb1:
+    %v2 = arith.addi %v, %acc : i64
+    cc.continue %i, %v2 : i64, i64
+  ^bb2:
+    cc.continue %i, %acc : i64, i64
+  }
+  return %r#1 : i64
+}
+
+// CHECK-LABEL:   func.func @sink_multiblock_loop_else(
+// CHECK:           } else {
+// CHECK:           ^bb0(%[[I:.*]]: i64, %[[ACC:.*]]: i64):
+// CHECK:             %[[SCOPE:.*]]:2 = cc.scope -> (i64, i64) {
+// CHECK:               %[[ALLOCA_0:.*]] = cc.alloca i64
+// CHECK:               cc.store {{.*}}, %[[ALLOCA_0]]
+// CHECK:               %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]]
+// CHECK:               cf.cond_br %{{.*}}, ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               %[[ADDI_0:.*]] = arith.addi %[[LOAD_0]], %[[ACC]] : i64
+// CHECK:               cc.continue %[[I]], %[[ADDI_0]] : i64, i64
+// CHECK:             ^bb2:
+// CHECK:               cc.continue %[[I]], %[[ACC]] : i64, i64
+// CHECK:             }
+// CHECK:             cc.continue %[[SCOPE]]#0, %[[SCOPE]]#1 : i64, i64
+// CHECK:           }
+// CHECK:           return %{{.*}} : i64
 // CHECK:         }

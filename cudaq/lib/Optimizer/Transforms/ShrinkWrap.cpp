@@ -129,39 +129,144 @@ static bool collectUses(Value addr, SmallVectorImpl<Operation *> &uses) {
   return true;
 }
 
-// Move `alloca` into a `cc.scope` nested in `targetBlock`, reusing an
-// already-present wrapping `cc.scope` if the target's only content is one.
-static void shrinkWrapInto(cudaq::cc::AllocaOp alloca, Block &targetBlock) {
-  OpBuilder builder(alloca.getContext());
+// Move `alloca` into a `cc.scope` covering the entirety of `targetRegion`'s
+// existing content: reusing an already-present wrapping `cc.scope` if the
+// region is a single block whose only content already is one, otherwise
+// relocating the entire region into a freshly built `cc.scope`.
+//
+// Every exit found is required to be a plain `cc.continue` or, if in a
+// `cc.loop` body, `cc.break`. For every case of `cc.continue` the moved CFG
+// must rethread through the `cc.scope`'s results and back through the enclosing
+// control-flow operation to preserve proper semantics. If the region has a mix
+// of `cc.continue` and `cc.break` (which we will discover here), then we fall
+// back to converting those control-flow operations to a bit of extra dataflow
+// to preserve the semantics and thread the values correctly. This is necessary,
+// because `cc.break` is invalid within the body of the new `cc.scope` and
+// sufficient because `cc.loop`'s semantics require all `cc.continue` and
+// `cc.break` to properly conform to the `cc.loop`'s physical structure. The
+// extra `bool` is merely used to select which goto semantics was originally
+// present for the block in the body region, a `cc.continue` or a `cc.break`.
+static void shrinkWrapInto(cudaq::cc::AllocaOp alloca, Region &targetRegion) {
+  MLIRContext *ctx = alloca.getContext();
+  OpBuilder builder(ctx);
   Location loc = alloca.getLoc();
 
-  cudaq::cc::ScopeOp scope;
-  if (!targetBlock.empty())
-    if (auto s = dyn_cast<cudaq::cc::ScopeOp>(targetBlock.front()))
-      if (s->getNextNode() == targetBlock.getTerminator())
-        scope = s;
-
-  if (!scope) {
-    builder.setInsertionPointToStart(&targetBlock);
-    scope =
-        cudaq::cc::ScopeOp::create(builder, loc, [](OpBuilder &b, Location l) {
-          cudaq::cc::ContinueOp::create(b, l);
-        });
-    Block &scopeBlock = scope.getInitRegion().front();
-    Operation *scopeTerminator = scopeBlock.getTerminator();
-    Block::iterator firstOrig = std::next(scope->getIterator());
-    Operation *blockTerminator = targetBlock.getTerminator();
-    scopeBlock.getOperations().splice(scopeTerminator->getIterator(),
-                                      targetBlock.getOperations(), firstOrig,
-                                      blockTerminator->getIterator());
+  // Fast path: the region is a single block whose only content already is a
+  // wrapping cc.scope - just add the alloca to it.
+  if (targetRegion.hasOneBlock()) {
+    Block &only = targetRegion.front();
+    if (!only.empty())
+      if (auto s = dyn_cast<cudaq::cc::ScopeOp>(only.front()))
+        if (s->getNextNode() == only.getTerminator()) {
+          builder.setInsertionPointToStart(&s.getInitRegion().front());
+          auto newAlloca = cudaq::cc::AllocaOp::create(
+              builder, loc, alloca.getElementType(), alloca.getSeqSize());
+          alloca.getResult().replaceAllUsesWith(newAlloca.getResult());
+          alloca.erase();
+          return;
+        }
   }
 
-  Block &scopeBlock = scope.getInitRegion().front();
-  builder.setInsertionPointToStart(&scopeBlock);
+  // Collect every exit, and bail (leaving the region untouched) unless every
+  // one is a plain cc.continue or cc.break.
+  SmallVector<Operation *> exits;
+  SmallVector<Type> payloadTypes;
+  bool hasBreak = false;
+  for (Block &b : targetRegion)
+    if (b.hasNoSuccessors()) {
+      Operation *term = b.getTerminator();
+      if (!isa<cudaq::cc::ContinueOp, cudaq::cc::BreakOp>(term))
+        return;
+      exits.push_back(term);
+      hasBreak |= isa<cudaq::cc::BreakOp>(term);
+      if (payloadTypes.empty())
+        payloadTypes.assign(term->getOperandTypes().begin(),
+                            term->getOperandTypes().end());
+    }
+  if (exits.empty())
+    return;
+
+  SmallVector<Type> scopeResultTypes(payloadTypes);
+  if (hasBreak)
+    scopeResultTypes.push_back(builder.getI1Type());
+
+  SmallVector<Type> carriedTypes(targetRegion.front().getArgumentTypes());
+
+  // Build the new scope in a fresh, not-yet-attached block, so relocating
+  // the region's existing blocks into the scope below cannot be circular.
+  auto *newEntry = new Block;
+  for (Type ty : carriedTypes)
+    newEntry->addArgument(ty, loc);
+  builder.setInsertionPointToStart(newEntry);
+  cudaq::cc::ScopeOp::BodyBuilderFn noBody;
+  auto scope =
+      cudaq::cc::ScopeOp::create(builder, loc, scopeResultTypes, noBody);
+  Region &scopeRegion = scope.getInitRegion();
+  Block &placeholder = scopeRegion.front();
+  scopeRegion.getBlocks().splice(scopeRegion.end(), targetRegion.getBlocks());
+  placeholder.erase();
+
+  Block &scopeEntry = scopeRegion.front();
+  for (auto [oldArg, newArg] :
+       llvm::zip(scopeEntry.getArguments(), newEntry->getArguments()))
+    oldArg.replaceAllUsesWith(newArg);
+  while (scopeEntry.getNumArguments() > 0)
+    scopeEntry.eraseArgument(scopeEntry.getNumArguments() - 1);
+
+  // Rewrite every exit's terminator: fold it into a `cc.continue`, adding
+  // the break/continue discriminant only if some exit needs one.
+  for (Operation *term : exits) {
+    SmallVector<Value> operands(term->getOperands());
+    builder.setInsertionPoint(term);
+    if (hasBreak) {
+      bool wasBreak = isa<cudaq::cc::BreakOp>(term);
+      Value flag = arith::ConstantOp::create(builder, loc,
+                                             builder.getBoolAttr(wasBreak));
+      operands.push_back(flag);
+    }
+    cudaq::cc::ContinueOp::create(builder, loc, operands);
+    term->erase();
+  }
+
+  // Sink the alloca to the front of the (relocated) entry block.
+  builder.setInsertionPointToStart(&scopeEntry);
   auto newAlloca = cudaq::cc::AllocaOp::create(
       builder, loc, alloca.getElementType(), alloca.getSeqSize());
   alloca.getResult().replaceAllUsesWith(newAlloca.getResult());
   alloca.erase();
+
+  SmallVector<Value> scopeResults(scope.getResults());
+  targetRegion.getBlocks().push_back(newEntry);
+
+  if (!hasBreak) {
+    // Every exit agreed on one terminator kind (cc.continue): a plain
+    // terminator after the scope suffices, no further reconstruction
+    // needed.
+    builder.setInsertionPointToEnd(newEntry);
+    cudaq::cc::ContinueOp::create(builder, loc, scopeResults);
+    return;
+  }
+
+  // Rebuild the region as three blocks: the scope, then a cf.cond_br on its
+  // trailing i1 picking between a fresh cc.break and a fresh cc.continue.
+  Value flagResult = scopeResults.back();
+  SmallVector<Value> payload(scopeResults.begin(),
+                             std::prev(scopeResults.end()));
+
+  auto *trueBlock = new Block;
+  auto *falseBlock = new Block;
+  targetRegion.getBlocks().push_back(trueBlock);
+  targetRegion.getBlocks().push_back(falseBlock);
+
+  builder.setInsertionPointToEnd(newEntry);
+  cf::CondBranchOp::create(builder, loc, flagResult, trueBlock, ValueRange{},
+                           falseBlock, ValueRange{});
+
+  builder.setInsertionPointToStart(trueBlock);
+  cudaq::cc::BreakOp::create(builder, loc, payload);
+
+  builder.setInsertionPointToStart(falseBlock);
+  cudaq::cc::ContinueOp::create(builder, loc, payload);
 }
 
 class ShrinkWrapPass : public cudaq::opt::impl::ShrinkWrapBase<ShrinkWrapPass> {
@@ -215,11 +320,7 @@ private:
       return;
 
     SinkTarget target = common.back();
-    Region &targetRegion = target.region();
-    if (!targetRegion.hasOneBlock())
-      return;
-
-    shrinkWrapInto(alloca, targetRegion.front());
+    shrinkWrapInto(alloca, target.region());
   }
 };
 } // namespace
