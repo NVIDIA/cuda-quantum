@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 
 template <typename Policy>

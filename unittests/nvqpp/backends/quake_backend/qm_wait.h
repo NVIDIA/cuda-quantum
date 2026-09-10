@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,12 +8,8 @@
 
 #pragma once
 
-#include "cudaq/platform/RuntimeEndpoint.h"
-#include <nanobind/nanobind.h>
+#include <cudaq.h>
 
-namespace cudaq {
-
-/// Create python bindings for C++ code in this compilation unit.
-void bindRuntimeEndpoint(nanobind::module_ &mod);
-
-} // namespace cudaq
+// A quantum operation the backend implements, as a vendor would ship it.
+// `extern "C"` keeps the symbol verbatim in the payload.
+extern "C" void __qm__wait_function(double duration, cudaq::qubit &q);

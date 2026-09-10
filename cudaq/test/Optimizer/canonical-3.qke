@@ -92,10 +92,7 @@ func.func @if_test_1() {
 }
 
 // CHECK-LABEL:   func.func @if_test_1() {
-// CHECK:           %[[VAL_0:.*]] = arith.constant true
-// CHECK:           cc.if(%[[VAL_0]]) {
-// CHECK:             func.call @if_test_call() : () -> ()
-// CHECK:           }
+// CHECK:           call @if_test_call() : () -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -111,10 +108,7 @@ func.func @if_test_2() {
 }
 
 // CHECK-LABEL:   func.func @if_test_2() {
-// CHECK:           %[[VAL_0:.*]] = arith.constant true
-// CHECK:           cc.if(%[[VAL_0]]) {
-// CHECK:             func.call @if_test_call() : () -> ()
-// CHECK:           }
+// CHECK:           call @if_test_call() : () -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -130,10 +124,7 @@ func.func @if_test_3() {
 }
 
 // CHECK-LABEL:   func.func @if_test_3() {
-// CHECK:           %[[VAL_0:.*]] = arith.constant true
-// CHECK:           cc.if(%[[VAL_0]]) {
-// CHECK:             func.call @if_test_call() : () -> ()
-// CHECK:           }
+// CHECK:           call @if_test_call() : () -> ()
 // CHECK:           return
 // CHECK:         }
 
