@@ -25,7 +25,6 @@ dependencies = [
   # the cu12/cu13 extras below, and the much larger CUDA-Q development SDK
   # wheel is installed only in the isolated CI build environment. Neither may
   # ever appear in this list.
-  "stim>=1.16,<2",
 ]
 classifiers = [
   'Intended Audience :: Science/Research',
