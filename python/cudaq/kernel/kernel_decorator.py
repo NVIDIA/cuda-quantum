@@ -728,9 +728,9 @@ def kernel(function=None, external=False, backend_symbol=None, **kwargs):
             ...
 
         @cudaq.kernel
-        def `ramsey`(d: float):
+        def kernel(d: float):
             q = cudaq.qubit()
-            rx(`np`.pi / 2, q)
+            rx(numpy.pi / 2, q)
             wait(q, d)
     """
     if external:
