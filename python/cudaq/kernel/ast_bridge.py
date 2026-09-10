@@ -1688,6 +1688,33 @@ class PyASTBridge(ast.NodeVisitor):
                                     pyVals[idx if len(pyVals) > 1 else 0])
         return startVal, endVal, stepVal, isDecrementing
 
+    def __processDecorator(self, name, path=None):
+        """Captures `name` as a callable argument if it is a kernel decorator;
+        returns None otherwise."""
+        from .kernel_decorator import isa_kernel_decorator
+
+        if path:
+            name = f"{path}.{name}"
+
+        if name in self.qualifiedDecoratorCache:
+            decorator = self.qualifiedDecoratorCache[name]
+        else:
+            decorator = recover_value_of_or_none(name, self.defFrame)
+            self.qualifiedDecoratorCache[name] = decorator
+        if decorator is None or not isa_kernel_decorator(decorator):
+            return None
+
+        if not name in self.symbolTable:
+            callableTy = decorator.signature.get_callable_type()
+
+            # `callee` will be a new `BlockArgument`
+            callee = cudaq_runtime.appendKernelArgument(self.kernelFuncOp,
+                                                        callableTy)
+            self.signature.add_variable_capture(name, callableTy)
+            self.symbolTable[name] = callee
+
+        return name
+
     def __groupValues(self, pyvals, groups: list[int | tuple[int, int]]):
         """Helper function that visits the given AST nodes (`pyvals`), and
         groups them according to the specified list.  The list contains integers
@@ -2963,8 +2990,14 @@ class PyASTBridge(ast.NodeVisitor):
                 processQuantumOperation(opName, controls, targets, [], params,
                                         **kwargs)
 
-        def processDecorator(name, path=None):
-            from .kernel_decorator import isa_kernel_decorator
+        processDecorator = self.__processDecorator
+
+        def lookupExternKernel(name, path=None):
+            """Return the `extern` kernel declared for a name, or None.
+
+            An `extern` kernel is resolved in the frame that defines it.
+            """
+            from .kernel_decorator import isa_extern_kernel_decorator
 
             if path:
                 name = f"{path}.{name}"
@@ -2974,19 +3007,50 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 decorator = recover_value_of_or_none(name, self.defFrame)
                 self.qualifiedDecoratorCache[name] = decorator
-            if decorator is None or not isa_kernel_decorator(decorator):
-                return None
+            if decorator is not None and isa_extern_kernel_decorator(decorator):
+                return decorator
 
-            if not name in self.symbolTable:
-                callableTy = decorator.signature.get_callable_type()
+            return None
 
-                # `callee` will be a new `BlockArgument`
-                callee = cudaq_runtime.appendKernelArgument(
-                    self.kernelFuncOp, callableTy)
-                self.signature.add_variable_capture(name, callableTy)
-                self.symbolTable[name] = callee
+        def processExternKernel(name, path=None):
+            """Emit a direct call to a function declared with
+            `cudaq.kernel(external=True)`. The declaration stays in reference
+            form and `cable-rough-in` rewrites the call into wire form later.
+            """
+            externKernel = lookupExternKernel(name, path=path)
+            if externKernel is None:
+                return False
 
-            return name
+            argTys = externKernel.arg_types()
+            if len(node.args) != len(argTys):
+                self.emitFatalError(
+                    f"extern kernel '{externKernel.name}' takes {len(argTys)} "
+                    f"argument(s), but {len(node.args)} were given.", node)
+            values = groupValues(node.args, [(len(argTys), len(argTys))])
+            values = convertArguments(argTys, values)
+
+            returnTy = externKernel.signature.return_type
+            resTys = [returnTy] if returnTy is not None else []
+
+            symbol = externKernel.backendSymbol
+            fnTy = FunctionType.get(argTys, resTys)
+            currentST = SymbolTable(self.module.operation)
+            if symbol in currentST:
+                declaredTy = currentST[symbol].type
+                if declaredTy != fnTy:
+                    self.emitFatalError(
+                        f"extern kernel '{externKernel.name}' declares symbol "
+                        f"'{symbol}' as {fnTy}, but it is already declared as "
+                        f"{declaredTy}.", node)
+            else:
+                with InsertionPoint(self.module.body):
+                    declOp = func.FuncOp(symbol, (argTys, resTys))
+                    declOp.sym_visibility = StringAttr.get("private")
+
+            call = func.CallOp(resTys, symbol, values)
+            if resTys:
+                self.pushValue(call.result)
+            return True
 
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
@@ -3124,6 +3188,10 @@ class PyASTBridge(ast.NodeVisitor):
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
+                # Handle kernels the backend implements
+                if processExternKernel(name, path=devKey):
+                    return
+
                 # Handle debug functions
                 if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
                         node.func):
@@ -3162,6 +3230,9 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
         if isinstance(node.func, ast.Name):
+            if processExternKernel(node.func.id):
+                return
+
             symName = (node.func.id if node.func.id in self.symbolTable else
                        processDecorator(node.func.id))
             if symName:
@@ -6267,9 +6338,13 @@ class PyASTBridge(ast.NodeVisitor):
         if is_recovered_value_ok(value):
             from .kernel_decorator import isa_kernel_decorator
             from .kernel_builder import isa_dynamic_kernel
-            if isa_kernel_decorator(value) or isa_dynamic_kernel(value):
-                # Not a data variable. Symbol bound to kernel object. This case
-                # is handled elsewhere.
+            if isa_kernel_decorator(value):
+                symName = self.__processDecorator(node.id)
+                self.pushValue(self.symbolTable[symName])
+                return
+            if isa_dynamic_kernel(value):
+                # Not a data variable. Symbol bound to kernel object. This
+                # case is handled elsewhere.
                 return
 
             # If `node.id` is already captured, it should be in the symbol table

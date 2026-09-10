@@ -17,7 +17,7 @@ import sys
 from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.util import trace
-from cudaq.mlir.dialects import cc, func
+from cudaq.mlir.dialects import cc, func, quake
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
                            Type)
@@ -25,11 +25,11 @@ from .analysis import FunctionDefVisitor
 from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
                                KernelSignature)
 from .ast_bridge import compile_to_mlir
-from .utils import (emitFatalError, emitErrorIfInvalidPauli,
+from .utils import (cudaqModuleName, emitFatalError, emitErrorIfInvalidPauli,
                     get_function_source_or_raise, get_module_name,
-                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
-                    nvqppPrefix, getMLIRContext, recover_func_op,
-                    recover_value_of)
+                    globalRegisteredTypes, isQuantumReferenceType,
+                    mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix,
+                    getMLIRContext, recover_func_op, recover_value_of)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -203,12 +203,8 @@ class PyKernelDecorator(object):
             # bridge can recognize them alongside the canonical 'cudaq' name.
             # Check both local and global scope since the alias may be at
             # module level while the kernel is defined inside a function.
-            self.cudaqAliases = {'cudaq'}
-            for scope in (parentVars, self.parentFrame.f_globals):
-                for vname, var in scope.items():
-                    if (isinstance(var, types.ModuleType) and
-                            getattr(var, '__name__', None) == 'cudaq'):
-                        self.cudaqAliases.add(vname)
+            self.cudaqAliases = _collect_cudaq_aliases(
+                parentVars, self.parentFrame.f_globals)
 
             self.astModule = _parse_ast(self.funcSrc, self.verbose)
             self.signature = KernelSignature.parse_from_ast(
@@ -709,7 +705,7 @@ def mk_decorator(builder):
     return decorator
 
 
-def kernel(function=None, **kwargs):
+def kernel(function=None, external=False, backend_symbol=None, **kwargs):
     """
     The `cudaq.kernel` represents the CUDA-Q language function attribute that
     programmers leverage to indicate the following function is a CUDA-Q kernel
@@ -718,7 +714,41 @@ def kernel(function=None, **kwargs):
     Verbose logging can be enabled via `verbose=True`. Set
     `atomic_quantum_region=True` to preserve the boundary around each kernel
     invocation from cross-boundary quantum optimization.
+
+    Set `external=True` to declare a quantum operation that the backend
+    implements rather than the compiler. The decorated function is a
+    declaration. It is never compiled, and a call to it from another kernel
+    reaches the backend as a call of `backend_symbol` (the function name by
+    default).
+
+    .. code-block:: python
+
+        @cudaq.kernel(external=True)
+        def wait(q: cudaq.qubit, duration: float) -> None:
+            ...
+
+        @cudaq.kernel
+        def `ramsey`(d: float):
+            q = cudaq.qubit()
+            rx(`np`.pi / 2, q)
+            wait(q, d)
     """
+    if external:
+        if kwargs:
+            emitFatalError(
+                "an external kernel is a declaration and takes no other "
+                "`cudaq.kernel` options, but got "
+                f"{', '.join(sorted(kwargs))}.")
+        if function:
+            return ExternKernelDecorator(function,
+                                         backend_symbol=backend_symbol)
+        return lambda f: ExternKernelDecorator(f, backend_symbol=backend_symbol)
+
+    if backend_symbol is not None:
+        emitFatalError(
+            "`backend_symbol` names the symbol the backend implements, so it "
+            "requires `external=True`.")
+
     if function:
         return PyKernelDecorator(function, **kwargs)
     else:
@@ -736,10 +766,80 @@ def isa_kernel_decorator(object):
     return isinstance(object, PyKernelDecorator)
 
 
+class ExternKernelDecorator(object):
+    """
+    Declares a quantum operation that the backend implements. The decorated
+    function is a declaration, so its body is never compiled and a call to it
+    lowers to a call of `backend_symbol` taking quantum references.
+    """
+
+    def __init__(self, function, backend_symbol=None):
+        self.kernelFunction = function
+        self.name = function.__name__
+        self.backendSymbol = backend_symbol if backend_symbol else self.name
+        self.defFrame = _recover_defining_frame()
+
+        (src, self.location) = _get_source(function)
+        self.astModule = _parse_ast(src)
+        self.cudaqAliases = _collect_cudaq_aliases(
+            self.defFrame.f_locals if self.defFrame else None,
+            self.defFrame.f_globals if self.defFrame else None)
+        self.signature = KernelSignature.parse_from_ast(
+            self.astModule, self.name, cudaqAliases=self.cudaqAliases)
+
+        # A declaration has no body, so its annotations are the only
+        # description of its signature. Require them all, including the return
+        # annotation, which `KernelSignature` would otherwise let us omit
+        # because a declaration never has a return statement.
+        visitor = FunctionDefVisitor(self.name)
+        visitor.visit(self.astModule)
+        if visitor.return_annotation is None:
+            emitFatalError(
+                f"extern kernel '{self.name}' is missing a return type "
+                "annotation. Write `-> None` if it returns nothing.")
+        returnTy = self.signature.return_type
+        if returnTy is not None and isQuantumReferenceType(returnTy):
+            emitFatalError(
+                f"extern kernel '{self.name}' cannot return a quantum type. "
+                "Qubits it takes as arguments are threaded back to the caller "
+                "already.")
+
+    def arg_types(self):
+        return self.signature.arg_types
+
+    def __call__(self, *args, **kwargs):
+        emitFatalError(
+            f"'{self.name}' is an extern kernel implemented by the backend, "
+            "so it can only be called from inside a CUDA-Q kernel.")
+
+
+def isa_extern_kernel_decorator(object):
+    """
+    Return True if and only if object is an instance of ExternKernelDecorator.
+    """
+    return isinstance(object, ExternKernelDecorator)
+
+
 def _get_source(function):
     if function is None:
         return None, None
     return get_function_source_or_raise(function)
+
+
+def _collect_cudaq_aliases(*scopes):
+    """
+    The names bound to the `cudaq` module in the given scopes, so an
+    annotation written against an alias (`import cudaq as cq`) resolves.
+    """
+    aliases = {cudaqModuleName}
+    for scope in scopes:
+        if not scope:
+            continue
+        for name, var in scope.items():
+            if (isinstance(var, types.ModuleType) and
+                    getattr(var, '__name__', None) == cudaqModuleName):
+                aliases.add(name)
+    return aliases
 
 
 def _recover_defining_frame():

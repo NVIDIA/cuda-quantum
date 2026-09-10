@@ -368,6 +368,14 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     - lift-array-alloc
     - cc-loop-normalize
     - cc-loop-unroll
+
+    Running these together to a fix point unrolls loops that a fixed sequence
+    of the individual passes cannot, such as one whose trip count is a constant
+    array element indexed by an outer induction variable.
+
+    The two selective unrolling options mirror cc-loop-unroll and are mutually
+    exclusive. Unlike cc-loop-unroll, this pass never reports a loop it could
+    not unroll.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
@@ -382,7 +390,17 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
       "Allow unrolling of loop with early exit (i.e. break statement).">,
     Option<"disableLoopUnrolling", "no-loop-unroll", "bool",
       /*default=*/"false",
-      "Disable loop unrolling and preserve cc.loop operations.">
+      "Disable loop unrolling and preserve cc.loop operations.">,
+    Option<"unrollOnlyAliasingQuantumAccessLoops",
+      "unroll-only-aliasing-quantum-access-loops", "bool",
+      /*default=*/"false",
+      "Unroll only loops containing aliasing quantum accesses or exp_pauli "
+      "operands that must be resolved for wire-set lowering. See "
+      "cc-loop-unroll.">,
+    Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
+      /*default=*/"false",
+      "Unroll only index use loops, i.e. loops whose induction variable is "
+      "used in the loop body. See cc-loop-unroll.">
   ];
 }
 
@@ -1441,6 +1459,34 @@ def MultiControlDecomposition :
     Note: When a `veq` is used as control, we need to know its size to be able
     to decompose. In such cases, all qubits will be extracted. If the size is
     unknown at compilation-time, the pass leaves the operation as-is.
+  }];
+}
+
+def NormalizeAtomicQuantumRegions :
+    Pass<"normalize-atomic-quantum-regions"> {
+  let summary =
+      "Hoist/sink non-unitary operations from marked atomic quantum region.";
+  let description = [{
+    An `atomic_quantum_region` `cc.scope` marks a sequence of quantum
+    operations that must execute without interleaving with allocations,
+    deallocations, or measurements. When such a scope contains its own
+    `quake.alloca`s, those allocations (and their associated `quake.dealloc`s)
+    are not something that needs to stay inside the atomic region but need to
+    be moved outside of it.
+
+    This pass wraps a `cc.scope` carrying the `atomic_quantum_region`
+    attribute with a new, plain (non-atomic) `cc.scope`. Any `quake.alloca`
+    found directly in the atomic scope's body is hoisted into the new outer
+    scope, ahead of the (now-nested) atomic scope. Any `quake.dealloc` that
+    deallocates one of those hoisted allocations is sunk into the outer scope.
+    Additionally any measurement op found in the body and the transitive closure
+    of every op that consumes a measurement's result is also sunk out of the
+    region. This means an atomic region may not contain mid-circuit
+    measurements.
+
+    For now, this pass only handles reference-semantics Quake IR and requires
+    the atomic scope to have a single block and zero results; it leaves any
+    other atomic scope unmodified.
   }];
 }
 

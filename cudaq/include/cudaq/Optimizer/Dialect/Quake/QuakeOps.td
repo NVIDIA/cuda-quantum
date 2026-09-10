@@ -713,8 +713,15 @@ def quake_WrapNewOp : QuakeOp<"wrap_new"> {
 
 def quake_CallByRefOp : QuakeOp<"call_by_ref",
     [CallOpInterface, SymbolUserOpInterface, QuantumSideEffects]> {
-  let summary = "Call a kernel casting wires to refs.";
+  let summary = "[Deprecated] Call a kernel casting wires to refs.";
   let description = [{
+    DEPRECATED: `quake.apply` (a plain, unpredicated, uncontrolled apply) now
+    subsumes this op's capability -- coercing wire/cable actuals to a callee's
+    reference-typed formals and threading the results back. Nothing in the
+    compiler still produces `call_by_ref`; it is retained only so that
+    hand-written or previously-serialized IR using it continues to parse and
+    lower. Do not emit new `call_by_ref` ops; use `quake.apply` instead.
+
     This operation performs a wrap operation on the wire arguments, calls the
     kernel argument, and unwraps the reference arguments back to wires in a
     macro step.
