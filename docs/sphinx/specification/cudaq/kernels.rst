@@ -274,7 +274,7 @@ mutate an object the caller already holds.
     # d is still {1.0, 2.0}, pass by value
 
 Calls from one kernel to another are governed by the same rule: a pure-device kernel's classical
-arguments are likewise passed by value, not by reference, so a callee can never mutate a caller's
+arguments are likewise passed by value, not by reference, so a called kernel can never mutate a caller's
 classical argument through the call. This keeps the calling convention uniform regardless of
 whether the call originates from host code or from another kernel.
 
