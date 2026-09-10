@@ -312,7 +312,7 @@ inline void collectPhaseAnchorFallbackRootsImpl(
       return;
     }
 
-    // Only scalar wires have an explicit linear CFG flow. Keep other
+    // Only scalar wires have an explicit linear control-flow path. Keep other
     // non-entry block arguments conservative.
     if (!mlir::isa<cudaq::quake::WireType>(argument.getType())) {
       roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
@@ -325,12 +325,22 @@ inline void collectPhaseAnchorFallbackRootsImpl(
       return;
 
     mlir::Block *block = argument.getOwner();
-    bool hasPredecessor = false;
+    bool hasIncoming = false;
+    auto collectIncoming = [&](mlir::Value incoming,
+                               mlir::Operation *incomingAt) {
+      if (!incoming || !mlir::isa<cudaq::quake::WireType>(incoming.getType())) {
+        roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+        return;
+      }
+      collectPhaseAnchorFallbackRootsImpl(incoming, roots, incomingAt,
+                                          visitedWireArguments, wrapsByRoot);
+    };
+
     // Iterate edges because one branch may target this block more than once
     // with different forwarded operands.
     for (auto pred = block->pred_begin(), end = block->pred_end(); pred != end;
          ++pred) {
-      hasPredecessor = true;
+      hasIncoming = true;
       mlir::Operation *terminator = (*pred)->getTerminator();
       auto branch = mlir::dyn_cast<mlir::BranchOpInterface>(terminator);
       if (!branch) {
@@ -346,15 +356,33 @@ inline void collectPhaseAnchorFallbackRootsImpl(
         continue;
       }
 
-      mlir::Value incoming = operands[index];
-      if (!incoming || !mlir::isa<cudaq::quake::WireType>(incoming.getType())) {
-        roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
-        continue;
-      }
-      collectPhaseAnchorFallbackRootsImpl(incoming, roots, terminator,
-                                          visitedWireArguments, wrapsByRoot);
+      collectIncoming(operands[index], terminator);
     }
-    if (!hasPredecessor)
+
+    // Structured control flow forwards values to region entry arguments
+    // through RegionBranchOpInterface rather than ordinary CFG predecessors.
+    mlir::Region *region = block->getParent();
+    if (block->isEntryBlock()) {
+      if (auto regionBranch = mlir::dyn_cast<mlir::RegionBranchOpInterface>(
+              region->getParentOp())) {
+        mlir::RegionBranchInverseSuccessorMapping incomingByArgument;
+        regionBranch.getSuccessorInputOperandMapping(incomingByArgument);
+        auto iter = incomingByArgument.find(argument);
+        if (iter == incomingByArgument.end() || iter->second.empty()) {
+          roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+          hasIncoming = true;
+        } else {
+          hasIncoming = true;
+          for (mlir::OpOperand *operand : iter->second)
+            collectIncoming(operand->get(), operand->getOwner());
+        }
+      } else {
+        roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
+        hasIncoming = true;
+      }
+    }
+
+    if (!hasIncoming)
       roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});
     return;
   }

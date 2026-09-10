@@ -103,4 +103,32 @@ func.func @opaque_block_arguments_may_alias(%theta: f64,
       : (f64, !quake.veq<?>, !quake.ref) -> ()
   return
 }
-// CHECK-COUNT-7: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand
+// -----
+
+// Structured loop arguments must not hide a control-derived wire root.
+func.func @structured_loop_wire_anchor_aliases_control(
+    %theta: f64, %controls: !quake.veq<?>) {
+  %anchor_ref = quake.extract_ref %controls[0]
+      : (!quake.veq<?>) -> !quake.ref
+  %anchor = quake.unwrap %anchor_ref : (!quake.ref) -> !quake.wire
+  %c0 = arith.constant 0 : i64
+  %c4 = arith.constant 4 : i64
+  %c1 = arith.constant 1 : i64
+  %loop:2 = cc.loop while ((%i = %c0, %wire = %anchor)
+                            -> (i64, !quake.wire)) {
+    %condition = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %condition (%i, %wire : i64, !quake.wire)
+  } do {
+  ^bb0(%i: i64, %wire: !quake.wire):
+    %next_wire = quake.phase (%theta) [%controls] %wire
+        : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire
+    cc.continue %i, %next_wire : i64, !quake.wire
+  } step {
+  ^bb0(%i: i64, %wire: !quake.wire):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next, %wire : i64, !quake.wire
+  }
+  quake.sink %loop#1 : !quake.wire
+  return
+}
+// CHECK-COUNT-8: error: 'quake.phase' op cannot lower with an anchor that aliases a control operand

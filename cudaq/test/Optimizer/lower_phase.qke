@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --lower-phase %s | FileCheck %s
+// RUN: cudaq-opt --memtoreg --lower-phase %s | FileCheck %s --check-prefix=MEMTOREG
 
 func.func @uncontrolled_reference(%theta: f64, %anchor: !quake.ref) {
   quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
@@ -356,3 +357,40 @@ func.func @arg_anchor_with_arg_vector(%theta: f64,
 // CHECK-COUNT-2: quake.r1 (%[[THETA]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
 // CHECK-COUNT-2: quake.rz (%[[NEG]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
 // CHECK-NOT: quake.phase
+
+// MemToReg carries a local reference through cc.loop as a wire. Structured
+// region arguments must retain the fresh null_wire provenance.
+func.func @structured_loop_wire_anchor_after_memtoreg(%theta: f64, %size: i32) {
+  %anchor = quake.alloca !quake.ref
+  %controls = quake.alloca !quake.veq<?>[%size : i32]
+  %c0 = arith.constant 0 : i64
+  %c4 = arith.constant 4 : i64
+  %c1 = arith.constant 1 : i64
+  cc.loop while ((%i = %c0) -> (i64)) {
+    %condition = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %condition (%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    quake.phase (%theta) [%controls] %anchor
+        : (f64, !quake.veq<?>, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return
+}
+// MEMTOREG-LABEL: func.func @structured_loop_wire_anchor_after_memtoreg(
+// MEMTOREG-SAME: %[[LOOP_THETA:[a-zA-Z0-9_.$-]+]]: f64
+// MEMTOREG: %[[LOOP_ANCHOR:.*]] = quake.null_wire
+// MEMTOREG-NEXT: %[[LOOP_CONTROLS:.*]] = quake.alloca !quake.veq<?>
+// MEMTOREG: cc.loop while ((%{{.*}} = %{{.*}}, %{{.*}} = %[[LOOP_ANCHOR]])
+// MEMTOREG: ^bb0(%[[LOOP_INDEX:.*]]: i64, %[[LOOP_WIRE:.*]]: !quake.wire):
+// MEMTOREG-NEXT: %[[LOOP_NEG:.*]] = arith.negf %[[LOOP_THETA]] : f64
+// MEMTOREG-NEXT: %[[LOOP_R1_0:.*]] = quake.r1 (%[[LOOP_THETA]]) {{\[}}%[[LOOP_CONTROLS]]{{\]}} %[[LOOP_WIRE]]
+// MEMTOREG-NEXT: %[[LOOP_R1_1:.*]] = quake.r1 (%[[LOOP_THETA]]) {{\[}}%[[LOOP_CONTROLS]]{{\]}} %[[LOOP_R1_0]]
+// MEMTOREG-NEXT: %[[LOOP_RZ_0:.*]] = quake.rz (%[[LOOP_NEG]]) {{\[}}%[[LOOP_CONTROLS]]{{\]}} %[[LOOP_R1_1]]
+// MEMTOREG-NEXT: %[[LOOP_RZ_1:.*]] = quake.rz (%[[LOOP_NEG]]) {{\[}}%[[LOOP_CONTROLS]]{{\]}} %[[LOOP_RZ_0]]
+// MEMTOREG-NEXT: cc.continue %[[LOOP_INDEX]], %[[LOOP_RZ_1]] : i64, !quake.wire
+// MEMTOREG-NOT: quake.phase
