@@ -93,6 +93,16 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 # Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
+# Deployments supplies one Python 3.12 Logical wheel for this architecture in
+# docker/release/logical-wheels/. Bind it so the archive is not retained in a layer.
+ARG include_logical=false
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_logical" = true ]; then \
+        python3 /tmp/cudaq-release/install_logical_wheel.py \
+            --wheel-dir /tmp/cudaq-release/logical-wheels \
+            --prefix "$CUDA_QUANTUM_PATH"; \
+    fi
+
 # Some tools related to shell handling.
 
 ARG COPYRIGHT_NOTICE="=========================\n\
@@ -134,5 +144,12 @@ WORKDIR /home/cudaq
 # If we don't do that, then apt-get will get confused if some CUDA
 # components are already installed but not all of them.
 RUN sudo apt-get update
+
+# Check the installed package and native tools as the image's normal user before
+# build-push-action can publish the image.
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_logical" = true ]; then \
+        python3 /tmp/cudaq-release/validate_logical.py; \
+    fi
 
 ENTRYPOINT ["bash", "-l"]
