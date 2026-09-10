@@ -1,12 +1,10 @@
-//===- QLXRuntime.cpp - QLX text/translation Python helpers ------------===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Textual / module-level helpers exposed to Python:
 //
@@ -20,6 +18,8 @@
 #include <nanobind/stl/string.h>
 
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "mlir/Bytecode/BytecodeReader.h"
+#include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Support.h"
 
@@ -28,9 +28,14 @@
 #include "qlx-c/Passes.h"
 #include "qlx-c/Target/Translations.h"
 
+// Upstream MLIR transform passes (provides --symbol-dce).
+#include "mlir-c/Transforms.h"
+
 // Module-text helpers that don't have a CAPI entry yet still talk to the
 // C++ surface directly.  The dialect bindings (DialectQLX/DialectFabric)
 // stay CAPI-only; this file is the "sin bin" for the textual surface.
+#include "llvm/Support/MemoryBufferRef.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/IR/MLIRContext.h"
@@ -49,10 +54,15 @@
 #include "qlx/Dialect/QLX/Transforms/QLXVerifyPBC.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
-#include "qlx/Dialect/Fabric/IR/FabricDialect.h"
-
 #include "PassDebug.h"
+
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include <memory>
+#include <mutex>
+#include <unordered_map>
 
 namespace nb = nanobind;
 
@@ -63,8 +73,27 @@ static std::vector<std::string> &getPluginPaths() {
   static auto *paths = new std::vector<std::string>();
   return *paths;
 }
-
 namespace {
+
+struct ContextDiagnosticLockRegistry {
+  std::mutex mutex;
+  std::unordered_map<mlir::MLIRContext *, std::weak_ptr<std::mutex>> locks;
+};
+
+std::shared_ptr<std::mutex> contextDiagnosticMutex(mlir::MLIRContext *context) {
+  // The registry stores weak references so transient Python contexts do not
+  // retain one mutex for the lifetime of the process.  Reuse of an address
+  // after context destruction is harmless: an expired entry mints a new lock.
+  static auto *registry = new ContextDiagnosticLockRegistry();
+  std::lock_guard<std::mutex> registryLock(registry->mutex);
+  std::weak_ptr<std::mutex> &slot = registry->locks[context];
+  std::shared_ptr<std::mutex> result = slot.lock();
+  if (!result) {
+    result = std::make_shared<std::mutex>();
+    slot = result;
+  }
+  return result;
+}
 
 // Trampoline used by qlxTranslate*: append to a std::string captured
 // through the userData pointer.
@@ -77,10 +106,14 @@ inline MlirStringRef toRef(const std::string &s) {
   return MlirStringRef{s.data(), s.size()};
 }
 
-void runPassPipeline(MlirModule pyModule, const std::string &pipeline) {
+void runPassPipeline(MlirModule pyModule, const std::string &pipeline,
+                     bool verify) {
   mlir::ModuleOp mod = unwrap(pyModule);
   mlir::MLIRContext *ctx = mod.getContext();
+  std::shared_ptr<std::mutex> diagnosticMutex = contextDiagnosticMutex(ctx);
+  std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
   mlir::PassManager pm(ctx);
+  pm.enableVerifier(verify);
   qlx::python::configureIRPrinting(pm);
   if (mlir::failed(mlir::parsePassPipeline(pipeline, pm)))
     throw std::runtime_error("Invalid pass pipeline: " + pipeline);
@@ -108,6 +141,158 @@ void runPassPipeline(MlirModule pyModule, const std::string &pipeline) {
   }
 }
 
+void materializeVerifiedAnalyticalLowerTier(
+    MlirModule pyModule, const std::string &root, const std::string &device,
+    const std::string &staticResult, const std::string &analyticalResult,
+    double physicalError, double failureBudget, double cycleTime,
+    double scalingPrefactor, double scalingThreshold,
+    bool requireEstablishedDistance) {
+  mlir::ModuleOp module = unwrap(pyModule);
+  mlir::MLIRContext *context = module.getContext();
+  std::shared_ptr<std::mutex> diagnosticMutex = contextDiagnosticMutex(context);
+  std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+  std::string diagnostics;
+  mlir::ScopedDiagnosticHandler handler(
+      context, [&](mlir::Diagnostic &diagnostic) {
+        if (diagnostic.getSeverity() != mlir::DiagnosticSeverity::Error)
+          return mlir::failure();
+        std::string entry;
+        llvm::raw_string_ostream stream(entry);
+        stream << diagnostic.getLocation() << ": " << diagnostic.str();
+        for (mlir::Diagnostic &note : diagnostic.getNotes())
+          stream << "\n  note: " << note.getLocation() << ": " << note.str();
+        if (!diagnostics.empty())
+          diagnostics += "\n";
+        diagnostics += entry;
+        return mlir::success();
+      });
+
+  if (mlirLogicalResultIsFailure(qlxMaterializeVerifiedAnalyticalLowerTier(
+          pyModule, toRef(root), toRef(device), toRef(staticResult),
+          toRef(analyticalResult), physicalError, failureBudget, cycleTime,
+          scalingPrefactor, scalingThreshold, requireEstablishedDistance))) {
+    std::string message = "Native analytical lower-tier materialization failed";
+    if (!diagnostics.empty())
+      message += "\n" + diagnostics;
+    throw std::runtime_error(message);
+  }
+}
+
+std::string estimateScheduleImpl(MlirModule pyModule,
+                                 const std::string &schedule,
+                                 const std::string &lowerTier,
+                                 bool fullWorkload, bool verifiedInput) {
+  mlir::ModuleOp module = unwrap(pyModule);
+  std::shared_ptr<std::mutex> diagnosticMutex =
+      contextDiagnosticMutex(module.getContext());
+  std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+  std::string diagnostics;
+  mlir::ScopedDiagnosticHandler handler(
+      module.getContext(), [&](mlir::Diagnostic &diagnostic) {
+        if (diagnostic.getSeverity() != mlir::DiagnosticSeverity::Error)
+          return mlir::failure();
+        std::string entry;
+        llvm::raw_string_ostream stream(entry);
+        stream << diagnostic.getLocation() << ": " << diagnostic.str();
+        for (mlir::Diagnostic &note : diagnostic.getNotes())
+          stream << "\n  note: " << note.getLocation() << ": " << note.str();
+        if (!diagnostics.empty())
+          diagnostics += "\n";
+        diagnostics += entry;
+        return mlir::success();
+      });
+  std::string result;
+  MlirLogicalResult status =
+      verifiedInput ? qlxEstimateVerifiedScheduleJSONWithTermination(
+                          pyModule, toRef(schedule), toRef(lowerTier),
+                          fullWorkload, appendToString, &result)
+                    : qlxEstimateScheduleJSONWithTermination(
+                          pyModule, toRef(schedule), toRef(lowerTier),
+                          fullWorkload, appendToString, &result);
+  if (mlirLogicalResultIsFailure(status)) {
+    std::string message = "Native Tier-3 schedule estimation failed";
+    if (!diagnostics.empty())
+      message += "\n" + diagnostics;
+    throw std::runtime_error(message);
+  }
+  return result;
+}
+
+std::string estimateSchedule(MlirModule pyModule, const std::string &schedule,
+                             const std::string &lowerTier, bool fullWorkload) {
+  return estimateScheduleImpl(pyModule, schedule, lowerTier, fullWorkload,
+                              /*verifiedInput=*/false);
+}
+
+std::string estimateVerifiedSchedule(MlirModule pyModule,
+                                     const std::string &schedule,
+                                     const std::string &lowerTier,
+                                     bool fullWorkload) {
+  return estimateScheduleImpl(pyModule, schedule, lowerTier, fullWorkload,
+                              /*verifiedInput=*/true);
+}
+
+std::string scheduleAndEstimateImpl(MlirModule pyModule,
+                                    const std::string &graph,
+                                    const std::string &schedule,
+                                    const std::string &lowerTier,
+                                    bool fullWorkload, bool verifiedInput) {
+  mlir::ModuleOp module = unwrap(pyModule);
+  std::shared_ptr<std::mutex> diagnosticMutex =
+      contextDiagnosticMutex(module.getContext());
+  std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+  std::string diagnostics;
+  mlir::ScopedDiagnosticHandler handler(
+      module.getContext(), [&](mlir::Diagnostic &diagnostic) {
+        if (diagnostic.getSeverity() != mlir::DiagnosticSeverity::Error)
+          return mlir::failure();
+        std::string entry;
+        llvm::raw_string_ostream stream(entry);
+        stream << diagnostic.getLocation() << ": " << diagnostic.str();
+        for (mlir::Diagnostic &note : diagnostic.getNotes())
+          stream << "\n  note: " << note.getLocation() << ": " << note.str();
+        if (!diagnostics.empty())
+          diagnostics += "\n";
+        diagnostics += entry;
+        return mlir::success();
+      });
+  std::string result;
+  MlirLogicalResult status =
+      verifiedInput
+          ? qlxScheduleVerifiedAndEstimateJSONWithTermination(
+                pyModule, toRef(graph), toRef(schedule), toRef(lowerTier),
+                fullWorkload, appendToString, &result)
+          : qlxScheduleAndEstimateJSONWithTermination(
+                pyModule, toRef(graph), toRef(schedule), toRef(lowerTier),
+                fullWorkload, appendToString, &result);
+  if (mlirLogicalResultIsFailure(status)) {
+    std::string message = "Native P3 scheduling and estimation failed";
+    if (!diagnostics.empty())
+      message += "\n" + diagnostics;
+    throw std::runtime_error(message);
+  }
+  return result;
+}
+
+std::string scheduleAndEstimate(MlirModule pyModule, const std::string &graph,
+                                const std::string &schedule,
+                                const std::string &lowerTier,
+                                bool fullWorkload) {
+  return scheduleAndEstimateImpl(pyModule, graph, schedule, lowerTier,
+                                 fullWorkload,
+                                 /*verifiedInput=*/false);
+}
+
+std::string scheduleVerifiedAndEstimate(MlirModule pyModule,
+                                        const std::string &graph,
+                                        const std::string &schedule,
+                                        const std::string &lowerTier,
+                                        bool fullWorkload) {
+  return scheduleAndEstimateImpl(pyModule, graph, schedule, lowerTier,
+                                 fullWorkload,
+                                 /*verifiedInput=*/true);
+}
+
 MlirModule moduleFromPythonCapsule(nb::handle pyModule) {
   if (!nb::hasattr(pyModule, "_CAPIPtr"))
     throw nb::type_error("module must expose the MLIR _CAPIPtr protocol");
@@ -123,12 +308,33 @@ MlirModule moduleFromPythonCapsule(nb::handle pyModule) {
   return MlirModule{ptr};
 }
 
+MlirContext contextFromPythonCapsule(nb::handle pyContext) {
+  if (!nb::hasattr(pyContext, "_CAPIPtr"))
+    throw nb::type_error("context must expose the MLIR _CAPIPtr protocol");
+  nb::object capsule = pyContext.attr("_CAPIPtr");
+  if (!PyCapsule_CheckExact(capsule.ptr()))
+    throw nb::type_error("context._CAPIPtr must be a Python capsule");
+  const char *name = PyCapsule_GetName(capsule.ptr());
+  if (!name || !llvm::StringRef(name).ends_with("ir.Context._CAPIPtr"))
+    throw nb::type_error("context._CAPIPtr is not an MLIR context capsule");
+  void *ptr = PyCapsule_GetPointer(capsule.ptr(), name);
+  if (!ptr)
+    throw nb::python_error();
+  return MlirContext{ptr};
+}
+
 } // namespace
 
 NB_MODULE(_qlxRuntime, m) {
   m.doc() = "QLX text / module translation helpers";
 
+  mlirRegisterTransformsPasses();
+  qlxRegisterAllPasses();
+#ifdef QLX_HAS_CUDAQ_QUAKE
   m.attr("has_quake_import") = true;
+#else
+  m.attr("has_quake_import") = false;
+#endif
 
   //===-----------------------------------------------------------------===//
   // Plugin loading
@@ -304,6 +510,25 @@ NB_MODULE(_qlxRuntime, m) {
       "Return true when a typed module is legal positive H/S/T/CX.");
 
   m.def(
+      "absorb_clifford_frame_module",
+      [](MlirModule pyModule) {
+        if (!mlirLogicalResultIsSuccess(qlxAbsorbCliffordFrameModule(pyModule)))
+          throw std::runtime_error("QLX Clifford-frame lowering failed");
+      },
+      nb::arg("module"),
+      "Absorb exact Clifford actions in a typed P0 module while preserving "
+      "non-Clifford Pauli rotations for downstream selection.");
+
+  m.def(
+      "verify_clifford_frame_module",
+      [](MlirModule pyModule) -> bool {
+        return mlirLogicalResultIsSuccess(
+            qlxVerifyCliffordFrameModule(pyModule));
+      },
+      nb::arg("module"),
+      "Certify that a typed P0 module is in hybrid Clifford-frame form.");
+
+  m.def(
       "lower_to_pbc_module",
       [](MlirModule pyModule) {
         if (!qlxLowerToPBC(pyModule))
@@ -336,6 +561,37 @@ NB_MODULE(_qlxRuntime, m) {
       "Clone any shared-C-API MLIR module into a qlx.ir module capsule.");
 
   m.def(
+      "clone_module_into_context_capsule",
+      [](nb::object pyModule, nb::object pyDestination) -> nb::capsule {
+        mlir::ModuleOp source = unwrap(moduleFromPythonCapsule(pyModule));
+        MlirContext destination = contextFromPythonCapsule(pyDestination);
+        std::string bytecode;
+        llvm::raw_string_ostream output(bytecode);
+        if (failed(mlir::writeBytecodeToFile(source, output)))
+          throw std::runtime_error("Failed to serialize MLIR module bytecode");
+        output.flush();
+
+        mlir::Block parsed;
+        mlir::ParserConfig config(unwrap(destination));
+        if (failed(mlir::readBytecodeFile(
+                llvm::MemoryBufferRef(bytecode, "qlx-context-transfer"),
+                &parsed, config)) ||
+            !llvm::hasSingleElement(parsed))
+          throw std::runtime_error(
+              "Failed to transfer MLIR module into the destination context");
+        auto module = dyn_cast<mlir::ModuleOp>(parsed.front());
+        if (!module)
+          throw std::runtime_error(
+              "Transferred bytecode did not contain exactly one module");
+        module->remove();
+        MlirModule result = wrap(module);
+        return nb::capsule(result.ptr, MLIR_PYTHON_CAPSULE_MODULE);
+      },
+      nb::arg("module"), nb::arg("destination"),
+      "Clone a shared-C-API MLIR module by typed bytecode into a supplied "
+      "QLX MLIRContext.");
+
+  m.def(
       "replace_module_contents_capsule",
       [](nb::object destination, nb::object source) {
         mlir::ModuleOp destinationModule =
@@ -354,19 +610,58 @@ NB_MODULE(_qlxRuntime, m) {
 
   m.def(
       "run_pass",
-      [](MlirModule pyModule, const std::string &pipeline) {
-        runPassPipeline(pyModule, pipeline);
+      [](MlirModule pyModule, const std::string &pipeline, bool verify) {
+        runPassPipeline(pyModule, pipeline, verify);
       },
-      nb::arg("module"), nb::arg("pipeline"),
+      nb::arg("module"), nb::arg("pipeline"), nb::arg("verify") = true,
       "Run a named MLIR pass pipeline on a module (no re-parse).");
 
   m.def(
       "run_pass_capsule",
-      [](nb::object pyModule, const std::string &pipeline) {
-        runPassPipeline(moduleFromPythonCapsule(pyModule), pipeline);
+      [](nb::object pyModule, const std::string &pipeline, bool verify) {
+        runPassPipeline(moduleFromPythonCapsule(pyModule), pipeline, verify);
       },
-      nb::arg("module"), nb::arg("pipeline"),
+      nb::arg("module"), nb::arg("pipeline"), nb::arg("verify") = true,
       "Run a pass on any live MLIR Python module sharing this C API runtime.");
+
+  m.def("_materialize_verified_analytical_lower_tier",
+        materializeVerifiedAnalyticalLowerTier, nb::arg("module"),
+        nb::arg("root"), nb::arg("device"), nb::arg("static_result"),
+        nb::arg("analytical_result"), nb::arg("physical_error"),
+        nb::arg("failure_budget"), nb::arg("cycle_time"),
+        nb::arg("scaling_prefactor"), nb::arg("scaling_threshold"),
+        nb::arg("require_established_distance"),
+        nb::call_guard<nb::gil_scoped_release>(),
+        "Internal count-once Tier-2 closure for a compiler-authenticated "
+        "in-process module.");
+
+  m.def("estimate_schedule_json", estimateSchedule, nb::arg("module"),
+        nb::arg("schedule"), nb::arg("lower_tier") = "",
+        nb::arg("full_workload") = false,
+        nb::call_guard<nb::gil_scoped_release>(),
+        "Derive a Tier-3 schedule estimate without cloning or mutating the "
+        "retained MLIR module.");
+
+  m.def("_estimate_verified_schedule_json", estimateVerifiedSchedule,
+        nb::arg("module"), nb::arg("schedule"), nb::arg("lower_tier") = "",
+        nb::arg("full_workload") = false,
+        nb::call_guard<nb::gil_scoped_release>(),
+        "Internal estimate path for a compiler-authenticated in-process "
+        "schedule ModuleOp.");
+
+  m.def("schedule_and_estimate_json", scheduleAndEstimate, nb::arg("module"),
+        nb::arg("graph"), nb::arg("schedule"), nb::arg("lower_tier") = "",
+        nb::arg("full_workload") = false,
+        nb::call_guard<nb::gil_scoped_release>(),
+        "Schedule a live P3 graph and estimate its typed rows before "
+        "serializing/parsing the retained schedule representation.");
+
+  m.def("_schedule_verified_and_estimate_json", scheduleVerifiedAndEstimate,
+        nb::arg("module"), nb::arg("graph"), nb::arg("schedule"),
+        nb::arg("lower_tier") = "", nb::arg("full_workload") = false,
+        nb::call_guard<nb::gil_scoped_release>(),
+        "Internal fused path for a compiler-authenticated in-process P3 "
+        "ModuleOp.");
 
   m.def(
       "translate",
@@ -381,5 +676,5 @@ NB_MODULE(_qlxRuntime, m) {
         throw std::runtime_error("Unknown translation: " + name);
       },
       nb::arg("module"), nb::arg("name"),
-      "Run a named fail-closed MLIR translation on a verified module.");
+      "Run a named MLIR translation on a module (no re-parse).");
 }

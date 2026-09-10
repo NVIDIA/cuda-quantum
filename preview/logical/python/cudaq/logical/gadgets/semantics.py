@@ -25,16 +25,74 @@ from typing import (
     get_type_hints,
 )
 
-from ..programs.binding import (
+from cudaq.logical.programs.binding import (
     LogicalPortRef,
     ObjectiveOperandRef,
 )
-from .._core.immutable import ImmutableValue
+from cudaq.logical._core.immutable import ImmutableValue
 
 EncodingT = TypeVar("EncodingT")
 
 from .interface import BlockEndpoint, OutcomeRole, patch
-from .records import ProfileParity, RecordRef
+from .records import (
+    InputSyndromeRef,
+    ProfileParity,
+    ProfileVectorExpr,
+    RecordParity,
+    RecordRef,
+    RecordVectorParity,
+)
+
+
+def _parity(value):
+    if isinstance(value, ProfileParity):
+        return value
+    if isinstance(value, RecordRef):
+        return RecordParity((value,))
+    if isinstance(value, RecordParity):
+        return value
+    if isinstance(value, InputSyndromeRef):
+        return ProfileParity(input_syndromes=(value,))
+    raise TypeError(
+        "expected a gadget record, incoming syndrome, or profile parity")
+
+
+@dataclass(frozen=True, slots=True)
+class SuccessPredicate:
+    parity: RecordParity | RecordRef | ProfileParity
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "parity",
+                           ProfileParity.from_value(_parity(self.parity)))
+
+
+@dataclass(frozen=True, slots=True)
+class OutputSyndromeAssignment:
+    """Compiler-normalized scalar row for one output block endpoint.
+
+    Authors bind whole ``endpoint.syndrome`` bundles.  This scalar form exists
+    only after profile-graph normalization and is intentionally not exported
+    from the top-level user surface.
+    """
+
+    endpoint: BlockEndpoint
+    index: int
+    parity: RecordParity | RecordRef | InputSyndromeRef | ProfileParity | bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.endpoint,
+                          BlockEndpoint) or self.endpoint.side != "output":
+            raise TypeError(
+                "output syndrome target must be an output BlockEndpoint")
+        if not isinstance(self.index, int) or isinstance(
+                self.index, bool) or self.index < 0:
+            raise TypeError("output syndrome index must be a nonnegative int")
+        object.__setattr__(self, "parity",
+                           ProfileParity.from_value(self.parity))
+
+    @property
+    def port(self) -> BlockEndpoint:
+        return self.endpoint
 
 
 class RetryExhaustion(str, Enum):
@@ -147,7 +205,7 @@ class OutcomeMap:
     roles: tuple[tuple[OutcomeRole, ...], ...] = ()
 
     def __post_init__(self) -> None:
-        from ..algebra.gf2 import (
+        from cudaq.logical.algebra.gf2 import (
             GF2Matrix,
             _normalize_binary_values,
         )
@@ -205,6 +263,8 @@ class OutcomeMap:
         }
         normalized_roles = []
         for row in roles:
+            if not row:
+                raise ValueError("OutcomeMap row roles must be nonempty")
             if any(not isinstance(role, OutcomeRole) for role in row):
                 raise TypeError(
                     "OutcomeMap row roles must be OutcomeRole values")
@@ -222,7 +282,7 @@ class OutcomeMap:
 
     def indices_for(self, role: OutcomeRole) -> tuple[int, ...]:
         if not isinstance(role, OutcomeRole):
-            raise TypeError("OutcomeMap role must be a OutcomeRole value")
+            raise TypeError("OutcomeMap role must be an OutcomeRole value")
         if role not in {
                 OutcomeRole.RESULT,
                 OutcomeRole.SUCCESS,
@@ -230,6 +290,72 @@ class OutcomeMap:
             raise ValueError("OutcomeMap role must be result or success")
         return tuple(
             index for index, roles in enumerate(self.roles) if role in roles)
+
+
+class ProfileSemanticError(ValueError):
+    """A semantic claim in a GadgetProfile is false or incomplete."""
+
+
+def _scalar_profile_parities(expressions):
+    """Expand profile expressions into their canonical ordered scalar rows."""
+
+    for expression in expressions:
+        parity = expression.parity
+        if isinstance(parity, RecordVectorParity):
+            yield from (
+                ProfileParity(records=row.records) for row in parity.rows())
+        elif isinstance(parity, ProfileVectorExpr):
+            yield from parity.rows
+        else:
+            yield ProfileParity.from_value(parity)
+
+
+def _outcome_role_parities(gadget: "GadgetDefinition", role: OutcomeRole):
+    """Derive the exact ordered profile rows owned by one OutcomeMap role."""
+
+    outcome_map = gadget.outcome_map
+    if outcome_map is None:
+        return ()
+    indices = outcome_map.indices_for(role)
+    return tuple(
+        ProfileParity(
+            records=tuple(
+                RecordRef(gadget, record_name)
+                for record_name, bit in zip(outcome_map.records, row)
+                if bit),
+            input_syndromes=tuple(
+                InputSyndromeRef(gadget.interface.inputs[term.port], term.index)
+                for term in outcome_map.input_syndromes[index]),
+            constant=bool(constant),
+        )
+        for index, (row, constant) in enumerate(
+            zip(outcome_map.matrix.rows, outcome_map.constants))
+        if index in indices)
+
+
+def _reconcile_profile_role(gadget, profile_name, role, declared):
+    """Validate or derive one OutcomeMap-owned profile family.
+
+    Once a profile declares any row in that family, the declaration must
+    reproduce the complete ordered affine table. Omitted rows are derived
+    immediately so every constructed profile has one canonical representation.
+    """
+
+    declared = tuple(declared)
+    derived = _outcome_role_parities(gadget, role)
+    if not derived:
+        return declared
+    if declared and len(declared) != len(derived):
+        raise ProfileSemanticError(
+            f"profile {profile_name!r} declares {len(declared)} {role.value} "
+            f"row(s), but the gadget outcome map defines {len(derived)} "
+            f"authoritative {role.value} row(s)")
+    for index, (profile_row, outcome_row) in enumerate(zip(declared, derived)):
+        if profile_row != outcome_row:
+            raise ProfileSemanticError(
+                f"profile {role.value} row {index} disagrees with the gadget "
+                f"outcome-map row {index}")
+    return declared or derived
 
 
 @dataclass(frozen=True, slots=True)
@@ -240,11 +366,13 @@ class _PredicateProvenance:
     result, propagated only through Boolean operations that preserve an affine
     GF(2) expression.  Keeping the invocation identity separate prevents two
     Boolean results (or two calls to the same gadget) from being mistaken for
-    an attempt's success predicate.
+    the selected profile's success predicate.
     """
 
     definition: "GadgetDefinition | ProtocolDefinition"
     attempt: str
+    analysis: "GadgetProfile | None"
+    profile: str | None
     invocation: int
     parity: ProfileParity | None
     outcome_rows: tuple[ProfileParity, ...] = ()
@@ -261,6 +389,8 @@ class _PredicateProvenance:
         return (isinstance(other, _PredicateProvenance) and
                 self.definition is other.definition and
                 self.attempt == other.attempt and
+                self.analysis is other.analysis and
+                self.profile == other.profile and
                 self.invocation == other.invocation)
 
 

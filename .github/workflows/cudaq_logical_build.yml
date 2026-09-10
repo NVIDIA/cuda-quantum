@@ -379,7 +379,7 @@ jobs:
           # the closed pipe would kill qlx-translate with SIGPIPE (141) under
           # pipefail.
           stim_out="$(qlx-translate \
-            preview/logical/examples/cli/stim_memory.mlir --fabric-to-stim)"
+            preview/logical/examples/mlir/stim_memory.mlir --fabric-to-stim)"
           grep -q '^M ' <<< "$stim_out"
 
       - name: Validate the cudaq.logical re-export

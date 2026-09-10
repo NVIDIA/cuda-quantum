@@ -17,15 +17,15 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
 from ..errors import InvalidCodeAlgebra
-from .._core.immutable import ImmutableValue
-from ..algebra.clifford import CliffordAction
-from ..algebra.gf2 import (
+from cudaq.logical._core.immutable import ImmutableValue
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.algebra.gf2 import (
     GF2Matrix,
     _normalize_binary_value,
     _normalize_binary_values,
     _row_bits,
 )
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     LogicalValueGroup,
     LogicalValueRef,
 )
@@ -35,7 +35,7 @@ def _deep_freeze(value, *, what: str = "structured value"):
     """Detach and recursively freeze the supported structured value surface.
 
     The public metadata/evidence surface deliberately accepts JSON-like
-    containers plus the frozen provenance value from CUDA-Q Logical. Copying an arbitrary
+    containers plus QLX's frozen provenance value.  Copying an arbitrary
     object is not sufficient: a custom ``__deepcopy__`` implementation can
     return ``self`` (or otherwise retain mutable aliases), which would make a
     validated profile mutable through an external reference.
@@ -218,6 +218,10 @@ class QECActionSelection:
     version: str = "linked"
     manifest_sha256: str | None = None
     tie_break: str = "fixed-before-generated-then-symbol-order"
+    channel: str | None = None
+    channel_capability: str | None = None
+    endpoints: tuple[str, ...] = ()
+    direction: str | None = None
 
     def __post_init__(self) -> None:
         for field_name in (
@@ -261,6 +265,28 @@ class QECActionSelection:
                     value not in "0123456789abcdef" for value in payload):
                 raise ValueError(
                     "QECActionSelection manifest_sha256 must be canonical")
+        endpoints = tuple(self.endpoints)
+        object.__setattr__(self, "endpoints", endpoints)
+        present = (
+            self.channel is not None,
+            self.channel_capability is not None,
+            bool(endpoints),
+            self.direction is not None,
+        )
+        if any(present) != all(present):
+            raise ValueError(
+                "QECActionSelection communication fields must be all absent "
+                "or all present")
+        if all(present) and (not isinstance(self.channel, str) or
+                             not self.channel or
+                             not isinstance(self.channel_capability, str) or
+                             not self.channel_capability or
+                             any(not isinstance(endpoint, str) or not endpoint
+                                 for endpoint in endpoints) or
+                             not isinstance(self.direction, str) or
+                             not self.direction):
+            raise ValueError(
+                "QECActionSelection communication fields must be nonempty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -274,6 +300,7 @@ class QECSelectionWitness:
     encoding: str | None = None
     objective: str = "policy_then_device_then_candidate"
     tie_break: str = "declaration_order"
+    network_manifest_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.input_p1, str) or not self.input_p1:
@@ -310,6 +337,23 @@ class QECSelectionWitness:
             raise ValueError("QECSelectionWitness action sites must be unique")
         object.__setattr__(self, "blocks", blocks)
         object.__setattr__(self, "actions", actions)
+        if self.network_manifest_sha256 is None:
+            return
+        prefix = "sha256:"
+        payload = (self.network_manifest_sha256[len(prefix):]
+                   if isinstance(self.network_manifest_sha256, str) and
+                   self.network_manifest_sha256.startswith(prefix) else "")
+        if len(payload) != 64 or any(
+                value not in "0123456789abcdef" for value in payload):
+            raise ValueError(
+                "QECSelectionWitness network manifest must be canonical")
+        network_actions = tuple(
+            action for action in self.actions
+            if action.manifest_sha256 == self.network_manifest_sha256)
+        if not network_actions:
+            raise ValueError(
+                "network QEC selection must contain an action that commits "
+                "its exact manifest")
 
 
 def qec_block(values, *, code=None, encoding=None) -> QECBlockRequest:
@@ -332,18 +376,23 @@ def qec_block(values, *, code=None, encoding=None) -> QECBlockRequest:
     if not values or any(
             not isinstance(value, LogicalValueRef) for value in values):
         raise TypeError(
-            "qlx.qec_block expects one or more logical value references")
+            "cudaq.logical.qec_block expects one or more logical value "
+            "references")
     if len(set(values)) != len(values):
-        raise ValueError("qlx.qec_block cannot repeat one logical owner")
+        raise ValueError(
+            "cudaq.logical.qec_block cannot repeat one logical owner")
     if (code is None) == (encoding is None):
         raise TypeError(
-            "qlx.qec_block requires exactly one of code= or encoding=")
+            "cudaq.logical.qec_block requires exactly one of code= or encoding="
+        )
     if code is not None:
         if not isinstance(code, Code):
-            raise TypeError("qlx.qec_block code= requires a concrete Code")
+            raise TypeError(
+                "cudaq.logical.qec_block code= requires a concrete Code")
         encoding = code.default_encoding
     if not isinstance(encoding, Encoding):
-        raise TypeError("qlx.qec_block encoding= requires a concrete Encoding")
+        raise TypeError(
+            "cudaq.logical.qec_block encoding= requires a concrete Encoding")
     if len(values) > encoding.code.k:
         raise ValueError(
             f"encoding {encoding.name!r} exposes {encoding.code.k} logical ports, "

@@ -1,9 +1,9 @@
 # P1 Placement
 
-[`02_p1_placement.py`](../../../../examples/02_p1_placement.py) places a
-portable logical program on a declared logical machine.
+[`standalone/01_logical_placement.py`](../../../../examples/standalone/01_logical_placement.py)
+places a portable logical program on a declared logical machine.
 
-```{literalinclude} ../../../../examples/02_p1_placement.py
+```{literalinclude} ../../../../examples/standalone/01_logical_placement.py
 :language: python
 ```
 

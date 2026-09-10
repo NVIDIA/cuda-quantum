@@ -8,8 +8,8 @@
 """Chain-complex cellulations for homological code construction.
 
 A :class:`Cellulation` is a two-dimensional GF(2) chain complex — vertices,
-edges, and faces whose consecutive boundary maps compose to zero — plus a
-chosen homology basis. Qubits live on edges; faces give one check family and
+edges, faces with boundary maps satisfying del1 . del2 = 0 — plus a chosen
+homology basis. Qubits live on edges; faces give one check family and
 vertex stars the other; the homology representatives become the logical
 operators. Consume one with :meth:`cudaq.logical.CSSCode.from_chain_complex`.
 """
@@ -30,9 +30,8 @@ class Cellulation:
     num_vertices: int
     num_edges: int
     num_faces: int
-    # Edge supports: one row per face (columns of the second boundary map) and
-    # per vertex star (rows of the transposed first boundary map). Together they
-    # satisfy the CSS condition.
+    # Edge supports: one row per face (del2 columns) and per vertex star
+    # (del1-transpose rows). Together they satisfy the CSS condition.
     face_boundaries: tuple[tuple[int, ...], ...]
     vertex_stars: tuple[tuple[int, ...], ...]
     homology_x: tuple[tuple[int, ...], ...]
@@ -41,8 +40,8 @@ class Cellulation:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        # Consecutive boundary maps compose to zero over GF(2): every face
-        # boundary meets every vertex star in an even number of edges.
+        # del1 . del2 = 0 over GF(2): every face boundary meets every vertex
+        # star in an even number of edges.
         for face in self.face_boundaries:
             face_set = set(face)
             for star in self.vertex_stars:
@@ -68,7 +67,7 @@ def square_torus(rows: int, columns: int) -> Cellulation:
     if rows < 2:
         raise ValueError("square-torus size must be at least 2")
     size = rows
-    from ..codes.catalog import _torus_index
+    from cudaq.logical.codes.catalog import _torus_index
 
     index = lambda side, i, j: _torus_index(size, side, i, j)
     faces = []
@@ -114,7 +113,3 @@ def square_torus(rows: int, columns: int) -> Cellulation:
 
 
 __all__ = ["Cellulation", "square_torus"]
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.topology")

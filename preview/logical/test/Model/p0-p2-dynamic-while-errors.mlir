@@ -10,13 +10,13 @@
 
 module {
   func.func @bad_bound(%go: i1) {
-    // expected-error @+1 {{max_iterations must be positive when present}}
-    %0 = "qlx.while"(%go) <{max_iterations = 0 : i64}> ({
+    // expected-error @+1 {{attribute 'max_iterations' failed to satisfy constraint: 64-bit signless integer attribute whose value is positive}}
+    %0 = "cflow.while"(%go) <{max_iterations = 0 : i64}> ({
     ^bb0(%current: i1):
-      "qlx.while_condition"(%current, %current) : (i1, i1) -> ()
+      "cflow.while_condition"(%current, %current) : (i1, i1) -> ()
     }, {
     ^bb0(%current: i1):
-      qlx.yield %current : i1
+      cflow.yield %current : i1
     }) : (i1) -> i1
     return
   }
@@ -26,13 +26,13 @@ module {
 
 module {
   func.func @bad_condition_terminator(%go: i1) {
-    // expected-error @+1 {{before region must terminate with lvm.while_condition}}
-    %0 = "lvm.while"(%go) ({
+    // expected-error @+1 {{before region must terminate with cflow.while_condition}}
+    %0 = "cflow.while"(%go) ({
     ^bb0(%current: i1):
-      lvm.yield %current : i1
+      cflow.yield %current : i1
     }, {
     ^bb0(%current: i1):
-      lvm.yield %current : i1
+      cflow.yield %current : i1
     }) : (i1) -> i1
     return
   }
@@ -43,13 +43,13 @@ module {
 module {
   func.func @bad_forwarded_type(%go: i1) {
     // expected-error @+1 {{while_condition forwarded types must match loop result types}}
-    %0 = "fabric.while"(%go) ({
+    %0 = "cflow.while"(%go) ({
     ^bb0(%current: i1):
       %wrong = arith.constant 0 : i64
-      "fabric.while_condition"(%current, %wrong) : (i1, i64) -> ()
+      "cflow.while_condition"(%current, %wrong) : (i1, i64) -> ()
     }, {
     ^bb0(%current: i1):
-      fabric.yield %current : i1
+      cflow.yield %current : i1
     }) : (i1) -> i1
     return
   }

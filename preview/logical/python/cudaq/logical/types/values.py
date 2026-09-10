@@ -11,8 +11,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Iterator, Sequence
 
+from ..errors import QLXError
 
-class UseAfterConsume(RuntimeError):
+
+class UseAfterConsume(QLXError, RuntimeError):
     pass
 
 
@@ -115,7 +117,7 @@ class EventState(str, Enum):
 
 
 class EventStatusValue(_ClassicalValue):
-    """Copyable result of an event poll that does not consume the event."""
+    """Copyable result of a nonconsuming event poll."""
 
     __slots__ = ()
 
@@ -261,6 +263,50 @@ class GaugeRecordsValue(_ClassicalValue):
         self.epoch = epoch
         self.record = record
         self.measurement_map = measurement_map
+
+
+class PhysicalState(_SSAProxy):
+    __slots__ = ("resource", "resource_class", "_live")
+
+    def __init__(
+        self,
+        mlir_value,
+        *,
+        owner,
+        resource,
+        resource_class=None,
+        location=None,
+    ) -> None:
+        super().__init__(mlir_value, owner=owner, location=location)
+        self.resource = resource
+        self.resource_class = resource_class
+        self._live = True
+
+    @property
+    def is_live(self) -> bool:
+        return self._live
+
+    def _consume(self, operation: str) -> None:
+        if not self._live:
+            raise UseAfterConsume(
+                f"physical resource {self.resource!r} was already consumed before {operation}"
+            )
+        self._live = False
+
+
+class PhysicalRecord(_ClassicalValue):
+    __slots__ = ("record", "producer")
+
+    def __init__(self,
+                 mlir_value,
+                 *,
+                 owner,
+                 record,
+                 producer,
+                 location=None) -> None:
+        super().__init__(mlir_value, owner=owner, location=location)
+        self.record = record
+        self.producer = producer
 
 
 class LogicalRegister(Sequence[logical_qubit]):

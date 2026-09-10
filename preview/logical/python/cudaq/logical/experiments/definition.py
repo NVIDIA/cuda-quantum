@@ -12,8 +12,8 @@ from enum import Enum
 from types import MappingProxyType
 from typing import Any, Mapping
 
-from ..programs.definition import DefinitionHandle
-from ..stages import (
+from cudaq.logical.programs.definition import DefinitionHandle
+from cudaq.logical.stages import (
     Stage,
     normalize_facets,
 )
@@ -26,7 +26,7 @@ def _mapping(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
 def _semantic_value(value):
     """Convert one semantic binding to deterministic bundle data."""
 
-    from ..algebra.angle import Angle
+    from cudaq.logical.algebra.angle import Angle
 
     if value is None or isinstance(value, (bool, int, float, str)):
         return value
@@ -77,9 +77,9 @@ def _semantic_value(value):
 
 @dataclass(frozen=True, slots=True)
 class Experiment:
-    """One immutable CUDA-Q Logical compilation point.
+    """One immutable QLX compilation point.
 
-    Before compilation ``root`` is a normal CUDA-Q Logical definition or build. A
+    Before compilation ``root`` is a normal QLX definition or build. A
     successful build exposes the same class with ``root`` rebound to its typed
     :class:`DefinitionHandle`, plus the verified stage/facets, exact pass
     recipe, and linked symbol closure.
@@ -88,7 +88,10 @@ class Experiment:
     root: Any
     device: Any = None
     device_provenance: str | None = None
+    operating_point: Any = None
     placement: Any = ()
+    noise: Any = None
+    target: Any = None
     policy: Any = None
     parameters: Mapping[str, Any] = field(
         default_factory=lambda: MappingProxyType({}))
@@ -147,7 +150,10 @@ class Experiment:
             root=root,
             device=self.device if device is None else device,
             device_provenance=self.device_provenance,
+            operating_point=self.operating_point,
             placement=self.placement if placement is None else placement,
+            noise=self.noise,
+            target=self.target,
             policy=self.policy,
             parameters=self.parameters,
             objective=self.objective if objective is None else objective,
@@ -164,7 +170,10 @@ class Experiment:
         values = {
             "device": self.device,
             "device_provenance": self.device_provenance,
+            "operating_point": self.operating_point,
             "placement": self.placement,
+            "noise": self.noise,
+            "target": self.target,
             "policy": self.policy,
             "parameters": self.parameters,
             "objective": self.objective,

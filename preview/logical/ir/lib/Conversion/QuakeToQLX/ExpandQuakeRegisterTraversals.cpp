@@ -1,24 +1,16 @@
-//===- ExpandQuakeRegisterTraversals.cpp - Quake traversal prep -*- C++ -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
-
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/IRMapping.h"
 
@@ -29,6 +21,14 @@
 #include <optional>
 #include <utility>
 
+#ifdef QLX_HAS_CUDAQ_QUAKE
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#endif
+
 namespace qlx {
 #define GEN_PASS_DEF_EXPANDQUAKEREGISTERTRAVERSALS
 #include "qlx/Conversion/QuakeToQLXPasses.h.inc"
@@ -37,6 +37,8 @@ namespace qlx {
 using namespace mlir;
 
 namespace {
+
+#ifdef QLX_HAS_CUDAQ_QUAKE
 
 static std::optional<int64_t> constInt(Value value) {
   if (auto constant = value.getDefiningOp<arith::ConstantOp>())
@@ -373,5 +375,23 @@ private:
     return failure(unsupported);
   }
 };
+
+#else
+
+class ExpandQuakeRegisterTraversalsPass
+    : public qlx::impl::ExpandQuakeRegisterTraversalsBase<
+          ExpandQuakeRegisterTraversalsPass> {
+public:
+  using ExpandQuakeRegisterTraversalsBase::ExpandQuakeRegisterTraversalsBase;
+
+  void runOnOperation() override {
+    getOperation().emitError(
+        "Quake traversal preparation was not enabled; enable "
+        "QLX_USE_CUDAQ_SDK");
+    signalPassFailure();
+  }
+};
+
+#endif
 
 } // namespace

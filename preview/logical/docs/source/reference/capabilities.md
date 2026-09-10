@@ -12,28 +12,31 @@ of approximating past an implemented edge.
 ## What the product is
 
 CUDA-Q Logical is a resource-estimation toolkit for fault-tolerant quantum
-computing. A program is refined through three strict semantic stages — **P0**
-unplaced logical, **P1** placed logical, **P2** QEC realization — and the
-estimation ladder has exactly two tiers: `Tier.LOGICAL` (P0) and `Tier.STATIC`
-(P2 fabric counts). Stim circuit text is the one emission target.
+computing. A program is refined through four strict semantic stages — **P0**
+unplaced logical, **P1** placed logical, **P2** QEC realization, and **P3**
+physical event graph and schedule. The estimation ladder has four tiers:
+`Tier.LOGICAL`, `Tier.STATIC`, `Tier.ANALYTICAL`, and `Tier.SCHEDULE`. Stim
+circuit text is the interchange emission target from a verified P2 gadget.
 
 ## Subsystem status
 
 Every row cites its exercising evidence in this repository.
 
-| Subsystem                                                                                                                                               | Status             | Exercised by                                                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Compiler foundation — immutable `Build`, typed stages/facets, serialization and clean-process replay                                                    | shipped, exercised | `examples/02_p1_placement.py`; provenance fail-closed tests in `test_cudaq_logical.py`                        |
-| P0 authoring and logical estimation — `@program`, linear values, `Tier.LOGICAL`                                                                         | shipped, exercised | `examples/01_p0_bell.py`; logical-estimation tests                                                            |
-| P1 placement — `@machine`, regions/capabilities, constraints and witnesses                                                                              | shipped, exercised | `examples/02_p1_placement.py`; placement tests                                                                |
-| P2 codes and gadgets — `@code` validation, catalog (Steane, rotated surface, repetition, RM15, bare qubit), `@gadget` with `implements=`, typed records | shipped, exercised | `examples/03_code_and_gadget.py`; record-boundary tests                                                       |
-| Gadget verification — code-automorphism action matching, fail-closed claims                                                                             | shipped, exercised | `verified_code_automorphism` path; verifier-error lit suites                                                  |
-| Protocols — `@protocol`, typed resources, postselection, bounded retry, 15-to-1 distillation                                                            | shipped, exercised | `examples/04_distillation.py`; protocol lit tests                                                             |
-| Clifford+T synthesis — rotation lowering with provenance                                                                                                | shipped, exercised | `examples/05_clifford_t.py`                                                                                   |
-| CUDA-Q ingress — `@cudaq.kernel` programs through CUDA-Q Logical targets                                                                                | shipped, exercised | `examples/00_cudaq_logical_resource_estimate.py`, `05_clifford_t.py`                                          |
-| Static P2 estimation — gadget/operation counts with folding                                                                                             | shipped, exercised | `examples/00_cudaq_logical_resource_estimate.py`, `04_distillation.py`; static-estimation tests               |
-| Analytical projections — Gidney–Ekerå RSA-2048 and Fermi–Hubbard envelopes                                                                              | shipped, exercised | `examples/06_gidney_ekera.py`, `07_fermi_hubbard.py` (analytical projections, not further compilation stages) |
-| Stim text emission — typed `ql.lower.emit_stim` and `ql.lower.emit_stim_artifact`                                                                       | shipped, exercised | `examples/03_code_and_gadget.py`; Stim-emission tests                                                         |
+| Subsystem                                                                                                                                               | Status             | Exercised by                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Compiler foundation — immutable `Build`, typed stages/facets, serialization and clean-process replay                                                    | shipped, exercised | `examples/standalone/01_logical_placement.py`; provenance fail-closed tests                                             |
+| P0 authoring and logical estimation — `@program`, linear values, `Tier.LOGICAL`                                                                         | shipped, exercised | `examples/standalone/00_logical_program.py`, `examples/00_logical_resource_estimate.py`                                 |
+| P1 placement — `@machine`, regions/capabilities, constraints, and witnesses                                                                             | shipped, exercised | `examples/standalone/01_logical_placement.py`; placement tests                                                          |
+| P2 codes and gadgets — `@code` validation, catalog, `@gadget` with `implements=`, typed records                                                         | shipped, exercised | `examples/standalone/02_code_and_gadget.py`, `examples/04_carbon_code.py`; record-boundary tests                        |
+| Gadget verification — code-automorphism and kernel-backed objective matching, fail-closed claims                                                       | shipped, exercised | `examples/04_carbon_code.py`; verifier-error lit suites                                                                |
+| Protocols — `@protocol`, typed resources, postselection, bounded retry, 15-to-1 distillation                                                            | shipped, exercised | `examples/standalone/03_magic_state_distillation.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py`; tests   |
+| Clifford+T synthesis — rotation lowering with provenance                                                                                                | shipped, exercised | `examples/01_clifford_t_resource_estimate.py`, `examples/03_fermi_hubbard.py`                                           |
+| CUDA-Q ingress — `@cudaq.kernel` programs through CUDA-Q Logical targets                                                                                | shipped, exercised | all six top-level numbered examples                                                                                    |
+| Static P2 estimation — gadget/operation counts with folding                                                                                             | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/03_magic_state_distillation.py`                   |
+| P3 physical lowering, routing, native legalization, and scheduling                                                                                      | shipped, exercised | `examples/04_carbon_code.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
+| Analytical and schedule estimation                                                                                                                      | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
+| Paper-specific Gidney–Ekerå RSA-2048 projection                                                                                                         | shipped, exercised | `examples/05_gidney_ekera.py`                                                                                          |
+| Stim text emission — typed `ql.lower.emit_stim` and `ql.lower.emit_stim_artifact`                                                                       | shipped, exercised | `examples/standalone/02_code_and_gadget.py`; Stim-emission tests                                                        |
 
 ## Present but not yet exercised
 
@@ -51,9 +54,10 @@ Logical emits Stim circuit text; it does not annotate detectors, build detector
 error models, sample, or decode. Those studies belong downstream of the emitted
 text, in the Stim ecosystem.
 
-**Stages stop at P2.** There are no physical carriers, no routing or scheduling,
-and no runtime or hardware submission — `ql.stages.Stage` has exactly `P0`,
-`P1`, `P2`.
+**Stages stop at P3.** P3 represents physical carriers, routing, native events,
+and schedules. It remains a compiler and estimation artifact: CUDA-Q Logical
+does not submit a physical schedule to hardware or provide a runtime execution
+service for it.
 
 **No simulator plugin surface.** Nothing in the package consumes or executes
 physical simulations.
@@ -68,10 +72,11 @@ P2 entry gadget. Emission never invents an implementation that selection did not
 link.
 
 **Rotation synthesis is explicit, not automatic.** `ql.compiler.synthesize`
-legalizes a logical program to a named gate set (Clifford+T, example 05) under
+legalizes a logical program to a named gate set (Clifford+T, example 01) under
 an operator-norm `precision=` bound; unsupported gate sets are rejected with a
 `ValueError` rather than approximated.
 
-**Analytical projections are labeled as such.** The physical-qubit, runtime, and
-retry-risk figures in examples 06 and 07 are analytical projections over the
-P0/P2 artifacts, not simulated or executed results.
+**Paper-specific projections are labeled as such.** Example 05's default
+Gidney–Ekerå path combines compiler-counted logical resources with explicit
+paper equations. Its `--physical` path instead performs P3 compilation and
+scheduling. Neither path simulates or executes the workload.

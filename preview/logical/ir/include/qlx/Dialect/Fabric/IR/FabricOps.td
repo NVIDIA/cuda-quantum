@@ -1,12 +1,10 @@
-//===- FabricOps.td - Fabric operation definitions --------*- tablegen -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Operation definitions for the Fabric dialect. ~40 operations covering:
 //
@@ -16,11 +14,12 @@
 //   - Physical gate operations (bulk single-qubit, two-qubit, transversal)
 //   - Lattice surgery (merge, split, multi-body measure)
 //   - Measurement and syndrome-record formation
-//   - Typed syndrome records and protocol success predicates
+//   - Success predicates and syndrome decoding
+//   - Syndrome submission and decoding
 //   - Pauli frame tracking
 //   - Magic state production and injection
 //   - Inter-region transport
-//   - Synchronization and classical control
+//   - Timing, synchronization, and classical control
 //
 //===----------------------------------------------------------------------===//
 
@@ -32,6 +31,10 @@ include "qlx/Dialect/Fabric/IR/FabricTypes.td"
 include "qlx/Dialect/Fabric/IR/FabricAttrs.td"
 include "qlx/Dialect/Fabric/IR/FabricInterfaces.td"
 include "qlx/Dialect/QLX/IR/QLXAttrs.td"
+
+// Cross-dialect: fabric.resource_request returns the shared event handle type.
+include "qlx/Dialect/Event/IR/EventTypes.td"
+
 include "mlir/IR/OpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/IR/RegionKindInterface.td"
@@ -127,7 +130,8 @@ def Fabric_InterconnectOp : Fabric_Op<"interconnect", [
     OptionalAttr<DictionaryAttr>:$port_a_metadata,
     OptionalAttr<DictionaryAttr>:$port_b_metadata,
     OptionalAttr<DictionaryAttr>:$metadata,
-    OptionalAttr<AnyAttrOf<[FlatSymbolRefAttr, Fabric_SpecOnlyAttr]>>:$protocol
+    OptionalAttr<AnyAttrOf<[FlatSymbolRefAttr, Fabric_SpecOnlyAttr]>>:$protocol,
+    OptionalAttr<F64Attr>:$latency_ns
   );
   let assemblyFormat = "$sym_name attr-dict";
   let hasVerifier = 1;
@@ -137,13 +141,14 @@ def Fabric_CodeOp : Fabric_Op<"code", [Symbol]> {
   let summary = "Declare a QEC code type";
   let description = [{
     Module-level declaration of a QEC code type. Defines partition structure,
-    optionally maps logical gates to gadget implementations.
+    and optionally maps logical gates to gadget implementations.
 
     The `k` attribute is the number of logical qubits encoded in one block
     of this code. Defaults to 1. Codes with `k > 1` (qLDPC codes such as
     toric or bivariate bicycle) must declare canonical logical operator
     supports via `lx` and `lz`: each is an array of `k` inner arrays of
-    data-qubit indices (same shape as `hx` / `hz`).
+    data-qubit indices (same shape as `hx` / `hz`). These canonical logical
+    supports are available to logical-operation lowering and decoding.
 
     A declaration that carries only this CSS support-array form (no
     canonical symplectic attributes) is verified directly over GF(2):
@@ -253,6 +258,17 @@ def Fabric_PatchGraphOp : Fabric_Op<"patch_graph", [Symbol]> {
     FlatSymbolRefAttr:$root,
     ArrayAttr:$nodes,
     ArrayAttr:$interactions
+  );
+  let assemblyFormat = "$sym_name attr-dict";
+  let hasVerifier = 1;
+}
+
+def Fabric_PatchMappingOp : Fabric_Op<"patch_mapping", [Symbol]> {
+  let summary = "chosen mapping from P2 patch instances to implicit slots";
+  let arguments = (ins
+    SymbolNameAttr:$sym_name,
+    FlatSymbolRefAttr:$graph,
+    ArrayAttr:$assignments
   );
   let assemblyFormat = "$sym_name attr-dict";
   let hasVerifier = 1;
@@ -420,6 +436,79 @@ def Fabric_GadgetSpecOp : Fabric_Op<"gadget_spec", [Symbol]> {
   let hasVerifier = 1;
 }
 
+def Fabric_ProfileEndOp : Fabric_Op<"profile_end", [
+    Terminator, HasParent<"GadgetProfileOp">
+  ]> {
+  let summary = "terminate a declarative gadget-analysis profile";
+  let assemblyFormat = "attr-dict";
+}
+
+def Fabric_GadgetProfileOp : Fabric_Op<"gadget_profile", [
+    Symbol, IsolatedFromAbove,
+    SingleBlockImplicitTerminator<"ProfileEndOp">
+  ]> {
+  let summary = "success and boundary analysis overlay for one gadget";
+  let description = [{
+    References one executable gadget realization while separately declaring a
+    success and boundary interpretation. More than one profile may reference
+    the same gadget. Profile bodies are declarative: success and output
+    syndrome operations refer to stable measurement records through `records`
+    attributes rather than capturing SSA values from the gadget body.
+  }];
+  let arguments = (ins
+    SymbolNameAttr:$sym_name,
+    FlatSymbolRefAttr:$gadget,
+    OptionalAttr<ArrayAttr>:$inputs,
+    OptionalAttr<ArrayAttr>:$outputs,
+    OptionalAttr<UnitAttr>:$boundary_complete,
+    OptionalAttr<AnyAttr>:$bit_order,
+    OptionalAttr<DictionaryAttr>:$metadata
+  );
+  let regions = (region AnyRegion:$body);
+  let assemblyFormat = "$sym_name `for` $gadget attr-dict-with-keyword regions";
+  let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// Gadget analysis declarations
+//===----------------------------------------------------------------------===//
+
+def Fabric_SuccessOp : Fabric_Op<"success", []> {
+  let summary = "declare a success or postselection predicate over records";
+  let description = [{
+    Declares a mismatch parity over stable measurement records in a
+    `fabric.gadget_profile`: zero means accepted. It is analysis semantics, not
+    executable branch control. Retry, discard, and abort behavior belong to
+    the enclosing protocol's explicit selection or retry operation.
+  }];
+  let arguments = (ins
+    OptionalAttr<ArrayAttr>:$records,
+    OptionalAttr<ArrayAttr>:$input_syndromes,
+    OptionalAttr<BoolAttr>:$constant
+  );
+  let hasVerifier = 1;
+  let assemblyFormat = "attr-dict";
+}
+
+def Fabric_OutputSyndromeOp : Fabric_Op<"output_syndrome", []> {
+  let summary = "assign one effective syndrome bit at an output profile port";
+  let description = [{
+    Compiler-normalized scalar row defining one output effective-syndrome
+    component as an affine parity over incoming syndrome bits and stable
+    realization records. Source frontends bind whole typed syndrome bundles;
+    ``port_index`` is the output endpoint ordinal in the gadget interface.
+  }];
+  let arguments = (ins
+    I64Attr:$port_index,
+    I64Attr:$index,
+    OptionalAttr<ArrayAttr>:$records,
+    OptionalAttr<ArrayAttr>:$input_syndromes,
+    OptionalAttr<BoolAttr>:$constant
+  );
+  let hasVerifier = 1;
+  let assemblyFormat = "attr-dict";
+}
+
 def Fabric_ReturnOp : Fabric_Op<"return", [
     Terminator, ParentOneOf<["GadgetOp", "CircuitOp"]>
   ]> {
@@ -440,7 +529,7 @@ def Fabric_CircuitOp : Fabric_Op<"circuit", [
   let summary = "reusable physical/QEC realization body";
   let description = [{
     A callable realization-side body with no logical objective, gadget claim,
-    physical-event schedule or error-model semantics of its own. One or more
+    analysis profile, schedule, or noise semantics of its own. One or more
     gadgets may reference the circuit through their `realization` attribute.
   }];
   let arguments = (ins
@@ -516,6 +605,7 @@ def Fabric_CallOp : Fabric_Op<"call", []> {
   let summary = "Invoke a gadget";
   let arguments = (ins
     FlatSymbolRefAttr:$callee,
+    OptionalAttr<FlatSymbolRefAttr>:$profile,
     Variadic<AnyType>:$operands,
     OptionalAttr<SymbolRefAttr>:$channel,
     OptionalAttr<AnyAttr>:$channel_capability,
@@ -532,7 +622,7 @@ def Fabric_CallOp : Fabric_Op<"call", []> {
                    "::mlir::FlatSymbolRefAttr":$callee,
                    "::mlir::ValueRange":$operands), [{
       build($_builder, $_state, resultTypes, callee,
-            operands, ::mlir::SymbolRefAttr{},
+            ::mlir::FlatSymbolRefAttr{}, operands, ::mlir::SymbolRefAttr{},
             ::mlir::Attribute{}, ::mlir::ArrayAttr{},
             ::mlir::SymbolRefAttr{}, ::mlir::FlatSymbolRefAttr{});
     }]>
@@ -632,7 +722,7 @@ def Fabric_RetryOp : Fabric_Op<"retry", []> {
   let description = [{
     Consumes the current attempt's linear outputs and returns the same boundary
     under a bounded retry policy.  `success` is the attempt predicate.  The
-    referenced attempt remains explicit in the surrounding protocol; this
+    referenced call/profile remains explicit in the surrounding protocol; this
     op does not clone its body.  Runtime lowering expands or orchestrates the
     attempt according to commit-point and exhaustion semantics.
   }];
@@ -645,7 +735,8 @@ def Fabric_RetryOp : Fabric_Op<"retry", []> {
     OptionalAttr<F64Attr>:$success_probability,
     OptionalAttr<FlatSymbolRefAttr>:$success_probability_source,
     OptionalAttr<StrAttr>:$success_probability_evidence,
-    OptionalAttr<FlatSymbolRefAttr>:$attempt
+    OptionalAttr<FlatSymbolRefAttr>:$attempt,
+    OptionalAttr<FlatSymbolRefAttr>:$profile
   );
   let results = (outs Variadic<Fabric_PatchType>:$results);
   let assemblyFormat = [{
@@ -678,6 +769,13 @@ def Fabric_ProtocolOp : Fabric_Op<"protocol", [
     `fabric.call` operations, structured control, selection/retry policy,
     resource flows, and explicit ownership-changing operations.  A protocol
     is not an implementation registry and does not copy its callees.
+
+    A protocol derived from one placed P1 helper occurrence carries
+    `input_p1_kernel`, `input_p1_callee`, and `input_p1_scope` together. The
+    verifier resolves that tuple to exactly one retained `lvm.call`; these
+    attributes preserve source provenance and do not classify the helper by
+    name. Arbitrary helper semantics remain in the retained callable body;
+    Fabric does not attach workload-specific role or shape metadata.
   }];
   let arguments = (ins
     SymbolNameAttr:$sym_name,
@@ -686,7 +784,13 @@ def Fabric_ProtocolOp : Fabric_Op<"protocol", [
     OptionalAttr<FlatSymbolRefAttr>:$generated_by,
     OptionalAttr<SymbolRefAttr>:$action_site,
     OptionalAttr<DictionaryAttr>:$specialization,
-    OptionalAttr<DictionaryAttr>:$metadata
+    OptionalAttr<DictionaryAttr>:$metadata,
+    OptionalAttr<FlatSymbolRefAttr>:$predicate_gadget,
+    OptionalAttr<FlatSymbolRefAttr>:$predicate_profile,
+    OptionalAttr<I64Attr>:$predicate_result,
+    OptionalAttr<FlatSymbolRefAttr>:$input_p1_kernel,
+    OptionalAttr<FlatSymbolRefAttr>:$input_p1_callee,
+    OptionalAttr<I64Attr>:$input_p1_scope
   );
   let regions = (region SizedRegion<1>:$body);
   let assemblyFormat = "$sym_name `:` $function_type attr-dict-with-keyword regions";
@@ -817,7 +921,7 @@ def Fabric_InitBasisOp : Fabric_Op<"init_basis", [
   let description = [{
     P2 atomic ancilla-initialization step. `basis = #fabric.prep<x>` prepares
     |+> and `basis = #fabric.prep<z>` prepares |0>. A target may realize this
-    operation natively or decompose it during target lowering; that realization
+    operation natively or decompose it at P3/target lowering; that realization
     does not change the authored P2 syndrome-extraction depth.
   }];
   let arguments = (ins
@@ -847,9 +951,8 @@ def Fabric_PermuteOp : Fabric_Op<"permute", [AllTypesMatch<["patch", "result"]>]
     Reichardt et al. (arXiv:2409.04628), where two of the three Path-4 CNOTs are
     realized purely by permuting qubits. In simulation it lowers to a noiseless
     SWAP network. `perm` is a permutation of the data-qubit indices: the qubit at
-    position i moves to position `perm[i]`. It adds no error mechanism to the
-    error model, but it is not a no-op there: propagation transforms pre-permute byproduct
-    and observable supports through the automorphism into the post-permute frame.
+    position i moves to position `perm[i]`. The walker transforms logical
+    supports through the automorphism into the post-permute frame.
     The verifier independently derives the action from the referenced
     canonical code algebra.  The typed action attributes are evidence to
     compare, not author assertions trusted by downstream consumers.
@@ -904,7 +1007,7 @@ def Fabric_MeasureBasisOp : Fabric_Op<"measure_basis", [
   let summary = "Atomically measure a carrier partition in a typed basis";
   let description = [{
     P2 atomic ancilla-measurement step. The `basis` attribute is retained
-    through target lowering. A target without a native X-basis read may
+    through P3 and target lowering. A target without a native X-basis read may
     realize `#fabric.prep<x>` as a basis change followed by Z readout, without
     changing the authored P2 extraction depth.
   }];
@@ -1020,10 +1123,9 @@ def Fabric_MeasureGaugesOp : Fabric_Op<"measure_gauges", [
   let summary = "measure one ordered gauge basis without inventing a syndrome";
   let description = [{
     Measures the declared binary-symplectic operators and returns their raw
-    outcomes.  Gauge outcomes are not implicitly promoted to stabilizer
-    syndrome: `fabric.infer_syndrome` performs that separately under an
-    explicit recovery contract.  `phase` identifies an optional dynamic-code
-    measurement phase; `record` is the stable relative record base.
+    outcomes. Gauge outcomes are not implicitly promoted to stabilizer
+    syndrome. `phase` identifies an optional dynamic-code measurement phase;
+    `record` is the stable relative record base.
   }];
   let arguments = (ins
     Fabric_PatchType:$patch,
@@ -1248,9 +1350,9 @@ def Fabric_ResourceRotateProductOp : Fabric_Op<"resource_rotate_product", []> {
     Consumes one linear raw resource and applies the fully specified product
     rotation to typed patch ports. Unlike legacy `fabric.inject`, this is not
     unresolved logical intent: the Pauli support, angle, resource kind, and
-    successor patch boundary are explicit. The P2 operation retains that
-    resource dependency for target emission. Term encoding matches
-    `fabric.measure_product`, including the optional leading `-` on
+    successor patch boundary are explicit. Physical projection retains the
+    resource dependency in `phys.resource_rotate_product`. Term encoding
+    matches `fabric.measure_product`, including the optional leading `-` on
     `pauli_product` (rotation about -P == rotation by `-angle` about P).
   }];
   let arguments = (ins
@@ -1267,6 +1369,23 @@ def Fabric_ResourceRotateProductOp : Fabric_Op<"resource_rotate_product", []> {
     $resource `on` $patches attr-dict `:` functional-type(operands, $patch_results)
   }];
 }
+
+//===----------------------------------------------------------------------===//
+// Timing annotations
+//===----------------------------------------------------------------------===//
+
+def Fabric_TickOp : Fabric_Op<"tick", []> {
+  let summary = "Round boundary marker (structure / timing annotation)";
+  let description = [{
+    Marks a logical time-step boundary for scheduling and circuit readability.
+    Produces no SSA value.
+  }];
+  let assemblyFormat = "attr-dict";
+}
+
+//===----------------------------------------------------------------------===//
+// Runtime ops (move data, return values)
+//===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
 // Pauli Frame Tracking
@@ -1325,96 +1444,10 @@ def Fabric_FrameResolveOp : Fabric_Op<"frame_resolve", []> {
 //===----------------------------------------------------------------------===//
 
 def Fabric_ResourceRequestOp : Fabric_Op<"resource_request", []> {
-  let summary = "synchronously acquire one typed resource from a static stream";
-  let description = [{
-    Records one synchronous P2 resource demand for static estimation and
-    directly yields its linear resource value.
-  }];
+  let summary = "request one typed resource from a placed logical stream";
   let arguments = (ins StrAttr:$kind, SymbolRefAttr:$stream);
-  let results = (outs Fabric_ResourceStateType:$resource);
-  let assemblyFormat = "$kind `from` $stream attr-dict `:` qualified(type($resource))";
-  let hasVerifier = 1;
-}
-
-def Fabric_EventTestOp : Fabric_Op<"event_test", []> {
-  let summary = "observe resource-event readiness without consuming it";
-  let arguments = (ins Fabric_EventType:$event);
-  let results = (outs I1:$ready);
-  let assemblyFormat = "$event attr-dict `:` qualified(type($event)) `->` type($ready)";
-}
-
-def Fabric_EventPollOp : Fabric_Op<"event_poll", []> {
-  let summary = "observe complete event state without consuming its payload";
-  let arguments = (ins Fabric_EventType:$event);
-  let results = (outs I8:$status);
-  let assemblyFormat = "$event attr-dict `:` type($event) `->` type($status)";
-}
-
-def Fabric_EventIsOp : Fabric_Op<"event_is", []> {
-  let summary = "test one Fabric event-state value";
-  let arguments = (ins I8:$status, StrAttr:$state);
-  let results = (outs I1:$matches);
-  let assemblyFormat = "$status $state attr-dict `:` type($status) `->` type($matches)";
-  let hasVerifier = 1;
-}
-
-def Fabric_EventSelectReadyOp : Fabric_Op<"event_select_ready", []> {
-  let summary = "select one ready event without consuming payload ownership";
-  let arguments = (ins
-    Variadic<Fabric_EventType>:$events,
-    DefaultValuedAttr<StrAttr, "\"priority\"">:$policy
-  );
-  let results = (outs Index:$selected);
-  let assemblyFormat = "`(` $events `)` attr-dict `:` type($events) `->` type($selected)";
-  let hasVerifier = 1;
-}
-
-def Fabric_EventTryTakeOp : Fabric_Op<"event_try_take", [
-  SingleBlockImplicitTerminator<"YieldOp">
-]> {
-  let summary = "ownership-safe nonblocking take of one Fabric event";
-  let arguments = (ins
-    Fabric_EventType:$event,
-    Variadic<AnyType>:$carries
-  );
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region SizedRegion<1>:$ready,
-                         SizedRegion<1>:$pending,
-                         SizedRegion<1>:$failed);
-  let hasVerifier = 1;
-}
-
-def Fabric_EventCancelOp : Fabric_Op<"event_cancel", []> {
-  let summary = "cancel one outstanding Fabric resource event";
-  let arguments = (ins Fabric_EventType:$event, OptionalAttr<StrAttr>:$reason);
-  let results = (outs I8:$status);
-  let assemblyFormat = "$event attr-dict `:` qualified(type($event)) `->` type($status)";
-}
-
-def Fabric_EventAwaitOp : Fabric_Op<"event_await", []> {
-  let summary = "await and consume one resource event";
-  let arguments = (ins Fabric_EventType:$event);
-  let results = (outs Fabric_ResourceStateType:$resource);
-  let assemblyFormat = "$event attr-dict `:` qualified(type($event)) `->` qualified(type($resource))";
-  let hasVerifier = 1;
-}
-
-def Fabric_FenceOp : Fabric_Op<"fence", []> {
-  let summary = "order only declared semantic effects without adding duration";
-  let arguments = (ins ArrayAttr:$effects);
-  let assemblyFormat = "attr-dict";
-  let hasVerifier = 1;
-}
-
-def Fabric_SelectionOp : Fabric_Op<"selection", []> {
-  let summary = "preserve portable statistical selection in a QEC protocol";
-  let arguments = (ins
-    I1:$predicate,
-    StrAttr:$mode,
-    DefaultValuedAttr<BoolAttr, "true">:$accept_when,
-    OptionalAttr<FlatSymbolRefAttr>:$attempt
-  );
-  let assemblyFormat = "$predicate attr-dict `:` type($predicate)";
+  let results = (outs Event_HandleType:$event);
+  let assemblyFormat = "$kind `from` $stream attr-dict `:` qualified(type($event))";
   let hasVerifier = 1;
 }
 
@@ -1456,8 +1489,12 @@ def Fabric_UnpackResourceOp : Fabric_Op<"unpack_resource", []> {
     logical operands in one packed block are therefore port mappings, never
     duplicate patch owners or duplicate resource payloads.
     `payload_logical_block_ids` carries the exact selected QEC block identity
-    for every mapping row; CCZ handoffs require it and replay authenticates it
-    against the detached QEC selection witness.
+    for every mapping row; selected three-qubit magic-state handoffs require
+    it and replay authenticates it against the detached QEC selection witness.
+    `payload_roles` gives every payload position its resource-provider-defined
+    semantic role. The generic dialect checks only ordered coverage and
+    uniqueness; a registered resource provider may enforce a stronger schema
+    and state-preparation proof.
 
     The payloads may use a different code/encoding from their placement
     anchors; their types are the resource-delivery contract and the physical
@@ -1472,7 +1509,8 @@ def Fabric_UnpackResourceOp : Fabric_Op<"unpack_resource", []> {
     OptionalAttr<QLX_BuiltinActionAttr>:$payload_action,
     OptionalAttr<ArrayAttr>:$payload_logical_block_ids,
     OptionalAttr<DenseI64ArrayAttr>:$payload_logical_blocks,
-    OptionalAttr<DenseI64ArrayAttr>:$payload_logical_ports
+    OptionalAttr<DenseI64ArrayAttr>:$payload_logical_ports,
+    OptionalAttr<ArrayAttr>:$payload_roles
   );
   let results = (outs Variadic<Fabric_PatchType>:$outputs);
   let assemblyFormat = [{
@@ -1482,21 +1520,25 @@ def Fabric_UnpackResourceOp : Fabric_Op<"unpack_resource", []> {
 }
 
 def Fabric_PackResourceOp : Fabric_Op<"pack_resource", []> {
-  let summary = "transfer an encoded patch into a linear resource payload";
+  let summary = "transfer encoded patches into one linear resource payload";
   let description = [{
-    Consumes one encoded patch and packages its quantum ownership as a typed
-    resource payload.  The resource kind states the producer's payload claim;
-    verification evidence on the producer establishes that the patch actually
-    has the promised state.
+    Consumes one or more distinct encoded patches and packages their ownership
+    as one typed resource payload. Payload order is semantic and is preserved
+    by a matching `fabric.unpack_resource`. The resource kind states the
+    producer's payload claim; verification evidence on the producer establishes
+    that the patches actually have the promised joint state. `payload_roles`
+    names every position's resource-kind-defined semantic role.
   }];
   let arguments = (ins
-    Fabric_PatchType:$payload,
+    Variadic<Fabric_PatchType>:$payloads,
     FlatSymbolRefAttr:$resource_kind,
-    OptionalAttr<FlatSymbolRefAttr>:$payload_encoding
+    ArrayAttr:$payload_encodings,
+    OptionalAttr<ArrayAttr>:$payload_roles
   );
   let results = (outs Fabric_ResourceStateType:$resource);
   let assemblyFormat = [{
-    $payload `as` $resource_kind attr-dict `:` type($payload) `->` type($resource)
+    `(` $payloads `)` `as` $resource_kind attr-dict `:`
+      functional-type($payloads, $resource)
   }];
   let hasVerifier = 1;
 }
@@ -1508,10 +1550,9 @@ def Fabric_InjectOp : Fabric_Op<"inject", []> {
     resource boundary with an unresolved logical action. It is not legal in a
     canonical QLX P2 body. P1-to-P2 selection must instead link a concrete
     code-specific protocol whose body uses `fabric.unpack_resource` followed by
-    explicit encoded operations, measurements, and classical predicates.
+    explicit encoded operations, measurements, decoding, and feedback.
 
-    Canonical selected-QEC builds reject this operation. The `gate` and
-    `protocol` attributes exist
+    P2-to-P3 rejects this operation. The `gate` and `protocol` attributes exist
     only so import tooling can diagnose or migrate the original intent; they
     never authorize carrierwise gate synthesis.
   }];
@@ -1632,87 +1673,6 @@ def Fabric_IdleOp : Fabric_Op<"idle", [AllTypesMatch<["patch", "result"]>]> {
   let assemblyFormat = "$patch attr-dict `:` type($result)";
 }
 
-def Fabric_YieldOp : Fabric_Op<"yield", [Terminator]> {
-  let summary = "Yield values from a region";
-  let description = [{
-    Terminates the body of `fabric.if`, `fabric.repeat`, or any other
-    region-based control flow op. Yields values back to the parent op.
-  }];
-  let arguments = (ins Variadic<AnyType>:$operands);
-  let assemblyFormat = "($operands^ `:` type($operands))? attr-dict";
-  let builders = [
-    OpBuilder<(ins), [{
-      build($_builder, $_state, ::mlir::ValueRange{});
-    }]>
-  ];
-}
-
-def Fabric_WhileConditionOp : Fabric_Op<"while_condition", [
-    Terminator, HasParent<"WhileOp">
-  ]> {
-  let summary = "decide whether a device-bound dynamic loop continues";
-  let arguments = (ins I1:$condition, Variadic<AnyType>:$forwarded);
-}
-
-def Fabric_WhileOp : Fabric_Op<"while", []> {
-  let summary = "dynamic QEC loop with typed carried boundaries";
-  let arguments = (ins
-    Variadic<AnyType>:$inits,
-    OptionalAttr<I64Attr>:$max_iterations
-  );
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region
-    SizedRegion<1>:$before_region,
-    SizedRegion<1>:$after_region
-  );
-  let hasVerifier = 1;
-}
-
-def Fabric_IfOp : Fabric_Op<"if", [
-    SingleBlockImplicitTerminator<"YieldOp">
-  ]> {
-  let summary = "Conditional execution";
-  let arguments = (ins I1:$condition);
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region
-    SizedRegion<1>:$then_region,
-    SizedRegion<1>:$else_region
-  );
-  let hasCustomAssemblyFormat = 1;
-}
-
-def Fabric_RepeatOp : Fabric_Op<"repeat", [
-    SingleBlockImplicitTerminator<"YieldOp">
-  ]> {
-  let summary = "Repeat a body N times with loop-carried values";
-  let description = [{
-    Executes its body region `count` times, threading values through
-    iterations via iter-args. Each iteration receives the previous
-    iteration's yielded values as block arguments.
-
-    This is the natural pattern for repeated syndrome extraction: the body
-    calls an extraction gadget and yields the updated patch and syndrome.
-
-    Example:
-    ```mlir
-    %p_out, %syn_out = fabric.repeat 3
-        iter(%pi : !fabric.patch<@sc> = %p_in,
-             %si : !fabric.syndrome<@sc> = %syn_in) {
-      %pn, %sn = fabric.call @extract(%pi, %si) : ...
-      fabric.yield %pn, %sn : ...
-    }
-    ```
-  }];
-  let arguments = (ins
-    I64Attr:$count,
-    Variadic<AnyType>:$inits
-  );
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region SizedRegion<1>:$body);
-  let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
-}
-
 def Fabric_XorOp : Fabric_Op<"xor", []> {
   let summary = "Classical parity (XOR)";
   let arguments = (ins I1:$lhs, I1:$rhs);
@@ -1736,9 +1696,9 @@ def Fabric_AllZeroOp : Fabric_Op<"all_zero", []> {
 def Fabric_ParityOp : Fabric_Op<"parity", []> {
   let summary = "XOR one or more scalar measurement bundles";
   let description = [{
-    Computes the ordinary classical parity of one or more measurement bundles.
-    This operation does not emit a quantum instruction; it makes a measured
-    predicate available to protocol selection and postselection logic.
+    Computes the classical parity of one or more measurement bundles. This
+    operation does not emit a quantum instruction; it makes an explicitly
+    authored parity available to selection logic.
   }];
   let arguments = (ins Variadic<AnyRankedTensor>:$bits);
   let results = (outs I1:$result);

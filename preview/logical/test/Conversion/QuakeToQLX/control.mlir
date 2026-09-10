@@ -37,10 +37,10 @@ module {
 
 // CHECK-LABEL: qlx.program @folded_loop
 // CHECK: %[[LOOP_Q:.*]] = qlx.prepare "zero" {allocation = 0 : i64
-// CHECK: %[[LOOP_RESULT:.*]] = qlx.repeat 5
+// CHECK: %[[LOOP_RESULT:.*]] = cflow.repeat 5
 // CHECK: iter(%[[LOOP_ARG:.*]]: !qlx.logical_qubit = %[[LOOP_Q]])
 // CHECK: %[[LOOP_T:.*]] = qlx.apply #qlx.action<t>(%[[LOOP_ARG]])
-// CHECK: qlx.yield %[[LOOP_T]]
+// CHECK: cflow.yield %[[LOOP_T]]
 // CHECK: qlx.discard %[[LOOP_RESULT]]
 
 // -----
@@ -77,12 +77,12 @@ module {
 
 // CHECK-LABEL: qlx.program @loop_local_measurement
 // CHECK: %[[LOCAL_CARRY:.*]] = qlx.prepare "zero" {allocation = 0 : i64
-// CHECK: %[[LOCAL_RESULT:.*]] = qlx.repeat 3
+// CHECK: %[[LOCAL_RESULT:.*]] = cflow.repeat 3
 // CHECK: iter(%[[LOCAL_ARG:.*]]: !qlx.logical_qubit = %[[LOCAL_CARRY]])
 // CHECK: %[[LOCAL_Q:.*]] = qlx.prepare "zero" {allocation = 1 : i64
 // CHECK: qlx.measure <X> %[[LOCAL_Q]]
 // CHECK: %[[LOCAL_H:.*]] = qlx.apply #qlx.action<h>(%[[LOCAL_ARG]])
-// CHECK: qlx.yield %[[LOCAL_H]]
+// CHECK: cflow.yield %[[LOCAL_H]]
 // CHECK: qlx.discard %[[LOCAL_RESULT]]
 
 // -----
@@ -103,11 +103,11 @@ module {
 }
 
 // CHECK-LABEL: qlx.program @constant_if
-// CHECK-NOT: "qlx.if"
+// CHECK-NOT: cflow.if
 // CHECK: %[[CONST_Q:.*]] = qlx.prepare "zero" {allocation = 0 : i64
 // CHECK: %[[CONST_H:.*]] = qlx.apply #qlx.action<h>(%[[CONST_Q]])
 // CHECK: qlx.discard %[[CONST_H]]
-// CHECK-NOT: "qlx.if"
+// CHECK-NOT: cflow.if
 
 // -----
 
@@ -133,9 +133,9 @@ module {
 // CHECK: %[[ADAPT_MEASURE_Q:.*]] = qlx.prepare "zero" {allocation = 0 : i64
 // CHECK: %[[ADAPT_DATA_Q:.*]] = qlx.prepare "zero" {allocation = 1 : i64
 // CHECK: %[[ADAPT_M:.*]] = qlx.measure <Z> %[[ADAPT_MEASURE_Q]]
-// CHECK: %[[ADAPT_IF:.*]] = "qlx.if"(%[[ADAPT_M]])
+// CHECK: %[[ADAPT_IF:.*]] = cflow.if %[[ADAPT_M]]
 // CHECK: %[[ADAPT_T:.*]] = qlx.apply #qlx.action<t>(%[[ADAPT_DATA_Q]])
-// CHECK: qlx.yield %[[ADAPT_T]]
-// CHECK: qlx.yield %[[ADAPT_DATA_Q]]
+// CHECK: cflow.yield %[[ADAPT_T]]
+// CHECK: cflow.yield %[[ADAPT_DATA_Q]]
 // CHECK: qlx.discard %[[ADAPT_IF]]
 // CHECK: qlx.return %[[ADAPT_M]]

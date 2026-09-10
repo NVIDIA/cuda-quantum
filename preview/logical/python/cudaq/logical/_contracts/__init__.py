@@ -7,6 +7,7 @@
 # ============================================================================ #
 """Dependency-neutral contracts shared by compilation and lowering."""
 
+from .physical_index import PhysicalStateTypeIndex
 from .projection import (
     CompiledInterfaceManifest,
     ProjectedMeasurement,
@@ -14,6 +15,7 @@ from .projection import (
 )
 
 __all__ = [
+    "PhysicalStateTypeIndex",
     "CompiledInterfaceManifest",
     "ProjectedMeasurement",
     "ProjectedPort",

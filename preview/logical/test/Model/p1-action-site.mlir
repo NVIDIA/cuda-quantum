@@ -22,6 +22,23 @@ module attributes {
       objective = @logical_zz,
       placements = [@machine::@compute, @machine::@compute]
     }
+    lvm.action_site @generated_h {
+      kind = "action",
+      objective = #qlx.action<h>,
+      placements = [@machine::@compute],
+      source_site = 7 : i64
+    }
+  }
+
+  lvm.kernel @placed on @machine
+      : (!lvm.logical_qubit<@machine::@compute>)
+     -> !lvm.logical_qubit<@machine::@compute> {
+  ^bb0(%q: !lvm.logical_qubit<@machine::@compute>):
+    %next = lvm.apply #qlx.action<h>(%q) at [@machine::@compute]
+        {site = 7 : i64}
+        : (!lvm.logical_qubit<@machine::@compute>)
+       -> !lvm.logical_qubit<@machine::@compute>
+    lvm.return %next : !lvm.logical_qubit<@machine::@compute>
   }
 }
 
@@ -29,5 +46,10 @@ module attributes {
 // CHECK-SAME: kind = "instrument"
 // CHECK-SAME: objective = @logical_zz
 // CHECK-SAME: placements = [@machine::@compute, @machine::@compute]
+// CHECK: lvm.action_site @generated_h
+// CHECK-SAME: kind = "action"
+// CHECK-SAME: objective = #qlx.action<h>
+// CHECK-SAME: placements = [@machine::@compute]
+// CHECK-SAME: source_site = 7 : i64
 // CHECK-NOT: selected
 // CHECK-NOT: feasible_candidates

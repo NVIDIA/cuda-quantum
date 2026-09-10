@@ -12,7 +12,7 @@ from enum import Enum
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping
 
-from .._core.immutable import ImmutableValue
+from cudaq.logical._core.immutable import ImmutableValue
 
 _MACHINE_CAPABILITY_NAMESPACE = "qlx.machine"
 _RESERVED_QLX_CAPABILITY_NAMESPACES = frozenset({
@@ -21,7 +21,7 @@ _RESERVED_QLX_CAPABILITY_NAMESPACES = frozenset({
 })
 
 
-class _Direction(str, Enum):
+class Direction(str, Enum):
     """Typed transfer direction of one machine channel.
 
     Channels accept either the enum member or its lowercase string value;
@@ -32,7 +32,7 @@ class _Direction(str, Enum):
     REVERSE = "reverse"
     BIDIRECTIONAL = "bidirectional"
 
-    # Keep ``str(_Direction.FORWARD) == "forward"`` on every Python version so
+    # Keep ``str(Direction.FORWARD) == "forward"`` on every Python version so
     # string-based emission and comparison stay stable.
     __str__ = str.__str__
 
@@ -51,8 +51,7 @@ class CapabilityKey:
                 "capability key must be a nonempty qualified string")
         if (namespace.startswith("qlx.") and
                 namespace not in _RESERVED_QLX_CAPABILITY_NAMESPACES):
-            raise ValueError(
-                "unsupported reserved CUDA-Q Logical capability namespace")
+            raise ValueError("unsupported reserved QLX capability namespace")
 
 
 class _OpenVocabulary:
@@ -85,7 +84,7 @@ def _machine_capabilities(values, *, what: str) -> tuple[CapabilityKey, ...]:
             not value.key.startswith(f"{_MACHINE_CAPABILITY_NAMESPACE}/")
             for value in normalized):
         raise ValueError(
-            f"{what} must use the CUDA-Q Logical machine-capability namespace")
+            f"{what} must use the QLX machine-capability namespace")
     if len(set(normalized)) != len(normalized):
         raise ValueError(f"{what} must be unique")
     return normalized
@@ -199,8 +198,8 @@ def region(
 ) -> SpaceDeclaration:
     """Declare a logical region.
 
-    QEC realizations belong to :class:`DeviceBuilder.qec`. The normalized
-    machine and LVM IR
+    QEC and physical realizations belong to the corresponding
+    :class:`DeviceBuilder` namespaces. The normalized machine and LVM IR
     continue to use the internal :class:`Space` model.
     """
 
@@ -224,8 +223,12 @@ class Stream:
     region (a device-only QEC binding when it carries ``code``/``encoding``),
     ``produced_by`` the production protocol, and ``transfer`` the
     consumer-side transfer/injection protocol. A stream that carries a backing
-    ``region`` names the P1 factory space refined through the device's QEC
-    namespace. ``external=True`` declares an out-of-frame supply.
+    ``region`` has a physical home once that region is refined through a
+    device's QEC and physical namespaces. A stream with neither a backing
+    region nor
+    ``external=True`` is physically incomplete: its supply has no home, and
+    stages that require physical truth (P3 lowering, schedule-aware and
+    digital-twin estimation) fail closed on it.
     """
 
     produces: Any
@@ -238,7 +241,7 @@ class Stream:
 
     def __post_init__(self) -> None:
         from ..std import ResourceFlowRef, ResourceKind
-        from ..protocols.definition import ProtocolDefinition
+        from cudaq.logical.protocols.definition import ProtocolDefinition
 
         if not isinstance(self.produces, ResourceKind):
             raise TypeError(
@@ -265,24 +268,28 @@ class Stream:
                     objective.kind != "produce" or
                     objective.resource != self.produces):
                 raise ValueError("stream produced_by must implement "
-                                 "cudaq.logical.std.produce(produces)")
+                                 "cudaq.logical.logical.produce(produces)")
             if self.produced_by.signature.parameters:
                 raise ValueError("stream producer must not require inputs")
         if self.transfer is not None:
             if not isinstance(self.transfer, ProtocolDefinition):
-                raise TypeError(
-                    "stream transfer must be a cudaq.logical.protocols.ProtocolDefinition"
-                )
+                raise TypeError("stream transfer must be a "
+                                "cudaq.logical.protocols.ProtocolDefinition")
             if self.produces not in self.transfer._resource_input_kinds():
-                raise ValueError(
-                    "stream transfer must consume cudaq.logical.types.resource[produces]"
-                )
+                raise ValueError("stream transfer must consume "
+                                 "cudaq.logical.types.resource[produces]")
 
     @property
     def is_backed(self) -> bool:
-        """The stream names a backing logical factory region."""
+        """The stream names a backing factory region with a physical home."""
 
         return self.region is not None
+
+    @property
+    def is_physically_complete(self) -> bool:
+        """The supply boundary is declared: backed, or explicitly external."""
+
+        return self.is_backed or self.external
 
 
 def stream(
@@ -300,8 +307,11 @@ def stream(
     ``buffer_size`` is the output queue depth (in-flight resources), distinct
     from the *region* ``capacity`` that counts concurrent factory instances.
     Give ``region=cudaq.logical.region(...)`` to name the producer region. In a device,
-    refine that region through ``DeviceBuilder.qec``. ``external`` declares
-    that the supply is deliberately out of frame.
+    refine that region through ``DeviceBuilder.qec`` and
+    ``DeviceBuilder.physical`` so the stream has a physical home. ``external``
+    declares that the supply is deliberately out of frame. A stream that is
+    neither backed nor external is physically incomplete and fails closed
+    where physical truth is required.
     """
 
     if region is not None and not isinstance(region, SpaceDeclaration):
@@ -323,24 +333,58 @@ def stream(
 
 
 @dataclass(frozen=True, slots=True)
-class _ResourceSupplyEdge:
-    """Compiler-derived local edge from a factory space to its backed stream."""
+class Channel:
+    source: Space | SpaceDeclaration | Stream
+    destination: Space | SpaceDeclaration | Stream
+    capabilities: tuple[CapabilityKey, ...] = ()
+    direction: str = "forward"
+    concurrency: int | None = None
+    name: str | None = None
 
-    source: Space
-    destination: Stream
-    name: str
-
-    @property
-    def capabilities(self) -> tuple[CapabilityKey, ...]:
-        return (RESOURCE_TRANSFER_CAPABILITY,)
-
-    @property
-    def direction(self) -> str:
-        return "forward"
-
-    @property
-    def concurrency(self) -> int | None:
-        return None
+    def __init__(
+        self,
+        source: Space | SpaceDeclaration | Stream,
+        destination: Space | SpaceDeclaration | Stream,
+        *,
+        capabilities: Iterable[CapabilityKey] = (),
+        direction: str = "forward",
+        capacity: int | None = None,
+        concurrency: int | None = None,
+        name: str | None = None,
+    ) -> None:
+        if capacity is not None and concurrency is not None:
+            raise TypeError(
+                "Channel accepts concurrency=; capacity= is its compatibility "
+                "alias and the two cannot be supplied together")
+        concurrency = capacity if concurrency is None else concurrency
+        if concurrency is not None and (not isinstance(concurrency, int) or
+                                        isinstance(concurrency, bool) or
+                                        concurrency <= 0):
+            raise TypeError("Channel concurrency must be a positive Python int")
+        normalized = str(direction).lower()
+        try:
+            normalized = Direction(normalized)
+        except ValueError:
+            pass  # Open vocabulary: unknown directions stay plain strings.
+        capabilities = _machine_capabilities(
+            capabilities,
+            what="Channel capabilities",
+        )
+        derived = RESOURCE_TRANSFER_CAPABILITY if isinstance(
+            source, Stream) or isinstance(destination, Stream) else None
+        if derived is not None and any(
+                value.key.rsplit("/", 1)[-1] == "resource_transfer" and
+                value != derived for value in capabilities):
+            raise ValueError("stream-derived resource transfer must use "
+                             "qlx.capability.resource_transfer")
+        if derived is not None and derived not in capabilities:
+            capabilities = (*capabilities, derived)
+        object.__setattr__(self, "source", source)
+        object.__setattr__(self, "destination", destination)
+        object.__setattr__(self, "capabilities", capabilities)
+        object.__setattr__(self, "direction", normalized)
+        object.__setattr__(self, "concurrency", concurrency)
+        object.__setattr__(self, "name", name)
 
     @property
     def capacity(self) -> int | None:
@@ -349,10 +393,33 @@ class _ResourceSupplyEdge:
         return self.concurrency
 
 
+def channel(
+    source: Space | SpaceDeclaration | Stream,
+    destination: Space | SpaceDeclaration | Stream,
+    *,
+    capabilities: Iterable[CapabilityKey] = (),
+    direction: str = "forward",
+    capacity: int | None = None,
+    concurrency: int | None = None,
+    name: str | None = None,
+) -> Channel:
+    """Declare a logical channel in a logical machine class."""
+
+    return Channel(
+        source,
+        destination,
+        capabilities=capabilities,
+        direction=direction,
+        capacity=capacity,
+        concurrency=concurrency,
+        name=name,
+    )
+
+
 class LogicalMachine(ImmutableValue):
     """Immutable P1 logical virtual platform; never physical topology."""
 
-    __slots__ = ("name", "spaces", "streams", "_channels", "_members")
+    __slots__ = ("name", "spaces", "streams", "channels", "_members")
 
     def __init__(self, name: str, members: Mapping[str, Any]) -> None:
         self.name = name
@@ -361,14 +428,8 @@ class LogicalMachine(ImmutableValue):
             value for value in members.values() if isinstance(value, Space))
         self.streams = tuple(
             value for value in members.values() if isinstance(value, Stream))
-        self._channels = tuple(
-            _ResourceSupplyEdge(
-                members[value.region.name or f"{key}_factory"],
-                value,
-                f"{key}_supply",
-            )
-            for key, value in members.items()
-            if isinstance(value, Stream) and value.region is not None)
+        self.channels = tuple(
+            value for value in members.values() if isinstance(value, Channel))
         self._seal()
 
     def __getattr__(self, name: str):
@@ -389,12 +450,13 @@ def synthesize_stream_supply(raw, renamed, members):
 
     For a stream whose ``region`` names a factory, this materializes that
     region as a real logical :class:`Space` (``<stream>_factory``) and a
-    internal channel (``<stream>_supply``) carrying the resource-transfer
+    :class:`Channel` (``<stream>_supply``) carrying the resource-transfer
     capability from the factory to the stream. Device authors refine the
-    synthesized logical factory region explicitly through the QEC namespace.
+    synthesized logical factory region explicitly through the QEC and physical
+    namespaces.
 
-    Returns ``{id(original_stream): factory_space}`` for canonical stream
-    binding during device materialization.
+    Returns ``{id(original_stream): factory_space}`` so a physical-resource
+    declaration bound with ``for_=stream`` resolves to the factory region.
     """
 
     factory_spaces: dict[int, Space] = {}
@@ -423,6 +485,11 @@ def synthesize_stream_supply(raw, renamed, members):
             raise ValueError(
                 f"stream {key!r} supply channel collides with an existing "
                 f"member {channel_name!r}")
+        members[channel_name] = Channel(
+            factory_space,
+            renamed.get(id(value), value),
+            name=channel_name,
+        )
     return factory_spaces
 
 
@@ -432,7 +499,7 @@ def machine(cls=None, *, name: str | None = None):
         raw = {
             key: value
             for key, value in vars(machine_class).items()
-            if isinstance(value, (Space, SpaceDeclaration, Stream))
+            if isinstance(value, (Space, SpaceDeclaration, Stream, Channel))
         }
         renamed: dict[int, Any] = {}
         members: dict[str, Any] = {}
@@ -450,6 +517,15 @@ def machine(cls=None, *, name: str | None = None):
                 renamed[id(value)] = named
                 members[key] = named
         synthesize_stream_supply(raw, renamed, members)
+        for key, value in raw.items():
+            if isinstance(value, Channel):
+                members[key] = replace(
+                    value,
+                    source=renamed.get(id(value.source), value.source),
+                    destination=renamed.get(id(value.destination),
+                                            value.destination),
+                    name=key,
+                )
         return LogicalMachine(name or machine_class.__name__, members)
 
     return decorate(cls) if cls is not None else decorate

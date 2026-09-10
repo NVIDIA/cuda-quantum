@@ -6,6 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
+  MLIRIR
+  MLIRSupport
+  MLIRBytecodeOpInterface
+  MLIRCallInterfaces
+)
+
 add_mlir_dialect_library(MLIRFabricDialect
   FabricDialect.cpp
 
@@ -14,13 +21,12 @@ add_mlir_dialect_library(MLIRFabricDialect
 
   DEPENDS
   MLIRFabricIncGen
+  MLIREventIncGen
 
   LINK_LIBS PUBLIC
   MLIRQLXDialect
-  MLIRArithDialect
-  MLIRIR
-  MLIRSupport
-  MLIRBytecodeOpInterface
-  MLIRCallInterfaces
+  MLIRCflowDialect
+  MLIREventDialect
+  ${_qlx_mlir_link_libraries}
   MLIRLVMDialect
 )

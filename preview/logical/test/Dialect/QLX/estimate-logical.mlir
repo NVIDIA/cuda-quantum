@@ -12,11 +12,11 @@
 qlx.program @folded : () -> i1 attributes {qlx.stage = "p0"} {
   %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64}
       : !qlx.logical_qubit
-  %r = qlx.repeat 5
+  %r = cflow.repeat 5
       iter(%arg: !qlx.logical_qubit = %q) {
     %next = qlx.apply #qlx.action<t>(%arg)
         : (!qlx.logical_qubit) -> !qlx.logical_qubit
-    qlx.yield %next : !qlx.logical_qubit
+    cflow.yield %next : !qlx.logical_qubit
   }
   %m = qlx.measure #qlx.pauli<Z> %r : !qlx.logical_qubit -> i1
   qlx.return %m : i1

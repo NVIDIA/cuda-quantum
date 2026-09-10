@@ -5,7 +5,7 @@ dialects, passes, or intermediate representations. For the Python interface,
 start with [Getting started](../getting-started/quickstart.md) and the
 [use cases](../use-cases/define-a-code.md).
 
-CUDA-Q Logical has one user surface over three semantic stages, orthogonal
+CUDA-Q Logical has one user surface over four semantic stages, orthogonal
 analysis facets, and one primary MLIR dialect family per stage. This page walks
 you through the whole machine: the dialect stack, the artifact model, the
 ownership contract, the compile pipeline, and the verification layers that hold
@@ -18,17 +18,20 @@ convert between families are the canonical compiler lowerings. Analysis facets
 are ops and results inside the owning representation, not extra semantic stages.
 
 ```{figure} ../_static/figures/dialect-map.svg
-:alt: The three stage dialects with their responsibilities, the passes that lower between them, and the target-emitter boundary.
+:alt: The four stage dialects with their responsibilities, lowerings, estimators, and emission boundaries.
 :width: 100%
 
 One primary representation family per stage. The named passes on the arrows
-are the canonical lowerings; the green strip is the emitter boundary.
+are the canonical lowerings; the green strip summarizes estimation and
+emission products.
 ```
 
 The division of labor is strict. `qlx` (P0) may not mention a machine or a code.
 `lvm` (P1) binds values to machine spaces and slots but does not choose codes.
 `fabric` (P2) is the QEC semantic hub: codes, encodings, verified gadgets,
-protocols, and the static resource evidence derived from them.
+protocols, and the static resource evidence derived from them. `phys` (P3)
+binds those realizations to physical resources, native events, routes, and
+schedules.
 
 ## The semantic spine and its facets
 
@@ -37,19 +40,19 @@ earlier stages left open, and each transition produces immutable evidence
 instead of silently filling in missing physics.
 
 ```{figure} ../_static/figures/semantic-spine.svg
-:alt: The P0, P1, and P2 stage boxes with their facets and the consumers attached orthogonally.
+:alt: The P0, P1, P2, and P3 stage boxes with their facets and consumers attached orthogonally.
 :width: 100%
 
 The semantic spine. Facets (pink) attach to immutable stage roots; consumers
 (green) sit orthogonal to the spine and read the verified stage they need.
 ```
 
-Four facets attach to stage roots (`cudaq.logical.stages.Facet`): `QEC_SPEC`
-(materialized code definitions), `QEC_REALIZATION` (verified gadget
-realizations), `PROTOCOL_NETWORK` (a linked, closed protocol call graph), and
-`PATCH_GRAPH` (the P2 patch-interaction view, below). Estimate results attach
-the same way: typed, schema-versioned records naming their producer, their root,
-and their evidence.
+Facets attach independently verified facts to stage roots
+(`cudaq.logical.stages.Facet`). P2 facets include `QEC_SPEC`,
+`QEC_REALIZATION`, `PROTOCOL_NETWORK`, and `PATCH_GRAPH`. Physical lowering adds
+`PATCH_MAPPING`, `NATIVE_LEGALIZATION`, `CARRIER_MAPPING`, and
+`PHYSICAL_ROUTING`; scheduling adds `PHYSICAL_SCHEDULE`. Estimate results attach
+the same way: typed records naming their producer, source, and evidence.
 
 ## Definitions versus builds
 
@@ -87,12 +90,13 @@ body's derived Clifford action against the claimed objective — a typed contrac
 not a naming convention. Compilation materializes typed gadget records
 (`fabric-materialize-record-schemas`) before verification.
 
-**Machines, placement, and builds.** A `@ql.machine` declares regions with
-capabilities and capacity; placement constraints such as
-`ql.architecture.colocate(...)` guide the solver; the result is a placement
-witness recorded on the P1 build (`placement_witness_sha256` in the IR). Builds
-are immutable: continuing one never mutates it, and every estimate or emission
-reads a private view.
+**Machines, placement, and builds.** A `@ql.machine` declares logical regions
+with capabilities and capacity; a layered device binds those regions to QEC
+architectures and physical resources. Placement constraints such as
+`ql.architecture.colocate(...)` guide the P1 solver. QEC selection produces P2,
+and physical projection, routing, native legalization, and scheduling produce
+P3. Builds are immutable: continuing one never mutates it, and every estimate
+or emission reads a private view.
 
 ## Data ownership
 
@@ -121,6 +125,7 @@ verification instead of guessing:
 | `logical()`               | `qlx-normalize-actions`, `qlx-infer-requirements`, `qlx-verify-p0`                                                                    | verified P0                                  |
 | `placed()`                | `qlx-verify-p0`, `qlx-place`, `qlx-to-lvm`, `lvm-verify-p1`                                                                           | verified P1 + placement witness              |
 | `qec()`                   | `lvm-select`, `lvm-apply-qec-lowerings`, `lvm-to-fabric`, `fabric-materialize-default-encodings`, `fabric-verify-generated-protocols` | verified P2 (realization + protocol network) |
+| `physical()`              | `fabric-derive-patch-graph`, `fabric-map-patches`, `fabric-to-phys`, `phys-route`, `phys-legalize-native-actions`, `phys-verify-p3`     | verified P3 physical event graph             |
 | `clifford_t(precision=…)` | `qlx-synthesize-rotations`, `qlx-verify-clifford-t`                                                                                   | P0 legalized to positive H/S/T/CX            |
 | `pbc()`                   | `qlx-to-pbc`, `qlx-verify-pbc`, `qlx-verify-p0`                                                                                       | P0 in Pauli-based-computation form           |
 
@@ -128,26 +133,27 @@ Definition-level recipes verify the other facets: `qec_definitions()`
 (`fabric-verify-p2s`, provides `QEC_SPEC`), `gadgets()` (`fabric-verify-p2a`,
 requires `QEC_SPEC`, provides `QEC_REALIZATION`), and `protocols()`
 (`fabric-link-calls`, `fabric-verify-p2n`, provides `PROTOCOL_NETWORK`).
-`device_stack(profile)` verifies an immutable device prefix against the `p1` or
-`p2` profile.
+`device_stack(profile)` verifies an immutable device prefix against its `p1`,
+`p2`, or `p3` profile.
 
-Two estimation passes read a stage without leaving it: `qlx-estimate-logical`
-attaches a logical profile to a P0 root (`Tier.LOGICAL`), and `fabric-count`
-attaches static fabric counts to a selected P2 root (`Tier.STATIC`). Presets are
-ordinary `Pipeline` values: `insert_after`, `configure`, `replace`, `append`,
-and `remove` compose them without string surgery.
+Four estimation tiers read verified artifacts without changing their semantic
+stage. `Tier.LOGICAL` profiles P0; `Tier.STATIC` counts a selected P2 network;
+`Tier.ANALYTICAL` combines P2 counts with an explicit physical model; and
+`Tier.SCHEDULE` authenticates resources and timing from a scheduled P3 graph.
+Presets are ordinary `Pipeline` values: `insert_after`, `configure`, `replace`,
+`append`, and `remove` compose them without string surgery.
 
 ## The P2 patch graph
 
-Topology survives as _inspectable evidence_, not as a physical-lowering stage. A
+Topology survives as _inspectable evidence_ before physical lowering. A
 selected P2 build exposes `build.patch_graph`: a typed, read-only view
 (`PatchGraphView`) of the patch instances and logical interactions the
 realization implies, derived from canonical `fabric` IR facts. You can convert
 the view to NetworkX or render it to PNG when the optional packages are
-installed. Placement stays
-code-agnostic at P1, and the interaction structure that a placement implies
-becomes checkable at P2 — that is the whole of the topology story in the
-trimmed product.
+installed. Placement stays code-agnostic at P1, and the interaction structure
+that a placement implies becomes checkable at P2. P3 then maps those patches to
+physical resources, routes their interactions, legalizes native events, and
+records the schedule as separate verified facets.
 
 ## Verification layers
 
@@ -158,10 +164,11 @@ Three independent layers enforce correctness:
   before a `@ql.code` exists at all.
 - **IR verifiers (C++)**: every stage boundary has a verify pass —
   `qlx-verify-p0`, `lvm-verify-p1`, `fabric-verify-p2s` / `-p2a` / `-p2n`,
-  `fabric-verify-machine`, plus the gate-set verifiers `qlx-verify-clifford-t`
-  and `qlx-verify-pbc`. Missing or inconsistent evidence fails closed. A Python
-  linear-use analysis (`compiler/linearity.py`) and strict link completeness
-  (`compiler/link_check.py`) back them on the authoring side.
+  `fabric-verify-machine`, and `phys-verify-p3`, plus the gate-set verifiers
+  `qlx-verify-clifford-t` and `qlx-verify-pbc`. Missing or inconsistent evidence
+  fails closed. A Python linear-use analysis (`compiler/linearity.py`) and
+  strict link completeness (`compiler/link_check.py`) back them on the
+  authoring side.
 - **Semantic verification**: the analysis derives a gadget's Clifford action
   from its body and compares it against the claimed objective
   (`cudaq.logical.gadgets.analysis.clifford_action`); names never select
@@ -174,8 +181,8 @@ You inspect builds through typed APIs, not text scraping: `build.stage`,
 `build.protocol_for(objective)`, `build.status`, `build.synthesis`,
 `build.patch_graph`, `build.to_mlir()`, `build.content_sha256`, and
 `build.serialize()` / `Build.replay(...)`. Estimate results are typed the same
-way: `LogicalEstimate`, `FabricCounts`, and `LogicalProfile` read
-`cudaq.estimate` annotations back as structured values.
+way: `LogicalEstimate`, `FabricCounts`, `FabricEstimate`, and
+`ScheduleEstimate` expose structured results from the four estimation tiers.
 
 ## Package map
 
@@ -188,10 +195,10 @@ cudaq/logical/
   codes/         code definitions, encodings, profiles, blocks, families
   gadgets/       gadget definitions, typed records, verification, factories
   protocols/     protocol definitions, builders, resource protocols
-  architecture/  logical placement and QEC architecture
+  architecture/  logical, QEC, and physical architecture
   devices/       layered devices, resources, regions, reusable local recipes
   compiler/      pipelines, immutable builds, placement, synthesis, topology
-  estimate/      the two-tier estimation surface (LOGICAL / STATIC)
+  estimate/      logical, static, analytical, and schedule estimation
   experiments/   immutable, reproducible compilation experiments
   algorithms/    algorithm libraries (the Gidney–Ekerå study)
   analysis/      resource-estimation and evidence APIs
@@ -199,7 +206,7 @@ cudaq/logical/
   targets/       built-in CUDA-Q targets (estimator, clifford_t, surface)
   std/           standard resource kinds and objectives (T_STATE, ...)
   qec/           QEC implementation-lowering contracts
-  dialects/      generated MLIR Python bindings (qlx, lvm, fabric)
+  dialects/      generated MLIR Python bindings (qlx, lvm, fabric, phys)
   stages.py      stage and facet enums
 ```
 

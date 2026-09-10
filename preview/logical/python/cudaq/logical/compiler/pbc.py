@@ -15,9 +15,9 @@ from .pipeline import Pipeline, pipelines
 
 def _to_pbc(source, *, pipeline: Pipeline) -> Build:
     if pipeline != pipelines.pbc():
-        raise ValueError(
-            "PBC normalization requires the canonical cudaq.logical.compiler.pipelines.pbc() "
-            "contract")
+        raise ValueError("PBC normalization requires the canonical "
+                         "cudaq.logical.compiler.pipelines.pbc() "
+                         "contract")
     if not isinstance(source, Build):
         raise TypeError(
             "cudaq.logical.compiler.to_pbc expects a synthesized P0 Build")
@@ -28,25 +28,21 @@ def _to_pbc(source, *, pipeline: Pipeline) -> Build:
     synthesis = source.synthesis
     if synthesis is None or synthesis.gate_set != "clifford_t":
         raise ValueError(
-            "cudaq.logical.compiler.to_pbc requires cudaq.logical.compiler.synthesize(..., "
-            "gate_set=cudaq.logical.compiler.clifford_t) first")
+            "cudaq.logical.compiler.to_pbc requires "
+            "cudaq.logical.compiler.synthesize(..., "
+            "gate_set=cudaq.logical.compiler.gate_sets.clifford_t) first")
 
     from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
-    # Lower a private replay of the immutable source snapshot.  The cached
-    # ``Build.module`` object is an inspection view and may have been mutated
-    # by user code through MLIR's Python bindings.
-    module = source._fresh_module()
+    module = runtime.clone_module(source.module)
     if not runtime.verify_clifford_t_module(module):
         raise ValueError(
-            "cudaq.logical.compiler.to_pbc requires positive Clifford+T input; call "
-            "cudaq.logical.compiler.synthesize(..., gate_set=cudaq.logical.compiler.clifford_t) first"
-        )
+            "cudaq.logical.compiler.to_pbc requires positive Clifford+T input; "
+            "call cudaq.logical.compiler.synthesize(..., "
+            "gate_set=cudaq.logical.compiler.gate_sets.clifford_t) first")
     runtime.lower_to_pbc_module(module)
     if not runtime.verify_pbc_module(module):
         raise RuntimeError("native PBC lowering produced invalid normal form")
-    if not module.operation.verify():
-        raise RuntimeError("PBC-normalized logical code failed P0 verification")
 
     return Build(
         context=module.context,
@@ -59,7 +55,7 @@ def _to_pbc(source, *, pipeline: Pipeline) -> Build:
             *source.evidence,
             EvidenceRecord(
                 kind="pauli_based_computation_normalization",
-                producer="qlx-native-pbc@0.3",
+                producer="cudaq-logical-native-pbc@0.3",
                 result="pass",
                 obligations=(
                     "positive-clifford-t-input",

@@ -1,10 +1,10 @@
 # Fermi–Hubbard Estimation
 
-[`07_fermi_hubbard.py`](../../../../examples/07_fermi_hubbard.py) compares a
+[`03_fermi_hubbard.py`](../../../../examples/03_fermi_hubbard.py) compares a
 Trotterized Fermi–Hubbard kernel in the logical action model and after
 Clifford+T synthesis.
 
-```{literalinclude} ../../../../examples/07_fermi_hubbard.py
+```{literalinclude} ../../../../examples/03_fermi_hubbard.py
 :language: python
 ```
 

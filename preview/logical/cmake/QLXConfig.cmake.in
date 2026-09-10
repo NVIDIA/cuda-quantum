@@ -6,13 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 #
-# QLXConfig.cmake — build-tree package config for downstream P0-P2 consumers.
+# QLXConfig.cmake — build-tree package config for downstream P0-P3 consumers.
 #
 # Usage:
 #   cmake -DQLX_DIR=<qlx-build>/lib/cmake/QLX -S . -B build
 #
 # After find_package(QLX REQUIRED), downstream CMakeLists files have:
-#   - QLX::MLIRQLXDialect, QLX::MLIRLVMDialect, QLX::MLIRFabricDialect
+#   - QLX::MLIRQLXDialect, QLX::MLIRLVMDialect, QLX::MLIRFabricDialect,
+#     QLX::MLIRPhysDialect, QLX::MLIRCflowDialect, QLX::MLIREventDialect
 #   - qlx_propagate_llvm_rtti_eh(<target>) helper function
 #   - QLX_INCLUDE_DIRS  — qlx dialect headers (source + generated)
 #   - cudaq::MLIR plus the MLIR and CUDA-Q cmake helpers
@@ -22,7 +23,7 @@ include(CMakeFindDependencyMacro)
 
 # CUDA-Q Logical was built against this CUDA-Q installation and the LLVM/MLIR pair that
 # ships with it — consumers must resolve MLIR from the same libcudaqMLIR image.
-list(PREPEND CMAKE_PREFIX_PATH "@QLX_CUDAQ_PREFIX@")
+list(PREPEND CMAKE_PREFIX_PATH "@CUDAQ_LOGICAL_CUDAQ_PREFIX@")
 set(CUDAQ_ENABLE_LANGUAGE OFF)
 find_dependency(CUDAQ CONFIG)
 find_dependency(MLIR CONFIG)

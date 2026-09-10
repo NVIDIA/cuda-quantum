@@ -11,10 +11,10 @@ and a program can never branch on a later-stage cost fact it should not know.
   error rates:
 
   ```{eval-rst}
-  .. literalinclude:: ../../../examples/02_p1_placement.py
+  .. literalinclude:: ../../../examples/standalone/01_logical_placement.py
      :language: python
-     :lines: 13-21
-     :caption: A logical machine with one capable region (examples/02_p1_placement.py).
+     :lines: 17-25
+     :caption: A logical machine with one capable region (examples/standalone/01_logical_placement.py).
   ```
 
   Capabilities are typed keys in an open `ql.machine` vocabulary; the
@@ -24,9 +24,12 @@ and a program can never branch on a later-stage cost fact it should not know.
 - A **QEC machine** carries the P2 refinement: encoded block pools, one selected
   encoding per region, and block capacities.
 
+- A **physical machine** carries the P3 refinement: physical resources, native
+  operations and instruments, bindings, routing, and timing assumptions.
+
 - An immutable **device** binds adjacent machines explicitly. A device with only
   a logical machine is complete for placement work; binding an encoding per
-  region grows it into a QEC device.
+  region grows it into a QEC device, and physical bindings complete a P3 device.
 
 For homogeneous cases you never write the normalized containers explicitly. The
 device builder separates logical region facts from the vertical encoding
@@ -51,10 +54,11 @@ singular name is deliberate — each region has one selected encoding.
 `ql.devices.DeviceBuilder` is progressively complete. `build()` does not demand
 code facts that the requested compiler stage cannot use:
 
-| Declared layers | Builder boundary                                                                                                | Suitable work                                  |
-| --------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| P1              | `logical.add_compute(...)`, `logical.add_memory(...)`, `logical.add_factory(...)`, or `logical.add_region(...)` | logical placement, capacities, resource supply |
-| P1 + P2         | `qec.bind(...)`                                                                                                 | code selection, gadgets, static estimation     |
+| Declared layers | Builder boundary                                                                                                | Suitable work                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| P1              | `logical.add_compute(...)`, `logical.add_memory(...)`, `logical.add_factory(...)`, or `logical.add_region(...)` | logical placement, capacities, resource supply      |
+| P1 + P2         | `qec.bind(...)`                                                                                                 | code selection, gadgets, static/analytical estimates |
+| P1 + P2 + P3    | `physical.add_*`, `physical.bind(...)`, and an operating point                                                 | physical lowering, scheduling, schedule estimates   |
 
 A placement-only device is therefore complete as written:
 
@@ -72,10 +76,11 @@ labels: `add_compute`, `add_memory`, and `add_factory` attach typed
 capabilities and generate region and resource-stream labels with suffixes as
 needed. `DeviceBuilder` itself always has an explicit stable name.
 
-Ready-made QEC device stacks also ship as compilation targets — the
-`surface_target(distance=3, logical_capacity=1)` stack in
-`examples/00_cudaq_logical_resource_estimate.py` binds a rotated-surface-code
-QEC machine under a logical machine without any hand-written builder code.
+Ready-made complete device stacks also ship as compilation targets — the
+`surface_physical_target(distance=3, logical_capacity=1)` stack in
+`examples/02_surface_code_resource_estimate.py` binds a rotated-surface-code
+QEC machine and a physical machine under a logical machine without any
+hand-written builder code.
 
 ## Automatic placement: constraints, preferences, witnesses
 
@@ -83,10 +88,10 @@ Placement solves hard constraints and soft preferences over the machine, and the
 solution is inspectable evidence, not solver state:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/02_p1_placement.py
+.. literalinclude:: ../../../examples/standalone/01_logical_placement.py
    :language: python
-   :lines: 32-43
-   :caption: Placing the Bell program and inspecting the witness (examples/02_p1_placement.py).
+   :lines: 30-51
+   :caption: Placing the Bell program and inspecting the witness (examples/standalone/01_logical_placement.py).
 ```
 
 `place` materializes P0 before invoking the selector. Address values through
@@ -112,7 +117,8 @@ closed:
 % invisible-code-block: python
 %
 % p0, TwoSlotMachine = load_ql_example(
-% "preview/logical/examples/02_p1_placement.py", "p0", "TwoSlotMachine")
+% "preview/logical/examples/standalone/01_logical_placement.py", "logical",
+% "TwoSlotMachine")
 -->
 
 ```python

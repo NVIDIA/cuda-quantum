@@ -22,16 +22,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
-from ..architecture.constraints import (
+from cudaq.logical.architecture.constraints import (
     AllowSpaces,
     Colocate,
+    DistributedPlacement,
     LocalPlacement,
     PlacementBinding,
     Prefer,
     RequireCapability,
+    TopologicalPlacement,
+    TrajectoryPlacement,
 )
-from ..architecture.logical import LogicalValueRef
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import LogicalValueRef
+from cudaq.logical.architecture.logical import (
     CapabilityKey,
     LogicalValueGroup,
     Space,
@@ -44,7 +47,7 @@ _UNSET = object()
 
 def _mapping_module():
     # Import lazily so ``import cudaq.logical`` can initialize its compiler package before
-    # publishing this placement surface.
+    # publishing this research surface.
     from ..compiler import mapping
 
     return mapping
@@ -114,15 +117,36 @@ def _validate_constraint_artifact(value, *, index: int) -> None:
     what = f"placement problem constraint[{index}]"
     value = _raw_object(value, what=what)
     kind = _raw_string(value.get("kind"), what=f"{what}.kind")
-    if kind in {"distributed", "trajectory", "topological_record"}:
-        raise ValueError(
-            f"{what} uses excluded nonlocal placement kind {kind!r}")
     fields = {
         "allow_spaces": ("kind", "spaces"),
         "require_capability": ("kind", "capability"),
         "colocate": ("kind", "values"),
         "local": ("kind", "value", "space", "slot", "witness"),
         "prefer": ("kind", "space", "role", "for"),
+        "distributed": (
+            "kind",
+            "value",
+            "spaces",
+            "support_views",
+            "ownership_witness",
+            "link_obligations",
+        ),
+        "trajectory": (
+            "kind",
+            "value",
+            "segments",
+            "transition_events",
+            "continuity_witness",
+        ),
+        "topological_record": (
+            "kind",
+            "value",
+            "space",
+            "record",
+            "frontier",
+            "support_witness",
+            "observable_witness",
+        ),
     }
     try:
         expected = fields[kind]
@@ -130,7 +154,7 @@ def _validate_constraint_artifact(value, *, index: int) -> None:
         raise ValueError(f"{what} has unsupported kind {kind!r}") from exc
     _require_exact_keys(value, expected, what=what)
 
-    if kind == "allow_spaces":
+    if kind in {"allow_spaces", "distributed"}:
         for ordinal, item in enumerate(
                 _raw_array(value["spaces"], what=f"{what}.spaces")):
             _raw_string(item, what=f"{what}.spaces[{ordinal}]")
@@ -143,14 +167,51 @@ def _validate_constraint_artifact(value, *, index: int) -> None:
                 item,
                 what=f"{what}.values[{ordinal}]",
             )
-    if kind == "local":
+    if kind in {"local", "distributed", "trajectory", "topological_record"}:
         _validate_reference_artifact(value["value"], what=f"{what}.value")
-    if kind == "local":
+    if kind in {"local", "topological_record"}:
         _raw_string(value["space"], what=f"{what}.space")
     if kind == "local" and value["slot"] is not None:
         _raw_integer(value["slot"], what=f"{what}.slot")
     if kind == "local" and value["witness"] is not None:
         _raw_string(value["witness"], what=f"{what}.witness")
+    if kind == "distributed":
+        for field in ("support_views", "link_obligations"):
+            for ordinal, item in enumerate(
+                    _raw_array(value[field], what=f"{what}.{field}")):
+                _raw_string(
+                    item,
+                    what=f"{what}.{field}[{ordinal}]",
+                )
+        _raw_string(
+            value["ownership_witness"],
+            what=f"{what}.ownership_witness",
+        )
+    if kind == "trajectory":
+        for ordinal, item in enumerate(
+                _raw_array(value["segments"], what=f"{what}.segments")):
+            _raw_string(item, what=f"{what}.segments[{ordinal}]")
+        for ordinal, item in enumerate(
+                _raw_array(value["transition_events"],
+                           what=f"{what}.transition_events")):
+            _raw_string(
+                item,
+                what=f"{what}.transition_events[{ordinal}]",
+            )
+        _raw_string(
+            value["continuity_witness"],
+            what=f"{what}.continuity_witness",
+        )
+    if kind == "topological_record":
+        for field in (
+                "record",
+                "support_witness",
+                "observable_witness",
+        ):
+            _raw_string(value[field], what=f"{what}.{field}")
+        for ordinal, item in enumerate(
+                _raw_array(value["frontier"], what=f"{what}.frontier")):
+            _raw_string(item, what=f"{what}.frontier[{ordinal}]")
     if kind == "prefer":
         if value["space"] is not None:
             _raw_string(value["space"], what=f"{what}.space")
@@ -470,7 +531,7 @@ def _machine_contract(machine) -> Mapping[str, Any]:
                     _direction(channel.direction),
                 "capacity":
                     channel.capacity,
-            } for channel in machine._channels),
+            } for channel in machine.channels),
     }
 
 
@@ -685,6 +746,56 @@ def _normalize_constraint(constraint, program, machine):
             role=constraint.role,
             for_=_canonical_preference_target(constraint.for_, program),
         )
+    if isinstance(constraint, DistributedPlacement):
+        return DistributedPlacement(
+            _canonical_reference(
+                constraint.value,
+                program,
+                what="distributed placement value",
+            ),
+            tuple(
+                _canonical_space(
+                    space,
+                    machine,
+                    what=f"distributed placement space {index}",
+                ) for index, space in enumerate(constraint.spaces)),
+            constraint.support_views,
+            constraint.ownership_witness,
+            constraint.link_obligations,
+        )
+    if isinstance(constraint, TrajectoryPlacement):
+        return TrajectoryPlacement(
+            _canonical_reference(
+                constraint.value,
+                program,
+                what="trajectory placement value",
+            ),
+            tuple(
+                _canonical_space(
+                    space,
+                    machine,
+                    what=f"trajectory placement segment {index}",
+                ) for index, space in enumerate(constraint.segments)),
+            constraint.transition_events,
+            constraint.continuity_witness,
+        )
+    if isinstance(constraint, TopologicalPlacement):
+        return TopologicalPlacement(
+            _canonical_reference(
+                constraint.value,
+                program,
+                what="topological placement value",
+            ),
+            _canonical_space(
+                constraint.space,
+                machine,
+                what="topological placement space",
+            ),
+            constraint.record,
+            constraint.frontier,
+            constraint.support_witness,
+            constraint.observable_witness,
+        )
     return constraint
 
 
@@ -727,8 +838,35 @@ def _constraint_record(constraint) -> Mapping[str, Any]:
             "for":
                 _preference_target(constraint.for_),
         }
+    if isinstance(constraint, DistributedPlacement):
+        return {
+            "kind": "distributed",
+            "value": _reference_record(constraint.value),
+            "spaces": tuple(space.name for space in constraint.spaces),
+            "support_views": constraint.support_views,
+            "ownership_witness": constraint.ownership_witness,
+            "link_obligations": constraint.link_obligations,
+        }
+    if isinstance(constraint, TrajectoryPlacement):
+        return {
+            "kind": "trajectory",
+            "value": _reference_record(constraint.value),
+            "segments": tuple(space.name for space in constraint.segments),
+            "transition_events": constraint.transition_events,
+            "continuity_witness": constraint.continuity_witness,
+        }
+    if isinstance(constraint, TopologicalPlacement):
+        return {
+            "kind": "topological_record",
+            "value": _reference_record(constraint.value),
+            "space": constraint.space.name,
+            "record": constraint.record,
+            "frontier": constraint.frontier,
+            "support_witness": constraint.support_witness,
+            "observable_witness": constraint.observable_witness,
+        }
     raise TypeError(
-        "placement constraints must be typed CUDA-Q Logical placement descriptors, got "
+        "placement constraints must be typed qlx placement descriptors, got "
         f"{type(constraint).__name__}")
 
 
@@ -1133,7 +1271,7 @@ def _as_p0(program):
         program = compile(program, pipeline=pipelines.logical())
     if program.profile != "p0":
         raise ValueError(
-            "placement API requires a P0 Build or portable definition")
+            "placement research API requires a P0 Build or portable definition")
     return program
 
 
@@ -1270,6 +1408,35 @@ def _constraints_from_records(problem, program, machine):
                         program,
                     ),
                 ))
+        elif kind == "distributed":
+            restored.append(
+                DistributedPlacement(
+                    _reference_from_record(record["value"], program),
+                    tuple(space(item) for item in record["spaces"]),
+                    tuple(str(item) for item in record["support_views"]),
+                    str(record["ownership_witness"]),
+                    tuple(
+                        str(item)
+                        for item in record.get("link_obligations", ())),
+                ))
+        elif kind == "trajectory":
+            restored.append(
+                TrajectoryPlacement(
+                    _reference_from_record(record["value"], program),
+                    tuple(space(item) for item in record["segments"]),
+                    tuple(str(item) for item in record["transition_events"]),
+                    str(record["continuity_witness"]),
+                ))
+        elif kind == "topological_record":
+            restored.append(
+                TopologicalPlacement(
+                    _reference_from_record(record["value"], program),
+                    space(record["space"]),
+                    str(record["record"]),
+                    tuple(str(item) for item in record["frontier"]),
+                    str(record["support_witness"]),
+                    str(record["observable_witness"]),
+                ))
         else:
             raise _mapping_module().MappingVerificationError(
                 "detached placement problem cannot reconstruct opaque "
@@ -1373,15 +1540,14 @@ def solve(
 ) -> PlacementPlan:
     """Solve one placement problem with deterministic ``first_fit``.
 
-    Callable strategies are intentionally not accepted by this interface:
-    :func:`apply` can independently reconstruct and verify only the
+    Callable strategies are intentionally not accepted in this first research
+    slice: :func:`apply` can independently reconstruct and verify only the
     compiler-owned first-fit decision.
     """
 
     if not isinstance(problem, PlacementProblem):
-        raise TypeError(
-            "cudaq.logical.architecture.placement.solve requires a PlacementProblem"
-        )
+        raise TypeError("cudaq.logical.architecture.placement.solve requires a "
+                        "PlacementProblem")
     if callable(strategy):
         raise TypeError(
             "callable placement strategies are not executable in this slice; "
@@ -1404,13 +1570,11 @@ def apply(
     """Verify and materialize one exact placement plan as canonical P1."""
 
     if not isinstance(problem, PlacementProblem):
-        raise TypeError(
-            "cudaq.logical.architecture.placement.apply requires a PlacementProblem"
-        )
+        raise TypeError("cudaq.logical.architecture.placement.apply requires a "
+                        "PlacementProblem")
     if not isinstance(plan, PlacementPlan):
-        raise TypeError(
-            "cudaq.logical.architecture.placement.apply requires a PlacementPlan"
-        )
+        raise TypeError("cudaq.logical.architecture.placement.apply requires a "
+                        "PlacementPlan")
     _mapping_module().verify_plan_for_problem(
         problem_digest=problem.digest,
         plan_problem_digest=plan.problem_digest,
@@ -1456,7 +1620,3 @@ __all__ = [
     "problem",
     "solve",
 ]
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.placement")

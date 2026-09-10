@@ -8,7 +8,7 @@
 """Small reusable realization factories, exported as ordinary Python values.
 
 This module is a library, not a registry.  Calling a factory returns a normal
-``GadgetDefinition`` that the importing module can expose to the private CUDA-Q Logical
+``GadgetDefinition`` that the importing module can expose to QLX's private
 module linker alongside research-local realizations.
 """
 
@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import hashlib
 
-from ..programs.decorators import objective
-from ..ops._impl import (
+from cudaq.logical.programs.decorators import objective
+from cudaq.logical.ops._impl import (
     cx,
     cz,
     discard,
@@ -30,26 +30,26 @@ from ..ops._impl import (
     y,
     z,
 )
-from ..ops._impl import measure_x as logical_measure_x
-from ..ops._impl import measure_z as logical_measure_z
-from ..ops._impl import (
+from cudaq.logical.ops._impl import measure_x as logical_measure_x
+from cudaq.logical.ops._impl import measure_z as logical_measure_z
+from cudaq.logical.ops._impl import (
     mpp,
     prepare,
 )
-from ..types.values import logical_qubit
-from ..codes import (
+from cudaq.logical.types.values import logical_qubit
+from cudaq.logical.codes import (
     Code,
     Encoding,
 )
-from ..algebra.pauli import (
+from cudaq.logical.algebra.pauli import (
     PauliGroupElement,
     PauliProduct,
     X,
     Z,
 )
-from ..gadgets.definition import gadget
-from ..gadgets.interface import patch
-from ..types.semantic import (
+from cudaq.logical.gadgets.definition import gadget
+from cudaq.logical.gadgets.interface import patch
+from cudaq.logical.types.semantic import (
     plus,
     zero,
 )
@@ -197,13 +197,9 @@ def logical_pauli(
         raise ValueError(f"code {code.name} has no protected logical {logical}")
     representative = (code.logical_x_basis.rows[logical]
                       if basis == "x" else code.logical_z_basis.rows[logical])
-    # Logical representatives use the symplectic ``(X | Z)`` layout, whereas
-    # a patch frame is indexed by physical carrier. Select the component acted
-    # on by this Pauli before converting support bits to carrier indices.
-    offset = 0 if basis == "x" else code.n
-    indices = tuple(
-        index for index, bit in enumerate(representative[offset:offset +
-                                                         code.n]) if bit)
+    support = (representative[:code.n]
+               if basis == "x" else representative[code.n:])
+    indices = tuple(index for index, bit in enumerate(support) if bit)
 
     def realization(block):
         action = x if basis == "x" else z
@@ -235,8 +231,8 @@ def css_memory_round(value,
 
     One syndrome-extraction pass over the encoded block: the gadget consumes
     and returns the same linear patch owner while its check records update the
-    syndrome history. It implements the standard ``cudaq.logical.std.idle``
-    objective, so QEC selection binds it to explicit ``qlx.idle`` memory
+    syndrome history. It implements the standard ``cudaq.logical.logical.idle``
+    objective, so QEC selection binds it to explicit ``cudaq.logical.idle`` memory
     workloads placed on the code.
     """
     encoding = _encoding(value)
@@ -299,7 +295,7 @@ def prepare_plus(value, *, name: str | None = None):
 
 
 def _stim_pauli(element: PauliGroupElement, *, width: int):
-    """Convert one phase-complete Pauli-group element to a Stim observable."""
+    """Convert one phase-complete Pauli-group element to a Stim Pauli product."""
 
     try:
         import stim
@@ -315,7 +311,7 @@ def _stim_pauli(element: PauliGroupElement, *, width: int):
         z_bit = bool(z_mask & (1 << index))
         paulis.append(
             "Y" if x_bit and z_bit else "X" if x_bit else "Z" if z_bit else "I")
-    # Hermitian Y in Stim is ``iXZ``. Remove that local convention from the
+    # Stim's Hermitian Y is iXZ. Remove that local convention from the
     # phase-complete i^p X^x Z^z representation to recover the overall sign.
     residual_phase = (element.phase_exponent_mod_4 -
                       (x_mask & z_mask).bit_count()) % 4
@@ -343,8 +339,7 @@ def _lift_logical_stabilizer(code: Code, value: PauliProduct):
 
     if not isinstance(value, PauliProduct):
         raise TypeError(
-            "logical_stabilizers entries must be formal CUDA-Q Logical Pauli products"
-        )
+            "logical_stabilizers entries must be formal qlx Pauli products")
     logical = PauliGroupElement.from_product(value)
     if logical.arity > code.k:
         raise ValueError(

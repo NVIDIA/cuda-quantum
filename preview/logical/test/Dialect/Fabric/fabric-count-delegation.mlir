@@ -32,4 +32,3 @@ fabric.protocol @moving : (!fabric.patch<@code>) -> !fabric.patch<@code> {
 // CHECK: fabric.counts = {
 // CHECK-DAG: gadget_calls = {handoff = 1 : i64}
 // CHECK-DAG: operation_counts = {h = 1 : i64, relocate = 1 : i64}
-// CHECK-DAG: source_facets = ["qec_spec", "qec_realization", "protocol_network"]

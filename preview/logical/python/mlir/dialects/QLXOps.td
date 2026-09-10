@@ -1,12 +1,10 @@
-//===- QLXOps.td - thin include shim for python bindings ---*- tablegen -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // declare_mlir_dialect_python_bindings invokes mlir-tblgen with this file
 // as the entry point.  The canonical QLX op definitions live in

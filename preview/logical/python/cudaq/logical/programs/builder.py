@@ -11,14 +11,14 @@ import math
 from types import NoneType
 from typing import Any, get_args, get_origin, get_type_hints
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..algebra.angle import Angle
-from ..programs.context import (
+from cudaq.logical.algebra.angle import Angle
+from cudaq.logical.programs.context import (
     pop_trace,
     push_trace,
 )
-from ..types.values import (
+from cudaq.logical.types.values import (
     Float64Value,
     EventState,
     EventStatusValue,
@@ -32,9 +32,9 @@ from ..types.values import (
     _SSAProxy,
     logical_qubit,
 )
-from ..algebra.pauli import PauliProduct
-from ..programs.definition import ProgramDefinition
-from ..types.semantic import (
+from cudaq.logical.algebra.pauli import PauliProduct
+from cudaq.logical.programs.definition import ProgramDefinition
+from cudaq.logical.types.semantic import (
     float64,
     index,
     logical_event,
@@ -53,7 +53,7 @@ def _flatten_annotation(annotation: Any) -> tuple[Any, ...]:
         for item in get_args(annotation):
             if item is Ellipsis:
                 raise TypeError(
-                    "variadic tuple annotations are not canonical CUDA-Q Logical signatures"
+                    "variadic tuple annotations are not canonical QLX signatures"
                 )
             flattened.extend(_flatten_annotation(item))
         return tuple(flattened)
@@ -89,8 +89,7 @@ def _static_attribute(context, value):
                                          value)
     if isinstance(value, Angle):
         # Specialization provenance only: the substituted rotation op already
-        # carries the exact angle numerator and denominator; record the numeric
-        # value here.
+        # carries the exact angle_pi_num/den; record the numeric value here.
         with mlir_ir.Location.unknown(context):
             return mlir_ir.FloatAttr.get(mlir_ir.F64Type.get(context=context),
                                          float(value))
@@ -110,8 +109,18 @@ def _static_attribute(context, value):
             context=context,
         )
     raise TypeError(
-        f"static CUDA-Q Logical parameter {value!r} has no canonical MLIR attribute"
-    )
+        f"static QLX parameter {value!r} has no canonical MLIR attribute")
+
+
+def _signless_integer_attribute(context, value: int, width: int):
+    """Build a signless integer attribute without truncating wide masks."""
+
+    integer_type = mlir_ir.IntegerType.get_signless(width, context=context)
+    if -(1 << 63) <= value < (1 << 63):
+        return mlir_ir.IntegerAttr.get(integer_type, value)
+    # IntegerAttr.get converts through a signed host integer in the Python
+    # binding. MLIR's parser accepts the full arbitrary-precision APInt value.
+    return mlir_ir.Attribute.parse(f"{value} : i{width}", context=context)
 
 
 def _builtin_action(context, name: str):
@@ -179,15 +188,13 @@ class UnplacedBuilder:
                                       context=self.context)
         if origin is logical_event:
             payload = self._mlir_type(arguments[0])
-            return mlir_ir.Type.parse(
-                f'!qlx.logical_event<{payload}, "linear">',
-                context=self.context)
+            return mlir_ir.Type.parse(f'!event.handle<{payload}, "linear">',
+                                      context=self.context)
         if origin is logical_frame:
             domain = self._semantic_name(arguments[0])
             return mlir_ir.Type.parse(f'!qlx.logical_frame<"{domain}">',
                                       context=self.context)
-        raise TypeError(
-            f"unsupported CUDA-Q Logical P0 annotation: {annotation!r}")
+        raise TypeError(f"unsupported QLX P0 annotation: {annotation!r}")
 
     @staticmethod
     def _semantic_name(value) -> str:
@@ -396,15 +403,15 @@ class UnplacedBuilder:
         walk(self.operation)
         forbidden = {
             "qlx.resource_request",
-            "qlx.event_await",
-            "qlx.event_poll",
-            "qlx.event_test",
-            "qlx.event_is",
-            "qlx.event_select_ready",
-            "qlx.event_try_take",
-            "qlx.event_cancel",
+            "event.await",
+            "event.poll",
+            "event.test",
+            "event.is",
+            "event.select_ready",
+            "event.try_take",
+            "event.cancel",
             "qlx.consume_resource",
-            "qlx.fence",
+            "event.fence",
         }
         used_forbidden = sorted(forbidden.intersection(operations))
         if used_forbidden:
@@ -417,7 +424,7 @@ class UnplacedBuilder:
             "qlx.measure",
             "qlx.instrument",
             "qlx.discard",
-            "qlx.selection",
+            "event.selection",
         }
         inferred = ("instrument" if instrument_ops.intersection(operations) or
                     any(str(result) == "i1" for result in self.result_types) or
@@ -456,7 +463,7 @@ class UnplacedBuilder:
             raise TypeError(
                 "logical selection predicates must return a P0 Boolean outcome")
         self._emit(
-            "qlx.selection",
+            "event.selection",
             operands=[value],
             attributes={
                 "mode":
@@ -493,8 +500,7 @@ class UnplacedBuilder:
                                             "value": attr
                                         }).result
             else:
-                raise TypeError(
-                    f"unsupported CUDA-Q Logical return value: {value!r}")
+                raise TypeError(f"unsupported QLX return value: {value!r}")
             if mlir_value.type != expected:
                 raise TypeError(
                     f"return type {mlir_value.type} does not match annotated {expected}"
@@ -591,7 +597,7 @@ class UnplacedBuilder:
     def apply_standard(self, name: str, values, **options):
         if any(value is not None for value in options.values()):
             raise TypeError(
-                f"P0 qlx.{name} does not accept machine-specific options")
+                f"P0 qlx.{name} does not accept physical schedule options")
         values = self._consume_qubits(values, f"qlx.{name}")
         inputs = tuple(value.mlir_value for value in values)
         results = (self.logical_type,) * len(values)
@@ -611,8 +617,8 @@ class UnplacedBuilder:
     def apply_definition(self, action, values, parameters):
         if not isinstance(action,
                           ProgramDefinition) or action.kind != "objective":
-            raise TypeError(
-                "qlx.apply expects an @cudaq.logical.objective definition")
+            raise TypeError("cudaq.logical.apply expects an "
+                            "@cudaq.logical.objective definition")
         handle = self.transaction.materialize(action)
         family = handle.kind
         if family not in {"action", "instrument"}:
@@ -708,12 +714,21 @@ class UnplacedBuilder:
     def _pauli_parameters(self, product: PauliProduct, *, operands=None):
         operands = product.operands if operands is None else tuple(operands)
         x_mask, z_mask = product.symplectic_for(operands)
+        # Pauli products are not bounded by the host word size. Retain i64 for
+        # the common case and use one extra signless bit for wider products so
+        # every mask remains nonnegative when round-tripped through MLIR.
+        mask_width = max(64, len(operands) + 1)
         i64 = mlir_ir.IntegerType.get_signless(64, context=self.context)
         return operands, mlir_ir.DictAttr.get(
             {
-                "x_mask": mlir_ir.IntegerAttr.get(i64, x_mask),
-                "z_mask": mlir_ir.IntegerAttr.get(i64, z_mask),
-                "sign": mlir_ir.IntegerAttr.get(i64, product.sign),
+                "x_mask":
+                    _signless_integer_attribute(self.context, x_mask,
+                                                mask_width),
+                "z_mask":
+                    _signless_integer_attribute(self.context, z_mask,
+                                                mask_width),
+                "sign":
+                    mlir_ir.IntegerAttr.get(i64, product.sign),
             },
             context=self.context,
         )
@@ -723,11 +738,10 @@ class UnplacedBuilder:
         i64 = mlir_ir.IntegerType.get_signless(64, context=self.context)
         # Canonical "full operator sign": a rotation's Pauli-product sign and
         # its angle sign are the same degree of freedom (R_{-P}(t) = R_P(-t)).
-        # Fold both into the sign field and keep the angle as a non-negative
+        # Fold both into the sign field and keep the angle as a nonnegative
         # magnitude, so R_{-Z}(pi/4) and R_Z(-pi/4) produce identical IR. The
-        # sign field is the single canonical carrier (uniform with
-        # ``mpp``), and the effective rotation is sign * angle -- consumers
-        # MUST read both.
+        # sign field is the single canonical carrier (uniform with mpp), and the
+        # effective rotation is sign * angle -- consumers MUST read both.
         net_sign = product.sign
         if isinstance(angle, Angle):
             if angle.pi_fraction[0] < 0:
@@ -765,7 +779,7 @@ class UnplacedBuilder:
             if numer > i64_max or denom > i64_max:
                 raise ValueError(
                     "canonical exact rotation coefficient does not fit the "
-                    "CUDA-Q Logical i64 rational-angle metadata")
+                    "QLX i64 rational-angle metadata")
             extra["angle_pi_numer"] = mlir_ir.IntegerAttr.get(i64, numer)
             extra["angle_pi_denom"] = mlir_ir.IntegerAttr.get(i64, denom)
             angle = float(angle)
@@ -773,7 +787,7 @@ class UnplacedBuilder:
             merged = {item.name: item.attr for item in parameters}
             merged.update(extra)
             parameters = mlir_ir.DictAttr.get(merged, context=self.context)
-        values = self._consume_qubits(operands, "cudaq.logical.rotate")
+        values = self._consume_qubits(operands, "qlx.rotate")
         angle_value = angle.mlir_value if isinstance(
             angle, Float64Value) else self._constant_f64(angle)
         input_values = tuple(
@@ -811,23 +825,23 @@ class UnplacedBuilder:
         """Destructive product readout: consumes every covered operand.
 
         Identity-covered operands (``cudaq.logical.I``) contribute no mask bits but are
-        still owned and destroyed by the readout. The native builtin instrument
-        vocabulary has an inline form only for ``mpp``, so the destructive
-        product instrument is declared as the standard
-        ``qlx_standard_readout`` objective symbol.
+        still owned and destroyed by the readout.  The native builtin
+        instrument vocabulary only inlines ``mpp``, so the destructive product
+        instrument is declared as the standard ``qlx_standard_readout``
+        objective symbol.
         """
         if len(product.operands) > 63:
             raise ValueError(
-                "cudaq.logical.readout currently supports at most 63 non-identity operands"
+                "qlx.readout currently supports at most 63 nonidentity operands"
             )
         # Mask positions describe the measured support, not the ownership
-        # closure. Put non-identity factors first so arbitrarily many explicit
+        # closure. Put nonidentity factors first so arbitrarily many explicit
         # I-covered operands cannot push a live factor outside the finite i64
         # mask. Identity operands remain inputs and are consumed below.
         covered_operands = (*product.operands, *product.identity_operands)
         operands, parameters = self._pauli_parameters(product,
                                                       operands=covered_operands)
-        values = self._consume_qubits(operands, "cudaq.logical.readout")
+        values = self._consume_qubits(operands, "qlx.readout")
         symbol = self.transaction.objective(
             family="instrument",
             name="readout",
@@ -861,7 +875,7 @@ class UnplacedBuilder:
         if any(not isinstance(value, LogicalBool) or value.owner is not self
                for value in (lhs, rhs)):
             raise TypeError(
-                "qlx.xor expects two Boolean values from this trace")
+                "cudaq.logical.xor expects two Boolean values from this trace")
         operation = self._emit(
             "qlx.xor",
             operands=[lhs.mlir_value, rhs.mlir_value],
@@ -901,8 +915,7 @@ class UnplacedBuilder:
         payload_type = mlir_ir.Type.parse(
             f'!qlx.logical_resource<"{kind_name}">', context=self.context)
         event_type = mlir_ir.Type.parse(
-            f'!qlx.logical_event<{payload_type}, "linear">',
-            context=self.context)
+            f'!event.handle<{payload_type}, "linear">', context=self.context)
         operation = self._emit(
             "qlx.resource_request",
             results=[event_type],
@@ -919,9 +932,9 @@ class UnplacedBuilder:
             raise TypeError(
                 "event_test expects a logical event from this trace")
         if not event.is_live:
-            event._consume("qlx.event_test")
+            event._consume("event.test")
         operation = self._emit(
-            "qlx.event_test",
+            "event.test",
             operands=[event.mlir_value],
             results=[self.i1_type],
         )
@@ -932,10 +945,10 @@ class UnplacedBuilder:
             raise TypeError(
                 "event_poll expects a logical event from this trace")
         if not event.is_live:
-            event._consume("qlx.event_poll")
+            event._consume("event.poll")
         status_type = mlir_ir.IntegerType.get_signless(8, context=self.context)
         operation = self._emit(
-            "qlx.event_poll",
+            "event.poll",
             operands=[event.mlir_value],
             results=[status_type],
         )
@@ -949,7 +962,7 @@ class UnplacedBuilder:
         except ValueError as error:
             raise ValueError(f"unknown event state: {state!r}") from error
         operation = self._emit(
-            "qlx.event_is",
+            "event.is",
             operands=[status.mlir_value],
             results=[self.i1_type],
             attributes={
@@ -978,7 +991,7 @@ class UnplacedBuilder:
                 "event_select_ready policy must be priority, deterministic, or fair"
             )
         operation = self._emit(
-            "qlx.event_select_ready",
+            "event.select_ready",
             operands=[event.mlir_value for event in events],
             results=[mlir_ir.IndexType.get(context=self.context)],
             attributes={
@@ -991,20 +1004,20 @@ class UnplacedBuilder:
         if not isinstance(event, LogicalEventValue) or event.owner is not self:
             raise TypeError(
                 "event_try_take expects a logical event from this trace")
-        event._consume("qlx.event_try_take")
+        event._consume("event.try_take")
         carries = tuple(carries)
         result_types = tuple(value.mlir_value.type for value in carries)
         for value in carries:
             if not isinstance(value, _SSAProxy):
                 raise TypeError("event_try_take carries must be traced values")
             if isinstance(value, logical_qubit):
-                value._consume("qlx.event_try_take")
+                value._consume("event.try_take")
             elif isinstance(value, _LogicalLinearValue):
-                value._consume("qlx.event_try_take")
+                value._consume("event.try_take")
         status_type = mlir_ir.IntegerType.get_signless(8, context=self.context)
         with self.location:
             operation = mlir_ir.Operation.create(
-                "qlx.event_try_take",
+                "event.try_take",
                 operands=[
                     event.mlir_value, *(value.mlir_value for value in carries)
                 ],
@@ -1048,13 +1061,13 @@ class UnplacedBuilder:
                 "event_cancel expects a logical event from this trace")
         if reason is not None and (not isinstance(reason, str) or not reason):
             raise TypeError("event_cancel reason must be a nonempty string")
-        event._consume("qlx.event_cancel")
+        event._consume("event.cancel")
         attrs = {}
         if reason is not None:
             attrs["reason"] = mlir_ir.StringAttr.get(reason,
                                                      context=self.context)
         operation = self._emit(
-            "qlx.event_cancel",
+            "event.cancel",
             operands=[event.mlir_value],
             results=[mlir_ir.IntegerType.get_signless(8, context=self.context)],
             attributes=attrs,
@@ -1095,19 +1108,19 @@ class UnplacedBuilder:
                 raise TypeError(
                     "event_try_take branch result types must match carries")
             if isinstance(value, logical_qubit):
-                value._consume("qlx.yield")
+                value._consume("event.yield")
             elif isinstance(value, _LogicalLinearValue):
-                value._consume("qlx.yield")
+                value._consume("event.yield")
             operands.append(value.mlir_value)
-        self._emit("qlx.yield", operands=operands)
+        self._emit("event.yield", operands=operands)
 
     def event_await(self, event):
         if not isinstance(event, LogicalEventValue) or event.owner is not self:
             raise TypeError(
                 "event_await expects a logical event from this trace")
-        event._consume("qlx.event_await")
+        event._consume("event.await")
         operation = self._emit(
-            "qlx.event_await",
+            "event.await",
             operands=[event.mlir_value],
             results=[event.payload_type],
         )
@@ -1145,7 +1158,7 @@ class UnplacedBuilder:
         if "all" in effects and len(effects) != 1:
             raise ValueError("fence effect 'all' cannot be combined")
         self._emit(
-            "qlx.fence",
+            "event.fence",
             attributes={
                 "effects":
                     mlir_ir.ArrayAttr.get(
@@ -1261,15 +1274,15 @@ class UnplacedBuilder:
         result_types = tuple(value.mlir_value.type for value in carries)
         for value in carries:
             if isinstance(value, logical_qubit):
-                value._consume("cudaq.logical.cond")
+                value._consume("qlx.cond")
             elif isinstance(value, _LogicalLinearValue):
-                value._consume("cudaq.logical.cond")
+                value._consume("qlx.cond")
             elif not isinstance(value, _SSAProxy):
                 raise TypeError(
                     "cudaq.logical.cond carries must be traced values")
         with self.location:
             operation = mlir_ir.Operation.create(
-                "qlx.if",
+                "cflow.if",
                 operands=[condition.mlir_value],
                 results=result_types,
                 regions=2,
@@ -1330,11 +1343,11 @@ class UnplacedBuilder:
                 raise TypeError(
                     "cudaq.logical.cond branch result types must match carries")
             if isinstance(value, logical_qubit):
-                value._consume("qlx.yield")
+                value._consume("cflow.yield")
             elif isinstance(value, _LogicalLinearValue):
-                value._consume("qlx.yield")
+                value._consume("cflow.yield")
             operands.append(value.mlir_value)
-        self._emit("qlx.yield", operands=operands)
+        self._emit("cflow.yield", operands=operands)
 
     def _wrap_result_by_type(self, value):
         if value.type == self.logical_type:
@@ -1351,7 +1364,7 @@ class UnplacedBuilder:
         text = str(value.type)
         resource_prefix = "!qlx.logical_resource<"
         frame_prefix = "!qlx.logical_frame<"
-        event_prefix = "!qlx.logical_event<"
+        event_prefix = "!event.handle<"
         if text.startswith(resource_prefix):
             return self._new_resource(value,
                                       text[len(resource_prefix):-1].strip('"'))
@@ -1367,21 +1380,21 @@ class UnplacedBuilder:
     def repeat(self, count, carries, body):
         if not isinstance(count, int) or isinstance(count, bool) or count < 0:
             raise NotImplementedError(
-                "this slice supports static nonnegative qlx.repeat counts; "
+                "this slice supports static nonnegative cflow.repeat counts; "
                 "symbolic index counts are pending the final repeat op")
         result_types = tuple(value.mlir_value.type for value in carries)
         init_values = []
         for value in carries:
             if not isinstance(value, _SSAProxy):
-                raise TypeError("qlx.repeat carries must be traced values")
+                raise TypeError("cflow.repeat carries must be traced values")
             if isinstance(value, logical_qubit):
-                value._consume("qlx.repeat")
+                value._consume("cflow.repeat")
             elif isinstance(value, _LogicalLinearValue):
-                value._consume("qlx.repeat")
+                value._consume("cflow.repeat")
             init_values.append(value.mlir_value)
         with self.location:
             operation = mlir_ir.Operation.create(
-                "qlx.repeat",
+                "cflow.repeat",
                 operands=init_values,
                 results=result_types,
                 attributes={
@@ -1403,19 +1416,19 @@ class UnplacedBuilder:
             self._wrap_result_by_type(value) for value in block.arguments)
         returned = _flatten_values(body(0, *args))
         if len(returned) != len(result_types):
-            raise TypeError("qlx.repeat body must return one value per carry")
+            raise TypeError("cflow.repeat body must return one value per carry")
         yielded = []
         for value, expected in zip(returned, result_types):
             if not isinstance(value,
                               _SSAProxy) or value.mlir_value.type != expected:
                 raise TypeError(
-                    "qlx.repeat body result types must match carries")
+                    "cflow.repeat body result types must match carries")
             if isinstance(value, logical_qubit):
-                value._consume("qlx.yield")
+                value._consume("cflow.yield")
             elif isinstance(value, _LogicalLinearValue):
-                value._consume("qlx.yield")
+                value._consume("cflow.yield")
             yielded.append(value.mlir_value)
-        self._emit("qlx.yield", operands=yielded)
+        self._emit("cflow.yield", operands=yielded)
         self.insertion_point = parent_ip
         return tuple(
             self._wrap_result_by_type(value) for value in operation.results)
@@ -1438,7 +1451,7 @@ class UnplacedBuilder:
                     "cudaq.logical.while_ carries must be traced values from this trace"
                 )
             if isinstance(value, (logical_qubit, _LogicalLinearValue)):
-                value._consume("qlx.while")
+                value._consume("cflow.while")
             init_values.append(value.mlir_value)
         attrs = {}
         if max_iterations is not None:
@@ -1448,7 +1461,7 @@ class UnplacedBuilder:
             )
         with self.location:
             operation = mlir_ir.Operation.create(
-                "qlx.while",
+                "cflow.while",
                 operands=init_values,
                 results=result_types,
                 attributes=attrs,
@@ -1488,10 +1501,10 @@ class UnplacedBuilder:
                         "cudaq.logical.while_ forwarded values must match the carries"
                     )
                 if isinstance(value, (logical_qubit, _LogicalLinearValue)):
-                    value._consume("qlx.while_condition")
+                    value._consume("cflow.while_condition")
                 forwarded_operands.append(value.mlir_value)
             self._emit(
-                "qlx.while_condition",
+                "cflow.while_condition",
                 operands=[predicate.mlir_value, *forwarded_operands],
             )
 
@@ -1511,9 +1524,9 @@ class UnplacedBuilder:
                         "cudaq.logical.while_ body result types must match carries"
                     )
                 if isinstance(value, (logical_qubit, _LogicalLinearValue)):
-                    value._consume("qlx.yield")
+                    value._consume("cflow.yield")
                 yielded.append(value.mlir_value)
-            self._emit("qlx.yield", operands=yielded)
+            self._emit("cflow.yield", operands=yielded)
         finally:
             self.insertion_point = parent_ip
         return tuple(
@@ -1559,7 +1572,7 @@ class _ExplicitIf:
                 )
         with builder.location:
             self.operation = mlir_ir.Operation.create(
-                "qlx.if",
+                "cflow.if",
                 operands=[condition.mlir_value],
                 results=self.result_types,
                 regions=2,
@@ -1661,9 +1674,9 @@ class _ExplicitIf:
                 raise TypeError(
                     "cudaq.logical.if_ branch result types must match carries")
             if isinstance(value, logical_qubit):
-                value._consume("qlx.yield")
+                value._consume("cflow.yield")
             elif isinstance(value, _LogicalLinearValue):
-                value._consume("qlx.yield")
+                value._consume("cflow.yield")
             operands.append(value.mlir_value)
-        self.builder._emit("qlx.yield", operands=operands)
+        self.builder._emit("cflow.yield", operands=operands)
         self.yielded.add(self.active)

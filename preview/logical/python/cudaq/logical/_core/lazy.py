@@ -19,12 +19,11 @@ def resolve(namespace: dict, exports: Mapping[str, str], name: str):
     target = exports.get(name)
     if target is None:
         raise AttributeError(name)
-    package = namespace["__package__"]
     if ":" in target:
         module_name, attribute = target.split(":", 1)
-        value = getattr(import_module(module_name, package), attribute)
+        value = getattr(import_module(module_name), attribute)
     else:
-        value = import_module(target, package)
+        value = import_module(target)
     namespace[name] = value
     return value
 

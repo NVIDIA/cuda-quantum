@@ -1,12 +1,10 @@
-//===- DialectFabric.cpp - Fabric dialect Python bindings --------------===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Nanobind bindings for the Fabric dialect. Populate-only; driven from
 // _qlx_ext.cpp's NB_MODULE like DialectQLX.cpp.
@@ -106,6 +104,8 @@ void qlx::python::populateFabricSubmodule(nb::module_ &m) {
 
   bindNullaryType(m, "BitType", fabricTypeIsABit, fabricBitTypeGet,
                   fabricBitTypeGetTypeID);
+  bindNullaryType(m, "FrameType", fabricTypeIsAFrame, fabricFrameTypeGet,
+                  fabricFrameTypeGetTypeID);
   bindNullaryType(m, "SlotType", fabricTypeIsASlot, fabricSlotTypeGet,
                   fabricSlotTypeGetTypeID);
   bindNullaryType(m, "MachineType", fabricTypeIsAMachine, fabricMachineTypeGet,

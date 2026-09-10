@@ -40,3 +40,30 @@ module {
 }
 
 // CHECK: error: matrix does not preserve the binary symplectic form
+
+// -----
+
+module {
+  qlx.objective_body @runtime_objective : () -> () attributes {
+      objective_kind = "action", qlx.stage = "p0"} {
+    %event = qlx.resource_request "t_state"
+      : !event.handle<!qlx.logical_resource<"t_state">, "linear">
+    qlx.return
+  }
+}
+
+// CHECK: error: runtime and resource orchestration is not legal inside a closed logical objective
+
+// -----
+
+module {
+  qlx.objective_body @embedded_event_objective :
+      (!event.handle<!qlx.logical_resource<"t_state">, "linear">) -> ()
+      attributes {objective_kind = "action", qlx.stage = "p0"} {
+  ^bb0(%event: !event.handle<!qlx.logical_resource<"t_state">, "linear">):
+    %ready = event.test %event : !event.handle<!qlx.logical_resource<"t_state">, "linear"> -> i1
+    qlx.return
+  }
+}
+
+// CHECK: error: runtime and resource orchestration is not legal inside a closed logical objective

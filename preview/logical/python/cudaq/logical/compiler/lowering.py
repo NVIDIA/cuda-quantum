@@ -11,12 +11,12 @@ import importlib
 from dataclasses import dataclass
 from types import ModuleType
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..programs.definition import DefinitionHandle
-from ..codes import Encoding
-from ..qec.lowering import QECLowering
-from ..programs.definition import ProgramDefinition
+from cudaq.logical.programs.definition import DefinitionHandle
+from cudaq.logical.codes import Encoding
+from cudaq.logical.qec.lowering import QECLowering
+from cudaq.logical.programs.definition import ProgramDefinition
 from ..std import LogicalActionRef, LogicalInstrumentRef
 
 
@@ -27,20 +27,23 @@ class _LinkedDefinitions:
 
 
 def discover_linked_definitions(source_modules, device):
-    """Discover CUDA-Q Logical exports from only the root and selected-device modules.
+    """Discover CUDA-Q Logical exports from root and selected-device modules.
 
     This is the Python module-linking boundary, not a process-global registry:
     unrelated ``sys.modules`` state is never scanned and no candidate winner is
     cached outside the private compilation transaction.
     """
-    from ..codes import (
+    from cudaq.logical.codes import (
         Code,
         CodeProfile,
         EncodingHierarchy,
         EncodingProjection,
     )
-    from ..gadgets import GadgetDefinition
-    from ..protocols.definition import ProtocolDefinition
+    from cudaq.logical.gadgets import (
+        GadgetDefinition,
+        GadgetProfile,
+    )
+    from cudaq.logical.protocols.definition import ProtocolDefinition
 
     definition_types = (
         Code,
@@ -49,6 +52,7 @@ def discover_linked_definitions(source_modules, device):
         EncodingHierarchy,
         EncodingProjection,
         GadgetDefinition,
+        GadgetProfile,
         ProtocolDefinition,
         QECLowering,
     )
@@ -67,13 +71,27 @@ def discover_linked_definitions(source_modules, device):
             seen_definitions.add(id(value))
             definitions.append(value)
 
+    # Attaching a compiler to a DeviceBuilder is also an explicit link act.
+    # The compiler may contribute its immutable QEC-lowering manifests without
+    # publishing module globals or registering process-wide implementations.
+    for compiler in getattr(device, "compilers", ()):
+        contributed = tuple(getattr(compiler, "qec_lowerings", ()) or ())
+        if any(not isinstance(value, QECLowering) for value in contributed):
+            key = getattr(compiler, "key", type(compiler).__name__)
+            raise TypeError(
+                f"device compiler {key!r} qec_lowerings must contain "
+                "QECLowering values")
+        for value in contributed:
+            append_definition(value, ordinary=True)
+
     def visit(module: ModuleType,
               *,
               root_prefix: str,
               library: bool = False) -> None:
-        if module.__name__ in seen_modules or module.__name__ == "cudaq.logical":
+        if (module.__name__ in seen_modules or
+                module.__name__ == "cudaq.logical"):
             return
-        if module.__name__.startswith("qlx.") and not library:
+        if module.__name__.startswith("cudaq.logical.") and not library:
             return
         seen_modules.add(module.__name__)
         for _, value in sorted(vars(module).items()):
@@ -89,9 +107,9 @@ def discover_linked_definitions(source_modules, device):
             child = value.__name__
             if child == root_prefix or child.startswith(root_prefix + "."):
                 visit(value, root_prefix=root_prefix)
-            elif child != "cudaq.logical" and child.startswith(
-                    "cudaq.logical."):
-                # Binding a specific cudaq.logical library submodule in a linked user
+            elif (child != "cudaq.logical" and
+                  child.startswith("cudaq.logical.")):
+                # Binding a specific CUDA-Q Logical library submodule in a linked user
                 # module (``from cudaq.logical.qec import steane``) is the explicit
                 # link act: its definitions become selection candidates.
                 # Bare ``import cudaq.logical`` never links the standard library.
@@ -194,6 +212,14 @@ def materialize_qec_lowering(transaction, definition: QECLowering):
                 [
                     mlir_ir.FlatSymbolRefAttr.get(value, context=context)
                     for value in dependency_refs
+                ],
+                context=context,
+            ),
+        "consumes_resources":
+            mlir_ir.ArrayAttr.get(
+                [
+                    mlir_ir.StringAttr.get(kind.name, context=context)
+                    for kind in definition.consumes
                 ],
                 context=context,
             ),

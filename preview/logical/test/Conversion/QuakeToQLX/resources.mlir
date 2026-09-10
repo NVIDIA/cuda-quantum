@@ -74,7 +74,5 @@ module {
 // CHECK: %[[TOF_Q0:.*]] = qlx.prepare "zero" {allocation = 0 : i64
 // CHECK: %[[TOF_Q1:.*]] = qlx.prepare "zero" {allocation = 1 : i64
 // CHECK: %[[TOF_Q2:.*]] = qlx.prepare "zero" {allocation = 2 : i64
-// CHECK: %[[TOF_H0:.*]] = qlx.apply #qlx.action<h>(%[[TOF_Q2]])
-// CHECK: %[[TOF_CCZ:.*]]:3 = qlx.apply #qlx.action<ccz>(%[[TOF_Q0]], %[[TOF_Q1]], %[[TOF_H0]])
-// CHECK: %[[TOF_H1:.*]] = qlx.apply #qlx.action<h>(%[[TOF_CCZ]]#2)
-// CHECK: qlx.discard %[[TOF_CCZ]]#0, %[[TOF_CCZ]]#1, %[[TOF_H1]]
+// CHECK: %[[TOF_CCX:.*]]:3 = qlx.apply #qlx.action<ccx>(%[[TOF_Q0]], %[[TOF_Q1]], %[[TOF_Q2]])
+// CHECK: qlx.discard %[[TOF_CCX]]#0, %[[TOF_CCX]]#1, %[[TOF_CCX]]#2

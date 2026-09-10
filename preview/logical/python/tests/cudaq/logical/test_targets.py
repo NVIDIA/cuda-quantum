@@ -5,12 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Backend-stack coverage retained by the CUDA-Q Logical product preview.
-
-Physical-machine, provider, detector, and noise target coverage is
-intentionally outside this preview. These tests exercise only the generic
-Target-to-Backend stack ported from feature/qlx.
-"""
+"""CUDA-Q target and backend-stack coverage for the P0-through-P3 preview."""
 
 import pytest
 
@@ -132,6 +127,12 @@ def logical_zero_state():
     cudaq.qvector(1)
 
 
+@cudaq.kernel
+def logical_zero_memory(logical_qubits: int):
+    qubits = cudaq.qvector(logical_qubits)
+    mz(qubits)
+
+
 def test_cudaq_selects_a_qlx_custom_target_for_estimation():
     target = cudaq.logical.targets.surface_target(logical_capacity=1)
 
@@ -144,6 +145,50 @@ def test_cudaq_selects_a_qlx_custom_target_for_estimation():
     resources = cudaq.logical.estimate.FabricCounts.from_annotations(
         estimates.annotations)
     assert resources.patches_peak == 1
+
+
+def test_cudaq_target_estimation_lowers_a_kernel_through_p3():
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    assert isinstance(target.runtime_endpoint.next_backend,
+                      cudaq.logical.targets.CliffordTBackend)
+    assert target.runtime_endpoint.next_backend.precision == pytest.approx(
+        1.0e-4)
+
+    try:
+        assert cudaq.set_target(target) is target
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    assert set(result.annotations) == {
+        "LOGICAL",
+        "STATIC",
+        "ANALYTICAL",
+        "SCHEDULE",
+    }
+    schedule = result.annotations["SCHEDULE"]
+    assert schedule["physical_qubits"] == (
+        cudaq.logical.codes.Surface[3].block.size)
+    assert schedule["event_count"] > 0
+    assert schedule["source_stage"] == "p3"
+
+
+def test_cudaq_p3_replays_destructive_multi_carrier_measurements():
+    logical_qubits = 2
+    target = cudaq.logical.targets.surface_physical_target(
+        distance=3, logical_capacity=logical_qubits)
+
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_memory, logical_qubits)
+    finally:
+        cudaq.reset_target()
+
+    schedule = result.annotations["SCHEDULE"]
+    assert schedule["physical_qubits"] == (
+        logical_qubits * cudaq.logical.codes.Surface[3].block.size)
+    assert schedule["event_counts"]["call_template"] > 0
+    assert schedule["source_stage"] == "p3"
 
 
 @pytest.mark.parametrize(("policy_name", "launch"), [
@@ -235,12 +280,40 @@ def test_predefined_qec_targets_currently_terminate_for_estimation_only():
 
 
 def test_surface_target_links_gadgets_for_the_requested_distance():
-    target = cudaq.logical.targets.surface_target(distance=5, precision=1.0e-5)
+    target = cudaq.logical.targets.surface_target(distance=5,
+                                                  clifford_t_precision=1.0e-5)
     architecture = target._device.logical_to_qec[0].architecture
 
     assert architecture.code is cudaq.logical.codes.Surface[5]
     assert len(architecture.link_roots) == 7
     assert target.runtime_endpoint.next_backend.precision == 1.0e-5
+
+
+def test_surface_physical_target_provisions_every_encoded_block():
+    target = cudaq.logical.targets.surface_physical_target(
+        distance=5,
+        logical_capacity=3,
+        clifford_t_precision=1.0e-5,
+        cycle_time=2.0e-9,
+    )
+    device = target._device
+    qec_region = device.logical_to_qec[0].qec_region
+    carriers = device.qec_to_physical[0].resources[0]
+
+    assert target.name == "surface_physical"
+    assert qec_region.block_capacity == 3
+    assert carriers.count == 3 * cudaq.logical.codes.Surface[5].block.size
+    assert device.operating_point.timing["cycle_ns"] == pytest.approx(2.0)
+    assert device.operating_point.calibration[
+        "physical_error"] == pytest.approx(1.0e-3)
+    assert target.runtime_endpoint.next_backend.precision == 1.0e-5
+
+
+def test_none_clifford_t_precision_omits_the_synthesis_backend():
+    target = cudaq.logical.targets.surface_target(clifford_t_precision=None)
+
+    assert isinstance(target.runtime_endpoint.next_backend,
+                      cudaq.logical.targets.LogicalMachineBackend)
 
 
 def test_qec_target_factories_accept_an_optional_downstream_backend():

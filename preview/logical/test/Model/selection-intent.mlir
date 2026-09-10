@@ -10,11 +10,11 @@
 
 module {
   %accept = arith.constant true
-  qlx.selection %accept {mode = "require"} : i1
-  lvm.selection %accept {mode = "condition_results"} : i1
-  fabric.selection %accept {mode = "abort_on", accept_when = false} : i1
+  event.selection %accept {mode = "require"} : i1
+  event.selection %accept {mode = "condition_results"} : i1
+  event.selection %accept {mode = "abort_on", accept_when = false} : i1
 }
 
-// CHECK: qlx.selection {{.*}} {mode = "require"} : i1
-// CHECK: lvm.selection {{.*}} {mode = "condition_results"} : i1
-// CHECK: fabric.selection {{.*}} {accept_when = false, mode = "abort_on"} : i1
+// CHECK: event.selection {{.*}} {mode = "require"} : i1
+// CHECK: event.selection {{.*}} {mode = "condition_results"} : i1
+// CHECK: event.selection {{.*}} {accept_when = false, mode = "abort_on"} : i1

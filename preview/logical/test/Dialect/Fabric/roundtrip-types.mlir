@@ -37,6 +37,12 @@ func.func @test_bit_type(%b: !fabric.bit) -> !fabric.bit {
   return %b : !fabric.bit
 }
 
+// CHECK-LABEL: func.func @test_frame_type
+// CHECK-SAME: %arg0: !fabric.frame
+func.func @test_frame_type(%f: !fabric.frame) -> !fabric.frame {
+  return %f : !fabric.frame
+}
+
 // CHECK-LABEL: func.func @test_magic_types
 // CHECK-SAME: %arg0: !fabric.resource<T>
 // CHECK-SAME: %arg1: !fabric.resource<CCZ>

@@ -11,7 +11,7 @@
 module {
   %accept = arith.constant true
   // expected-error @+1 {{mode must be require, condition_results, or abort_on}}
-  qlx.selection %accept {mode = "retry_forever"} : i1
+  event.selection %accept {mode = "retry_forever"} : i1
 }
 
 // -----
@@ -19,5 +19,5 @@ module {
 module {
   %abort = arith.constant true
   // expected-error @+1 {{accept_when disagrees with the selection mode}}
-  fabric.selection %abort {mode = "abort_on", accept_when = true} : i1
+  event.selection %abort {mode = "abort_on", accept_when = true} : i1
 }

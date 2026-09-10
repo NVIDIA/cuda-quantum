@@ -5,18 +5,17 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Native CUDA-Q Quake to canonical CUDA-Q Logical P0 import."""
+"""Native CUDA-Q Quake to canonical QLX P0 import."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-import logging
 import os
 import re
 from pathlib import Path
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
 from .._native import native
 from ..programs.definition import DefinitionHandle
@@ -25,7 +24,20 @@ from .context import CompilationContext
 from .linearity import verify_linearity
 from .pipeline import pipelines
 
-_logger = logging.getLogger("cudaq.logical")
+# CUDA-Q owns frontend normalization and aggregate-to-linear conversion. QLX's
+# one pre-linear transform expands only statically bounded register traversals
+# that block that conversion; clean paper-scale workload loops remain folded.
+CUDAQ_PREPARATION_PREFIX = (
+    "builtin.module(canonicalize,cc-loop-normalize,symbol-dce,"
+    "expand-measurements)")
+QLX_REGISTER_TRAVERSAL_PIPELINE = (
+    "expand-quake-register-traversals{maximum-iterations=4096 "
+    "maximum-generated-operations=1000000}")
+CUDAQ_LINEAR_VALUES_PIPELINE = (
+    "builtin.module(func.func(expand-control-veqs,factor-quantum-alloc,"
+    "cable-rough-in,canonicalize,"
+    "memtoreg{classical=false quantum=true},canonicalize,"
+    "repair-linear-type,linear-ctrl-form),canonicalize)")
 
 # This is the CUDA-Q compile-target override advertised by Target. Keep the
 # import path and the public compile-target configuration identical: splitting
@@ -34,7 +46,7 @@ _logger = logging.getLogger("cudaq.logical")
 # Passes bracketing `prepare-for-wireset` are QLX-specific and deliberately live
 # here rather than in the shared CUDA-Q pipeline. The decomposition basis is the
 # gate set Quake-to-P0 accepts.
-CUDAQ_TO_P0_PREPARATION_PIPELINE = ",".join((
+CUDAQ_TARGET_PREPARATION_PIPELINE = ",".join((
     "expand-measurements",
     "canonicalize",
     "globalize-array-values",
@@ -49,6 +61,16 @@ CUDAQ_TO_P0_PREPARATION_PIPELINE = ",".join((
     "cse",
 ))
 
+# Direct ``import_cudaq`` continues through the QLX-owned register-traversal
+# expansion and typed P0 conversion in-process.
+CUDAQ_TO_P0_PREPARATION_PIPELINE = " -> ".join((
+    CUDAQ_PREPARATION_PREFIX,
+    QLX_REGISTER_TRAVERSAL_PIPELINE,
+    CUDAQ_LINEAR_VALUES_PIPELINE,
+    "prepare-quake-for-qlx",
+    "convert-quake-to-qlx",
+))
+
 
 def _text(source) -> tuple[str, str]:
     if isinstance(source, Path):
@@ -56,7 +78,7 @@ def _text(source) -> tuple[str, str]:
     if not isinstance(source, str):
         raise TypeError("Quake source must be MLIR text or a pathlib.Path")
     # Strings are always source text. Requiring Path for files avoids guessing
-    # whether a short MLIR fragment happens to match a file system entry.
+    # whether a short MLIR fragment happens to match a filesystem entry.
     return source, "<quake>"
 
 
@@ -66,10 +88,10 @@ def _symbol(operation) -> str:
 
 
 def _quake_plugin_path() -> str:
-    """Locate the loadable Quake-import plugin (`.so`/`.dylib`).
+    """Locate the loadable Quake-import plugin (.so/.dylib).
 
     Honors the ``QLX_QUAKE_PLUGIN_LIB`` override, then looks in the ``_quake``
-    directory of the cudaq.logical package (populated by the ``qlx-quake-plugin`` build).
+    directory of the qlx package (populated by the ``qlx-quake-plugin`` build).
     """
     override = os.environ.get("QLX_QUAKE_PLUGIN_LIB", "")
     if override and os.path.isfile(override):
@@ -85,45 +107,31 @@ def _quake_plugin_path() -> str:
         if os.path.isfile(candidate):
             return candidate
     raise RuntimeError(
-        "CUDA-Q Logical Quake-import plugin not found. Checked $QLX_QUAKE_PLUGIN_LIB and "
+        "QLX Quake-import plugin not found. Checked $QLX_QUAKE_PLUGIN_LIB and "
         f"{pkg_dir}; build the qlx-quake-plugin target.")
-
-
-def _run_qlx_pass_pipeline(module, pipeline: str) -> None:
-    """Run a pass pipeline against a live MLIR module."""
-
-    try:
-        native.run_pass(module, pipeline)
-    except Exception as error:
-        # Keep the public Quake-import contract independent of the particular
-        # MLIR Python binding's exception type.
-        raise RuntimeError(str(error)) from error
 
 
 def _convert_to_p0(text: str, *, root: str | None = None) -> mlir_ir.Module:
     """Convert value-semantic Quake text to a P0 module, in-process.
 
     Loads the Quake-import plugin, which registers the quake/cc dialects backed
-    by the shared MLIR library from CUDA-Q, parses the Quake, and runs the typed
-    ``convert-quake-to-qlx`` pass owned by the CUDA-Q Logical host runtime -- all
+    by CUDA-Q's shared MLIR library, parses the Quake, and runs the typed
+    ``convert-quake-to-qlx`` pass owned by the QLX host runtime -- all
     in-process, with no subprocess and no output-text round-trip.
 
-    The P0 boundary is enforced by the CUDA-Q Logical op verifiers (``ProgramOp`` /
+    The P0 boundary is enforced by the QLX op verifiers (``ProgramOp`` /
     ``ApplyOp`` / ``PrepareOp``), which recursively check the program body for the
     structural P0 invariants: a machine-free single-block program, a matching
     signature, only P0 dialects, and no region values. We assert them explicitly
     on the live module with ``module.operation.verify()``. Linear ownership is
     checked separately by ``verify_linearity`` during :class:`Build` construction.
-
-    The live operation verifier is the complete P0 boundary; the retired
-    physical-region target-profile verifier is not part of this product.
     """
     if not native.has_quake_import:
         raise RuntimeError(
-            "this CUDA-Q Logical build has no typed Quake import support; it was not "
-            "built against a CUDA-Q development installation")
+            "QLX was built without typed Quake import support; enable "
+            "QLX_USE_CUDAQ_SDK")
     # Idempotently registers the shared CUDA-Q Quake/CC dialects. The typed
-    # conversion pass itself is registered by the CUDA-Q Logical host runtime.
+    # conversion pass itself is registered by the QLX host runtime.
     native.load_plugin(_quake_plugin_path())
     context = mlir_ir.Context()
     module = mlir_ir.Module.parse(text, context)
@@ -134,20 +142,29 @@ def convert_quake_to_p0(module, *, root: str | None = None):
     """Run the typed Quake-to-P0 pass on a live MLIR module.
 
     The module is transactionally replaced and returned; there is no file,
-    subprocess, or text round-trip. It may be a CUDA-Q Logical MLIR module or another
+    subprocess, or text round-trip. It may be a QLX MLIR module or another
     MLIR Python module that
-    exposes the standard C-API module handle. CUDA-Q and CUDA-Q Logical resolve Quake/CC
-    through the same shared compiler library, so typed operation dispatch uses
-    the same dialect TypeIDs. The packaged
+    exposes the standard C-API module handle. In a ``QLX_USE_CUDAQ_SDK`` build,
+    CUDA-Q and QLX resolve Quake/CC through the same shared compiler library,
+    so typed operation dispatch uses the same dialect TypeIDs. The packaged
     ``qlx-quake-plugin`` remains a runtime dependency: it is loaded here to
     register those shared Quake/CC dialects, while the typed conversion pass
-    itself lives in the CUDA-Q Logical host runtime.
+    itself lives in the QLX host runtime.
 
     This is the low-level pass surface. Use :func:`import_quake` when a frozen,
     verified P0 :class:`Build` and import evidence are desired.
     """
     converted = _run_quake_to_p0_pass(module, root=root)
     verify_linearity(converted, subject="converted Quake P0 module")
+    # The closed import path intentionally transfers the converted P0 into a
+    # fresh QLX context so all later-stage dialects are registered.  This
+    # low-level API instead promises to mutate the caller-owned module.  Move
+    # the verified result back through typed MLIR bytecode before the atomic
+    # body replacement; the original context already hosted the conversion
+    # pass and therefore knows the emitted QLX dialect.
+    if converted.context is not module.context:
+        converted = mlir_ir.Module._CAPICreate(
+            native.clone_module_into_context_capsule(converted, module.context))
     native.replace_module_contents_capsule(module, converted)
     return module
 
@@ -165,30 +182,43 @@ def _run_quake_to_p0_pass(module, *, root: str | None = None):
         raise TypeError("module must be a live MLIR module")
     if not native.has_quake_import:
         raise RuntimeError(
-            "this CUDA-Q Logical build has no typed Quake import support; it was not "
-            "built against a CUDA-Q development installation")
+            "QLX was built without typed Quake import support; enable "
+            "QLX_USE_CUDAQ_SDK")
     native.load_plugin(_quake_plugin_path())
-    converted = native.clone_module(module)
+    converted = mlir_ir.Module._CAPICreate(native.clone_module_capsule(module))
     pipeline = "prepare-quake-for-qlx,convert-quake-to-qlx"
     if root is not None:
         if not isinstance(root, str) or not root:
             raise TypeError("root must be a non-empty CUDA-Q entry-point name")
         pipeline += "{entry-point=" + json.dumps(root) + "}"
-    _run_qlx_pass_pipeline(converted, pipeline)
+    native.run_pass_capsule(converted, pipeline)
+    # CUDA-Q owns the Quake module's MLIRContext, whose registry contains only
+    # the dialects required by its frontend and the P0 conversion pass.  P0 is
+    # an extensible compiler artifact: later placement, QEC selection, and
+    # physical projection must materialize LVM, Fabric, and Phys operations in
+    # the same live module.  Transfer the converted module by typed MLIR
+    # bytecode into a fresh QLX context, which snapshots QLX's complete dialect
+    # registry.  This is a binary IR transfer, not textual emission/reparsing.
+    qlx_context = mlir_ir.Context()
+    converted = mlir_ir.Module._CAPICreate(
+        native.clone_module_into_context_capsule(converted, qlx_context))
     if not converted.operation.verify():
         raise RuntimeError(
-            "convert-quake-to-qlx produced a module that failed CUDA-Q Logical P0 "
+            "convert-quake-to-qlx produced a module that failed QLX P0 "
             "op verification")
     return converted
 
 
 def _prepare_cudaq_module(module, pass_manager_type) -> None:
-    """Run the same complete override pipeline exposed by ``Target``."""
+    """Reach the strict scalar-wire boundary in the declared pass order."""
 
-    pipeline = pass_manager_type.parse(
-        f"builtin.module({CUDAQ_TO_P0_PREPARATION_PIPELINE})",
-        context=module.context)
-    pipeline.run(module.operation)
+    prefix = pass_manager_type.parse(CUDAQ_PREPARATION_PREFIX,
+                                     context=module.context)
+    prefix.run(module.operation)
+    native.run_pass_capsule(module, QLX_REGISTER_TRAVERSAL_PIPELINE)
+    linear = pass_manager_type.parse(CUDAQ_LINEAR_VALUES_PIPELINE,
+                                     context=module.context)
+    linear.run(module.operation)
 
 
 def _commitment(value) -> str:
@@ -206,7 +236,7 @@ def _commitment(value) -> str:
 
 
 def _stable_cudaq_source(text: str) -> str:
-    """Remove process-local CUDA-Q symbol uniquers from a source commitment."""
+    """Remove CUDA-Q's process-local symbol uniquers from a source commitment."""
     return re.sub(r"\.\.0x[0-9a-fA-F]+", "..<unique>", text)
 
 
@@ -216,9 +246,10 @@ def _close_cudaq_decorator_helpers(kernel, module):
     CUDA-Q 0.15's public ``synthesize`` specializes ordinary arguments but
     leaves decorator helpers as lifted ``!cc.callable`` arguments. Its runtime
     already owns the exact closure conversion used for execution, so use that
-    compatibility surface recursively and let the ordinary inliner erase the
-    now-direct helper calls. Newer CUDA-Q releases should make this step part of
-    their public optimizer-form ingress.
+    compatibility surface recursively. The native importer then retains the
+    now-direct reachable helper calls as typed ``qlx.call`` operations. Newer
+    CUDA-Q releases should make this closure step part of their public
+    optimizer-form ingress.
     """
 
     from cudaq.kernel.kernel_decorator import DecoratorCapture
@@ -253,9 +284,9 @@ def _close_cudaq_decorator_helpers(kernel, module):
     if callable_names:
         cudaq_runtime.synthPyCallable(module, callable_names)
 
-    # Helper symbols are public in source modules produced by CUDA-Q. Once calls
-    # inline, making non-entry definitions private lets dead-symbol elimination
-    # close the selected entry before the strict Quake-to-P0 boundary.
+    # Helper symbols are public in CUDA-Q's source modules. Making non-entry
+    # definitions private lets symbol-dce retain exactly the selected reachable
+    # call graph before the strict Quake-to-P0 boundary.
     for operation in module.body:
         if operation.operation.name != "func.func":
             continue
@@ -277,13 +308,15 @@ def _build_from_p0(
     specialization: dict[str, str] | None = None,
 ) -> Build:
     if not isinstance(module, mlir_ir.Module):
-        raise TypeError("converted module does not expose the MLIR C API")
+        if getattr(module, "_CAPIPtr", None) is None:
+            raise TypeError("converted module does not expose the MLIR C API")
+        module = mlir_ir.Module._CAPICreate(native.clone_module_capsule(module))
     transaction = CompilationContext(module=module)
     context = transaction.context
     module = transaction.module
 
     # Mirror the P0 profile into qlx.profiles/qlx.stages/qlx.facets exactly as
-    # the native @cudaq.logical.program builder does.
+    # the native @cudaq.logical.program builder does (builders/portable.py).
     transaction.add_profile("p0")
 
     programs = {
@@ -355,7 +388,7 @@ def _build_from_p0(
             ),
             EvidenceRecord(
                 kind="linearity_verification",
-                producer="qlx-python@0.3",
+                producer="cudaq-logical-python@0.3",
                 result=report.result,
                 obligations=("linear-ownership",),
                 assumptions=(
@@ -390,15 +423,12 @@ def import_quake(
 
     text, origin = _text(source)
     source_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-    _logger.debug("Quake -> CUDA-Q Logical:\n%s", text)
-
     return _build_from_p0(
         _convert_to_p0(text, root=root),
         root=root,
         origin=origin,
         source_sha256=source_sha256,
-        producer="qlx-quake-import@0.2",
+        producer="cudaq-logical-quake-import@0.2",
         assumptions=("preparation:pre-normalized",),
         source_modules=source_modules,
         specialization=None,
@@ -409,14 +439,17 @@ def import_cudaq(
         kernel,
         *arguments,
         source_modules: tuple[str, ...] = (),
+        _objective: bool = False,
 ) -> Build:
-    """Compile a standard ``@cudaq.kernel`` into a verified CUDA-Q Logical P0 Build.
+    """Compile a standard ``@cudaq.kernel`` into a verified QLX P0 Build.
 
-    CUDA-Q owns source compilation, argument specialization, helper inlining,
-    and aggregate-to-linear conversion. CUDA-Q Logical first expands the normalized,
-    statically bounded register traversals that block that conversion, then
+    CUDA-Q owns source compilation, argument specialization, helper closure,
+    and aggregate-to-linear conversion. QLX retains reachable specialized
+    helper calls as typed P0 ``qlx.call`` operations, expands the normalized,
+    statically bounded register traversals that block wire conversion, then
     imports the closed value-semantic module as ordinary machine-free P0.
-    Unsupported residual Quake/CC fails closed.
+    Unsupported residual Quake/CC, recursive helpers, or unresolved vector
+    specialization fails closed.
     """
 
     try:
@@ -425,7 +458,7 @@ def import_cudaq(
     except ImportError as error:
         raise RuntimeError(
             "import_cudaq requires the CUDA-Q Python package matching the "
-            "CUDA-Q Logical CUDA-Q SDK build") from error
+            "QLX CUDA-Q SDK build") from error
 
     name = getattr(kernel, "name", None)
     if not isinstance(name, str) or not hasattr(kernel, "qkeModule"):
@@ -436,8 +469,28 @@ def import_cudaq(
         module = _close_cudaq_decorator_helpers(kernel, specialized.qkeModule)
     except Exception as error:
         raise ValueError(
-            f"CUDA-Q could not specialize kernel {name!r} for CUDA-Q Logical import"
+            f"CUDA-Q could not specialize kernel {name!r} for QLX import"
         ) from error
+
+    if _objective:
+        from cudaq.mlir.ir import UnitAttr
+
+        candidates = [
+            view for view in module.body.operations
+            if view.operation.name == "func.func" and "cudaq-kernel" in
+            view.operation.attributes and name in _symbol(view.operation)
+        ]
+        if len(candidates) != 1:
+            raise ValueError(
+                f"CUDA-Q objective kernel {name!r} did not produce exactly one "
+                "matching Quake function")
+        function = candidates[0]
+        with module.context:
+            function.attributes["cudaq-entrypoint"] = UnitAttr.get(
+                context=module.context)
+        inline = PassManager.parse("builtin.module(inline)",
+                                   context=module.context)
+        inline.run(module.operation)
 
     source = _stable_cudaq_source(str(module))
     source_sha256 = hashlib.sha256(source.encode("utf-8")).hexdigest()
@@ -450,18 +503,16 @@ def import_cudaq(
         _prepare_cudaq_module(module, PassManager)
     except Exception as error:
         raise ValueError(
-            f"Quake preparation failed for kernel {name!r}; CUDA-Q Logical requires a "
+            f"Quake preparation failed for kernel {name!r}; QLX requires a "
             "closed, specialized, scalar !quake.wire module") from error
 
     cudaq_version = str(getattr(cudaq, "__version__", "unknown"))
     return _build_from_p0(
-        # The public CUDA-Q override intentionally stops at normalized Quake.
-        # Direct CUDA-Q Logical import owns the typed Quake-to-P0 boundary separately.
         _run_quake_to_p0_pass(module, root=name),
         root=name,
         origin=f"@cudaq.kernel:{name}",
         source_sha256=source_sha256,
-        producer="qlx-cudaq-import@0.1",
+        producer="cudaq-logical-cudaq-import@0.1",
         assumptions=(
             f"cudaq-version:{cudaq_version}",
             "source-normalization:cudaq-unique-symbol-suffix",

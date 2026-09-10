@@ -1,9 +1,10 @@
 # Portable P0 Bell Program
 
-[`01_p0_bell.py`](../../../../examples/01_p0_bell.py) authors a portable
-machine-independent logical program and obtains a logical estimate.
+[`standalone/00_logical_program.py`](../../../../examples/standalone/00_logical_program.py)
+authors a portable machine-independent logical program and obtains a logical
+estimate.
 
-```{literalinclude} ../../../../examples/01_p0_bell.py
+```{literalinclude} ../../../../examples/standalone/00_logical_program.py
 :language: python
 ```
 

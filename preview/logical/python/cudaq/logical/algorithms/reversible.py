@@ -5,10 +5,10 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Composable reversible helpers over the existing P0 logical actions in CUDA-Q Logical.
+"""Composable reversible helpers over QLX's existing P0 logical actions.
 
-The helpers in this module are ordinary Python authoring routines.  They emit
-only ``x``, ``h``, ``cx``, and ``ccz`` operations into the active trace; no
+The helpers in this module are ordinary Python authoring routines. They emit
+only canonical QLX logical actions such as ``x``, ``cx``, and ``ccx``; no
 helper is a new logical or machine primitive.
 """
 
@@ -22,6 +22,7 @@ from ..errors import (
     InvalidReversibleCall,
     InvalidReversibleSignature,
 )
+from ..ops._impl import ccx as _ccx
 from ..ops._impl import ccz as _ccz
 from ..ops._impl import cx as _cx
 from ..ops._impl import h as _h
@@ -46,8 +47,8 @@ def _preflight_handles(
     for name, value in values:
         if not isinstance(value, logical_qubit):
             raise InvalidReversibleSignature(
-                f"{operation} {name} must be a cudaq.logical.types.logical_qubit"
-            )
+                f"{operation} {name} must be a "
+                "cudaq.logical.types.logical_qubit")
     trace = current_trace()
     canonical_values: list[tuple[str, logical_qubit]] = []
     resolver = (None if trace is None else getattr(
@@ -59,7 +60,7 @@ def _preflight_handles(
                 actual_type = str(value.type)
             except (AttributeError, TypeError, ValueError) as error:
                 raise InvalidReversibleSignature(
-                    f"{operation} {name} does not carry a valid CUDA-Q Logical SSA value"
+                    f"{operation} {name} does not carry a valid QLX SSA value"
                 ) from error
             if actual_type != expected_type:
                 raise InvalidReversibleSignature(
@@ -69,14 +70,14 @@ def _preflight_handles(
             if canonical is None:
                 raise CrossContextValue(
                     f"{operation} {name} SSA value was not minted by the "
-                    "active CUDA-Q Logical builder/domain")
+                    "active QLX builder/domain")
             canonical_values.append((name, canonical))
 
         for name, canonical in canonical_values:
             if canonical.owner is not trace:
                 raise CrossContextValue(
                     f"{operation} {name} canonical owner metadata does not "
-                    "match the active CUDA-Q Logical builder/domain")
+                    "match the active QLX builder/domain")
             if not canonical.is_live:
                 raise UseAfterConsume(
                     f"{operation} {name} is not a live logical-qubit owner")
@@ -93,7 +94,7 @@ def _preflight_handles(
         for name, value in canonical_values:
             if value.owner is not owner:
                 raise CrossContextValue(
-                    f"{operation} {name} belongs to a different CUDA-Q Logical "
+                    f"{operation} {name} belongs to a different QLX "
                     "builder/domain")
 
     seen: list[tuple[str, object]] = []
@@ -114,8 +115,7 @@ def _preflight_handles(
             if value is not canonical:
                 raise InvalidReversibleCall(
                     f"{operation} {name} is not the canonical live handle "
-                    "minted for its SSA value by the active CUDA-Q Logical builder"
-                )
+                    "minted for its SSA value by the active QLX builder")
 
 
 def _emit_ccx(
@@ -123,10 +123,7 @@ def _emit_ccx(
     control_b: logical_qubit,
     target: logical_qubit,
 ) -> tuple[logical_qubit, logical_qubit, logical_qubit]:
-    target = _h(target)
-    control_a, control_b, target = _ccz(control_a, control_b, target)
-    target = _h(target)
-    return control_a, control_b, target
+    return _ccx(control_a, control_b, target)
 
 
 def ccx(
@@ -134,10 +131,10 @@ def ccx(
     control_b: logical_qubit,
     target: logical_qubit,
 ) -> tuple[logical_qubit, logical_qubit, logical_qubit]:
-    """Apply positive-control Toffoli as ``H(target); CCZ; H(target)``.
+    """Apply one positive-control typed Toffoli objective.
 
     The three inputs are consumed and three fresh SSA handles are returned in
-    the same order.
+    the same order. P2 selects its concrete QEC realization.
     """
 
     _preflight_handles(
@@ -184,7 +181,7 @@ def mcx(
     ``policy`` is required and currently accepts only
     :attr:`MCXPolicy.CLEAN_LADDER`.  For more than two controls, callers must
     supply exactly ``len(controls) - 2`` distinct ancillas known by the caller
-    to be in ``|0>``.  CUDA-Q Logical logical handles do not prove a quantum basis state,
+    to be in ``|0>``.  QLX logical handles do not prove a quantum basis state,
     so cleanliness is an explicit precondition rather than a trace-time check.
     Conditional on that precondition, every ancilla is restored to ``|0>``.
 

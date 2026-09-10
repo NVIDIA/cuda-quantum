@@ -19,13 +19,15 @@ module {
 
 // -----
 
-// Quantum helpers must be inlined before the Quake-to-P0 boundary.
-// expected-error@+1 {{convert-quake-to-qlx requires entry points to be fully inlined; non-entry func.func definitions remain}}
+// A reachable helper must use the supported scalar reference ABI.
 module {
   func.func @__nvqpp__mlirgen__entry()
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    quake.call_by_ref @helper() : () -> ()
     return
   }
+  // expected-error@+2 {{reachable helper without scalar quantum inputs is unsupported}}
+  // expected-error@+1 {{failed to legalize operation 'func.func'}}
   func.func @helper() {
     return
   }
@@ -74,7 +76,7 @@ module {
   // expected-error@+1 {{failed to legalize operation 'func.func'}}
   func.func @__nvqpp__mlirgen__reference()
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    // expected-error@+1 {{Quake-to-P0 supports only value-semantics !quake.wire quantum values}}
+    // expected-error@+1 {{Quake-to-P0 supports only value-semantics !quake.wire values plus statically sized helper cable boundaries}}
     %0 = quake.alloca !quake.ref
     quake.h %0 : (!quake.ref) -> ()
     return

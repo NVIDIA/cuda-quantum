@@ -24,10 +24,10 @@ fabric.machine @dev {
 
 fabric.gadget @overflow {entry} on @dev() {
   %p = fabric.alloc {code = @steane, region = @C0} : !fabric.patch<@steane>
-  %out = fabric.repeat 9223372036854775807 iter(%arg : !fabric.patch<@steane> = %p) {
+  %out = cflow.repeat 9223372036854775807 iter(%arg : !fabric.patch<@steane> = %p) {
     %one = fabric.h %arg data : !fabric.patch<@steane>
     %two = fabric.h %one data : !fabric.patch<@steane>
-    fabric.yield %two : !fabric.patch<@steane>
+    cflow.yield %two : !fabric.patch<@steane>
   }
   fabric.dealloc %out : !fabric.patch<@steane>
   fabric.return

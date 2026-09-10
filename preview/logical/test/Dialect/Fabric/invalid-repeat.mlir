@@ -16,9 +16,9 @@ fabric.code @c {
 
 fabric.gadget @negative_repeat(%p: !fabric.patch<@c>)
     -> !fabric.patch<@c> {
-  // expected-error @+1 {{count must be non-negative}}
-  %next = fabric.repeat -1 iter(%arg: !fabric.patch<@c> = %p) {
-    fabric.yield %arg : !fabric.patch<@c>
+  // expected-error @+1 {{attribute 'count' failed to satisfy constraint: 64-bit signless integer attribute whose value is non-negative}}
+  %next = cflow.repeat -1 iter(%arg: !fabric.patch<@c> = %p) {
+    cflow.yield %arg : !fabric.patch<@c>
   }
   fabric.return %next : !fabric.patch<@c>
 }

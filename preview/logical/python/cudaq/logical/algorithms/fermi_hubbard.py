@@ -9,8 +9,8 @@
 
 This module owns only P0 algorithm facts.  It exposes the logical program and
 the canonical signed rotation classes implied by its first-order Trotterization;
-synthesis policy, QEC architecture, and factories belong to later compiler
-stages and to the selected device.
+synthesis policy, QEC architecture, factories, and physical resource models
+belong to later compiler stages and to the selected device.
 """
 
 from __future__ import annotations
@@ -18,11 +18,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-from ..algebra.pauli import X, Y, Z
-from ..ops._impl import allocate, discard, h, rotate, x
-from ..programs.decorators import program
-from ..programs.definition import ProgramDefinition
-from ..types.semantic import zero
+from cudaq.logical.algebra.pauli import X, Y, Z
+from cudaq.logical.ops._impl import allocate, discard, h, rotate, x
+from cudaq.logical.programs.decorators import program
+from cudaq.logical.programs.definition import ProgramDefinition
+from cudaq.logical.types.semantic import zero
 
 
 @dataclass(frozen=True, slots=True)

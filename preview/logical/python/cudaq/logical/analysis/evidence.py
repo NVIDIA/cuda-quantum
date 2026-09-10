@@ -47,7 +47,3 @@ def computation(reference: str) -> Provenance:
 
 
 __all__ = ["Provenance", "citation", "user_assertion", "report", "computation"]
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.evidence")

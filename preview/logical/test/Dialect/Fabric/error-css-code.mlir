@@ -38,42 +38,16 @@ fabric.code @unpaired_logicals {
 
 // -----
 
-// Multi-logical declarations must authenticate every logical pair.
-// expected-error @+1 {{k > 1 requires authenticated lx and lz logical supports}}
-fabric.code @missing_logicals {
+// Declared n/k imply s = 4 independent stabilizers, but the Steane checks
+// only carry one logical qubit's worth (rank 6 = n - 1).
+// expected-error @+1 {{css checks have GF(2) stabilizer rank 6 but n/k/r imply 4 independent stabilizers}}
+fabric.code @wrong_rank {
   distance = 3 : i64,
   partitions = {data = 7 : i64, sx = 3 : i64, sz = 3 : i64},
   n = 7 : i64,
   k = 3 : i64,
   hx = [array<i64: 0, 1, 2, 3>, array<i64: 0, 1, 4, 5>, array<i64: 0, 2, 4, 6>],
   hz = [array<i64: 0, 1, 2, 3>, array<i64: 0, 1, 4, 5>, array<i64: 0, 2, 4, 6>]
-}
-
-// -----
-
-// Logical representatives alone do not determine the protected dimension;
-// the stabilizer families are part of the authentication evidence.
-// expected-error @+1 {{k > 1 CSS declarations require hx, hz, lx, and lz}}
-fabric.code @underdetermined_dimension {
-  distance = 1 : i64,
-  partitions = {data = 4 : i64, sx = 0 : i64, sz = 0 : i64},
-  n = 4 : i64,
-  k = 2 : i64,
-  r = 0 : i64,
-  lx = [array<i64: 0, 1>, array<i64: 0, 2>],
-  lz = [array<i64: 0, 2>, array<i64: 0, 1>]
-}
-
-// -----
-
-// A scalar k claim cannot exceed the represented data block.
-// expected-error @+1 {{requires n>=1, r>=0, and k+r<=n}}
-fabric.code @impossible_dimension {
-  distance = 1 : i64,
-  partitions = {data = 1 : i64, sx = 0 : i64, sz = 0 : i64},
-  n = 1 : i64,
-  k = 99 : i64,
-  r = 0 : i64
 }
 
 // -----

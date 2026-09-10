@@ -1,12 +1,10 @@
-//===- Passes.h - QLX Conversion pass construction + registration ---------===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Mirrors upstream MLIR's `mlir/Conversion/Passes.h`.  Every cross-dialect
 // QLX conversion pass declared in `qlx/Conversion/Passes.td` becomes

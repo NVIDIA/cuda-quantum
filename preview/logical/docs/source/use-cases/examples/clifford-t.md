@@ -1,9 +1,9 @@
 # Clifford+T Synthesis
 
-[`05_clifford_t.py`](../../../../examples/05_clifford_t.py) synthesizes a CUDA-Q
-rotation into Clifford+T operations before estimation.
+[`01_clifford_t_resource_estimate.py`](../../../../examples/01_clifford_t_resource_estimate.py)
+synthesizes a CUDA-Q rotation into Clifford+T operations before estimation.
 
-```{literalinclude} ../../../../examples/05_clifford_t.py
+```{literalinclude} ../../../../examples/01_clifford_t_resource_estimate.py
 :language: python
 ```
 

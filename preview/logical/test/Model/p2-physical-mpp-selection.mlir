@@ -13,6 +13,7 @@ module {
       %patch: !fabric.patch<@code, @encoding, @epoch>,
       %a: tensor<1xi1>, %b: tensor<1xi1>)
       -> (!fabric.patch<@code, @encoding, @epoch>, i1) {
+    fabric.tick
     %next, %measured = fabric.mpp %patch data
       indices [0, 2] paulis "XY" {record = "physical_product"}
       : !fabric.patch<@code, @encoding, @epoch> -> tensor<1xi1>
@@ -24,6 +25,7 @@ module {
   }
 }
 
+// CHECK: fabric.tick
 // CHECK: fabric.mpp %{{.*}} data indices [0, 2] paulis "XY"
 // CHECK: fabric.parity
 // CHECK: fabric.all_false

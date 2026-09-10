@@ -7,31 +7,36 @@
 # ============================================================================ #
 """Canonical values, references, annotations, and traced proxies."""
 
-from ..types.values import (
+from cudaq.logical.types.values import (
+    EventState,
+    EventStatusValue,
     Float64Value,
     IndexValue,
     LogicalBool,
+    LogicalEventValue,
+    LogicalFrameValue,
     LogicalRegister,
+    LogicalResourceValue,
     logical_qubit,
 )
-from ..algebra.angle import (
+from cudaq.logical.algebra.angle import (
     Angle,
     pi,
 )
-from ..programs.binding import (
+from cudaq.logical.programs.binding import (
     LogicalPortRef,
     LogicalPorts,
     ObjectiveOperandRef,
     ObjectiveOperands,
 )
-from ..algebra.clifford import CliffordAction
-from ..programs.definition import (
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.programs.definition import (
     Definition,
     DefinitionHandle,
     ProgramDefinition,
 )
-from ..gadgets import patch
-from ..algebra.pauli import (
+from cudaq.logical.gadgets import patch
+from cudaq.logical.algebra.pauli import (
     I,
     X,
     Y,
@@ -40,27 +45,37 @@ from ..algebra.pauli import (
     PauliGroupElement,
     PauliProduct,
 )
-from ..types.semantic import (
+from cudaq.logical.types.semantic import (
     LogicalState,
+    event,
     float64,
     index,
+    logical_event,
+    logical_frame,
     logical_record,
+    logical_resource,
     plus,
     record,
     resource,
     zero,
 )
-from ..std import ResourceKind
+from cudaq.logical.std import FrameDomain, ResourceKind
 
 __all__ = [
     "Angle",
     "pi",
+    "FrameDomain",
     "ResourceKind",
     "logical_qubit",
     "LogicalBool",
+    "LogicalEventValue",
+    "LogicalFrameValue",
+    "LogicalResourceValue",
     "LogicalRegister",
     "IndexValue",
     "Float64Value",
+    "EventState",
+    "EventStatusValue",
     "CliffordAction",
     "ObjectiveOperandRef",
     "ObjectiveOperands",
@@ -79,7 +94,11 @@ __all__ = [
     "Z",
     "float64",
     "index",
+    "logical_event",
+    "logical_frame",
     "logical_record",
+    "logical_resource",
+    "event",
     "record",
     "resource",
     "plus",

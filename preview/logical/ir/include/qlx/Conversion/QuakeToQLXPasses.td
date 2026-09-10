@@ -1,10 +1,10 @@
-/***********************************************************-*- tablegen -*-****
+/*******************************************************************************
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #ifndef QLX_CONVERSION_QUAKETOQLX_PASSES_TD
 #define QLX_CONVERSION_QUAKETOQLX_PASSES_TD
@@ -41,11 +41,6 @@ def ExpandQuakeRegisterTraversals :
            "uint64_t", /*default=*/"1000000",
            "Maximum estimated operations generated across the module">
   ];
-  let dependentDialects = [
-    "cudaq::cc::CCDialect",
-    "cudaq::quake::QuakeDialect",
-    "::mlir::arith::ArithDialect"
-  ];
 }
 
 def PruneDeadCCLoopCarries :
@@ -69,11 +64,6 @@ def PruneDeadCCLoopCarries :
     This pass removes only carries proven dead; live classical carries remain
     and may subsequently be rejected by convert-quake-to-qlx.
   }];
-  let dependentDialects = [
-    "cudaq::cc::CCDialect",
-    "::mlir::func::FuncDialect",
-    "::mlir::ub::UBDialect"
-  ];
 }
 
 def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
@@ -92,12 +82,12 @@ def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
         are equivalent up to global phase);
       - X/Y/Z measurement, discrimination, sink, and return;
       - `cc.scope` (transparent) and a normalized constant-trip `cc.loop`,
-        folded to `qlx.repeat` (never unrolled) with `!quake.wire` carries;
+        folded to `cflow.repeat` (never unrolled) with `!quake.wire` carries;
         repeat bodies may prepare iteration-local qubits when they are
         destructively measured or discarded before the iteration yields;
       - `cc.if` with a constant condition (the selected branch is inlined,
         feedback-free) or a measurement-derived (`quake.discriminate`) condition
-        (lowered to an adaptive `qlx.if`).
+        (lowered to an adaptive `cflow.if`).
 
     All quantum operands/results must already have type `!quake.wire`; reference,
     vector, control, and cable types are rejected. Loops must be constant-trip
@@ -119,11 +109,8 @@ def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
            "when they identify exactly one entry">
   ];
   let dependentDialects = [
-    "cudaq::quake::QuakeDialect",
     "qlx::QLXDialect",
-    "qlx::lvm::LVMDialect",
-    "::mlir::arith::ArithDialect",
-    "::mlir::func::FuncDialect"
+    "mlir::func::FuncDialect"
   ];
 }
 

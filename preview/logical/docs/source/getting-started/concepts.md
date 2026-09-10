@@ -3,36 +3,38 @@
 Everything in CUDA-Q Logical follows from a small set of ideas. Learn these
 eight, and the rest of the system becomes predictable.
 
-## 1. Three stages, one direction
+## 1. Four stages, one direction
 
-Executable intent is refined through exactly three semantic stages
+Executable intent is refined through exactly four semantic stages
 (`ql.stages.Stage`):
 
-| Stage                   | Question it answers                                              | Primary IR family |
-| ----------------------- | ---------------------------------------------------------------- | ----------------- |
-| **P0** unplaced logical | What logical computation is requested?                           | `qlx`             |
-| **P1** placed logical   | Where may each logical owner reside on a logical machine?        | `lvm`             |
-| **P2** QEC realization  | Which code, gadgets, and protocols realize it, and at what cost? | `fabric`          |
+| Stage                    | Question it answers                                              | Primary IR family |
+| ------------------------ | ---------------------------------------------------------------- | ----------------- |
+| **P0** unplaced logical  | What logical computation is requested?                           | `qlx`             |
+| **P1** placed logical    | Where may each logical owner reside on a logical machine?        | `lvm`             |
+| **P2** QEC realization   | Which code, gadgets, and protocols realize it, and at what cost? | `fabric`          |
+| **P3** physical schedule | Which carriers and timed events physically realize it?           | `phys`            |
 
 A later stage only adds realization facts — it never silently reinterprets the
 logical behavior you asked for. Every stage root is verified and immutable, so
 when a lowering fails you fall back to the retained earlier root instead of
 repairing in place. `ql.compile` produces the P0 root of a `@ql.program`,
 `ql.compiler.place` refines it to a code-agnostic P1 placement, and selecting
-codes, gadgets, and protocols produces P2. Emitting Stim text consumes a P2
-build; it is an interchange product, not a stage.
+codes, gadgets, and protocols produces P2. Physical lowering and scheduling
+produce P3. Emitting Stim text consumes a P2 build; it is an interchange
+product, not a stage.
 
 ## 2. Facets, not extra stages
 
-QEC specifications, gadget realizations, protocol networks, and patch graphs
-are **facets** (`ql.stages.Facet`: `QEC_SPEC`, `QEC_REALIZATION`,
-`PROTOCOL_NETWORK`, `PATCH_GRAPH`). A facet is an independently verified fact
-attached to an immutable stage root, not another point in the P0–P2 lowering
-order. Several facets can coexist on one root without recompiling the program.
-Every pipeline pass declares the facets it requires, provides, and invalidates;
-a facet survives a pass unless that pass explicitly invalidates or recomputes
-it. A compiled gadget build, for example, is a P2 root carrying exactly
-`QEC_SPEC` and `QEC_REALIZATION` — see `build.facets` in concept 5.
+QEC specifications, gadget realizations, protocol networks, patch graphs,
+carrier mappings, routing, and schedules are **facets** (`ql.stages.Facet`). A
+facet is an independently verified fact attached to an immutable stage root,
+not another point in the P0–P3 lowering order. Several facets can coexist on
+one root without recompiling the program. Every pipeline pass declares the
+facets it requires, provides, and invalidates; a facet survives a pass unless
+that pass explicitly invalidates or recomputes it. A compiled gadget build, for
+example, is a P2 root carrying exactly `QEC_SPEC` and `QEC_REALIZATION` — see
+`build.facets` in concept 5.
 
 ## 3. Linear ownership
 
@@ -122,11 +124,12 @@ one silently and raises `ql.errors.AmbiguousLogicalPortMap`. An explicit
 `logical_ports=` mapping is a constraint the verifier checks, never evidence it
 trusts.
 
-A **protocol** composes gadget calls with operational policy: resource
-requests, postselection, and bounded retry with explicit commit points — the
-shipped 15-to-1 distillation in `examples/04_distillation.py` exercises them
-all. Retry policy is normalized at construction into immutable, type-checked
-structures:
+A **protocol** composes gadget calls with operational policy. The shipped
+15-to-1 distillation in
+`examples/standalone/03_magic_state_distillation.py` exercises typed resource
+requests and postselection. Protocols may also use bounded retry with explicit
+commit points; retry policy is normalized at construction into immutable,
+type-checked structures:
 
 | Type          | Fields                                                                                                                     |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -207,7 +210,7 @@ they are out of scope.
 | `@ql.code`                         | validated `Code` + default profile/encoding      | `ql.codes`, yours        |
 | `@ql.gadget` / `@ql.protocol`      | verified realization / composition               | yours, `ql.protocols`    |
 | `ql.compile` / `ql.compiler.place` | immutable, replayable `Build` roots              | `ql.compiler`            |
-| `ql.estimate(..., tier=...)`       | `Tier.LOGICAL` (P0) or `Tier.STATIC` (P2 counts) | `ql.estimate`            |
+| `ql.estimate(..., tier=...)`       | logical, static, analytical, or schedule evidence | `ql.estimate`          |
 | `ql.emit` / `ql.targets`           | Stim circuit text from a P2 build                | `ql.targets`             |
 
 Naming follows PEP 8 throughout — artifact classes are camel case (`Code`,

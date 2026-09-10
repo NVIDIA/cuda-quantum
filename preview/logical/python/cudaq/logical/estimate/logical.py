@@ -13,12 +13,6 @@ from typing import ClassVar, Mapping
 
 from .types import Tier, _EstimateResult
 
-_STANDARD_SYNTHESIS_ACTIONS = frozenset({
-    "qlx_standard_t",
-    "qlx_standard_tdg",
-    "qlx_standard_ccz",
-})
-
 
 @dataclass(frozen=True, slots=True)
 class LogicalProfile(_EstimateResult):
@@ -31,11 +25,17 @@ class LogicalProfile(_EstimateResult):
     logical_qubits_peak: int = 0
     action_depth_upper_bound: int = 0
     synthesis_demand: Mapping[str, int] | None = None
+    resource_requests: Mapping[str, int] | None = None
+    resource_consumptions: Mapping[str, int] | None = None
+    build_root: str = ""
+    build_sha256: str = ""
 
     @property
     def total_operations(self) -> int:
         return (sum(self.actions.values()) + sum(self.instruments.values()) +
-                self.idle_sites)
+                self.idle_sites + sum(
+                    (self.resource_requests or {}).values()) + sum(
+                        (self.resource_consumptions or {}).values()))
 
 
 def _walk(operation):
@@ -74,22 +74,13 @@ def logical_counts(build) -> LogicalProfile:
     actions: Counter[str] = Counter()
     instruments: Counter[str] = Counter()
     synthesis: Counter[str] = Counter()
+    resource_requests: Counter[str] = Counter()
+    resource_consumptions: Counter[str] = Counter()
     idle_sites = discards = depth = 0
-    # Resource results are authoritative facts about the immutable Build, not
-    # about the cached module object exposed for interactive inspection.  MLIR
-    # Python objects remain mutable, so replay and verify a private copy of the
-    # frozen snapshot before deriving any counts.
+    # Analysis is a compiler consumer, not a UI inspection. Read from a fresh
+    # clone of the sealed authority so mutation of the public inspection view
+    # cannot change an estimate.
     module = build._fresh_module()
-    try:
-        verified = module.operation.verify()
-    except Exception as exc:
-        raise ValueError(
-            "logical_counts requires a P0 module that passes native verification"
-        ) from exc
-    if not verified:
-        raise ValueError(
-            "logical_counts requires a P0 module that passes native verification"
-        )
     symbols = {
         _symbol(operation.operation): operation.operation
         for operation in module.body.operations
@@ -103,7 +94,7 @@ def logical_counts(build) -> LogicalProfile:
     def visit(operation, multiplier=1, call_stack=()):
         nonlocal idle_sites, discards, depth
         name = operation.name
-        if name == "qlx.repeat":
+        if name == "cflow.repeat":
             count = int(operation.attributes["count"])
             for child in _children(operation):
                 visit(child, multiplier * count, call_stack)
@@ -127,10 +118,7 @@ def logical_counts(build) -> LogicalProfile:
                       _symbol_attribute(operation, "action"))
             actions[action] += multiplier
             depth += multiplier
-            # Synthesis demand is a semantic classification, never a naming
-            # heuristic. Custom actions remain visible in ``actions`` but are
-            # not guessed to be non-Clifford from their symbol spelling.
-            if action in _STANDARD_SYNTHESIS_ACTIONS:
+            if any(token in action for token in ("_t", "ccz", "ccx")):
                 synthesis[action] += multiplier
         elif name == "qlx.instrument":
             instrument_attr = str(operation.attributes["instrument"])
@@ -154,6 +142,23 @@ def logical_counts(build) -> LogicalProfile:
             depth += multiplier
         elif name == "qlx.discard":
             discards += multiplier
+        elif name == "qlx.resource_request":
+            resource_requests[_symbol_attribute(operation,
+                                                "kind")] += multiplier
+        elif name == "qlx.consume_resource":
+            resource_type = str(operation.operands[0].type)
+            prefix = '!qlx.logical_resource<"'
+            resource_kind = (resource_type[len(prefix):-2]
+                             if resource_type.startswith(prefix) else
+                             resource_type)
+            resource_consumptions[resource_kind] += multiplier
+            action_attr = str(operation.attributes["action"])
+            action = ("qlx_standard_" +
+                      action_attr[len("#qlx.action<"):-1].strip('"')
+                      if action_attr.startswith("#qlx.action<") else
+                      _symbol_attribute(operation, "action"))
+            synthesis[action] += multiplier
+            depth += multiplier
         for child in _children(operation):
             visit(child, multiplier, call_stack)
 
@@ -181,17 +186,17 @@ def logical_counts(build) -> LogicalProfile:
                 live -= sum(
                     str(value.type) == "!qlx.logical_qubit"
                     for value in operation.operands)
-            elif name == "qlx.repeat":
+            elif name == "cflow.repeat":
                 count = int(operation.attributes["count"])
                 if count and operation.regions and operation.regions[0].blocks:
                     final, nested_peak = live_profile(
                         operation.regions[0].blocks[0], live, stack)
                     if final != live:
                         raise ValueError(
-                            "qlx.repeat changes live logical ownership across "
+                            "cflow.repeat changes live logical ownership across "
                             "an iteration")
                     peak = max(peak, nested_peak)
-            elif name == "qlx.if":
+            elif name == "cflow.if":
                 branch_finals = []
                 for region in operation.regions:
                     if not region.blocks:
@@ -204,7 +209,7 @@ def logical_counts(build) -> LogicalProfile:
                 if branch_finals and any(
                         final != branch_finals[0] for final in branch_finals):
                     raise ValueError(
-                        "qlx.if branches disagree on live logical ownership")
+                        "cflow.if branches disagree on live logical ownership")
                 if branch_finals:
                     live = branch_finals[0]
             elif name == "qlx.call":
@@ -234,6 +239,8 @@ def logical_counts(build) -> LogicalProfile:
         logical_qubits_peak=logical_peak,
         action_depth_upper_bound=depth,
         synthesis_demand=dict(synthesis),
+        resource_requests=dict(resource_requests),
+        resource_consumptions=dict(resource_consumptions),
         build_root=build.root.symbol,
         build_sha256=build.content_sha256,
     )

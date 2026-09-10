@@ -88,11 +88,11 @@ objective and the gadget that realizes it by one syndrome-extraction pass
 followed by data-qubit readout:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/03_code_and_gadget.py
+.. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :start-at: @ql.objective
-   :end-before: code = ql.materialize
-   :caption: A terminal-memory objective and its gadget (examples/03_code_and_gadget.py).
+   :start-at: @cql.objective
+   :end-before: code = cql.materialize
+   :caption: A terminal-memory objective and its gadget (examples/standalone/02_code_and_gadget.py).
 ```
 
 Ownership is linear throughout: consuming a patch twice, or dropping one that is
@@ -106,11 +106,11 @@ distillation protocol accepts exactly when all four even-parity checks measure
 +X:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/04_distillation.py
+.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
    :language: python
-   :start-after: # The positive-angle triorthogonal circuit
-   :end-before: return ql.pack_resource
-   :caption: Postselection in examples/04_distillation.py.
+   :start-at: @cql.protocol
+   :end-before: # Estimate the protocol directly
+   :caption: Postselection in examples/standalone/03_magic_state_distillation.py.
 ```
 
 Bounded retry is the same shape: `ql.ops.retry` acts on a success predicate

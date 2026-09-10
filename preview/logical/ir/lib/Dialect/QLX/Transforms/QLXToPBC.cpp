@@ -1,9 +1,9 @@
-/*******************************************************************************
+/******************************************************************************
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.  *
  ******************************************************************************/
 
 #include "qlx/Dialect/QLX/Transforms/QLXToPBC.h"
@@ -213,8 +213,9 @@ LogicalResult qlx::lowerToPBC(ModuleOp module) {
                                      "run qlx-synthesize first");
           return;
         }
-        if (builtin.getValue() == BuiltinAction::ccz) {
-          result = apply.emitOpError("qlx-to-pbc does not yet lower ccz");
+        if (builtin.getValue() == BuiltinAction::ccz ||
+            builtin.getValue() == BuiltinAction::ccx) {
+          result = apply.emitOpError("qlx-to-pbc does not yet lower ccz/ccx");
           return;
         }
         // Thread qubit indices operand->result positionally.

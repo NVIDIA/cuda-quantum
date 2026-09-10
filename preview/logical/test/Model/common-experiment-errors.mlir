@@ -42,6 +42,6 @@ module {
   // expected-error @+1 {{stage must be one of}}
   qlx.experiment @bad_stage {
     bindings = {}, closure = [@memory], pass_recipe = [],
-    stage = "invalid", facets = [], root = @memory
+    stage = "common", facets = [], root = @memory
   }
 }

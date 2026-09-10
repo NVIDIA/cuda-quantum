@@ -27,8 +27,9 @@ fabric.protocol @roundtrip :
          !fabric.patch<@bare, @bare_encoding, @bare_epoch>)
         -> (!fabric.patch<@bare, @bare_encoding, @bare_epoch>,
             !fabric.patch<@bare, @bare_encoding, @bare_epoch>)
-  %packed = fabric.pack_resource %payload as @t_state
-      : !fabric.patch<@bare, @bare_encoding, @bare_epoch>
+  %packed = fabric.pack_resource (%payload) as @t_state
+      {payload_encodings = [@bare_encoding]}
+      : (!fabric.patch<@bare, @bare_encoding, @bare_epoch>)
         -> !fabric.resource<@t_state>
   fabric.protocol_return %next, %packed
       : !fabric.patch<@bare, @bare_encoding, @bare_epoch>,

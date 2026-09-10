@@ -10,10 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Iterable
 
-from .._core.immutable import freeze_value
+from cudaq.logical._core.immutable import freeze_value
 
 if TYPE_CHECKING:
-    from ..stages import Stage
+    from cudaq.logical.stages import Stage
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +44,7 @@ class PassSpec:
 
 @dataclass(frozen=True, slots=True)
 class Pipeline:
-    """An immutable ordered CUDA-Q Logical compiler pipeline."""
+    """An immutable ordered QLX compiler pipeline."""
 
     passes: tuple[PassSpec, ...]
     output_profile: str | Stage
@@ -54,7 +54,7 @@ class Pipeline:
 
     @property
     def output_stage(self):
-        from ..stages import stage_and_facets
+        from cudaq.logical.stages import stage_and_facets
 
         return stage_and_facets(self.output_profile)[0]
 
@@ -64,7 +64,7 @@ class Pipeline:
         return self.apply_facets(legacy)
 
     def _output_product(self):
-        from ..stages import stage_and_facets
+        from cudaq.logical.stages import stage_and_facets
 
         return stage_and_facets(self.output_profile)
 
@@ -74,7 +74,7 @@ class Pipeline:
         Facets survive a pass unless it explicitly invalidates them. A
         recomputed facet is first invalidated and then re-established.
         """
-        from ..stages import normalize_facets
+        from cudaq.logical.stages import normalize_facets
 
         current = list(normalize_facets(initial))
         for item in self.passes:
@@ -159,6 +159,18 @@ class _Pipelines:
             output_profile="p0",
         )
 
+    def clifford_frame(self) -> Pipeline:
+        """Absorb exact Cliffords while preserving arbitrary rotations."""
+
+        return Pipeline(
+            passes=(
+                PassSpec("qlx-absorb-clifford-frame"),
+                PassSpec("qlx-verify-clifford-frame"),
+                PassSpec("qlx-verify-p0"),
+            ),
+            output_profile="p0",
+        )
+
     def placed(self) -> Pipeline:
         return Pipeline(
             passes=(
@@ -211,14 +223,15 @@ class _Pipelines:
                 PassSpec("fabric-materialize-default-encodings"),
                 PassSpec(
                     "fabric-verify-generated-protocols",
-                    provides_facets=(
-                        "qec_realization",
-                        "protocol_network",
-                    ),
+                    provides_facets=("protocol_network",),
                 ),
             ),
             output_profile="p2n",
         )
+
+    def device(self) -> Pipeline:
+        return Pipeline(passes=(PassSpec("phys-verify-architecture"),),
+                        output_profile="p3")
 
     def device_stack(self, profile: str) -> Pipeline:
         """Verification recipe for one immutable static device prefix."""
@@ -227,12 +240,42 @@ class _Pipelines:
         passes = {
             "p1": (PassSpec("lvm-verify-p1"),),
             "p2": (PassSpec("fabric-verify-machine"),),
+            "p3": (PassSpec("phys-verify-machine"),),
         }
         try:
             recipe = passes[profile]
         except KeyError as exc:
-            raise ValueError("device stack profile must be p1 or p2") from exc
+            raise ValueError(
+                "device stack profile must be p1, p2, or p3") from exc
         return Pipeline(passes=recipe, output_profile=profile)
+
+    def physical(self) -> Pipeline:
+        return Pipeline(
+            passes=(
+                PassSpec(
+                    "fabric-derive-patch-graph",
+                    provides_facets=("patch_graph",),
+                ),
+                PassSpec(
+                    "fabric-map-patches",
+                    requires_facets=("patch_graph",),
+                ),
+                PassSpec("fabric-to-phys"),
+                PassSpec(
+                    "phys-route",
+                    provides_facets=("carrier_mapping", "physical_routing"),
+                ),
+                PassSpec(
+                    "phys-legalize-native-actions",
+                    provides_facets=("native_legalization",),
+                ),
+                PassSpec(
+                    "phys-verify-p3",
+                    invalidates_facets=("physical_schedule",),
+                ),
+            ),
+            output_profile="p3",
+        )
 
 
 class _Passes:

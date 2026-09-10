@@ -1,15 +1,14 @@
-//===- QLXEstimateLogical.cpp - Native Tier-0 estimator --------*- C++ -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #include "qlx/Dialect/QLX/Transforms/Passes.h"
 
+#include "qlx/Dialect/Cflow/IR/CflowOps.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
@@ -90,6 +89,8 @@ public:
   std::map<std::string, int64_t> actions;
   std::map<std::string, int64_t> instruments;
   std::map<std::string, int64_t> synthesis;
+  std::map<std::string, int64_t> resourceRequests;
+  std::map<std::string, int64_t> resourceConsumptions;
   int64_t idleSites = 0;
   int64_t discards = 0;
   int64_t depth = 0;
@@ -137,7 +138,7 @@ private:
 
   LogicalResult walkOperation(Operation *operation, int64_t multiplier,
                               int64_t &live) {
-    if (auto repeat = dyn_cast<RepeatOp>(operation)) {
+    if (auto repeat = dyn_cast<cflow::RepeatOp>(operation)) {
       auto nested = multiply(multiplier, repeat.getCount(), operation);
       if (failed(nested))
         return failure();
@@ -166,7 +167,7 @@ private:
       return result;
     }
 
-    if (auto conditional = dyn_cast<IfOp>(operation)) {
+    if (auto conditional = dyn_cast<cflow::IfOp>(operation)) {
       int64_t thenLive = live;
       int64_t elseLive = live;
       if (failed(walkBlock(conditional.getThenRegion().front(), multiplier,
@@ -184,8 +185,8 @@ private:
 
     // Dynamic iteration has no exact folded multiplicity in P0.  Treating a
     // while region as a leaf would silently omit its body from every count.
-    // Research policies may first specialize/normalize it to qlx.repeat.
-    if (isa<WhileOp>(operation))
+    // Research policies may first specialize/normalize it to cflow.repeat.
+    if (isa<cflow::WhileOp>(operation))
       return operation->emitOpError(
           "qlx-estimate-logical requires dynamic while control to be "
           "specialized to an exact folded form");
@@ -196,7 +197,7 @@ private:
 
     // Region/function terminators forward ownership across their enclosing
     // boundary; they do not consume logical owners for liveness purposes.
-    if (isa<YieldOp, ReturnOp>(operation))
+    if (isa<cflow::YieldOp, ReturnOp>(operation))
       return success();
 
     bool supported = true;
@@ -209,7 +210,8 @@ private:
       auto builtin = dyn_cast<BuiltinActionAttr>(apply.getActionAttr());
       if (builtin && (builtin.getValue() == BuiltinAction::t ||
                       builtin.getValue() == BuiltinAction::tdg ||
-                      builtin.getValue() == BuiltinAction::ccz))
+                      builtin.getValue() == BuiltinAction::ccz ||
+                      builtin.getValue() == BuiltinAction::ccx))
         if (failed(bump(synthesis, action, multiplier, operation, "synthesis")))
           return failure();
     } else if (auto instrument = dyn_cast<InstrumentOp>(operation)) {
@@ -245,6 +247,25 @@ private:
         return failure();
     } else if (isa<DiscardOp>(operation)) {
       if (failed(add(discards, multiplier, operation, "discard")))
+        return failure();
+    } else if (auto request = dyn_cast<ResourceRequestOp>(operation)) {
+      if (failed(bump(resourceRequests, request.getKind().str(), multiplier,
+                      operation, "resource request")))
+        return failure();
+    } else if (auto consume = dyn_cast<ConsumeResourceOp>(operation)) {
+      auto resourceType =
+          dyn_cast<LogicalResourceType>(consume.getResource().getType());
+      if (!resourceType)
+        return consume.emitOpError(
+            "logical estimator requires a typed logical resource");
+      std::string kind = resourceType.getKind().str();
+      if (failed(bump(resourceConsumptions, kind, multiplier, operation,
+                      "resource consumption")) ||
+          failed(add(depth, multiplier, operation, "depth")))
+        return failure();
+      std::string action = normalizeInlineName(consume.getActionAttr(),
+                                               "#qlx.action<", "qlx_standard_");
+      if (failed(bump(synthesis, action, multiplier, operation, "synthesis")))
         return failure();
     } else {
       supported = false;
@@ -334,6 +355,10 @@ struct QLXEstimateLogicalPass
          IntegerAttr::get(i64, walker.depth)},
         {StringAttr::get(context, "synthesis_demand"),
          countDictionary(context, walker.synthesis)},
+        {StringAttr::get(context, "resource_requests"),
+         countDictionary(context, walker.resourceRequests)},
+        {StringAttr::get(context, "resource_consumptions"),
+         countDictionary(context, walker.resourceConsumptions)},
     };
 
     OpBuilder builder(context);

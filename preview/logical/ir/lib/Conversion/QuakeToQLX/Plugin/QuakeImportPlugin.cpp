@@ -1,12 +1,10 @@
-//===- QuakeImportPlugin.cpp - MLIR dialect+pass plugin entry point -----===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Packages the CUDA-Q Quake and CC dialects as a loadable MLIR DialectPlugin,
 // loaded at runtime by the qlx Python extension (_qlxRuntime.load_plugin).

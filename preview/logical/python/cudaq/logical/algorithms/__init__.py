@@ -5,12 +5,12 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Algorithm libraries authored against the CUDA-Q Logical logical surface."""
+"""Algorithm libraries authored against the QLX logical surface."""
 
 from . import reversible
 from .crypto import (
     GidneyEkeraProgram,
-    GidneyEkeraResourceModel,
+    GidneyEkeraArchitecture,
     GidneyEkeraEstimate,
     c_pad_for,
     exponent_length,
@@ -31,7 +31,7 @@ from .fermi_hubbard import (
 __all__ = [
     "reversible",
     "GidneyEkeraProgram",
-    "GidneyEkeraResourceModel",
+    "GidneyEkeraArchitecture",
     "GidneyEkeraEstimate",
     "c_pad_for",
     "exponent_length",

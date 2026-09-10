@@ -9,11 +9,7 @@
 // REQUIRES: qlx-opt
 // RUN: qlx-opt %s | qlx-opt | FileCheck %s
 
-fabric.code @sc {
-  distance = 3 : i64,
-  partitions = {data = 9 : i64, sx = 4 : i64, sz = 4 : i64},
-  hx = [array<i64: 0>]
-}
+fabric.code @sc { distance = 3 : i64, partitions = {data = 9 : i64, sx = 4 : i64, sz = 4 : i64} }
 
 // CHECK-LABEL: fabric.gadget @gate_ops
 // CHECK-SAME: (%[[P:.*]]: !fabric.patch<@sc>)
@@ -50,8 +46,8 @@ fabric.gadget @gate_with_indices(%p: !fabric.patch<@sc>) -> !fabric.patch<@sc> {
 // CHECK-LABEL: fabric.gadget @two_qubit_ops
 // CHECK-SAME: (%[[P:.*]]: !fabric.patch<@sc>)
 fabric.gadget @two_qubit_ops(%p: !fabric.patch<@sc>) -> !fabric.patch<@sc> {
-  // CHECK: %[[V0:.*]] = fabric.cx %[[P]] sx -> data {schedule = "hx"} : <@sc>
-  %0 = fabric.cx %p sx -> data {schedule = "hx"} : !fabric.patch<@sc>
+  // CHECK: %[[V0:.*]] = fabric.cx %[[P]] sx -> data {schedule = "round_robin"} : <@sc>
+  %0 = fabric.cx %p sx -> data {schedule = "round_robin"} : !fabric.patch<@sc>
   // CHECK: %[[V1:.*]] = fabric.cz %[[V0]] data -> sz {pairs = "0:0,1:1"} : <@sc>
   %1 = fabric.cz %0 data -> sz {pairs = "0:0,1:1"} : !fabric.patch<@sc>
   // CHECK: fabric.return %[[V1]] : !fabric.patch<@sc>

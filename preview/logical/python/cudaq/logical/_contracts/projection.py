@@ -204,7 +204,8 @@ __all__ = [
     "ProjectedPort",
 ]
 
-# Preserve public and pickle identities through cudaq.logical.compiler.projection.
+# Preserve public and pickle identities through
+# cudaq.logical.compiler.projection.
 for _compatibility_class in (
         ProjectedPort,
         ProjectedMeasurement,

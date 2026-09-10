@@ -16,11 +16,7 @@
 //   * the two-patch (cross) form, which prints the functional type
 //     `(!fabric.patch<@a>, !fabric.patch<@b>) -> (...)`.
 
-fabric.code @sc {
-  distance = 3 : i64,
-  partitions = {data = 9 : i64, sx = 4 : i64, sz = 4 : i64},
-  hx = [array<i64: 0>]
-}
+fabric.code @sc { distance = 3 : i64, partitions = {data = 9 : i64, sx = 4 : i64, sz = 4 : i64} }
 
 // CHECK-LABEL: fabric.gadget @intra
 // CHECK-SAME: (%[[P:.*]]: !fabric.patch<@sc>)

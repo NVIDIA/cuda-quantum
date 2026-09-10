@@ -5,30 +5,30 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Linear-use verification over canonical CUDA-Q Logical / LVM / Fabric bodies.
+"""Linear-use verification over canonical QLX / LVM / Fabric / Phys bodies.
 
-The CUDA-Q Logical ownership contract makes logical qubits, encoded patches, consumable
-resource states, linear events, and
+The model spec (spec/mlir/00-common-contracts.md, section 5) makes logical
+qubits, encoded patches, consumable resource states, linear events, and
 value-semantic frames *linear*: ordinary MLIR SSA permits arbitrarily many
 uses, so a dedicated analysis must verify that every linear SSA value has
 exactly one owner along every execution path.  This module implements that
-analysis in Python over the canonical IR using the
-``QLXLinearOpInterface`` classification:
+analysis in Python over the canonical IR, mirroring the classification the
+spec calls ``QLXLinearOpInterface``:
 
 - ``consume``   -- the default for any use of a linear operand.  Transforming
   operations (gates, measurement reads, calls, terminators, region carries)
   take ownership; producing a successor value is the op's business, not the
   checker's.
 - ``borrow``    -- observation-only uses that never take ownership.  These are
-  the event observers (``event_test`` / ``event_poll`` /
-  ``event_select_ready``) and Pauli-frame resolution
+  the event observers (``event.test`` / ``event.poll`` /
+  ``event.select_ready``) and Pauli-frame resolution
   (``fabric.frame_resolve``), whose op definitions state they do not consume
   their operand.
 
 Region awareness:
 
-- ``if``-like operations (``qlx.if`` / ``lvm.if`` / ``fabric.if`` and the
-  three-way ``event_try_take``) execute exactly one of
+- ``if``-like operations (``cflow.if`` and the three-way ``event.try_take``)
+  execute exactly one of
   their regions, so one consuming use per branch region is a single dynamic
   consume (the canonical Pauli-byproduct pattern consumes the same qubit in
   both the then- and else-branch).
@@ -60,44 +60,34 @@ BODY_OPS = frozenset({
     "fabric.gadget",
     "fabric.protocol",
     "fabric.circuit",
+    "phys.graph",
 })
 
 # Exactly one region executes: consuming uses in *different* regions of the
 # same op describe exclusive paths and together form one dynamic consume.
 BRANCH_EXCLUSIVE_OPS = frozenset({
-    "qlx.if",
-    "lvm.if",
-    "fabric.if",
-    "qlx.event_try_take",
-    "lvm.event_try_take",
-    "fabric.event_try_take",
+    "cflow.if",
+    "event.try_take",
 })
 
 # Regions execute repeatedly: linear state may only enter as an explicit
-# initial or loop-carried value (which the operation consumes); consuming a
-# captured outer value inside is a per-iteration double consume.
+# init/carry (which the op consumes); consuming a captured outer value inside
+# is a per-iteration double consume.
 LOOP_OPS = frozenset({
-    "qlx.repeat",
-    "qlx.while",
-    "lvm.repeat",
-    "lvm.while",
-    "fabric.repeat",
-    "fabric.while",
+    "cflow.repeat",
+    "cflow.while",
 })
 
 # Observation-only operations.  Their op definitions promise they do not take
 # payload ownership ("observe ... without consuming", "select one ready event
 # without consuming payload ownership", "resolve measurement through frame").
-BORROW_OPS = frozenset({
-    f"{dialect}.{name}" for dialect in ("qlx", "lvm", "fabric")
-    for name in ("event_test", "event_poll", "event_select_ready")
-}) | frozenset({"fabric.frame_resolve"})
+BORROW_OPS = frozenset({"event.test", "event.poll", "event.select_ready"
+                       }) | frozenset({"fabric.frame_resolve"})
 
 # Linear types identified by their dialect type head (the text before any
 # `<...>` parameter list).  These are linear unconditionally.
 LINEAR_TYPE_HEADS = frozenset({
     "!qlx.logical_qubit",
-    "!qlx.lqbit",
     "!qlx.logical_resource",
     "!lvm.logical_qubit",
     "!lvm.logical_resource",
@@ -105,15 +95,15 @@ LINEAR_TYPE_HEADS = frozenset({
     "!fabric.patch_frame",
     "!fabric.patch_bundle",
     "!fabric.resource",
+    "!phys.state",
+    "!phys.resource_payload",
 })
 
 # Event types carry an explicit ownership parameter; only "linear" events are
-# single-owner values.
-EVENT_TYPE_HEADS = frozenset({
-    "!qlx.logical_event",
-    "!lvm.logical_event",
-    "!fabric.event",
-})
+# single-owner values.  Module-level (no longer per-dialect): all five tiers
+# (qlx/lvm/fabric/phys) now embed the identically-spelled shared
+# `!event.handle` type.
+EVENT_TYPE_HEADS = frozenset({"!event.handle"})
 
 # Value-semantic frame state is threaded linearly (each update consumes the
 # previous frame) but has no disposal op: the terminal frame is legitimately
@@ -400,8 +390,8 @@ class _BodyAnalysis:
                 depth += 1
                 continue
             # Divergence at two distinct ops.  In single-block regions they
-            # execute sequentially -> conflict. Across control-flow graph
-            # blocks, the paths may be exclusive, so stay silent there.
+            # execute sequentially -> conflict.  Across CFG blocks the paths
+            # may be exclusive, so stay silent there.
             try:
                 same_block = a[0].block == b[0].block
             except Exception:  # pragma: no cover - defensive
@@ -488,7 +478,7 @@ def check_linearity(module) -> LinearityReport:
     """Run the linear single-ownership analysis over every body in a module.
 
     Returns a structured :class:`LinearityReport`; never raises for
-    violations.  ``module`` is a ``cudaq.mlir.ir.Module`` (or any operation exposing
+    violations. ``module`` is a ``cudaq.mlir.ir.Module`` (or an operation exposing
     ``.operation`` with regions).
     """
     checked: list[str] = []

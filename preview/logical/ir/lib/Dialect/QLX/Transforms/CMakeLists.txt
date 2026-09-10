@@ -6,7 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
+  MLIRIR
+  MLIRSupport
+  MLIRParser
+  MLIRFuncDialect
+  MLIRArithDialect
+)
+
 add_mlir_library(MLIRQLXTransforms
+  QLXAbsorbCliffordFrame.cpp
   QLXEstimateLogical.cpp
   QLXVerifyPBC.cpp
   QLXSynthesize.cpp
@@ -21,15 +30,9 @@ add_mlir_library(MLIRQLXTransforms
 
   LINK_LIBS PUBLIC
   MLIRQLXDialect
-  cudaq::MLIR
-  MLIRIR
-  MLIRSupport
-  MLIRParser
-  MLIRFuncDialect
-  MLIRArithDialect
+  MLIRCflowDialect
+  cudaq-synth
+  ${_qlx_mlir_link_libraries}
 )
 
 qlx_propagate_llvm_rtti_eh(MLIRQLXTransforms)
-
-# QLXSynthesize.cpp instantiates CUDA-Q's MPFR-backed synthesis templates.
-target_link_libraries(MLIRQLXTransforms PUBLIC GMP::gmp MPFR::mpfr)

@@ -67,7 +67,7 @@ class GF2Matrix:
 
         Public declarations must use ``GF2Matrix(...)`` or ``from_rows`` and
         retain their fail-closed integer/binary validation.  This private path
-        is only for immutable rows already produced or validated by CUDA-Q Logical in the
+        is only for immutable rows already produced or validated by QLX in the
         same call chain.
         """
 
@@ -112,10 +112,5 @@ class GF2Matrix:
                 tuple((value >> column) & 1 for column in range(other.ncols)))
         return GF2Matrix(rows, ncols=other.ncols)
 
-
-# Preserve the established pickle and durable type identity while the
-# implementation lives in this neutral leaf module.  ``cudaq.logical.model.qec`` keeps
-# an exact alias, so historical payloads continue to resolve the same class.
-GF2Matrix.__module__ = "cudaq.logical.model.qec"
 
 __all__ = ["GF2Matrix"]

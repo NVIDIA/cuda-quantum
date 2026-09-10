@@ -17,15 +17,15 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
 from ..errors import InvalidCodeAlgebra
-from .._core.immutable import ImmutableValue
-from ..algebra.clifford import CliffordAction
-from ..algebra.gf2 import (
+from cudaq.logical._core.immutable import ImmutableValue
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.algebra.gf2 import (
     GF2Matrix,
     _normalize_binary_value,
     _normalize_binary_values,
     _row_bits,
 )
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     LogicalValueGroup,
     LogicalValueRef,
 )
@@ -294,7 +294,7 @@ def _support_rows(value, *, basis: str,
     matching the declared basis; mixed products belong in ``stabilizers=`` /
     ``logicals=``.
     """
-    from ..algebra.pauli import PauliProduct
+    from cudaq.logical.algebra.pauli import PauliProduct
 
     if value is None:
         return ()
@@ -642,7 +642,7 @@ def _support_bits(support, n: int) -> tuple[int, ...]:
 def _declared_pauli_row(value, n: int) -> tuple[int, ...]:
     """Normalize an explicit general-Pauli declaration to ``(x | z)`` bits."""
 
-    from ..algebra.pauli import PauliProduct
+    from cudaq.logical.algebra.pauli import PauliProduct
 
     if isinstance(value, PauliProduct):
         if value.sign != 1:

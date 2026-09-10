@@ -7,9 +7,9 @@
 # ============================================================================ #
 from __future__ import annotations
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..programs.definition import DefinitionHandle
+from cudaq.logical.programs.definition import DefinitionHandle
 from .build import Build, EvidenceRecord
 from .context import CompilationContext
 
@@ -68,9 +68,6 @@ def materialize_target(target, *, module=None) -> Build:
                 "effect":
                     mlir_ir.StringAttr.get(recipe["effect"], context=context),
             }
-            if recipe["finalizer"] is not None:
-                attrs["finalizer"] = mlir_ir.StringAttr.get(recipe["finalizer"],
-                                                            context=context)
             if recipe["produced_stage"] is not None:
                 attrs["produced_stage"] = mlir_ir.StringAttr.get(
                     recipe["produced_stage"], context=context)
@@ -130,7 +127,7 @@ def materialize_target(target, *, module=None) -> Build:
         pipeline=None,
         evidence=(EvidenceRecord(
             kind="target_manifest_verification",
-            producer="qlx-python@0.3",
+            producer="cudaq-logical-python@0.3",
             result="pass" if portable else "unresolved",
             obligations=(
                 "derived-capabilities",

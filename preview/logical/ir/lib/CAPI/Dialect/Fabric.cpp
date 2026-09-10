@@ -1,12 +1,10 @@
-//===- Fabric.cpp - C Interface for Fabric dialect ----------------------===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #include "qlx-c/Dialect/Fabric.h"
 
@@ -84,6 +82,16 @@ MlirType fabricBitTypeGet(MlirContext ctx) {
 }
 MlirTypeID fabricBitTypeGetTypeID(void) {
   return wrap(qlx::fabric::BitType::getTypeID());
+}
+
+bool fabricTypeIsAFrame(MlirType type) {
+  return llvm::isa<qlx::fabric::FrameType>(unwrap(type));
+}
+MlirType fabricFrameTypeGet(MlirContext ctx) {
+  return wrap(qlx::fabric::FrameType::get(unwrap(ctx)));
+}
+MlirTypeID fabricFrameTypeGetTypeID(void) {
+  return wrap(qlx::fabric::FrameType::getTypeID());
 }
 
 bool fabricTypeIsASlot(MlirType type) {

@@ -20,10 +20,10 @@ module attributes {qlx.profiles = ["p0", "p1"]} {
   qlx.program @permuted : () -> (i1, i1) attributes {qlx.stage = "p0"} {
     %left = qlx.prepare "zero" : !qlx.logical_qubit
     %right = qlx.prepare "zero" : !qlx.logical_qubit
-    %out_left, %out_right = qlx.repeat 2
+    %out_left, %out_right = cflow.repeat 2
         iter(%a : !qlx.logical_qubit = %left,
              %b : !qlx.logical_qubit = %right) {
-      qlx.yield %b, %a : !qlx.logical_qubit, !qlx.logical_qubit
+      cflow.yield %b, %a : !qlx.logical_qubit, !qlx.logical_qubit
     }
     %m0 = qlx.measure <Z> %out_left : !qlx.logical_qubit -> i1
     %m1 = qlx.measure <Z> %out_right : !qlx.logical_qubit -> i1

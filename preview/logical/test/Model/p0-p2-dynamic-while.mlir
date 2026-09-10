@@ -9,52 +9,26 @@
 // RUN: qlx-opt %s | FileCheck %s
 // RUN: not qlx-opt %s --fabric-count='root=qec' 2>&1 | FileCheck %s --check-prefix=COUNT-ERR
 
-module attributes {qlx.profiles = ["p0", "p1", "p2n"]} {
-  qlx.program @portable : (i1) -> i1 attributes {qlx.profile = "p0"} {
-  ^bb0(%go: i1):
-    %0 = "qlx.while"(%go) <{max_iterations = 8 : i64}> ({
-    ^bb0(%current: i1):
-      "qlx.while_condition"(%current, %current) : (i1, i1) -> ()
-    }, {
-    ^bb0(%current: i1):
-      qlx.yield %current : i1
-    }) : (i1) -> i1
-    qlx.return %0 : i1
-  }
+// `while`'s round-trip is the shared `cflow` dialect's own concern (see
+// test/Dialect/Cflow/roundtrip-while.mlir); this file exists for
+// `fabric-count`'s rejection of it (Non-Goal: no analytic support for
+// dynamic loops), which is a real pass-behavior check the Cflow suite
+// does not cover.
 
-  lvm.domain @machine {
-    lvm.space @compute {capabilities = [], capacity = 1 : i64}
-  }
-  lvm.kernel @placed on @machine : (i1) -> i1 attributes {qlx.profile = "p1"} {
-  ^bb0(%go: i1):
-    %0 = "lvm.while"(%go) <{max_iterations = 8 : i64}> ({
-    ^bb0(%current: i1):
-      "lvm.while_condition"(%current, %current) : (i1, i1) -> ()
-    }, {
-    ^bb0(%current: i1):
-      lvm.yield %current : i1
-    }) : (i1) -> i1
-    lvm.return %0 : i1
-  }
-
+module attributes {qlx.profiles = ["p2n"]} {
   fabric.protocol @qec : (i1) -> i1 {
   ^bb0(%go: i1):
-    %0 = "fabric.while"(%go) <{max_iterations = 8 : i64}> ({
+    %0 = "cflow.while"(%go) <{max_iterations = 8 : i64}> ({
     ^bb0(%current: i1):
-      "fabric.while_condition"(%current, %current) : (i1, i1) -> ()
+      "cflow.while_condition"(%current, %current) : (i1, i1) -> ()
     }, {
     ^bb0(%current: i1):
-      fabric.yield %current : i1
+      cflow.yield %current : i1
     }) : (i1) -> i1
     fabric.protocol_return %0 : i1
   }
 }
 
-// CHECK: "qlx.while"
-// CHECK-SAME: max_iterations = 8 : i64
-// CHECK: "qlx.while_condition"
-// CHECK: "lvm.while"
-// CHECK: "lvm.while_condition"
-// CHECK: "fabric.while"
-// CHECK: "fabric.while_condition"
+// CHECK: cflow.while
+// CHECK: cflow.while_condition
 // COUNT-ERR: fabric-count does not support this dynamic or unrecognized region-bearing executable operation

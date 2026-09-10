@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..codes import (
+from cudaq.logical.codes import (
     Code,
     CodeProfile,
     Encoding,
@@ -21,9 +21,10 @@ from ..codes import (
     EncodingProjection,
     PatchTransform,
 )
-from ..programs.definition import DefinitionHandle
-from ..algebra.gf2 import GF2Matrix
-from ..codes import _materialized_code_metadata
+from cudaq.logical.codes.structure import CSSBlock
+from cudaq.logical.programs.definition import DefinitionHandle
+from cudaq.logical.algebra.gf2 import GF2Matrix
+from cudaq.logical.codes import _materialized_code_metadata
 
 
 def _i64(context, value: int):
@@ -284,7 +285,12 @@ def materialize_qec(transaction, definition):
         }
         for name in ("hx", "hz", "gx", "gz", "lx", "lz"):
             rows = getattr(definition, name)
-            if not rows:
+            # An empty check family is still semantic CSS evidence. Preserve
+            # both hx/hz attributes for CSSBlock so native verifiers can
+            # distinguish a one-sided repetition code from a general
+            # stabilizer declaration whose absent family is unknown.
+            if (not rows and not (isinstance(definition.block, CSSBlock) and
+                                  name in {"hx", "hz"})):
                 continue
             attrs[name] = _rows(context, rows)
         if definition.stabilizers:
@@ -333,7 +339,7 @@ def materialize_qec(transaction, definition):
 
         # Every concrete code receives one generated default profile and
         # encoding. They are ordinary symbols and can be superseded by explicit
-        # non-default views without changing code algebra.
+        # nondefault views without changing code algebra.
         materialize_qec(transaction, definition.default_profile)
         materialize_qec(transaction, definition.default_encoding)
         return handle

@@ -1,10 +1,10 @@
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #ifndef QLX_LVM_OPS_TD
 #define QLX_LVM_OPS_TD
@@ -12,7 +12,9 @@
 include "qlx/Dialect/LVM/IR/LVMDialect.td"
 include "qlx/Dialect/LVM/IR/LVMTypes.td"
 include "qlx/Dialect/LVM/IR/LVMAttrs.td"
+include "qlx/Dialect/Event/IR/EventTypes.td"
 include "qlx/Dialect/QLX/IR/QLXAttrs.td"
+
 include "mlir/IR/OpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
 
@@ -89,10 +91,14 @@ def LVM_ActionSiteOp : LVM_Op<"action_site", [
     Names one P1 action, instrument, preparation, or memory site independently
     of the executable SSA operation that references it.  P2 selection evidence
     refers back to this code-agnostic site; it is never stored on the P1 site.
+    Compiler-materialized local action sites retain the deterministic `site`
+    ordinal of their source `lvm.apply` as `source_site`.  Authored declarations
+    may omit this link.
   }];
   let arguments = (ins SymbolNameAttr:$sym_name, StrAttr:$kind,
       OptionalAttr<AnyAttr>:$objective, ArrayAttr:$placements,
       OptionalAttr<DictionaryAttr>:$parameters,
+      OptionalAttr<I64Attr>:$source_site,
       OptionalAttr<SymbolRefAttr>:$channel,
       OptionalAttr<LVM_CapabilityAttr>:$channel_capability,
       OptionalAttr<ArrayAttr>:$endpoints, OptionalAttr<StrAttr>:$direction);
@@ -127,6 +133,29 @@ def LVM_KernelOp : LVM_Op<"kernel", [
   );
   let regions = (region SizedRegion<1>:$body);
   let assemblyFormat = "$sym_name `on` $domain `:` $function_type attr-dict-with-keyword $body";
+  let hasVerifier = 1;
+}
+
+def LVM_CallOp : LVM_Op<"call", [SingleBlockImplicitTerminator<"YieldOp">]> {
+  let summary = "placed instance of one retained P0 helper call";
+  let description = [{
+    Preserves the semantic P0 callee while materializing this particular call
+    occurrence at the caller's placements.  The inline region is not a second
+    reusable function: its block arguments and yield are the placement-refined
+    call signature, so the same P0 helper may be instantiated at different
+    logical locations without assigning machine facts to the P0 symbol.
+    `scope` is a nonnegative call-occurrence identity unique within the
+    containing kernel. It gives later stages typed provenance for this exact
+    placed instance; it is not an arithmetic classification.
+  }];
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    I64Attr:$scope,
+    Variadic<AnyType>:$inputs
+  );
+  let results = (outs Variadic<AnyType>:$results);
+  let regions = (region SizedRegion<1>:$body);
+  let assemblyFormat = "$callee `(` $inputs `)` attr-dict `:` functional-type($inputs, $results) $body";
   let hasVerifier = 1;
 }
 
@@ -206,82 +235,8 @@ def LVM_DiscardOp : LVM_Op<"discard", []> {
 def LVM_ResourceRequestOp : LVM_Op<"resource_request", []> {
   let summary = "request a logical resource from one selected machine stream";
   let arguments = (ins StrAttr:$kind, SymbolRefAttr:$stream);
-  let results = (outs LVM_LogicalEventType:$event);
+  let results = (outs Event_HandleType:$event);
   let assemblyFormat = "$kind `from` $stream attr-dict `:` qualified(type($event))";
-}
-
-def LVM_EventTestOp : LVM_Op<"event_test", []> {
-  let arguments = (ins LVM_LogicalEventType:$event);
-  let results = (outs I1:$ready);
-  let assemblyFormat = "$event attr-dict `:` qualified(type($event)) `->` type($ready)";
-}
-
-def LVM_EventPollOp : LVM_Op<"event_poll", []> {
-  let arguments = (ins LVM_LogicalEventType:$event);
-  let results = (outs I8:$status);
-  let assemblyFormat = "$event attr-dict `:` qualified(type($event)) `->` type($status)";
-}
-
-def LVM_EventIsOp : LVM_Op<"event_is", []> {
-  let arguments = (ins I8:$status, StrAttr:$state);
-  let results = (outs I1:$matches);
-  let assemblyFormat = "$status $state attr-dict `:` type($status) `->` type($matches)";
-  let hasVerifier = 1;
-}
-
-def LVM_EventSelectReadyOp : LVM_Op<"event_select_ready", []> {
-  let arguments = (ins
-    Variadic<LVM_LogicalEventType>:$events,
-    DefaultValuedAttr<StrAttr, "\"priority\"">:$policy
-  );
-  let results = (outs Index:$selected);
-  let assemblyFormat = "`(` $events `)` attr-dict `:` qualified(type($events)) `->` type($selected)";
-  let hasVerifier = 1;
-}
-
-def LVM_EventTryTakeOp : LVM_Op<"event_try_take", [
-  SingleBlockImplicitTerminator<"YieldOp">
-]> {
-  let summary = "placed ownership-safe nonblocking event take";
-  let arguments = (ins
-    LVM_LogicalEventType:$event,
-    Variadic<AnyType>:$carries
-  );
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region SizedRegion<1>:$ready,
-                         SizedRegion<1>:$pending,
-                         SizedRegion<1>:$failed);
-  let hasVerifier = 1;
-}
-
-def LVM_EventCancelOp : LVM_Op<"event_cancel", []> {
-  let summary = "cancel one stream-bound outstanding event";
-  let arguments = (ins LVM_LogicalEventType:$event, OptionalAttr<StrAttr>:$reason);
-  let results = (outs I8:$status);
-  let assemblyFormat = "$event attr-dict `:` qualified(type($event)) `->` type($status)";
-}
-
-def LVM_EventAwaitOp : LVM_Op<"event_await", []> {
-  let arguments = (ins LVM_LogicalEventType:$event);
-  let results = (outs LVM_LogicalResourceType:$payload);
-  let assemblyFormat = "$event attr-dict `:` qualified(type($event)) `->` qualified(type($payload))";
-}
-
-def LVM_FenceOp : LVM_Op<"fence", []> {
-  let arguments = (ins ArrayAttr:$effects);
-  let assemblyFormat = "attr-dict";
-  let hasVerifier = 1;
-}
-
-def LVM_SelectionOp : LVM_Op<"selection", []> {
-  let summary = "placed statistical selection intent";
-  let arguments = (ins
-    I1:$predicate,
-    StrAttr:$mode,
-    DefaultValuedAttr<BoolAttr, "true">:$accept_when
-  );
-  let assemblyFormat = "$predicate attr-dict `:` type($predicate)";
-  let hasVerifier = 1;
 }
 
 def LVM_ConsumeResourceOp : LVM_Op<"consume_resource", []> {
@@ -325,46 +280,11 @@ def LVM_XorOp : LVM_Op<"xor", []> {
 }
 
 def LVM_YieldOp : LVM_Op<"yield", [
-  Terminator, ParentOneOf<["IfOp", "RepeatOp", "WhileOp", "EventTryTakeOp"]>
+  Terminator, ParentOneOf<["CallOp"]>
 ]> {
   let arguments = (ins Variadic<AnyType>:$operands);
   let assemblyFormat = "($operands^ `:` type($operands))? attr-dict";
   let builders = [OpBuilder<(ins), [{ build($_builder, $_state, ::mlir::ValueRange{}); }]>];
-}
-
-def LVM_IfOp : LVM_Op<"if", [SingleBlockImplicitTerminator<"YieldOp">]> {
-  let summary = "placed structured branch preserving typed linear carries";
-  let arguments = (ins I1:$condition);
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region SizedRegion<1>:$then_region, SizedRegion<1>:$else_region);
-  let hasVerifier = 1;
-}
-
-def LVM_RepeatOp : LVM_Op<"repeat", [SingleBlockImplicitTerminator<"YieldOp">]> {
-  let summary = "folded static placed loop with typed iterated values";
-  let arguments = (ins I64Attr:$count, Variadic<AnyType>:$inits);
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region SizedRegion<1>:$body);
-  let hasVerifier = 1;
-}
-
-def LVM_WhileConditionOp : LVM_Op<"while_condition", [
-  Terminator, HasParent<"WhileOp">
-]> {
-  let summary = "decide whether a placed dynamic loop continues";
-  let arguments = (ins I1:$condition, Variadic<AnyType>:$forwarded);
-}
-
-def LVM_WhileOp : LVM_Op<"while", []> {
-  let summary = "dynamic placed loop with typed linear carries";
-  let arguments = (ins
-    Variadic<AnyType>:$inits,
-    OptionalAttr<I64Attr>:$max_iterations
-  );
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region SizedRegion<1>:$before_region,
-                        SizedRegion<1>:$after_region);
-  let hasVerifier = 1;
 }
 
 #endif

@@ -17,15 +17,15 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
 from ..errors import InvalidCodeAlgebra
-from .._core.immutable import ImmutableValue
-from ..algebra.clifford import CliffordAction
-from ..algebra.gf2 import (
+from cudaq.logical._core.immutable import ImmutableValue
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.algebra.gf2 import (
     GF2Matrix,
     _normalize_binary_value,
     _normalize_binary_values,
     _row_bits,
 )
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     LogicalValueGroup,
     LogicalValueRef,
 )
@@ -470,35 +470,84 @@ def _reorder_support(support, order):
     return tuple(support)
 
 
-def _edge_color(checks, order):
-    """Partition ``(check, data)`` incidences into legal CX layers (a coloring).
+def _exact_edge_color(checks, order):
+    """Optimally color a bipartite check/data incidence graph.
 
-    Incidences are visited neighbor-rank by neighbor-rank (``order`` permutes
-    each bulk check's neighbor ranking) and greedily placed in the earliest
-    layer whose ancilla and data qubits are still free, so every layer is a
-    matching. The ``order`` is the schedule knob.
+    Edges are inserted neighbor-rank by neighbor-rank. When an edge's
+    endpoints have no common free color, swapping two colors along an
+    alternating path frees one. Bipartite parity prevents that path from
+    reaching the edge's data endpoint, so all incidences use exactly ``delta``
+    colors. By the König line-coloring theorem, ``delta`` is minimum depth.
     """
-    max_degree = max((len(support) for support in checks), default=0)
-    layers: list[list[tuple[int, int]]] = []
-    layer_checks: list[set[int]] = []
-    layer_data: list[set[int]] = []
-    for rank in range(max_degree):
-        for check, support in enumerate(checks):
-            ranked = _reorder_support(support, order)
-            if rank >= len(ranked):
-                continue
-            data = ranked[rank]
-            for index in range(len(layers)):
-                if check not in layer_checks[index] and data not in layer_data[
-                        index]:
-                    layers[index].append((check, data))
-                    layer_checks[index].add(check)
-                    layer_data[index].add(data)
-                    break
-            else:
-                layers.append([(check, data)])
-                layer_checks.append({check})
-                layer_data.append({data})
+    ordered_supports = tuple(
+        _reorder_support(support, order) for support in checks)
+    max_check_degree = max(map(len, ordered_supports), default=0)
+    data_degrees = {}
+    for support in ordered_supports:
+        for data in support:
+            data_degrees[data] = data_degrees.get(data, 0) + 1
+    delta = max(max_check_degree, max(data_degrees.values(), default=0))
+    if not delta:
+        return ()
+
+    incidences = []
+    for rank in range(max_check_degree):
+        for check, support in enumerate(ordered_supports):
+            if rank < len(support):
+                incidences.append((check, support[rank]))
+
+    check_colors = [dict() for _ in ordered_supports]
+    data_colors = {data: {} for data in data_degrees}
+    edge_colors = []
+
+    def assign(edge, color):
+        check, data = incidences[edge]
+        check_colors[check][color] = edge
+        data_colors[data][color] = edge
+        edge_colors[edge] = color
+
+    for edge, (check, data) in enumerate(incidences):
+        edge_colors.append(-1)
+        common = next((color for color in range(delta)
+                       if color not in check_colors[check] and
+                       color not in data_colors[data]), None)
+        if common is not None:
+            assign(edge, common)
+            continue
+
+        check_free = next(
+            color for color in range(delta) if color not in check_colors[check])
+        data_free = next(
+            color for color in range(delta) if color not in data_colors[data])
+        path = []
+        left_side = True
+        vertex = check
+        color = data_free
+        while True:
+            color_map = (check_colors[vertex]
+                         if left_side else data_colors[vertex])
+            path_edge = color_map.get(color)
+            if path_edge is None:
+                break
+            path.append(path_edge)
+            path_check, path_data = incidences[path_edge]
+            left_side = not left_side
+            vertex = path_data if not left_side else path_check
+            color = check_free if color == data_free else data_free
+
+        previous_colors = tuple(edge_colors[path_edge] for path_edge in path)
+        for path_edge, previous in zip(path, previous_colors):
+            path_check, path_data = incidences[path_edge]
+            del check_colors[path_check][previous]
+            del data_colors[path_data][previous]
+        for path_edge, previous in zip(path, previous_colors):
+            assign(path_edge,
+                   check_free if previous == data_free else data_free)
+        assign(edge, data_free)
+
+    layers = [[] for _ in range(delta)]
+    for incidence, color in zip(incidences, edge_colors):
+        layers[color].append(incidence)
     return tuple(tuple(layer) for layer in layers)
 
 
@@ -515,19 +564,26 @@ class CSSCode(StabilizerCode):
         of the layers is the schedule: the same stabilizers laid out two ways
         can have two circuit distances (a mid-round ancilla fault spreads to the
         data qubits it has yet to touch). ``x_order`` / ``z_order`` permute each
-        bulk check's neighbor ranking before the greedy edge-coloring.
+        bulk check's neighbor ranking before deterministic exact bipartite
+        edge-coloring. Each basis uses the minimum possible number of layers:
+        the maximum degree among its check and data vertices.
 
         Pass the result straight to
-        ``cudaq.logical.extract_syndrome(..., cx_schedule=...)``; it is not a type, just
-        the schedule input that orders the gadget's explicit CX layers.
+        ``cudaq.logical.extract_syndrome(..., cx_schedule=...)``; it is not a
+        type, just
+        the schedule input that lays the gadget's CXs into ``fabric.tick``
+        moments.
         """
-        return (_edge_color(self.hx, x_order), _edge_color(self.hz, z_order))
+        return (_exact_edge_color(self.hx,
+                                  x_order), _exact_edge_color(self.hz, z_order))
 
     @classmethod
     def from_geometry(cls, geometry, *, d=None, name: str | None = None):
         """Construct a CSS code from a derived lattice geometry.
 
-        A Pauli-free :class:`cudaq.logical.architecture.geometry.SurfaceLattice` supplies two geometric
+        A Pauli-free
+        :class:`cudaq.logical.architecture.geometry.SurfaceLattice` supplies
+        two geometric
         face sublattices and two logical chains; this CSS adapter owns the
         conventional X/Z assignment. Legacy geometry objects with explicit
         ``hx/hz/lx/lz`` fields remain accepted. Distance evidence stays an
@@ -564,7 +620,7 @@ class CSSCode(StabilizerCode):
         """Construct a homological CSS code from a 2D cellulation.
 
         Qubits live on edges, faces give the X checks, vertex stars the Z
-        checks, and the homology basis of the cellulation becomes the logical
+        checks, and the cellulation's homology basis becomes the logical
         representatives (see :mod:`cudaq.logical.architecture.topology`).
         """
         n = cellulation.num_edges
@@ -719,6 +775,7 @@ def _materialized_code_identity(code: "Code") -> tuple[Any, ...]:
     metadata = _materialized_code_metadata(code)
     return (
         tuple(sorted(code.block.partitions.items())),
+        isinstance(code.block, CSSBlock),
         code.n,
         code.k,
         code.r,
@@ -807,12 +864,7 @@ class _ParameterIdentity:
 def _parameter_identity(value):
     """Hashable specialization identity that preserves authored BB labels."""
 
-    try:
-        from ..codes.bb import BinaryPolynomial
-    except ModuleNotFoundError as error:
-        if error.name != "cudaq.logical.codes.bb":
-            raise
-        BinaryPolynomial = ()
+    from cudaq.logical.codes.bb import BinaryPolynomial
 
     if isinstance(value, BinaryPolynomial):
         return _ParameterIdentity(
@@ -915,8 +967,8 @@ def code(subject=None, *, name: str | None = None):
         if callable(value):
             return ParameterizedCode(value, name=name)
         raise TypeError(
-            "@cudaq.logical.code decorates a class or code-constructor function"
-        )
+            "@cudaq.logical.code decorates a class or code-constructor "
+            "function")
 
     return decorate(subject) if subject is not None else decorate
 
@@ -944,7 +996,7 @@ def __getattr__(name: str):
         raise AttributeError(name)
     from importlib import import_module
 
-    module = import_module(".bb", __package__)
+    module = import_module("cudaq.logical.codes.bb")
     value = getattr(module, name)
     globals()[name] = value
     return value

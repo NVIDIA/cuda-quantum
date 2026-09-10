@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from ..compiler.gate_sets import GateSet
-from ..programs.definition import ProgramDefinition
+from cudaq.logical.programs.definition import ProgramDefinition
 from .build import Build, EvidenceRecord
 
 
@@ -78,24 +78,26 @@ def _synthesize(
     experiment=None,
 ) -> Build:
     if not isinstance(gate_set, GateSet):
-        raise TypeError("synthesize gate_set= must be a cudaq.logical.GateSet")
+        raise TypeError(
+            "synthesize gate_set= must be a cudaq.logical compiler GateSet")
     pipeline = pipeline or gate_set.pipeline(precision=precision)
 
     if isinstance(definition, Build):
         if definition.profile != "p0":
-            raise ValueError(
-                "cudaq.logical.synthesize requires a qlx.program or P0 Build, "
-                f"got {definition.profile!r}")
+            raise ValueError("cudaq.logical.compiler.synthesize requires an "
+                             "@cudaq.logical.program "
+                             "or P0 Build, "
+                             f"got {definition.profile!r}")
         if parameters:
             raise TypeError(
-                "parameters= can specialize a qlx.program, not an existing "
+                "parameters= can specialize a cudaq.logical program, not an existing "
                 "Build; synthesize the ProgramDefinition directly")
         source = definition
     else:
         if not isinstance(definition, ProgramDefinition):
-            raise TypeError(
-                "cudaq.logical.synthesize expects a @cudaq.logical.program definition or P0 Build"
-            )
+            raise TypeError("cudaq.logical.compiler.synthesize expects an "
+                            "@cudaq.logical.program "
+                            "definition or P0 Build")
         from .compile import compile
         from .pipeline import pipelines
 

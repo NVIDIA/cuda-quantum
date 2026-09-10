@@ -52,8 +52,7 @@ module {
 
 // P0-LABEL: qlx.program @dead_loop_carry
 // P0: %[[Q:.*]] = qlx.prepare "zero"
-// P0: %[[REPEAT:.*]] = qlx.repeat 3
-// P0-NEXT: iter(%[[ITER:.*]]: !qlx.logical_qubit = %[[Q]])
+// P0: %[[REPEAT:.*]] = cflow.repeat 3 iter(%[[ITER:.*]]: !qlx.logical_qubit = %[[Q]])
 // P0: %[[H:.*]] = qlx.apply #qlx.action<h>(%[[ITER]])
-// P0: qlx.yield %[[H]]
+// P0: cflow.yield %[[H]]
 // P0: qlx.discard %[[REPEAT]]

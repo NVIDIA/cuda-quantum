@@ -1,28 +1,31 @@
-//===- FabricDialect.cpp - Fabric dialect implementation --------*- C++ -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"
+#include "qlx/Dialect/Cflow/IR/CflowOps.h"
+#include "qlx/Dialect/Event/IR/EventOps.h"
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
 #include "qlx/Dialect/Fabric/IR/FabricInterfaces.h"
 #include "qlx/Dialect/Fabric/IR/FabricOps.h"
 #include "qlx/Dialect/Fabric/IR/FabricTypes.h"
+#include "qlx/Dialect/Fabric/IR/ResourceContract.h"
 #include "qlx/Dialect/LVM/IR/LVMAttrs.h"
 #include "qlx/Dialect/LVM/IR/LVMOps.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallBitVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -32,6 +35,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Interfaces/CallInterfaces.h"
 
@@ -39,10 +43,147 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <mutex>
 #include <optional>
+#include <set>
+#include <string>
 
 using namespace mlir;
 using namespace qlx::fabric;
+
+namespace {
+
+struct ResourceContractRegistration {
+  qlx::fabric::PackResourceVerifier pack;
+  qlx::fabric::UnpackResourceVerifier unpack;
+};
+
+static std::mutex &resourceContractMutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+
+static llvm::StringMap<ResourceContractRegistration> &resourceContracts() {
+  static llvm::StringMap<ResourceContractRegistration> contracts;
+  return contracts;
+}
+
+} // namespace
+
+void qlx::fabric::registerResourceContractVerifier(
+    StringRef resourceKind, PackResourceVerifier packVerifier,
+    UnpackResourceVerifier unpackVerifier) {
+  if (resourceKind.empty() || (!packVerifier && !unpackVerifier))
+    llvm::report_fatal_error(
+        "invalid QLX resource-contract verifier registration");
+  std::lock_guard<std::mutex> lock(resourceContractMutex());
+  auto [entry, inserted] = resourceContracts().try_emplace(
+      resourceKind, ResourceContractRegistration{packVerifier, unpackVerifier});
+  if (!inserted && (entry->second.pack != packVerifier ||
+                    entry->second.unpack != unpackVerifier))
+    llvm::report_fatal_error(
+        "conflicting QLX resource-contract verifier registration");
+}
+
+LogicalResult qlx::fabric::verifyRegisteredResourcePack(PackResourceOp pack) {
+  PackResourceVerifier verifier = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(resourceContractMutex());
+    auto found =
+        resourceContracts().find(pack.getResourceKindAttr().getValue());
+    if (found != resourceContracts().end())
+      verifier = found->second.pack;
+  }
+  return verifier ? verifier(pack) : success();
+}
+
+LogicalResult
+qlx::fabric::verifyRegisteredResourceUnpack(UnpackResourceOp unpack) {
+  UnpackResourceVerifier verifier = nullptr;
+  auto resource = cast<ResourceStateType>(unpack.getResource().getType());
+  auto kind = dyn_cast<SymbolRefAttr>(resource.getKind());
+  {
+    std::lock_guard<std::mutex> lock(resourceContractMutex());
+    auto found =
+        kind ? resourceContracts().find(kind.getRootReference().getValue())
+             : resourceContracts().end();
+    if (found != resourceContracts().end())
+      verifier = found->second.unpack;
+  }
+  return verifier ? verifier(unpack) : success();
+}
+
+bool qlx::fabric::arePhysicallyTemplateEquivalent(Operation *lhs,
+                                                  Operation *rhs) {
+  std::set<std::pair<Operation *, Operation *>> active;
+  std::set<std::pair<Operation *, Operation *>> proven;
+  std::function<bool(Operation *, Operation *)> equivalent =
+      [&](Operation *left, Operation *right) -> bool {
+    if (left == right)
+      return true;
+    if (!left || !right || left->getName() != right->getName())
+      return false;
+    std::pair<Operation *, Operation *> pair{left, right};
+    if (proven.contains(pair) || active.contains(pair))
+      return true;
+    auto leftGenerated = left->getAttrOfType<FlatSymbolRefAttr>("generated_by");
+    auto rightGenerated =
+        right->getAttrOfType<FlatSymbolRefAttr>("generated_by");
+    if (!leftGenerated || leftGenerated != rightGenerated)
+      return false;
+    active.insert(pair);
+    llvm::scope_exit clearActive([&] { active.erase(pair); });
+
+    SmallVector<CallOp> leftCalls;
+    SmallVector<CallOp> rightCalls;
+    left->walk([&](CallOp call) { leftCalls.push_back(call); });
+    right->walk([&](CallOp call) { rightCalls.push_back(call); });
+    if (leftCalls.size() != rightCalls.size())
+      return false;
+    for (auto [leftCall, rightCall] : llvm::zip(leftCalls, rightCalls)) {
+      Operation *leftTarget = SymbolTable::lookupNearestSymbolFrom(
+          leftCall, leftCall.getCalleeAttr());
+      Operation *rightTarget = SymbolTable::lookupNearestSymbolFrom(
+          rightCall, rightCall.getCalleeAttr());
+      if (!equivalent(leftTarget, rightTarget))
+        return false;
+    }
+
+    Operation *leftClone = left->clone();
+    Operation *rightClone = right->clone();
+    llvm::scope_exit cleanup([&] {
+      leftClone->destroy();
+      rightClone->destroy();
+    });
+    auto normalize = [](Operation *callable) {
+      for (StringRef attribute :
+           {SymbolTable::getSymbolAttrName(), StringRef("action_site"),
+            StringRef("input_p1_kernel"), StringRef("input_p1_callee"),
+            StringRef("input_p1_scope")})
+        callable->removeAttr(attribute);
+      unsigned callIndex = 0;
+      callable->walk([&](Operation *nested) {
+        if (auto call = dyn_cast<CallOp>(nested)) {
+          call->setAttr(
+              "callee",
+              FlatSymbolRefAttr::get(
+                  callable->getContext(),
+                  ("__physical_template_callee_" + Twine(callIndex++)).str()));
+        }
+        if (auto unpack = dyn_cast<UnpackResourceOp>(nested))
+          unpack->removeAttr("payload_logical_block_ids");
+      });
+    };
+    normalize(leftClone);
+    normalize(rightClone);
+    if (!OperationEquivalence::isEquivalentTo(
+            leftClone, rightClone, OperationEquivalence::IgnoreLocations))
+      return false;
+    proven.insert(pair);
+    return true;
+  };
+  return equivalent(lhs, rhs);
+}
 
 namespace {
 class FabricDeviceBindingDialectInterface final
@@ -74,69 +215,6 @@ public:
 
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/Fabric/IR/FabricTypes.cpp.inc"
-
-Type FabricDialect::parseType(DialectAsmParser &parser) const {
-  SMLoc location = parser.getCurrentLocation();
-  StringRef mnemonic;
-  if (failed(parser.parseKeyword(&mnemonic)))
-    return {};
-  if (mnemonic == PatchType::getMnemonic())
-    return PatchType::parse(parser);
-  if (mnemonic == PatchFrameType::getMnemonic())
-    return PatchFrameType::parse(parser);
-  if (mnemonic == SyndromeType::getMnemonic())
-    return SyndromeType::parse(parser);
-  if (mnemonic == GaugeRecordsType::getMnemonic())
-    return GaugeRecordsType::parse(parser);
-  if (mnemonic == PatchBundleType::getMnemonic())
-    return PatchBundleType::parse(parser);
-  if (mnemonic == RecordBundleType::getMnemonic())
-    return RecordBundleType::parse(parser);
-  if (mnemonic == ResourceStateType::getMnemonic())
-    return ResourceStateType::parse(parser);
-  if (mnemonic == BitType::getMnemonic())
-    return BitType::get(parser.getContext());
-  if (mnemonic == SlotType::getMnemonic())
-    return SlotType::get(parser.getContext());
-  if (mnemonic == MachineType::getMnemonic())
-    return MachineType::get(parser.getContext());
-  parser.emitError(location)
-      << "unknown type in dialect 'fabric': " << mnemonic;
-  return {};
-}
-
-void FabricDialect::printType(Type type, DialectAsmPrinter &printer) const {
-  if (auto value = dyn_cast<PatchType>(type)) {
-    printer << PatchType::getMnemonic();
-    value.print(printer);
-  } else if (auto value = dyn_cast<PatchFrameType>(type)) {
-    printer << PatchFrameType::getMnemonic();
-    value.print(printer);
-  } else if (auto value = dyn_cast<SyndromeType>(type)) {
-    printer << SyndromeType::getMnemonic();
-    value.print(printer);
-  } else if (auto value = dyn_cast<GaugeRecordsType>(type)) {
-    printer << GaugeRecordsType::getMnemonic();
-    value.print(printer);
-  } else if (auto value = dyn_cast<PatchBundleType>(type)) {
-    printer << PatchBundleType::getMnemonic();
-    value.print(printer);
-  } else if (auto value = dyn_cast<RecordBundleType>(type)) {
-    printer << RecordBundleType::getMnemonic();
-    value.print(printer);
-  } else if (auto value = dyn_cast<ResourceStateType>(type)) {
-    printer << ResourceStateType::getMnemonic();
-    value.print(printer);
-  } else if (isa<BitType>(type)) {
-    printer << BitType::getMnemonic();
-  } else if (isa<SlotType>(type)) {
-    printer << SlotType::getMnemonic();
-  } else if (isa<MachineType>(type)) {
-    printer << MachineType::getMnemonic();
-  } else {
-    llvm_unreachable("attempted to print an unregistered Fabric type");
-  }
-}
 
 //===----------------------------------------------------------------------===//
 // Generated enum definitions (all enums from FabricAttrs.td)
@@ -641,185 +719,6 @@ void GadgetOp::print(OpAsmPrinter &printer) {
 }
 
 //===----------------------------------------------------------------------===//
-// IfOp custom assembly
-//===----------------------------------------------------------------------===//
-//
-// %r = fabric.if %cond -> type { ... } else { ... }
-//
-
-ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
-  OpAsmParser::UnresolvedOperand condOperand;
-  if (parser.parseOperand(condOperand))
-    return failure();
-  auto i1Type = IntegerType::get(parser.getContext(), 1);
-  if (parser.resolveOperand(condOperand, i1Type, result.operands))
-    return failure();
-
-  // Parse optional result types
-  if (succeeded(parser.parseOptionalArrow())) {
-    SmallVector<Type> resultTypes;
-    if (succeeded(parser.parseOptionalLParen())) {
-      if (parser.parseTypeList(resultTypes) || parser.parseRParen())
-        return failure();
-    } else {
-      Type singleType;
-      if (parser.parseType(singleType))
-        return failure();
-      resultTypes.push_back(singleType);
-    }
-    result.addTypes(resultTypes);
-  }
-
-  // Parse then region
-  auto *thenRegion = result.addRegion();
-  if (parser.parseRegion(*thenRegion, /*arguments=*/{}, /*argTypes=*/{}))
-    return failure();
-  ensureTerminator(*thenRegion, parser.getBuilder(), result.location);
-
-  // Parse else region
-  if (parser.parseKeyword("else"))
-    return failure();
-  auto *elseRegion = result.addRegion();
-  if (parser.parseRegion(*elseRegion, /*arguments=*/{}, /*argTypes=*/{}))
-    return failure();
-  ensureTerminator(*elseRegion, parser.getBuilder(), result.location);
-
-  return success();
-}
-
-void IfOp::print(OpAsmPrinter &printer) {
-  printer << " " << getCondition();
-  auto resultTypes = getResultTypes();
-  if (!resultTypes.empty()) {
-    printer << " -> ";
-    if (resultTypes.size() == 1) {
-      printer << resultTypes[0];
-    } else {
-      printer << "(";
-      llvm::interleaveComma(resultTypes, printer);
-      printer << ")";
-    }
-  }
-  printer << " ";
-  printer.printRegion(getThenRegion(), /*printEntryBlockArgs=*/false,
-                      /*printBlockTerminators=*/true);
-  printer << " else ";
-  printer.printRegion(getElseRegion(), /*printEntryBlockArgs=*/false,
-                      /*printBlockTerminators=*/true);
-}
-
-//===----------------------------------------------------------------------===//
-// RepeatOp custom assembly
-//===----------------------------------------------------------------------===//
-//
-// %p_out, %syn_out = fabric.repeat 3
-//     iter(%pi : !fabric.patch<@sc> = %p_in,
-//          %si : !fabric.syndrome<@sc> = %syn_in) {
-//   ...
-//   fabric.yield %pn, %sn : ...
-// }
-//
-
-ParseResult RepeatOp::parse(OpAsmParser &parser, OperationState &result) {
-  // Parse count
-  int64_t count;
-  if (parser.parseInteger(count))
-    return failure();
-  result.addAttribute("count", parser.getBuilder().getI64IntegerAttr(count));
-
-  // Parse iter args: iter(%name : type = %init, ...)
-  SmallVector<OpAsmParser::Argument> iterArgs;
-  SmallVector<OpAsmParser::UnresolvedOperand> initOperands;
-  SmallVector<Type> initTypes;
-
-  if (parser.parseKeyword("iter") || parser.parseLParen())
-    return failure();
-
-  if (failed(parser.parseOptionalRParen())) {
-    if (parser.parseCommaSeparatedList([&]() -> ParseResult {
-          OpAsmParser::Argument arg;
-          OpAsmParser::UnresolvedOperand init;
-          if (parser.parseArgument(arg, /*allowType=*/true,
-                                   /*allowAttrs=*/false))
-            return failure();
-          if (parser.parseEqual() || parser.parseOperand(init))
-            return failure();
-          iterArgs.push_back(arg);
-          initOperands.push_back(init);
-          initTypes.push_back(arg.type);
-          return success();
-        }))
-      return failure();
-    if (parser.parseRParen())
-      return failure();
-  }
-
-  // Resolve init operands
-  if (parser.resolveOperands(initOperands, initTypes,
-                             parser.getCurrentLocation(), result.operands))
-    return failure();
-
-  // Result types match iter-arg types
-  result.addTypes(initTypes);
-
-  // Parse body region with iter-args as block arguments
-  auto *body = result.addRegion();
-  if (parser.parseRegion(*body, iterArgs, /*enableNameShadowing=*/false))
-    return failure();
-  ensureTerminator(*body, parser.getBuilder(), result.location);
-
-  return success();
-}
-
-void RepeatOp::print(OpAsmPrinter &printer) {
-  printer << " " << getCount();
-
-  // Print iter args
-  auto &entryBlock = getBody().front();
-  auto inits = getInits();
-  printer << "\n    iter(";
-  for (unsigned i = 0, e = entryBlock.getNumArguments(); i < e; ++i) {
-    if (i > 0)
-      printer << ",\n         ";
-    printer.printRegionArgument(entryBlock.getArgument(i));
-    printer << " = " << inits[i];
-  }
-  printer << ")";
-
-  // Print body
-  printer << " ";
-  printer.printRegion(getBody(), /*printEntryBlockArgs=*/false,
-                      /*printBlockTerminators=*/true);
-}
-
-LogicalResult RepeatOp::verify() {
-  if (getCountAttr().getInt() < 0)
-    return emitOpError("count must be non-negative");
-  Block &body = getBody().front();
-  if (body.getNumArguments() != getInits().size())
-    return emitOpError("body block argument count (")
-           << body.getNumArguments() << ") must equal iter-init count ("
-           << getInits().size() << ")";
-  for (auto [argument, initial] : llvm::zip(body.getArguments(), getInits()))
-    if (argument.getType() != initial.getType())
-      return emitOpError("body block argument type ")
-             << argument.getType() << " must match iter-init type "
-             << initial.getType();
-
-  auto yield = cast<YieldOp>(body.getTerminator());
-  if (yield.getOperands().size() != getResults().size())
-    return emitOpError("yield operand count (")
-           << yield.getOperands().size() << ") must equal result count ("
-           << getResults().size() << ")";
-  for (auto [result, yielded] : llvm::zip(getResults(), yield.getOperands()))
-    if (result.getType() != yielded.getType())
-      return emitOpError("result type ")
-             << result.getType() << " must match yielded type "
-             << yielded.getType();
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
 // MultiMeasureOp custom assembly
 //===----------------------------------------------------------------------===//
 //
@@ -961,10 +860,6 @@ static LogicalResult verifyEncodingQualifiedTypes(Operation *owner,
 }
 
 LogicalResult InterconnectOp::verify() {
-  if ((*this)->hasAttr("latency_ns"))
-    return emitOpError(
-        "retired P3 attribute 'latency_ns' is outside the P0-P2 product "
-        "slice");
   if ((*this)->getAttr("serv"
                        "ice") ||
       (*this)->getAttr("serv"
@@ -1621,6 +1516,61 @@ LogicalResult PatchGraphOp::verify() {
   return success();
 }
 
+LogicalResult PatchMappingOp::verify() {
+  Operation *graphTarget =
+      SymbolTable::lookupNearestSymbolFrom(*this, getGraphAttr());
+  auto graph = dyn_cast_or_null<PatchGraphOp>(graphTarget);
+  if (!graph)
+    return emitOpError("graph must resolve to fabric.patch_graph");
+  llvm::StringSet<> graphPatches;
+  for (Attribute value : graph.getNodes()) {
+    auto id = patchRecordId(graph, value, "node");
+    if (failed(id))
+      return failure();
+    graphPatches.insert(*id);
+  }
+  llvm::StringSet<> ids;
+  llvm::StringSet<> mappedPatches;
+  llvm::DenseSet<std::pair<Attribute, int64_t>> mappedSlots;
+  for (Attribute value : getAssignments()) {
+    auto id = patchRecordId(*this, value, "assignment");
+    if (failed(id) || !ids.insert(*id).second)
+      return failed(id) ? failure()
+                        : emitOpError("contains duplicate assignment id");
+    auto record = cast<DictionaryAttr>(value);
+    auto patch = record.getAs<StringAttr>("patch");
+    auto slot = record.getAs<IntegerAttr>("slot");
+    auto topologyRef = record.getAs<SymbolRefAttr>("topology");
+    if (!patch || patch.getValue().empty() || !slot || !topologyRef)
+      return emitOpError(
+          "assignments require patch, integer slot, and topology reference");
+    Operation *topology =
+        SymbolTable::lookupNearestSymbolFrom(*this, topologyRef);
+    if (!topology ||
+        topology->getName().getStringRef() != "phys.patch_topology")
+      return emitOpError(
+          "assignment topology must resolve to phys.patch_topology");
+    auto capacity = topology->getAttrOfType<IntegerAttr>("capacity");
+    if (!capacity || capacity.getInt() < 0)
+      return emitOpError("patch topology requires a nonnegative capacity");
+    if (!graphPatches.contains(patch.getValue()))
+      return emitOpError("assignment patch '")
+             << patch.getValue() << "' is absent from the patch graph";
+    if (!mappedPatches.insert(patch.getValue()).second)
+      return emitOpError("contains duplicate mapping for patch '")
+             << patch.getValue() << "'";
+    if (slot.getInt() < 0 || slot.getInt() >= capacity.getInt())
+      return emitOpError("assignment slot ")
+             << slot.getInt() << " is absent from the patch topology";
+    if (!mappedSlots.insert({topologyRef, slot.getInt()}).second)
+      return emitOpError("contains duplicate assignment to slot ")
+             << slot.getInt() << " in " << topologyRef;
+  }
+  if (mappedPatches.size() != graphPatches.size())
+    return emitOpError("must assign every patch graph node exactly once");
+  return success();
+}
+
 static LogicalResult verifySymplecticClosure(Operation *op, Attribute value,
                                              StringRef label) {
   auto matrix = dyn_cast_or_null<DenseIntElementsAttr>(value);
@@ -2114,18 +2064,11 @@ static LogicalResult verifyGeneratedRemoteProvenance(Operation *owner) {
   return success();
 }
 
-static LogicalResult verifyGeneratedSpecialization(Operation *owner) {
-  if (failed(verifyGeneratedRemoteProvenance(owner)))
-    return failure();
-  auto specialization = owner->getAttrOfType<DictionaryAttr>("specialization");
-  if (!specialization)
-    return success();
+static LogicalResult
+verifyRPPSpecializationSchema(Operation *owner, DictionaryAttr specialization) {
   auto strategy = specialization.getAs<StringAttr>("rpp_strategy");
   if (!strategy)
     return success(); // Other QEC compiler families own their parameter schema.
-  if (!owner->hasAttr("generated_by") || !owner->hasAttr("action_site"))
-    return owner->emitOpError(
-        "RPP specialization requires generated_by and action_site provenance");
   StringRef strategyName = strategy.getValue();
   if (strategyName != "clifford" && strategyName != "t_injection" &&
       strategyName != "native" && strategyName != "rotation_state" &&
@@ -2140,11 +2083,37 @@ static LogicalResult verifyGeneratedSpecialization(Operation *owner) {
       !specialization.getAs<FloatAttr>("effective_angle"))
     return owner->emitOpError(
         "RPP specialization requires angle and effective_angle f64 values");
+  Attribute numeratorValue = specialization.get("angle_pi_numer");
+  Attribute denominatorValue = specialization.get("angle_pi_denom");
+  if (numeratorValue || denominatorValue) {
+    auto numerator = dyn_cast_or_null<IntegerAttr>(numeratorValue);
+    auto denominator = dyn_cast_or_null<IntegerAttr>(denominatorValue);
+    if (!numerator || !denominator)
+      return owner->emitOpError(
+          "RPP specialization exact angle requires integer angle_pi_numer "
+          "and angle_pi_denom");
+    if (denominator.getValue().isNegative() || denominator.getValue().isZero())
+      return owner->emitOpError(
+          "RPP specialization angle_pi_denom must be positive");
+  }
   if (auto precision = specialization.getAs<FloatAttr>("precision"))
     if (precision.getValueAsDouble() <= 0.0)
       return owner->emitOpError(
           "RPP specialization precision must be positive");
   return success();
+}
+
+static LogicalResult verifyGeneratedSpecialization(Operation *owner) {
+  if (failed(verifyGeneratedRemoteProvenance(owner)))
+    return failure();
+  auto specialization = owner->getAttrOfType<DictionaryAttr>("specialization");
+  if (!specialization)
+    return success();
+  if (specialization.getAs<StringAttr>("rpp_strategy") &&
+      !owner->hasAttr("generated_by"))
+    return owner->emitOpError(
+        "RPP specialization requires generated_by provenance");
+  return verifyRPPSpecializationSchema(owner, specialization);
 }
 
 LogicalResult ObjectiveOp::verify() {
@@ -2361,7 +2330,7 @@ verifyGadgetSpecRealizationBoundary(GadgetOp gadget, GadgetSpecOp spec,
 LogicalResult GadgetSpecOp::verify() {
   if ((*this)->hasAttr("selection"))
     return emitOpError(
-        "selection policy belongs to fabric.retry or fabric.selection, not "
+        "selection policy belongs to fabric.retry or event.selection, not "
         "the gadget specification");
   if ((*this)->hasAttr("frame_map"))
     return emitOpError(
@@ -2572,6 +2541,8 @@ LogicalResult GadgetSpecOp::verify() {
         if (!rowRoles)
           return emitOpError("outcome_map roles row ")
                  << row << " must be an array";
+        if (rowRoles.empty())
+          return emitOpError("outcome_map row roles must be nonempty");
         llvm::StringSet<> seenRoles;
         for (Attribute rawRole : rowRoles) {
           auto role = dyn_cast<StringAttr>(rawRole);
@@ -2781,7 +2752,8 @@ static bool isOutcomeMeasurementProducer(Operation *op) {
 }
 
 static FailureOr<RecursiveRecordManifest>
-collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords) {
+collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords,
+                               ArrayRef<std::string> demandedPaths = {}) {
   RecursiveRecordManifest manifest;
   auto qualify = [](ArrayRef<std::string> instancePath,
                     StringRef local) -> std::string {
@@ -2908,16 +2880,49 @@ collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords) {
           (Twine("__qlx_call") + Twine(operationOrdinal)).str());
       return collectGadget(callee, nestedPath);
     }
-    if (auto repeat = dyn_cast<RepeatOp>(op)) {
-      for (int64_t iteration = 0; iteration < repeat.getCount(); ++iteration) {
+    if (auto repeat = dyn_cast<qlx::cflow::RepeatOp>(op)) {
+      auto collectIteration = [&](int64_t iteration) -> LogicalResult {
         SmallVector<std::string> nestedPath(instancePath.begin(),
                                             instancePath.end());
         nestedPath.push_back((Twine("__qlx_repeat") + Twine(operationOrdinal) +
                               "_" + Twine(iteration))
                                  .str());
-        if (failed(collectRegion(repeat.getBody(), nestedPath)))
-          return failure();
+        return collectRegion(repeat.getBody(), nestedPath);
+      };
+      if (requireMeasurementRecords) {
+        for (int64_t iteration = 0; iteration < repeat.getCount(); ++iteration)
+          if (failed(collectIteration(iteration)))
+            return failure();
+        return success();
       }
+
+      // Stable schemas and detached profiles ask whether a finite set of
+      // exact record paths resolve. Select those coordinates algebraically
+      // instead of expanding the repeat's complete manifest.
+      std::string repeatPrefix;
+      for (StringRef segment : instancePath)
+        repeatPrefix += (Twine(segment) + ".").str();
+      repeatPrefix +=
+          (Twine("__qlx_repeat") + Twine(operationOrdinal) + "_").str();
+      std::set<int64_t> selectedIterations;
+      if (repeat.getCount() > 0)
+        selectedIterations.insert(0);
+      for (const std::string &path : demandedPaths) {
+        StringRef remainder(path);
+        if (!remainder.consume_front(repeatPrefix))
+          continue;
+        size_t separator = remainder.find('.');
+        if (separator == StringRef::npos)
+          continue;
+        int64_t iteration = -1;
+        if (remainder.take_front(separator).getAsInteger(10, iteration) ||
+            iteration < 0 || iteration >= repeat.getCount())
+          continue;
+        selectedIterations.insert(iteration);
+      }
+      for (int64_t iteration : selectedIterations)
+        if (failed(collectIteration(iteration)))
+          return failure();
       return success();
     }
     if (requireMeasurementRecords && op->getNumRegions() != 0) {
@@ -2925,7 +2930,7 @@ collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords) {
       op->walk([&](Operation *nested) -> WalkResult {
         if (nested == op)
           return WalkResult::advance();
-        if (isa<CallOp, RepeatOp>(nested) ||
+        if (isa<CallOp, qlx::cflow::RepeatOp>(nested) ||
             isOutcomeMeasurementProducer(nested)) {
           reachesPathDependentProducer = true;
           return WalkResult::interrupt();
@@ -2936,7 +2941,7 @@ collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords) {
         return op->emitOpError(
             "outcome_response measurement collection cannot flatten a "
             "path-dependent or dynamically executed region containing a "
-            "measurement, gadget call, or repeat; only fixed fabric.repeat "
+            "measurement, gadget call, or repeat; only fixed cflow.repeat "
             "has a finite manifest contract");
     }
     bool isMeasurement = isOutcomeMeasurementProducer(op);
@@ -3071,47 +3076,114 @@ static void xorRecordExpression(RecordAffineExpression &target,
   }
 }
 
+static void qualifyRecordExpression(RecordAffineExpression &expression,
+                                    StringRef prefix) {
+  llvm::StringMap<bool> qualified;
+  for (const auto &entry : expression.records)
+    qualified.insert({(Twine(prefix) + entry.getKey()).str(), true});
+  expression.records = std::move(qualified);
+}
+
+static unsigned operationOrdinal(Operation *operation) {
+  unsigned ordinal = 0;
+  for (Operation &candidate : *operation->getBlock()) {
+    if (&candidate == operation)
+      return ordinal;
+    ++ordinal;
+  }
+  llvm_unreachable("operation must belong to its reported parent block");
+}
+
+static FailureOr<Value> finalRepeatYield(qlx::cflow::RepeatOp repeat,
+                                         Value result) {
+  auto opResult = dyn_cast<OpResult>(result);
+  if (!opResult || opResult.getOwner() != repeat.getOperation())
+    return failure();
+  unsigned index = opResult.getResultNumber();
+  if (index >= repeat.getInits().size())
+    return failure();
+  if (repeat.getCount() == 0)
+    return repeat.getInits()[index];
+  auto yield =
+      cast<qlx::cflow::YieldOp>(repeat.getBody().front().getTerminator());
+  Value yielded = yield.getOperands()[index];
+  if (auto argument = dyn_cast<BlockArgument>(yielded)) {
+    // Identity carries have the same value in every iteration. General
+    // recurrences remain unsupported rather than being inferred from one body.
+    if (argument.getOwner() != &repeat.getBody().front() ||
+        argument.getArgNumber() != index)
+      return failure();
+    return repeat.getInits()[index];
+  }
+  return yielded;
+}
+
+static std::string finalRepeatRecordPrefix(qlx::cflow::RepeatOp repeat) {
+  return (Twine("__qlx_repeat") +
+          Twine(operationOrdinal(repeat.getOperation())) + "_" +
+          Twine(repeat.getCount() - 1) + ".")
+      .str();
+}
+
 static FailureOr<SmallVector<RecordAffineExpression>>
 resolveTypedRecordBundle(Value value) {
-  auto type = dyn_cast<RankedTensorType>(value.getType());
-  if (!type || type.getRank() != 1 || type.isDynamicDim(0) ||
-      !type.getElementType().isInteger(1))
-    return failure();
+  std::function<FailureOr<SmallVector<RecordAffineExpression>>(Value)> resolve =
+      [&](Value current) -> FailureOr<SmallVector<RecordAffineExpression>> {
+    auto type = dyn_cast<RankedTensorType>(current.getType());
+    if (!type || type.getRank() != 1 || type.isDynamicDim(0) ||
+        !type.getElementType().isInteger(1))
+      return failure();
 
-  Operation *producer = value.getDefiningOp();
-  if (!producer)
-    return failure();
-  auto record = producer->getAttrOfType<StringAttr>("record");
-  if (!record || record.empty())
-    return failure();
+    Operation *producer = current.getDefiningOp();
+    if (!producer)
+      return failure();
+    if (auto repeat = dyn_cast<qlx::cflow::RepeatOp>(producer)) {
+      auto yielded = finalRepeatYield(repeat, current);
+      if (failed(yielded))
+        return failure();
+      auto result = resolve(*yielded);
+      if (failed(result))
+        return failure();
+      if (repeat.getCount() != 0) {
+        std::string prefix = finalRepeatRecordPrefix(repeat);
+        for (auto &expression : *result)
+          qualifyRecordExpression(expression, prefix);
+      }
+      return result;
+    }
 
-  SmallVector<RecordAffineExpression> result(type.getDimSize(0));
-  auto setFamily = [&](StringRef field) {
-    for (auto [index, expression] : llvm::enumerate(result))
-      expression.records.insert(
-          {(Twine(record.getValue()) + "." + field + Twine(index)).str(),
-           true});
+    auto record = producer->getAttrOfType<StringAttr>("record");
+    if (!record || record.empty())
+      return failure();
+    SmallVector<RecordAffineExpression> result(type.getDimSize(0));
+    auto setFamily = [&](StringRef field) {
+      for (auto [index, expression] : llvm::enumerate(result))
+        expression.records.insert(
+            {(Twine(record.getValue()) + "." + field + Twine(index)).str(),
+             true});
+    };
+    if (auto measurement = dyn_cast<MzOp>(producer)) {
+      if (measurement.getBits() != current)
+        return failure();
+      setFamily(stringifyPartition(measurement.getPartition()));
+      return result;
+    }
+    if (auto measurement = dyn_cast<MeasureBasisOp>(producer)) {
+      if (measurement.getBits() != current)
+        return failure();
+      setFamily(stringifyPartition(measurement.getPartition()));
+      return result;
+    }
+    if (auto measurement = dyn_cast<MppOp>(producer)) {
+      if (measurement.getBits() != current || result.size() != 1)
+        return failure();
+      result.front().records.insert(
+          {(Twine(record.getValue()) + ".outcome").str(), true});
+      return result;
+    }
+    return failure();
   };
-  if (auto measurement = dyn_cast<MzOp>(producer)) {
-    if (measurement.getBits() != value)
-      return failure();
-    setFamily(stringifyPartition(measurement.getPartition()));
-    return result;
-  }
-  if (auto measurement = dyn_cast<MeasureBasisOp>(producer)) {
-    if (measurement.getBits() != value)
-      return failure();
-    setFamily(stringifyPartition(measurement.getPartition()));
-    return result;
-  }
-  if (auto measurement = dyn_cast<MppOp>(producer)) {
-    if (measurement.getBits() != value || result.size() != 1)
-      return failure();
-    result.front().records.insert(
-        {(Twine(record.getValue()) + ".outcome").str(), true});
-    return result;
-  }
-  return failure();
+  return resolve(value);
 }
 
 static FailureOr<RecordAffineExpression>
@@ -3136,6 +3208,17 @@ resolveTypedRecordExpression(Value value) {
       if (!integer || !integer.getType().isInteger(1))
         return failure();
       return RecordAffineExpression{{}, !integer.getValue().isZero()};
+    }
+    if (auto repeat = current.getDefiningOp<qlx::cflow::RepeatOp>()) {
+      auto yielded = finalRepeatYield(repeat, current);
+      if (failed(yielded))
+        return failure();
+      auto result = resolve(*yielded);
+      if (failed(result))
+        return failure();
+      if (repeat.getCount() != 0)
+        qualifyRecordExpression(*result, finalRepeatRecordPrefix(repeat));
+      return result;
     }
 
     Value lhs;
@@ -3277,6 +3360,382 @@ static LogicalResult verifyTerminalMeasurementOwnership(Operation *owner) {
   return result.wasInterrupted() ? failure() : success();
 }
 
+static GadgetSpecOp resolvedGadgetSpec(GadgetOp gadget) {
+  if (!gadget || !gadget.getSpecAttr())
+    return {};
+  return dyn_cast_or_null<GadgetSpecOp>(
+      SymbolTable::lookupNearestSymbolFrom(gadget, gadget.getSpecAttr()));
+}
+
+static std::optional<StringRef> gadgetLogicalAction(GadgetOp gadget) {
+  auto spec = resolvedGadgetSpec(gadget);
+  if (!spec)
+    return std::nullopt;
+  auto objective = dyn_cast_or_null<ObjectiveOp>(
+      SymbolTable::lookupNearestSymbolFrom(spec, spec.getObjectiveAttr()));
+  if (!objective || !objective.getLogicalAttr())
+    return std::nullopt;
+  auto logical =
+      dyn_cast_or_null<::qlx::ActionOp>(SymbolTable::lookupNearestSymbolFrom(
+          objective, objective.getLogicalAttr()));
+  return logical ? std::optional<StringRef>(logical.getKind()) : std::nullopt;
+}
+
+static bool hasGadgetEquivalence(GadgetOp gadget, StringRef expected) {
+  auto spec = resolvedGadgetSpec(gadget);
+  auto equivalence = spec
+                         ? spec->getAttrOfType<StringAttr>("action_equivalence")
+                         : StringAttr{};
+  auto epoch =
+      spec ? spec->getAttrOfType<StringAttr>("epoch_map") : StringAttr{};
+  return equivalence && equivalence.getValue() == expected && epoch &&
+         epoch.getValue() == "preserve";
+}
+
+static SmallVector<Operation *, 4> straightLineBody(Operation *callable) {
+  SmallVector<Operation *, 4> result;
+  Region &body = callable->getRegion(0);
+  if (!llvm::hasSingleElement(body))
+    return result;
+  for (Operation &operation : body.front().without_terminator())
+    result.push_back(&operation);
+  return result;
+}
+
+static bool isFullIdentityDataRelation(Operation *operation, StringRef pairs,
+                                       ValueRange operands) {
+  if (operands.size() != 2)
+    return false;
+  auto left = dyn_cast<PatchType>(operands[0].getType());
+  auto right = dyn_cast<PatchType>(operands[1].getType());
+  if (!left || !right || left != right)
+    return false;
+  auto code = dyn_cast_or_null<CodeOp>(
+      SymbolTable::lookupNearestSymbolFrom(operation, left.getCodeType()));
+  if (!code || code.getK().value_or(1) != 1 || code.getR().value_or(0) != 0)
+    return false;
+  auto width = dyn_cast_or_null<IntegerAttr>(code.getPartitions().get("data"));
+  if (!width || width.getInt() <= 0)
+    return false;
+  if (pairs == "index")
+    return true;
+  std::string expected;
+  llvm::raw_string_ostream stream(expected);
+  for (int64_t index = 0; index < width.getInt(); ++index) {
+    if (index != 0)
+      stream << ',';
+    stream << index << ':' << index;
+  }
+  return pairs == stream.str();
+}
+
+static LogicalResult verifyDerivedCSSCX(GadgetOp gadget, GadgetSpecOp spec) {
+  auto equivalence = spec ? spec.getActionEquivalence() : std::nullopt;
+  if (!equivalence || *equivalence != "derived_exact_css_transversal_cx")
+    return success();
+  if (gadgetLogicalAction(gadget) != std::optional<StringRef>("cx"))
+    return gadget.emitOpError(
+        "derived CSS transversal CX requires the typed logical CX objective");
+  auto semantic = straightLineBody(gadget);
+  if (semantic.size() != 1)
+    return gadget.emitOpError(
+        "derived CSS transversal CX requires exactly one carrier operation");
+  auto cx = dyn_cast<CXOp>(semantic.front());
+  auto returnOp = dyn_cast<ReturnOp>(gadget.getBody().front().getTerminator());
+  if (!cx || cx.getCtrl() != Partition::data ||
+      cx.getTarg() != Partition::data || !cx.getPairs() ||
+      !isFullIdentityDataRelation(cx, *cx.getPairs(), cx.getPatches()) ||
+      cx.getPatches() != gadget.getBody().front().getArguments() || !returnOp ||
+      returnOp.getOperands() != cx.getResults())
+    return gadget.emitOpError(
+        "derived CSS transversal CX requires full indexwise data coupling "
+        "and ordered boundary successors");
+  auto patch = dyn_cast<PatchType>(cx.getPatches().front().getType());
+  auto code =
+      patch ? dyn_cast_or_null<CodeOp>(SymbolTable::lookupNearestSymbolFrom(
+                  gadget, patch.getCodeType()))
+            : CodeOp{};
+  bool isBare = code && code.getN().value_or(0) == 1 &&
+                !code.getHx().has_value() && !code.getHz().has_value();
+  if (!code || (!isBare && (!code.getHx() || !code.getHz())))
+    return gadget.emitOpError(
+        "derived CSS transversal CX requires a CSS code or a bare qubit");
+  return success();
+}
+
+static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
+                                                  GadgetSpecOp spec) {
+  auto equivalence = spec ? spec.getActionEquivalence() : std::nullopt;
+  if (!equivalence ||
+      *equivalence != "derived_exact_css_transversal_h_permutation")
+    return success();
+  if (gadgetLogicalAction(gadget) != std::optional<StringRef>("h"))
+    return gadget.emitOpError(
+        "derived CSS H-permutation requires the typed logical H objective");
+  auto semantic = straightLineBody(gadget);
+  auto h = semantic.empty() ? HOp{} : dyn_cast<HOp>(semantic.front());
+  Block &entry = gadget.getBody().front();
+  auto returnOp = dyn_cast<ReturnOp>(entry.getTerminator());
+  if (!h || entry.getNumArguments() != 1 ||
+      h.getPatch() != entry.getArgument(0) ||
+      h.getPartition() != Partition::data || h.getIndicesAttr() ||
+      h.getResult().getType() != entry.getArgument(0).getType() || !returnOp ||
+      returnOp.getNumOperands() != 1)
+    return gadget.emitOpError(
+        "derived CSS H-permutation requires one full-data transversal H");
+
+  auto patch = dyn_cast<PatchType>(entry.getArgument(0).getType());
+  auto code =
+      patch ? dyn_cast_or_null<CodeOp>(SymbolTable::lookupNearestSymbolFrom(
+                  gadget, patch.getCodeType()))
+            : CodeOp{};
+  int64_t n = code ? code.getN().value_or(0) : 0;
+  bool isBare = code && n == 1 && code.getK().value_or(1) == 1 &&
+                code.getR().value_or(0) == 0 &&
+                (!code.getHx() || code.getHx()->empty()) &&
+                (!code.getHz() || code.getHz()->empty());
+  if (!code || n <= 0 || code.getK().value_or(1) != 1 ||
+      code.getR().value_or(0) != 0 ||
+      (!isBare && (!code.getHx() || !code.getHz())))
+    return gadget.emitOpError(
+        "derived CSS H-permutation requires a bare qubit or one-logical CSS "
+        "stabilizer code");
+
+  auto parsePair =
+      [](StringRef relation) -> std::optional<std::pair<int64_t, int64_t>> {
+    if (relation.contains(','))
+      return std::nullopt;
+    auto [leftText, rightText] = relation.split(':');
+    int64_t left = -1;
+    int64_t right = -1;
+    if (leftText.empty() || rightText.empty() || rightText.contains(':') ||
+        leftText.getAsInteger(10, left) || rightText.getAsInteger(10, right))
+      return std::nullopt;
+    return std::pair<int64_t, int64_t>{left, right};
+  };
+
+  Value current = h.getResult();
+  SmallVector<std::pair<int64_t, int64_t>> swaps;
+  if ((semantic.size() - 1) % 3 != 0)
+    return gadget.emitOpError(
+        "derived CSS H-permutation requires complete three-CX SWAP groups");
+  for (size_t offset = 1; offset < semantic.size(); offset += 3) {
+    auto first = dyn_cast<CXOp>(semantic[offset]);
+    auto second = dyn_cast<CXOp>(semantic[offset + 1]);
+    auto third = dyn_cast<CXOp>(semantic[offset + 2]);
+    if (!first || !second || !third)
+      return gadget.emitOpError(
+          "derived CSS H-permutation accepts only the exact SWAP CX network");
+    std::array<CXOp, 3> group{first, second, third};
+    std::array<std::pair<int64_t, int64_t>, 3> pairs;
+    for (auto [index, cx] : llvm::enumerate(group)) {
+      auto relation = cx.getPairs();
+      auto parsed = relation ? parsePair(*relation) : std::nullopt;
+      if (cx.getPatches().size() != 1 || cx.getPatches().front() != current ||
+          cx.getNumResults() != 1 || cx.getCtrl() != Partition::data ||
+          cx.getTarg() != Partition::data || !parsed || parsed->first < 0 ||
+          parsed->second < 0 || parsed->first >= n || parsed->second >= n ||
+          parsed->first == parsed->second)
+        return gadget.emitOpError(
+            "derived CSS H-permutation has an invalid SWAP carrier relation");
+      pairs[index] = *parsed;
+      current = cx.getResult(0);
+    }
+    if (pairs[1] !=
+            std::pair<int64_t, int64_t>{pairs[0].second, pairs[0].first} ||
+        pairs[2] != pairs[0])
+      return gadget.emitOpError(
+          "derived CSS H-permutation requires CX(a,b), CX(b,a), CX(a,b)");
+    swaps.push_back(pairs[0]);
+  }
+  if (returnOp.getOperand(0) != current)
+    return gadget.emitOpError(
+        "derived CSS H-permutation must return the final SWAP successor");
+  if (isBare)
+    return success();
+
+  SmallVector<int64_t> permutation;
+  for (int64_t index = 0; index < n; ++index)
+    permutation.push_back(index);
+  for (auto [left, right] : swaps)
+    for (int64_t &destination : permutation) {
+      if (destination == left)
+        destination = right;
+      else if (destination == right)
+        destination = left;
+    }
+
+  auto matrix =
+      [&](StringRef name,
+          int64_t rows) -> FailureOr<SmallVector<llvm::SmallBitVector>> {
+    auto attr = code->getAttrOfType<DenseIntElementsAttr>(name);
+    if (!attr || attr.getType().getRank() != 2 ||
+        !attr.getType().getElementType().isInteger(1) ||
+        attr.getType().getShape()[0] != rows ||
+        attr.getType().getShape()[1] != 2 * n)
+      return failure();
+    SmallVector<llvm::SmallBitVector> result;
+    auto values = attr.getValues<APInt>();
+    auto iterator = values.begin();
+    for (int64_t row = 0; row < rows; ++row) {
+      llvm::SmallBitVector bits(2 * n);
+      for (int64_t column = 0; column < 2 * n; ++column, ++iterator)
+        if (!(*iterator).isZero())
+          bits.set(column);
+      result.push_back(std::move(bits));
+    }
+    return result;
+  };
+  auto stabilizers = matrix("stabilizer_basis", n - 1);
+  auto logicalX = matrix("logical_x_basis", 1);
+  auto logicalZ = matrix("logical_z_basis", 1);
+  if (failed(stabilizers) || failed(logicalX) || failed(logicalZ))
+    return gadget.emitOpError(
+        "derived CSS H-permutation requires canonical code symplectic bases");
+
+  auto rank = [](ArrayRef<llvm::SmallBitVector> source) {
+    SmallVector<llvm::SmallBitVector> rows(source.begin(), source.end());
+    int64_t value = 0;
+    int64_t width = rows.empty() ? 0 : rows.front().size();
+    for (int64_t column = width - 1; column >= 0; --column) {
+      auto pivot =
+          llvm::find_if(llvm::drop_begin(rows, value),
+                        [&](const auto &row) { return row.test(column); });
+      if (pivot == rows.end())
+        continue;
+      std::iter_swap(rows.begin() + value, pivot);
+      for (int64_t index = 0; index < static_cast<int64_t>(rows.size());
+           ++index)
+        if (index != value && rows[index].test(column))
+          rows[index] ^= rows[value];
+      if (++value == static_cast<int64_t>(rows.size()))
+        break;
+    }
+    return value;
+  };
+  auto transform = [&](const llvm::SmallBitVector &row) {
+    llvm::SmallBitVector result(2 * n);
+    for (int64_t source = 0; source < n; ++source) {
+      int64_t destination = permutation[source];
+      if (row.test(source))
+        result.set(n + destination);
+      if (row.test(n + source))
+        result.set(destination);
+    }
+    return result;
+  };
+  int64_t stabilizerRank = rank(*stabilizers);
+  auto rowsInStabilizerSpan = [&](ArrayRef<llvm::SmallBitVector> rows) {
+    SmallVector<llvm::SmallBitVector> extended(stabilizers->begin(),
+                                               stabilizers->end());
+    llvm::append_range(extended, rows);
+    return rank(extended) == stabilizerRank;
+  };
+  SmallVector<llvm::SmallBitVector> transformedStabilizers;
+  transformedStabilizers.reserve(stabilizers->size());
+  llvm::transform(*stabilizers, std::back_inserter(transformedStabilizers),
+                  transform);
+  if (!rowsInStabilizerSpan(transformedStabilizers))
+    return gadget.emitOpError(
+        "derived CSS H-permutation does not preserve the stabilizer group");
+  llvm::SmallBitVector xDifference = transform(logicalX->front());
+  xDifference ^= logicalZ->front();
+  llvm::SmallBitVector zDifference = transform(logicalZ->front());
+  zDifference ^= logicalX->front();
+  std::array<llvm::SmallBitVector, 2> logicalDifferences{
+      std::move(xDifference), std::move(zDifference)};
+  if (!rowsInStabilizerSpan(logicalDifferences))
+    return gadget.emitOpError(
+        "derived CSS H-permutation does not implement logical H");
+  return success();
+}
+
+static LogicalResult verifyDerivedBareCZ(GadgetOp gadget, GadgetSpecOp spec) {
+  auto equivalence = spec ? spec.getActionEquivalence() : std::nullopt;
+  if (!equivalence || *equivalence != "derived_exact_bare_physical_cz")
+    return success();
+  if (gadgetLogicalAction(gadget) != std::optional<StringRef>("cz"))
+    return gadget.emitOpError(
+        "derived bare physical CZ requires the typed logical CZ objective");
+  auto semantic = straightLineBody(gadget);
+  auto cz = semantic.size() == 1 ? dyn_cast<CZOp>(semantic.front()) : CZOp{};
+  auto returnOp = dyn_cast<ReturnOp>(gadget.getBody().front().getTerminator());
+  if (!cz || cz.getCtrl() != Partition::data ||
+      cz.getTarg() != Partition::data || !cz.getPairs() ||
+      !isFullIdentityDataRelation(cz, *cz.getPairs(), cz.getPatches()) ||
+      cz.getPatches() != gadget.getBody().front().getArguments() || !returnOp ||
+      returnOp.getOperands() != cz.getResults())
+    return gadget.emitOpError(
+        "derived bare physical CZ requires one full indexwise data CZ and "
+        "ordered boundary successors");
+  auto patch = dyn_cast<PatchType>(cz.getPatches().front().getType());
+  auto code =
+      patch ? dyn_cast_or_null<CodeOp>(SymbolTable::lookupNearestSymbolFrom(
+                  gadget, patch.getCodeType()))
+            : CodeOp{};
+  if (!code || code.getN().value_or(0) != 1 || code.getK().value_or(1) != 1 ||
+      code.getR().value_or(0) != 0 ||
+      (code.getHx() && !code.getHx()->empty()) ||
+      (code.getHz() && !code.getHz()->empty()))
+    return gadget.emitOpError(
+        "carrierwise CZ is a logical-CZ derivation only for a bare one-qubit "
+        "code");
+  return success();
+}
+
+static LogicalResult verifyDerivedCZCallComposition(GadgetOp gadget,
+                                                    GadgetSpecOp spec) {
+  auto equivalence = spec ? spec.getActionEquivalence() : std::nullopt;
+  if (!equivalence || *equivalence != "derived_exact_clifford_call_composition")
+    return success();
+  if (gadgetLogicalAction(gadget) != std::optional<StringRef>("cz"))
+    return gadget.emitOpError(
+        "derived Clifford call composition requires logical CZ");
+  auto semantic = straightLineBody(gadget);
+  if (semantic.size() != 3 || !llvm::all_of(semantic, [](Operation *operation) {
+        return isa<CallOp>(operation);
+      }))
+    return gadget.emitOpError(
+        "derived logical CZ requires the exact logical H-CX-H call sequence");
+  auto firstH = cast<CallOp>(semantic[0]);
+  auto cx = cast<CallOp>(semantic[1]);
+  auto secondH = cast<CallOp>(semantic[2]);
+  auto resolve = [](CallOp call) {
+    return dyn_cast_or_null<GadgetOp>(
+        SymbolTable::lookupNearestSymbolFrom(call, call.getCalleeAttr()));
+  };
+  auto hGadget = resolve(firstH);
+  auto cxGadget = resolve(cx);
+  auto secondHGadget = resolve(secondH);
+  if (!hGadget || hGadget != secondHGadget || !cxGadget ||
+      gadgetLogicalAction(hGadget) != std::optional<StringRef>("h") ||
+      (!hasGadgetEquivalence(hGadget,
+                             "derived_exact_signed_symplectic_match") &&
+       !hasGadgetEquivalence(hGadget,
+                             "derived_exact_css_transversal_h_permutation")) ||
+      gadgetLogicalAction(cxGadget) != std::optional<StringRef>("cx") ||
+      !hasGadgetEquivalence(cxGadget, "derived_exact_css_transversal_cx"))
+    return gadget.emitOpError(
+        "derived logical CZ requires independently verified logical H and "
+        "CSS transversal CX callees");
+  Block &entry = gadget.getBody().front();
+  auto returnOp = dyn_cast<ReturnOp>(entry.getTerminator());
+  if (entry.getNumArguments() != 2 || firstH.getNumOperands() != 1 ||
+      firstH.getNumResults() != 1 ||
+      firstH.getOperand(0) != entry.getArgument(1) ||
+      cx.getNumOperands() != 2 || cx.getNumResults() != 2 ||
+      cx.getOperand(0) != entry.getArgument(0) ||
+      cx.getOperand(1) != firstH.getResult(0) ||
+      secondH.getNumOperands() != 1 || secondH.getNumResults() != 1 ||
+      secondH.getOperand(0) != cx.getResult(1) || !returnOp ||
+      returnOp.getNumOperands() != 2 ||
+      returnOp.getOperand(0) != cx.getResult(0) ||
+      returnOp.getOperand(1) != secondH.getResult(0))
+    return gadget.emitOpError(
+        "derived logical CZ H-CX-H calls have incorrect owner wiring");
+  return success();
+}
+
 static LogicalResult verifyAutomorphismObjective(Operation *realization,
                                                  Operation *diagnosticOwner,
                                                  GadgetSpecOp spec) {
@@ -3287,7 +3746,14 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
     return diagnosticOwner->emitOpError() << message;
   };
   if (permutations.empty()) {
-    if (spec &&
+    auto equivalence = spec ? spec.getActionEquivalence() : std::nullopt;
+    bool separatelyVerifiedClifford =
+        equivalence &&
+        (*equivalence == "derived_exact_css_transversal_cx" ||
+         *equivalence == "derived_exact_css_transversal_h_permutation" ||
+         *equivalence == "derived_exact_bare_physical_cz" ||
+         *equivalence == "derived_exact_clifford_call_composition");
+    if (spec && !separatelyVerifiedClifford &&
         (spec->hasAttr("action_equivalence") || spec->hasAttr("epoch_map")))
       return fail("action_equivalence and epoch_map require one verified "
                   "fabric.permute realization");
@@ -3501,7 +3967,11 @@ LogicalResult GadgetOp::verify() {
     auto recordSchema = spec.getRecordSchema();
     if (!recordSchema)
       return success();
-    auto manifest = collectRecursiveRecordManifest(*this, false);
+    SmallVector<std::string> demandedPaths;
+    demandedPaths.reserve(recordSchema->size());
+    for (Attribute raw : *recordSchema)
+      demandedPaths.push_back(cast<StringAttr>(raw).getValue().str());
+    auto manifest = collectRecursiveRecordManifest(*this, false, demandedPaths);
     if (failed(manifest))
       return failure();
     const llvm::StringMap<unsigned> &produced = manifest->typedProducerCounts;
@@ -3551,6 +4021,11 @@ LogicalResult GadgetOp::verify() {
       return failure();
     if (failed(verifyTerminalMeasurementOwnership(circuit.getOperation())))
       return failure();
+    if (failed(verifyDerivedCSSCX(*this, spec)) ||
+        failed(verifyDerivedCSSHPermutation(*this, spec)) ||
+        failed(verifyDerivedBareCZ(*this, spec)) ||
+        failed(verifyDerivedCZCallComposition(*this, spec)))
+      return failure();
     if (failed(verifyAutomorphismObjective(circuit.getOperation(),
                                            getOperation(), spec)))
       return failure();
@@ -3584,6 +4059,11 @@ LogicalResult GadgetOp::verify() {
     return failure();
   if (failed(verifyTerminalMeasurementOwnership(getOperation())))
     return failure();
+  if (failed(verifyDerivedCSSCX(*this, spec)) ||
+      failed(verifyDerivedCSSHPermutation(*this, spec)) ||
+      failed(verifyDerivedBareCZ(*this, spec)) ||
+      failed(verifyDerivedCZCallComposition(*this, spec)))
+    return failure();
   if (failed(verifyAutomorphismObjective(getOperation(), getOperation(), spec)))
     return failure();
   if (spec &&
@@ -3601,24 +4081,34 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
 
   SmallVector<qlx::lvm::StreamOp, 2> producerStreams;
   SmallVector<qlx::lvm::StreamOp, 2> transferStreams;
-  module.walk([&](qlx::lvm::StreamOp stream) {
-    auto resolvesToProtocol = [&](FlatSymbolRefAttr reference) {
-      if (!reference)
+  // Streams are direct members of their lvm.domain symbol table.  Walking the
+  // complete module once for every protocol made verification quadratic in
+  // large QEC-lowered programs even though the stream inventory is tiny.
+  // Restrict discovery to the typed domain boundary while retaining the exact
+  // same symbol-resolution proof for every stream.
+  for (auto domain : module.getOps<qlx::lvm::DomainOp>()) {
+    for (Operation &candidate : domain.getBody().front()) {
+      auto stream = dyn_cast<qlx::lvm::StreamOp>(candidate);
+      if (!stream)
+        continue;
+      auto resolvesToProtocol = [&](FlatSymbolRefAttr reference) {
+        if (!reference)
+          return false;
+        for (Operation *scope = stream; scope; scope = scope->getParentOp()) {
+          if (!scope->hasTrait<OpTrait::SymbolTable>())
+            continue;
+          if (Operation *target =
+                  SymbolTable::lookupSymbolIn(scope, reference.getValue()))
+            return target == protocol.getOperation();
+        }
         return false;
-      for (Operation *scope = stream; scope; scope = scope->getParentOp()) {
-        if (!scope->hasTrait<OpTrait::SymbolTable>())
-          continue;
-        if (Operation *target =
-                SymbolTable::lookupSymbolIn(scope, reference.getValue()))
-          return target == protocol.getOperation();
-      }
-      return false;
-    };
-    if (resolvesToProtocol(stream.getProducedByAttr()))
-      producerStreams.push_back(stream);
-    if (resolvesToProtocol(stream.getTransferAttr()))
-      transferStreams.push_back(stream);
-  });
+      };
+      if (resolvesToProtocol(stream.getProducedByAttr()))
+        producerStreams.push_back(stream);
+      if (resolvesToProtocol(stream.getTransferAttr()))
+        transferStreams.push_back(stream);
+    }
+  }
   if (producerStreams.empty() && transferStreams.empty())
     return success();
 
@@ -3756,11 +4246,61 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
   return success();
 }
 
+// Forward declarations: both are defined further below (the shared helper's
+// natural home stays with `RetryOp::verify()`'s call site; the embedded-
+// selection walk stays with the deleted `Fabric_SelectionOp::verify()`'s old
+// location), but `ProtocolOp::verify()` needs to call the latter here.
+static LogicalResult verifySelectedPredicateSemantics(
+    Operation *owner, Value predicate, ValueRange carries,
+    FlatSymbolRefAttr attemptAttr, FlatSymbolRefAttr profileAttr,
+    GadgetOp gadget, GadgetProfileOp profile, GadgetSpecOp spec,
+    StringRef operation);
+static LogicalResult verifyEmbeddedSelections(Operation *protocolBody);
+static LogicalResult verifyLocalGeneratedRPPProtocol(ProtocolOp protocol);
+static LogicalResult verifyLocalGeneratedRPPInvocations(ProtocolOp protocol);
+
 LogicalResult ProtocolOp::verify() {
   auto functionType = getFunctionType();
   if (failed(verifyEncodingQualifiedTypes(*this, functionType.getInputs())) ||
       failed(verifyEncodingQualifiedTypes(*this, functionType.getResults())))
     return failure();
+  unsigned p1CallAttrs =
+      static_cast<unsigned>(static_cast<bool>(getInputP1KernelAttr())) +
+      static_cast<unsigned>(static_cast<bool>(getInputP1CalleeAttr())) +
+      static_cast<unsigned>(static_cast<bool>(getInputP1ScopeAttr()));
+  if (p1CallAttrs != 0 && p1CallAttrs != 3)
+    return emitOpError(
+        "P1 call provenance requires input_p1_kernel, input_p1_callee, and "
+        "input_p1_scope together");
+  if (p1CallAttrs == 3) {
+    if (getInputP1ScopeAttr().getInt() < 0)
+      return emitOpError("input_p1_scope must be nonnegative");
+    auto kernel = dyn_cast_or_null<qlx::lvm::KernelOp>(
+        SymbolTable::lookupNearestSymbolFrom(*this, getInputP1KernelAttr()));
+    if (!kernel)
+      return emitOpError("input_p1_kernel must resolve to lvm.kernel");
+    auto callee = dyn_cast_or_null<qlx::ProgramOp>(
+        SymbolTable::lookupNearestSymbolFrom(*this, getInputP1CalleeAttr()));
+    if (!callee)
+      return emitOpError("input_p1_callee must resolve to qlx.program");
+    unsigned matches = 0;
+    qlx::lvm::CallOp matchedCall;
+    kernel.getBody().walk([&](qlx::lvm::CallOp call) {
+      if (call.getScope() == getInputP1ScopeAttr().getInt() &&
+          call.getCalleeAttr() == getInputP1CalleeAttr()) {
+        ++matches;
+        matchedCall = call;
+      }
+    });
+    if (matches != 1)
+      return emitOpError(
+                 "P1 call provenance must resolve to exactly one retained "
+                 "lvm.call; found ")
+             << matches;
+    if (failed(qlx::lvm::verifyP0CallBodyRefinement(matchedCall)))
+      return emitOpError(
+          "P1 call provenance resolves to a body that does not refine P0");
+  }
   if (failed(verifyRetainedStreamProtocols(*this)))
     return failure();
   if (auto objective = dyn_cast_or_null<SymbolRefAttr>(getObjectiveAttr())) {
@@ -3774,13 +4314,15 @@ LogicalResult ProtocolOp::verify() {
           objectiveType.getNumResults() == 1 &&
           isa<ResourceStateType>(objectiveType.getResult(0));
       if (producesResource) {
-        if (!llvm::equal(functionType.getResults(), objectiveType.getResults()))
+        if (functionType.getResults() != objectiveType.getResults())
           return emitOpError(
               "result types must match the production objective");
       }
     }
   }
   if (failed(verifyGeneratedSpecialization(*this)))
+    return failure();
+  if (failed(verifyLocalGeneratedRPPProtocol(*this)))
     return failure();
   auto metadata = getMetadataAttr();
   Attribute rawInputP1 = metadata ? metadata.get("input_p1") : Attribute();
@@ -3820,6 +4362,313 @@ LogicalResult ProtocolOp::verify() {
   if (returnOp.getOperandTypes() != functionType.getResults())
     return returnOp.emitOpError(
         "operand types must match enclosing protocol result types");
+  bool hasPredicateGadget = static_cast<bool>(getPredicateGadgetAttr());
+  bool hasPredicateProfile = static_cast<bool>(getPredicateProfileAttr());
+  bool hasPredicateResult = static_cast<bool>(getPredicateResultAttr());
+  if ((hasPredicateGadget || hasPredicateProfile || hasPredicateResult) &&
+      !(hasPredicateGadget && hasPredicateProfile && hasPredicateResult))
+    return emitOpError(
+        "predicate provenance requires gadget, profile, and result together");
+  if (hasPredicateGadget) {
+    int64_t resultIndex = getPredicateResultAttr().getInt();
+    if (resultIndex < 0 || resultIndex >= functionType.getNumResults() ||
+        !functionType.getResult(resultIndex).isInteger(1))
+      return emitOpError("predicate_result must name an i1 protocol result");
+    auto gadget = dyn_cast_or_null<GadgetOp>(
+        SymbolTable::lookupNearestSymbolFrom(*this, getPredicateGadgetAttr()));
+    auto profile = dyn_cast_or_null<GadgetProfileOp>(
+        SymbolTable::lookupNearestSymbolFrom(*this, getPredicateProfileAttr()));
+    if (!gadget || !profile ||
+        profile.getGadgetAttr() != getPredicateGadgetAttr())
+      return emitOpError(
+          "predicate provenance must name a profile for its exact gadget");
+    Value returned = returnOp.getOperand(resultIndex);
+    auto result = dyn_cast<OpResult>(returned);
+    auto call = returned.getDefiningOp<CallOp>();
+    if (!result || !call || call.getCalleeAttr() != getPredicateGadgetAttr() ||
+        call.getProfileAttr() != getPredicateProfileAttr())
+      return emitOpError(
+          "predicate result must be returned directly from the selected "
+          "gadget/profile call");
+    int64_t protocolBooleanOrdinal = 0;
+    for (int64_t index = 0; index < resultIndex; ++index)
+      if (functionType.getResult(index).isInteger(1))
+        ++protocolBooleanOrdinal;
+    int64_t gadgetBooleanOrdinal = 0;
+    for (unsigned index = 0; index < result.getResultNumber(); ++index)
+      if (call.getResult(index).getType().isInteger(1))
+        ++gadgetBooleanOrdinal;
+    if (protocolBooleanOrdinal != gadgetBooleanOrdinal)
+      return emitOpError(
+          "predicate result must preserve the selected gadget Boolean ordinal");
+  }
+  if (failed(verifyEmbeddedSelections(getOperation())))
+    return failure();
+  return verifyLocalGeneratedRPPInvocations(*this);
+}
+
+struct BooleanAffineExpression {
+  SmallVector<Value> terms;
+  bool constant = false;
+};
+
+static FailureOr<BooleanAffineExpression> normalizeBooleanAffine(Value value) {
+  std::function<FailureOr<BooleanAffineExpression>(Value)> normalize =
+      [&](Value current) -> FailureOr<BooleanAffineExpression> {
+    if (!current.getType().isInteger(1))
+      return failure();
+    if (isa_and_nonnull<CallOp>(current.getDefiningOp()))
+      return BooleanAffineExpression{{current}, false};
+    if (auto constant = current.getDefiningOp<arith::ConstantOp>()) {
+      auto integer = dyn_cast<IntegerAttr>(constant.getValue());
+      if (!integer || integer.getType().getIntOrFloatBitWidth() != 1)
+        return failure();
+      return BooleanAffineExpression{{}, !integer.getValue().isZero()};
+    }
+
+    Value lhs;
+    Value rhs;
+    if (auto xorOp = current.getDefiningOp<XorOp>()) {
+      lhs = xorOp.getLhs();
+      rhs = xorOp.getRhs();
+    } else if (auto xorOp = current.getDefiningOp<arith::XOrIOp>()) {
+      lhs = xorOp.getLhs();
+      rhs = xorOp.getRhs();
+    } else {
+      return failure();
+    }
+    auto left = normalize(lhs);
+    auto right = normalize(rhs);
+    if (failed(left) || failed(right))
+      return failure();
+    BooleanAffineExpression result = *left;
+    result.constant ^= right->constant;
+    for (Value term : right->terms) {
+      auto found = llvm::find(result.terms, term);
+      if (found == result.terms.end())
+        result.terms.push_back(term);
+      else
+        result.terms.erase(found);
+    }
+    return result;
+  };
+  return normalize(value);
+}
+
+static LogicalResult verifySelectedPredicateSemantics(
+    Operation *owner, Value predicate, ValueRange carries,
+    FlatSymbolRefAttr attemptAttr, FlatSymbolRefAttr profileAttr,
+    GadgetOp gadget, GadgetProfileOp profile, GadgetSpecOp spec,
+    StringRef operation) {
+  SmallVector<SuccessOp> successes;
+  profile.getBody().walk(
+      [&](SuccessOp success) { successes.push_back(success); });
+
+  auto outcome = spec.getOutcomeMap();
+  if (!outcome)
+    return owner->emitOpError()
+           << operation << " attempt requires a total GadgetSpec outcome_map";
+  auto outcomeRecords = outcome->getAs<ArrayAttr>("records");
+  auto rows = outcome->getAs<DenseIntElementsAttr>("rows");
+  auto constants = outcome->getAs<DenseI64ArrayAttr>("constants");
+  if (!outcomeRecords || !rows || !constants)
+    return owner->emitOpError()
+           << operation
+           << " attempt outcome_map must use canonical records, rows, and "
+              "constants";
+
+  StringRef gadgetName = gadget.getSymName();
+  auto shape = rows.getType().getShape();
+  auto denseValues = rows.getValues<APInt>();
+  SmallVector<APInt> values(denseValues.begin(), denseValues.end());
+  struct SuccessBinding {
+    int64_t outcomeRow;
+    bool profileConstant;
+  };
+  SmallVector<SuccessBinding> bindings;
+  llvm::SmallDenseSet<int64_t> claimedRows;
+  SmallVector<int64_t> authoritativeSuccessRows;
+  for (int64_t row = 0; row < shape[0]; ++row)
+    if (outcomeRowHasRole(*outcome, row, "success"))
+      authoritativeSuccessRows.push_back(row);
+  if (authoritativeSuccessRows.empty() && successes.empty())
+    return owner->emitOpError("selected ")
+           << operation
+           << " profile requires an OutcomeMap success role or an explicit "
+              "profile success row";
+  if (!authoritativeSuccessRows.empty() && !successes.empty() &&
+      outcome->getAs<ArrayAttr>("roles") &&
+      successes.size() != authoritativeSuccessRows.size())
+    return owner->emitOpError()
+           << operation << " profile declares " << successes.size()
+           << " success row(s), but the OutcomeMap tags "
+           << authoritativeSuccessRows.size() << " authoritative row(s)";
+  if (successes.empty()) {
+    for (int64_t row : authoritativeSuccessRows)
+      bindings.push_back({row, constants.asArrayRef()[row] != 0});
+  }
+  for (SuccessOp profileSuccess : successes) {
+    SmallVector<StringRef> successRecords;
+    if (auto records = profileSuccess.getRecords())
+      for (Attribute raw : *records) {
+        auto record = dyn_cast<StringAttr>(raw);
+        if (!record)
+          return owner->emitOpError()
+                 << operation << " success records must be stable string paths";
+        StringRef path = record.getValue();
+        if (!path.consume_front(gadgetName) || !path.consume_front("."))
+          return owner->emitOpError()
+                 << operation
+                 << " success records must be owned by the attempt gadget";
+        successRecords.push_back(path);
+      }
+    SmallVector<OutcomeSyndromeTerm> successTerms =
+        getProfileSyndromeTerms(profileSuccess);
+    bool profileConstant = false;
+    if (auto constant = profileSuccess.getConstantAttr())
+      profileConstant = constant.getValue();
+
+    std::optional<int64_t> matchingRow;
+    for (int64_t row = 0; row < shape[0]; ++row) {
+      if (!authoritativeSuccessRows.empty() &&
+          !outcomeRowHasRole(*outcome, row, "success"))
+        continue;
+      if (authoritativeSuccessRows.empty() &&
+          outcomeRowHasRole(*outcome, row, "result"))
+        continue;
+      SmallVector<StringRef> rowRecords;
+      for (int64_t column = 0; column < shape[1]; ++column)
+        if (!values[row * shape[1] + column].isZero())
+          rowRecords.push_back(
+              cast<StringAttr>(outcomeRecords[column]).getValue());
+      if (rowRecords != successRecords ||
+          getOutcomeSyndromeTerms(*outcome, row) != successTerms)
+        continue;
+      if (matchingRow)
+        return owner->emitOpError()
+               << operation
+               << " success semantics match more than one OutcomeMap row";
+      matchingRow = row;
+    }
+    if (!matchingRow)
+      return owner->emitOpError()
+             << operation
+             << " success semantics do not match an exact ordered OutcomeMap "
+                "row";
+    if (!claimedRows.insert(*matchingRow).second)
+      return owner->emitOpError()
+             << operation
+             << " profile success rows must map one-to-one to distinct "
+                "OutcomeMap rows";
+    if (!authoritativeSuccessRows.empty() &&
+        outcome->getAs<ArrayAttr>("roles") &&
+        *matchingRow != authoritativeSuccessRows[bindings.size()])
+      return owner->emitOpError()
+             << operation
+             << " profile success rows must preserve OutcomeMap role order";
+
+    bindings.push_back({*matchingRow, profileConstant});
+  }
+
+  CallOp selectedCall;
+  auto verifyEvent = [&](Value event, SuccessBinding binding,
+                         bool trueOnAccept) -> LogicalResult {
+    auto expression = normalizeBooleanAffine(event);
+    if (failed(expression) || expression->terms.size() != 1)
+      return owner->emitOpError()
+             << operation
+             << " predicate events must be provable affine call-result "
+                "Booleans";
+    Value term = expression->terms.front();
+    auto result = dyn_cast<OpResult>(term);
+    auto call = term.getDefiningOp<CallOp>();
+    if (!result || !call || call.getCalleeAttr() != attemptAttr ||
+        call.getProfileAttr() != profileAttr)
+      return owner->emitOpError()
+             << operation
+             << " predicate must derive from the selected attempt/profile "
+                "call";
+    if (selectedCall && selectedCall != call)
+      return owner->emitOpError()
+             << "all " << operation
+             << " predicate events must derive from the same selected attempt "
+                "call";
+    selectedCall = call;
+
+    int64_t booleanOrdinal = 0;
+    bool foundResult = false;
+    for (auto [index, type] : llvm::enumerate(call.getResultTypes())) {
+      if (index == result.getResultNumber()) {
+        if (!type.isInteger(1))
+          return owner->emitOpError()
+                 << operation << " predicate call result must be i1";
+        foundResult = true;
+        break;
+      }
+      if (type.isInteger(1))
+        ++booleanOrdinal;
+    }
+    if (!foundResult || booleanOrdinal != binding.outcomeRow)
+      return owner->emitOpError()
+             << operation
+             << " predicate events must preserve profile success-row order "
+                "and identity";
+
+    bool outcomeConstant = constants.asArrayRef()[binding.outcomeRow] != 0;
+    bool expectedConstant =
+        outcomeConstant ^ binding.profileConstant ^ trueOnAccept;
+    if (expression->constant != expectedConstant)
+      return owner->emitOpError()
+             << operation
+             << " predicate polarity contradicts profile success semantics";
+    return success();
+  };
+
+  if (auto allFalse = predicate.getDefiningOp<AllFalseOp>()) {
+    if (allFalse.getEvents().size() != bindings.size())
+      return owner->emitOpError("fabric.all_false ")
+             << operation
+             << " predicates must cover every selected profile success row "
+                "exactly once";
+    for (auto [event, binding] : llvm::zip(allFalse.getEvents(), bindings))
+      if (failed(verifyEvent(event, binding, /*trueOnAccept=*/false)))
+        return failure();
+  } else {
+    if (bindings.size() != 1)
+      return owner->emitOpError("multi-row ")
+             << operation
+             << " success requires an ordered fabric.all_false predicate";
+    if (failed(verifyEvent(predicate, bindings.front(),
+                           /*trueOnAccept=*/true)))
+      return failure();
+  }
+
+  llvm::SmallDenseSet<Value, 4> carriedResults;
+  for (Value carry : carries) {
+    if (!selectedCall || carry.getDefiningOp() != selectedCall.getOperation())
+      return owner->emitOpError("every ")
+             << operation
+             << " carry must originate from the selected attempt call";
+    if (!carriedResults.insert(carry).second)
+      return owner->emitOpError(operation)
+             << " carries must contain each selected attempt patch result "
+                "exactly once";
+  }
+  if (operation == "retry") {
+    int64_t patchResultCount = 0;
+    for (Value result : selectedCall.getResults())
+      if (isa<PatchType>(result.getType())) {
+        ++patchResultCount;
+        if (!carriedResults.contains(result))
+          return owner->emitOpError(operation)
+                 << " must carry every linear patch result from the selected "
+                    "attempt; sibling cleanup is not a closed replay boundary";
+      }
+    if (patchResultCount != static_cast<int64_t>(carries.size()))
+      return owner->emitOpError(operation)
+             << " carries must exactly equal the selected attempt patch "
+                "results";
+  }
   return success();
 }
 
@@ -3830,62 +4679,176 @@ LogicalResult RetryOp::verify() {
       getExhaustion() != "return_last")
     return emitOpError(
         "exhaustion must be report_failure, abort, or return_last");
+  if (getSuccessProbabilityAttr()) {
+    double probability = getSuccessProbabilityAttr().getValueAsDouble();
+    if (!std::isfinite(probability) || probability <= 0.0 || probability > 1.0)
+      return emitOpError(
+          "success_probability must be finite and lie in (0, 1]");
+  } else if (getSuccessProbabilitySourceAttr() ||
+             getSuccessProbabilityEvidenceAttr()) {
+    return emitOpError("probability provenance requires success_probability");
+  }
   if (getCarries().size() != getResults().size())
     return emitOpError("must return every linear carry");
   for (auto [input, result] : llvm::zip(getCarries(), getResults()))
     if (input.getType() != result.getType())
       return emitOpError("carry/result patch types must match");
   if (!getAttemptAttr())
-    return emitOpError("requires an explicit attempt gadget or protocol");
+    return emitOpError("requires an explicit attempt gadget");
   Operation *attempt =
       SymbolTable::lookupNearestSymbolFrom(*this, getAttemptAttr());
-  if (!isa_and_nonnull<GadgetOp, ProtocolOp>(attempt))
+  if (!attempt)
+    return emitOpError("attempt must resolve to fabric.gadget or a contracted "
+                       "fabric.protocol");
+  auto protocol = dyn_cast<ProtocolOp>(attempt);
+  auto gadget = dyn_cast<GadgetOp>(attempt);
+  if (!gadget && !protocol)
+    return emitOpError("attempt must resolve to fabric.gadget or a contracted "
+                       "fabric.protocol");
+  if (protocol && (!protocol.getPredicateGadgetAttr() ||
+                   !protocol.getPredicateProfileAttr() ||
+                   !protocol.getPredicateResultAttr()))
     return emitOpError(
-        "attempt must resolve to fabric.gadget or fabric.protocol");
-  if (auto probability = getSuccessProbabilityAttr()) {
-    double value = probability.getValueAsDouble();
-    if (!std::isfinite(value) || value <= 0.0 || value > 1.0)
-      return emitOpError(
-          "success_probability must be finite and lie in (0, 1]");
-    if (!getSuccessProbabilitySourceAttr() ||
-        getSuccessProbabilitySourceAttr() != getAttemptAttr() ||
-        !getSuccessProbabilityEvidenceAttr() ||
-        getSuccessProbabilityEvidenceAttr().getValue().empty())
-      return emitOpError(
-          "success_probability requires attempt-bound nonempty provenance");
-  } else if (getSuccessProbabilitySourceAttr() ||
-             getSuccessProbabilityEvidenceAttr()) {
-    return emitOpError("probability provenance requires success_probability");
-  }
-  return success();
-}
+        "protocol retry attempts are unsupported until protocols carry a "
+        "typed selection and predicate-provenance contract");
 
-LogicalResult WhileOp::verify() {
-  if (getMaxIterationsAttr() && getMaxIterationsAttr().getInt() <= 0)
-    return emitOpError("max_iterations must be positive when present");
-  if (!llvm::hasSingleElement(getBeforeRegion()) ||
-      !llvm::hasSingleElement(getAfterRegion()))
-    return emitOpError("before and after regions must each contain one block");
-  if (getInits().getTypes() != getResultTypes())
-    return emitOpError("init and result types must be identical");
-  Block &before = getBeforeRegion().front();
-  Block &after = getAfterRegion().front();
-  if (before.getArgumentTypes() != getResultTypes() ||
-      after.getArgumentTypes() != getResultTypes())
+  if (!getProfileAttr())
+    return emitOpError("requires an explicit selected gadget profile");
+  Operation *profileTarget =
+      SymbolTable::lookupNearestSymbolFrom(*this, getProfileAttr());
+  auto profile = dyn_cast_or_null<GadgetProfileOp>(profileTarget);
+  if (!profile)
+    return emitOpError("profile must resolve to fabric.gadget_profile");
+  if (protocol) {
+    if (protocol.getPredicateProfileAttr() != getProfileAttr())
+      return emitOpError(
+          "retry profile must equal the protocol predicate profile");
+    gadget = dyn_cast_or_null<GadgetOp>(SymbolTable::lookupNearestSymbolFrom(
+        *this, protocol.getPredicateGadgetAttr()));
+    if (!gadget || profile.getGadgetAttr() != protocol.getPredicateGadgetAttr())
+      return emitOpError(
+          "protocol predicate profile must analyze its contracted gadget");
+  } else if (profile.getGadgetAttr() != getAttemptAttr()) {
+    return emitOpError("profile must analyze the retry attempt");
+  }
+  if (!gadget.getSpecAttr())
+    return emitOpError("retry requires an attempt gadget with a spec");
+  auto *specTarget =
+      SymbolTable::lookupNearestSymbolFrom(*this, gadget.getSpecAttr());
+  auto spec = dyn_cast_or_null<GadgetSpecOp>(specTarget);
+  if (!spec)
+    return emitOpError("attempt spec must resolve to fabric.gadget_spec");
+  if (spec.getFunctionType() != gadget.getFunctionType())
     return emitOpError(
-        "before/after block arguments must match the carried result types");
-  auto condition = dyn_cast<WhileConditionOp>(before.getTerminator());
-  if (!condition)
-    return emitOpError(
-        "before region must terminate with fabric.while_condition");
-  if (condition.getForwarded().getTypes() != getResultTypes())
-    return emitOpError(
-        "while_condition forwarded types must match loop result types");
-  auto yield = dyn_cast<YieldOp>(after.getTerminator());
-  if (!yield)
-    return emitOpError("after region must terminate with fabric.yield");
-  if (yield.getOperandTypes() != getResultTypes())
-    return emitOpError("after-region yield types must match loop result types");
+        "attempt gadget signature must exactly match its GadgetSpec");
+  if (failed(verifyGadgetSpecRealizationBoundary(gadget, spec,
+                                                 /*requireWitness=*/true)))
+    return failure();
+  if (auto commitPoint = getCommitPoint()) {
+    StringRef value = *commitPoint;
+    if (value == "before_output") {
+      // The attempt specification itself is the typed output boundary.
+    } else if (value.consume_front("before_output:")) {
+      if (value.empty())
+        return emitOpError(
+            "qualified before_output commit point requires an endpoint name");
+      bool found = false;
+      if (auto ports = spec.getPorts())
+        for (Attribute raw : *ports) {
+          auto port = dyn_cast<DictionaryAttr>(raw);
+          auto name = port ? port.getAs<StringAttr>("name") : StringAttr{};
+          auto direction =
+              port ? port.getAs<StringAttr>("direction") : StringAttr{};
+          if (name && name.getValue() == value && direction &&
+              (direction.getValue() == "output" ||
+               direction.getValue() == "inout")) {
+            found = true;
+            break;
+          }
+        }
+      if (!found)
+        return emitOpError("commit point names no output endpoint in the "
+                           "selected attempt specification: ")
+               << value;
+    } else if (value == "pack_resource") {
+      if (getResults().empty())
+        return emitOpError(
+            "pack_resource commit point requires a carried patch");
+      for (Value result : getResults())
+        if (!result.hasOneUse() ||
+            !isa<PackResourceOp>(*result.getUsers().begin()))
+          return emitOpError(
+              "pack_resource commit point requires every retry result to be "
+              "consumed directly by fabric.pack_resource");
+    } else {
+      return emitOpError(
+          "commit_point must be before_output, before_output:<endpoint>, or "
+          "pack_resource");
+    }
+  }
+  if (failed(verifySelectedPredicateSemantics(
+          getOperation(), getSuccess(), getCarries(), getAttemptAttr(),
+          getProfileAttr(), gadget, profile, spec, "retry")))
+    return failure();
+
+  if (getSuccessProbabilityAttr()) {
+    auto sourceAttr = getSuccessProbabilitySourceAttr();
+    auto evidenceAttr = getSuccessProbabilityEvidenceAttr();
+    if (!sourceAttr || !evidenceAttr || evidenceAttr.getValue().empty())
+      return emitOpError(
+          "success_probability requires a source and nonempty evidence");
+    if (sourceAttr != getAttemptAttr() && sourceAttr != getProfileAttr())
+      return emitOpError(
+          "success_probability source must be the attempt or selected profile");
+    DictionaryAttr metadata;
+    if (sourceAttr == getAttemptAttr())
+      metadata = protocol ? protocol.getMetadataAttr() : spec.getMetadataAttr();
+    else if (sourceAttr == getProfileAttr())
+      metadata = profile.getMetadataAttr();
+    auto probabilityText =
+        metadata ? metadata.getAs<StringAttr>("success_probability")
+                 : StringAttr{};
+    auto evidenceText =
+        metadata ? metadata.getAs<StringAttr>("success_probability_evidence")
+                 : StringAttr{};
+    double establishedProbability = 0.0;
+    if (!probabilityText ||
+        probabilityText.getValue().getAsDouble(establishedProbability) ||
+        establishedProbability !=
+            getSuccessProbabilityAttr().getValueAsDouble())
+      return emitOpError(
+          "success_probability must equal the value established by its source");
+    if (!evidenceText || evidenceText.getValue() != evidenceAttr.getValue())
+      return emitOpError(
+          "success_probability evidence must match its source metadata");
+
+    StringRef evidence = evidenceAttr.getValue();
+    constexpr StringLiteral synthesisPrefix = "synthesis:sha256:";
+    constexpr StringLiteral analysisPrefix = "analysis:";
+    if (evidence.starts_with(synthesisPrefix)) {
+      StringRef digest = evidence.drop_front(synthesisPrefix.size());
+      auto sourceDigest = metadata
+                              ? metadata.getAs<StringAttr>("synthesis_sha256")
+                              : StringAttr{};
+      if (sourceAttr != getAttemptAttr() || digest.size() != 64 ||
+          !llvm::all_of(digest,
+                        [](char character) {
+                          return (character >= '0' && character <= '9') ||
+                                 (character >= 'a' && character <= 'f');
+                        }) ||
+          !sourceDigest || sourceDigest.getValue() != digest)
+        return emitOpError(
+            "synthesis probability evidence must bind the attempt digest");
+    } else if (evidence.starts_with(analysisPrefix)) {
+      if (sourceAttr != getProfileAttr() ||
+          evidence.size() == analysisPrefix.size())
+        return emitOpError(
+            "analysis probability evidence must bind the selected profile");
+    } else {
+      return emitOpError("success_probability evidence must be "
+                         "synthesis:sha256:... or analysis:...");
+    }
+  }
   return success();
 }
 
@@ -4351,19 +5314,13 @@ LogicalResult MeasureGaugesOp::verify() {
   return verifyEncodingQualifiedTypes(*this, types);
 }
 
-LogicalResult EventAwaitOp::verify() {
-  auto event = getEvent().getType();
-  if (event.getPayload() != getResource().getType())
-    return emitOpError("result type must equal the event payload type");
-  if (event.getOwnership() != "linear")
-    return emitOpError("resource events must carry linear ownership");
-  return success();
-}
-
 LogicalResult ResourceRequestOp::verify() {
-  auto resource = dyn_cast<SymbolRefAttr>(getResource().getType().getKind());
+  auto payload = dyn_cast<ResourceStateType>(getEvent().getType().getPayload());
+  if (!payload)
+    return emitOpError("event payload must be a Fabric resource");
+  auto resource = dyn_cast<SymbolRefAttr>(payload.getKind());
   if (!resource || resource.getLeafReference().getValue() != getKind())
-    return emitOpError("kind must match the requested resource type");
+    return emitOpError("kind must match the event payload resource");
   auto stream = getStreamAttr();
   SmallVector<Operation *> selectedDevices;
   if (auto module = (*this)->getParentOfType<ModuleOp>())
@@ -4487,7 +5444,7 @@ private:
         .Cases({"fabric.reset", "fabric.permute"}, true)
         .Cases({"fabric.mz", "fabric.mpp", "fabric.read_syndrome_ancillas"},
                true)
-        .Cases({"fabric.apply_correction", "fabric.cx", "fabric.cz"}, true)
+        .Cases({"fabric.cx", "fabric.cz"}, true)
         .Cases({"fabric.transversal_cx", "fabric.multi_measure",
                 "fabric.measure_product"},
                true)
@@ -4774,20 +5731,330 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
   return success();
 }
 
+static LogicalResult
+verifyLocalGeneratedRPPProvenance(Operation *owner, Operation *callee,
+                                  SymbolRefAttr actionSiteRef,
+                                  SymbolTableCollection &symbolTables) {
+  Operation *actionSite =
+      symbolTables.lookupNearestSymbolFrom(owner, actionSiteRef);
+  if (!actionSite || actionSite->getName().getStringRef() != "lvm.action_site")
+    return owner->emitOpError(
+        "local generated RPP action_site must resolve to lvm.action_site");
+  if (actionSite->hasAttr("channel") ||
+      actionSite->hasAttr("channel_capability") ||
+      actionSite->hasAttr("endpoints") || actionSite->hasAttr("direction"))
+    return owner->emitOpError(
+        "local generated RPP action_site must not carry communication "
+        "provenance");
+
+  auto siteKind = actionSite->getAttrOfType<StringAttr>("kind");
+  auto siteObjective = dyn_cast_or_null<qlx::BuiltinActionAttr>(
+      actionSite->getAttr("objective"));
+  if (!siteKind || siteKind.getValue() != "action" || !siteObjective ||
+      siteObjective.getValue() != qlx::BuiltinAction::pauli_rotation)
+    return owner->emitOpError(
+        "local generated RPP action_site must select pauli_rotation");
+
+  auto generatedBy = callee->getAttrOfType<FlatSymbolRefAttr>("generated_by");
+  if (!generatedBy)
+    return owner->emitOpError(
+        "local generated RPP callee requires generated_by provenance");
+  Operation *lowering =
+      symbolTables.lookupNearestSymbolFrom(owner, generatedBy);
+  if (!lowering || lowering->getName().getStringRef() != "qlx.qec_lowering")
+    return owner->emitOpError(
+        "local generated RPP callee generated_by must resolve to "
+        "qlx.qec_lowering");
+  auto family = lowering->getAttrOfType<StringAttr>("objective_family");
+  if (!family || family.getValue() != "pauli_product_rotation")
+    return owner->emitOpError(
+        "local generated RPP callee must select pauli_product_rotation");
+  Attribute loweringObjective = lowering->getAttr("objective");
+  if (loweringObjective && loweringObjective != siteObjective)
+    return owner->emitOpError(
+        "local generated RPP lowering objective must match action_site "
+        "pauli_rotation");
+
+  auto calleeName = callee->getAttrOfType<StringAttr>("sym_name");
+  auto dependencies = lowering->getAttrOfType<ArrayAttr>("dependencies");
+  bool isDependency =
+      dependencies && calleeName &&
+      llvm::any_of(dependencies, [&](Attribute value) {
+        auto reference = dyn_cast<FlatSymbolRefAttr>(value);
+        return reference && reference.getValue() == calleeName.getValue();
+      });
+  if (!isDependency)
+    return owner->emitOpError(
+        "local generated RPP callee must be a declared generator dependency");
+
+  auto specialization = callee->getAttrOfType<DictionaryAttr>("specialization");
+  if (!specialization || !specialization.getAs<StringAttr>("rpp_strategy"))
+    return owner->emitOpError(
+        "local generated RPP callee requires canonical RPP specialization");
+  auto siteParameters = actionSite->getAttrOfType<DictionaryAttr>("parameters");
+  if (!siteParameters)
+    return owner->emitOpError(
+        "local generated RPP action_site requires canonical parameters");
+  for (NamedAttribute parameter : siteParameters) {
+    StringRef name = parameter.getName().getValue();
+    if (name == "angle_pi_numer" || name == "angle_pi_denom")
+      continue;
+    if (specialization.get(parameter.getName()) != parameter.getValue())
+      return owner->emitOpError(
+                 "local generated RPP specialization does not preserve "
+                 "action-site parameter ")
+             << parameter.getName();
+  }
+
+  auto siteAngle = siteParameters.getAs<FloatAttr>("angle");
+  auto effectiveAngle = specialization.getAs<FloatAttr>("effective_angle");
+  if (!siteAngle || !effectiveAngle)
+    return owner->emitOpError(
+        "local generated RPP requires action-site angle and specialization "
+        "effective_angle f64 values");
+  int64_t sign = 1;
+  if (auto siteSign = siteParameters.getAs<IntegerAttr>("sign"))
+    sign = siteSign.getInt();
+  auto expectedEffectiveAngle =
+      FloatAttr::get(siteAngle.getType(), siteAngle.getValueAsDouble() * sign);
+  if (effectiveAngle != expectedEffectiveAngle)
+    return owner->emitOpError(
+        "local generated RPP effective_angle must equal the signed "
+        "action-site angle");
+
+  auto protocol = dyn_cast<ProtocolOp>(callee);
+  if (!protocol)
+    return owner->emitOpError(
+        "local generated RPP callee must be a product-rotation protocol "
+        "adapter");
+  auto metadata = protocol->getAttrOfType<DictionaryAttr>("metadata");
+  auto compiler = metadata ? metadata.getAs<StringAttr>("compiler") : nullptr;
+  auto strategy = metadata ? metadata.getAs<StringAttr>("strategy") : nullptr;
+  auto implementation =
+      metadata ? metadata.getAs<StringAttr>("implementation") : nullptr;
+  auto specializationStrategy =
+      specialization.getAs<StringAttr>("rpp_strategy");
+  if (!compiler || compiler.getValue() != "cudaq.logical.product_rotation" ||
+      !strategy || !implementation || !specializationStrategy)
+    return owner->emitOpError(
+        "local generated RPP callee requires canonical product-rotation "
+        "adapter evidence");
+  if (strategy != specializationStrategy)
+    return owner->emitOpError(
+        "local generated RPP strategy does not match its executable adapter");
+
+  auto selections = lowering->getAttrOfType<DictionaryAttr>("rpp_selections");
+  auto selection = selections && calleeName
+                       ? dyn_cast_or_null<DictionaryAttr>(
+                             selections.get(calleeName.getValue()))
+                       : DictionaryAttr{};
+  auto selectedStrategy =
+      selection ? selection.getAs<StringAttr>("strategy") : nullptr;
+  auto selectedImplementation =
+      selection ? selection.getAs<FlatSymbolRefAttr>("implementation")
+                : FlatSymbolRefAttr{};
+  if (!selectedStrategy || !selectedImplementation)
+    return owner->emitOpError(
+        "local generated RPP callee requires a typed lowering selection "
+        "witness");
+  if (selectedStrategy != specializationStrategy ||
+      selectedStrategy != strategy)
+    return owner->emitOpError(
+        "local generated RPP strategy contradicts its lowering selection "
+        "witness");
+  if (selectedImplementation.getValue() != implementation.getValue())
+    return owner->emitOpError(
+        "local generated RPP implementation contradicts its lowering "
+        "selection witness");
+
+  SmallVector<CallOp> implementationCalls;
+  protocol.getBody().walk(
+      [&](CallOp call) { implementationCalls.push_back(call); });
+  if (implementationCalls.size() != 1 ||
+      implementationCalls.front().getCalleeAttr().getValue() !=
+          implementation.getValue() ||
+      implementationCalls.front().getCalleeAttr() != selectedImplementation)
+    return owner->emitOpError(
+        "local generated RPP adapter must call exactly its recorded "
+        "implementation");
+
+  Attribute siteNumerValue = siteParameters.get("angle_pi_numer");
+  Attribute siteDenomValue = siteParameters.get("angle_pi_denom");
+  if (siteNumerValue || siteDenomValue) {
+    auto siteNumer = dyn_cast_or_null<IntegerAttr>(siteNumerValue);
+    auto siteDenom = dyn_cast_or_null<IntegerAttr>(siteDenomValue);
+    if (!siteNumer || !siteDenom)
+      return owner->emitOpError(
+          "local generated RPP exact angle requires integer angle_pi_numer "
+          "and angle_pi_denom on action_site");
+
+    auto specializationNumer =
+        dyn_cast_or_null<IntegerAttr>(specialization.get("angle_pi_numer"));
+    auto specializationDenom =
+        dyn_cast_or_null<IntegerAttr>(specialization.get("angle_pi_denom"));
+    if (!specializationNumer || !specializationDenom)
+      return owner->emitOpError(
+          "local generated RPP exact angle requires integer angle_pi_numer "
+          "and angle_pi_denom on specialization");
+    if (siteDenom.getValue().isNegative() || siteDenom.getValue().isZero() ||
+        specializationDenom.getValue().isNegative() ||
+        specializationDenom.getValue().isZero())
+      return owner->emitOpError(
+          "local generated RPP exact angle denominators must be positive");
+
+    auto siteSign = siteParameters.getAs<IntegerAttr>("sign");
+    if (siteParameters.get("sign") && !siteSign)
+      return owner->emitOpError(
+          "local generated RPP exact angle requires an integer action-site "
+          "sign");
+
+    // P1 stores sign*n/d while the generated specialization stores the
+    // already-signed canonical numerator modulo 2*pi. Widen every factor
+    // before multiplication so the proof cannot overflow source integers.
+    unsigned siteSignWidth = siteSign ? siteSign.getValue().getBitWidth() : 1;
+    unsigned leftWidth = siteSignWidth + siteNumer.getValue().getBitWidth() +
+                         specializationDenom.getValue().getBitWidth();
+    unsigned rightWidth = specializationNumer.getValue().getBitWidth() +
+                          siteDenom.getValue().getBitWidth();
+    unsigned proofWidth = std::max(leftWidth, rightWidth) + 2;
+    llvm::APInt sign = siteSign ? siteSign.getValue().sext(proofWidth)
+                                : llvm::APInt(proofWidth, 1);
+    llvm::APInt siteN = siteNumer.getValue().sext(proofWidth);
+    llvm::APInt siteD = siteDenom.getValue().sext(proofWidth);
+    llvm::APInt specializationN =
+        specializationNumer.getValue().sext(proofWidth);
+    llvm::APInt specializationD =
+        specializationDenom.getValue().sext(proofWidth);
+    llvm::APInt difference =
+        sign * siteN * specializationD - specializationN * siteD;
+    llvm::APInt twoPiDenominator = (siteD * specializationD).shl(1);
+    if (!difference.srem(twoPiDenominator).isZero())
+      return owner->emitOpError(
+          "local generated RPP specialization exact angle must equal the "
+          "signed action-site angle modulo 2*pi");
+  }
+
+  if (!protocol.getObjectiveAttr() ||
+      protocol.getObjectiveAttr() != siteObjective)
+    return owner->emitOpError(
+        "local generated RPP protocol objective must match action_site "
+        "pauli_rotation");
+  return success();
+}
+
+static LogicalResult verifyLocalGeneratedRPPProtocol(ProtocolOp protocol) {
+  auto specialization = protocol.getSpecializationAttr();
+  auto actionSite = protocol.getActionSiteAttr();
+  if (!actionSite || !specialization ||
+      !specialization.getAs<StringAttr>("rpp_strategy"))
+    return success();
+  SymbolTableCollection symbolTables;
+  return verifyLocalGeneratedRPPProvenance(protocol.getOperation(),
+                                           protocol.getOperation(), actionSite,
+                                           symbolTables);
+}
+
+static LogicalResult verifyLocalGeneratedRPPInvocations(ProtocolOp protocol) {
+  SymbolTableCollection symbolTables;
+  LogicalResult result = success();
+  protocol.getBody().walk([&](CallOp call) {
+    if (failed(result))
+      return;
+    bool hasLocalActionSite = static_cast<bool>(call.getActionSiteAttr());
+    bool hasRemoteTrigger =
+        static_cast<bool>(call.getChannelAttr()) ||
+        static_cast<bool>(call.getChannelCapabilityAttr()) ||
+        static_cast<bool>(call.getEndpointsAttr()) ||
+        static_cast<bool>(call.getGeneratedByAttr());
+    if (!hasLocalActionSite || hasRemoteTrigger)
+      return;
+
+    Operation *target =
+        symbolTables.lookupNearestSymbolFrom(call, call.getCalleeAttr());
+    if (!target) {
+      result = call.emitOpError(
+          "provenance-bound callee must resolve to fabric.gadget or "
+          "fabric.protocol");
+      return;
+    }
+    FunctionType signature;
+    if (auto gadget = dyn_cast<GadgetOp>(target))
+      signature = gadget.getFunctionType();
+    else if (auto selectedProtocol = dyn_cast<ProtocolOp>(target))
+      signature = selectedProtocol.getFunctionType();
+    else {
+      result = call.emitOpError(
+          "callee must resolve to fabric.gadget or fabric.protocol");
+      return;
+    }
+    if (call.getOperandTypes() != signature.getInputs() ||
+        call.getResultTypes() != signature.getResults()) {
+      result = call.emitOpError(
+          "operand/result types must match the callee signature");
+      return;
+    }
+    if (auto profileRef = call.getProfileAttr()) {
+      Operation *profileTarget =
+          symbolTables.lookupNearestSymbolFrom(call, profileRef);
+      if (profileTarget) {
+        auto profile = dyn_cast<GadgetProfileOp>(profileTarget);
+        if (!profile) {
+          result =
+              call.emitOpError("profile must resolve to fabric.gadget_profile");
+          return;
+        }
+        if (auto gadget = dyn_cast<GadgetOp>(target)) {
+          if (profile.getGadgetAttr() != call.getCalleeAttr()) {
+            result = call.emitOpError("profile must analyze the called gadget");
+            return;
+          }
+        } else {
+          auto selectedProtocol = cast<ProtocolOp>(target);
+          if (!selectedProtocol.getPredicateProfileAttr() ||
+              !selectedProtocol.getPredicateGadgetAttr() ||
+              selectedProtocol.getPredicateProfileAttr() != profileRef ||
+              profile.getGadgetAttr() !=
+                  selectedProtocol.getPredicateGadgetAttr()) {
+            result = call.emitOpError(
+                "protocol call profile must equal its typed predicate profile");
+            return;
+          }
+        }
+      }
+    }
+    result = verifyLocalGeneratedRPPProvenance(
+        call.getOperation(), target, call.getActionSiteAttr(), symbolTables);
+  });
+  return result;
+}
+
 LogicalResult CallOp::verify() {
-  unsigned communicationAttrs =
-      static_cast<unsigned>(static_cast<bool>(getChannelAttr())) +
-      static_cast<unsigned>(static_cast<bool>(getChannelCapabilityAttr())) +
-      static_cast<unsigned>(static_cast<bool>(getEndpointsAttr())) +
-      static_cast<unsigned>(static_cast<bool>(getActionSiteAttr())) +
-      static_cast<unsigned>(static_cast<bool>(getGeneratedByAttr()));
+  bool hasLocalActionSite = static_cast<bool>(getActionSiteAttr());
+  bool hasRemoteTrigger = static_cast<bool>(getChannelAttr()) ||
+                          static_cast<bool>(getChannelCapabilityAttr()) ||
+                          static_cast<bool>(getEndpointsAttr()) ||
+                          static_cast<bool>(getGeneratedByAttr());
+  bool isLocalGeneratedInvocation = hasLocalActionSite && !hasRemoteTrigger;
+  bool hasProvenance = hasLocalActionSite || hasRemoteTrigger;
+
+  // A generated RPP call references one action site in the enclosing P1
+  // domain.  The enclosing protocol verifies all such calls with one shared
+  // SymbolTableCollection; resolving the 200k-site domain independently from
+  // every CallOp is quadratic.  Keep the obligation parent-owned and fail
+  // closed if the call has no protocol proof boundary.
+  if (isLocalGeneratedInvocation) {
+    if (!(*this)->getParentOfType<ProtocolOp>())
+      return emitOpError(
+          "local generated RPP invocation must appear inside fabric.protocol");
+    return success();
+  }
 
   Operation *target =
       SymbolTable::lookupNearestSymbolFrom(*this, getCalleeAttr());
   if (!target) {
-    if (communicationAttrs != 0)
+    if (hasProvenance)
       return emitOpError(
-          "communication-bound callee must resolve to fabric.gadget or "
+          "provenance-bound callee must resolve to fabric.gadget or "
           "fabric.protocol");
     return success(); // A partially linked ordinary call retains the
                       // obligation.
@@ -4807,10 +6074,36 @@ LogicalResult CallOp::verify() {
   bool legacySyndromeThreading =
       !exactSignature && isa<GadgetOp>(target) &&
       isLegacySyndromeThreadedCall(*this, cast<GadgetOp>(target), signature);
-  if (!exactSignature && !legacySyndromeThreading)
+  if (!exactSignature &&
+      (isLocalGeneratedInvocation || !legacySyndromeThreading))
     return emitOpError("operand/result types must match the callee signature");
 
-  return verifyCommunicationObligation(*this);
+  if (auto profileRef = getProfileAttr()) {
+    Operation *profileTarget =
+        SymbolTable::lookupNearestSymbolFrom(*this, profileRef);
+    if (profileTarget) {
+      auto profile = dyn_cast<GadgetProfileOp>(profileTarget);
+      if (!profile)
+        return emitOpError("profile must resolve to fabric.gadget_profile");
+      if (auto gadget = dyn_cast<GadgetOp>(target)) {
+        if (profile.getGadgetAttr() != getCalleeAttr())
+          return emitOpError("profile must analyze the called gadget");
+      } else {
+        auto protocol = cast<ProtocolOp>(target);
+        if (!protocol.getPredicateProfileAttr() ||
+            !protocol.getPredicateGadgetAttr() ||
+            protocol.getPredicateProfileAttr() != profileRef ||
+            profile.getGadgetAttr() != protocol.getPredicateGadgetAttr())
+          return emitOpError(
+              "protocol call profile must equal its typed predicate profile");
+      }
+    }
+    // Link verification owns unresolved external profiles, but an unresolved
+    // optional profile does not relax this call's local semantic obligations.
+  }
+  if (hasRemoteTrigger)
+    return verifyCommunicationObligation(*this);
+  return success();
 }
 
 LogicalResult RelocateOp::verify() {
@@ -4880,8 +6173,8 @@ LogicalResult EstablishSupportOp::verify() {
     return emitOpError(
         "callee must resolve to fabric.gadget or fabric.protocol");
   auto patchType = getPatch().getType();
-  if (!llvm::equal(signature.getInputs(), TypeRange{patchType}) ||
-      !llvm::equal(signature.getResults(), TypeRange{patchType}))
+  if (TypeRange(signature.getInputs()) != TypeRange{patchType} ||
+      TypeRange(signature.getResults()) != TypeRange{patchType})
     return emitOpError(
         "distributed-support realization must preserve exactly one patch");
   return success();
@@ -4918,117 +6211,69 @@ LogicalResult EstablishTopologicalRecordOp::verify() {
     return emitOpError(
         "callee must resolve to fabric.gadget or fabric.protocol");
   auto patchType = getPatch().getType();
-  if (!llvm::equal(signature.getInputs(), TypeRange{patchType}) ||
-      !llvm::equal(signature.getResults(), TypeRange{patchType}))
+  if (TypeRange(signature.getInputs()) != TypeRange{patchType} ||
+      TypeRange(signature.getResults()) != TypeRange{patchType})
     return emitOpError(
         "topological-record realization must preserve exactly one patch");
   return success();
 }
 
-static LogicalResult verifyEventState(Operation *op, StringRef state) {
-  if (state != "pending" && state != "ready" && state != "failed" &&
-      state != "cancelled" && state != "exhausted")
-    return op->emitOpError(
-        "event state must be pending, ready, failed, cancelled, or exhausted");
-  return success();
-}
-
-static LogicalResult verifyReadySelection(Operation *op, ValueRange events,
-                                          StringRef policy) {
-  if (events.empty())
-    return op->emitOpError("requires at least one event");
-  Type eventType = events.front().getType();
-  if (!llvm::all_of(events,
-                    [&](Value event) { return event.getType() == eventType; }))
-    return op->emitOpError("all selected events must have the same type");
-  if (policy != "priority" && policy != "deterministic" && policy != "fair")
-    return op->emitOpError("policy must be priority, deterministic, or fair");
-  return success();
-}
-
-static LogicalResult verifyFenceEffects(Operation *op, ArrayAttr effects) {
-  if (effects.empty())
-    return op->emitOpError("requires at least one semantic effect");
-  llvm::StringSet<> seen;
-  for (Attribute effect : effects) {
-    auto value = dyn_cast<StringAttr>(effect);
-    if (!value)
-      return op->emitOpError("effects must be strings");
-    StringRef name = value.getValue();
-    if (name != "all" && name != "quantum" && name != "classical" &&
-        name != "resource" && name != "event" && name != "frame" &&
-        name != "outcome" && name != "selection")
-      return op->emitOpError("unknown semantic effect '") << name << "'";
-    if (!seen.insert(name).second)
-      return op->emitOpError("semantic effects must be unique");
-  }
-  if (seen.contains("all") && effects.size() != 1)
-    return op->emitOpError(
-        "effect 'all' cannot be combined with other effects");
-  return success();
-}
-
-LogicalResult EventIsOp::verify() {
-  return verifyEventState(getOperation(), getState());
-}
-
-LogicalResult EventSelectReadyOp::verify() {
-  return verifyReadySelection(getOperation(), getEvents(), getPolicy());
-}
-
-LogicalResult EventTryTakeOp::verify() {
-  if (getCarries().getTypes() != getResultTypes())
-    return emitOpError("carry and result types must match exactly");
-  auto verifyBranch = [&](Region &region, Type alternative,
-                          StringRef label) -> LogicalResult {
-    if (!llvm::hasSingleElement(region))
-      return emitOpError() << label << " region must contain one block";
-    Block &block = region.front();
-    if (block.getNumArguments() != getCarries().size() + 1)
-      return emitOpError()
-             << label
-             << " region requires one alternative argument plus carries";
-    if (block.getArgument(0).getType() != alternative)
-      return emitOpError() << label
-                           << " alternative argument has the wrong type";
-    for (auto [argument, carry] :
-         llvm::zip(block.getArguments().drop_front(), getCarries()))
-      if (argument.getType() != carry.getType())
-        return emitOpError()
-               << label << " carry arguments have the wrong types";
-    auto yield = dyn_cast<YieldOp>(block.getTerminator());
-    if (!yield || yield.getOperandTypes() != getResultTypes())
-      return emitOpError() << label << " yield types must match results";
-    return success();
-  };
-  auto eventType = getEvent().getType();
-  if (failed(verifyBranch(getReady(), eventType.getPayload(), "ready")) ||
-      failed(verifyBranch(getPending(), eventType, "pending")) ||
-      failed(verifyBranch(getFailed(), IntegerType::get(getContext(), 8),
-                          "failed")))
-    return failure();
-  return success();
-}
-
-LogicalResult FenceOp::verify() {
-  return verifyFenceEffects(getOperation(), getEffects());
-}
-
-LogicalResult SelectionOp::verify() {
-  StringRef mode = getMode();
-  if (mode != "require" && mode != "condition_results" && mode != "abort_on")
-    return emitOpError("mode must be require, condition_results, or abort_on");
-  bool expected = mode != "abort_on";
-  if (getAcceptWhen() != expected)
-    return emitOpError("accept_when disagrees with the selection mode");
-  if (auto attemptAttr = getAttemptAttr()) {
+// event.selection's shared verifier (EventDialect.cpp) only checks mode/
+// accept_when and that attempt/profile resolve to some symbol, since the
+// shared `event` dialect cannot depend on `fabric` to check that attempt is
+// specifically a fabric.gadget, that profile is its fabric.gadget_profile,
+// or the outcome-map contract verifySelectedPredicateSemantics enforces.
+// Walking every embedded event.selection in a protocol body from here
+// restores those checks for the one dialect whose selections carry them.
+static LogicalResult verifyEmbeddedSelections(Operation *protocolBody) {
+  LogicalResult result = success();
+  protocolBody->walk([&](qlx::event::SelectionOp selection) {
+    if (failed(result))
+      return;
+    auto attemptAttr = selection.getAttemptAttr();
+    if (!attemptAttr)
+      return;
     Operation *attempt =
-        SymbolTable::lookupNearestSymbolFrom(*this, attemptAttr);
-    if (!attempt || !isa<GadgetOp, ProtocolOp>(attempt))
-      return emitOpError(
-          "attempt must resolve to fabric.gadget or fabric.protocol");
-  }
-  return success();
+        SymbolTable::lookupNearestSymbolFrom(selection, attemptAttr);
+    auto gadget = dyn_cast_or_null<GadgetOp>(attempt);
+    if (!gadget) {
+      selection.emitOpError("attempt must resolve to fabric.gadget");
+      result = failure();
+      return;
+    }
+    auto profileAttr = selection.getProfileAttr();
+    if (!profileAttr)
+      return;
+    auto profile = dyn_cast_or_null<GadgetProfileOp>(
+        SymbolTable::lookupNearestSymbolFrom(selection, profileAttr));
+    if (!profile) {
+      selection.emitOpError("profile must resolve to fabric.gadget_profile");
+      result = failure();
+      return;
+    }
+    if (profile.getGadgetAttr() != attemptAttr) {
+      selection.emitOpError("profile must analyze the selection attempt");
+      result = failure();
+      return;
+    }
+    if (!gadget.getSpecAttr()) {
+      selection.emitOpError("selected attempt requires a gadget spec");
+      result = failure();
+      return;
+    }
+    auto spec = dyn_cast_or_null<GadgetSpecOp>(
+        SymbolTable::lookupNearestSymbolFrom(selection, gadget.getSpecAttr()));
+    if (!spec) {
+      selection.emitOpError("attempt spec must resolve to fabric.gadget_spec");
+      result = failure();
+      return;
+    }
+    if (failed(verifySelectedPredicateSemantics(
+            selection.getOperation(), selection.getPredicate(), ValueRange{},
+            attemptAttr, profileAttr, gadget, profile, spec, "selection")))
+      result = failure();
+  });
+  return result;
 }
 
 LogicalResult ProduceResourceOp::verify() {
@@ -5053,12 +6298,32 @@ static std::optional<unsigned> builtinActionArity(qlx::BuiltinAction action) {
   case qlx::BuiltinAction::cz:
     return 2;
   case qlx::BuiltinAction::ccz:
+  case qlx::BuiltinAction::ccx:
     return 3;
   case qlx::BuiltinAction::pauli_rotation:
     return std::nullopt;
   default:
     return 1;
   }
+}
+
+static LogicalResult verifyResourcePayloadRoles(Operation *owner,
+                                                ArrayAttr roles,
+                                                unsigned payloadCount) {
+  if (!roles)
+    return success();
+  if (roles.size() != payloadCount)
+    return owner->emitOpError(
+        "payload_roles must exactly cover the ordered payloads");
+  llvm::StringSet<> unique;
+  for (Attribute value : roles) {
+    auto role = dyn_cast<StringAttr>(value);
+    if (!role || role.getValue().empty())
+      return owner->emitOpError("payload_roles must contain nonempty strings");
+    if (!unique.insert(role.getValue()).second)
+      return owner->emitOpError("payload_roles must be unique");
+  }
+  return success();
 }
 
 LogicalResult UnpackResourceOp::verify() {
@@ -5078,6 +6343,9 @@ LogicalResult UnpackResourceOp::verify() {
           "every payload patch must name a code, encoding, and epoch");
   }
 
+  if (failed(verifyResourcePayloadRoles(*this, getPayloadRolesAttr(), count)))
+    return failure();
+
   auto blocks = getPayloadLogicalBlocksAttr();
   auto ports = getPayloadLogicalPortsAttr();
   auto blockIDs = getPayloadLogicalBlockIdsAttr();
@@ -5090,14 +6358,24 @@ LogicalResult UnpackResourceOp::verify() {
         "multi-payload unpack requires an action and exact logical maps");
   if (blocks && !action)
     return emitOpError("payload logical maps require a typed payload_action");
-  if (action && action.getValue() == qlx::BuiltinAction::ccz && !blockIDs)
-    return emitOpError(
-        "CCZ payload handoff requires exact selected QEC block identities");
+  if (action &&
+      (action.getValue() == qlx::BuiltinAction::ccz ||
+       action.getValue() == qlx::BuiltinAction::ccx) &&
+      !blockIDs) {
+    auto protocol = (*this)->getParentOfType<ProtocolOp>();
+    auto objective = protocol ? dyn_cast_or_null<qlx::BuiltinActionAttr>(
+                                    protocol.getObjectiveAttr())
+                              : qlx::BuiltinActionAttr{};
+    if (!protocol || protocol.getActionSiteAttr() || objective)
+      return emitOpError(
+          "selected three-qubit magic-state handoff requires exact QEC block "
+          "identities");
+  }
   if (blockIDs && (!blocks || blockIDs.size() != blocks.size()))
     return emitOpError(
         "payload logical block identities must exactly cover the logical map");
   if (!blocks)
-    return success();
+    return verifyRegisteredResourceUnpack(*this);
   if (blocks.size() == 0 || blocks.size() != ports.size())
     return emitOpError(
         "payload logical block and port maps must have equal nonzero length");
@@ -5157,12 +6435,12 @@ LogicalResult UnpackResourceOp::verify() {
       return emitOpError(
           "payload logical port index exceeds the encoding logical capacity");
   }
-  if (coveredBlocks.size() != count)
+  if (!getPayloadRolesAttr() && coveredBlocks.size() != count)
     return emitOpError("payload logical maps must cover every payload block");
-  if (blockIDs && indexByBlockID.size() != count)
-    return emitOpError("payload logical block identities must name every "
-                       "payload owner exactly");
-  return success();
+  if (blockIDs && indexByBlockID.size() != coveredBlocks.size())
+    return emitOpError("payload logical block identities must exactly name "
+                       "the action-bearing payload owners");
+  return verifyRegisteredResourceUnpack(*this);
 }
 
 LogicalResult PackResourceOp::verify() {
@@ -5174,13 +6452,25 @@ LogicalResult PackResourceOp::verify() {
   if (kind != getResourceKindAttr())
     return emitOpError(
         "resource_kind must match the packed result resource type");
-  auto patch = cast<PatchType>(getPayload().getType());
-  if (!patch.getEncoding())
-    return emitOpError("packed payload must name its concrete encoding");
-  if (getPayloadEncodingAttr() &&
-      getPayloadEncodingAttr() != patch.getEncoding())
-    return emitOpError("payload_encoding must match the consumed patch type");
-  return success();
+  if (getPayloads().empty())
+    return emitOpError("requires at least one encoded payload patch");
+  if (getPayloadEncodings().size() != getPayloads().size())
+    return emitOpError(
+        "payload_encodings must exactly cover the consumed payload patches");
+  if (failed(verifyResourcePayloadRoles(*this, getPayloadRolesAttr(),
+                                        getPayloads().size())))
+    return failure();
+  for (auto [value, encodingAttr] :
+       llvm::zip(getPayloads(), getPayloadEncodings())) {
+    auto patch = cast<PatchType>(value.getType());
+    if (!patch.getEncoding())
+      return emitOpError("packed payload must name its concrete encoding");
+    auto encoding = dyn_cast<FlatSymbolRefAttr>(encodingAttr);
+    if (!encoding || encoding != patch.getEncoding())
+      return emitOpError(
+          "each payload_encodings entry must match its consumed patch type");
+  }
+  return verifyRegisteredResourcePack(*this);
 }
 
 LogicalResult AllZeroOp::verify() {
@@ -5223,11 +6513,6 @@ LogicalResult MppOp::verify() {
     return emitOpError(
         "paulis width must equal indices width (ignoring an optional "
         "leading '-')");
-  llvm::DenseSet<int64_t> distinctIndices;
-  for (int64_t index : indices)
-    if (!distinctIndices.insert(index).second)
-      return emitOpError("indices must name distinct physical carriers; got ")
-             << index << " more than once";
   if (llvm::any_of(paulis, [](char value) {
         return value != 'X' && value != 'Y' && value != 'Z';
       }))
@@ -5247,9 +6532,9 @@ LogicalResult InjectOp::verify() {
   if (stages) {
     for (Attribute value : stages) {
       auto stage = dyn_cast<StringAttr>(value);
-      if (stage && stage.getValue() == "p2")
+      if (stage && (stage.getValue() == "p2" || stage.getValue() == "p3"))
         return emitOpError(
-            "is legacy logical intent and is not legal in canonical P2; "
+            "is legacy logical intent and is not legal in canonical P2/P3; "
             "select a concrete protocol using fabric.unpack_resource");
     }
     return success();
@@ -5260,9 +6545,10 @@ LogicalResult InjectOp::verify() {
     return success(); // Unprofiled alpha/import modules remain parseable.
   for (Attribute value : profiles) {
     auto profile = dyn_cast<StringAttr>(value);
-    if (profile && profile.getValue().starts_with("p2"))
+    if (profile &&
+        (profile.getValue().starts_with("p2") || profile.getValue() == "p3"))
       return emitOpError(
-          "is legacy logical intent and is not legal in canonical P2; "
+          "is legacy logical intent and is not legal in canonical P2/P3; "
           "select a concrete protocol using fabric.unpack_resource");
   }
   return success();
@@ -5521,11 +6807,9 @@ void CZOp::print(OpAsmPrinter &printer) {
 }
 
 static LogicalResult verifyCXLike(Operation *op, ValueRange operands,
-                                  ResultRange results,
-                                  std::optional<StringRef> schedule,
+                                  ResultRange results, bool hasSchedule,
                                   std::optional<StringRef> pairs,
                                   Partition ctrl, Partition targ) {
-  bool hasSchedule = schedule.has_value();
   bool hasPairs = pairs.has_value();
   unsigned n = operands.size();
   if (n != 1 && n != 2)
@@ -5549,50 +6833,6 @@ static LogicalResult verifyCXLike(Operation *op, ValueRange operands,
                              "'pairs' to enumerate cross-patch CX pairs");
     if (!hasPairs)
       return op->emitOpError("two-patch form requires 'pairs'");
-  }
-
-  if (schedule) {
-    if (*schedule != "hx" && *schedule != "hz")
-      return op->emitOpError("'schedule' must be 'hx' or 'hz', got '")
-             << *schedule << "'";
-
-    Partition expectedCtrl =
-        *schedule == "hx" ? Partition::sx : Partition::data;
-    Partition expectedTarg =
-        *schedule == "hx" ? Partition::data : Partition::sz;
-    if (ctrl != expectedCtrl || targ != expectedTarg)
-      return op->emitOpError("schedule '")
-             << *schedule << "' requires " << stringifyPartition(expectedCtrl)
-             << " -> " << stringifyPartition(expectedTarg) << ", got "
-             << stringifyPartition(ctrl) << " -> " << stringifyPartition(targ);
-
-    auto patch = dyn_cast<PatchType>(operands.front().getType());
-    if (!patch)
-      return op->emitOpError(
-          "'schedule' requires a patch with a directly referenced code");
-    auto *target =
-        SymbolTable::lookupNearestSymbolFrom(op, patch.getCodeType());
-    auto code = dyn_cast_or_null<CodeOp>(target);
-    if (!code)
-      return op->emitOpError("cannot resolve code ") << patch.getCodeType();
-
-    std::optional<ArrayAttr> checks =
-        *schedule == "hx" ? code.getHx() : code.getHz();
-    if (!checks || checks->empty())
-      return op->emitOpError("schedule '")
-             << *schedule << "' requires nonempty " << *schedule
-             << " checks on code " << patch.getCodeType();
-
-    StringRef ancillaPartition = *schedule == "hx" ? "sx" : "sz";
-    auto ancillaWidth = dyn_cast_or_null<IntegerAttr>(
-        code.getPartitions().get(ancillaPartition));
-    if (!ancillaWidth ||
-        static_cast<int64_t>(checks->size()) > ancillaWidth.getInt())
-      return op->emitOpError("schedule '")
-             << *schedule << "' has " << checks->size()
-             << " check rows but code " << patch.getCodeType() << " provides "
-             << (ancillaWidth ? ancillaWidth.getInt() : 0) << " "
-             << ancillaPartition << " carriers";
   }
 
   if (!pairs)
@@ -5724,13 +6964,15 @@ static LogicalResult verifyCXLike(Operation *op, ValueRange operands,
 }
 
 LogicalResult CXOp::verify() {
-  return verifyCXLike(getOperation(), getPatches(), getResults(), getSchedule(),
-                      getPairs(), getCtrl(), getTarg());
+  return verifyCXLike(getOperation(), getPatches(), getResults(),
+                      getSchedule().has_value(), getPairs(), getCtrl(),
+                      getTarg());
 }
 
 LogicalResult CZOp::verify() {
-  return verifyCXLike(getOperation(), getPatches(), getResults(), getSchedule(),
-                      getPairs(), getCtrl(), getTarg());
+  return verifyCXLike(getOperation(), getPatches(), getResults(),
+                      getSchedule().has_value(), getPairs(), getCtrl(),
+                      getTarg());
 }
 
 LogicalResult BarrierOp::verify() {
@@ -5954,10 +7196,6 @@ static LogicalResult verifyCssSupportAlgebra(CodeOp op, int64_t k,
   std::optional<ArrayAttr> gz = op.getGz();
   std::optional<ArrayAttr> lx = op.getLx();
   std::optional<ArrayAttr> lz = op.getLz();
-  if (k > 1 && (!hx || !hz || !lx || !lz))
-    return op.emitOpError(
-        "k > 1 CSS declarations require hx, hz, lx, and lz so the "
-        "protected dimension is authenticated by complete support algebra");
   if (!hx && !hz && !gx && !gz)
     return success(); // No CSS adapter payload declared.
 
@@ -6091,9 +7329,7 @@ static LogicalResult verifyCssSupportAlgebra(CodeOp op, int64_t k,
 
 LogicalResult CodeOp::verify() {
   if ((*this)->hasAttr("noise"))
-    return emitOpError(
-        "P3 noise attributes are outside the P0-P2 product slice");
-
+    return emitOpError("noise was removed from fabric.code");
   // Extract k (default 1 when absent).
   int64_t k = getK().value_or(1);
   if (k < 0)
@@ -6106,14 +7342,6 @@ LogicalResult CodeOp::verify() {
     if (auto dataInt = dyn_cast<IntegerAttr>(dataAttr))
       dataSize = dataInt.getInt();
   }
-
-  // Resource estimates may use k only after the code dimension is closed by
-  // the declaration itself.  Do not let an unauthenticated scalar claim more
-  // protected/gauge qubits than the represented data block can contain.
-  int64_t n = getN().value_or(dataSize);
-  int64_t r = getR().value_or(0);
-  if (n < 1 || r < 0 || k + r > n)
-    return emitOpError("requires n>=1, r>=0, and k+r<=n");
 
   auto verifyLogicalOps = [&](StringRef name, ArrayAttr arr) -> LogicalResult {
     if ((int64_t)arr.size() != k)
@@ -6149,9 +7377,6 @@ LogicalResult CodeOp::verify() {
     if (failed(verifyLogicalOps("lz", *lz)))
       return failure();
   }
-  if (k > 1 && (!getLx() || !getLz()))
-    return emitOpError(
-        "k > 1 requires authenticated lx and lz logical supports");
 
   auto stabilizerBasis = getStabilizerBasis();
   auto logicalXBasis = getLogicalXBasis();
@@ -6175,6 +7400,10 @@ LogicalResult CodeOp::verify() {
         "canonical code algebra requires stabilizer, logical, gauge, "
         "anti-stabilizer, and encoding-Clifford matrices together");
 
+  int64_t n = getN().value_or(dataSize);
+  int64_t r = getR().value_or(0);
+  if (n < 1 || r < 0 || k + r > n)
+    return emitOpError("requires n>=1, r>=0, and k+r<=n");
   int64_t s = n - k - r;
   auto require = [&](Attribute value, StringRef label,
                      int64_t rows) -> FailureOr<DenseIntElementsAttr> {
@@ -7183,6 +8412,378 @@ LogicalResult TransportOp::verify() {
   return success();
 }
 
+LogicalResult SuccessOp::verify() {
+  if (!(*this)->getParentOfType<GadgetProfileOp>())
+    return emitOpError("must be nested in a fabric.gadget_profile");
+  if ((*this)->hasAttr("expected") || (*this)->hasAttr("scope") ||
+      (*this)->hasAttr("label"))
+    return emitOpError(
+        "success rows contain only affine mismatch parity; fold polarity into "
+        "constant");
+  bool hasRecords = getRecords() && !getRecords()->empty();
+  bool hasInputs = getInputSyndromes() && !getInputSyndromes()->empty();
+  if (!hasRecords && !hasInputs && !getConstant())
+    return emitOpError("success parity must contain at least one affine term");
+  return success();
+}
+
+LogicalResult OutputSyndromeOp::verify() {
+  if (!(*this)->getParentOfType<GadgetProfileOp>())
+    return emitOpError("must be nested in a fabric.gadget_profile");
+  if (getPortIndex() < 0 || getIndex() < 0)
+    return emitOpError("requires nonnegative port_index and index");
+  return success();
+}
+
+LogicalResult GadgetProfileOp::verify() {
+  if ((*this)->hasAttr("selection"))
+    return emitOpError(
+        "selection policy belongs to fabric.retry or event.selection, not "
+        "the analysis profile");
+  auto *target = SymbolTable::lookupNearestSymbolFrom(*this, getGadgetAttr());
+  if (!target)
+    return success(); // A partial linked module may resolve this at link time.
+  auto gadget = dyn_cast<GadgetOp>(target);
+  if (!gadget)
+    return emitOpError("gadget reference must resolve to fabric.gadget");
+
+  SmallVector<PatchType> physicalInputs;
+  SmallVector<PatchType> physicalOutputs;
+  for (Type type : gadget.getFunctionType().getInputs())
+    if (auto patch = dyn_cast<PatchType>(type))
+      physicalInputs.push_back(patch);
+  for (Type type : gadget.getFunctionType().getResults())
+    if (auto patch = dyn_cast<PatchType>(type))
+      physicalOutputs.push_back(patch);
+
+  // A produced patch is represented by an uninitialized physical carrier in
+  // the realization signature, but it is not a semantic input boundary.  Use
+  // the GadgetSpec port directions, when available, to distinguish that case
+  // from input and inout endpoints.
+  SmallVector<PatchType> inputEndpoints;
+  SmallVector<PatchType> outputEndpoints;
+  GadgetSpecOp spec;
+  if (auto specRef = gadget.getSpecAttr())
+    spec = dyn_cast_or_null<GadgetSpecOp>(
+        SymbolTable::lookupNearestSymbolFrom(*this, specRef));
+  if (gadget.getSpecAttr() && !spec)
+    return emitOpError(
+        "linked gadget has an unresolved GadgetSpec, so semantic endpoint "
+        "directions are ambiguous");
+  std::optional<ArrayAttr> specPorts = spec ? spec.getPorts() : std::nullopt;
+  if (specPorts) {
+    size_t physicalInputIndex = 0;
+    size_t physicalOutputIndex = 0;
+    for (Attribute raw : *specPorts) {
+      auto port = dyn_cast<DictionaryAttr>(raw);
+      auto direction =
+          port ? port.getAs<StringAttr>("direction") : StringAttr{};
+      if (!direction || physicalInputIndex >= physicalInputs.size())
+        return emitOpError(
+            "linked GadgetSpec port table does not align with the gadget's "
+            "physical patch inputs");
+      PatchType carrier = physicalInputs[physicalInputIndex++];
+      if (direction.getValue() == "input" || direction.getValue() == "inout")
+        inputEndpoints.push_back(carrier);
+      if (direction.getValue() == "output" || direction.getValue() == "inout") {
+        if (physicalOutputIndex >= physicalOutputs.size())
+          return emitOpError(
+              "linked GadgetSpec port table does not align with the gadget's "
+              "physical patch outputs");
+        outputEndpoints.push_back(physicalOutputs[physicalOutputIndex++]);
+      }
+    }
+    if (physicalInputIndex != physicalInputs.size() ||
+        physicalOutputIndex != physicalOutputs.size())
+      return emitOpError(
+          "linked GadgetSpec port table must cover every physical patch "
+          "input and output");
+  } else {
+    inputEndpoints = std::move(physicalInputs);
+    outputEndpoints = std::move(physicalOutputs);
+  }
+
+  SmallVector<int64_t> inputWidths;
+  SmallVector<int64_t> outputWidths;
+  auto parseProfiles = [&](std::optional<ArrayAttr> values, StringRef label,
+                           ArrayRef<PatchType> endpoints,
+                           SmallVectorImpl<int64_t> &widths) -> LogicalResult {
+    bool hasQualifiedEndpoint = llvm::any_of(endpoints, [](PatchType endpoint) {
+      return static_cast<bool>(endpoint.getEncoding());
+    });
+    if (!values && hasQualifiedEndpoint)
+      return emitOpError(label)
+             << " must be present and exactly cover every encoding-qualified "
+                "semantic patch endpoint";
+    if (!values)
+      return success();
+    if (values->size() != endpoints.size())
+      return emitOpError(label)
+             << " entries must exactly cover every typed patch endpoint";
+    for (Attribute raw : *values) {
+      auto entry = dyn_cast<DictionaryAttr>(raw);
+      auto endpoint =
+          entry ? entry.getAs<IntegerAttr>("endpoint") : IntegerAttr{};
+      auto reference = entry ? entry.getAs<FlatSymbolRefAttr>("profile")
+                             : FlatSymbolRefAttr{};
+      if (!endpoint ||
+          endpoint.getInt() != static_cast<int64_t>(widths.size()) ||
+          !reference)
+        return emitOpError(label)
+               << " entries require contiguous endpoint ordinals from zero "
+                  "and a code-profile symbol";
+      PatchType endpointType = endpoints[endpoint.getInt()];
+      auto profile =
+          resolveSelectedCodeProfile(getOperation(), endpointType.getCodeType(),
+                                     endpointType.getEncoding(),
+                                     endpointType.getEpoch(), reference, label);
+      if (failed(profile))
+        return failure();
+      auto effective = (*profile).getEffectiveStabilizers();
+      auto matrix = effective ? dyn_cast<DenseIntElementsAttr>(*effective)
+                              : DenseIntElementsAttr{};
+      if (!matrix || matrix.getType().getRank() != 2)
+        return emitOpError(label)
+               << " profile " << reference
+               << " has no canonical effective syndrome basis";
+      widths.push_back(matrix.getType().getShape()[0]);
+    }
+    return success();
+  };
+  if (failed(
+          parseProfiles(getInputs(), "inputs", inputEndpoints, inputWidths)) ||
+      failed(parseProfiles(getOutputs(), "outputs", outputEndpoints,
+                           outputWidths)))
+    return failure();
+
+  StringRef gadgetName = gadget.getSymName();
+  SmallVector<std::string> demandedPaths;
+  getBody().walk([&](Operation *declaration) {
+    if (!isa<SuccessOp, OutputSyndromeOp>(declaration))
+      return;
+    auto records = declaration->getAttrOfType<ArrayAttr>("records");
+    if (!records)
+      return;
+    for (Attribute raw : records) {
+      auto record = dyn_cast<StringAttr>(raw);
+      if (!record)
+        continue;
+      StringRef path = record.getValue();
+      if (path.consume_front(gadgetName) && path.consume_front(".") &&
+          !path.empty())
+        demandedPaths.push_back(path.str());
+    }
+  });
+  auto recordManifest =
+      collectRecursiveRecordManifest(gadget, false, demandedPaths);
+  if (failed(recordManifest))
+    return failure();
+  const llvm::StringMap<unsigned> &produced =
+      recordManifest->typedProducerCounts;
+  auto checkPath = [&](Operation *declaration,
+                       StringAttr record) -> LogicalResult {
+    StringRef path = record.getValue();
+    if (!path.consume_front(gadgetName) || !path.consume_front("."))
+      return declaration->emitOpError("record '")
+             << record.getValue() << "' is not owned by gadget @" << gadgetName;
+    unsigned producerCount = produced.lookup(path);
+    if (producerCount == 0) {
+      return declaration->emitOpError("record '")
+             << record.getValue()
+             << "' is not an exact output of a typed record-producing "
+                "operation in gadget @"
+             << gadgetName;
+    }
+    if (producerCount != 1)
+      return declaration->emitOpError("record '")
+             << record.getValue() << "' has " << producerCount
+             << " typed producers in gadget @" << gadgetName
+             << "; stable record paths require exactly one";
+    return success();
+  };
+  auto checkRecords = [&](Operation *declaration) -> LogicalResult {
+    auto records = declaration->getAttrOfType<ArrayAttr>("records");
+    if (records) {
+      llvm::StringSet<> seenRecords;
+      for (Attribute value : records) {
+        auto record = dyn_cast<StringAttr>(value);
+        if (!record)
+          return declaration->emitOpError(
+              "stable record references must currently be string attributes");
+        if (!seenRecords.insert(record.getValue()).second)
+          return declaration->emitOpError(
+              "scalar profile record support must be duplicate-free");
+      }
+      for (Attribute value : records) {
+        auto record = cast<StringAttr>(value);
+        if (failed(checkPath(declaration, record)))
+          return failure();
+      }
+    }
+    return success();
+  };
+
+  auto checkInputSyndromes = [&](Operation *declaration) -> LogicalResult {
+    auto inputs = declaration->getAttrOfType<ArrayAttr>("input_syndromes");
+    if (!inputs)
+      return success();
+    llvm::StringSet<> seenTerms;
+    SmallVector<std::pair<int64_t, int64_t>> terms;
+    for (Attribute raw : inputs) {
+      auto entry = dyn_cast<DictionaryAttr>(raw);
+      auto port =
+          entry ? entry.getAs<IntegerAttr>("port_index") : IntegerAttr{};
+      auto index = entry ? entry.getAs<IntegerAttr>("index") : IntegerAttr{};
+      if (!port || !index)
+        return declaration->emitOpError(
+            "input syndrome terms require port_index and index");
+      std::string key =
+          (Twine(port.getInt()) + ":" + Twine(index.getInt())).str();
+      if (!seenTerms.insert(key).second)
+        return declaration->emitOpError(
+            "scalar profile input-syndrome support must be duplicate-free");
+      terms.emplace_back(port.getInt(), index.getInt());
+    }
+    for (auto [port, index] : terms)
+      if (port < 0 || port >= static_cast<int64_t>(inputWidths.size()) ||
+          index < 0 || index >= inputWidths[port])
+        return declaration->emitOpError("invalid input syndrome term ")
+               << port << "[" << index << "]";
+    return success();
+  };
+
+  llvm::StringSet<> outputAssignments;
+  int64_t expectedOutputAssignments = 0;
+  for (int64_t width : outputWidths) {
+    if (width < 0 ||
+        width > std::numeric_limits<int64_t>::max() - expectedOutputAssignments)
+      return emitOpError(
+          "aggregate output syndrome width exceeds the supported signed i64 "
+          "range");
+    expectedOutputAssignments += width;
+  }
+  auto checkOutputSyndrome = [&](OutputSyndromeOp assignment) -> LogicalResult {
+    if (assignment.getPortIndex() < 0 ||
+        assignment.getPortIndex() >=
+            static_cast<int64_t>(outputWidths.size()) ||
+        assignment.getIndex() < 0 ||
+        assignment.getIndex() >= outputWidths[assignment.getPortIndex()])
+      return assignment.emitOpError("invalid output syndrome target ")
+             << assignment.getPortIndex() << "[" << assignment.getIndex()
+             << "]";
+    std::string key =
+        (Twine(assignment.getPortIndex()) + ":" + Twine(assignment.getIndex()))
+            .str();
+    if (!outputAssignments.insert(key).second)
+      return assignment.emitOpError("duplicates output syndrome target ")
+             << key;
+    return success();
+  };
+
+  WalkResult result = getBody().walk([&](Operation *op) -> WalkResult {
+    if (isa<SuccessOp, OutputSyndromeOp>(op)) {
+      if (failed(checkRecords(op)) || failed(checkInputSyndromes(op)))
+        return WalkResult::interrupt();
+    }
+    if (auto assignment = dyn_cast<OutputSyndromeOp>(op))
+      if (failed(checkOutputSyndrome(assignment)))
+        return WalkResult::interrupt();
+    return WalkResult::advance();
+  });
+  if (result.wasInterrupted())
+    return failure();
+
+  // A canonical role-tagged OutcomeMap is the affine authority for success
+  // rows. If a profile authors them, its complete ordered support, input
+  // terms, and constants must agree with the linked GadgetSpec.
+  if (spec && spec.getOutcomeMap()) {
+    DictionaryAttr outcome = *spec.getOutcomeMap();
+    auto roleRows = outcome.getAs<ArrayAttr>("roles");
+    auto outcomeRecords = outcome.getAs<ArrayAttr>("records");
+    auto rows = outcome.getAs<DenseIntElementsAttr>("rows");
+    auto constants = outcome.getAs<DenseI64ArrayAttr>("constants");
+    if (roleRows && (!outcomeRecords || !rows || !constants))
+      return emitOpError(
+          "linked role-tagged GadgetSpec outcome_map is not canonical");
+    if (roleRows) {
+      auto shape = rows.getType().getShape();
+      auto denseValues = rows.getValues<APInt>();
+      SmallVector<APInt> values(denseValues.begin(), denseValues.end());
+      SmallVector<SuccessOp> successes;
+      getBody().walk([&](Operation *op) {
+        if (auto success = dyn_cast<SuccessOp>(op))
+          successes.push_back(success);
+      });
+
+      auto verifyRole = [&](ArrayRef<Operation *> declarations,
+                            StringRef role) -> LogicalResult {
+        SmallVector<int64_t> selectedRows;
+        for (int64_t row = 0; row < shape[0]; ++row)
+          if (outcomeRowHasRole(outcome, row, role))
+            selectedRows.push_back(row);
+        if (selectedRows.empty() || declarations.empty())
+          return success();
+        if (declarations.size() != selectedRows.size())
+          return emitOpError("declares ")
+                 << declarations.size() << " " << role
+                 << " row(s), but the linked GadgetSpec outcome_map tags "
+                 << selectedRows.size() << " authoritative row(s)";
+
+        for (auto [ordinal, row] : llvm::enumerate(selectedRows)) {
+          SmallVector<StringRef> expectedRecords;
+          for (int64_t column = 0; column < shape[1]; ++column)
+            if (!values[row * shape[1] + column].isZero())
+              expectedRecords.push_back(
+                  cast<StringAttr>(outcomeRecords[column]).getValue());
+          SmallVector<StringRef> actualRecords;
+          if (auto records =
+                  declarations[ordinal]->getAttrOfType<ArrayAttr>("records"))
+            for (Attribute raw : records) {
+              auto record = dyn_cast<StringAttr>(raw);
+              if (!record)
+                return emitOpError("profile ")
+                       << role << " records must be stable string paths";
+              StringRef path = record.getValue();
+              if (!path.consume_front(gadgetName) || !path.consume_front("."))
+                return emitOpError("profile ")
+                       << role << " record '" << record.getValue()
+                       << "' is not owned by gadget @" << gadgetName;
+              actualRecords.push_back(path);
+            }
+          bool actualConstant = false;
+          if (auto constant =
+                  declarations[ordinal]->getAttrOfType<BoolAttr>("constant"))
+            actualConstant = constant.getValue();
+          bool expectedConstant = constants.asArrayRef()[row] != 0;
+          if (actualRecords != expectedRecords ||
+              getProfileSyndromeTerms(declarations[ordinal]) !=
+                  getOutcomeSyndromeTerms(outcome, row) ||
+              actualConstant != expectedConstant)
+            return emitOpError("profile ")
+                   << role << " row " << ordinal
+                   << " disagrees with linked GadgetSpec outcome_map row "
+                   << row;
+        }
+        return success();
+      };
+
+      SmallVector<Operation *> successDeclarations;
+      for (SuccessOp success : successes)
+        successDeclarations.push_back(success.getOperation());
+      if (failed(verifyRole(successDeclarations, "success")))
+        return failure();
+    }
+  }
+
+  if (getBoundaryComplete() && static_cast<int64_t>(outputAssignments.size()) !=
+                                   expectedOutputAssignments)
+    return emitOpError("boundary_complete profile assigns ")
+           << outputAssignments.size() << " of " << expectedOutputAssignments
+           << " output syndrome components";
+
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Generated op definitions
 //===----------------------------------------------------------------------===//
@@ -7196,9 +8797,10 @@ LogicalResult TransportOp::verify() {
 
 void FabricDialect::initialize() {
   addInterfaces<FabricDeviceBindingDialectInterface>();
-  addTypes<PatchType, PatchFrameType, SyndromeType, GaugeRecordsType,
-           PatchBundleType, RecordBundleType, ResourceStateType, BitType,
-           SlotType, MachineType>();
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "qlx/Dialect/Fabric/IR/FabricTypes.cpp.inc"
+      >();
 
   addAttributes<
 #define GET_ATTRDEF_LIST
@@ -7206,20 +8808,7 @@ void FabricDialect::initialize() {
       >();
 
   addOperations<
-      DeviceOp, RegionOp, InterconnectOp, CodeOp, CodeProfileOp, EncodingOp,
-      PatchGraphOp, EncodingEpochSchemaOp, EncodingEpochOp, EpochTransitionOp,
-      EncodingHierarchyOp, EncodingProjectionOp, PatchTransformOp,
-      TransformBeginOp, TransformEndOp, ObjectiveOp, GadgetSpecOp, ReturnOp,
-      CircuitOp, GadgetOp, CallOp, RelocateOp, EstablishSupportOp, RetryOp,
-      ProtocolReturnOp, ProtocolOp, EncodingUnpackOp, MapChildrenOp,
-      EncodingPackOp, AllocOp, PrepZOp, PrepXOp, DeallocOp, HOp, SOp, SdgOp,
-      XOp, ZOp, TOp, TdgOp, ResetOp, InitBasisOp, PermuteOp, MzOp,
-      MeasureBasisOp, MppOp, ReadSyndromeAncillasOp, AssembleSyndromeOp,
-      MeasureGaugesOp, CXOp, CZOp, TransversalCXOp, MergeOp, SplitOp,
-      MultiMeasureOp, MeasureProductOp, RotateProductOp,
-      ResourceRotateProductOp, ResourceRequestOp, SelectionOp,
-      ProduceResourceOp, UnpackResourceOp, PackResourceOp, InjectOp,
-      DiscardResourceOp, TransportOp, MoveOp, SendOp, RecvOp, BarrierOp, IdleOp,
-      YieldOp, WhileConditionOp, WhileOp, IfOp, RepeatOp, XorOp, AllZeroOp,
-      ParityOp, AllFalseOp>();
+#define GET_OP_LIST
+#include "qlx/Dialect/Fabric/IR/FabricOps.cpp.inc"
+      >();
 }

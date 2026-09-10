@@ -7,7 +7,7 @@
 # ============================================================================ #
 """Code definitions, encodings, profiles, blocks, and reusable families."""
 
-from .._core.lazy import public_dir as _public_dir, resolve as _resolve
+from cudaq.logical._core.lazy import public_dir as _public_dir, resolve as _resolve
 
 _SELECTION_NAMES = (
     "QECActionSelection",
@@ -46,42 +46,73 @@ _DEFINITION_NAMES = (
     "SubsystemCode",
     "code",
 )
+_BB_NAMES = (
+    "BinaryPolynomial",
+    "BBPermutationMap",
+    "BBSyndromeMoment",
+    "BBSyndromeSchedule",
+    "BivariateBicycleCode",
+    "CyclicProduct",
+    "binary_polynomial",
+)
 _CATALOG_NAMES = (
+    "BB3x3",
     "BareQubit",
     "Repetition",
     "ReedMuller15",
     "RM15",
     "Steane",
     "Surface",
+    "Tesseract",
+    "Toric",
+    "TriangularColor",
+    "bivariate_bicycle",
+    "PINNACLE_GB_INSTANCES",
+    "PUBLISHED_GB_SEEDS",
+    "PinnacleGBInstance",
+    "pinnacle_gb",
+    "pinnacle_gb_instance",
     "rotated_surface",
+    "toric",
+    "triangular_color",
+    "zxxz_surface",
 )
 
 _EXPORTS = {
     **{
-        name: f".selection:{name}" for name in _SELECTION_NAMES
+        name: f"cudaq.logical.codes.selection:{name}" for name in _SELECTION_NAMES
     },
     **{
-        name: f".structure:{name}" for name in _STRUCTURE_NAMES
+        name: f"cudaq.logical.codes.structure:{name}" for name in _STRUCTURE_NAMES
     },
     **{
-        name: f".distance:{name}" for name in _DISTANCE_NAMES
+        name: f"cudaq.logical.codes.distance:{name}" for name in _DISTANCE_NAMES
     },
     **{
-        name: f".profiles:{name}" for name in _PROFILE_NAMES
+        name: f"cudaq.logical.codes.profiles:{name}" for name in _PROFILE_NAMES
     },
     **{
-        name: f".encodings:{name}" for name in _ENCODING_NAMES
+        name: f"cudaq.logical.codes.encodings:{name}" for name in _ENCODING_NAMES
     },
     **{
-        name: f".definition:{name}" for name in _DEFINITION_NAMES
+        name: f"cudaq.logical.codes.definition:{name}" for name in _DEFINITION_NAMES
     },
     **{
-        name: f".catalog:{name}" for name in _CATALOG_NAMES
+        name: f"cudaq.logical.codes.bb:{name}" for name in _BB_NAMES
+    },
+    **{
+        name: f"cudaq.logical.codes.catalog:{name}" for name in _CATALOG_NAMES
     },
 }
 _PRIVATE_EXPORTS = {
-    "_materialized_code_identity": ".definition:_materialized_code_identity",
-    "_materialized_code_metadata": ".definition:_materialized_code_metadata",
+    "_quotient_basis":
+        "cudaq.logical.codes.catalog:_quotient_basis",
+    "_torus_index":
+        "cudaq.logical.codes.catalog:_torus_index",
+    "_materialized_code_identity":
+        "cudaq.logical.codes.definition:_materialized_code_identity",
+    "_materialized_code_metadata":
+        "cudaq.logical.codes.definition:_materialized_code_metadata",
 }
 
 __all__ = list(_EXPORTS)

@@ -1,9 +1,10 @@
 # Build the cudaq.logical docs against the built cudaq-logical wheel.
 #
 # Today the `docs` job runs every cudaq.logical example
-# (preview/logical/examples/[0-9]*.py) against the installed wheel and uploads
-# the example logs as the `cudaq_logical_docs_examples` artifact. This workflow
-# is where the future Sphinx docs build will slot in, publishing a
+# (preview/logical/examples/[0-9]*.py and
+# preview/logical/examples/standalone/[0-9]*.py) against the installed wheel
+# and uploads the example logs as the `cudaq_logical_docs_examples` artifact.
+# This workflow is where the future Sphinx docs build will slot in, publishing a
 # `cudaq_logical_docs` HTML artifact -- the examples step stays, since the docs
 # examples are tested artifacts.
 #
@@ -179,7 +180,7 @@ jobs:
 
           printf 'module {}\n' | qlx-opt
           qlx-translate \
-            preview/logical/examples/cli/stim_memory.mlir --fabric-to-stim \
+            preview/logical/examples/mlir/stim_memory.mlir --fabric-to-stim \
             | grep -q '^M '
 
       - name: Run cudaq.logical docs examples
@@ -203,7 +204,8 @@ jobs:
           esac
 
           mkdir -p example-logs
-          for example in preview/logical/examples/[0-9]*.py; do
+          for example in preview/logical/examples/[0-9]*.py \
+            preview/logical/examples/standalone/[0-9]*.py; do
             name="$(basename "$example" .py)"
             echo "=== Running $example ==="
             if ! python "$example" >"example-logs/$name.log" 2>&1; then

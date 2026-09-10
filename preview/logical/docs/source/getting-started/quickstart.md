@@ -45,7 +45,7 @@ To build from source against CUDA-Q, see
 From a checkout of this repository, run any example with:
 
 ```bash
-python3 preview/logical/examples/01_p0_bell.py
+python3 preview/logical/examples/00_logical_resource_estimate.py
 ```
 
 Every `python3` command below is the same invocation with a different example
@@ -58,29 +58,19 @@ distance-3 rotated-surface-code target with room for one logical qubit, and
 estimate its resources through the CUDA-Q target integration.
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/00_cudaq_logical_resource_estimate.py
+.. literalinclude:: ../../../examples/02_surface_code_resource_estimate.py
    :language: python
-   :caption: examples/00_cudaq_logical_resource_estimate.py
+   :caption: examples/02_surface_code_resource_estimate.py
 ```
 
 ```bash
-python3 preview/logical/examples/00_cudaq_logical_resource_estimate.py
+python3 preview/logical/examples/02_surface_code_resource_estimate.py
 ```
 
-The example prints the selected backend stack, then the annotated resource
-counts of the resulting P2 build:
-
-```text
-CUDA-Q logical-zero resources:
-  peak encoded patches: 1
-  peak protected logical qubits: 1
-  CUDA-Q Logical operation counts: {'alloc': 1, 'call': 2, 'dealloc': 1, 'measure_product': 1, 'prep_z': 1}
-  CUDA-Q Logical gadget calls: {'rotated_surface_3_measure_z0': 1, 'rotated_surface_3_prepare_zero': 1}
-```
-
-One encoded patch protects one logical qubit through preparation and Z readout.
-Every step is a named, inspectable gadget call: CUDA-Q Logical never invents an
-implementation it cannot point to.
+The example prints the selected backend stack, then compares physical-qubit,
+event-count, and makespan estimates for distance-3 and distance-5 layouts. It
+also holds the layout fixed while changing the physical error rate, failure
+budget, and cycle time, making the assumptions behind the estimate explicit.
 
 ## Step 2 — Author a portable P0 program
 
@@ -89,17 +79,17 @@ program names no code, no device, and no carrier — and you can already estimat
 it.
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/01_p0_bell.py
+.. literalinclude:: ../../../examples/standalone/00_logical_program.py
    :language: python
-   :caption: examples/01_p0_bell.py
+   :caption: examples/standalone/00_logical_program.py
 ```
 
 ```bash
-python3 preview/logical/examples/01_p0_bell.py
+python3 preview/logical/examples/standalone/00_logical_program.py
 ```
 
 ```text
-P0 Bell: 2 logical qubits
+Portable Bell program: 2 logical qubits
 ```
 
 Note the linear style: every operation consumes its operand and returns the
@@ -116,20 +106,17 @@ that implements it — one syndrome-extraction pass followed by data-qubit
 readout.
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/03_code_and_gadget.py
+.. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :caption: examples/03_code_and_gadget.py
+   :caption: examples/standalone/02_code_and_gadget.py
 ```
 
 ```bash
-python3 preview/logical/examples/03_code_and_gadget.py
+python3 preview/logical/examples/standalone/02_code_and_gadget.py
 ```
 
 ```text
 Steane [[7,1,3]] terminal-memory gadget:
-  physical data qubits per logical block: 7
-  independent X/Z stabilizer checks: 6
-  logical Z support: (0, 1, 2, 3, 4, 5, 6)
   authored operations: {'reset': 2, 'h': 2, 'cx': 2, 'read_syndrome_ancillas': 1, 'mz': 1, 'dealloc': 1}
 ```
 
@@ -148,7 +135,7 @@ gadget from Step 3 and request a typed emission artifact:
 % invisible-code-block: python
 %
 % steane_memory = load_ql_example(
-% "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+% "preview/logical/examples/standalone/02_code_and_gadget.py", "steane_memory")
 -->
 
 ```python

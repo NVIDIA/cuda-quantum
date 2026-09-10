@@ -20,15 +20,6 @@ module attributes {qlx.profiles = ["p2n"]} {
     },
     record_schema = ["ready.outcome"]
   }
-  fabric.gadget_spec @result_spec for @result_objective : () -> i1 {
-    encodings = [],
-    outcome_map = {
-      records = ["answer.outcome"], rows = dense<1> : tensor<1x1xi1>,
-      constants = array<i64: 0>, input_syndromes = [[]],
-      roles = [["result"]]
-    },
-    record_schema = ["answer.outcome"]
-  }
   fabric.gadget @retry_attempt(%patch: !fabric.patch<@c>)
       -> (!fabric.patch<@c>, i1) {
     %next, %ready = fabric.measure_product %patch {
@@ -37,6 +28,9 @@ module attributes {qlx.profiles = ["p2n"]} {
     } : (!fabric.patch<@c>) -> (!fabric.patch<@c>, i1)
     fabric.return %next, %ready : !fabric.patch<@c>, i1
   } {realization_boundary = {}, spec = @retry_spec}
+  fabric.gadget_profile @retry_profile for @retry_attempt {
+    fabric.success {records = ["retry_attempt.ready.outcome"]}
+  }
   fabric.protocol @double_h : (!fabric.patch<@c>) -> !fabric.patch<@c> attributes {objective = #qlx.action<idle>} {
   ^bb0(%arg0: !fabric.patch<@c>):
     %0 = fabric.call @h(%arg0) : (!fabric.patch<@c>) -> !fabric.patch<@c>
@@ -45,11 +39,13 @@ module attributes {qlx.profiles = ["p2n"]} {
   }
   fabric.protocol @retrying : (!fabric.patch<@c>) -> !fabric.patch<@c> {
   ^bb0(%arg0: !fabric.patch<@c>):
-    %attempt, %ok = fabric.call @retry_attempt(%arg0)
-        : (!fabric.patch<@c>) -> (!fabric.patch<@c>, i1)
+    %attempt, %ok = fabric.call @retry_attempt(%arg0) {
+      profile = @retry_profile
+    } : (!fabric.patch<@c>) -> (!fabric.patch<@c>, i1)
     %accepted = fabric.all_false %ok : (i1) -> i1
     %0 = fabric.retry %accepted carries (%attempt) {
-      attempt = @retry_attempt, max_attempts = 3 : i64
+      attempt = @retry_attempt, max_attempts = 3 : i64,
+      profile = @retry_profile
     }
       : (!fabric.patch<@c>) -> !fabric.patch<@c>
     fabric.protocol_return %0 : !fabric.patch<@c>
@@ -64,7 +60,6 @@ module attributes {qlx.profiles = ["p2n"]} {
   }
 }
 
-// CHECK: roles = {{\[\[}}"result"{{\]\]}}
 // CHECK: fabric.protocol @double_h : (!fabric.patch<@c>) -> !fabric.patch<@c>
 // CHECK-SAME: objective = #qlx.action<idle>
 // CHECK: %[[A:.+]] = fabric.call @h(%arg0)

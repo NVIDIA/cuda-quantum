@@ -146,7 +146,7 @@ jobs:
 
             python${{ needs.config.outputs.python_version }} -c "import cudaq.logical"
             printf 'module {}\n' | qlx-opt
-            qlx_out="$(qlx-translate /tmp/cudaq-logical/examples/cli/stim_memory.mlir --fabric-to-stim)"
+            qlx_out="$(qlx-translate /tmp/cudaq-logical/examples/mlir/stim_memory.mlir --fabric-to-stim)"
             grep -q '^M ' <<< "$qlx_out"
             # The source-only package copy under /tmp/cudaq-logical/python
             # must not shadow the installed wheel (with its compiled extensions).

@@ -36,6 +36,9 @@ endif()
 
 project(cudaq-logical LANGUAGES CXX C)
 
+set(QLX_USE_CUDAQ_SDK ON CACHE BOOL
+  "Build CUDA-Q Logical against the installed CUDA-Q SDK")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -133,7 +136,13 @@ add_subdirectory(ir)
 # Build-tree package config — lets external backend worktrees find CUDA-Q Logical via
 # cmake -DQLX_DIR=<build>/lib/cmake/QLX ...
 # --------------------------------------------------------------------------- #
-export(TARGETS MLIRQLXDialect MLIRFabricDialect MLIRLVMDialect
+export(TARGETS
+  MLIRQLXDialect
+  MLIRFabricDialect
+  MLIRLVMDialect
+  MLIRPhysDialect
+  MLIRCflowDialect
+  MLIREventDialect
   NAMESPACE QLX::
   FILE "${CMAKE_BINARY_DIR}/lib/cmake/QLX/QLXTargets.cmake"
 )

@@ -9,18 +9,18 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from ..types.semantic import (
+from cudaq.logical.types.semantic import (
     LogicalState,
     plus,
     zero,
 )
-from ..algebra.pauli import (
+from cudaq.logical.algebra.pauli import (
     PauliProduct,
     X,
     Y,
     Z,
 )
-from ..programs.context import require_trace
+from cudaq.logical.programs.context import require_trace
 
 
 def prepare_zero(value=None):
@@ -62,6 +62,25 @@ def apply(action, *values, parameters=None, **options):
     return require_trace("apply").apply_definition(action, values, bindings)
 
 
+def acquire(resource_class, *, count, kind=None, name=None):
+    from cudaq.logical.architecture.physical_definition import physical_qubit
+
+    return require_trace("acquire").acquire(
+        resource_class,
+        count=count,
+        kind=physical_qubit if kind is None else kind,
+        name=name,
+    )
+
+
+def load(values, *, state="loaded"):
+    return require_trace("load").load(values, state=state)
+
+
+def move(values, *, via, trajectory=None):
+    return require_trace("move").move(values, via=via, trajectory=trajectory)
+
+
 def measure(value, *, basis="z", destructive=True, record=None):
     return require_trace("measure").measure(value,
                                             basis=basis,
@@ -69,15 +88,28 @@ def measure(value, *, basis="z", destructive=True, record=None):
                                             record=record)
 
 
+def delay(values, *, duration_ns):
+    result = require_trace("delay").delay(values, duration_ns=duration_ns)
+    return result[0] if len(result) == 1 else result
+
+
 def barrier(values=(), *, domains=()):
     trace = require_trace("barrier")
     if not hasattr(trace, "barrier"):
         raise TypeError(
-            "cudaq.logical.barrier is unavailable in this authoring trace")
+            "cudaq.logical.barrier is available only in a P3 physical trace")
     scalar = not isinstance(values, (tuple, list))
     operands = (values,) if scalar else tuple(values)
     results = trace.barrier(operands, domains=tuple(domains))
     return results[0] if scalar and results else results
+
+
+def release(values):
+    trace = require_trace("release")
+    if not hasattr(trace, "release"):
+        raise TypeError(
+            "cudaq.logical.release is available only in a P3 physical trace")
+    trace.release(values)
 
 
 def h(q):
@@ -142,6 +174,16 @@ def ccz(a, b, c):
     return tuple(require_trace("ccz").apply_standard("ccz", (a, b, c)))
 
 
+def ccx(control_a, control_b, target):
+    return tuple(
+        require_trace("ccx").apply_standard("ccx",
+                                            (control_a, control_b, target)))
+
+
+# Public spelling for the same typed logical action.
+toffoli = ccx
+
+
 def rotate(product: PauliProduct, *, angle, precision=None):
     if not isinstance(product, PauliProduct):
         raise TypeError("rotate expects a cudaq.logical.PauliProduct")
@@ -157,7 +199,8 @@ def resource_rotate(resource, product: PauliProduct, *, angle):
         raise TypeError("resource_rotate expects a cudaq.logical.PauliProduct")
     trace = require_trace("resource_rotate")
     if not hasattr(trace, "resource_rotate"):
-        raise TypeError("qlx.resource_rotate is available only in P2 gadgets")
+        raise TypeError(
+            "cudaq.logical.resource_rotate is available only in P2 gadgets")
     return tuple(trace.resource_rotate(resource, product, angle=angle))
 
 
@@ -170,7 +213,8 @@ def mpp(product: PauliProduct):
 def readout(product: PauliProduct):
     """Destructive Pauli-product readout: one bool, no surviving operands.
 
-    ``qlx.mpp`` is always nondestructive; ``cudaq.logical.readout`` is its destructive
+    ``cudaq.logical.mpp`` is always nondestructive;
+    ``cudaq.logical.readout`` is its destructive
     counterpart and consumes every covered operand, including explicit
     ``cudaq.logical.I`` identity factors.
     """
@@ -245,7 +289,7 @@ def read_syndrome_ancillas(patch, *, record: str | None = None):
     """Read already-entangled ``sx``/``sz`` ancillas in canonical order.
 
     This operation never inserts preparation or entangling gates. Use
-    :func:`extract_syndrome` for the standard explicit CSS round in CUDA-Q Logical.
+    :func:`extract_syndrome` for QLX's standard explicit CSS round.
     """
 
     return require_trace("read_syndrome_ancillas").read_syndrome_ancillas(
@@ -261,15 +305,15 @@ def extract_syndrome(
     prime: bool | None = None,
     final_cycle: bool = False,
 ):
-    """Emit the standard CUDA-Q Logical CSS ancilla extraction and return its records.
+    """Emit QLX's standard CSS ancilla extraction and return its records.
 
     The active P2 gadget builder expands this call into reset, H, explicit
     code-derived CX interactions, measurements, and typed syndrome records.
     Backends therefore consume one visible realization instead of inventing
     extraction gates contextually.
 
-    ``cx_schedule`` optionally orders the check CXs as explicit layers -- pass
-    the ``(x_layers, z_layers)`` plain data from
+    ``cx_schedule`` optionally lays the check CXs into ``fabric.tick``-separated
+    time steps -- pass the ``(x_layers, z_layers)`` plain data from
     ``code.colored_schedule(...)``: the same stabilizers in a chosen order,
     which fixes the circuit-level hook structure and code distance.
 
@@ -277,9 +321,9 @@ def extract_syndrome(
     eight-moment cycle. ``prime=True`` explicitly initializes ``q(Z)`` before
     the first cycle; subsequent adjacent cycles use ``prime=False`` because
     moment 8 initialized ``q(Z)`` for their moment 1. Omitting ``prime`` for
-    this cyclic schedule fails closed. A non-terminal result carries an internal
+    this cyclic schedule fails closed. A nonterminal result carries an internal
     continuation proof and must be passed immediately to the same code's next
-    call with ``prime=False``; no allocation, call, other authored
+    call with ``prime=False``; no allocation, call, tick, other authored
     operation, or gadget boundary may intervene. Rejected requests preserve
     linear operands and automatic record naming. ``final_cycle=True`` omits the
     otherwise reusable round-8 ``q(Z)`` reset and next-cycle boundary. The
@@ -289,7 +333,7 @@ def extract_syndrome(
     ``(check_index, canonical_support) -> reordered_support``; a mapping with
     separate ``"x"``/``"z"`` callables or per-check sequences is also
     accepted. Every result must be a permutation of that check's support. It
-    controls within-check order without introducing timing operations.
+    controls within-check order without introducing tick-separated layers.
     ``schedule`` and ``cx_schedule`` are mutually exclusive. ``prime`` is
     accepted only for a ``BBSyndromeSchedule``; so is ``final_cycle=True``.
     """
@@ -348,12 +392,18 @@ def all_false(*events):
     return require_trace("all_false").all_false(*events)
 
 
+def tick():
+    """Preserve one authored circuit-moment boundary in P2."""
+
+    return require_trace("tick").tick()
+
+
 def permute(patch, permutation):
     return require_trace("permute").permute(patch, permutation)
 
 
 def idle(values, *, rounds):
-    from ..types.values import LogicalRegister
+    from cudaq.logical.types.values import LogicalRegister
 
     scalar = not isinstance(values, (tuple, list, LogicalRegister))
     operands = (values,) if scalar else tuple(values)
@@ -362,7 +412,7 @@ def idle(values, *, rounds):
 
 
 def discard(values, *, reason: str | None = None) -> None:
-    from ..types.values import LogicalRegister
+    from cudaq.logical.types.values import LogicalRegister
 
     operands = (tuple(values) if isinstance(values,
                                             (tuple, list, LogicalRegister)) else
@@ -371,23 +421,14 @@ def discard(values, *, reason: str | None = None) -> None:
 
 
 def request(kind):
-    trace = require_trace("request")
-    if getattr(trace, "_qlx_authoring_scope", None) != "p2_protocol":
-        raise TypeError(
-            "cudaq.logical.ops.request is available only inside an @cudaq.logical.protocol body"
-        )
-    return trace.request(kind)
+    return require_trace("request").request(kind)
 
 
 def request_many(kind, *, count):
     if not isinstance(count, int) or isinstance(count, bool) or count < 0:
         raise TypeError("request_many count must be a nonnegative Python int")
     trace = require_trace("request_many")
-    if getattr(trace, "_qlx_authoring_scope", None) != "p2_protocol":
-        raise TypeError(
-            "cudaq.logical.ops.request_many is available only inside an @cudaq.logical.protocol body"
-        )
-    return tuple(trace.request(kind) for _ in range(count))
+    return tuple(trace.event_await(trace.request(kind)) for _ in range(count))
 
 
 def produce(kind, *, region=None, protocol=None):
@@ -574,7 +615,7 @@ def retry(
     exhaustion=None,
     commit_point=None,
 ):
-    from ..gadgets import RetryExhaustion
+    from cudaq.logical.gadgets import RetryExhaustion
 
     exhaustion = (RetryExhaustion.REPORT_FAILURE
                   if exhaustion is None else exhaustion)

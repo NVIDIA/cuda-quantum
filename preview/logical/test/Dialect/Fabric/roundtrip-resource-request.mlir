@@ -9,14 +9,18 @@
 // REQUIRES: qlx-opt
 // RUN: qlx-opt %s | FileCheck %s
 
-// Resource demand is synchronous and remains a first-class P2 fact for static
-// counting.
+// Resource demand remains a first-class P2 fact for static counting while the
+// linear delivery crosses the shared asynchronous event boundary.
 fabric.protocol @request_t : () -> !fabric.resource<@t_state> {
-  %resource = fabric.resource_request "t_state" from @t_state_stream
-      : !fabric.resource<@t_state>
+  %event = fabric.resource_request "t_state" from @t_state_stream
+      : !event.handle<!fabric.resource<@t_state>, "linear">
+  %resource = event.await %event
+      : !event.handle<!fabric.resource<@t_state>, "linear">
+        -> !fabric.resource<@t_state>
   fabric.protocol_return %resource : !fabric.resource<@t_state>
 }
 
 // CHECK-LABEL: fabric.protocol @request_t : () -> !fabric.resource<@t_state>
-// CHECK: %[[RESOURCE:.*]] = fabric.resource_request "t_state" from @t_state_stream : !fabric.resource<@t_state>
+// CHECK: %[[EVENT:.*]] = fabric.resource_request "t_state" from @t_state_stream : !event.handle<!fabric.resource<@t_state>, "linear">
+// CHECK: %[[RESOURCE:.*]] = event.await %[[EVENT]] : !event.handle<!fabric.resource<@t_state>, "linear"> -> !fabric.resource<@t_state>
 // CHECK: fabric.protocol_return %[[RESOURCE]] : !fabric.resource<@t_state>

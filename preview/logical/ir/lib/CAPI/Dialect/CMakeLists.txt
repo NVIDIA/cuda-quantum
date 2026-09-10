@@ -23,6 +23,24 @@ add_mlir_public_c_api_library(QLXCAPIDialectLVM
   PARTIAL_SOURCES_INTENDED
   LINK_LIBS PUBLIC MLIRCAPIIR MLIRLVMDialect)
 
+add_mlir_public_c_api_library(QLXCAPIDialectCflow
+  Cflow.cpp
+  DISABLE_INSTALL
+  PARTIAL_SOURCES_INTENDED
+  LINK_LIBS PUBLIC MLIRCAPIIR MLIRCflowDialect)
+
+add_mlir_public_c_api_library(QLXCAPIDialectEvent
+  Event.cpp
+  DISABLE_INSTALL
+  PARTIAL_SOURCES_INTENDED
+  LINK_LIBS PUBLIC MLIRCAPIIR MLIREventDialect)
+
+add_mlir_public_c_api_library(QLXCAPIDialectPhys
+  Phys.cpp
+  DISABLE_INSTALL
+  PARTIAL_SOURCES_INTENDED
+  LINK_LIBS PUBLIC MLIRCAPIIR MLIRPhysDialect)
+
 add_mlir_public_c_api_library(QLXCAPIDialectFabric
   Fabric.cpp
   DISABLE_INSTALL

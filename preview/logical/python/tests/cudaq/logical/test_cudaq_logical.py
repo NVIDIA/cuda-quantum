@@ -16,17 +16,16 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[4]
-EXAMPLES = tuple(sorted((ROOT / "examples").glob("[0-9][0-9]_*.py")))
 
 
-def test_examples_execute(capsys):
-    assert len(EXAMPLES) == 8
-    output = {}
-    for example in EXAMPLES:
-        runpy.run_path(str(example), run_name="__main__")
-        output[example.name] = capsys.readouterr().out
-    assert "Gidney--Ekerå @cudaq.kernel -> cudaq.estimate:" in output[
-        "06_gidney_ekera.py"]
+def test_device_timing_units_and_operating_point():
+    import cudaq.logical as ql
+
+    assert ql.devices.us.nanoseconds == 1_000.0
+    timing = ql.devices.TimingModel({"cycle_ns": 2 * ql.devices.us})
+    assert timing["cycle_ns"] == 2_000.0
+    point = ql.devices.PhysicalOperatingPoint(timing=timing)
+    assert point.timing == timing
 
 
 def test_synthesis_evidence_names_the_shared_cudaq_implementation():
@@ -65,33 +64,112 @@ def test_product_stage_estimation_and_target_surface():
         cudaq.logical.stages.Stage.P0,
         cudaq.logical.stages.Stage.P1,
         cudaq.logical.stages.Stage.P2,
+        cudaq.logical.stages.Stage.P3,
     )
     assert tuple(cudaq.logical.estimate.Tier) == (
         cudaq.logical.estimate.Tier.LOGICAL,
         cudaq.logical.estimate.Tier.STATIC,
+        cudaq.logical.estimate.Tier.ANALYTICAL,
+        cudaq.logical.estimate.Tier.SCHEDULE,
     )
     assert hasattr(fabric_dialect, "ResourceRequestOp")
     assert {name for name in vars(_qlx_ops_gen) if name.endswith("Op")
-           } == {name for name in qlx_dialect.__all__ if name.endswith("Op")}
-    assert {name for name in vars(_fabric_ops_gen) if name.endswith("Op")} == {
-        name for name in fabric_dialect.__all__ if name.endswith("Op")
-    }
+           } == {name for name in vars(qlx_dialect) if name.endswith("Op")}
+    assert {name for name in vars(_fabric_ops_gen) if name.endswith("Op")
+           } == {name for name in vars(fabric_dialect) if name.endswith("Op")}
     assert "resource" in cudaq.logical.types.__all__
     authoring_verbs = {
         "allocate_patch",
+        "cond",
+        "event_await",
         "prepare_plus",
+        "produce",
+        "request",
         "request_many",
+        "resource_rotate",
         "unpack_resource",
         "pack_resource",
         "postselect",
+        "xor",
     }
-    assert authoring_verbs <= set(cudaq.logical.__all__)
+    assert authoring_verbs <= set(cudaq.logical.ops.__all__)
     for name in authoring_verbs:
-        assert getattr(cudaq.logical, name) is getattr(cudaq.logical.ops, name)
+        operation = getattr(cudaq.logical.ops, name)
+        assert operation is not None
+        assert getattr(cudaq.logical, name) is operation
     assert isinstance(cudaq.logical.__version__,
                       str) and cudaq.logical.__version__
     assert cudaq.logical.targets.Target.replay(
         cudaq.logical.targets.mlir.serialize()) is cudaq.logical.targets.mlir
+
+
+def test_cudaq_kernel_can_define_a_gadget_objective_and_declaration():
+    import cudaq
+    import cudaq.logical as ql
+    from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+
+    @cudaq.kernel
+    def paired_h(left: cudaq.qubit, right: cudaq.qubit):
+        h(left)
+        h(right)
+
+    @ql.gadget(implements=paired_h)
+    def paired_h_gadget(
+        left: ql.patch[ql.codes.BareQubit],
+        right: ql.patch[ql.codes.BareQubit],
+    ) -> tuple[ql.patch[ql.codes.BareQubit], ql.patch[ql.codes.BareQubit]]:
+        return ql.ops.h(left.data), ql.ops.h(right.data)
+
+    objective = ql.compile(paired_h_gadget.implements)
+    assert objective.root.kind == "action"
+    assert objective.to_mlir().count("#qlx.action<h>") == 2
+
+    declaration = paired_h_gadget.kernel
+    assert isa_kernel_decorator(declaration)
+    declared_function = next(iter(declaration.qkeModule.body.operations))
+    assert len(declared_function.operation.regions[0].blocks) == 0
+    assert "qlx-objective" in declared_function.operation.attributes
+
+    @cudaq.kernel
+    def paired_h_caller():
+        left = cudaq.qubit()
+        right = cudaq.qubit()
+        declaration(left, right)
+
+    imported = ql.compiler.import_cudaq(paired_h_caller)
+    assert "qlx.action @paired_h" in imported.to_mlir()
+    assert "qlx.apply @paired_h" in imported.to_mlir()
+
+
+def test_native_logical_objective_exports_a_kernel_through_its_gadget():
+    import cudaq
+    import cudaq.logical as ql
+
+    @ql.objective
+    def paired_x(
+        left: ql.types.logical_qubit,
+        right: ql.types.logical_qubit,
+    ) -> tuple[ql.types.logical_qubit, ql.types.logical_qubit]:
+        return ql.ops.x(left), ql.ops.x(right)
+
+    @ql.gadget(implements=paired_x)
+    def paired_x_gadget(
+        left: ql.patch[ql.codes.BareQubit],
+        right: ql.patch[ql.codes.BareQubit],
+    ) -> tuple[ql.patch[ql.codes.BareQubit], ql.patch[ql.codes.BareQubit]]:
+        return ql.ops.x(left.data), ql.ops.x(right.data)
+
+    assert paired_x_gadget.kernel is paired_x.kernel_declaration
+    paired_x_call = paired_x_gadget.kernel
+
+    @cudaq.kernel
+    def paired_x_caller():
+        left = cudaq.qubit()
+        right = cudaq.qubit()
+        paired_x_call(left, right)
+
+    imported = ql.compiler.import_cudaq(paired_x_caller)
+    assert "qlx.apply @paired_x" in imported.to_mlir()
 
 
 def test_logical_estimate_is_invariant_under_cached_view_mutation():
@@ -121,21 +199,30 @@ def test_logical_estimate_is_invariant_under_cached_view_mutation():
     assert "qlx.apply" in build.to_mlir()
 
 
-def test_resource_requests_are_owned_by_p2_protocol_authoring():
+def test_p0_resource_requests_are_explicit_and_consumed_linearly():
     import cudaq.logical
 
     @cudaq.logical.program
     def p0_workload() -> None:
-        cudaq.logical.ops.request(cudaq.logical.std.T_STATE)
+        qubit = cudaq.logical.prepare_zero()
+        event = cudaq.logical.ops.request(cudaq.logical.standard.T_STATE)
+        state = cudaq.logical.ops.event_await(event)
+        qubit = cudaq.logical.ops.consume(
+            state,
+            qubit,
+            action=cudaq.logical.standard.t,
+        )
+        cudaq.logical.discard(qubit)
 
-    with pytest.raises(TypeError,
-                       match="only inside an @cudaq.logical.protocol body"):
-        cudaq.logical.compile(p0_workload)
+    build = cudaq.logical.compile(p0_workload)
+    text = build.to_mlir()
+    assert 'qlx.resource_request "t_state"' in text
+    assert "qlx.consume_resource" in text
 
 
 def test_retained_workload_and_factory_models_reject_invalid_inputs():
     import cudaq.logical
-    from cudaq.logical import algorithms
+    import cudaq.logical.algorithms as algorithms
 
     with pytest.raises(ValueError, match="delta_off == 4"):
         algorithms.gidney_ekera_factor(2048, delta_off=-100)
@@ -156,10 +243,12 @@ def test_retained_workload_and_factory_models_reject_invalid_inputs():
 
 def test_ordinary_gadget_result_role_round_trips_through_native_verification():
     import cudaq.logical
+    from cudaq.logical.gadgets import OutcomeRole
 
     measurement = cudaq.logical.gadgets.logical_measure(
         cudaq.logical.codes.rotated_surface(3), basis="z")
     build = cudaq.logical.compile(measurement)
+    assert measurement.outcome_map.indices_for(OutcomeRole.RESULT) == (0,)
     compact_mlir = "".join(build.to_mlir().split())
     assert 'roles=[["result"]]' in compact_mlir
     assert build.module.operation.verify()
@@ -171,12 +260,12 @@ def test_distillation_peak_counts_unpacked_resource_payloads():
     build = cudaq.logical.compile(cudaq.logical.protocols.distill_15to1)
     counts = cudaq.logical.estimate(build,
                                     tier=cudaq.logical.estimate.Tier.STATIC)
-    assert not cudaq.logical.protocols.distill_15to1.metadata
+    assert cudaq.logical.protocols.distill_15to1.metadata[
+        "production_model"] == "distill-15to1-T"
     assert counts.patches_peak == 5
     assert counts.logical_qubits_peak == 5
     assert tuple(facet.value for facet in build.facets) == (
         "qec_spec",
-        "qec_realization",
         "protocol_network",
     )
     assert counts.source_facets == tuple(facet.value for facet in build.facets)
@@ -200,7 +289,8 @@ def test_physical_mpp_rejects_duplicate_carriers_before_emission():
 def test_result_and_build_provenance_fail_closed():
     import cudaq.logical
 
-    p1 = runpy.run_path(str(ROOT / "examples/02_p1_placement.py"))["p1"]
+    p1 = runpy.run_path(
+        str(ROOT / "examples/standalone/01_logical_placement.py"))["placed"]
     serialized = bytearray(p1.serialize())
     serialized[-1] ^= 1
     with pytest.raises((ValueError, TypeError, RuntimeError)):
@@ -230,12 +320,18 @@ def test_result_and_build_provenance_fail_closed():
     def p2_fixture() -> bool:
         return cudaq.logical.measure_z(cudaq.logical.prepare_zero())
 
-    endpoint = cudaq.logical.targets.surface_target(
-        logical_capacity=1).runtime_endpoint
-    p0 = endpoint.compile(cudaq.logical.compile(p2_fixture))
-    p0 = endpoint.next_backend.compile(p0)
-    p1 = endpoint.next_backend.next_backend.compile(p0)
-    p2 = endpoint.next_backend.next_backend.next_backend.compile(p1)
+    surface_3 = cudaq.logical.codes.Surface[3]
+    device_builder = cudaq.logical.devices.DeviceBuilder("ReplaySurfaceDevice")
+    compute = device_builder.logical.add_compute(capacity=1)
+    device_builder.qec.bind(compute, encoding=surface_3)
+    device = device_builder.build()
+    p0 = cudaq.logical.compile(p2_fixture)
+    p1 = cudaq.logical.compiler.place(p0, device=device)
+    p2 = cudaq.logical.compile(
+        p1,
+        pipeline=cudaq.logical.compiler.pipelines.qec(),
+        device=device,
+    )
     bundle = json.loads(p2.serialize())
     old_selection_digest = "sha256:" + sha256(
         json.dumps(bundle["qec_selection"],

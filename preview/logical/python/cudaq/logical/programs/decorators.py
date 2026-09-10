@@ -10,7 +10,7 @@ from __future__ import annotations
 from inspect import currentframe
 from typing import Any, Callable, get_type_hints
 
-from ..programs.definition import ProgramDefinition
+from cudaq.logical.programs.definition import ProgramDefinition
 
 
 def _definition_decorator(

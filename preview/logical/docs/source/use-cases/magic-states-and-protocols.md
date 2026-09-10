@@ -104,14 +104,15 @@ resource into a patch, and `ql.pack_resource` certifies the output kind.
 
 ## 15-to-1: a concrete factory
 
-`examples/04_distillation.py` authors the real five-row triorthogonal circuit
-with the root authoring facade — not an analytical placeholder:
+`examples/standalone/03_magic_state_distillation.py` authors the real five-row
+triorthogonal circuit with the root authoring facade — not an analytical
+placeholder:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/04_distillation.py
+.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
    :language: python
-   :lines: 13-53
-   :caption: The 15-to-1 T-state protocol (examples/04_distillation.py).
+   :lines: 12-49
+   :caption: The 15-to-1 T-state protocol (examples/standalone/03_magic_state_distillation.py).
 ```
 
 The protocol unpacks fifteen linear raw-state inputs onto bare patches;
@@ -126,22 +127,19 @@ Because the protocol is an ordinary compiled definition, the static estimation
 tier counts it directly:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/04_distillation.py
+.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
    :language: python
-   :lines: 56-65
+   :lines: 53-64
 ```
 
 ```text
 15-to-1 static resource estimate:
   raw T-state requests: 15
-  resource rotations: 11
-  postselection checks: 4
   peak live patches: 5
 ```
 
-`success_count` records the four postselection checks, and the estimate carries
-them as first-class cost facts: a downstream study does not have to rediscover
-that this factory rejects.
+The `selection` operation count records the four postselection checks, so a
+downstream study does not have to rediscover that this factory rejects.
 
 The leading-order analytical curves attach to the _same_ protocol library entry
 for supply/demand studies — output error $35p^3$ and acceptance $1 - 15p$:

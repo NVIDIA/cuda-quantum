@@ -24,11 +24,11 @@ from typing import (
     get_origin,
 )
 
-from ..programs.binding import (
+from cudaq.logical.programs.binding import (
     LogicalPortRef,
     ObjectiveOperandRef,
 )
-from .._core.immutable import ImmutableValue
+from cudaq.logical._core.immutable import ImmutableValue
 
 EncodingT = TypeVar("EncodingT")
 
@@ -42,6 +42,7 @@ from .specification import (
     _normalize_gadget_logical_ports,
     _verify_explicit_spec,
 )
+from .profiles import GadgetProfile, ProfileGraph
 
 
 class GadgetDefinition(ImmutableValue):
@@ -78,6 +79,13 @@ class GadgetDefinition(ImmutableValue):
         metadata: Mapping[str, Any] | None = None,
         type_hints: Mapping[str, Any] | None = None,
     ) -> None:
+        from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+
+        if isa_kernel_decorator(implements):
+            from cudaq.logical.programs.kernel_objective import (
+                program_definition_from_kernel,)
+
+            implements = program_definition_from_kernel(implements)
         if spec is not None:
             if not isinstance(spec, GadgetSpec):
                 raise TypeError(
@@ -91,7 +99,7 @@ class GadgetDefinition(ImmutableValue):
                 raise ObjectiveMismatch(
                     "@cudaq.logical.gadget implements= and spec.implements disagree; "
                     "declare the objective once on the explicit spec")
-        from .._core.definition_signature import resolve_definition_signature
+        from cudaq.logical._core.definition_signature import resolve_definition_signature
 
         resolved_signature, resolved_hints = resolve_definition_signature(
             provider,
@@ -106,7 +114,7 @@ class GadgetDefinition(ImmutableValue):
         self.spec = spec
         self._inferred_outcome_map = None
         if device is not None:
-            from ..devices.definition import Device
+            from cudaq.logical.devices.definition import Device
 
             if not isinstance(device, Device):
                 raise TypeError(
@@ -122,7 +130,7 @@ class GadgetDefinition(ImmutableValue):
         self.type_hints = MappingProxyType(dict(resolved_hints))
         self.logical_ports = MappingProxyType({})
         if transform is not None:
-            from ..codes import PatchTransform
+            from cudaq.logical.codes import PatchTransform
 
             if not isinstance(transform, PatchTransform):
                 raise TypeError(
@@ -131,7 +139,7 @@ class GadgetDefinition(ImmutableValue):
         self.metadata = _freeze_gadget_metadata(
             dict(metadata or {}), what="GadgetDefinition.metadata")
         self.profile = "p2a"
-        from ..stages import (
+        from cudaq.logical.stages import (
             P2,
             QEC_REALIZATION,
             QEC_SPEC,
@@ -157,6 +165,16 @@ class GadgetDefinition(ImmutableValue):
         self.__module__ = provider.__module__
         self.__annotations__ = dict(getattr(provider, "__annotations__", {}))
         self._seal()
+
+    @property
+    def kernel(self):
+        """Return the body-less CUDA-Q declaration for this gadget objective."""
+
+        from cudaq.logical.programs.definition import ProgramDefinition
+
+        if not isinstance(self.implements, ProgramDefinition):
+            return None
+        return self.implements.kernel_declaration
 
     def _authoritative_spec_metadata(self):
         """Return metadata serialized on the canonical gadget specification."""
@@ -197,6 +215,17 @@ class GadgetDefinition(ImmutableValue):
                 "gadget definition already has a direct snapshot")
         object.__setattr__(self, "_qlx_direct_snapshot", build)
 
+    def _attach_verified_link_snapshot(self, snapshot) -> None:
+        """Retain compact compiler interchange after exact verification."""
+
+        existing = getattr(self, "_qlx_direct_snapshot", None)
+        if existing == snapshot:
+            return
+        if existing is not None:
+            raise RuntimeError(
+                "gadget definition already has a direct snapshot")
+        object.__setattr__(self, "_qlx_direct_snapshot", snapshot)
+
     def record(self, name: str) -> RecordRef:
         return RecordRef(self, name)
 
@@ -213,12 +242,12 @@ class GadgetDefinition(ImmutableValue):
         return self.interface.outputs
 
     def __call__(self, *args, **kwargs):
-        from ..programs.context import current_trace
+        from cudaq.logical.programs.context import current_trace
 
         trace = current_trace()
         if trace is None:
             raise RuntimeError(
-                f"{self.name} is a CUDA-Q Logical gadget definition; materialize it or call "
+                f"{self.name} is a QLX gadget definition; materialize it or call "
                 "it inside a compatible protocol/gadget trace")
         if self.implements is None:
             raise TypeError(
@@ -245,7 +274,7 @@ def gadget(
     localns = dict(frame.f_back.f_locals) if frame and frame.f_back else {}
 
     def decorate(provider):
-        from .._core.definition_signature import resolve_definition_signature
+        from cudaq.logical._core.definition_signature import resolve_definition_signature
 
         _, hints = resolve_definition_signature(
             provider,

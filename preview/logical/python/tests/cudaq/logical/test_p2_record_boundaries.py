@@ -7,35 +7,35 @@
 # ============================================================================ #
 from __future__ import annotations
 
-import cudaq.logical
+import cudaq.logical as qlx
 
 
-@cudaq.logical.gadget(implements=cudaq.logical.std.idle)
+@qlx.gadget(implements=qlx.logical.idle)
 def extraction_round(
-    block: cudaq.logical.patch[cudaq.logical.codes.Steane],
-    previous: cudaq.logical.types.record[cudaq.logical.codes.Steane],
+    block: qlx.patch[qlx.codes.Steane],
+    previous: qlx.types.record[qlx.codes.Steane],
 ) -> tuple[
-        cudaq.logical.patch[cudaq.logical.codes.Steane],
-        cudaq.logical.types.record[cudaq.logical.codes.Steane],
+        qlx.patch[qlx.codes.Steane],
+        qlx.types.record[qlx.codes.Steane],
 ]:
-    block, current = cudaq.logical.extract_syndrome(block)
+    block, current = qlx.extract_syndrome(block)
     return block, current
 
 
-@cudaq.logical.protocol(implements=cudaq.logical.std.idle)
+@qlx.protocol(implements=qlx.logical.idle)
 def two_rounds(
-    block: cudaq.logical.patch[cudaq.logical.codes.Steane],
-    initial: cudaq.logical.types.record[cudaq.logical.codes.Steane],
+    block: qlx.patch[qlx.codes.Steane],
+    initial: qlx.types.record[qlx.codes.Steane],
 ) -> tuple[
-        cudaq.logical.patch[cudaq.logical.codes.Steane],
-        cudaq.logical.types.record[cudaq.logical.codes.Steane],
+        qlx.patch[qlx.codes.Steane],
+        qlx.types.record[qlx.codes.Steane],
 ]:
     block, current = extraction_round(block, initial)
     return extraction_round(block, current)
 
 
 def test_syndrome_records_are_direct_typed_gadget_boundaries():
-    text = cudaq.logical.compile(extraction_round).to_mlir()
+    text = qlx.compile(extraction_round).to_mlir()
     patch = ("!fabric.patch<@Steane, @Steane_default_encoding, "
              "@Steane_default_encoding_initial_epoch>")
     syndrome = ("!fabric.syndrome<@Steane, @Steane_default_encoding, "
@@ -47,8 +47,8 @@ def test_syndrome_records_are_direct_typed_gadget_boundaries():
     assert "GadgetResult" not in text
 
 
-def test_protocols_compose_record_boundaries_without_analysis_annotations():
-    build = cudaq.logical.compile(two_rounds)
+def test_protocols_compose_record_boundaries():
+    build = qlx.compile(two_rounds)
     text = build.to_mlir()
     assert text.count("fabric.call @extraction_round") == 2
     syndrome = ("!fabric.syndrome<@Steane, @Steane_default_encoding, "

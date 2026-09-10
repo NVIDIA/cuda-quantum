@@ -10,21 +10,27 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..architecture.constraints import (
+from cudaq.logical.architecture.constraints import (
     Colocate,
     LocalPlacement,
     PlacementBinding,
     PlacementWitness,
+    DistributedPlacement,
+    TopologicalPlacement,
+    TrajectoryPlacement,
 )
-from ..programs.definition import DefinitionHandle
-from ..architecture.logical import LogicalMachine
+from cudaq.logical.programs.definition import DefinitionHandle
+from cudaq.logical.architecture.logical import LogicalMachine
 from .context import CompilationContext
 from .build import Build, EvidenceRecord, _placement_witness_sha256
 from .pipeline import pipelines
 from .placement_allocator import _Allocator
-from .protocol_identity import protocol_definition_sha256
+from .protocol_identity import (
+    factory_protocol_semantics_sha256,
+    protocol_definition_sha256,
+)
 
 
 def _walk(operation):
@@ -81,8 +87,16 @@ class _P0ToP1:
         self.module = self.transaction.module
         self.context = self.transaction.context
         self.location = self.transaction.location
-        self.program = _find_symbol(self.module, build.root.symbol,
-                                    "qlx.program")
+        self._programs = {
+            _symbol_name(view.operation.attributes["sym_name"]): view.operation
+            for view in self.module.body.operations
+            if view.operation.name == "qlx.program"
+        }
+        try:
+            self.program = self._programs[build.root.symbol]
+        except KeyError as error:
+            raise KeyError(
+                f"missing qlx.program @{build.root.symbol}") from error
         self.function_type = _type_attr_value(self.program, "function_type")
         self.allocator = _Allocator(machine, constraints)
         self.domain_symbol = self._safe(machine.name)
@@ -94,6 +108,11 @@ class _P0ToP1:
         self._site_count = 0
         self._stream_refs = {}
         self._structured_depth = 0
+        self._call_stack = []
+        self._call_instance_stack = []
+        self._call_instance_count = 0
+        self._p0_origin_cache = {}
+        self._p0_origin_call_stack = []
         self._index_colocation_constraints()
         self._index_explicit_bindings()
 
@@ -112,10 +131,11 @@ class _P0ToP1:
             for reference in constraint.values:
                 if reference.program != self.source.root.symbol:
                     raise ValueError(
-                        "qlx.colocate references a different P0 build")
+                        "cudaq.logical.colocate references a different P0 build"
+                    )
                 if len(reference.path) != 1:
                     raise ValueError(
-                        "qlx.colocate currently requires top-level value groups"
+                        "cudaq.logical.colocate currently requires top-level value groups"
                     )
                 keys.add(self._value_key(reference))
             if len(keys) < 2:
@@ -143,8 +163,14 @@ class _P0ToP1:
 
     def _index_explicit_bindings(self):
         self._binding_for_value = {}
+        descriptor_types = (
+            LocalPlacement,
+            DistributedPlacement,
+            TrajectoryPlacement,
+            TopologicalPlacement,
+        )
         for descriptor in self.constraints:
-            if not isinstance(descriptor, LocalPlacement):
+            if not isinstance(descriptor, descriptor_types):
                 continue
             reference = descriptor.value
             if reference.program != self.source.root.symbol:
@@ -156,7 +182,7 @@ class _P0ToP1:
                     f"logical value {key} has several exact bindings")
             if key in self._colocate_for_value:
                 raise ValueError(
-                    "exact nonlocal placement cannot currently overlap qlx.colocate"
+                    "exact nonlocal placement cannot currently overlap cudaq.logical.colocate"
                 )
             self._binding_for_value[key] = descriptor
 
@@ -185,7 +211,8 @@ class _P0ToP1:
         selected = self._colocate_space.setdefault(group, space)
         if selected.name != space.name:
             raise ValueError(
-                "qlx.colocate conflicts with an existing explicit placement")
+                "cudaq.logical.colocate conflicts with an existing explicit placement"
+            )
 
     @staticmethod
     def _safe(name: str) -> str:
@@ -277,8 +304,8 @@ class _P0ToP1:
                         context=self.context,
                     ),
             }
-            # The `lvm.stream` `capacity` attribute is the in-flight buffer
-            # depth, spelled `buffer_size` on the Python authoring surface.
+            # The lvm.stream `capacity` attribute is the in-flight buffer depth,
+            # spelled `buffer_size` on the Python authoring surface.
             if stream.buffer_size is not None:
                 attrs["capacity"] = self._i64(stream.buffer_size)
             if stream.produced_by is not None:
@@ -288,6 +315,14 @@ class _P0ToP1:
                 )
                 attrs["produced_by_sha256"] = mlir_ir.StringAttr.get(
                     protocol_definition_sha256(stream.produced_by),
+                    context=self.context,
+                )
+                attrs["producer_identity"] = mlir_ir.StringAttr.get(
+                    stream.produced_by.name,
+                    context=self.context,
+                )
+                attrs["producer_semantics_sha256"] = mlir_ir.StringAttr.get(
+                    factory_protocol_semantics_sha256(stream.produced_by),
                     context=self.context,
                 )
             if stream.transfer is not None:
@@ -305,7 +340,7 @@ class _P0ToP1:
             if stream.external:
                 attrs["external"] = mlir_ir.UnitAttr.get(context=self.context)
             self._insert(ip, "lvm.stream", attributes=attrs)
-        for channel in self.machine._channels:
+        for channel in self.machine.channels:
             attrs = {
                 "sym_name":
                     mlir_ir.StringAttr.get(channel.name, context=self.context),
@@ -375,6 +410,21 @@ class _P0ToP1:
                 slot=descriptor.slot,
                 value_keys=(key,),
             )
+        elif isinstance(descriptor, DistributedPlacement):
+            space, slot = self.allocator.take(
+                space=descriptor.spaces[0],
+                value_keys=(key,),
+            )
+        elif isinstance(descriptor, TrajectoryPlacement):
+            space, slot = self.allocator.take(
+                space=descriptor.segments[0],
+                value_keys=(key,),
+            )
+        elif isinstance(descriptor, TopologicalPlacement):
+            space, slot = self.allocator.take(
+                space=descriptor.space,
+                value_keys=(key,),
+            )
         else:
             space, slot = self._take_for_value(
                 source_identity,
@@ -382,9 +432,40 @@ class _P0ToP1:
             )
         symbol = f"p{self._placement_count}"
         self._placement_count += 1
+        nonlocal_binding = isinstance(
+            descriptor,
+            (DistributedPlacement, TrajectoryPlacement, TopologicalPlacement),
+        )
+        explicit_placement = nonlocal_binding
+        if explicit_placement:
+            attrs = {
+                "sym_name":
+                    mlir_ir.StringAttr.get(symbol, context=self.context),
+                "space":
+                    mlir_ir.FlatSymbolRefAttr.get(space.name,
+                                                  context=self.context),
+                "slot":
+                    self._i64(slot),
+            }
+            if nonlocal_binding:
+                attrs["binding"] = self._binding_attr(descriptor, space, slot)
+            if source_allocation is not None:
+                attrs["source_value"] = mlir_ir.ArrayAttr.get(
+                    [self._i64(source_allocation),
+                     self._i64(source_index)],
+                    context=self.context,
+                )
+            self._insert(
+                self.domain_ip,
+                "lvm.placement",
+                attributes=attrs,
+            )
         with self.context:
             reference = mlir_ir.SymbolRefAttr.get(
-                [self.domain_symbol, space.name],
+                [
+                    self.domain_symbol,
+                    symbol if explicit_placement else space.name
+                ],
                 context=self.context,
             )
         binding = PlacementBinding(
@@ -394,7 +475,7 @@ class _P0ToP1:
             source_allocation=source_allocation,
             source_group=source_group,
             source_path=(() if source_index is None else (source_index,)),
-            binding_kind="local",
+            binding_kind=self._binding_kind(descriptor),
             binding_data=self._binding_data(descriptor),
         )
         self.bindings.append(binding)
@@ -402,11 +483,135 @@ class _P0ToP1:
         return reference, symbol
 
     @staticmethod
+    def _binding_kind(descriptor):
+        if isinstance(descriptor, DistributedPlacement):
+            return "distributed"
+        if isinstance(descriptor, TrajectoryPlacement):
+            return "trajectory"
+        if isinstance(descriptor, TopologicalPlacement):
+            return "topological_record"
+        return "local"
+
+    @staticmethod
     def _binding_data(descriptor):
         if isinstance(descriptor, LocalPlacement):
             return (("witness",
                      descriptor.witness),) if descriptor.witness else ()
+        if isinstance(descriptor, DistributedPlacement):
+            return (
+                ("spaces", tuple(space.name for space in descriptor.spaces)),
+                ("support_views", descriptor.support_views),
+                ("ownership_witness", descriptor.ownership_witness),
+                ("link_obligations", descriptor.link_obligations),
+            )
+        if isinstance(descriptor, TrajectoryPlacement):
+            return (
+                ("segments",
+                 tuple(space.name for space in descriptor.segments)),
+                ("transition_events", descriptor.transition_events),
+                ("continuity_witness", descriptor.continuity_witness),
+            )
+        if isinstance(descriptor, TopologicalPlacement):
+            return (
+                ("record", descriptor.record),
+                ("frontier", descriptor.frontier),
+                ("support_witness", descriptor.support_witness),
+                ("observable_witness", descriptor.observable_witness),
+            )
         return ()
+
+    def _binding_attr(self, descriptor, space, slot):
+        values = {
+            "kind":
+                mlir_ir.StringAttr.get(self._binding_kind(descriptor),
+                                       context=self.context)
+        }
+        if descriptor is None or isinstance(descriptor, LocalPlacement):
+            values.update({
+                "space":
+                    mlir_ir.FlatSymbolRefAttr.get(space.name,
+                                                  context=self.context),
+                "slot":
+                    self._i64(slot),
+            })
+            if isinstance(descriptor, LocalPlacement) and descriptor.witness:
+                values["witness"] = mlir_ir.StringAttr.get(descriptor.witness,
+                                                           context=self.context)
+        elif isinstance(descriptor, DistributedPlacement):
+            values.update({
+                "spaces":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.FlatSymbolRefAttr.get(item.name,
+                                                          context=self.context)
+                            for item in descriptor.spaces
+                        ],
+                        context=self.context,
+                    ),
+                "support_views":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.StringAttr.get(item, context=self.context)
+                            for item in descriptor.support_views
+                        ],
+                        context=self.context,
+                    ),
+                "ownership_witness":
+                    mlir_ir.StringAttr.get(descriptor.ownership_witness,
+                                           context=self.context),
+                "link_obligations":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.StringAttr.get(item, context=self.context)
+                            for item in descriptor.link_obligations
+                        ],
+                        context=self.context,
+                    ),
+            })
+        elif isinstance(descriptor, TrajectoryPlacement):
+            values.update({
+                "segments":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.FlatSymbolRefAttr.get(item.name,
+                                                          context=self.context)
+                            for item in descriptor.segments
+                        ],
+                        context=self.context,
+                    ),
+                "transition_events":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.StringAttr.get(item, context=self.context)
+                            for item in descriptor.transition_events
+                        ],
+                        context=self.context,
+                    ),
+                "continuity_witness":
+                    mlir_ir.StringAttr.get(descriptor.continuity_witness,
+                                           context=self.context),
+            })
+        elif isinstance(descriptor, TopologicalPlacement):
+            values.update({
+                "record":
+                    mlir_ir.StringAttr.get(descriptor.record,
+                                           context=self.context),
+                "frontier":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.StringAttr.get(item, context=self.context)
+                            for item in descriptor.frontier
+                        ],
+                        context=self.context,
+                    ),
+                "support_witness":
+                    mlir_ir.StringAttr.get(descriptor.support_witness,
+                                           context=self.context),
+                "observable_witness":
+                    mlir_ir.StringAttr.get(descriptor.observable_witness,
+                                           context=self.context),
+            })
+        return mlir_ir.DictAttr.get(values, context=self.context)
 
     def _next_site(self):
         site = self._site_count
@@ -456,7 +661,7 @@ class _P0ToP1:
     def _bound_event_type(self, kind: str, stream):
         payload = self._bound_resource_type(kind, stream)
         return mlir_ir.Type.parse(
-            f'!lvm.logical_event<{payload}, {stream}, "linear">',
+            f'!event.handle<{payload}, "linear", {stream}>',
             context=self.context,
         )
 
@@ -466,8 +671,8 @@ class _P0ToP1:
             domain = self._quoted_parameter(type_, '!qlx.logical_frame<"')
             return mlir_ir.Type.parse(f'!lvm.logical_frame<"{domain}">',
                                       context=self.context)
-        kind = self._quoted_parameter(
-            type_, '!qlx.logical_event<!qlx.logical_resource<"')
+        kind = self._quoted_parameter(type_,
+                                      '!event.handle<!qlx.logical_resource<"')
         if kind is not None:
             return self._bound_event_type(kind, self._stream_for(kind))
         kind = self._quoted_parameter(type_, '!qlx.logical_resource<"')
@@ -493,7 +698,7 @@ class _P0ToP1:
             self._placed_auxiliary_type(type_)
             for type_ in self.function_type.results
         ]
-        # Quantum returns are assigned from the converted `lvm.return` values;
+        # Quantum returns are assigned from the converted lvm.return values;
         # the common algorithmic entry points currently return classical data.
         function_type = mlir_ir.FunctionType.get(input_types,
                                                  result_types,
@@ -567,6 +772,48 @@ class _P0ToP1:
         name = _symbol_name(placement)
         return self._space_by_placement.get(name, name)
 
+    def _remote_observable_channel(self, placements):
+        spaces = tuple(
+            dict.fromkeys(self._space_name(item) for item in placements))
+        if len(spaces) != 2:
+            raise NotImplementedError(
+                "remote observable lowering currently requires exactly two "
+                "logical regions")
+        connected = tuple(
+            channel for channel in self.machine.channels if {
+                getattr(channel.source, "name", None),
+                getattr(channel.destination, "name", None),
+            } == set(spaces))
+        if not connected:
+            raise ValueError(
+                "cross-region MPP has no logical channel connecting "
+                f"@{spaces[0]} and @{spaces[1]}")
+        capability_key = "qlx.machine/observable_remote"
+        capable = tuple(channel for channel in connected if any(
+            item.key == capability_key for item in channel.capabilities))
+        if not capable:
+            raise ValueError("cross-region MPP requires a channel advertising "
+                             f"{capability_key!r}")
+        directed = tuple(channel for channel in capable
+                         if str(channel.direction) == "bidirectional")
+        if not directed:
+            raise ValueError(
+                "symmetric cross-region MPP requires a bidirectional "
+                "observable channel")
+        available = tuple(channel for channel in directed
+                          if channel.capacity is None or channel.capacity >= 1)
+        if not available:
+            raise ValueError(
+                "cross-region MPP channel has no available capacity")
+        if len(available) != 1:
+            names = ", ".join(
+                f"@{channel.name}"
+                for channel in sorted(available, key=lambda item: item.name))
+            raise ValueError(
+                "cross-region MPP has several eligible observable channels; "
+                f"selection is ambiguous: {names}")
+        return available[0], spaces
+
     def _infer_placement(self, value):
         known = self.placement_map.get(value)
         if known is not None:
@@ -587,7 +834,10 @@ class _P0ToP1:
         if name == "qlx.consume_resource":
             index = list(owner.results).index(value)
             return self._infer_placement(list(owner.operands)[index + 1])
-        if name == "qlx.if":
+        if name == "qlx.call":
+            index = list(owner.results).index(value)
+            return self._infer_call_result_placement(owner, index)
+        if name == "cflow.if":
             index = list(owner.results).index(value)
             yielded = [
                 region.blocks[0].operations[-1].operation.operands[index]
@@ -597,10 +847,248 @@ class _P0ToP1:
             if any(item != placements[0] for item in placements[1:]):
                 raise ValueError("branch joins cannot change logical placement")
             return placements[0]
-        if name in {"qlx.repeat", "qlx.while"}:
+        if name in {"cflow.repeat", "cflow.while"}:
             index = list(owner.results).index(value)
             return self._infer_placement(list(owner.operands)[index])
         raise NotImplementedError(f"cannot infer placement for {value}")
+
+    def _callee_program(self, operation):
+        callee = _symbol_name(operation.attributes["callee"])
+        try:
+            return self._programs[callee]
+        except KeyError as error:
+            raise KeyError(f"missing qlx.program @{callee}") from error
+
+    def _infer_call_result_placement(self, operation, result_index):
+        callee = self._callee_program(operation)
+        origin = self._callee_result_origin(callee, result_index)
+        if origin is None:
+            raise NotImplementedError(
+                "placed helper calls do not yet support returning a "
+                "helper-local logical allocation")
+        return self._infer_placement(operation.operands[origin])
+
+    def _callee_result_origin(self, callee, result_index):
+        callee_name = _symbol_name(callee.attributes["sym_name"])
+        if callee_name in self._p0_origin_call_stack:
+            chain = " -> ".join((*self._p0_origin_call_stack, callee_name))
+            raise ValueError(
+                f"recursive P0 helper calls are unsupported: {chain}")
+        self._p0_origin_call_stack.append(callee_name)
+        block = callee.regions[0].blocks[0]
+        try:
+            for index, argument in enumerate(block.arguments):
+                self._p0_origin_cache.setdefault(argument, index)
+            returned = block.operations[-1].operation
+            if returned.name != "qlx.return":
+                raise ValueError(
+                    f"P0 helper @{callee_name} does not end in qlx.return")
+            return self._p0_input_origin(returned.operands[result_index], set())
+        finally:
+            self._p0_origin_call_stack.pop()
+
+    def _p0_input_origin(self, value, active):
+        # Logical owner chains are routinely thousands of SSA edges long in
+        # specialized arithmetic helpers.  Follow the single-predecessor path
+        # iteratively and path-compress it into the existing cache; recurse
+        # only across the genuinely branching cflow.if case.
+        trail = []
+        try:
+            current = value
+            while current not in self._p0_origin_cache:
+                if current in active:
+                    raise ValueError(
+                        "P0 helper logical-owner lineage is cyclic")
+                active.add(current)
+                trail.append(current)
+                owner = current.owner
+                name = getattr(owner, "name", "")
+                if name in {"qlx.apply", "qlx.instrument", "qlx.idle"}:
+                    quantum_results = tuple(
+                        result for result in owner.results
+                        if str(result.type) == "!qlx.logical_qubit")
+                    quantum_inputs = tuple(
+                        operand for operand in owner.operands
+                        if str(operand.type) == "!qlx.logical_qubit")
+                    current = quantum_inputs[quantum_results.index(current)]
+                    continue
+                if name == "qlx.consume_resource":
+                    index = tuple(owner.results).index(current)
+                    current = tuple(owner.operands)[index + 1]
+                    continue
+                if name == "qlx.call":
+                    result_index = tuple(owner.results).index(current)
+                    callee = self._callee_program(owner)
+                    input_index = self._callee_result_origin(
+                        callee, result_index)
+                    if input_index is None:
+                        origin = None
+                        break
+                    current = tuple(owner.operands)[input_index]
+                    continue
+                if name == "cflow.if":
+                    index = tuple(owner.results).index(current)
+                    yielded = tuple(region.blocks[0].operations[-1].operation.
+                                    operands[index] for region in owner.regions)
+                    origins = tuple(
+                        self._p0_input_origin(item, active) for item in yielded)
+                    if any(item != origins[0] for item in origins[1:]):
+                        raise ValueError(
+                            "P0 helper branch joins change logical-owner "
+                            "origin")
+                    origin = origins[0]
+                    break
+                if name in {"cflow.repeat", "cflow.while"}:
+                    index = tuple(owner.results).index(current)
+                    current = tuple(owner.operands)[index]
+                    continue
+                if name == "qlx.prepare":
+                    origin = None
+                    break
+                raise NotImplementedError(
+                    f"cannot derive P0 helper owner origin for {current}")
+            else:
+                origin = self._p0_origin_cache[current]
+            for traced in trail:
+                self._p0_origin_cache[traced] = origin
+            return origin
+        finally:
+            for traced in reversed(trail):
+                active.remove(traced)
+
+    def _infer_p0_value_placement(self, value, environment, active):
+        known = environment.get(value)
+        if known is not None:
+            return known
+        known = self.placement_map.get(value)
+        if known is not None:
+            return known
+        if value in active:
+            raise ValueError("P0 helper logical-owner lineage is cyclic")
+        active.add(value)
+        try:
+            owner = value.owner
+            name = getattr(owner, "name", "")
+            if name in {"qlx.apply", "qlx.instrument", "qlx.idle"}:
+                quantum_results = tuple(
+                    result for result in owner.results
+                    if str(result.type) == "!qlx.logical_qubit")
+                quantum_inputs = tuple(
+                    operand for operand in owner.operands
+                    if str(operand.type) == "!qlx.logical_qubit")
+                return self._infer_p0_value_placement(
+                    quantum_inputs[quantum_results.index(value)],
+                    environment,
+                    active,
+                )
+            if name == "qlx.consume_resource":
+                index = tuple(owner.results).index(value)
+                return self._infer_p0_value_placement(
+                    tuple(owner.operands)[index + 1], environment, active)
+            if name == "qlx.call":
+                result_index = tuple(owner.results).index(value)
+                callee = self._callee_program(owner)
+                input_index = self._callee_result_origin(callee, result_index)
+                if input_index is None:
+                    raise NotImplementedError(
+                        "placed helper calls do not yet support returning a "
+                        "helper-local logical allocation")
+                return self._infer_p0_value_placement(
+                    tuple(owner.operands)[input_index], environment, active)
+            if name == "cflow.if":
+                index = tuple(owner.results).index(value)
+                yielded = tuple(
+                    region.blocks[0].operations[-1].operation.operands[index]
+                    for region in owner.regions)
+                placements = tuple(
+                    self._infer_p0_value_placement(item, environment, active)
+                    for item in yielded)
+                if any(item != placements[0] for item in placements[1:]):
+                    raise ValueError(
+                        "P0 helper branch joins cannot change placement")
+                return placements[0]
+            if name in {"cflow.repeat", "cflow.while"}:
+                index = tuple(owner.results).index(value)
+                return self._infer_p0_value_placement(
+                    tuple(owner.operands)[index], environment, active)
+            if name == "qlx.prepare":
+                raise NotImplementedError(
+                    "placed helper calls do not yet support helper-local "
+                    "logical allocation")
+            raise NotImplementedError(
+                f"cannot infer P0 helper placement for {value}")
+        finally:
+            active.remove(value)
+
+    def _convert_call(self, operation):
+        callee = self._callee_program(operation)
+        callee_name = _symbol_name(operation.attributes["callee"])
+        if callee_name in self._call_stack:
+            chain = " -> ".join((*self._call_stack, callee_name))
+            raise ValueError(
+                f"recursive P0 helper calls are unsupported: {chain}")
+
+        source_block = callee.regions[0].blocks[0]
+        mapped_inputs = tuple(
+            self._mapped(value) for value in operation.operands)
+        result_types = []
+        result_placements = []
+        for index, result in enumerate(operation.results):
+            if str(result.type) == "!qlx.logical_qubit":
+                placement = self._infer_call_result_placement(operation, index)
+                result_types.append(self._placed_type(placement))
+                result_placements.append(placement)
+            else:
+                result_types.append(self._placed_auxiliary_type(result.type))
+                result_placements.append(None)
+
+        scope = self._call_instance_count
+        self._call_instance_count += 1
+        placed = self._insert(
+            self.kernel_ip,
+            "lvm.call",
+            operands=mapped_inputs,
+            results=result_types,
+            attributes={
+                "callee": operation.attributes["callee"],
+                "scope": self._i64(scope),
+            },
+            regions=1,
+        )
+        instance = f"{callee_name}:{scope}"
+        with self.location:
+            target_block = placed.regions[0].blocks.append(
+                *(value.type for value in mapped_inputs))
+
+        outer_values = self.value_map
+        outer_placements = self.placement_map
+        outer_ip = self.kernel_ip
+        self.value_map = dict(outer_values)
+        self.placement_map = dict(outer_placements)
+        for source, target, operand in zip(source_block.arguments,
+                                           target_block.arguments,
+                                           operation.operands):
+            self.value_map[source] = target
+            if str(source.type) == "!qlx.logical_qubit":
+                self.placement_map[source] = self._infer_placement(operand)
+        self.kernel_ip = mlir_ir.InsertionPoint(target_block)
+        self._call_stack.append(callee_name)
+        self._call_instance_stack.append(instance)
+        try:
+            for child in source_block.operations:
+                self._convert(child.operation)
+        finally:
+            self._call_instance_stack.pop()
+            self._call_stack.pop()
+            self.kernel_ip = outer_ip
+            self.value_map = outer_values
+            self.placement_map = outer_placements
+
+        for old, result, placement in zip(operation.results, placed.results,
+                                          result_placements):
+            self.value_map[old] = result
+            if placement is not None:
+                self.placement_map[old] = placement
 
     def _placed_result_type(self, value):
         if str(value.type) == "!qlx.logical_qubit":
@@ -623,18 +1111,18 @@ class _P0ToP1:
         try:
             for child in source_block.operations:
                 nested = child.operation
-                if nested.name == "qlx.yield":
+                if nested.name == "cflow.yield":
                     self._insert(
                         self.kernel_ip,
-                        "lvm.yield",
+                        "cflow.yield",
                         operands=[
                             self._mapped(value) for value in nested.operands
                         ],
                     )
-                elif nested.name == "qlx.while_condition":
+                elif nested.name == "cflow.while_condition":
                     self._insert(
                         self.kernel_ip,
-                        "lvm.while_condition",
+                        "cflow.while_condition",
                         operands=[
                             self._mapped(value) for value in nested.operands
                         ],
@@ -667,10 +1155,10 @@ class _P0ToP1:
         try:
             for child in source_block.operations:
                 nested = child.operation
-                if nested.name == "qlx.yield":
+                if nested.name == "event.yield":
                     self._insert(
                         self.kernel_ip,
-                        "lvm.yield",
+                        "event.yield",
                         operands=[
                             self._mapped(value) for value in nested.operands
                         ],
@@ -686,9 +1174,12 @@ class _P0ToP1:
         if name == "qlx.return":
             self._insert(
                 self.kernel_ip,
-                "lvm.return",
+                "lvm.yield" if self._call_stack else "lvm.return",
                 operands=[self._mapped(value) for value in operation.operands],
             )
+            return
+        if name == "qlx.call":
+            self._convert_call(operation)
             return
         if name == "arith.constant":
             new = self._insert(
@@ -714,10 +1205,17 @@ class _P0ToP1:
                           if "allocation" in operation.attributes else None)
             value_index = (int(operation.attributes["value_index"])
                            if "value_index" in operation.attributes else None)
-            source_group = (self.source.values[allocation].name
-                            if allocation is not None else None)
+            if self._call_instance_stack:
+                source_group = ("call/" + "/".join(self._call_instance_stack) +
+                                (f"/allocation:{allocation}"
+                                 if allocation is not None else "/allocation"))
+                source_allocation = None
+            else:
+                source_group = (self.source.values[allocation].name
+                                if allocation is not None else None)
+                source_allocation = allocation
             placement, placement_name = self._new_placement(
-                source_allocation=allocation,
+                source_allocation=source_allocation,
                 source_group=source_group,
                 source_index=value_index,
             )
@@ -739,7 +1237,8 @@ class _P0ToP1:
                     "placement_slot":
                         self._i64(binding.slot),
                     "source_allocation":
-                        self._i64(-1 if allocation is None else allocation),
+                        self._i64(-1 if source_allocation is
+                                  None else source_allocation),
                     "source_group":
                         mlir_ir.StringAttr.get(
                             "" if source_group is None else source_group,
@@ -783,12 +1282,28 @@ class _P0ToP1:
             spaces = tuple(
                 dict.fromkeys(self._space_name(item) for item in placements))
             remote = len(spaces) > 1
-            if remote:
+            objective_text = str(objective)
+            if remote and objective_text not in {
+                    "#qlx.instrument<mpp>",
+                    '#qlx.instrument<"mpp">',
+            }:
                 raise NotImplementedError(
-                    "cross-region logical instruments are not supported by CUDA-Q Logical"
-                )
+                    "cross-region logical instruments require an explicit "
+                    "communication lowering; this slice supports uniform "
+                    "two-body X or Z MPP")
+            if remote and self._structured_depth:
+                raise NotImplementedError(
+                    "cross-region communication inside structured control is "
+                    "not supported by this lowering slice")
             x_mask = self._parameter_int(operation, "x_mask")
             z_mask = self._parameter_int(operation, "z_mask")
+            if remote and (len(quantum_inputs) != 2 or (x_mask, z_mask) not in {
+                (0b11, 0),
+                (0, 0b11),
+            }):
+                raise NotImplementedError(
+                    "cross-region observable lowering currently supports only "
+                    "an exact uniform two-body XX or ZZ product")
             attrs = {
                 "instrument":
                     objective,
@@ -797,6 +1312,33 @@ class _P0ToP1:
                 "site":
                     self._next_site(),
             }
+            if remote:
+                channel, spaces = self._remote_observable_channel(placements)
+                with self.context:
+                    channel_ref = mlir_ir.SymbolRefAttr.get(
+                        [self.domain_symbol, channel.name],
+                        context=self.context,
+                    )
+                    endpoint_refs = [
+                        mlir_ir.SymbolRefAttr.get(
+                            [self.domain_symbol, space],
+                            context=self.context,
+                        ) for space in spaces
+                    ]
+                attrs.update({
+                    "channel":
+                        channel_ref,
+                    "channel_capability":
+                        mlir_ir.Attribute.parse(
+                            '#lvm.capability<"qlx.machine/observable_remote">',
+                            context=self.context,
+                        ),
+                    "endpoints":
+                        mlir_ir.ArrayAttr.get(
+                            endpoint_refs,
+                            context=self.context,
+                        ),
+                })
             self._copy_parameters(operation, attrs)
             new = self._insert(
                 self.kernel_ip,
@@ -906,51 +1448,51 @@ class _P0ToP1:
             )
             self.value_map[operation.result] = new.result
             return
-        if name == "qlx.event_test":
+        if name == "event.test":
             new = self._insert(
                 self.kernel_ip,
-                "lvm.event_test",
+                "event.test",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
             )
             self.value_map[operation.result] = new.result
             return
-        if name == "qlx.event_poll":
+        if name == "event.poll":
             new = self._insert(
                 self.kernel_ip,
-                "lvm.event_poll",
+                "event.poll",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
             )
             self.value_map[operation.result] = new.result
             return
-        if name == "qlx.event_is":
+        if name == "event.is":
             new = self._insert(
                 self.kernel_ip,
-                "lvm.event_is",
+                "event.is",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
                 attributes={"state": operation.attributes["state"]},
             )
             self.value_map[operation.result] = new.result
             return
-        if name == "qlx.event_select_ready":
+        if name == "event.select_ready":
             new = self._insert(
                 self.kernel_ip,
-                "lvm.event_select_ready",
+                "event.select_ready",
                 operands=[self._mapped(value) for value in operation.operands],
                 results=[operation.result.type],
                 attributes={"policy": operation.attributes["policy"]},
             )
             self.value_map[operation.result] = new.result
             return
-        if name == "qlx.event_try_take":
+        if name == "event.try_take":
             event = operation.operands[0]
             carries = tuple(operation.operands[1:])
             result_types = [self._mapped(value).type for value in carries]
             new = self._insert(
                 self.kernel_ip,
-                "lvm.event_try_take",
+                "event.try_take",
                 operands=[
                     self._mapped(event),
                     *(self._mapped(value) for value in carries)
@@ -978,42 +1520,42 @@ class _P0ToP1:
                 if str(carry.type) == "!qlx.logical_qubit":
                     self.placement_map[old] = self._infer_placement(carry)
             return
-        if name == "qlx.event_cancel":
+        if name == "event.cancel":
             attrs = {}
             if "reason" in operation.attributes:
                 attrs["reason"] = operation.attributes["reason"]
             cancelled = self._insert(
                 self.kernel_ip,
-                "lvm.event_cancel",
+                "event.cancel",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
                 attributes=attrs,
             )
             self.value_map[operation.result] = cancelled.result
             return
-        if name == "qlx.event_await":
+        if name == "event.await":
             kind = self._quoted_parameter(operation.result.type,
                                           '!qlx.logical_resource<"')
             stream = self._stream_for(kind)
             new = self._insert(
                 self.kernel_ip,
-                "lvm.event_await",
+                "event.await",
                 operands=[self._mapped(operation.operands[0])],
                 results=[self._bound_resource_type(kind, stream)],
             )
             self.value_map[operation.result] = new.result
             return
-        if name == "qlx.fence":
+        if name == "event.fence":
             self._insert(
                 self.kernel_ip,
-                "lvm.fence",
+                "event.fence",
                 attributes={"effects": operation.attributes["effects"]},
             )
             return
-        if name == "qlx.selection":
+        if name == "event.selection":
             self._insert(
                 self.kernel_ip,
-                "lvm.selection",
+                "event.selection",
                 operands=[self._mapped(operation.operands[0])],
                 attributes={
                     "mode": operation.attributes["mode"],
@@ -1080,13 +1622,13 @@ class _P0ToP1:
             )
             self.value_map[operation.result] = new.result
             return
-        if name == "qlx.if":
+        if name == "cflow.if":
             result_types = [
                 self._placed_result_type(result) for result in operation.results
             ]
             new = self._insert(
                 self.kernel_ip,
-                "lvm.if",
+                "cflow.if",
                 operands=[self._mapped(operation.operands[0])],
                 results=result_types,
                 regions=2,
@@ -1098,12 +1640,12 @@ class _P0ToP1:
                 if str(old.type) == "!qlx.logical_qubit":
                     self.placement_map[old] = self._infer_placement(old)
             return
-        if name == "qlx.repeat":
+        if name == "cflow.repeat":
             inits = tuple(operation.operands)
             result_types = [self._mapped(value).type for value in inits]
             new = self._insert(
                 self.kernel_ip,
-                "lvm.repeat",
+                "cflow.repeat",
                 operands=[self._mapped(value) for value in inits],
                 results=result_types,
                 attributes={"count": operation.attributes["count"]},
@@ -1117,7 +1659,7 @@ class _P0ToP1:
                 if str(old.type) == "!qlx.logical_qubit":
                     self.placement_map[old] = self._infer_placement(init)
             return
-        if name == "qlx.while":
+        if name == "cflow.while":
             inits = tuple(operation.operands)
             result_types = [self._mapped(value).type for value in inits]
             attrs = {}
@@ -1125,7 +1667,7 @@ class _P0ToP1:
                 attrs["max_iterations"] = operation.attributes["max_iterations"]
             new = self._insert(
                 self.kernel_ip,
-                "lvm.while",
+                "cflow.while",
                 operands=[self._mapped(value) for value in inits],
                 results=result_types,
                 attributes=attrs,
@@ -1146,13 +1688,14 @@ class _P0ToP1:
 
 
 def _place_build(
-        program,
-        *,
-        device,
-        placement=(),
-        constraints=None,
-        objective=None,
-        experiment=None,
+    program,
+    *,
+    device,
+    placement=(),
+    constraints=None,
+    objective=None,
+    experiment=None,
+    _transient=False,
 ) -> Build:
     from .compile import compile
 
@@ -1179,7 +1722,7 @@ def _place_build(
         pipeline=pipelines.placed(),
         evidence=program.evidence + (EvidenceRecord(
             kind="placement",
-            producer="qlx-place-python@0.1",
+            producer="cudaq-logical-place-python@0.1",
             result="pass",
             obligations=("capacity", "placement-completeness", "p0-refinement"),
         ),),
@@ -1191,19 +1734,36 @@ def _place_build(
         device=device,
         objective=objective,
         source_modules=program.source_modules,
+        _transient=_transient,
     )
 
 
 def place(
-        program,
-        *,
-        device,
-        placement=(),
-        constraints=None,
-        objective=None,
-        experiment=None,
+    program,
+    *,
+    device,
+    placement=(),
+    constraints=None,
+    objective=None,
+    experiment=None,
+    _transient=False,
 ) -> Build:
     """Refine P0 through the inspectable problem/plan placement seam."""
+
+    if _transient:
+        # The public problem/plan seam commits portable P0 assembly into its
+        # digest. The progressive compiler already owns the exact live P0
+        # ModuleOp, so invoke the same deterministic first-fit materializer
+        # directly. P1 still carries the canonical placement witness.
+        return _place_build(
+            program,
+            device=device,
+            placement=placement,
+            constraints=constraints,
+            objective=objective,
+            experiment=experiment,
+            _transient=True,
+        )
 
     from ..architecture import placement as placement_api
 

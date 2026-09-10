@@ -13,14 +13,14 @@ import math
 from types import NoneType
 from typing import get_args, get_origin, get_type_hints
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
 from ..errors import UnsupportedCombination
-from ..programs.context import (
+from cudaq.logical.programs.context import (
     pop_trace,
     push_trace,
 )
-from ..types.values import (
+from cudaq.logical.types.values import (
     EventState,
     EventStatusValue,
     FabricEventValue,
@@ -34,26 +34,27 @@ from ..types.values import (
     ResourceValue,
     SyndromeValue,
 )
-from ..algebra.angle import Angle
-from ..codes import (
+from cudaq.logical.algebra.angle import Angle
+from cudaq.logical.codes import (
     Code,
     Encoding,
     EncodingEpoch,
 )
-from ..gadgets import (
+from cudaq.logical.gadgets import (
     GadgetDefinition,
+    GadgetProfile,
     patch,
 )
-from ..devices.builder import LogicalRegionBuilder
-from ..devices.definition import QECRegion
-from ..programs.definition import ProgramDefinition
-from ..protocols.definition import ProtocolDefinition
-from ..architecture.logical import Space
-from ..types.semantic import (
+from cudaq.logical.devices.builder import LogicalRegionBuilder
+from cudaq.logical.devices.definition import QECRegion
+from cudaq.logical.programs.definition import ProgramDefinition
+from cudaq.logical.protocols.definition import ProtocolDefinition
+from cudaq.logical.architecture.logical import Space
+from cudaq.logical.types.semantic import (
     record,
     resource,
 )
-from ..gadgets import (
+from cudaq.logical.gadgets import (
     CommitPointKind,
     InputSyndromeRef,
     ProfileParity,
@@ -66,8 +67,6 @@ from ..std import LogicalActionRef, LogicalInstrumentRef, ResourceFlowRef
 
 class ProtocolBuilder:
     """Build a folded P2N graph while preserving linear patch ownership."""
-
-    _qlx_authoring_scope = "p2_protocol"
 
     def __init__(self, transaction, definition: ProtocolDefinition) -> None:
         self.transaction = transaction
@@ -103,9 +102,8 @@ class ProtocolBuilder:
 
     def _encoding_from_annotation(self, annotation):
         if get_origin(annotation) is not patch:
-            raise TypeError(
-                "@cudaq.logical.protocol boundaries must use cudaq.logical.patch[Code|Encoding]"
-            )
+            raise TypeError("@cudaq.logical.protocol boundaries must use "
+                            "cudaq.logical.patch[Code|Encoding]")
         (target,) = get_args(annotation)
         if isinstance(target, Code):
             return target.default_encoding
@@ -126,6 +124,14 @@ class ProtocolBuilder:
     def _kind_name(kind):
         return str(getattr(kind, "name", kind))
 
+    @classmethod
+    def _resource_payload_roles(cls, kind):
+        from ..std import AUTO_CCZ_STATE
+
+        if cls._kind_name(kind) == AUTO_CCZ_STATE.name:
+            return AUTO_CCZ_STATE.payload_roles
+        return tuple(getattr(kind, "payload_roles", ()))
+
     def _input_boundary(self, annotation):
         origin = get_origin(annotation)
         if origin is patch:
@@ -139,8 +145,8 @@ class ProtocolBuilder:
         if annotation is bool:
             return "bool", None
         raise TypeError(
-            "@cudaq.logical.protocol boundaries require patch, record, resource, or bool"
-        )
+            "@cudaq.logical.protocol boundaries require patch, record, "
+            "resource, or bool")
 
     @property
     def i1_type(self):
@@ -369,6 +375,7 @@ class ProtocolBuilder:
                 "protocol return count does not match its annotation")
         operands = []
         returned_predicates = []
+        predicate_contracts = []
         for result_index, (value, expected, boundary) in enumerate(
                 zip(values, self.result_types, self.result_boundaries)):
             if boundary[0] == "patch":
@@ -388,6 +395,11 @@ class ProtocolBuilder:
                 operands.append(value.mlir_value)
                 returned_predicates.append(value.producer if isinstance(
                     value.producer, _PredicateProvenance) else None)
+                if (isinstance(value.producer, _PredicateProvenance) and
+                        isinstance(value.producer.analysis, GadgetProfile) and
+                        value.producer.profile is not None and
+                        value.mlir_value.owner.name == "fabric.call"):
+                    predicate_contracts.append((result_index, value.producer))
             elif boundary[0] == "resource":
                 if not isinstance(value,
                                   ResourceValue) or value.owner is not self:
@@ -420,6 +432,20 @@ class ProtocolBuilder:
             raise RuntimeError("protocol leaves a resource event live")
         self.transaction._protocol_result_provenance[self.symbol] = tuple(
             returned_predicates)
+        if len(predicate_contracts) == 1:
+            result_index, provenance = predicate_contracts[0]
+            gadget = self.transaction.materialize(provenance.analysis.gadget)
+            self.operation.attributes["predicate_gadget"] = (
+                mlir_ir.FlatSymbolRefAttr.get(gadget.symbol,
+                                              context=self.context))
+            self.operation.attributes["predicate_profile"] = (
+                mlir_ir.FlatSymbolRefAttr.get(provenance.profile,
+                                              context=self.context))
+            self.operation.attributes["predicate_result"] = (
+                mlir_ir.IntegerAttr.get(
+                    mlir_ir.IntegerType.get_signless(64, context=self.context),
+                    result_index,
+                ))
 
     def request(self, kind):
         kind_name = self._kind_name(kind)
@@ -437,27 +463,29 @@ class ProtocolBuilder:
                     f"{kind_name!r}: {candidates!r}")
             stream_path = candidates[0]
         resource_type = self._resource_type(kind_name)
+        event_type = mlir_ir.Type.parse(
+            f'!event.handle<{resource_type}, "linear">', context=self.context)
         with self.context:
             stream_reference = mlir_ir.SymbolRefAttr.get(list(stream_path),
                                                          context=self.context)
         operation = self._emit(
             "fabric.resource_request",
-            results=[resource_type],
+            results=[event_type],
             attributes={
                 "kind": mlir_ir.StringAttr.get(kind_name, context=self.context),
                 "stream": stream_reference,
             },
         )
-        return self._new_resource(operation.result, kind)
+        return self._new_event(operation.result, kind)
 
     def event_test(self, event):
         if not isinstance(event, FabricEventValue) or event.owner is not self:
             raise TypeError(
                 "event_test expects a Fabric event from this protocol")
         if not event.is_live:
-            event._consume("fabric.event_test")
+            event._consume("event.test")
         operation = self._emit(
-            "fabric.event_test",
+            "event.test",
             operands=[event.mlir_value],
             results=[self.i1_type],
         )
@@ -468,9 +496,9 @@ class ProtocolBuilder:
             raise TypeError(
                 "event_poll expects a Fabric event from this protocol")
         if not event.is_live:
-            event._consume("fabric.event_poll")
+            event._consume("event.poll")
         operation = self._emit(
-            "fabric.event_poll",
+            "event.poll",
             operands=[event.mlir_value],
             results=[mlir_ir.IntegerType.get_signless(8, context=self.context)],
         )
@@ -485,7 +513,7 @@ class ProtocolBuilder:
         except ValueError as error:
             raise ValueError(f"unknown event state: {state!r}") from error
         operation = self._emit(
-            "fabric.event_is",
+            "event.is",
             operands=[status.mlir_value],
             results=[self.i1_type],
             attributes={
@@ -514,7 +542,7 @@ class ProtocolBuilder:
                 "event_select_ready policy must be priority, deterministic, or fair"
             )
         operation = self._emit(
-            "fabric.event_select_ready",
+            "event.select_ready",
             operands=[event.mlir_value for event in events],
             results=[mlir_ir.IndexType.get(context=self.context)],
             attributes={
@@ -527,16 +555,16 @@ class ProtocolBuilder:
         if not isinstance(event, FabricEventValue) or event.owner is not self:
             raise TypeError(
                 "event_try_take expects a Fabric event from this protocol")
-        event._consume("fabric.event_try_take")
+        event._consume("event.try_take")
         carries = tuple(carries)
         for value in carries:
             if getattr(value, "owner", None) is not self:
                 raise TypeError(
                     "event_try_take carries must belong to this protocol")
-            self._consume_branch_value(value, "fabric.event_try_take")
+            self._consume_branch_value(value, "event.try_take")
         result_types = tuple(value.mlir_value.type for value in carries)
         operation = self._emit(
-            "fabric.event_try_take",
+            "event.try_take",
             operands=[
                 event.mlir_value, *(value.mlir_value for value in carries)
             ],
@@ -583,9 +611,9 @@ class ProtocolBuilder:
                         raise TypeError(
                             "event_try_take branch result types must match carries"
                         )
-                    self._consume_branch_value(value, "fabric.yield")
+                    self._consume_branch_value(value, "event.yield")
                     operands.append(value.mlir_value)
-                self._emit("fabric.yield", operands=operands)
+                self._emit("event.yield", operands=operands)
         finally:
             self.insertion_point = parent_ip
         return tuple(
@@ -598,13 +626,13 @@ class ProtocolBuilder:
                 "event_cancel expects a Fabric event from this protocol")
         if reason is not None and (not isinstance(reason, str) or not reason):
             raise TypeError("event_cancel reason must be a nonempty string")
-        event._consume("fabric.event_cancel")
+        event._consume("event.cancel")
         attrs = {}
         if reason is not None:
             attrs["reason"] = mlir_ir.StringAttr.get(reason,
                                                      context=self.context)
         operation = self._emit(
-            "fabric.event_cancel",
+            "event.cancel",
             operands=[event.mlir_value],
             results=[mlir_ir.IntegerType.get_signless(8, context=self.context)],
             attributes=attrs,
@@ -615,9 +643,9 @@ class ProtocolBuilder:
         if not isinstance(event, FabricEventValue) or event.owner is not self:
             raise TypeError(
                 "event_await expects a Fabric event from this protocol")
-        event._consume("fabric.event_await")
+        event._consume("event.await")
         operation = self._emit(
-            "fabric.event_await",
+            "event.await",
             operands=[event.mlir_value],
             results=[self._resource_type(event.payload_kind)],
         )
@@ -646,7 +674,7 @@ class ProtocolBuilder:
         if "all" in effects and len(effects) != 1:
             raise ValueError("fence effect 'all' cannot be combined")
         self._emit(
-            "fabric.fence",
+            "event.fence",
             attributes={
                 "effects":
                     mlir_ir.ArrayAttr.get(
@@ -663,7 +691,8 @@ class ProtocolBuilder:
         if any(not isinstance(value, LogicalBool) or value.owner is not self
                for value in (lhs, rhs)):
             raise TypeError(
-                "qlx.xor expects two Boolean values from this protocol")
+                "cudaq.logical.xor expects two Boolean values from this protocol"
+            )
         operation = self._emit(
             "fabric.xor",
             operands=[lhs.mlir_value, rhs.mlir_value],
@@ -688,7 +717,7 @@ class ProtocolBuilder:
                 not isinstance(value, LogicalBool) or value.owner is not self
                 for value in events):
             raise TypeError(
-                "qlx.all_false expects one or more Boolean events from this "
+                "cudaq.logical.all_false expects one or more Boolean events from this "
                 "protocol")
         operation = self._emit(
             "fabric.all_false",
@@ -818,6 +847,11 @@ class ProtocolBuilder:
             raise ValueError(
                 "unpack_resource like= collection must contain distinct patch owners"
             )
+        payload_roles = self._resource_payload_roles(resource_value.kind)
+        if payload_roles and len(anchors) != len(payload_roles):
+            raise ValueError(
+                f"{self._kind_name(resource_value.kind)} requires exactly "
+                f"{len(payload_roles)} payload roles")
         if encoding is None:
             payload_encodings = tuple(anchor.encoding for anchor in anchors)
         else:
@@ -827,7 +861,7 @@ class ProtocolBuilder:
             anchor.epoch if payload_encoding is
             anchor.encoding else payload_encoding.initial_epoch
             for anchor, payload_encoding in zip(anchors, payload_encodings))
-        from ..gadgets.builder import GadgetBuilder
+        from cudaq.logical.gadgets.builder import GadgetBuilder
         mapping = GadgetBuilder._resource_payload_logical_ports(
             resource_value,
             anchors,
@@ -839,16 +873,26 @@ class ProtocolBuilder:
         for anchor in anchors:
             anchor._consume("fabric.unpack_resource")
         attrs = {}
+        if payload_roles:
+            attrs["payload_roles"] = mlir_ir.ArrayAttr.get(
+                [
+                    mlir_ir.StringAttr.get(role, context=self.context)
+                    for role in payload_roles
+                ],
+                context=self.context,
+            )
         if mapping is not None:
             block_indices, port_indices = mapping
             action = resource_value.kind.consume_action
             logical_blocks = self.transaction.protocol_payload_blocks(
                 self.definition)
-            if logical_blocks is None and action.name == "ccz":
+            if (logical_blocks is None and
+                    isinstance(self.definition.implements, LogicalActionRef) and
+                    self.definition.implements.name in {"ccz", "ccx"}):
                 raise ValueError(
-                    "generated CCZ resource unpack is missing its selected "
+                    "generated three-qubit resource unpack is missing its selected "
                     "QEC block witness")
-            attrs = {
+            attrs.update({
                 "payload_action":
                     mlir_ir.Attribute.parse(f"#qlx.action<{action.name}>",
                                             context=self.context),
@@ -856,21 +900,47 @@ class ProtocolBuilder:
                     mlir_ir.DenseI64ArrayAttr.get(block_indices, self.context),
                 "payload_logical_ports":
                     mlir_ir.DenseI64ArrayAttr.get(port_indices, self.context),
-            }
+            })
             if logical_blocks is not None:
                 logical_blocks = tuple(logical_blocks)
-                if (len(logical_blocks) != len(anchors) or
-                        any(not isinstance(block, str) or not block
-                            for block in logical_blocks) or
-                        len(set(logical_blocks)) != len(logical_blocks)):
+                if any(not isinstance(block, str) or not block
+                       for block in logical_blocks):
                     raise ValueError(
-                        "generated payload block witness must contain one unique "
-                        "selected QEC block identity per anchor")
+                        "generated payload block witness must contain nonempty "
+                        "selected QEC block identities")
+                if len(logical_blocks) == len(block_indices):
+                    logical_block_rows = logical_blocks
+                elif (len(logical_blocks) == len(anchors) and
+                      len(set(logical_blocks)) == len(logical_blocks)):
+                    logical_block_rows = tuple(
+                        logical_blocks[index] for index in block_indices)
+                else:
+                    raise ValueError(
+                        "generated payload block witness must contain either one "
+                        "selected identity per action logical or one unique "
+                        "identity per payload anchor")
+                identity_by_payload = {}
+                payload_by_identity = {}
+                for payload_index, block_identity in zip(
+                        block_indices, logical_block_rows):
+                    if (payload_index in identity_by_payload and
+                            identity_by_payload[payload_index]
+                            != block_identity):
+                        raise ValueError(
+                            "one payload block maps to several selected QEC "
+                            "block identities")
+                    if (block_identity in payload_by_identity and
+                            payload_by_identity[block_identity]
+                            != payload_index):
+                        raise ValueError(
+                            "one selected QEC block identity maps to several "
+                            "payload blocks")
+                    identity_by_payload[payload_index] = block_identity
+                    payload_by_identity[block_identity] = payload_index
                 attrs["payload_logical_block_ids"] = mlir_ir.ArrayAttr.get(
                     [
-                        mlir_ir.StringAttr.get(logical_blocks[index],
-                                               context=self.context)
-                        for index in block_indices
+                        mlir_ir.StringAttr.get(block, context=self.context)
+                        for block in logical_block_rows
                     ],
                     context=self.context,
                 )
@@ -902,24 +972,49 @@ class ProtocolBuilder:
                                                             payloads)
 
     def pack_resource(self, payload, *, kind):
-        if not isinstance(payload, PatchValue) or payload.owner is not self:
-            raise TypeError("pack_resource expects one live encoded patch")
+        payloads = ((payload,)
+                    if isinstance(payload, PatchValue) else tuple(payload))
+        if not payloads or any(
+                not isinstance(value, PatchValue) or value.owner is not self
+                for value in payloads):
+            raise TypeError(
+                "pack_resource expects one live encoded patch or a nonempty "
+                "collection of live encoded patches")
+        if len({id(value) for value in payloads}) != len(payloads):
+            raise ValueError("pack_resource payload patches must be distinct")
         kind_name = self._kind_name(kind)
-        payload._consume("fabric.pack_resource")
+        payload_roles = self._resource_payload_roles(kind)
+        if payload_roles and len(payloads) != len(payload_roles):
+            raise ValueError(
+                f"{kind_name} requires exactly {len(payload_roles)} payload roles"
+            )
+        for value in payloads:
+            value._consume("fabric.pack_resource")
+        attributes = {
+            "resource_kind":
+                mlir_ir.FlatSymbolRefAttr.get(kind_name, context=self.context),
+            "payload_encodings":
+                mlir_ir.ArrayAttr.get([
+                    mlir_ir.FlatSymbolRefAttr.get(
+                        self.transaction.materialize(value.encoding).symbol,
+                        context=self.context,
+                    ) for value in payloads
+                ],
+                                      context=self.context),
+        }
+        if payload_roles:
+            attributes["payload_roles"] = mlir_ir.ArrayAttr.get(
+                [
+                    mlir_ir.StringAttr.get(role, context=self.context)
+                    for role in payload_roles
+                ],
+                context=self.context,
+            )
         operation = self._emit(
             "fabric.pack_resource",
-            operands=[payload.mlir_value],
+            operands=[value.mlir_value for value in payloads],
             results=[self._resource_type(kind)],
-            attributes={
-                "resource_kind":
-                    mlir_ir.FlatSymbolRefAttr.get(kind_name,
-                                                  context=self.context),
-                "payload_encoding":
-                    mlir_ir.FlatSymbolRefAttr.get(
-                        self.transaction.materialize(payload.encoding).symbol,
-                        context=self.context,
-                    ),
-            },
+            attributes=attributes,
         )
         return self._new_resource(operation.result, kind)
 
@@ -970,27 +1065,66 @@ class ProtocolBuilder:
 
     @staticmethod
     def _validate_selected_predicate(provenance, *, operation: str) -> None:
+        analysis = provenance.analysis
+        if not isinstance(analysis, GadgetProfile):
+            raise UnsupportedCombination(
+                f"{operation} requires a selected GadgetProfile with one or "
+                "more success predicates")
+        success_parities = analysis._effective_role_parities("success")
+        if not success_parities:
+            raise UnsupportedCombination(
+                f"{operation} requires a selected GadgetProfile with one or "
+                "more success predicates")
         if not provenance.outcome_rows:
             raise UnsupportedCombination(
                 f"{operation} attempt has no total GadgetSpec OutcomeMap")
-        binding_indices = tuple(
-            index for index, roles in enumerate(provenance.outcome_roles)
-            if "success" in roles)
-        if not binding_indices:
-            raise UnsupportedCombination(
-                f"{operation} requires an OutcomeMap success result")
+
+        bindings = []
+        claimed = set()
+        for mismatch in success_parities:
+            support = tuple(record.name for record in mismatch.records)
+            matches = tuple(
+                index for index, row in enumerate(provenance.outcome_rows)
+                if "success" in provenance.outcome_roles[index] and tuple(
+                    record.name for record in row.records) == support and
+                row.input_syndromes == mismatch.input_syndromes)
+            if len(matches) != 1:
+                raise UnsupportedCombination(
+                    f"{operation} success semantics must match one exact "
+                    "ordered OutcomeMap row")
+            index = matches[0]
+            if index in claimed:
+                raise UnsupportedCombination(
+                    f"{operation} success rows must map one-to-one to "
+                    "distinct OutcomeMap rows")
+            claimed.add(index)
+            bindings.append((index, mismatch))
+
+        binding_indices = tuple(index for index, _ in bindings)
         if provenance.all_false_indices is not None:
             if provenance.all_false_indices != binding_indices:
                 raise UnsupportedCombination(
                     f"{operation} all_false predicate must preserve every "
-                    "success-result identity and order")
+                    "selected success-row identity and order")
+            for index, mismatch in bindings:
+                if provenance.outcome_rows[index] != mismatch:
+                    raise UnsupportedCombination(
+                        f"{operation} predicate polarity contradicts the "
+                        "selected profile success semantics")
             return
 
-        if (len(binding_indices) != 1 or
-                provenance.outcome_index != binding_indices[0]):
+        if len(bindings) != 1 or provenance.outcome_index != bindings[0][0]:
             raise UnsupportedCombination(
                 f"{operation} multi-row success requires all_false over the "
                 "complete ordered success table")
+        index, mismatch = bindings[0]
+        outcome = provenance.outcome_rows[index]
+        if (outcome.records != mismatch.records or
+                outcome.input_syndromes != mismatch.input_syndromes or
+                outcome.constant == mismatch.constant):
+            raise UnsupportedCombination(
+                f"{operation} direct predicate polarity contradicts the "
+                "selected profile success semantics")
 
     def postselect(self, predicate, *, expected=False):
         if not isinstance(predicate,
@@ -1009,11 +1143,22 @@ class ProtocolBuilder:
         }
         if isinstance(predicate.producer, _PredicateProvenance):
             provenance = predicate.producer
+            # Postselection is protocol policy and may condition any exact
+            # Boolean produced by the selected attempt.  When the call also
+            # selects a GadgetProfile, verify its stronger success-table
+            # contract; do not require a profile merely to authorize policy.
+            if provenance.analysis is not None:
+                self._validate_selected_predicate(provenance,
+                                                  operation="postselect")
             attempt = provenance.attempt
+            profile = provenance.profile
             attrs["attempt"] = mlir_ir.FlatSymbolRefAttr.get(
                 attempt, context=self.context)
+            if profile is not None:
+                attrs["profile"] = mlir_ir.FlatSymbolRefAttr.get(
+                    profile, context=self.context)
         self._emit(
-            "fabric.selection",
+            "event.selection",
             operands=[predicate.mlir_value],
             attributes=attrs,
         )
@@ -1034,7 +1179,7 @@ class ProtocolBuilder:
                     "protocol discard expects live patches or resources")
 
     def _product_terms(self, product, operation):
-        from ..algebra import PauliProduct
+        from cudaq.logical.algebra import PauliProduct
 
         if not isinstance(product, PauliProduct):
             raise TypeError(f"{operation} expects a cudaq.logical.PauliProduct")
@@ -1106,6 +1251,36 @@ class ProtocolBuilder:
         operation = self._emit(
             "fabric.rotate_product",
             operands=[patch.mlir_value for patch in patches],
+            results=[patch.type for patch in patches],
+            attributes=attrs,
+        )
+        return [
+            self._new_patch(result, patch.encoding, epoch=patch.epoch)
+            for result, patch in zip(operation.results, patches)
+        ]
+
+    def resource_rotate(self, resource_value, product, *, angle):
+        """Consume one typed resource in a protocol-level product rotation."""
+
+        if (not isinstance(resource_value, ResourceValue) or
+                resource_value.owner is not self):
+            raise TypeError("resource_rotate expects one live resource owner")
+        patches, attrs = self._product_terms(product,
+                                             "fabric.resource_rotate_product")
+        if isinstance(angle, Angle):
+            angle = float(angle)
+        if not isinstance(angle, (int, float)) or isinstance(angle, bool):
+            raise TypeError("resource rotations require a numeric angle")
+        resource_value._consume("fabric.resource_rotate_product")
+        with self.location:
+            attrs["angle"] = mlir_ir.FloatAttr.get(
+                mlir_ir.F64Type.get(context=self.context), float(angle))
+        operation = self._emit(
+            "fabric.resource_rotate_product",
+            operands=[
+                resource_value.mlir_value,
+                *(patch.mlir_value for patch in patches),
+            ],
             results=[patch.type for patch in patches],
             attributes=attrs,
         )
@@ -1287,14 +1462,24 @@ class ProtocolBuilder:
         return inputs, self._flatten_result_boundaries(result)
 
     def call(self, definition, args, kwargs):
+        analysis = kwargs.pop("analysis", None)
+        profile = None
         if kwargs:
             raise TypeError(
                 f"unsupported protocol call keyword arguments: {sorted(kwargs)}"
             )
         if not isinstance(definition, (GadgetDefinition, ProtocolDefinition)):
-            raise TypeError(
-                "protocols may call @cudaq.logical.gadget or @cudaq.logical.protocol values"
-            )
+            raise TypeError("protocols may call @cudaq.logical.gadget or "
+                            "@cudaq.logical.protocol values")
+        if analysis is not None:
+            if not isinstance(analysis, GadgetProfile):
+                raise TypeError(
+                    "analysis= requires a cudaq.logical.GadgetProfile")
+            if not isinstance(
+                    definition,
+                    GadgetDefinition) or analysis.gadget is not definition:
+                raise ValueError(
+                    "analysis profile does not describe this gadget")
         input_boundaries, result_boundaries = self._callee_boundaries(
             definition)
         if len(args) != len(input_boundaries):
@@ -1338,6 +1523,28 @@ class ProtocolBuilder:
         outcome_parities, outcome_roles = (
             self._compiled_outcome_parities(definition)
             if has_boolean_results else ((), ()))
+        if analysis is not None:
+            resolved_roles = [list(roles) for roles in outcome_roles]
+            role = "success"
+            if not any(role in roles for roles in outcome_roles):
+                for parity in analysis._effective_role_parities(role):
+                    matches = tuple(
+                        index
+                        for index, candidate in enumerate(outcome_parities)
+                        if role not in outcome_roles[index] and
+                        candidate.records == parity.records and
+                        candidate.input_syndromes == parity.input_syndromes)
+                    if len(matches) > 1:
+                        raise UnsupportedCombination(
+                            "selected GadgetProfile success semantics "
+                            "ambiguously match multiple OutcomeMap rows")
+                    if not matches:
+                        # A detached success family may contain rows that are
+                        # not application results. Only an exact unique match
+                        # can classify a returned Boolean.
+                        continue
+                    resolved_roles[matches[0]].append(role)
+            outcome_roles = tuple(tuple(roles) for roles in resolved_roles)
         result_types = tuple(
             self._boundary_type(kind, value)
             for kind, value in result_boundaries)
@@ -1346,6 +1553,20 @@ class ProtocolBuilder:
                 mlir_ir.FlatSymbolRefAttr.get(callee.symbol,
                                               context=self.context)
         }
+        if analysis is not None:
+            profile = self.transaction.materialize(analysis)
+            attrs["profile"] = mlir_ir.FlatSymbolRefAttr.get(
+                profile.symbol, context=self.context)
+        else:
+            inherited_profiles = {
+                predicate.profile
+                for predicate in inherited_predicates
+                if isinstance(predicate, _PredicateProvenance) and
+                predicate.profile is not None
+            }
+            if len(inherited_profiles) == 1:
+                attrs["profile"] = mlir_ir.FlatSymbolRefAttr.get(
+                    inherited_profiles.pop(), context=self.context)
         operation = self._emit(
             "fabric.call",
             operands=operands,
@@ -1360,7 +1581,10 @@ class ProtocolBuilder:
         definition_metadata = (definition._authoritative_spec_metadata()
                                if isinstance(definition, GadgetDefinition) else
                                definition.metadata)
-        if "success_probability" in definition_metadata:
+        if analysis is not None and "success_probability" in analysis.metadata:
+            probability_metadata = analysis.metadata
+            probability_source = profile.symbol
+        elif "success_probability" in definition_metadata:
             probability_metadata = definition_metadata
             probability_source = callee.symbol
         bool_index = 0
@@ -1372,6 +1596,8 @@ class ProtocolBuilder:
                     value.producer = _PredicateProvenance(
                         definition=definition,
                         attempt=callee.symbol,
+                        analysis=inherited.analysis,
+                        profile=inherited.profile,
                         invocation=id(operation),
                         parity=inherited.parity,
                         outcome_rows=inherited.outcome_rows,
@@ -1401,6 +1627,8 @@ class ProtocolBuilder:
                 value.producer = _PredicateProvenance(
                     definition=definition,
                     attempt=callee.symbol,
+                    analysis=analysis,
+                    profile=None if profile is None else profile.symbol,
                     invocation=id(operation),
                     parity=parity,
                     outcome_rows=outcome_parities,
@@ -1464,6 +1692,7 @@ class ProtocolBuilder:
                 "attempt")
         provenance = until.producer
         attempt = provenance.attempt
+        profile = provenance.profile
         self._validate_selected_predicate(provenance, operation="retry")
         policy = RetryPolicy(max_attempts, exhaustion, commit_point)
         encodings = []
@@ -1510,6 +1739,9 @@ class ProtocolBuilder:
                                                            context=self.context)
         attrs["attempt"] = mlir_ir.FlatSymbolRefAttr.get(attempt,
                                                          context=self.context)
+        if profile is not None:
+            attrs["profile"] = mlir_ir.FlatSymbolRefAttr.get(
+                profile, context=self.context)
         if provenance.success_probability is not None:
             try:
                 probability = float(provenance.success_probability)
@@ -1620,9 +1852,9 @@ class ProtocolBuilder:
             if getattr(value, "owner", None) is not self:
                 raise TypeError(
                     "cudaq.logical.cond carries must belong to this protocol")
-            self._consume_branch_value(value, "fabric.if")
+            self._consume_branch_value(value, "cflow.if")
         operation = self._emit(
-            "fabric.if",
+            "cflow.if",
             operands=[condition.mlir_value],
             results=result_types,
             regions=2,
@@ -1646,9 +1878,9 @@ class ProtocolBuilder:
                         raise TypeError(
                             "cudaq.logical.cond branch results must match carries"
                         )
-                    self._consume_branch_value(value, "fabric.yield")
+                    self._consume_branch_value(value, "cflow.yield")
                     operands.append(value.mlir_value)
-                self._emit("fabric.yield", operands=operands)
+                self._emit("cflow.yield", operands=operands)
         finally:
             self.insertion_point = parent_ip
 
@@ -1688,7 +1920,7 @@ class ProtocolBuilder:
         for value in carries:
             if not isinstance(value, PatchValue) or value.owner is not self:
                 raise TypeError("protocol repeat carries must be live patches")
-            value._consume("fabric.repeat")
+            value._consume("cflow.repeat")
             encodings.append(value.encoding)
             epochs.append(value.epoch)
             operands.append(value.mlir_value)
@@ -1700,7 +1932,7 @@ class ProtocolBuilder:
         }
         with self.location:
             operation = mlir_ir.Operation.create(
-                "fabric.repeat",
+                "cflow.repeat",
                 operands=operands,
                 results=[operand.type for operand in operands],
                 attributes=attrs,
@@ -1728,9 +1960,9 @@ class ProtocolBuilder:
                 raise TypeError("protocol repeat changed a carry encoding")
             if value.epoch is not epoch:
                 raise TypeError("protocol repeat changed a carry epoch")
-            value._consume("fabric.yield")
+            value._consume("cflow.yield")
             yielded.append(value.mlir_value)
-        self._emit("fabric.yield", operands=yielded)
+        self._emit("cflow.yield", operands=yielded)
         self.insertion_point = outer_ip
         results = tuple(
             self._new_patch(value, encoding, epoch=epoch) for value, encoding,
@@ -1753,7 +1985,7 @@ class ProtocolBuilder:
                 raise TypeError(
                     "protocol cudaq.logical.while_ carries must belong to this protocol"
                 )
-            self._consume_branch_value(value, "fabric.while")
+            self._consume_branch_value(value, "cflow.while")
         attrs = {}
         if max_iterations is not None:
             attrs["max_iterations"] = mlir_ir.IntegerAttr.get(
@@ -1761,7 +1993,7 @@ class ProtocolBuilder:
                 max_iterations,
             )
         operation = self._emit(
-            "fabric.while",
+            "cflow.while",
             operands=[value.mlir_value for value in carries],
             results=result_types,
             attributes=attrs,
@@ -1798,10 +2030,10 @@ class ProtocolBuilder:
                     raise TypeError(
                         "protocol cudaq.logical.while_ forwarded values must match carries"
                     )
-                self._consume_branch_value(value, "fabric.while_condition")
+                self._consume_branch_value(value, "cflow.while_condition")
                 forwarded_operands.append(value.mlir_value)
             self._emit(
-                "fabric.while_condition",
+                "cflow.while_condition",
                 operands=[predicate.mlir_value, *forwarded_operands],
             )
 
@@ -1821,9 +2053,9 @@ class ProtocolBuilder:
                     raise TypeError(
                         "protocol cudaq.logical.while_ body results must match carries"
                     )
-                self._consume_branch_value(value, "fabric.yield")
+                self._consume_branch_value(value, "cflow.yield")
                 yielded.append(value.mlir_value)
-            self._emit("fabric.yield", operands=yielded)
+            self._emit("cflow.yield", operands=yielded)
         finally:
             self.insertion_point = parent_ip
         results = tuple(
@@ -1864,13 +2096,13 @@ class _ExplicitProtocolIf:
                 raise TypeError(
                     "cudaq.logical.if_ carries must belong to this protocol")
             if isinstance(value, (PatchValue, ResourceValue)):
-                value._consume("fabric.if")
+                value._consume("cflow.if")
             elif not isinstance(value, (SyndromeValue, LogicalBool)):
                 raise TypeError(
                     "protocol cudaq.logical.if_ carries must be patch, record, resource, or bool"
                 )
         self.operation = builder._emit(
-            "fabric.if",
+            "cflow.if",
             operands=[condition.mlir_value],
             results=self.result_types,
             regions=2,
@@ -1988,7 +2220,7 @@ class _ExplicitProtocolIf:
                     "cudaq.logical.if_ protocol result types must match carries"
                 )
             if isinstance(value, (PatchValue, ResourceValue)):
-                value._consume("fabric.yield")
+                value._consume("cflow.yield")
             operands.append(value.mlir_value)
-        self.builder._emit("fabric.yield", operands=operands)
+        self.builder._emit("cflow.yield", operands=operands)
         self.yielded.add(self.active)

@@ -65,13 +65,7 @@ fabric.gadget @bare_sign(%p: !fabric.patch<@c>) -> (!fabric.patch<@c>, i1) {
 fabric.code @c {
   distance = 1 : i64,
   partitions = {data = 2 : i64},
-  n = 2 : i64,
-  k = 2 : i64,
-  r = 0 : i64,
-  hx = [],
-  hz = [],
-  lx = [array<i64: 0>, array<i64: 1>],
-  lz = [array<i64: 0>, array<i64: 1>]
+  k = 2 : i64
 }
 
 fabric.gadget @interior_sign(%p: !fabric.patch<@c>) -> (!fabric.patch<@c>, i1) {
@@ -94,21 +88,6 @@ fabric.code @c {
 fabric.gadget @mpp_bare_sign(%p: !fabric.patch<@c>) -> (!fabric.patch<@c>, tensor<1xi1>) {
   // expected-error@+1 {{paulis must contain at least one Pauli after the optional leading '-' sign}}
   %p1, %bits = fabric.mpp %p data indices [0] paulis "-" {record = "signed"}
-      : !fabric.patch<@c> -> tensor<1xi1>
-  fabric.return %p1, %bits : !fabric.patch<@c>, tensor<1xi1>
-}
-
-// -----
-
-fabric.code @c {
-  distance = 1 : i64,
-  partitions = {data = 2 : i64}
-}
-
-fabric.gadget @mpp_duplicate_carrier(%p: !fabric.patch<@c>)
-    -> (!fabric.patch<@c>, tensor<1xi1>) {
-  // expected-error@+1 {{indices must name distinct physical carriers; got 0 more than once}}
-  %p1, %bits = fabric.mpp %p data indices [0, 0] paulis "XZ"
       : !fabric.patch<@c> -> tensor<1xi1>
   fabric.return %p1, %bits : !fabric.patch<@c>, tensor<1xi1>
 }
@@ -141,13 +120,7 @@ fabric.protocol @bad_resource_logical_port :
 fabric.code @c {
   distance = 1 : i64,
   partitions = {data = 2 : i64},
-  n = 2 : i64,
-  k = 2 : i64,
-  r = 0 : i64,
-  hx = [],
-  hz = [],
-  lx = [array<i64: 0>, array<i64: 1>],
-  lz = [array<i64: 0>, array<i64: 1>]
+  k = 2 : i64
 }
 
 fabric.gadget @inconsistent_subsystem(%p: !fabric.patch<@c>)

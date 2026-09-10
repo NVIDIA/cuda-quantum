@@ -26,7 +26,8 @@ def _validate_precision(precision) -> float:
 class GateSet:
     """One typed logical basis and the passes that establish it.
 
-    Gate sets own legalization policy; :func:`cudaq.logical.synthesize` only executes
+    Gate sets own legalization policy;
+    :func:`cudaq.logical.compiler.synthesize` only executes
     the immutable pipeline supplied by the selected value.
     """
 
@@ -92,7 +93,3 @@ def _match_pipeline(pipeline):
 
 
 __all__ = ["GateSet", "clifford_t"]
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.gate_sets")

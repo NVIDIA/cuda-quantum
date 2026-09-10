@@ -25,11 +25,11 @@ from typing import (
     get_type_hints,
 )
 
-from ..programs.binding import (
+from cudaq.logical.programs.binding import (
     LogicalPortRef,
     ObjectiveOperandRef,
 )
-from .._core.immutable import ImmutableValue
+from cudaq.logical._core.immutable import ImmutableValue
 
 EncodingT = TypeVar("EncodingT")
 

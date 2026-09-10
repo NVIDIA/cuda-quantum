@@ -7,19 +7,19 @@
 # ============================================================================ #
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import get_args, get_origin, get_type_hints
 from typing import Any
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..qec.lowering import (
+from cudaq.logical.qec.lowering import (
     ActionSiteHandle,
     GeneratedQECArtifact,
     QECCompilerContext,
     QECLowering,
 )
-from ..codes import (
+from cudaq.logical.codes import (
     Code,
     Encoding,
     QECActionSelection,
@@ -28,21 +28,22 @@ from ..codes import (
     QECBlockRequest,
     QECSelectionWitness,
 )
-from ..programs.definition import (
+from cudaq.logical.programs.definition import (
     DefinitionHandle,
     ProgramDefinition,
 )
-from ..devices.definition import Device
-from ..gadgets import (
+from cudaq.logical.devices.definition import Device
+from cudaq.logical.gadgets import (
     GadgetDefinition,
     patch,
 )
-from ..protocols.definition import ProtocolDefinition
-from ..architecture.logical import CapabilityKey
+from cudaq.logical.protocols.definition import ProtocolDefinition
+from cudaq.logical.architecture.logical import CapabilityKey
 from ..std import LogicalActionRef, LogicalInstrumentRef, ResourceFlowRef
 from .build import (
     Build,
     EvidenceRecord,
+    _qec_network_source_sha256,
     _qec_selection_sha256,
 )
 from .context import CompilationContext
@@ -50,7 +51,7 @@ from .lowering import discover_linked_definitions
 from .protocol_identity import (
     protocol_definition_payload as _protocol_definition_payload,
     protocol_definition_sha256 as _protocol_definition_sha256,
-    protocol_operation_payload as _protocol_operation_payload,
+    retained_protocol_matches as _retained_protocol_matches,
 )
 
 
@@ -107,14 +108,33 @@ def _i64(context, value: int):
         mlir_ir.IntegerType.get_signless(64, context=context), value)
 
 
+def _signless_integer_attribute(context, value: int, width: int):
+    integer_type = mlir_ir.IntegerType.get_signless(width, context=context)
+    if -(1 << 63) <= value < (1 << 63):
+        return mlir_ir.IntegerAttr.get(integer_type, value)
+    return mlir_ir.Attribute.parse(f"{value} : i{width}", context=context)
+
+
+def _integer_attribute_value(attribute) -> int:
+    # Accessing IntegerAttr.value converts through a signed host integer in
+    # this MLIR Python binding and aborts for arbitrary-precision APInt values.
+    literal, separator, _ = str(attribute).partition(" : ")
+    if not separator:
+        raise ValueError(f"integer attribute has no typed literal: {attribute}")
+    return int(literal)
+
+
 def _dictionary(context, values):
     with mlir_ir.Location.unknown(context=context):
         return mlir_ir.DictAttr.get(
             {
                 str(key): (
-                    mlir_ir.IntegerAttr.get(
-                        mlir_ir.IntegerType.get_signless(64, context=context),
+                    _signless_integer_attribute(
+                        context,
                         value,
+                        max(64,
+                            int(value).bit_length() +
+                            1) if str(key) in {"x_mask", "z_mask"} else 64,
                     ) if isinstance(value, int) and not isinstance(value, bool)
                     else mlir_ir.BoolAttr.get(value, context=context)
                     if isinstance(value, bool) else
@@ -127,22 +147,49 @@ def _dictionary(context, values):
         )
 
 
+def _action_site_parameters(context, values, source_parameters=None):
+    """Retain source attribute types and append only compiler-derived facts."""
+
+    parameters = _dictionary(context, values)
+    if source_parameters is None:
+        return parameters
+    preserved = {str(named.name): named.attr for named in parameters}
+    for named in source_parameters:
+        key = str(named.name)
+        source = named.attr
+        canonical = preserved.get(key)
+        if canonical is None:
+            preserved[key] = source
+            continue
+        if isinstance(source, mlir_ir.IntegerAttr) and isinstance(
+                canonical, mlir_ir.IntegerAttr):
+            source_value = _integer_attribute_value(source)
+            canonical_value = _integer_attribute_value(canonical)
+        else:
+            source_value = getattr(source, "value", source)
+            canonical_value = getattr(canonical, "value", canonical)
+        # Preserve a wider/common source representation only when the
+        # compiler-derived canonical value is identical. Site-specific
+        # evidence may intentionally canonicalize a signed exact angle.
+        if source_value == canonical_value:
+            preserved[key] = source
+    return mlir_ir.DictAttr.get(preserved, context=context)
+
+
 def _parameters(attribute) -> dict[str, Any]:
     if attribute is None:
         return {}
     result = {}
-    for key in ("x_mask", "z_mask", "sign", "angle_pi_numer", "angle_pi_denom"):
-        try:
-            value = attribute[key]
-        except (KeyError, IndexError, TypeError):
-            continue
-        result[key] = int(getattr(value, "value", value))
-    try:
-        precision = attribute["precision"]
-    except (KeyError, IndexError, TypeError):
-        pass
-    else:
-        result["precision"] = float(getattr(precision, "value", precision))
+    integer_fields = {
+        "x_mask", "z_mask", "sign", "angle_pi_numer", "angle_pi_denom"
+    }
+    for named in attribute:
+        key = str(named.name)
+        value = named.attr
+        if key in integer_fields:
+            result[key] = _integer_attribute_value(value)
+        elif key == "precision":
+            result[key] = float(getattr(value, "value", value))
     return result
 
 
@@ -243,24 +290,51 @@ def _matches_fixed(candidate, site: ActionSiteHandle, operation,
             len(flattened_results) == site.result_arity):
         return True
 
-    # One high-rate block may realize an objective over several placed logical
-    # values. Its Python boundary owns one patch, while P1 still has one value
-    # per logical port.
+    # High-rate blocks may realize an objective over several placed logical
+    # values. The Python boundary owns one patch per distinct block, while P1
+    # still has one value per logical port.
     parameter_annotations = [
         hints.get(name, parameter.annotation)
         for name, parameter in candidate.signature.parameters.items()
     ]
     patch_inputs = sum(
         get_origin(value) is patch for value in parameter_annotations)
-    if patch_inputs != len(parameter_annotations) or patch_inputs != 1:
+    if patch_inputs != len(parameter_annotations):
         return False
     bindings = [binding_by_name.get(name) for name in site.placements]
     if any(binding is None or binding.block is None for binding in bindings):
         return False
-    if len({binding.block for binding in bindings}) != 1:
+    blocks = {binding.block for binding in bindings}
+    if patch_inputs != len(blocks):
         return False
-    code, _encoding = _candidate_code(candidate)
-    if code.k < len(bindings):
+    code, encoding = _candidate_code(candidate)
+    if isinstance(objective, ProgramDefinition):
+        operand_names = tuple(objective.signature.parameters)
+        targets = tuple(
+            candidate.logical_ports.get(name) for name in operand_names)
+        if len(targets) != len(bindings) or any(
+                target is None for target in targets):
+            return False
+        alias_blocks = {}
+        block_aliases = {}
+        for binding, target in zip(bindings, targets):
+            alias, separator, port = target.rpartition(".")
+            if not separator:
+                alias, port = "", target
+            if encoding.logical_port_indices.get(port) != binding.logical_index:
+                return False
+            if alias in alias_blocks and alias_blocks[alias] != binding.block:
+                return False
+            if (binding.block in block_aliases and
+                    block_aliases[binding.block] != alias):
+                return False
+            alias_blocks[alias] = binding.block
+            block_aliases[binding.block] = alias
+    owners_by_block = {
+        block: sum(binding.block == block for binding in bindings)
+        for block in blocks
+    }
+    if any(owners > code.k for owners in owners_by_block.values()):
         return False
     quantum_results = sum(
         str(value.type).startswith("!lvm.logical_qubit<")
@@ -268,9 +342,9 @@ def _matches_fixed(candidate, site: ActionSiteHandle, operation,
     patch_results = sum(
         get_origin(value) is patch for value in flattened_results)
     classical_results = len(flattened_results) - patch_results
-    preserves_packed_owner = (quantum_results == 0 and patch_results == 1 and
-                              len({binding.block for binding in bindings}) == 1)
-    return ((patch_results == (1 if quantum_results else 0) or
+    preserves_packed_owner = (quantum_results == 0 and
+                              patch_results == len(blocks))
+    return ((patch_results == (len(blocks) if quantum_results else 0) or
              preserves_packed_owner) and
             classical_results == len(operation.results) - quantum_results)
 
@@ -288,14 +362,25 @@ def _requirements_met(candidate,
         if binding is None:
             continue
         binding_data = dict(binding.binding_data)
-        support_spaces = (binding.space,)
+        support_spaces = (tuple(binding_data.get("spaces", ()))
+                          if binding.binding_kind == "distributed" else
+                          tuple(binding_data.get("segments", ()))
+                          if binding.binding_kind == "trajectory" else
+                          (binding.space,))
         for space_name in support_spaces:
             space = spaces.get(space_name)
             if space is not None:
                 available.update(item.key for item in space.capabilities)
     requirements = tuple(getattr(candidate, "requires", ()))
-    return all(
-        getattr(item, "key", str(item)) in available for item in requirements)
+    channel_requirements = tuple(
+        item for item in requirements if isinstance(item, CapabilityKey) and
+        site is not None and item == site.channel_capability)
+    if site is not None and site.channel_capability is not None:
+        if site.channel_capability not in channel_requirements:
+            return False
+    return all(item in channel_requirements or
+               getattr(item, "key", str(item)) in available
+               for item in requirements)
 
 
 def _device_encodings(device):
@@ -354,6 +439,15 @@ class _SelectedSite:
 
 
 @dataclass(frozen=True, slots=True)
+class _NetworkSelection:
+    compiler: Any
+    lowering: QECLowering
+    witness: QECSelectionWitness
+    sites: tuple[_SelectedSite, ...]
+    probe: Any
+
+
+@dataclass(frozen=True, slots=True)
 class _P2Binding:
     """Internal realization view layered over a code-agnostic P1 binding."""
 
@@ -388,6 +482,7 @@ class _ConcreteResourceSupply:
     stream: Any
     consume: Any
     qec_route: Any
+    physical_route: Any
 
 
 class _P1ToP2:
@@ -397,10 +492,17 @@ class _P1ToP2:
         source: Build,
         device: Device,
         policy,
+        *,
+        network_request=None,
+        network_plan=None,
+        network_compiler=None,
     ) -> None:
         self.source = source
         self.device = device
         self.policy = dict(policy or {})
+        self.network_request = network_request
+        self.network_plan = network_plan
+        self.network_compiler = network_compiler
         self.transaction = CompilationContext.replay(source)
         self.context = self.transaction.context
         self.module = self.transaction.module
@@ -464,13 +566,25 @@ class _P1ToP2:
         self.placement_generated: dict[tuple[Any, ...],
                                        tuple[Any, DefinitionHandle,
                                              DefinitionHandle]] = {}
+        self.support_lowerings = {}
+        self.record_lowerings = {}
+        self.trajectory_lowerings = {}
         self.value_map = {}
         self._concrete_resource_events = {}
         self.block_state = {}
         self.open_packed_preparation_blocks = set()
         self.packed_readout_preserves: dict[str, bool] = {}
         self.standard_instruments = {}
+        # MLIR Python type printing crosses the native boundary and is much
+        # more expensive than a predicate lookup.  Paper-scale packed kernels
+        # revisit the same few hundred placement-refined types millions of
+        # times while indexing owner flow and emitting calls.
+        self._type_text_cache = {}
+        self._symbol_text_cache = {}
+        self._objective_text_cache = {}
         self._selection_prepared = False
+        self._network_region_entries = {}
+        self._network_region_members = set()
 
     @staticmethod
     def _single_use(value, expected: str, *, what: str):
@@ -504,7 +618,7 @@ class _P1ToP2:
             )
 
         awaited = self._single_use(request.result,
-                                   "lvm.event_await",
+                                   "event.await",
                                    what="CCZ_STATE request event")
         consume = self._single_use(
             awaited.result,
@@ -532,7 +646,7 @@ class _P1ToP2:
         destination = next(iter(destination_spaces))
 
         logical_routes = tuple(
-            channel for channel in self.device.logical._channels
+            channel for channel in self.device.logical.channels
             if getattr(channel.source, "name", None) == stream.name and
             getattr(channel.destination, "name", None) == destination)
         if len(logical_routes) != 1:
@@ -548,9 +662,29 @@ class _P1ToP2:
                 _symbol(retained_channel.attributes["to"]) != destination):
             raise ValueError("P1 CCZ_STATE delivery route endpoints changed")
 
-        raise NotImplementedError(
-            "cross-region QEC resource delivery is not supported by CUDA-Q Logical"
-        )
+        qec_routes = tuple(channel for channel in self.device.qec.channels
+                           if channel.logical_channel is
+                           logical_route) if self.device.qec is not None else ()
+        if len(qec_routes) != 1:
+            raise ValueError(
+                "CCZ_STATE supply requires one selected QEC delivery route")
+        qec_route = qec_routes[0]
+        if qec_route.protocol is None:
+            raise ValueError(
+                "selected CCZ_STATE QEC route has no typed transfer protocol")
+        if (_protocol_definition_payload(qec_route.protocol)
+                != _protocol_definition_payload(stream.transfer)):
+            raise ValueError(
+                "selected CCZ_STATE route protocol differs from stream transfer"
+            )
+        physical_routes = tuple(
+            binding for binding in self.device.qec_channels_to_physical
+            if binding.qec_channel is qec_route)
+        if len(physical_routes) != 1:
+            raise ValueError(
+                "CCZ_STATE supply route is unavailable at the physical stage")
+        return _ConcreteResourceSupply(stream, consume, qec_route,
+                                       physical_routes[0])
 
     def _bind_retained_stream_protocols(self, linked) -> None:
         """Reconnect P1's exact stream protocol closure after build replay."""
@@ -652,16 +786,21 @@ class _P1ToP2:
                 else:
                     self.transaction.bind_existing_protocol(definition, symbol)
                 expected_payload = _protocol_definition_payload(definition)
-                retained_payload = (_protocol_operation_payload(
-                    retained, symbol) if retained_was_present else
-                                    expected_payload)
-                if retained_was_present and retained_payload != expected_payload:
+                retained_payload = expected_payload
+                if (retained_was_present and not _retained_protocol_matches(
+                        self.transaction,
+                        retained,
+                        symbol,
+                        expected_payload,
+                )):
                     raise ValueError(
                         f"P1 logical stream @{stream.name} {field} bound "
                         "definition changed from the device-selected protocol")
                 owners = {id(definition): definition}
                 for value in linked_protocols:
                     if (value.implements != definition.implements or
+                            value._factory_region
+                            is not definition._factory_region or
                             value._resource_input_kinds()
                             != definition._resource_input_kinds() or
                             value._resource_output_kinds()
@@ -679,9 +818,8 @@ class _P1ToP2:
         else:
             requests = tuple(requests or ())
         if any(not isinstance(item, QECBlockRequest) for item in requests):
-            raise TypeError(
-                "P2 policy 'qec_blocks' requires cudaq.logical.qec_block(...) values"
-            )
+            raise TypeError("P2 policy 'qec_blocks' requires "
+                            "cudaq.logical.qec_block(...) values")
 
         by_source = {
             (binding.source_allocation, binding.source_path): binding
@@ -699,14 +837,15 @@ class _P1ToP2:
                         self.source.placement.input_p0,
                 }:
                     raise ValueError(
-                        "qlx.qec_block references a value outside the P0-to-P1 "
+                        "cudaq.logical.qec_block references a value outside "
+                        "the P0-to-P1 "
                         "lineage; construct it from p0.values, p1.values, or a "
                         "policy callback")
                 binding = by_source.get((reference.allocation, reference.path))
                 if binding is None:
                     raise ValueError(
-                        "qlx.qec_block references a value absent from the P1 witness"
-                    )
+                        "cudaq.logical.qec_block references a value absent "
+                        "from the P1 witness")
                 if (binding.placement in claimed or
                         binding.placement in selected_placements):
                     raise ValueError(
@@ -887,30 +1026,39 @@ class _P1ToP2:
             return
         unsupported_bindings = tuple(
             binding for binding in self.source.placement.bindings
-            if binding.binding_kind != "local")
+            if binding.binding_kind not in
+            {"local", "distributed", "trajectory", "topological_record"})
         if unsupported_bindings:
             kinds = sorted(
                 {binding.binding_kind for binding in unsupported_bindings})
-            raise NotImplementedError("P1-to-P2 excludes nonlocal placement "
-                                      f"descriptors: {kinds!r}")
+            raise NotImplementedError(
+                "P1-to-P2 requires an explicit lowering for nonlocal placement "
+                f"descriptors: {kinds!r}")
+        self._select_support_lowerings()
+        self._select_record_lowerings()
+        self._select_trajectory_lowerings()
         self._index_value_bindings()
         self._validate_packed_root_boundaries()
         self._validate_packed_preparations()
         self._analyze_packed_lifetimes()
         self._select_sites()
         has_quantum = any(
-            str(value.type).startswith("!lvm.logical_qubit<")
+            self._is_logical_value(value)
             for operation in self._walk_operations(
                 self.kernel.regions[0].blocks[0])
             for value in (*operation.operands, *operation.results)) or any(
-                str(argument.type).startswith("!lvm.logical_qubit<")
+                self._is_logical_value(argument)
                 for argument in self.kernel.regions[0].blocks[0].arguments)
-        resource_only = not self.selected_sites and not has_quantum
+        resource_only = (not self.selected_sites and
+                         not self.support_lowerings and
+                         not self.record_lowerings and
+                         not self.trajectory_lowerings and not has_quantum)
         if resource_only:
             self.code = self.encoding = None
             self.code_handle = self.encoding_handle = None
             self.epoch_symbol = None
-        elif not self.selected_sites:
+        elif (not self.selected_sites and not self.support_lowerings and
+              not self.record_lowerings and not self.trajectory_lowerings):
             encodings = {
                 binding.encoding
                 for binding in self.binding_by_name.values()
@@ -927,16 +1075,18 @@ class _P1ToP2:
             self.epoch_symbol = self.transaction.materialize(
                 self.encoding.initial_epoch).symbol
         else:
-            candidates = [
-                item.selected for item in self.selected_sites.values()
-            ]
+            candidates = (
+                [item.selected for item in self.selected_sites.values()] +
+                list(self.support_lowerings.values()) +
+                list(self.record_lowerings.values()) +
+                list(self.trajectory_lowerings.values()))
             encodings = {
                 id(_candidate_code(item)[1]): _candidate_code(item)
                 for item in candidates
             }
             if len(encodings) != 1:
                 raise NotImplementedError(
-                    "this CUDA-Q Logical slice requires one selected encoding across the root "
+                    "this QLX slice requires one selected encoding across the root "
                     "protocol; heterogeneous encoding transitions must be explicit"
                 )
             self.code, self.encoding = next(iter(encodings.values()))
@@ -953,13 +1103,23 @@ class _P1ToP2:
         ))
         # Placement already retained the exact immutable device stack.  Reuse
         # that definition instead of importing a second renamed copy whose
-        # nested QEC bindings would describe the same architecture
+        # nested QEC/physical bindings would describe the same architecture
         # under conflicting symbol identities.
         retained_device = self.transaction.find_symbol(self.device.name,
                                                        "qlx.device")
-        self.device_handle = (DefinitionHandle(
-            self.device.name, "device", "device") if retained_device is not None
-                              else self.transaction.materialize(self.device))
+        if retained_device is not None:
+            self.device_handle = DefinitionHandle(
+                self.device.name,
+                "device",
+                self.device.layers[-1].value,
+            )
+            # P1 already retains the selected immutable device closure.  Bind
+            # the Python owner to that declaration so later resource-route
+            # queries reuse it rather than materializing a second device/QEC
+            # machine under suffixed symbols.
+            self.transaction.bind(self.device, self.device_handle)
+        else:
+            self.device_handle = self.transaction.materialize(self.device)
         self._selection_prepared = True
 
     def _finalize_qec_selection(self, *, action_filter=None):
@@ -1010,6 +1170,12 @@ class _P1ToP2:
                         "manifest_sha256",
                         None,
                     ),
+                    channel=item.handle.channel,
+                    channel_capability=(
+                        None if item.handle.channel_capability is
+                        None else item.handle.channel_capability.key),
+                    endpoints=item.handle.endpoints,
+                    direction=item.handle.direction,
                 )
                 for item in selected_actions),
             code=None if self.code is None else self.code.name,
@@ -1020,24 +1186,355 @@ class _P1ToP2:
 
     def run(self):
         self._prepare_selection()
+        self._prepare_network_regions()
         self._emit_protocol()
         self.transaction.add_profile("p2n")
         self.qec_selection = self._finalize_qec_selection()
+        if self.network_request is not None:
+            self.qec_selection = replace(
+                self.qec_selection,
+                network_manifest_sha256=(
+                    self.network_request.lowering_manifest_sha256),
+            )
         metadata = self.protocol.attributes["metadata"]
         metadata_values = {
             "input_p1": _text(metadata["input_p1"]),
             "device": _text(metadata["device"]),
             "qec_selection_sha256": _qec_selection_sha256(self.qec_selection),
         }
+        if self.network_plan is not None:
+            lowering = next(
+                selected.selected
+                for selected in self.selected_sites.values()
+                if getattr(selected.selected, "manifest_sha256", None) ==
+                self.network_request.lowering_manifest_sha256)
+            lowering_handle = self.transaction.materialize(lowering)
+            self.protocol.attributes["generated_by"] = (
+                mlir_ir.FlatSymbolRefAttr.get(lowering_handle.symbol,
+                                              context=self.context))
+            metadata_values.update({
+                "network_plan_sha256":
+                    self.network_plan.digest,
+                "network_request_sha256":
+                    self.network_request.digest,
+                "network_provider":
+                    self.network_plan.provider_key,
+                "required_projector":
+                    (self.network_plan.required_projector_key),
+                "required_projector_pipeline_sha256":
+                    (self.network_plan.required_projector_pipeline_sha256),
+            })
         self.protocol.attributes["metadata"] = _dictionary(
             self.context,
             metadata_values,
         )
+        if self.network_plan is not None:
+            self._append_network_facts()
         return self.module, self.root_symbol
 
-    def _convert_sequence(self, operations):
+    def _append_network_facts(self):
+        from ..qec import lattice_surgery
+
+        actions = {
+            value.site.symbol: value for value in self.network_request.actions
+        }
+        node_attrs = []
+        placements = tuple(
+            dict.fromkeys(placement for action in self.network_request.actions
+                          for placement in action.site.placements))
+        for placement in placements:
+            binding = self.binding_by_name[placement]
+            node_attrs.append(
+                mlir_ir.DictAttr.get(
+                    {
+                        "id":
+                            mlir_ir.StringAttr.get(placement,
+                                                   context=self.context),
+                        "space":
+                            mlir_ir.StringAttr.get(binding.space,
+                                                   context=self.context),
+                        "slot":
+                            mlir_ir.IntegerAttr.get(
+                                mlir_ir.IntegerType.get_signless(
+                                    64, context=self.context),
+                                binding.slot,
+                            ),
+                        "kind":
+                            mlir_ir.StringAttr.get(
+                                "factory" if any(
+                                    stream.region.name == binding.space
+                                    for stream in self.device.logical.streams)
+                                else "data",
+                                context=self.context,
+                            ),
+                    },
+                    context=self.context,
+                ))
+        interactions = []
+        epoch_by_action = {
+            name: epoch for epoch in self.network_plan.epochs
+            for name in epoch.actions
+        }
+        for action in self.network_request.actions:
+            epoch = epoch_by_action[action.site.symbol]
+            interactions.append(
+                mlir_ir.DictAttr.get(
+                    {
+                        "id":
+                            mlir_ir.StringAttr.get(
+                                f"{epoch.id}_{action.site.symbol}",
+                                context=self.context,
+                            ),
+                        "action":
+                            mlir_ir.StringAttr.get("measure_product",
+                                                   context=self.context),
+                        "patches":
+                            mlir_ir.ArrayAttr.get(
+                                [
+                                    mlir_ir.StringAttr.get(value,
+                                                           context=self.context)
+                                    for value in action.site.placements
+                                ],
+                                context=self.context,
+                            ),
+                        "epoch":
+                            mlir_ir.IntegerAttr.get(
+                                mlir_ir.IntegerType.get_signless(
+                                    64, context=self.context),
+                                tuple(self.network_plan.epochs).index(epoch),
+                            ),
+                        "paulis":
+                            mlir_ir.ArrayAttr.get(
+                                [
+                                    mlir_ir.StringAttr.get(term.pauli,
+                                                           context=self.context)
+                                    for term in action.measurement.terms
+                                ],
+                                context=self.context,
+                            ),
+                        "dependencies":
+                            mlir_ir.ArrayAttr.get(
+                                [
+                                    mlir_ir.StringAttr.get(dependency,
+                                                           context=self.context)
+                                    for dependency in action.after
+                                ],
+                                context=self.context,
+                            ),
+                    },
+                    context=self.context,
+                ))
+        symbol = self.transaction.unique_symbol(
+            f"{self.root_symbol}_patch_graph")
+        with self.location:
+            self.module.body.append(
+                mlir_ir.Operation.create(
+                    "fabric.patch_graph",
+                    attributes={
+                        "sym_name":
+                            mlir_ir.StringAttr.get(symbol,
+                                                   context=self.context),
+                        "root":
+                            mlir_ir.FlatSymbolRefAttr.get(self.root_symbol,
+                                                          context=self.context),
+                        "nodes":
+                            mlir_ir.ArrayAttr.get(node_attrs,
+                                                  context=self.context),
+                        "interactions":
+                            mlir_ir.ArrayAttr.get(interactions,
+                                                  context=self.context),
+                    },
+                    loc=self.location,
+                ))
+        self.protocol.attributes["qlx.qec_network_request"] = (
+            mlir_ir.StringAttr.get(
+                self.network_request.to_json(),
+                context=self.context,
+            ))
+        self.protocol.attributes["qlx.qec_network_plan"] = (
+            mlir_ir.StringAttr.get(
+                self.network_plan.to_json(),
+                context=self.context,
+            ))
+        self.protocol.attributes["patch_graph"] = (
+            mlir_ir.FlatSymbolRefAttr.get(symbol, context=self.context))
+        self.transaction.add_facet("patch_graph")
+
+    def _prepare_network_regions(self):
+        values = (
+            self.network_request,
+            self.network_plan,
+            self.network_compiler,
+        )
+        if not any(value is not None for value in values):
+            return
+        if not all(value is not None for value in values):
+            raise TypeError(
+                "network request, plan, and compiler must be supplied together")
+        from ..qec import lattice_surgery
+
+        lattice_surgery.validate_network_plan(
+            self.network_request,
+            self.network_plan,
+        )
+        if self.network_plan.provider_key != self.network_compiler.key:
+            raise ValueError("network plan provider differs from its compiler")
+        source_block = self.kernel.regions[0].blocks[0]
+        top_level = tuple(child.operation for child in source_block.operations)
+        top_by_site = {
+            f"site{int(operation.attributes['site'])}": (index, operation)
+            for index, operation in enumerate(top_level)
+            if "site" in operation.attributes
+        }
+        for region in self.network_request.regions:
+            try:
+                selected = tuple(top_by_site[name] for name in region.actions)
+            except KeyError as exc:
+                raise NotImplementedError(
+                    "network regions inside structured control are unsupported"
+                ) from exc
+            indices = tuple(value[0] for value in selected)
+            members = tuple(value[1] for value in selected)
+            start = indices[0]
+            if indices != tuple(range(start, start + len(indices))):
+                raise ValueError(
+                    "network replacement region is not one contiguous P1 sequence"
+                )
+            self._network_region_entries[region.actions[0]] = (region, members)
+            self._network_region_members.update(region.actions[1:])
+
+    def _emit_network_region(self, region, operations):
+        from ..qec import lattice_surgery
+
+        plan = lattice_surgery.QECNetworkRegionPlan(
+            self.network_request,
+            self.network_plan,
+            region,
+        )
+        placements = tuple(
+            dict.fromkeys(value.placement for value in region.live_inputs))
+        block_keys = tuple(self._block_key(value) for value in placements)
+        if len(set(block_keys)) != len(block_keys):
+            raise NotImplementedError(
+                "network-region emission for several logical ports packed in "
+                "one encoded block is not yet supported")
+        encodings = {}
+        for placement in placements:
+            binding = self.binding_by_name.get(placement)
+            encoding = None if binding is None else binding.encoding
+            if encoding is None:
+                encoding = self.encoding
+            if encoding is None:
+                raise ValueError(
+                    f"network region placement {placement!r} has no selected encoding"
+                )
+            encodings[placement] = encoding
+        output = lattice_surgery.QECNetworkRegionBuilder(
+            plan,
+            device=self.device,
+            encodings=encodings,
+        )
+        self.network_compiler.emit_region(plan, output)
+        emissions = output._take_emissions()
+        live_by_placement = {}
+        for placement in placements:
+            block = self._block_key(placement)
+            value = self.block_state.get(block)
+            if value is None:
+                for operation in operations:
+                    for operand in operation.operands:
+                        binding = self._binding_for_value(operand)
+                        if binding is not None and binding.placement == placement:
+                            value = self._mapped(operand)
+                            break
+                    if value is not None:
+                        break
+            if value is None:
+                raise ValueError(
+                    f"network region has no live patch for placement {placement!r}"
+                )
+            live_by_placement[placement] = value
+
+        record_results = {}
+        for epoch, protocol, emitted_placements, emitted_actions in emissions:
+            handle = self.transaction.materialize(protocol)
+            inputs, results, _ = self.transaction.signature_of(protocol)
+            if len(inputs) != len(emitted_placements):
+                raise ValueError(
+                    "network epoch protocol input arity differs from its patches"
+                )
+            if len(results) != len(emitted_placements) + len(emitted_actions):
+                raise ValueError(
+                    "network epoch protocol must return every live patch followed "
+                    "by one record per action")
+            live_values = []
+            for placement, expected in zip(emitted_placements, inputs):
+                value = live_by_placement[placement]
+                if value.type != expected:
+                    raise ValueError(
+                        "network epoch protocol patch type differs from its owner"
+                    )
+                live_values.append(value)
+            call = self._insert(
+                self.ip,
+                "fabric.call",
+                operands=live_values,
+                results=results,
+                attributes={
+                    "callee":
+                        mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
+                                                      context=self.context),
+                    "network_region":
+                        mlir_ir.StringAttr.get(region.id, context=self.context),
+                    "network_epoch":
+                        mlir_ir.StringAttr.get(epoch.id, context=self.context),
+                    "network_plan_sha256":
+                        mlir_ir.StringAttr.get(self.network_plan.digest,
+                                               context=self.context),
+                },
+            )
+            for placement, result in zip(
+                    emitted_placements,
+                    tuple(call.results)[:len(emitted_placements)],
+            ):
+                live_by_placement[placement] = result
+                self.block_state[self._block_key(placement)] = result
+            record_results.update({
+                action: result for action, result in zip(
+                    emitted_actions,
+                    tuple(call.results)[len(emitted_placements):],
+                )
+            })
         for operation in operations:
+            selected = self.selected_sites[
+                f"site{int(operation.attributes['site'])}"]
+            for result in operation.results:
+                binding = self._binding_for_value(result)
+                if binding is not None:
+                    self.value_map[result] = live_by_placement[
+                        binding.placement]
+                else:
+                    self.value_map[result] = record_results[
+                        selected.handle.symbol]
+
+    def _convert_sequence(self, operations):
+        operations = tuple(operations)
+        index = 0
+        while index < len(operations):
+            operation = operations[index]
+            symbol = (f"site{int(operation.attributes['site'])}"
+                      if "site" in operation.attributes else None)
+            entry = self._network_region_entries.get(symbol)
+            if entry is not None:
+                region, members = entry
+                self._emit_network_region(region, members)
+                index += len(members)
+                continue
+            if symbol in self._network_region_members:
+                raise RuntimeError(
+                    "network region traversal entered mid-region")
             self._convert(operation)
+            index += 1
 
     def _standard_instrument(self, handle, encoding):
         """Return the encoding-derived realization for a standard instrument."""
@@ -1126,6 +1623,72 @@ class _P1ToP2:
             self.selected_sites[handle.symbol] = _SelectedSite(
                 operation, handle, (candidate,), candidate)
 
+    def _select_support_lowerings(self):
+        for binding in self.source.placement.bindings:
+            if binding.binding_kind != "distributed":
+                continue
+            candidates = tuple(
+                lowering for lowering in self.lowerings
+                if self._architecture_allows(lowering, (
+                    binding.placement,)) and lowering.objective_family in {
+                        "placement_support",
+                        "distributed_support",
+                    } and _requirements_met(
+                        lowering,
+                        (binding.placement,),
+                        self.device,
+                        self.binding_by_name,
+                    ))
+            if not candidates:
+                raise NotImplementedError(
+                    "distributed placement requires a linked versioned "
+                    "QECLowering with objective_family='placement_support'")
+            self.support_lowerings[binding.placement] = candidates[0]
+
+    def _select_trajectory_lowerings(self):
+        for binding in self.source.placement.bindings:
+            if binding.binding_kind != "trajectory":
+                continue
+            candidates = tuple(
+                lowering for lowering in self.lowerings
+                if self._architecture_allows(lowering, (
+                    binding.placement,)) and lowering.objective_family in {
+                        "placement_transition",
+                        "trajectory_transition",
+                    } and _requirements_met(
+                        lowering,
+                        (binding.placement,),
+                        self.device,
+                        self.binding_by_name,
+                    ))
+            if not candidates:
+                raise NotImplementedError(
+                    "trajectory placement requires a linked versioned "
+                    "QECLowering with objective_family='placement_transition'")
+            self.trajectory_lowerings[binding.placement] = candidates[0]
+
+    def _select_record_lowerings(self):
+        for binding in self.source.placement.bindings:
+            if binding.binding_kind != "topological_record":
+                continue
+            candidates = tuple(
+                lowering for lowering in self.lowerings
+                if self._architecture_allows(lowering, (
+                    binding.placement,)) and lowering.objective_family in {
+                        "placement_record",
+                        "topological_record",
+                    } and _requirements_met(
+                        lowering,
+                        (binding.placement,),
+                        self.device,
+                        self.binding_by_name,
+                    ))
+            if not candidates:
+                raise NotImplementedError(
+                    "topological-record placement requires a linked versioned "
+                    "QECLowering with objective_family='placement_record'")
+            self.record_lowerings[binding.placement] = candidates[0]
+
     def _site_handle(self, operation):
         name = operation.name
         if name == "lvm.prepare":
@@ -1134,11 +1697,11 @@ class _P1ToP2:
             placements_attr = (operation.attributes["at"],)
         elif name == "lvm.apply":
             kind = "action"
-            objective = _objective(operation.attributes["action"])
+            objective = self._objective_name(operation.attributes["action"])
             placements_attr = operation.attributes["placements"]
         elif name == "lvm.instrument":
             kind = "instrument"
-            objective = _objective(operation.attributes["instrument"])
+            objective = self._objective_name(operation.attributes["instrument"])
             placements_attr = operation.attributes["placements"]
         elif name == "lvm.measure":
             kind = "instrument"
@@ -1146,21 +1709,29 @@ class _P1ToP2:
             placements_attr = (operation.attributes["at"],)
         elif name == "lvm.consume_resource":
             kind = "resource_action"
-            objective = _objective(operation.attributes["action"])
+            objective = self._objective_name(operation.attributes["action"])
             placements_attr = operation.attributes["placements"]
         else:
             raise ValueError(f"{name} is not a selectable P1 operation")
-        fallback = tuple(_symbol(value) for value in placements_attr)
-        quantum_inputs = tuple(
-            value for value in operation.operands
-            if str(value.type).startswith("!lvm.logical_qubit<"))
+        # Owner indexing has already classified every live logical SSA value.
+        # Use that exact map on the hot path and retain the type predicate only
+        # as a fail-closed fallback for an incompletely indexed operation.
+        quantum_inputs = tuple(value for value in operation.operands
+                               if value in self.value_bindings)
+        if len(quantum_inputs) != len(placements_attr):
+            quantum_inputs = tuple(value for value in operation.operands
+                                   if self._is_logical_value(value))
         if name == "lvm.prepare":
             binding = self.value_bindings.get(operation.result)
-            placements = fallback if binding is None else (binding.placement,)
+            placements = ((self._symbol_name(placements_attr[0]),)
+                          if binding is None else (binding.placement,))
         else:
-            placements = tuple((self.value_bindings[value].placement if value in
-                                self.value_bindings else fallback[index])
-                               for index, value in enumerate(quantum_inputs))
+            placements = []
+            for index, value in enumerate(quantum_inputs):
+                binding = self.value_bindings.get(value)
+                placements.append(binding.placement if binding is not None else
+                                  self._symbol_name(placements_attr[index]))
+            placements = tuple(placements)
         params_attr = (operation.attributes["parameters"]
                        if "parameters" in operation.attributes else None)
         parameters = _parameters(params_attr)
@@ -1179,6 +1750,10 @@ class _P1ToP2:
                     ))
             else:
                 parameters["dynamic_angle"] = True
+        channel = None
+        channel_capability = None
+        endpoints = ()
+        direction = None
         resource_kind = None
         resource_stream = None
         resource_stream_owner = None
@@ -1192,9 +1767,14 @@ class _P1ToP2:
             resource_stream_owner = _root_symbol(stream_reference)
             resource_stream = _symbol(stream_reference)
         if name == "lvm.instrument" and "channel" in operation.attributes:
-            raise ValueError(
-                "communication-qualified P1 sites are not supported by CUDA-Q Logical"
-            )
+            channel = _symbol(operation.attributes["channel"])
+            channel_capability = CapabilityKey(
+                _capability_key(operation.attributes["channel_capability"]))
+            endpoints = tuple(
+                _symbol(value) for value in operation.attributes["endpoints"])
+            channel_op, _ = self._canonical_channel(channel)
+            direction = (_text(channel_op.attributes["direction"])
+                         if "direction" in channel_op.attributes else "forward")
         return ActionSiteHandle(
             symbol=f"site{int(operation.attributes['site'])}",
             kind=kind,
@@ -1204,10 +1784,63 @@ class _P1ToP2:
             parameters=parameters,
             input_arity=len(operation.operands),
             result_arity=len(operation.results),
+            channel=channel,
+            channel_capability=channel_capability,
+            endpoints=endpoints,
+            direction=direction,
             resource_kind=resource_kind,
             resource_stream=resource_stream,
             resource_stream_owner=resource_stream_owner,
         )
+
+    def _canonical_channel(self, name):
+        """Resolve a device channel only after matching retained P1 truth."""
+
+        operation = self.transaction.find_symbol(name, "lvm.channel")
+        if operation is None:
+            raise ValueError(
+                f"communication site references unknown canonical P1 channel "
+                f"@{name}")
+        candidates = tuple(
+            item for item in self.device.logical.channels if item.name == name)
+        if len(candidates) != 1:
+            detail = "no" if not candidates else "several"
+            raise ValueError(
+                f"P2 device has {detail} channel declaration(s) named @{name}")
+        declaration = candidates[0]
+        canonical = {
+            "source":
+                _symbol(operation.attributes["from"]),
+            "destination":
+                _symbol(operation.attributes["to"]),
+            "capabilities":
+                frozenset(
+                    _capability_key(value)
+                    for value in operation.attributes["capabilities"]),
+            "direction": (_text(operation.attributes["direction"]) if
+                          "direction" in operation.attributes else "forward"),
+            "capacity": (int(operation.attributes["capacity"])
+                         if "capacity" in operation.attributes else None),
+        }
+        supplied = {
+            "source":
+                declaration.source.name,
+            "destination":
+                declaration.destination.name,
+            "capabilities":
+                frozenset(item.key for item in declaration.capabilities),
+            "direction":
+                str(declaration.direction),
+            "capacity":
+                declaration.capacity,
+        }
+        if supplied != canonical:
+            mismatches = ", ".join(
+                key for key in canonical if canonical[key] != supplied[key])
+            raise ValueError(
+                f"P2 device channel @{name} contradicts canonical P1 "
+                f"channel fields: {mismatches}")
+        return operation, declaration
 
     def _canonical_stream(self, reference, kind):
         """Resolve a device stream only after matching retained P1 truth."""
@@ -1241,9 +1874,32 @@ class _P1ToP2:
                 f"P1 stream @{name} external boundary is not canonical")
         return operation, stream
 
-    @staticmethod
-    def _is_logical_value(value):
-        return str(value.type).startswith("!lvm.logical_qubit<")
+    def _type_text(self, type_):
+        text = self._type_text_cache.get(type_)
+        if text is None:
+            text = str(type_)
+            self._type_text_cache[type_] = text
+        return text
+
+    def _symbol_name(self, attribute):
+        name = self._symbol_text_cache.get(attribute)
+        if name is None:
+            name = _symbol(attribute)
+            self._symbol_text_cache[attribute] = name
+        return name
+
+    def _objective_name(self, attribute):
+        name = self._objective_text_cache.get(attribute)
+        if name is None:
+            name = _objective(attribute)
+            self._objective_text_cache[attribute] = name
+        return name
+
+    def _is_logical_value(self, value):
+        return self._type_text(value.type).startswith("!lvm.logical_qubit<")
+
+    def _is_patch_type(self, type_):
+        return self._type_text(type_).startswith("!fabric.patch<")
 
     def _binding_for_reference(self, reference):
         name = _symbol(reference)
@@ -1280,7 +1936,7 @@ class _P1ToP2:
                 if binding is not None:
                     self.value_bindings[operation.result] = binding
                 continue
-            if name == "lvm.if":
+            if name == "cflow.if":
                 branch_values = []
                 for region in operation.regions:
                     nested = region.blocks[0]
@@ -1298,13 +1954,19 @@ class _P1ToP2:
                         if candidates[0] is not None:
                             self.value_bindings[result] = candidates[0]
                 continue
-            if name == "lvm.repeat":
+            if name == "cflow.repeat":
                 body = operation.regions[0].blocks[0]
                 self._index_binding_block(body, operation.operands)
                 self._bind_results_from_values(operation.results,
                                                body.operations[-1].operands)
                 continue
-            if name == "lvm.while":
+            if name == "lvm.call":
+                body = operation.regions[0].blocks[0]
+                self._index_binding_block(body, operation.operands)
+                self._bind_results_from_values(operation.results,
+                                               body.operations[-1].operands)
+                continue
+            if name == "cflow.while":
                 before = operation.regions[0].blocks[0]
                 self._index_binding_block(before, operation.operands)
                 forwarded = tuple(before.operations[-1].operands)[1:]
@@ -1313,7 +1975,7 @@ class _P1ToP2:
                 self._bind_results_from_values(operation.results,
                                                after.operations[-1].operands)
                 continue
-            if name == "lvm.event_try_take":
+            if name == "event.try_take":
                 branch_values = []
                 for region in operation.regions:
                     nested = region.blocks[0]
@@ -1352,7 +2014,7 @@ class _P1ToP2:
         self._index_binding_block(block)
 
     def _validate_packed_preparations(self):
-        """Fail closed until packed blocks have a composite preparation gadget."""
+        """Fail closed until packed blocks have a composite state preparer."""
 
         owners_by_block = {}
         for binding in self.binding_by_name.values():
@@ -1510,6 +2172,7 @@ class _P1ToP2:
 
     def _select_sites(self):
         block = self.kernel.regions[0].blocks[0]
+        rpp_candidates = {}
         for operation in self._walk_operations(block):
             if operation.name not in {
                     "lvm.prepare",
@@ -1526,42 +2189,73 @@ class _P1ToP2:
             preserve_packed_owner = (
                 handle.objective in {"measure_x", "measure_z"} and
                 self.packed_readout_preserves.get(handle.symbol, False))
-            generated = tuple(
-                lowering for lowering in self.lowerings
-                if self._architecture_allows(lowering, handle.placements) and
-                _matches_objective(lowering, handle) and
-                _matches_device_encoding(
-                    self.transaction,
-                    lowering,
-                    handle,
-                    self.device,
-                    self.binding_by_name,
-                ) and _requirements_met(
-                    lowering,
-                    handle.placements,
-                    self.device,
-                    self.binding_by_name,
-                    site=handle,
-                ))
-            if preserve_packed_owner:
-                generated = ()
-            fixed = () if preserve_packed_owner else tuple(
-                candidate for candidate in self.fixed
-                if self._architecture_allows(candidate, handle.placements) and
-                _matches_fixed(candidate, handle, operation, self.
-                               binding_by_name) and _matches_device_encoding(
-                                   self.transaction,
-                                   candidate,
-                                   handle,
-                                   self.device,
-                                   self.binding_by_name,
-                               ) and _requirements_met(
-                                   candidate,
-                                   handle.placements,
-                                   self.device,
-                                   self.binding_by_name,
-                                   site=handle,
-                               ))
+            candidate_key = None
+            if handle.objective_family == "pauli_product_rotation":
+                bindings = tuple(
+                    self.binding_by_name[name] for name in handle.placements)
+                # Candidate feasibility is independent of an RPP's Pauli mask,
+                # sign, angle, and precision.  Those values specialize the
+                # selected realization later; matching here depends only on
+                # objective, boundary shape, architecture, code, and available
+                # capabilities.  Keeping the full parameter dictionary in this
+                # cache key made a routed paper-scale kernel repeat identical
+                # provider/device checks for almost every logical site.
+                candidate_key = (
+                    handle.objective_family,
+                    handle.objective,
+                    handle.input_arity,
+                    handle.result_arity,
+                    tuple((
+                        binding.space,
+                        binding.binding_kind,
+                        None if binding.encoding is
+                        None else binding.encoding.name,
+                    ) for binding in bindings),
+                )
+            cached_candidates = (None if candidate_key is None else
+                                 rpp_candidates.get(candidate_key))
+            if cached_candidates is None:
+                generated = tuple(
+                    lowering for lowering in self.lowerings
+                    if self._architecture_allows(lowering, handle.placements)
+                    and _matches_objective(lowering, handle) and
+                    _matches_device_encoding(
+                        self.transaction,
+                        lowering,
+                        handle,
+                        self.device,
+                        self.binding_by_name,
+                    ) and _requirements_met(
+                        lowering,
+                        handle.placements,
+                        self.device,
+                        self.binding_by_name,
+                        site=handle,
+                    ))
+                if preserve_packed_owner:
+                    generated = ()
+                fixed = () if preserve_packed_owner else tuple(
+                    candidate for candidate in self.fixed
+                    if self._architecture_allows(candidate, handle.placements)
+                    and _matches_fixed(candidate, handle, operation,
+                                       self.binding_by_name) and
+                    _matches_device_encoding(
+                        self.transaction,
+                        candidate,
+                        handle,
+                        self.device,
+                        self.binding_by_name,
+                    ) and _requirements_met(
+                        candidate,
+                        handle.placements,
+                        self.device,
+                        self.binding_by_name,
+                        site=handle,
+                    ))
+                if candidate_key is not None:
+                    rpp_candidates[candidate_key] = (fixed, generated)
+            else:
+                fixed, generated = cached_candidates
             if (not fixed and not generated and
                     handle.objective in {"measure_x", "measure_z"} and
                     self._architecture_bound(handle.placements)):
@@ -1605,6 +2299,11 @@ class _P1ToP2:
                 if encoding is not None:
                     candidate = self._standard_instrument(handle, encoding)
                     fixed = (candidate,)
+            if handle.channel_capability is not None and len(generated) > 1:
+                names = ", ".join(sorted(item.name for item in generated))
+                raise ValueError(
+                    "several linked QEC lowerings implement communication site "
+                    f"@{handle.symbol}; selection is ambiguous: {names}")
             # Fixed exact artifacts win by default; a policy can later compare
             # cost/evidence uniformly after dynamic specialization.
             feasible = (*fixed, *generated)
@@ -1618,9 +2317,9 @@ class _P1ToP2:
         """Yield action-bearing operations throughout a structured kernel body.
 
         P1 action sites are declarations on the surrounding ``lvm.domain``, but
-        their uses may occur inside ``lvm.if`` and ``lvm.repeat`` regions.  QEC
-        selection therefore follows structured regions instead of considering
-        only the kernel's entry block.
+        their uses may occur inside ``cflow.if`` and ``cflow.repeat`` regions.
+        QEC selection therefore follows structured regions instead of
+        considering only the kernel's entry block.
         """
 
         for child in block.operations:
@@ -1708,9 +2407,8 @@ class _P1ToP2:
             raise NotImplementedError(
                 f"P1 value {value} has no P2 mapping") from error
 
-    @staticmethod
-    def _placement_from_type(type_):
-        text = str(type_)
+    def _placement_from_type(self, type_):
+        text = self._type_text(type_)
         if not text.startswith("!lvm.logical_qubit<"):
             return None
         reference = text[len("!lvm.logical_qubit<"):-1]
@@ -1755,7 +2453,7 @@ class _P1ToP2:
         return tuple(representatives), tuple(indices)
 
     def _p2_type(self, type_):
-        text = str(type_)
+        text = self._type_text(type_)
         if text.startswith("!lvm.logical_qubit<"):
             return self.patch_type
         resource_marker = '!lvm.logical_resource<"'
@@ -1763,11 +2461,11 @@ class _P1ToP2:
             kind = text[len(resource_marker):].split('"', 1)[0]
             return mlir_ir.Type.parse(f"!fabric.resource<@{kind}>",
                                       context=self.context)
-        event_marker = '!lvm.logical_event<!lvm.logical_resource<"'
+        event_marker = '!event.handle<!lvm.logical_resource<"'
         if text.startswith(event_marker):
             kind = text[len(event_marker):].split('"', 1)[0]
             return mlir_ir.Type.parse(
-                f'!fabric.event<!fabric.resource<@{kind}>, "linear">',
+                f'!event.handle<!fabric.resource<@{kind}>, "linear">',
                 context=self.context,
             )
         if text.startswith("!lvm.logical_frame<"):
@@ -1796,24 +2494,142 @@ class _P1ToP2:
         try:
             for child in source_block.operations:
                 operation = child.operation
-                if operation.name == "lvm.yield":
+                # `cflow.yield` terminates cflow.if/repeat/while bodies on
+                # both tiers, so it maps to itself; `event.yield` terminates
+                # event.try_take branches (which this method also converts)
+                # and, now that fabric also embeds the shared `event`
+                # dialect, maps to itself too.
+                if operation.name == "cflow.yield":
                     yielded, _ = self._coalesced_boundary(operation.operands)
                     self._insert(
                         self.ip,
-                        "fabric.yield",
+                        "cflow.yield",
                         operands=[self._mapped(value) for value in yielded],
                     )
-                elif operation.name == "lvm.while_condition":
+                elif operation.name == "event.yield":
                     yielded, _ = self._coalesced_boundary(operation.operands)
                     self._insert(
                         self.ip,
-                        "fabric.while_condition",
+                        "event.yield",
+                        operands=[self._mapped(value) for value in yielded],
+                    )
+                elif operation.name == "cflow.while_condition":
+                    yielded, _ = self._coalesced_boundary(operation.operands)
+                    self._insert(
+                        self.ip,
+                        "cflow.while_condition",
                         operands=[self._mapped(value) for value in yielded],
                     )
                 else:
                     self._convert(operation)
         finally:
             self.ip = saved_ip
+
+    def _convert_call_scope(self, operation):
+        """Lower one placed helper instance to a folded typed P2 protocol.
+
+        ``lvm.call`` owns an inline placement-refined body because one P0
+        helper can occur at many logical locations.  P2 keeps that hierarchy
+        without copying it into the caller: each occurrence becomes one
+        ``fabric.protocol`` whose body contains the independently selected QEC
+        realizations, and the caller receives one ordinary ``fabric.call``.
+        The typed P1 kernel/callee/scope tuple authenticates the retained
+        source occurrence; helper spelling is provenance, never recognition
+        policy.
+        """
+
+        source_block = operation.regions[0].blocks[0]
+        if not source_block.operations:
+            raise ValueError("placed helper call scope has no terminator")
+        terminator = source_block.operations[-1].operation
+        if terminator.name != "lvm.yield":
+            raise ValueError("placed helper call scope must end in lvm.yield")
+
+        inputs, input_indices = self._coalesced_boundary(operation.operands)
+        _, body_input_indices = self._coalesced_boundary(source_block.arguments)
+        if input_indices != body_input_indices:
+            raise ValueError(
+                "placed helper call boundary changes encoded-owner aliasing")
+        results, result_indices = self._coalesced_boundary(operation.results)
+        yielded, yielded_indices = self._coalesced_boundary(terminator.operands)
+        if result_indices != yielded_indices:
+            raise ValueError(
+                "placed helper call yield changes encoded-owner aliasing")
+
+        input_types = tuple(self._p2_type(value.type) for value in inputs)
+        result_types = tuple(self._p2_type(value.type) for value in results)
+        function_type = mlir_ir.FunctionType.get(input_types,
+                                                 result_types,
+                                                 context=self.context)
+        scope = int(operation.attributes["scope"])
+        callee = _symbol(operation.attributes["callee"])
+        symbol = self.transaction.unique_symbol(
+            f"{self.root_symbol}_scope{scope}_{callee}")
+        with self.context:
+            function_type_attr = mlir_ir.TypeAttr.get(function_type)
+        attrs = {
+            "sym_name":
+                mlir_ir.StringAttr.get(symbol, context=self.context),
+            "function_type":
+                function_type_attr,
+            "input_p1_kernel":
+                mlir_ir.FlatSymbolRefAttr.get(self.source.root.symbol,
+                                              context=self.context),
+            "input_p1_callee":
+                operation.attributes["callee"],
+            "input_p1_scope":
+                operation.attributes["scope"],
+        }
+        with self.location:
+            protocol = mlir_ir.Operation.create("fabric.protocol",
+                                                attributes=attrs,
+                                                regions=1,
+                                                loc=self.location)
+            self.module.body.append(protocol)
+            target_block = protocol.regions[0].blocks.append(*input_types)
+        self.transaction._index_symbol(protocol, symbol)
+
+        saved_ip = self.ip
+        saved_blocks = self.block_state
+        self.ip = mlir_ir.InsertionPoint(target_block)
+        self.block_state = {}
+        try:
+            for source, index in zip(source_block.arguments,
+                                     body_input_indices):
+                target = target_block.arguments[index]
+                self.value_map[source] = target
+                binding = self._binding_for_value(source)
+                if binding is not None and binding.block is not None:
+                    self.block_state[binding.block] = target
+            self._convert_sequence(
+                child.operation
+                for child in tuple(source_block.operations)[:-1])
+            returned = tuple(self._mapped(value) for value in yielded)
+            if tuple(value.type for value in returned) != result_types:
+                raise ValueError(
+                    "placed helper call P2 results differ from its protocol "
+                    "signature")
+            self._insert(self.ip, "fabric.protocol_return", operands=returned)
+        finally:
+            self.ip = saved_ip
+            self.block_state = saved_blocks
+
+        call = self._insert(
+            self.ip,
+            "fabric.call",
+            operands=[self._mapped(value) for value in inputs],
+            results=result_types,
+            attributes={
+                "callee":
+                    mlir_ir.FlatSymbolRefAttr.get(symbol, context=self.context)
+            },
+        )
+        for old, index in zip(operation.results, result_indices):
+            result = call.results[index]
+            self.value_map[old] = result
+            binding = self._binding_for_value(old)
+            if binding is not None and binding.block is not None:
+                self.block_state[binding.block] = result
 
     def _placement(self, operation):
         if "at" in operation.attributes:
@@ -1878,10 +2694,365 @@ class _P1ToP2:
                                                   context=self.context)
             },
         )
-        self.value_map[operation.result] = prepared.result
+        value = prepared.result
+        if binding is not None and binding.binding_kind == "trajectory":
+            value = self._lower_trajectory(binding, value)
+        elif binding is not None and binding.binding_kind == "distributed":
+            value = self._lower_distributed_support(binding, value)
+        elif binding is not None and binding.binding_kind == "topological_record":
+            value = self._lower_topological_record(binding, value)
+        self.value_map[operation.result] = value
         if packed:
-            self.block_state[block] = prepared.result
+            self.block_state[block] = value
             self.open_packed_preparation_blocks.add(block)
+
+    def _lower_distributed_support(self, binding, value):
+        lowering = self.support_lowerings[binding.placement]
+        details = dict(binding.binding_data)
+        spaces = tuple(details.get("spaces", ()))
+        views = tuple(details.get("support_views", ()))
+        witness = details.get("ownership_witness")
+        obligations = tuple(details.get("link_obligations", ()))
+        if not spaces or len(spaces) != len(views) or not witness:
+            raise ValueError(
+                "distributed placement is missing aligned spaces/support views "
+                "or its ownership witness")
+        if spaces[0] != binding.space:
+            raise ValueError(
+                "distributed placement primary space must be its first support space"
+            )
+
+        key = (id(lowering), spaces, views, witness, obligations)
+        cached = self.placement_generated.get(key)
+        if cached is None:
+            manifest = self.transaction.materialize(lowering)
+            code, encoding = _candidate_code(lowering)
+            site = ActionSiteHandle(
+                symbol=f"distributed_{binding.placement}",
+                kind="placement_support",
+                objective_family="placement_support",
+                objective=None,
+                placements=(binding.placement,),
+                parameters={
+                    "primary": binding.space,
+                    "spaces": spaces,
+                    "support_views": views,
+                    "ownership_witness": witness,
+                    "link_obligations": obligations,
+                },
+                input_arity=1,
+                result_arity=1,
+            )
+            context = QECCompilerContext(
+                device=self.device,
+                lowering=lowering,
+                code=code,
+                encoding=encoding,
+                policy=self.policy,
+                dependencies=lowering.dependencies,
+                placements=(binding,),
+                physical=self.device.physical,
+            )
+            generated = lowering.compile_site(site, context)
+            if not isinstance(generated,
+                              (GadgetDefinition, ProtocolDefinition)):
+                raise TypeError(
+                    f"distributed-support lowering {lowering.name!r} must "
+                    "return a gadget or protocol")
+            handle = self.transaction.materialize(generated)
+            inputs, results, _ = self.transaction.signature_of(generated)
+            if (len(inputs) != 1 or len(results) != 1 or
+                    inputs[0] != self.patch_type or
+                    results[0] != self.patch_type):
+                raise ValueError(
+                    "distributed-support realization must preserve exactly one "
+                    "selected encoding patch")
+            artifact = self.transaction.find_symbol(
+                handle.symbol,
+                "fabric.protocol" if isinstance(generated, ProtocolDefinition)
+                else "fabric.gadget",
+            )
+            artifact.attributes["generated_by"] = mlir_ir.FlatSymbolRefAttr.get(
+                manifest.symbol, context=self.context)
+            cached = generated, handle, manifest
+            self.placement_generated[key] = cached
+
+        _generated, handle, manifest = cached
+        with self.context:
+            primary_ref = mlir_ir.SymbolRefAttr.get(
+                [self.device.logical.name, binding.space], context=self.context)
+            space_refs = mlir_ir.ArrayAttr.get(
+                [
+                    mlir_ir.SymbolRefAttr.get([self.device.logical.name, space],
+                                              context=self.context)
+                    for space in spaces
+                ],
+                context=self.context,
+            )
+        established = self._insert(
+            self.ip,
+            "fabric.establish_support",
+            operands=[value],
+            results=[self.patch_type],
+            attributes={
+                "callee":
+                    mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
+                                                  context=self.context),
+                "primary":
+                    primary_ref,
+                "spaces":
+                    space_refs,
+                "support_views":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.StringAttr.get(view, context=self.context)
+                            for view in views
+                        ],
+                        context=self.context,
+                    ),
+                "ownership_witness":
+                    mlir_ir.StringAttr.get(witness, context=self.context),
+                "link_obligations":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.StringAttr.get(item, context=self.context)
+                            for item in obligations
+                        ],
+                        context=self.context,
+                    ),
+                "generated_by":
+                    mlir_ir.FlatSymbolRefAttr.get(manifest.symbol,
+                                                  context=self.context),
+            },
+        )
+        return established.result
+
+    def _lower_topological_record(self, binding, value):
+        lowering = self.record_lowerings[binding.placement]
+        details = dict(binding.binding_data)
+        record = details.get("record")
+        frontier = tuple(details.get("frontier", ()))
+        support_witness = details.get("support_witness")
+        observable_witness = details.get("observable_witness")
+        if (not record or not frontier or not support_witness or
+                not observable_witness):
+            raise ValueError(
+                "topological-record placement is missing its record, frontier, "
+                "or support/observable witnesses")
+
+        key = (
+            id(lowering),
+            binding.space,
+            record,
+            frontier,
+            support_witness,
+            observable_witness,
+        )
+        cached = self.placement_generated.get(key)
+        if cached is None:
+            manifest = self.transaction.materialize(lowering)
+            code, encoding = _candidate_code(lowering)
+            site = ActionSiteHandle(
+                symbol=f"topological_{binding.placement}",
+                kind="placement_record",
+                objective_family="placement_record",
+                objective=None,
+                placements=(binding.placement,),
+                parameters={
+                    "space": binding.space,
+                    "record": record,
+                    "frontier": frontier,
+                    "support_witness": support_witness,
+                    "observable_witness": observable_witness,
+                },
+                input_arity=1,
+                result_arity=1,
+            )
+            context = QECCompilerContext(
+                device=self.device,
+                lowering=lowering,
+                code=code,
+                encoding=encoding,
+                policy=self.policy,
+                dependencies=lowering.dependencies,
+                placements=(binding,),
+                physical=self.device.physical,
+            )
+            generated = lowering.compile_site(site, context)
+            if not isinstance(generated,
+                              (GadgetDefinition, ProtocolDefinition)):
+                raise TypeError(
+                    f"topological-record lowering {lowering.name!r} must "
+                    "return a gadget or protocol")
+            handle = self.transaction.materialize(generated)
+            inputs, results, _ = self.transaction.signature_of(generated)
+            if (len(inputs) != 1 or len(results) != 1 or
+                    inputs[0] != self.patch_type or
+                    results[0] != self.patch_type):
+                raise ValueError(
+                    "topological-record realization must preserve exactly one "
+                    "selected encoding patch")
+            artifact = self.transaction.find_symbol(
+                handle.symbol,
+                "fabric.protocol" if isinstance(generated, ProtocolDefinition)
+                else "fabric.gadget",
+            )
+            artifact.attributes["generated_by"] = mlir_ir.FlatSymbolRefAttr.get(
+                manifest.symbol, context=self.context)
+            cached = generated, handle, manifest
+            self.placement_generated[key] = cached
+
+        _generated, handle, manifest = cached
+        with self.context:
+            space_ref = mlir_ir.SymbolRefAttr.get(
+                [self.device.logical.name, binding.space], context=self.context)
+        established = self._insert(
+            self.ip,
+            "fabric.establish_topological_record",
+            operands=[value],
+            results=[self.patch_type],
+            attributes={
+                "callee":
+                    mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
+                                                  context=self.context),
+                "space":
+                    space_ref,
+                "record":
+                    mlir_ir.StringAttr.get(record, context=self.context),
+                "frontier":
+                    mlir_ir.ArrayAttr.get(
+                        [
+                            mlir_ir.StringAttr.get(item, context=self.context)
+                            for item in frontier
+                        ],
+                        context=self.context,
+                    ),
+                "support_witness":
+                    mlir_ir.StringAttr.get(support_witness,
+                                           context=self.context),
+                "observable_witness":
+                    mlir_ir.StringAttr.get(observable_witness,
+                                           context=self.context),
+                "generated_by":
+                    mlir_ir.FlatSymbolRefAttr.get(manifest.symbol,
+                                                  context=self.context),
+            },
+        )
+        return established.result
+
+    def _lower_trajectory(self, binding, value):
+        lowering = self.trajectory_lowerings[binding.placement]
+        details = dict(binding.binding_data)
+        segments = tuple(details.get("segments", ()))
+        transitions = tuple(details.get("transition_events", ()))
+        witness = details.get("continuity_witness")
+        if len(segments) != len(transitions) + 1 or not witness:
+            raise ValueError(
+                "trajectory placement is missing segments, transitions, or witness"
+            )
+        for step, (source, destination, transition) in enumerate(
+                zip(segments, segments[1:], transitions)):
+            # Generation consumes the complete P1 transition site.  Distinct
+            # worldlines can traverse the same route edge while carrying
+            # different continuity witnesses, and must not share a generated
+            # P2 realization.
+            key = (
+                id(lowering),
+                binding.placement,
+                source,
+                destination,
+                transition,
+                witness,
+                step,
+            )
+            cached = self.placement_generated.get(key)
+            if cached is None:
+                manifest = self.transaction.materialize(lowering)
+                code, encoding = _candidate_code(lowering)
+                site = ActionSiteHandle(
+                    symbol=f"trajectory_{binding.placement}_{step}",
+                    kind="placement_transition",
+                    objective_family="placement_transition",
+                    objective=None,
+                    placements=(binding.placement,),
+                    parameters={
+                        "source": source,
+                        "destination": destination,
+                        "transition": transition,
+                        "continuity_witness": witness,
+                        "step": step,
+                    },
+                    input_arity=1,
+                    result_arity=1,
+                )
+                context = QECCompilerContext(
+                    device=self.device,
+                    lowering=lowering,
+                    code=code,
+                    encoding=encoding,
+                    policy=self.policy,
+                    dependencies=lowering.dependencies,
+                    placements=(binding,),
+                    physical=self.device.physical,
+                )
+                generated = lowering.compile_site(site, context)
+                if not isinstance(generated,
+                                  (GadgetDefinition, ProtocolDefinition)):
+                    raise TypeError(
+                        f"trajectory lowering {lowering.name!r} must return a "
+                        "gadget or protocol")
+                handle = self.transaction.materialize(generated)
+                inputs, results, _ = self.transaction.signature_of(generated)
+                if (len(inputs) != 1 or len(results) != 1 or
+                        inputs[0] != self.patch_type or
+                        results[0] != self.patch_type):
+                    raise ValueError(
+                        "trajectory realization must preserve exactly one "
+                        "selected encoding patch")
+                artifact = self.transaction.find_symbol(
+                    handle.symbol,
+                    "fabric.protocol" if isinstance(
+                        generated, ProtocolDefinition) else "fabric.gadget",
+                )
+                artifact.attributes[
+                    "generated_by"] = mlir_ir.FlatSymbolRefAttr.get(
+                        manifest.symbol, context=self.context)
+                cached = generated, handle, manifest
+                self.placement_generated[key] = cached
+            _generated, handle, manifest = cached
+            with self.context:
+                source_ref = mlir_ir.SymbolRefAttr.get(
+                    [self.device.logical.name, source], context=self.context)
+                destination_ref = mlir_ir.SymbolRefAttr.get(
+                    [self.device.logical.name, destination],
+                    context=self.context)
+            relocated = self._insert(
+                self.ip,
+                "fabric.relocate",
+                operands=[value],
+                results=[self.patch_type],
+                attributes={
+                    "callee":
+                        mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
+                                                      context=self.context),
+                    "source":
+                        source_ref,
+                    "destination":
+                        destination_ref,
+                    "transition":
+                        mlir_ir.StringAttr.get(transition,
+                                               context=self.context),
+                    "continuity_witness":
+                        mlir_ir.StringAttr.get(witness, context=self.context),
+                    "step":
+                        _i64(self.context, step),
+                    "generated_by":
+                        mlir_ir.FlatSymbolRefAttr.get(manifest.symbol,
+                                                      context=self.context),
+                },
+            )
+            value = relocated.result
+        return value
 
     def _constant_int(self, value):
         owner = value.owner
@@ -1895,7 +3066,7 @@ class _P1ToP2:
     def _memory_realization(self, placements):
         """Select one linked memory realization for the root code, if any.
 
-        The model binds an explicit ``qlx.idle`` workload to a selected
+        The model binds an explicit ``cudaq.logical.idle`` workload to a selected
         memory protocol/round group at P2. When exactly one linked
         realization implements the standard ``idle`` objective for the
         placed code it is selected; with none the workload stays an
@@ -1932,7 +3103,7 @@ class _P1ToP2:
     def _emit_memory_realization(self, value, realization, rounds):
         """Emit the selected memory realization for one idle workload.
 
-        One iteration is one call; several stay folded as ``fabric.repeat``
+        One iteration is one call; several stay folded as ``cflow.repeat``
         so estimate cost never scales with the round count.
         """
         handle = self.transaction.materialize(realization)
@@ -1955,7 +3126,7 @@ class _P1ToP2:
             return emit_call(self.ip, value)
         repeat = self._insert(
             self.ip,
-            "fabric.repeat",
+            "cflow.repeat",
             operands=[value],
             results=[self.patch_type],
             attributes={"count": _i64(self.context, rounds)},
@@ -1965,7 +3136,7 @@ class _P1ToP2:
             body = repeat.regions[0].blocks.append(self.patch_type)
         body_ip = mlir_ir.InsertionPoint(body)
         iterated = emit_call(body_ip, body.arguments[0])
-        self._insert(body_ip, "fabric.yield", operands=[iterated])
+        self._insert(body_ip, "cflow.yield", operands=[iterated])
         return repeat.result
 
     def _materialize_action_site(self, selected):
@@ -1975,6 +3146,19 @@ class _P1ToP2:
                                                 "lvm.action_site",
                                                 scan=False)
         operation = selected.operation
+        source_site = None
+        if operation.name == "lvm.apply":
+            if "site" not in operation.attributes:
+                raise ValueError(
+                    "generated local action site requires a retained "
+                    "lvm.apply site ordinal")
+            source_site = operation.attributes["site"]
+            if existing is not None and (
+                    "source_site" not in existing.attributes or
+                    existing.attributes["source_site"] != source_site):
+                raise ValueError(
+                    "generated local action site does not retain its exact "
+                    "lvm.apply source_site")
         root_reference = (
             operation.attributes["channel"] if "channel" in operation.attributes
             else operation.attributes["at"] if operation.name == "lvm.measure"
@@ -2001,13 +3185,36 @@ class _P1ToP2:
                         context=self.context,
                     ),
             }
+            if source_site is not None:
+                attrs["source_site"] = source_site
             if selected.handle.parameters:
-                attrs["parameters"] = _dictionary(
-                    self.context, dict(selected.handle.parameters))
+                source_parameters = (operation.attributes["parameters"]
+                                     if operation.name == "lvm.apply" and
+                                     "parameters" in operation.attributes else
+                                     None)
+                # Preserve the exact source attribute types. In particular,
+                # arbitrary-width Pauli masks use one shared operand-width
+                # type even when one numeric mask has fewer significant bits.
+                # Reconstruct only SSA-derived facts such as the static angle
+                # from the typed site handle.
+                attrs["parameters"] = _action_site_parameters(
+                    self.context,
+                    dict(selected.handle.parameters),
+                    source_parameters,
+                )
             if operation.name in {"lvm.apply", "lvm.consume_resource"}:
                 attrs["objective"] = operation.attributes["action"]
             elif operation.name == "lvm.instrument":
                 attrs["objective"] = operation.attributes["instrument"]
+                if "channel" in operation.attributes:
+                    attrs["channel"] = operation.attributes["channel"]
+                    attrs["channel_capability"] = operation.attributes[
+                        "channel_capability"]
+                    attrs["endpoints"] = operation.attributes["endpoints"]
+                    attrs["direction"] = mlir_ir.StringAttr.get(
+                        selected.handle.direction,
+                        context=self.context,
+                    )
             with mlir_ir.InsertionPoint(domain.regions[0].blocks[0]):
                 existing = mlir_ir.Operation.create("lvm.action_site",
                                                     attributes=attrs,
@@ -2019,14 +3226,51 @@ class _P1ToP2:
                 context=self.context,
             )
 
+    def _shares_local_rpp_callable(self, selected: _SelectedSite) -> bool:
+        lowering = selected.selected
+        if (not isinstance(lowering, QECLowering) or
+                lowering.objective_family != "pauli_product_rotation"):
+            return False
+        bindings = tuple(
+            self.binding_by_name[name] for name in selected.handle.placements)
+        return bool(bindings) and all(
+            binding.binding_kind == "local" and binding.encoding is not None and
+            binding.logical_index is not None for binding in bindings)
+
     def _materialize_selected(self, selected: _SelectedSite):
         lowering = selected.selected
+        cache_site = selected.handle.symbol
+        cache_placements = selected.handle.placements
+        shared_local_rpp = self._shares_local_rpp_callable(selected)
+        if shared_local_rpp:
+            bindings = tuple(self.binding_by_name[name]
+                             for name in selected.handle.placements)
+            block_ordinals = {}
+            placement_shape = []
+            for binding in bindings:
+                block = binding.block or binding.placement
+                ordinal = block_ordinals.setdefault(block, len(block_ordinals))
+                placement_shape.append((
+                    ordinal,
+                    binding.logical_index,
+                    binding.encoding.name,
+                    binding.space,
+                ))
+            # Generated RPP callables are expressed over ordered encoded patch
+            # arguments and logical ports, not P1 owner symbols. Each
+            # invocation retains its own action-site provenance.
+            cache_site = ("shared_local_rpp", tuple(placement_shape))
+            cache_placements = ()
         key = (
             id(lowering),
-            selected.handle.symbol,
+            cache_site,
             selected.handle.objective,
             tuple(sorted(selected.handle.parameters.items())),
-            selected.handle.placements,
+            cache_placements,
+            selected.handle.channel,
+            (None if selected.handle.channel_capability is None else
+             selected.handle.channel_capability.key),
+            selected.handle.endpoints,
             selected.handle.resource_kind,
             selected.handle.resource_stream_owner,
             selected.handle.resource_stream,
@@ -2037,6 +3281,10 @@ class _P1ToP2:
         if isinstance(lowering, QECLowering):
             manifest = self.transaction.materialize(lowering)
             code, encoding = _candidate_code(lowering)
+            channel_declaration = None
+            if selected.handle.channel is not None:
+                _, channel_declaration = self._canonical_channel(
+                    selected.handle.channel)
             context = QECCompilerContext(
                 device=self.device,
                 lowering=lowering,
@@ -2046,6 +3294,8 @@ class _P1ToP2:
                 dependencies=lowering.dependencies,
                 placements=tuple(self.binding_by_name[name]
                                  for name in selected.handle.placements),
+                physical=self.device.physical,
+                channel=channel_declaration,
                 qec_selection=self.qec_selection,
             )
             generated = lowering.compile_site(selected.handle, context)
@@ -2077,10 +3327,42 @@ class _P1ToP2:
                 raise ValueError(
                     f"QEC lowering {lowering.name!r} must return a realization "
                     f"implementing the exact {declared_objective!r} objective")
+            if lowering.consumes and not isinstance(generated,
+                                                    ProtocolDefinition):
+                raise TypeError(
+                    f"resource-consuming QEC lowering {lowering.name!r} must "
+                    "return a protocol")
+            if selected.handle.channel is not None:
+                if not isinstance(generated, ProtocolDefinition):
+                    raise ValueError(
+                        "communication QEC lowering must return a typed protocol"
+                    )
+                generated_objective = generated.implements
+                if isinstance(
+                        generated_objective,
+                    (LogicalActionRef, LogicalInstrumentRef),
+                ):
+                    generated_objective = generated_objective.name
+                elif isinstance(generated_objective, ProgramDefinition):
+                    generated_objective = (
+                        generated_objective.name.removeprefix("qlx_standard_"))
+                else:
+                    generated_objective = None
+                if generated_objective != selected.handle.objective:
+                    raise ValueError(
+                        "communication QEC lowering must return a realization "
+                        f"implementing the exact {selected.handle.objective!r} "
+                        "objective")
         else:
             manifest = None
             generated = lowering
             generation_specialization = {}
+        if isinstance(lowering, QECLowering) and lowering.consumes:
+            payload_block_ids = tuple(
+                context.qec_block_for(placement)
+                for placement in selected.handle.placements)
+            self.transaction.bind_protocol_payload_blocks(
+                generated, payload_block_ids)
         payload_block_ids = generation_specialization.pop(
             "_payload_block_ids", None)
         if payload_block_ids is not None:
@@ -2135,10 +3417,9 @@ class _P1ToP2:
                 f"blocks={len(blocks)}, site_inputs={selected.handle.input_arity}"
             )
         quantum_results = sum(
-            str(value.type).startswith("!lvm.logical_qubit<")
+            self._is_logical_value(value)
             for value in selected.operation.results)
-        patch_results = sum(
-            str(value).startswith("!fabric.patch<") for value in results)
+        patch_results = sum(self._is_patch_type(value) for value in results)
         packed_owner_result = (
             quantum_results == 0 and patch_results == 1 and
             any(self.binding_by_name[placement].block is not None
@@ -2158,14 +3439,69 @@ class _P1ToP2:
         if manifest is not None:
             artifact.attributes["generated_by"] = mlir_ir.FlatSymbolRefAttr.get(
                 manifest.symbol, context=self.context)
-            artifact.attributes["action_site"] = self._materialize_action_site(
-                selected)
-            artifact.attributes["specialization"] = _dictionary(
+            if (selected.selected.objective_family == "pauli_product_rotation"
+                    and "rpp_strategy" in generation_specialization):
+                implementation_calls = [
+                    nested.operation
+                    for region in artifact.regions
+                    for block in region.blocks
+                    for nested in block.operations
+                    if nested.operation.name == "fabric.call"
+                ]
+                if len(implementation_calls) != 1:
+                    raise ValueError(
+                        "generated RPP adapter must contain exactly one direct "
+                        "implementation call")
+                metadata = {
+                    str(named.name): named.attr
+                    for named in artifact.attributes["metadata"]
+                }
+                metadata["implementation"] = mlir_ir.StringAttr.get(
+                    _symbol(implementation_calls[0].attributes["callee"]),
+                    context=self.context,
+                )
+                artifact.attributes["metadata"] = mlir_ir.DictAttr.get(
+                    metadata,
+                    context=self.context,
+                )
+                selections = {
+                    str(named.name): named.attr
+                    for named in manifest_operation.attributes.get(
+                        "rpp_selections",
+                        mlir_ir.DictAttr.get({}, context=self.context))
+                }
+                selections[handle.symbol] = mlir_ir.DictAttr.get(
+                    {
+                        "strategy":
+                            mlir_ir.StringAttr.get(
+                                str(generation_specialization["rpp_strategy"]),
+                                context=self.context,
+                            ),
+                        "implementation":
+                            mlir_ir.FlatSymbolRefAttr.get(
+                                _symbol(implementation_calls[0].
+                                        attributes["callee"]),
+                                context=self.context,
+                            ),
+                    },
+                    context=self.context,
+                )
+                manifest_operation.attributes["rpp_selections"] = (
+                    mlir_ir.DictAttr.get(selections, context=self.context))
+            if selected.handle.channel is None and not shared_local_rpp:
+                artifact.attributes[
+                    "action_site"] = self._materialize_action_site(selected)
+            source_parameters = (selected.operation.attributes["parameters"]
+                                 if selected.operation.name == "lvm.apply" and
+                                 "parameters" in selected.operation.attributes
+                                 else None)
+            artifact.attributes["specialization"] = _action_site_parameters(
                 self.context,
                 {
                     **selected.handle.parameters,
                     **generation_specialization,
                 },
+                source_parameters,
             )
             objective_attr = (
                 selected.operation.attributes["action"]
@@ -2177,15 +3513,20 @@ class _P1ToP2:
                 if ("objective" not in artifact.attributes and
                         objective_attr is not None):
                     artifact.attributes["objective"] = objective_attr
+                if (selected.handle.channel is not None and
+                    ("objective" not in artifact.attributes or
+                     artifact.attributes["objective"] != objective_attr)):
+                    raise ValueError(
+                        "communication protocol objective does not match its "
+                        "canonical P1 action site")
         self.generated[key] = generated, handle
         return generated, handle
 
     def _call(self, operation, selected):
         generated, handle = self._materialize_selected(selected)
         inputs, results, _ = self.transaction.signature_of(generated)
-        quantum_operands = tuple(
-            value for value in operation.operands
-            if str(value.type).startswith("!lvm.logical_qubit<"))
+        quantum_operands = tuple(value for value in operation.operands
+                                 if self._is_logical_value(value))
         blocks = tuple(
             dict.fromkeys(
                 self._block_key(placement)
@@ -2211,7 +3552,7 @@ class _P1ToP2:
         remaining_blocks = list(blocks)
         ordered = []
         for expected in inputs:
-            if str(expected).startswith("!fabric.patch<"):
+            if self._is_patch_type(expected):
                 index = next(
                     (index for index, block in enumerate(remaining_blocks)
                      if patch_by_block[block].type == expected),
@@ -2243,7 +3584,8 @@ class _P1ToP2:
                                  == "pauli_product_rotation" and
                                  "angle" in selected.handle.parameters and
                                  len(nonpatch_available) == 1 and
-                                 str(nonpatch_available[0].type) == "f64")
+                                 self._type_text(
+                                     nonpatch_available[0].type) == "f64")
             if not specialized_angle:
                 raise ValueError(
                     "selected QEC realization did not consume or specialize "
@@ -2253,12 +3595,34 @@ class _P1ToP2:
                 mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
                                               context=self.context)
         }
+        if self._shares_local_rpp_callable(selected):
+            call_attributes["action_site"] = self._materialize_action_site(
+                selected)
         resource_action_site = None
         if operation.name == "lvm.consume_resource":
             resource_action_site = self._materialize_action_site(selected)
             call_attributes["resource_action_site"] = resource_action_site
             call_attributes["resource_objective"] = operation.attributes[
                 "action"]
+        if operation.name == "lvm.instrument" and "channel" in operation.attributes:
+            if not isinstance(selected.selected, QECLowering):
+                raise ValueError(
+                    "communication-qualified action sites require a linked "
+                    "versioned QEC lowering provider")
+            manifest = self.transaction.materialize(selected.selected)
+            call_attributes.update({
+                "channel":
+                    operation.attributes["channel"],
+                "channel_capability":
+                    operation.attributes["channel_capability"],
+                "endpoints":
+                    operation.attributes["endpoints"],
+                "action_site":
+                    self._materialize_action_site(selected),
+                "generated_by":
+                    mlir_ir.FlatSymbolRefAttr.get(manifest.symbol,
+                                                  context=self.context),
+            })
         call = self._insert(
             self.ip,
             "fabric.call",
@@ -2275,11 +3639,10 @@ class _P1ToP2:
             )
         old_quantum = [
             value for value in operation.results
-            if str(value.type).startswith("!lvm.logical_qubit<")
+            if self._is_logical_value(value)
         ]
         new_patches = [
-            value for value in call.results
-            if str(value.type).startswith("!fabric.patch<")
+            value for value in call.results if self._is_patch_type(value.type)
         ]
         old_classical = [
             value for value in operation.results if value not in old_quantum
@@ -2319,7 +3682,7 @@ class _P1ToP2:
         """Authenticate one direct request/await/consume ownership chain."""
         resource = operation.operands[0]
         awaited = getattr(resource, "owner", None)
-        if getattr(awaited, "name", None) != "lvm.event_await":
+        if getattr(awaited, "name", None) != "event.await":
             return
         request = getattr(awaited.operands[0], "owner", None)
         if getattr(request, "name", None) != "lvm.resource_request":
@@ -2354,6 +3717,9 @@ class _P1ToP2:
 
     def _convert(self, operation):
         name = operation.name
+        if name == "lvm.call":
+            self._convert_call_scope(operation)
+            return
         if name == "lvm.prepare":
             self._prepare(operation)
             return
@@ -2462,52 +3828,52 @@ class _P1ToP2:
             )
             self.value_map[operation.result] = event.result
             return
-        if name == "lvm.event_test":
+        if name == "event.test":
             tested = self._insert(
                 self.ip,
-                "fabric.event_test",
+                "event.test",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
             )
             self.value_map[operation.result] = tested.result
             return
-        if name == "lvm.event_poll":
+        if name == "event.poll":
             polled = self._insert(
                 self.ip,
-                "fabric.event_poll",
+                "event.poll",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
             )
             self.value_map[operation.result] = polled.result
             return
-        if name == "lvm.event_is":
+        if name == "event.is":
             tested = self._insert(
                 self.ip,
-                "fabric.event_is",
+                "event.is",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
                 attributes={"state": operation.attributes["state"]},
             )
             self.value_map[operation.result] = tested.result
             return
-        if name == "lvm.event_select_ready":
+        if name == "event.select_ready":
             selected = self._insert(
                 self.ip,
-                "fabric.event_select_ready",
+                "event.select_ready",
                 operands=[self._mapped(value) for value in operation.operands],
                 results=[operation.result.type],
                 attributes={"policy": operation.attributes["policy"]},
             )
             self.value_map[operation.result] = selected.result
             return
-        if name == "lvm.event_try_take":
+        if name == "event.try_take":
             operands, _ = self._coalesced_boundary(operation.operands)
             results, result_indices = self._coalesced_boundary(
                 operation.results)
             result_types = [self._p2_type(result.type) for result in results]
             nested = self._insert(
                 self.ip,
-                "fabric.event_try_take",
+                "event.try_take",
                 operands=[self._mapped(value) for value in operands],
                 results=result_types,
                 regions=3,
@@ -2532,20 +3898,20 @@ class _P1ToP2:
                         )
                     self.block_state[block] = result
             return
-        if name == "lvm.event_cancel":
+        if name == "event.cancel":
             attrs = {}
             if "reason" in operation.attributes:
                 attrs["reason"] = operation.attributes["reason"]
             cancelled = self._insert(
                 self.ip,
-                "fabric.event_cancel",
+                "event.cancel",
                 operands=[self._mapped(operation.operands[0])],
                 results=[operation.result.type],
                 attributes=attrs,
             )
             self.value_map[operation.result] = cancelled.result
             return
-        if name == "lvm.event_await":
+        if name == "event.await":
             concrete = self._concrete_resource_events.get(operation.operands[0])
             if concrete is not None:
                 if concrete.type != self._p2_type(operation.result.type):
@@ -2555,23 +3921,23 @@ class _P1ToP2:
                 return
             awaited = self._insert(
                 self.ip,
-                "fabric.event_await",
+                "event.await",
                 operands=[self._mapped(operation.operands[0])],
                 results=[self._p2_type(operation.result.type)],
             )
             self.value_map[operation.result] = awaited.result
             return
-        if name == "lvm.fence":
+        if name == "event.fence":
             self._insert(
                 self.ip,
-                "fabric.fence",
+                "event.fence",
                 attributes={"effects": operation.attributes["effects"]},
             )
             return
-        if name == "lvm.selection":
+        if name == "event.selection":
             self._insert(
                 self.ip,
-                "fabric.selection",
+                "event.selection",
                 operands=[self._mapped(operation.operands[0])],
                 attributes={
                     "mode": operation.attributes["mode"],
@@ -2638,13 +4004,13 @@ class _P1ToP2:
                 self._insert(self.ip, "fabric.dealloc", operands=[value])
                 self.block_state.pop(block, None)
             return
-        if name == "lvm.if":
+        if name == "cflow.if":
             results, result_indices = self._coalesced_boundary(
                 operation.results)
             result_types = [self._p2_type(result.type) for result in results]
             nested = self._insert(
                 self.ip,
-                "fabric.if",
+                "cflow.if",
                 operands=[self._mapped(operation.operands[0])],
                 results=result_types,
                 regions=2,
@@ -2665,21 +4031,21 @@ class _P1ToP2:
                     block = binding.block
                     self.block_state[block] = result
                     # Both branches must refine the same encoded owner.  The
-                    # merged fabric.if result is the only post-dominator state;
+                    # merged cflow.if result is the only post-dominator state;
                     # branch-local Python conversion state must not leak.
                     if block not in then_blocks or block not in else_blocks:
                         raise ValueError(
                             "structured control failed to yield one encoded "
                             f"owner for shared block {block!r}")
             return
-        if name == "lvm.repeat":
+        if name == "cflow.repeat":
             operands, _ = self._coalesced_boundary(operation.operands)
             results, result_indices = self._coalesced_boundary(
                 operation.results)
             result_types = [self._p2_type(result.type) for result in results]
             nested = self._insert(
                 self.ip,
-                "fabric.repeat",
+                "cflow.repeat",
                 operands=[self._mapped(value) for value in operands],
                 results=result_types,
                 attributes={"count": operation.attributes["count"]},
@@ -2702,7 +4068,7 @@ class _P1ToP2:
                             f"for shared block {block!r}")
                     self.block_state[block] = result
             return
-        if name == "lvm.while":
+        if name == "cflow.while":
             operands, _ = self._coalesced_boundary(operation.operands)
             results, result_indices = self._coalesced_boundary(
                 operation.results)
@@ -2712,7 +4078,7 @@ class _P1ToP2:
                 attrs["max_iterations"] = operation.attributes["max_iterations"]
             nested = self._insert(
                 self.ip,
-                "fabric.while",
+                "cflow.while",
                 operands=[self._mapped(value) for value in operands],
                 results=result_types,
                 attributes=attrs,
@@ -2767,16 +4133,390 @@ class _P1ToP2:
         raise NotImplementedError(f"lvm-to-fabric does not yet convert {name}")
 
 
+def _network_qec_selection(
+    source,
+    *,
+    device,
+    policy=None,
+    expected_compiler=None,
+):
+    """Select one whole-network compiler through ordinary QECLowering rules."""
+
+    # Most P1 programs contain no MPP network. Avoid selecting the complete
+    # module once for a network probe and then again for ordinary P2 lowering
+    # when the retained root has no MPP action at all. Programs that do contain
+    # one still enter the complete typed network-selection path below.
+    probe_module = source._fresh_module()
+    probe_kernel = None
+    for candidate in probe_module.body.operations:
+        operation = candidate.operation
+        if (operation.name == "lvm.kernel" and
+                "sym_name" in operation.attributes and
+                _text(operation.attributes["sym_name"]) == source.root.symbol):
+            probe_kernel = operation
+            break
+    if probe_kernel is None:
+        raise ValueError(f"P1 root lvm.kernel @{source.root.symbol} is missing")
+
+    def operations(block):
+        for child in block.operations:
+            operation = child.operation
+            yield operation
+            for region in operation.regions:
+                for nested in region.blocks:
+                    yield from operations(nested)
+
+    has_mpp = any(
+        operation.name == "lvm.instrument" and _objective_family(
+            "instrument", _objective(operation.attributes["instrument"])) ==
+        "pauli_product_measurement"
+        for operation in operations(probe_kernel.regions[0].blocks[0]))
+    if not has_mpp:
+        if expected_compiler is not None:
+            raise ValueError(
+                f"P1 program does not select lattice-surgery compiler "
+                f"{expected_compiler.key!r}")
+        return None
+
+    probe = _P1ToP2(source, device, policy)
+    probe._prepare_selection()
+    from cudaq.logical.qec.lowering import QECNetworkCompiler
+
+    mpp_sites = []
+    block = probe.kernel.regions[0].blocks[0]
+    for operation in probe._walk_operations(block):
+        if operation.name not in {
+                "lvm.prepare",
+                "lvm.apply",
+                "lvm.instrument",
+                "lvm.measure",
+                "lvm.consume_resource",
+        }:
+            continue
+        handle = probe._site_handle(operation)
+        if handle.objective_family != "pauli_product_measurement":
+            continue
+        mpp_sites.append((handle, probe.selected_sites.get(handle.symbol)))
+
+    network = tuple(
+        item for _handle, item in mpp_sites
+        if item is not None and isinstance(item.selected, QECLowering) and
+        isinstance(item.selected.compiler, QECNetworkCompiler))
+    if not network:
+        if expected_compiler is not None:
+            raise ValueError(
+                f"P1 program does not select lattice-surgery compiler "
+                f"{expected_compiler.key!r}")
+        return None
+
+    compilers = {
+        id(item.selected.compiler): item.selected.compiler for item in network
+    }
+    if len(compilers) != 1:
+        raise NotImplementedError(
+            "one P1 lattice-surgery network cannot select several network "
+            "compilers in this implementation")
+    compiler = next(iter(compilers.values()))
+    if expected_compiler is not None and compiler is not expected_compiler:
+        raise ValueError(
+            f"P1 program selects lattice-surgery compiler {compiler.key!r}, "
+            f"not solved-plan compiler {expected_compiler.key!r}")
+    if compiler not in device.compilers:
+        raise ValueError(
+            "network-scoped QECLowering compiler must be attached to the device"
+        )
+
+    incompatible = tuple(
+        handle.symbol
+        for handle, item in mpp_sites
+        if item is None or not isinstance(item.selected, QECLowering) or
+        item.selected.compiler is not compiler)
+    if incompatible:
+        raise NotImplementedError(
+            "one P1 lattice-surgery network must select the same network "
+            f"compiler for every MPP site; incompatible sites: {incompatible!r}"
+        )
+
+    lowerings = tuple(
+        dict.fromkeys(item.selected for _handle, item in mpp_sites))
+    if len(lowerings) != 1:
+        raise NotImplementedError(
+            "one network compiler currently requires one shared QECLowering "
+            "manifest across all MPP sites")
+    lowering = lowerings[0]
+    if lowering not in tuple(compiler.qec_lowerings):
+        raise ValueError(
+            "selected network QECLowering is not contributed by its device compiler"
+        )
+    witness = probe._finalize_qec_selection(action_filter=lambda item: (
+        item.handle.objective_family == "pauli_product_measurement"))
+    witness = replace(
+        witness,
+        network_manifest_sha256=lowering.manifest_sha256,
+    )
+    return _NetworkSelection(
+        compiler,
+        lowering,
+        witness,
+        tuple(item for _handle, item in mpp_sites),
+        probe,
+    )
+
+
+def _network_request(source, *, device, selection, policy=None):
+    """Derive the typed network-only request from the authenticated P1 graph.
+
+    This first public slice accepts maximal straight-line MPP runs.  Core keeps
+    every surrounding preparation, readout, classical operation, feedback,
+    and return in the ordinary ``_P1ToP2`` traversal.  Selected MPPs nested in
+    structured control fail closed until a control-scope plan model exists.
+    """
+
+    from ..qec import lattice_surgery
+    from cudaq.logical.algebra.pauli import (
+        PauliFactor,
+        PauliProduct,
+    )
+
+    probe = selection.probe
+    block = probe.kernel.regions[0].blocks[0]
+    top_level = tuple(child.operation for child in block.operations)
+    top_level_sites = {
+        f"site{int(operation.attributes['site'])}" for operation in top_level
+        if "site" in operation.attributes
+    }
+    if any(site.handle.symbol not in top_level_sites
+           for site in selection.sites):
+        raise NotImplementedError(
+            "network QEC compilation currently requires straight-line MPP "
+            "regions; selected sites inside structured control are unsupported")
+
+    selected_by_symbol = {site.handle.symbol: site for site in selection.sites}
+    runs = []
+    current = []
+    for operation in top_level:
+        symbol = (f"site{int(operation.attributes['site'])}"
+                  if "site" in operation.attributes else None)
+        selected = selected_by_symbol.get(symbol)
+        if selected is None:
+            if current:
+                runs.append(tuple(current))
+                current = []
+            continue
+        current.append(selected)
+    if current:
+        runs.append(tuple(current))
+    if not runs:
+        raise ValueError(
+            "selected network compiler has no straight-line MPP region")
+
+    # Reuse the verifier-closed P1 extraction only to derive the typed Pauli
+    # products and dependency graph.  The resulting shadow instruction stream
+    # is deliberately not included in the network request and is never passed
+    # to the provider.
+    extracted = lattice_surgery.problem(source, device=device)
+    measurements = tuple(extracted.operations)
+    selected_in_order = tuple(site for run in runs for site in run)
+    if len(measurements) != len(selected_in_order):
+        raise ValueError(
+            "network request extraction did not match the selected P1 MPP inventory"
+        )
+    name_map = {
+        measurement.name: selected.handle.symbol
+        for measurement, selected in zip(measurements, selected_in_order)
+    }
+    region_by_site = {
+        selected.handle.symbol: f"region{region_index}"
+        for region_index, run in enumerate(runs) for selected in run
+    }
+    owners_by_placement = {
+        owner.placement: (qec_block.block, owner)
+        for qec_block in selection.witness.blocks for owner in qec_block.owners
+    }
+    actions = []
+    for measurement, selected in zip(measurements, selected_in_order):
+        product = PauliProduct(
+            tuple(
+                PauliFactor(term.slot, term.pauli)
+                for term in measurement.terms))
+        dependencies = tuple(name_map[name] for name in measurement.after)
+        typed_measurement = lattice_surgery.ProductMeasurement(
+            product,
+            name=selected.handle.symbol,
+            after=tuple(action.measurement
+                        for action in actions
+                        if action.site.symbol in dependencies),
+        )
+        if typed_measurement.after != dependencies:
+            raise ValueError(
+                "network request dependencies do not follow selected action order"
+            )
+        try:
+            bindings = tuple(owners_by_placement[name]
+                             for name in selected.handle.placements)
+        except KeyError as exc:
+            raise ValueError(
+                "network action placement is absent from the QEC selection witness"
+            ) from exc
+        blocks = tuple(block for block, _owner in bindings)
+        owners = tuple(owner for _block, owner in bindings)
+        if len(set(blocks)) != len(blocks):
+            raise NotImplementedError(
+                "one network action cannot address multiple logical ports of "
+                "the same encoded block")
+        actions.append(
+            lattice_surgery.QECNetworkAction(
+                site=selected.handle,
+                measurement=typed_measurement,
+                owners=owners,
+                blocks=blocks,
+                after=dependencies,
+                region=region_by_site[selected.handle.symbol],
+            ))
+
+    actions_by_name = {value.site.symbol: value for value in actions}
+    regions = []
+    for region_index, run in enumerate(runs):
+        region_id = f"region{region_index}"
+        names = tuple(value.handle.symbol for value in run)
+        placements = tuple(
+            dict.fromkeys(
+                placement for name in names
+                for placement in actions_by_name[name].site.placements))
+        regions.append(
+            lattice_surgery.QECNetworkRegion(
+                id=region_id,
+                actions=names,
+                live_inputs=tuple(
+                    lattice_surgery.QECNetworkValue(
+                        name=f"{region_id}.in.{placement}",
+                        placement=placement,
+                        generation=region_index,
+                        kind="patch",
+                    ) for placement in placements),
+                live_outputs=tuple(
+                    lattice_surgery.QECNetworkValue(
+                        name=f"{region_id}.out.{placement}",
+                        placement=placement,
+                        generation=region_index + 1,
+                        kind="patch",
+                    ) for placement in placements),
+            ))
+
+    resources, ports, channels = lattice_surgery._device_channel_inventory(
+        device)
+    architecture_digest = selection.compiler.architecture_digest(device)
+    lattice_surgery._require_digest(
+        architecture_digest,
+        what=f"network compiler {selection.compiler.key!r} architecture digest",
+    )
+    return lattice_surgery.QECNetworkRequest(
+        source_sha256=_qec_network_source_sha256(
+            source.module,
+            source.root.symbol,
+            source.placement,
+            selection.witness,
+        ),
+        lowering_manifest_sha256=selection.lowering.manifest_sha256,
+        device_architecture_sha256=architecture_digest,
+        actions=tuple(actions),
+        regions=tuple(regions),
+        resources=tuple(resources),
+        channel_ports=ports,
+        channels=channels,
+        policy=dict(policy or {}),
+    )
+
+
 def lower_qec(source,
               *,
               device,
               pipeline,
               policy=None,
-              experiment=None) -> Build:
+              experiment=None,
+              _transient=False) -> Build:
     if not isinstance(source, Build) or source.profile != "p1":
         raise ValueError("QEC lowering requires a P1 Build")
     if not isinstance(device, Device):
         raise TypeError("P1-to-P2 lowering requires a concrete Device")
+    network = _network_qec_selection(
+        source,
+        device=device,
+        policy=policy,
+    )
+    if network is not None:
+        from ..qec import lattice_surgery
+
+        request = _network_request(
+            source,
+            device=device,
+            selection=network,
+            policy=policy,
+        )
+        context = lattice_surgery.QECNetworkContext(
+            source=source,
+            lowering=network.lowering,
+            selection=network.witness,
+            selection_digest=_qec_selection_sha256(network.witness),
+            device=device,
+            policy=dict(policy or {}),
+        )
+        compatibility = network.compiler.check_compatibility(request, context)
+        if not isinstance(compatibility, lattice_surgery.Compatibility):
+            raise TypeError(f"network compiler {network.compiler.key!r} "
+                            "check_compatibility() must return Compatibility")
+        if not compatibility.supported:
+            details = "; ".join(f"{value.code}: {value.message}"
+                                for value in compatibility.diagnostics)
+            raise ValueError(
+                f"network compiler {network.compiler.key!r} is incompatible" +
+                ("" if not details else f": {details}"))
+        plan = network.compiler.plan_network(request, context)
+        lattice_surgery.validate_network_plan(request, plan)
+        compiler = _P1ToP2(
+            source,
+            device,
+            policy,
+            network_request=request,
+            network_plan=plan,
+            network_compiler=network.compiler,
+        )
+        module, root = compiler.run()
+        unresolved = tuple(operation.name
+                           for operation in compiler.transaction.walk()
+                           if operation.name == "fabric.inject")
+        if unresolved:
+            raise ValueError(
+                "canonical network P2 cannot contain unresolved fabric.inject")
+        return Build(
+            context=module.context,
+            module=module,
+            root=DefinitionHandle(root, "protocol", "p2n"),
+            profile="p2n",
+            pipeline=network.compiler.pipeline,
+            evidence=source.evidence + (EvidenceRecord(
+                kind="qec_network_plan_and_materialization",
+                producer=network.compiler.key,
+                result="pass",
+                obligations=(
+                    f"request-digest={request.digest}",
+                    f"plan-digest={plan.digest}",
+                    "core-owned-p1-traversal",
+                    "provider-complete-temporal-plan",
+                    "typed-network-region-emission",
+                ),
+            ),),
+            value_groups={
+                name: len(group)
+                for name, group in source.values._groups.items()
+            },
+            placement=source.placement,
+            qec_selection=compiler.qec_selection,
+            experiment=experiment or source.experiment,
+            device=device,
+            source_modules=source.source_modules,
+            _transient=_transient,
+        )
     compiler = _P1ToP2(source, device, policy)
     module, root = compiler.run()
     unresolved = tuple(operation.name
@@ -2794,7 +4534,7 @@ def lower_qec(source,
         pipeline=pipeline,
         evidence=source.evidence + (EvidenceRecord(
             kind="qec_selection_and_generation",
-            producer="qlx-python@0.3",
+            producer="cudaq-logical-python@0.3",
             result="pass",
             obligations=(
                 "objective-match",
@@ -2812,4 +4552,5 @@ def lower_qec(source,
         experiment=experiment or source.experiment,
         device=device,
         source_modules=source.source_modules,
+        _transient=_transient,
     )

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
-from ..experiments.definition import Experiment
+from cudaq.logical.experiments.definition import Experiment
 from .build import Build
 
 

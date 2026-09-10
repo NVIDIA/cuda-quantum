@@ -12,9 +12,10 @@ its lattice — face supports tagged by geometric sublattice, the data
 bipartition, logical chains, coordinates, and the provenance of its distance
 argument — so each family states its construction once instead of restating
 matrices per instance. The geometry is deliberately Pauli-free: it never
-assigns an X/Z basis, so both a CSS surface code and a non-CSS (`ZXXZ`) surface
+assigns an X/Z basis, so both a CSS surface code and a non-CSS (ZXXZ) surface
 code can share one lattice and each own its stabilizers (see
-:func:`cudaq.logical.codes.rotated_surface` and :func:`cudaq.logical.codes.zxxz_surface`).
+:func:`cudaq.logical.codes.rotated_surface` and
+:func:`cudaq.logical.codes.zxxz_surface`).
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ class SurfaceFace:
 
     ``sublattice`` is 0 or 1 -- the two interleaved plaquette families of the
     lattice. It is a geometric label, *not* a Pauli type: a CSS code reads one
-    family in X and the other in Z, a `ZXXZ` code reads every face as a mixed
+    family in X and the other in Z, a ZXXZ code reads every face as a mixed
     product. The geometry states neither.
     """
 
@@ -58,7 +59,7 @@ class SurfaceLattice:
     geometric ``sublattice``, the two straight boundary ``logical_chains``, and
     the data-qubit ``bipartition`` (2-coloring). Codes assign their own
     operators on top: this is the shared tool for both the CSS surface code and
-    the `ZXXZ` surface code, and it commits to no stabilizer basis.
+    the ZXXZ surface code, and it commits to no stabilizer basis.
     """
 
     distance: int
@@ -172,7 +173,7 @@ class HoneycombFloquetGeometry:
     Rows are GF(2) symplectic vectors of width ``2n`` (X part then Z part).
     ``gauges`` holds the two-body edge checks of each color in the stable
     per-phase record order ``g0..g{m-1}``; ``plaquettes`` the hexagon
-    stabilizers; ``conserved_strips`` the two homologically non-trivial
+    stabilizers; ``conserved_strips`` the two homologically nontrivial
     central operators; ``gauge_pairs`` a canonical hyperbolic basis of the
     full measured group whose span contains every edge check;
     ``temporal_recovery`` the within-period deterministic record closures
@@ -373,7 +374,7 @@ def honeycomb_floquet(size: int) -> HoneycombFloquetGeometry:
 
     # Group structure: one global relation among the edge checks, hexagon
     # relations among the plaquettes, and a rank-(s^2/9*... ) center spanned
-    # by the plaquettes plus two homologically non-trivial strips.
+    # by the plaquettes plus two homologically nontrivial strips.
     edge_rows = [edge_row[key] for key in edge_keys]
     group_basis = _hf_reduce(edge_rows)
     plaq_basis = _hf_reduce(all_plaqs)
@@ -647,7 +648,7 @@ def honeycomb_floquet(size: int) -> HoneycombFloquetGeometry:
         recovery_labels.append(f"{colors[c]}_color_parity")
 
     # Distance evidence: no weight-1 or weight-2 operator commutes with any
-    # round's ISG while acting non-trivially on its logical quotient.
+    # round's ISG while acting nontrivially on its logical quotient.
     for c in range(3):
         basis = _hf_reduce(isg_rows[c])
         comm_basis = _hf_reduce(_hf_commutant(isg_rows[c], n))
@@ -738,7 +739,3 @@ __all__ = [
     "HoneycombFloquetGeometry",
     "honeycomb_floquet",
 ]
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.geometry")

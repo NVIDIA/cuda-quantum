@@ -43,15 +43,17 @@ qubit. You can then lower any `cudaq.kernel` to a fault-tolerant program.
 `cudaq.estimate` returns the required resources for the encoded computation:
 
 ```{eval-rst}
-.. literalinclude:: ../../examples/00_cudaq_logical_resource_estimate.py
+.. literalinclude:: ../../examples/02_surface_code_resource_estimate.py
    :language: python
-   :caption: An ordinary CUDA-Q kernel lowered through a surface-code encoding (examples/00_cudaq_logical_resource_estimate.py).
+   :caption: An ordinary CUDA-Q kernel lowered through a surface-code encoding (examples/02_surface_code_resource_estimate.py).
 ```
 
 When you call `cudaq.estimate`, CUDA-Q Logical takes the kernel's logical
-intent, realizes it with the code and gadgets the target names, and reports the
-cost of that choice (peak encoded patches, peak protected logical qubits, and
-the named gadget calls that make up the estimate). The
+intent through placement, QEC realization, physical lowering, and scheduling.
+This example compares physical-qubit, event-count, and makespan estimates across
+two surface-code layouts, then changes the operating assumptions while holding
+the layout fixed. The logical and static annotations still expose the protected
+logical qubits, encoded patches, and selected gadget calls. The
 [examples](use-cases/examples/index.md) page shows more of what CUDA-Q Logical
 can do.
 

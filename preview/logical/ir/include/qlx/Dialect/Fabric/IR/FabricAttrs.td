@@ -1,12 +1,10 @@
-//===- FabricAttrs.td - Fabric attribute definitions ------*- tablegen -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Attribute definitions for the Fabric dialect:
 //
@@ -245,7 +243,7 @@ def Fabric_FlowAttr : AttrDef<Fabric_Dialect, "Flow"> {
     - S-gate:    `#fabric.flow<{x = "y", z = "z"}>`
 
     Used on `fabric.gadget` as an optional verification assertion for its
-    declared Clifford action. Syndrome-flow composition derives basis changes from
+    declared Clifford action. Syndrome propagation derives basis changes from
     patch dataflow and does not consume this attribute.
 
     Example:

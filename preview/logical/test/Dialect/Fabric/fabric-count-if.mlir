@@ -31,13 +31,13 @@ fabric.gadget @entry {entry} on @dev() -> tensor<1xi1> {
   %p0 = fabric.prep_z %p : !fabric.patch<@tiny>
   %p1, %bits = fabric.mz %p0 data [0]
       : !fabric.patch<@tiny> -> tensor<1xi1>
-  %cond = arith.constant true
-  %p2 = fabric.if %cond -> !fabric.patch<@tiny> {
+  %cond = fabric.parity %bits : (tensor<1xi1>) -> i1
+  %p2 = cflow.if %cond -> !fabric.patch<@tiny> {
     %pt = fabric.h %p1 data : !fabric.patch<@tiny>
-    fabric.yield %pt : !fabric.patch<@tiny>
+    cflow.yield %pt : !fabric.patch<@tiny>
   } else {
     %pf = fabric.z %p1 data : !fabric.patch<@tiny>
-    fabric.yield %pf : !fabric.patch<@tiny>
+    cflow.yield %pf : !fabric.patch<@tiny>
   }
   fabric.dealloc %p2 : !fabric.patch<@tiny>
   fabric.return %bits : tensor<1xi1>

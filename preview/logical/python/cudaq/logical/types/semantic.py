@@ -12,11 +12,11 @@ from typing import Generic, TypeVar
 
 
 class index(int):
-    """CUDA-Q Logical compile/runtime index annotation."""
+    """QLX compile/runtime index annotation."""
 
 
 class float64(float):
-    """CUDA-Q Logical 64-bit floating-point annotation."""
+    """QLX 64-bit floating-point annotation."""
 
 
 SchemaT = TypeVar("SchemaT")

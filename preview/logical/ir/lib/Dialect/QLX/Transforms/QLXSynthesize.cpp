@@ -1,9 +1,9 @@
-/*******************************************************************************
+/******************************************************************************
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.  *
  ******************************************************************************/
 
 #include "qlx/Dialect/QLX/Transforms/QLXSynthesize.h"
@@ -21,7 +21,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <numeric>
 #include <optional>
 
 namespace qlx {
@@ -147,6 +146,32 @@ static LogicalResult replaceUnary(ApplyOp operation,
   return replaceResults(operation, ValueRange{result});
 }
 
+static SmallVector<Value, 3> emitCCZPhasePolynomial(OpBuilder &builder,
+                                                    Location location,
+                                                    ValueRange inputs) {
+  static const BuiltinAction kTdg[] = {BuiltinAction::s, BuiltinAction::s,
+                                       BuiltinAction::s, BuiltinAction::t};
+  SmallVector<Value, 3> qubits(inputs);
+  for (Value &qubit : qubits)
+    qubit = emitUnary(builder, location, qubit, BuiltinAction::t);
+
+  auto inverseTOnParity = [&](unsigned control, unsigned target) {
+    emitCx(builder, location, qubits[control], qubits[target]);
+    qubits[target] = emitSequence(builder, location, qubits[target], kTdg);
+    emitCx(builder, location, qubits[control], qubits[target]);
+  };
+  inverseTOnParity(0, 1);
+  inverseTOnParity(0, 2);
+  inverseTOnParity(1, 2);
+
+  emitCx(builder, location, qubits[0], qubits[2]);
+  emitCx(builder, location, qubits[1], qubits[2]);
+  qubits[2] = emitUnary(builder, location, qubits[2], BuiltinAction::t);
+  emitCx(builder, location, qubits[1], qubits[2]);
+  emitCx(builder, location, qubits[0], qubits[2]);
+  return qubits;
+}
+
 /// Normalize the finite built-in logical actions to positive H/S/T/CX. CCZ is
 /// realized by the seven-term phase polynomial
 ///
@@ -222,27 +247,23 @@ static LogicalResult legalizeFiniteActions(ModuleOp module) {
         return operation.emitOpError(
             "expected a ternary CCZ during Clifford+T legalization");
       OpBuilder builder(operation);
-      SmallVector<Value, 3> qubits(operation.getInputs());
-      for (Value &qubit : qubits)
-        qubit = emitUnary(builder, operation.getLoc(), qubit, BuiltinAction::t);
-
-      auto inverseTOnParity = [&](unsigned control, unsigned target) {
-        emitCx(builder, operation.getLoc(), qubits[control], qubits[target]);
-        qubits[target] =
-            emitSequence(builder, operation.getLoc(), qubits[target], kTdg);
-        emitCx(builder, operation.getLoc(), qubits[control], qubits[target]);
-      };
-      inverseTOnParity(0, 1);
-      inverseTOnParity(0, 2);
-      inverseTOnParity(1, 2);
-
-      emitCx(builder, operation.getLoc(), qubits[0], qubits[2]);
-      emitCx(builder, operation.getLoc(), qubits[1], qubits[2]);
+      auto qubits = emitCCZPhasePolynomial(builder, operation.getLoc(),
+                                           operation.getInputs());
+      if (failed(replaceResults(operation, qubits)))
+        return failure();
+      continue;
+    }
+    case BuiltinAction::ccx: {
+      if (operation.getInputs().size() != 3 || operation.getNumResults() != 3)
+        return operation.emitOpError(
+            "expected a ternary CCX during Clifford+T legalization");
+      OpBuilder builder(operation);
+      SmallVector<Value, 3> inputs(operation.getInputs());
+      inputs[2] =
+          emitUnary(builder, operation.getLoc(), inputs[2], BuiltinAction::h);
+      auto qubits = emitCCZPhasePolynomial(builder, operation.getLoc(), inputs);
       qubits[2] =
-          emitUnary(builder, operation.getLoc(), qubits[2], BuiltinAction::t);
-      emitCx(builder, operation.getLoc(), qubits[1], qubits[2]);
-      emitCx(builder, operation.getLoc(), qubits[0], qubits[2]);
-
+          emitUnary(builder, operation.getLoc(), qubits[2], BuiltinAction::h);
       if (failed(replaceResults(operation, qubits)))
         return failure();
       continue;
@@ -351,8 +372,6 @@ static std::optional<int64_t> signedExactQuarterTurns(ApplyOp operation) {
 /// Enforce the rotation normal form the sign accessors assume: the operator
 /// sign is in the `sign` field and the angle is a nonnegative magnitude.
 static LogicalResult verifyCanonicalRotation(ApplyOp operation, double angle) {
-  if (!std::isfinite(angle))
-    return operation.emitOpError("rotation angle must be finite");
   if (angle < 0.0)
     return operation.emitOpError(
         "non-canonical rotation: the angle must be a nonnegative magnitude; "
@@ -363,47 +382,6 @@ static LogicalResult verifyCanonicalRotation(ApplyOp operation, double angle) {
       if (numer.getInt() < 0)
         return operation.emitOpError(
             "non-canonical rotation: angle_pi_numer must be nonnegative");
-  return success();
-}
-
-/// Exact rational-pi metadata is a lossless sidecar for an Angle-authored f64
-/// operand, not an independent angle. Require the canonical pair emitted by
-/// the Python builder and require its deterministic f64 projection to equal
-/// the operand before using it to select the exact Clifford+T path.
-static LogicalResult verifyExactAngleMetadata(ApplyOp operation, double angle) {
-  auto parameters = operation.getParameters();
-  auto numerator =
-      parameters
-          ? dyn_cast_or_null<IntegerAttr>(parameters->get("angle_pi_numer"))
-          : IntegerAttr{};
-  auto denominator =
-      parameters
-          ? dyn_cast_or_null<IntegerAttr>(parameters->get("angle_pi_denom"))
-          : IntegerAttr{};
-  if (!numerator && !denominator)
-    return success();
-  if (!numerator || !denominator)
-    return operation.emitOpError(
-        "exact rotation metadata requires both angle_pi_numer and "
-        "angle_pi_denom");
-
-  int64_t numer = numerator.getInt();
-  int64_t denom = denominator.getInt();
-  if (denom <= 0)
-    return operation.emitOpError(
-        "exact rotation metadata requires a positive angle_pi_denom");
-  if (numer < 0 ||
-      static_cast<__int128>(numer) >= static_cast<__int128>(2) * denom ||
-      std::gcd(numer, denom) != 1)
-    return operation.emitOpError(
-        "exact rotation metadata must be a reduced canonical coefficient "
-        "in [0, 2)");
-
-  double projected =
-      (static_cast<double>(numer) / static_cast<double>(denom)) * M_PI;
-  if (angle != projected)
-    return operation.emitOpError(
-        "exact rotation metadata conflicts with the f64 angle operand");
   return success();
 }
 
@@ -456,8 +434,6 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
 
     if (failed(verifyCanonicalRotation(operation, *angle)))
       return failure();
-    if (failed(verifyExactAngleMetadata(operation, *angle)))
-      return failure();
     auto signedTheta = signedAngle(operation);
     if (failed(signedTheta))
       return failure();
@@ -490,8 +466,15 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
       cudaq::synth::Real epsilon(precision);
       cudaq::synth::ScopedDefaultPrecision workingPrecision(
           cudaq::synth::details::required_precision(epsilon));
-      auto circuit = cudaq::synth::gridsynth(cudaq::synth::Real(*signedTheta),
-                                             cudaq::synth::Real(precision));
+      cudaq::synth::GridsynthOptions options;
+      // Compilation is a replayable transformation. CUDA-Q's GridSynth
+      // intentionally uses entropy by default, so pin its factoring stream
+      // at this compiler boundary to make identical inputs produce identical
+      // Clifford+T words regardless of earlier synthesis calls.
+      options.seed = 0;
+      auto circuit =
+          cudaq::synth::gridsynth(cudaq::synth::Real(*signedTheta),
+                                  cudaq::synth::Real(precision), options);
       if (failed(circuit))
         return operation.emitOpError(
             "GridSynth failed to synthesize the rotation");

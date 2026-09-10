@@ -25,13 +25,13 @@ class DefinitionHandle(Generic[T]):
 
     @property
     def stage(self):
-        from ..stages import stage_and_facets
+        from cudaq.logical.stages import stage_and_facets
 
         return stage_and_facets(self.profile)[0]
 
     @property
     def facets(self):
-        from ..stages import (
+        from cudaq.logical.stages import (
             facets_for_kind,
             stage_and_facets,
         )
@@ -82,6 +82,8 @@ class ProgramDefinition:
         "base",
         "objective_kind",
         "estimate_only",
+        "_cudaq_kernel",
+        "_kernel_declaration",
         "_sealed",
         "__dict__",
     )
@@ -101,6 +103,8 @@ class ProgramDefinition:
         "base",
         "objective_kind",
         "estimate_only",
+        "_cudaq_kernel",
+        "_kernel_declaration",
         "_sealed",
     })
 
@@ -123,19 +127,20 @@ class ProgramDefinition:
         type_hints: Mapping[str, Any] | None = None,
         specialization: Mapping[str, Any] | None = None,
         base: "ProgramDefinition | None" = None,
+        cudaq_kernel: Any = None,
     ) -> None:
         self._sealed = False
         self.provider = provider
         self.name = name or provider.__name__
         self.machine = machine
         if selection is not None:
-            from ..programs.selection import SelectionIntent
+            from cudaq.logical.programs.selection import SelectionIntent
 
             if not isinstance(selection, SelectionIntent):
                 raise TypeError(
                     "selection= expects cudaq.logical.require(...), "
-                    "cudaq.logical.condition_results(...), or cudaq.logical.abort_on(...)"
-                )
+                    "cudaq.logical.condition_results(...), or "
+                    "cudaq.logical.abort_on(...)")
         self.selection = selection
         self.kind = kind
         if kind not in {"program", "objective"}:
@@ -145,7 +150,17 @@ class ProgramDefinition:
                 "objective_kind must be auto, action, or instrument")
         if kind == "program" and objective_kind != "auto":
             raise ValueError("program definitions cannot set objective_kind")
+        if cudaq_kernel is not None:
+            from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+
+            if not isa_kernel_decorator(cudaq_kernel):
+                raise TypeError("cudaq_kernel must be an @cudaq.kernel")
+            if kind != "objective" or objective_kind == "instrument":
+                raise ValueError(
+                    "cudaq_kernel is supported only by action objectives")
         self.objective_kind = objective_kind
+        self._cudaq_kernel = cudaq_kernel
+        self._kernel_declaration = None
         if type(estimate_only) is not bool:
             raise TypeError("estimate_only must be a bool")
         if kind != "program" and estimate_only:
@@ -154,7 +169,7 @@ class ProgramDefinition:
             raise ValueError("estimate-only programs must begin at unplaced P0")
         self.estimate_only = estimate_only
         self.profile = "p1" if machine is not None else "p0"
-        from ..stages import (
+        from cudaq.logical.stages import (
             P0,
             P1,
         )
@@ -182,19 +197,38 @@ class ProgramDefinition:
         return self
 
     @property
+    def cudaq_kernel(self):
+        """Original CUDA-Q kernel retained for lazy objective lowering."""
+
+        return self._cudaq_kernel
+
+    @property
+    def kernel_declaration(self):
+        """Body-less CUDA-Q declaration for an ownership-preserving objective."""
+
+        if self.kind != "objective" or self.objective_kind == "instrument":
+            return None
+        if self._kernel_declaration is None:
+            from .kernel_objective import kernel_declaration_from_objective
+
+            object.__setattr__(self, "_kernel_declaration",
+                               kernel_declaration_from_objective(self))
+        return self._kernel_declaration
+
+    @property
     def operands(self):
         """Typed objective-operand references for semantic port bindings."""
 
         if self.kind != "objective":
             raise AttributeError(
                 "only @cudaq.logical.objective definitions expose operands")
-        from ..programs.binding import ObjectiveOperands
+        from cudaq.logical.programs.binding import ObjectiveOperands
 
         return ObjectiveOperands(self, self.signature.parameters)
 
     @staticmethod
     def _specialization_value(value):
-        from ..algebra.angle import Angle
+        from cudaq.logical.algebra.angle import Angle
 
         if value is None or isinstance(value, (bool, int, float, str, Angle)):
             return value
@@ -286,6 +320,7 @@ class ProgramDefinition:
             type_hints=hints,
             specialization=combined,
             base=self.base or self,
+            cudaq_kernel=self.cudaq_kernel,
         )
 
     def materialize(self, module=None):
@@ -294,12 +329,12 @@ class ProgramDefinition:
         return compile(self, module=module)
 
     def __call__(self, *args, **kwargs):
-        from ..programs.context import current_trace
+        from cudaq.logical.programs.context import current_trace
 
         trace = current_trace()
         if trace is None:
             raise RuntimeError(
-                f"{self.name} is a CUDA-Q Logical definition, not an ordinary Python "
+                f"{self.name} is a QLX definition, not an ordinary Python "
                 "function; pass it to cudaq.logical.compile() or call it inside an "
-                "active compatible CUDA-Q Logical trace")
+                "active compatible QLX trace")
         return trace.call(self, args, kwargs)

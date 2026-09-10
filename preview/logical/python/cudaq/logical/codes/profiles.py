@@ -17,15 +17,15 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
 from ..errors import InvalidCodeAlgebra
-from .._core.immutable import ImmutableValue
-from ..algebra.clifford import CliffordAction
-from ..algebra.gf2 import (
+from cudaq.logical._core.immutable import ImmutableValue
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.algebra.gf2 import (
     GF2Matrix,
     _normalize_binary_value,
     _normalize_binary_values,
     _row_bits,
 )
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     LogicalValueGroup,
     LogicalValueRef,
 )
@@ -34,6 +34,7 @@ from .selection import _canonical_label_index, _deep_freeze
 from .structure import Block, CarrierRoleMap, PatchTransform
 from .distance import (
     Distance,
+    _BoundaryMaps,
     _code_symplectic_rows,
     _coordinates_in_basis_many,
     _declared_pauli_row,
@@ -758,6 +759,27 @@ class CodeProfile(ImmutableValue):
                                      what="CodeProfile.metadata")
         self._seal()
 
+    def _boundary_maps(self) -> _BoundaryMaps:
+        """Derive the complete operational maps from canonical profile facts."""
+
+        return _derive_boundary_maps(
+            self.code,
+            self.effective_stabilizers,
+            self.decomposition,
+            self.effective_metachecks,
+        )
+
+    def decode_boundary(self, pauli):
+        """Decode a physical Pauli into effective syndrome and logical bits."""
+
+        return self._boundary_maps().decode(pauli)
+
+    def encode_boundary(self, effective_syndrome, logical_x=(), logical_z=()):
+        """Construct a canonical physical representative of boundary data."""
+
+        return self._boundary_maps().encode(effective_syndrome, logical_x,
+                                            logical_z)
+
     def materialize(self, module=None):
         from ..compiler import compile
 
@@ -766,7 +788,7 @@ class CodeProfile(ImmutableValue):
 
 @dataclass(frozen=True, slots=True)
 class EncodingEpochSchema:
-    """Reusable finite state machine for the dynamic phases of an encoding."""
+    """Reusable finite state machine for an encoding's dynamic phases."""
 
     name: str
     phases: tuple[str, ...]

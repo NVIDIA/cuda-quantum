@@ -8,9 +8,10 @@
 
 # REQUIRES: qlx-opt, qlx-translate
 
-# RUN: qlx-opt %qlx_src_dir/examples/cli/logical_and_placement.mlir --pass-pipeline='builtin.module(qlx-estimate-logical{root=bell result=logical},qlx-to-lvm{root=bell domain=machine result=bell_placed})' | FileCheck %s --check-prefix=LOGICAL
-# RUN: qlx-opt %S/p2-static-resource-estimate.mlir --pass-pipeline='builtin.module(fabric-count{root=memory device=device result=static})' | FileCheck %s --check-prefix=RESOURCE
-# RUN: qlx-translate %qlx_src_dir/examples/cli/stim_memory.mlir --fabric-to-stim | FileCheck %s --check-prefix=STIM
+# RUN: qlx-opt %qlx_src_dir/examples/mlir/logical_estimate_and_placement.mlir --pass-pipeline='builtin.module(qlx-estimate-logical{root=bell result=logical},qlx-to-lvm{root=bell domain=machine result=bell_placed})' | FileCheck %s --check-prefix=LOGICAL
+# RUN: qlx-opt %qlx_src_dir/examples/mlir/static_resource_estimate.mlir --pass-pipeline='builtin.module(fabric-count{root=memory device=device result=static})' | FileCheck %s --check-prefix=RESOURCE
+# RUN: qlx-opt %qlx_src_dir/examples/mlir/physical_schedule_estimate.mlir --phys-schedule='graph=events result=events_schedule' --phys-estimate-schedule='schedule=events_schedule lower-tier=analytical result=estimate' | FileCheck %s --check-prefix=PHYSICAL
+# RUN: qlx-translate %qlx_src_dir/examples/mlir/stim_memory.mlir --fabric-to-stim | FileCheck %s --check-prefix=STIM
 # RUN: qlx-opt --help | FileCheck %s --check-prefix=PASSES
 # RUN: qlx-translate --help | FileCheck %s --check-prefix=TRANSLATIONS
 
@@ -22,6 +23,9 @@
 # LOGICAL-SAME: instruments = {qlx_standard_measure_z = 2 : i64, qlx_standard_prepare_zero = 2 : i64}
 # LOGICAL-SAME: logical_qubits_peak = 2 : i64
 # RESOURCE: qlx.estimate_result @static
+# PHYSICAL: qlx.estimate_result @estimate
+# PHYSICAL-SAME: physical_qubits = 2 : i64
+# PHYSICAL-SAME: schema = "qlx.schedule-estimate/v2"
 # STIM: R 0
 # STIM-NEXT: M 0
 # PASSES: --fabric-count

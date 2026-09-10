@@ -9,33 +9,65 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
-from math import ceil
+from dataclasses import dataclass, replace
+from math import ceil, isfinite
 import sys
 from typing import Any, Iterable, Mapping
 
-from ..devices.definition import (
+from cudaq.logical.devices.definition import (
     Device,
+    FactoryModel,
     LogicalToQECBinding,
+    PhysicalOperatingPoint,
     QECArchitecture,
+    QECChannelPort,
+    QECChannelRealization,
+    QECChannelToPhysicalBinding,
     QECMachine,
     QECRegion,
+    QECToPhysicalBinding,
+    _compiler_key,
     _frozen_mapping,
     _member_name,
 )
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     CapabilityKey,
+    Channel,
     LogicalMachine,
+    RESOURCE_TRANSFER_CAPABILITY,
     Space,
     SpaceDeclaration,
     Stream,
     capability,
 )
-from ..protocols.definition import ProtocolDefinition
-from ..codes import (
+from cudaq.logical.devices.timing import TimingModel
+from cudaq.logical.architecture.physical_definition import (
+    NativeActionDecomposition,
+    PatchKind,
+    PatchTopology,
+    PhysicalFootprint,
+    PhysicalAction,
+    PhysicalInstrument,
+    PhysicalMachine,
+    ResourceClass,
+    ResourceGranularity,
+    Topology,
+)
+from cudaq.logical.architecture.capabilities import (
+    PhysicalCapability,
+    PhysicalCapabilityBinding,
+)
+from cudaq.logical.protocols.definition import ProtocolDefinition
+from cudaq.logical.codes import (
     Code,
     Encoding,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class CarrierSelection:
+    resource: "PhysicalResourceBuilder"
+    indices: tuple[int, ...]
 
 
 class LogicalRegionBuilder:
@@ -75,6 +107,21 @@ class LogicalRegionBuilder:
         if len(matches) != 1:
             raise AttributeError(
                 f"logical region @{self.name} is not a uniquely backed factory")
+        return matches[0]
+
+    @property
+    def supply(self) -> Channel:
+        """The P1 supply channel derived with this factory's output stream."""
+
+        stream = self.stream
+        matches = tuple(
+            value for value in self._builder.logical._members.values()
+            if isinstance(value, Channel) and value.source is self.space and
+            value.destination is stream and
+            RESOURCE_TRANSFER_CAPABILITY in value.capabilities)
+        if len(matches) != 1:
+            raise AttributeError(
+                f"logical factory @{self.name} has no unique supply channel")
         return matches[0]
 
     def bind_encoding(
@@ -122,11 +169,101 @@ class QECRegionBuilder:
         """Typed handles for scratch regions derived by this architecture.
 
         Architecture binding owns the names and number of these P2 regions.
-        Returning their builder handles keeps later P2 authoring typed;
+        Returning their builder handles keeps later physical realization typed;
         callers never need to reconstruct generated names through ``getattr``.
         """
 
         return self._auxiliary_regions
+
+    def realize_on(self, *resources, **kwargs) -> "QECRegionBuilder":
+        self._builder.physical.bind(self, to=resources, **kwargs)
+        return self
+
+
+class QECChannelBuilder:
+    """Builder-owned handle for one selected P2 channel realization."""
+
+    __slots__ = ("_builder", "channel")
+
+    def __init__(
+        self,
+        builder: "DeviceBuilder",
+        channel: QECChannelRealization,
+    ) -> None:
+        self._builder = builder
+        self.channel = channel
+
+    @property
+    def name(self) -> str:
+        return self.channel.name
+
+    @property
+    def source(self) -> QECChannelPort:
+        return self.channel.source
+
+    @property
+    def destination(self) -> QECChannelPort:
+        return self.channel.destination
+
+    @property
+    def capabilities(self) -> tuple[CapabilityKey, ...]:
+        return self.channel.capabilities
+
+    def realize_on(self, *resources) -> "QECChannelBuilder":
+        self._builder.physical.bind_channel(self, to=resources)
+        return self
+
+
+class PhysicalResourceBuilder:
+    __slots__ = ("_builder", "name", "resource", "topology")
+
+    def __init__(
+        self,
+        builder: "DeviceBuilder",
+        name: str,
+        resource: ResourceClass,
+        topology: Topology | None,
+    ) -> None:
+        self._builder = builder
+        self.name = name
+        self.resource = resource
+        self.topology = topology
+
+    @property
+    def count(self) -> int:
+        return self.resource.count
+
+    @property
+    def kind(self) -> str:
+        return self.resource.kind
+
+    def __getitem__(self, key: int | tuple[int, ...]) -> CarrierSelection:
+        indices = key if isinstance(key, tuple) else (key,)
+        if not indices or len(set(indices)) != len(indices):
+            raise ValueError("carrier selection must be nonempty and unique")
+        if any(not isinstance(index, int) or isinstance(index, bool) or
+               index < 0 or index >= self.count for index in indices):
+            raise IndexError(
+                f"carrier selection must use indices in [0, {self.count})")
+        return CarrierSelection(self, tuple(indices))
+
+    def claim(
+        self,
+        *,
+        offset: int = 0,
+        count: int | None = None,
+        units: int | None = None,
+    ):
+        """Return one typed compact-model claim over this resource pool."""
+
+        from cudaq.logical.devices.component_models import PhysicalResourceClaim
+
+        return PhysicalResourceClaim(
+            self.resource,
+            offset=offset,
+            count=count,
+            units=units,
+        )
 
 
 class _LogicalNamespace:
@@ -236,18 +373,17 @@ class _LogicalNamespace:
 
         ``capacity`` counts concurrent factory instances. ``buffer_size``
         counts produced resources that may wait in the stream. The returned
-        handle is the ordinary logical region used by QEC bindings
+        handle is the ordinary logical region used by QEC/physical bindings
         and placement; the resource stream and supply channel are derived.
         """
 
-        from ..protocols.definition import ProtocolDefinition
+        from cudaq.logical.protocols.definition import ProtocolDefinition
         from ..std import ResourceFlowRef, ResourceKind
 
         self._builder._assert_open()
         if not isinstance(produces, ResourceKind):
-            raise TypeError(
-                "logical.add_factory produces= requires a cudaq.logical.types.ResourceKind"
-            )
+            raise TypeError("logical.add_factory produces= requires a "
+                            "cudaq.logical.types.ResourceKind")
         if not isinstance(via, ProtocolDefinition):
             raise TypeError("logical.add_factory via= requires a "
                             "cudaq.logical.protocols.ProtocolDefinition")
@@ -262,7 +398,7 @@ class _LogicalNamespace:
         if (not isinstance(objective, ResourceFlowRef) or
                 objective.kind != "produce" or objective.resource != produces):
             raise ValueError("logical.add_factory via= must implement "
-                             "cudaq.logical.std.produce(produces)")
+                             "cudaq.logical.logical.produce(produces)")
         if buffer_size is not None and (not isinstance(buffer_size, int) or
                                         isinstance(buffer_size, bool) or
                                         buffer_size < 0):
@@ -323,6 +459,43 @@ class _LogicalNamespace:
         )
         return factory
 
+    def add_channel(
+        self,
+        source: LogicalRegionBuilder | Space | Stream,
+        destination: LogicalRegionBuilder | Space | Stream,
+        *,
+        name: str | None = None,
+        capabilities=(),
+        direction="forward",
+        capacity: int | None = None,
+        concurrency: int | None = None,
+    ) -> Channel:
+        self._builder._assert_open()
+        name = self._reserve(name or self._default("channel"))
+
+        def endpoint(value):
+            if isinstance(value, LogicalRegionBuilder):
+                if value._builder is not self._builder:
+                    raise ValueError(
+                        "channel endpoint belongs to another builder")
+                return value.space
+            if (isinstance(value, (Space, Stream)) and
+                    value in self._members.values()):
+                return value
+            raise TypeError("channel endpoints must be logical regions")
+
+        channel = Channel(
+            endpoint(source),
+            endpoint(destination),
+            capabilities=capabilities,
+            direction=direction,
+            capacity=capacity,
+            concurrency=concurrency,
+            name=name,
+        )
+        self._members[name] = channel
+        return channel
+
     def add_stream(
         self,
         produces,
@@ -334,7 +507,7 @@ class _LogicalNamespace:
         transfer=None,
         external: bool = False,
     ) -> Stream:
-        from ..protocols.definition import ProtocolDefinition
+        from cudaq.logical.protocols.definition import ProtocolDefinition
 
         self._builder._assert_open()
         name = self._reserve(name)
@@ -361,6 +534,14 @@ class _LogicalNamespace:
             name=name,
         )
         self._members[name] = stream
+        if region is not None:
+            supply_name = self._reserve(f"{name}_supply")
+            self._members[supply_name] = Channel(
+                region.space,
+                stream,
+                capabilities=(RESOURCE_TRANSFER_CAPABILITY,),
+                name=supply_name,
+            )
         return stream
 
 
@@ -377,12 +558,27 @@ class _QECNamespace:
             name: QECRegionBuilder(builder, region, None)
             for name, region in self._regions.items()
         }
+        self._ports: dict[str, QECChannelPort] = {
+            port.name: port
+            for port in (() if machine is None else machine.channel_ports)
+        }
+        self._channels: dict[str, QECChannelRealization] = {
+            channel.name: channel
+            for channel in (() if machine is None else machine.channels)
+        }
+        self._channel_handles: dict[str, QECChannelBuilder] = {
+            name: QECChannelBuilder(builder, channel)
+            for name, channel in self._channels.items()
+        }
 
     def __getattr__(self, name: str):
         try:
             return self._handles[name]
         except KeyError as exc:
-            raise AttributeError(name) from exc
+            try:
+                return self._channel_handles[name]
+            except KeyError:
+                raise AttributeError(name) from exc
 
     def bind(
         self,
@@ -497,18 +693,431 @@ class _QECNamespace:
         self._handles[to.name] = handle
         return handle
 
+    def bind_channel(
+        self,
+        logical: Channel,
+        *,
+        via: QECChannelRealization,
+    ) -> QECChannelBuilder:
+        """Bind one P1 channel to a provider-selected P2 realization."""
+
+        self._builder._assert_open()
+        if (not isinstance(logical, Channel) or
+                logical not in self._builder.logical._members.values()):
+            raise TypeError(
+                "qec.bind_channel() requires a logical channel from this builder"
+            )
+        if not isinstance(via, QECChannelRealization):
+            raise TypeError(
+                "qec.bind_channel() via= requires a QECChannelRealization")
+        if via.logical_channel is not logical:
+            raise ValueError(
+                "QEC channel realization is bound to a different logical channel"
+            )
+        if via.name in self._channels:
+            raise ValueError(f"QEC channel {via.name!r} is already bound")
+        if any(channel.logical_channel is logical
+               for channel in self._channels.values()):
+            raise ValueError(
+                "logical channel already has a selected QEC realization")
+
+        def endpoint_space(endpoint):
+            if isinstance(endpoint, Space):
+                return endpoint
+            if isinstance(endpoint, Stream) and endpoint.region is not None:
+                handle = self._builder.logical._regions.get(
+                    endpoint.region.name)
+                return None if handle is None else handle.space
+            return None
+
+        expected = (endpoint_space(logical.source),
+                    endpoint_space(logical.destination))
+        if any(value is None for value in expected):
+            raise ValueError(
+                "P2 channel refinement requires backed logical endpoints")
+        qec_for = {
+            id(binding.logical_region): binding.qec_region
+            for binding in self._bindings
+        }
+        expected_qec = tuple(qec_for.get(id(value)) for value in expected)
+        if None in expected_qec:
+            raise ValueError(
+                "bind both logical channel endpoints to QEC regions first")
+        if (via.source.region, via.destination.region) != expected_qec:
+            raise ValueError(
+                "QEC channel ports do not refine the logical channel endpoints")
+        canonical_ports = []
+        for port in (via.source, via.destination):
+            previous = self._ports.get(port.name)
+            if previous is not None and previous != port:
+                raise ValueError(
+                    f"QEC channel-port name {port.name!r} has two definitions")
+            if previous is None:
+                self._ports[port.name] = port
+                previous = port
+            canonical_ports.append(previous)
+        if any(canonical is not actual
+               for canonical, actual in zip(canonical_ports, (
+                   via.source, via.destination))):
+            via = replace(
+                via,
+                source=canonical_ports[0],
+                destination=canonical_ports[1],
+            )
+        handle = QECChannelBuilder(self._builder, via)
+        self._channels[via.name] = via
+        self._channel_handles[via.name] = handle
+        return handle
+
+
+class _PhysicalNamespace:
+
+    def __init__(self, builder: "DeviceBuilder",
+                 machine: PhysicalMachine | None) -> None:
+        self._builder = builder
+        self._topologies = {
+            topology.name: topology
+            for topology in (() if machine is None else machine.topologies)
+        }
+        inferred_topology = (machine.topologies[0] if machine is not None and
+                             len(machine.topologies) == 1 else None)
+        self._resources = {
+            resource.name:
+                PhysicalResourceBuilder(
+                    builder,
+                    resource.name,
+                    resource,
+                    inferred_topology,
+                ) for resource in (
+                    () if machine is None else machine.resource_classes)
+        }
+        self._bindings: list[QECToPhysicalBinding] = []
+        self._channel_bindings: list[QECChannelToPhysicalBinding] = []
+        self._spacetime_plans = []
+        self._operating_point: PhysicalOperatingPoint | None = None
+
+    def __getattr__(self, name: str):
+        try:
+            return self._resources[name]
+        except KeyError as exc:
+            try:
+                return self._topologies[name]
+            except KeyError:
+                raise AttributeError(name) from exc
+
+    def _default(self, kind: str) -> str:
+        base = kind if kind.endswith("s") else f"{kind}s"
+        candidate = base
+        ordinal = 2
+        while candidate in self._resources:
+            candidate = f"{base}_{ordinal}"
+            ordinal += 1
+        return candidate
+
+    def add_resources(
+        self,
+        kind: str,
+        count: int,
+        *,
+        name: str | None = None,
+        granularity: ResourceGranularity | str = ResourceGranularity.CARRIER,
+        footprint: PhysicalFootprint | None = None,
+        native_actions: Iterable[PhysicalAction | str] = (),
+        native_action_decompositions: Iterable[NativeActionDecomposition] = (),
+        native_instruments: Iterable[PhysicalInstrument] = (),
+        topology: Topology | None = None,
+        capabilities: Iterable[PhysicalCapability | str] = (),
+        capability_bindings: Iterable[PhysicalCapabilityBinding] = (),
+        erasure_indices: Iterable[int] | None = None,
+    ) -> PhysicalResourceBuilder:
+        self._builder._assert_open()
+        name = _member_name(name or self._default(kind),
+                            what="physical resource name")
+        if name in self._resources:
+            raise ValueError(f"duplicate physical resource name {name!r}")
+        if topology is not None:
+            topology = topology._bind_resource_count(count)
+            if topology.name is None:
+                topology = topology._named(f"{name}_topology")
+            if topology.name in self._topologies:
+                raise ValueError(
+                    f"duplicate physical topology name {topology.name!r}")
+            self._topologies[topology.name] = topology
+        resource = ResourceClass(
+            kind,
+            count,
+            granularity=granularity,
+            footprint=footprint,
+            native_actions=native_actions,
+            native_action_decompositions=native_action_decompositions,
+            native_instruments=native_instruments,
+            capabilities=capabilities,
+            capability_bindings=capability_bindings,
+            erasure_indices=erasure_indices,
+            name=name,
+        )
+        handle = PhysicalResourceBuilder(self._builder, name, resource,
+                                         topology)
+        self._resources[name] = handle
+        return handle
+
+    def add_qubits(self, count: int, **kwargs) -> PhysicalResourceBuilder:
+        return self.add_resources("qubit", count, **kwargs)
+
+    def add_atoms(self, count: int, **kwargs) -> PhysicalResourceBuilder:
+        return self.add_resources("atom", count, **kwargs)
+
+    def bind(
+        self,
+        qec: QECRegionBuilder,
+        *,
+        to: PhysicalResourceBuilder | Iterable[PhysicalResourceBuilder],
+        topology: Topology | None = None,
+        patches: Iterable[CarrierSelection] | None = None,
+        categories: Mapping[int, PatchKind] | Iterable[PatchKind | None] |
+        None = None,
+        factory_model: FactoryModel | None = None,
+    ) -> QECToPhysicalBinding:
+        self._builder._assert_open()
+        if not isinstance(
+                qec, QECRegionBuilder) or qec._builder is not self._builder:
+            raise TypeError(
+                "physical.bind() requires a QEC handle from this builder")
+        resources = (to,) if isinstance(to,
+                                        PhysicalResourceBuilder) else tuple(to)
+        if not resources or any(
+                not isinstance(resource, PhysicalResourceBuilder) or
+                resource._builder is not self._builder
+                for resource in resources):
+            raise TypeError(
+                "physical.bind() to= requires physical handles from this builder"
+            )
+        if any(binding.qec_region is qec.region for binding in self._bindings):
+            raise ValueError(f"QEC region {qec.name!r} is already realized")
+        if factory_model is not None:
+            if not isinstance(factory_model, FactoryModel):
+                raise TypeError(
+                    "physical.bind() factory_model= requires a FactoryModel")
+            try:
+                stream = qec.logical.stream
+            except AttributeError as error:
+                raise ValueError(
+                    "physical factory model requires a uniquely backed "
+                    "logical factory region") from error
+            characterization = factory_model.characterization
+            if characterization is not None:
+                from cudaq.logical.compiler.protocol_identity import (
+                    factory_protocol_semantics_sha256,)
+
+                if characterization.resource_kind != stream.produces:
+                    raise ValueError(
+                        "compiled factory model produces a different resource "
+                        "kind than the bound logical stream")
+                if characterization.source_provider != stream.produced_by.name:
+                    raise ValueError(
+                        "compiled factory model was characterized from a "
+                        "different source producer")
+                target_digest = factory_protocol_semantics_sha256(
+                    stream.produced_by)
+                if characterization.source_provider_sha256 != target_digest:
+                    raise ValueError(
+                        "compiled factory model source producer semantics do "
+                        "not match the bound logical stream")
+                target_distance = (
+                    qec.region.encoding.code.d.conservative_value)
+                if target_distance is None:
+                    raise ValueError(
+                        "compiled factory model requires a selected factory "
+                        "code with scalar distance evidence")
+                if target_distance not in characterization.code_distances:
+                    raise ValueError(
+                        "compiled factory model does not contain the selected "
+                        f"factory binding's distance-{target_distance} code")
+                lanes = qec.logical.capacity
+                if lanes is None or lanes <= 0:
+                    raise ValueError(
+                        "compiled factory model requires a positive logical "
+                        "factory capacity")
+                units = []
+                for resource in resources:
+                    if resource.resource.footprint is None:
+                        units.append((resource.kind, resource.count))
+                    else:
+                        footprint = resource.resource.footprint
+                        units.append((
+                            footprint.unit_kind,
+                            resource.count * footprint.units,
+                        ))
+                unit_kinds = {kind for kind, _ in units}
+                if unit_kinds != {characterization.physical_unit_kind}:
+                    raise ValueError(
+                        "compiled factory model and selected physical binding "
+                        "use different base-unit kinds")
+                provisioned = sum(count for _, count in units)
+                required = lanes * characterization.physical_units
+                if provisioned < required:
+                    raise ValueError(
+                        "compiled factory model requires at least "
+                        f"{required} {characterization.physical_unit_kind}s "
+                        f"for {lanes} lanes, but the binding provides "
+                        f"{provisioned}")
+        inferred_topologies = {
+            id(resource.topology): resource.topology
+            for resource in resources
+            if resource.topology is not None
+        }
+        if len(inferred_topologies) > 1:
+            raise ValueError("one QEC binding requires one carrier topology")
+        inferred_topology = next(iter(inferred_topologies.values()), None)
+        if topology is not None:
+            if (not isinstance(topology, Topology) or
+                    topology not in self._topologies.values()):
+                raise TypeError(
+                    "physical.bind() topology= must come from this physical machine"
+                )
+            if inferred_topology is not None and topology is not inferred_topology:
+                raise ValueError(
+                    "physical.bind() topology= conflicts with the resource topology"
+                )
+        else:
+            topology = inferred_topology
+        patch_topology = None
+        if patches is not None:
+            if len(resources) != 1:
+                raise ValueError("patch selections require one resource")
+            selections = tuple(patches)
+            if any(not isinstance(selection, CarrierSelection) or
+                   selection.resource is not resources[0]
+                   for selection in selections):
+                raise TypeError(
+                    "patches must be selections from the bound physical resource"
+                )
+            category_map = {}
+            if isinstance(categories, Mapping):
+                category_map = dict(categories)
+            elif categories is not None:
+                values = tuple(categories)
+                if len(values) != len(selections):
+                    raise ValueError("categories requires one value per patch")
+                category_map = {
+                    index: value
+                    for index, value in enumerate(values)
+                    if value is not None
+                }
+            patch_topology = PatchTopology(
+                tuple(selection.indices for selection in selections),
+                categories=category_map,
+            )
+        elif categories is not None:
+            raise TypeError("categories= requires patches=")
+        binding = QECToPhysicalBinding(
+            qec.region,
+            tuple(resource.resource for resource in resources),
+            topology=topology,
+            patch_topology=patch_topology,
+            factory_model=factory_model,
+        )
+        self._bindings.append(binding)
+        return binding
+
+    def bind_channel(
+        self,
+        qec: QECChannelBuilder,
+        *,
+        to: PhysicalResourceBuilder | Iterable[PhysicalResourceBuilder],
+        transport_claims=(),
+        endpoint_occupancy=None,
+        transport_model=None,
+    ) -> QECChannelToPhysicalBinding:
+        """Bind one P2 channel to P3 pools and optional detailed route facts."""
+
+        self._builder._assert_open()
+        if (not isinstance(qec, QECChannelBuilder) or
+                qec._builder is not self._builder):
+            raise TypeError(
+                "physical.bind_channel() requires a QEC channel from this builder"
+            )
+        resources = (to,) if isinstance(to,
+                                        PhysicalResourceBuilder) else tuple(to)
+        if not resources or any(
+                not isinstance(resource, PhysicalResourceBuilder) or
+                resource._builder is not self._builder
+                for resource in resources):
+            raise TypeError(
+                "physical.bind_channel() to= requires physical handles from this builder"
+            )
+        if any(binding.qec_channel is qec.channel
+               for binding in self._channel_bindings):
+            raise ValueError(f"QEC channel {qec.name!r} is already realized")
+        binding = QECChannelToPhysicalBinding(
+            qec.channel,
+            tuple(resource.resource for resource in resources),
+            transport_claims=transport_claims,
+            endpoint_occupancy=endpoint_occupancy,
+            transport_model=transport_model,
+        )
+        self._channel_bindings.append(binding)
+        return binding
+
+    def bind_protocol(self, model):
+        """Attach one compact P3 plan to its exact typed P2 protocol."""
+
+        from cudaq.logical.devices.component_models import SpacetimePlanModel
+
+        self._builder._assert_open()
+        if not isinstance(model, SpacetimePlanModel):
+            raise TypeError(
+                "physical.bind_protocol() requires a SpacetimePlanModel")
+        if any(value.protocol.name == model.protocol.name
+               for value in self._spacetime_plans):
+            raise ValueError(
+                f"protocol {model.protocol.name!r} already has a compact plan")
+        available = {id(handle.resource) for handle in self._resources.values()}
+        if any(
+                id(claim.resource_class) not in available
+                for phase in model.phases
+                for claim in phase.resources):
+            raise ValueError(
+                "compact plan claims resources outside this physical machine")
+        self._spacetime_plans.append(model)
+        return model
+
+    def set_operating_point(
+        self,
+        *,
+        timing: TimingModel | Mapping[str, Any] | None = None,
+        calibration: Mapping[str, Any] | None = None,
+        costs: Mapping[str, Any] | None = None,
+        target_compatibility: Iterable[str] = (),
+        name: str = "default",
+    ) -> PhysicalOperatingPoint:
+        self._builder._assert_open()
+        if self._operating_point is not None:
+            raise ValueError("DeviceBuilder already has an operating point")
+        self._operating_point = PhysicalOperatingPoint(
+            timing=timing,
+            calibration=calibration,
+            costs=costs,
+            target_compatibility=tuple(target_compatibility),
+            name=name,
+        )
+        return self._operating_point
+
 
 class DeviceBuilder:
-    """Canonical mutable authoring facade for an immutable P1/P2 Device."""
+    """Canonical mutable authoring facade for an immutable layered Device."""
 
     __slots__ = (
         "name",
         "logical",
         "qec",
+        "physical",
         "metadata",
         "source_module",
         "_base_logical",
         "_base_qec",
+        "_base_physical",
+        "_compilers",
         "_built",
     )
 
@@ -518,6 +1127,8 @@ class DeviceBuilder:
         *,
         logical: LogicalMachine | None = None,
         qec: QECMachine | None = None,
+        physical: PhysicalMachine | None = None,
+        compilers: Iterable[Any] = (),
         metadata: Mapping[str, Any] | None = None,
         source_module: str | None = None,
     ) -> None:
@@ -532,14 +1143,29 @@ class DeviceBuilder:
         self.source_module = source_module
         self._base_logical = logical
         self._base_qec = qec
+        self._base_physical = physical
         self._built = None
+        self._compilers = []
+        for compiler in compilers:
+            self.add_compiler(compiler)
         self.logical = _LogicalNamespace(self, logical)
         self.qec = _QECNamespace(self, qec)
+        self.physical = _PhysicalNamespace(self, physical)
 
     def _assert_open(self) -> None:
         if self._built is not None:
             raise RuntimeError(
                 "DeviceBuilder is frozen after build(); create a new builder")
+
+    def add_compiler(self, compiler):
+        """Attach one versioned compiler capability to the immutable device."""
+
+        self._assert_open()
+        key = _compiler_key(compiler)
+        if any(_compiler_key(value) == key for value in self._compilers):
+            raise ValueError(f"duplicate device compiler key {key!r}")
+        self._compilers.append(compiler)
+        return compiler
 
     def build(self) -> Device:
         if self._built is not None:
@@ -563,34 +1189,85 @@ class DeviceBuilder:
         if self.qec._regions:
             imported_qec = self._base_qec is not None and {
                 id(region) for region in self._base_qec.regions
-            } == {id(region) for region in self.qec._regions.values()}
+            } == {
+                id(region) for region in self.qec._regions.values()
+            } and tuple(self.qec._ports.values()) == (
+                self._base_qec.channel_ports) and tuple(
+                    self.qec._channels.values()) == (self._base_qec.channels)
             qec = QECMachine(
                 f"{self.name}QECMachine",
                 self.qec._regions.values(),
+                channel_ports=self.qec._ports.values(),
+                channels=self.qec._channels.values(),
             ) if not imported_qec else self._base_qec
+        resources = {
+            name: handle.resource
+            for name, handle in self.physical._resources.items()
+        }
+        topologies = dict(self.physical._topologies)
+        physical = None
+        if resources:
+            imported_physical = self._base_physical is not None and {
+                id(resource)
+                for resource in self._base_physical.resource_classes
+            } == {id(resource) for resource in resources.values()}
+            physical = (self._base_physical
+                        if imported_physical else PhysicalMachine(
+                            f"{self.name}PhysicalMachine",
+                            resource_classes=resources.values(),
+                            topologies=topologies,
+                        ))
+        operating_point = self.physical._operating_point
+        for binding in self.physical._bindings:
+            model = binding.factory_model
+            characterization = (None
+                                if model is None else model.characterization)
+            if characterization is None:
+                continue
+            if operating_point is None:
+                raise ValueError(
+                    "compiled factory model requires a selected operating "
+                    "point")
+            if (characterization.timing_source
+                    != operating_point.timing_source):
+                raise ValueError(
+                    "compiled factory model timing source differs from the "
+                    "selected operating point")
+            for name, expected in characterization.timing_profile:
+                source_name = "surface_cycle_ns" if name == "cycle_ns" else name
+                try:
+                    actual = float(operating_point.timing[source_name])
+                except (KeyError, TypeError, ValueError) as error:
+                    raise ValueError(
+                        "compiled factory model operating point lacks "
+                        f"characterized timing {source_name!r}") from error
+                if not isfinite(actual) or actual != expected:
+                    raise ValueError(
+                        "compiled factory model timing "
+                        f"{source_name!r}={actual!r} differs from the compiled "
+                        f"characterization value {expected!r}")
         self._built = Device(
             self.name,
             logical=logical,
             qec=qec,
+            physical=physical,
             logical_to_qec=logical_to_qec,
+            qec_to_physical=self.physical._bindings,
+            qec_channels_to_physical=self.physical._channel_bindings,
+            spacetime_plans=self.physical._spacetime_plans,
+            compilers=self._compilers,
+            operating_point=operating_point,
             metadata=self.metadata,
             source_module=self.source_module,
         )
         return self._built
 
 
-# These builder classes historically lived in cudaq.logical.model.device.  Preserve that
-# durable identity for pickles, provenance, annotation resolution, wildcard
-# imports, and compatibility diagnostics while direct imports migrate to this
-# implementation owner.
-_COMPATIBILITY_EXPORTS = (
+__all__ = [
+    "CarrierSelection",
     "LogicalRegionBuilder",
     "QECRegionBuilder",
+    "QECChannelBuilder",
+    "PhysicalResourceBuilder",
     "DeviceBuilder",
-)
-for _compatibility_name in _COMPATIBILITY_EXPORTS:
-    _compatibility_class = globals()[_compatibility_name]
-    _compatibility_class.__module__ = "cudaq.logical.model.device"
-del _compatibility_class, _compatibility_name
-
-__all__ = list(_COMPATIBILITY_EXPORTS)
+]

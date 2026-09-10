@@ -10,10 +10,11 @@
 Authoring a rotation with :data:`cudaq.logical.pi` (and arithmetic on it) records the
 angle as an exact rational multiple of pi rather than a lossy float.  This
 makes the compiler's exactness guarantee *authoritative* instead of
-*tolerance-inferred*: ``cudaq.logical.rz(q, cudaq.logical.pi/4)`` is unambiguously the T-class
+*tolerance-inferred*: ``cudaq.logical.rz(q, cudaq.logical.pi/4)`` is
+unambiguously the T-class
 magic rotation, never a float that merely happens to land near ``pi/4``.
 
-Under the canonical CUDA-Q Logical convention ``R_P(theta) = exp(-i theta P / 2)`` the
+Under the canonical QLX convention ``R_P(theta) = exp(-i theta P / 2)`` the
 quarter-turns of ``theta`` are the interesting points -- ``R_P(pi)`` is a
 Pauli, ``R_P(pi/2)`` a Clifford, ``R_P(pi/4)`` the magic rotation -- so
 ``cudaq.logical.pi/4`` reads exactly as the intent (see the "Phase convention" section
@@ -103,7 +104,7 @@ class Angle:
         return NotImplemented
 
     def __hash__(self):
-        return hash(("cudaq.logical.Angle", self._frac))
+        return hash(("qlx.Angle", self._frac))
 
     def __repr__(self):
         n, d = self.pi_fraction
@@ -116,10 +117,7 @@ class Angle:
     __str__ = __repr__
 
 
-#: The exact angle ``pi``.  Build the others by arithmetic: ``cudaq.logical.pi/2`` is the
-#: Clifford point, ``cudaq.logical.pi/4`` the magic point, ``-cudaq.logical.pi/4`` its inverse.
+#: The exact angle ``pi``. Build the others by arithmetic:
+#: ``cudaq.logical.pi/2`` is the Clifford point, ``cudaq.logical.pi/4`` the
+#: magic point, and ``-cudaq.logical.pi/4`` its inverse.
 pi = Angle(1, 1)
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.angle")

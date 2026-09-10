@@ -11,9 +11,9 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..programs.definition import DefinitionHandle
+from cudaq.logical.programs.definition import DefinitionHandle
 
 _symbol_re = re.compile(r"[^A-Za-z0-9_.$-]")
 
@@ -55,6 +55,7 @@ class CompilationContext:
         self._value_groups: dict[int, dict[str, int]] = {}
         self._symbols: dict[str, object] = {}
         self._symbol_operations: dict[str, object] = {}
+        self._symbol_operations_by_kind: dict[tuple[str, str], object] = {}
         self._objectives: dict[tuple[Any, ...], str] = {}
         # Exact Boolean-result provenance for protocol calls materialized in
         # this private transaction.  This lets a closed protocol attempt expose
@@ -65,42 +66,34 @@ class CompilationContext:
         self._resolving: set[int] = set()
         self._resource_streams: (dict[str, tuple[tuple[str, str], ...]] |
                                  None) = None
+        # Retained resource requests are a hot, exact cross-stage boundary.
+        # Capture them while the replay constructor is already indexing the
+        # immutable source module, so P3 preparation need not recursively walk
+        # the same paper-scale P2 closure again.
+        self._retained_resource_requests = []
         self._configure_module()
         for operation in self.walk():
+            if operation.name == "fabric.resource_request":
+                self._retained_resource_requests.append(operation)
             if "sym_name" not in operation.attributes:
                 continue
             attr = operation.attributes["sym_name"]
             name = str(getattr(attr, "value", attr)).strip('"')
             self._symbols.setdefault(name, object())
             self._symbol_operations.setdefault(name, operation)
+            self._symbol_operations_by_kind.setdefault((operation.name, name),
+                                                       operation)
 
     @classmethod
     def replay(cls, build) -> "CompilationContext":
-        """Open an immutable build in a fresh private linking transaction."""
-        self = cls.__new__(cls)
-        self.context = mlir_ir.Context()
-        self.module = mlir_ir.Module.parse(build.to_mlir(), self.context)
-        self.location = mlir_ir.Location.unknown(context=self.context)
-        self._definitions = {}
-        self._materialization_traces = []
-        self._materialization_closures = {}
-        self._definition_types = {}
-        self._value_groups = {}
-        self._symbols = {}
-        self._symbol_operations = {}
-        self._objectives = {}
-        self._protocol_result_provenance = {}
-        self._protocol_payload_blocks = {}
-        self._resolving = set()
-        self._resource_streams = None
-        for operation in self.walk():
-            if "sym_name" not in operation.attributes:
-                continue
-            attr = operation.attributes["sym_name"]
-            name = str(getattr(attr, "value", attr)).strip('"')
-            self._symbols.setdefault(name, object())
-            self._symbol_operations.setdefault(name, operation)
-        return self
+        """Open a Build in a private live-module linking transaction.
+
+        Published Builds supply an in-memory clone; unpublished progressive
+        stages transfer the same private ModuleOp. Neither path uses textual
+        assembly as an internal compiler interchange.
+        """
+
+        return cls(module=build._fresh_module())
 
     def walk(self):
 
@@ -154,6 +147,21 @@ class CompilationContext:
         *,
         scan: bool = True,
     ):
+        if operation_name is not None:
+            typed = self._symbol_operations_by_kind.get((operation_name, name))
+            if typed is not None:
+                try:
+                    typed_name = self._operation_symbol(typed)
+                    typed_operation_name = typed.name
+                except RuntimeError:
+                    self._symbol_operations_by_kind.pop((operation_name, name),
+                                                        None)
+                else:
+                    if (typed_name == name and
+                            typed_operation_name == operation_name):
+                        return typed
+                    self._symbol_operations_by_kind.pop((operation_name, name),
+                                                        None)
         cached = self._symbol_operations.get(name)
         if cached is not None:
             try:
@@ -164,18 +172,25 @@ class CompilationContext:
                 # return that stale wrapper from this transaction-local index.
                 self._symbol_operations.pop(name, None)
                 self._symbols.pop(name, None)
+                self._symbol_operations_by_kind.pop((operation_name, name),
+                                                    None)
             else:
                 if cached_name != name:
                     # Keep the index coherent if a transform renamed the
                     # declaration through the underlying MLIR API.
                     self._symbol_operations.pop(name, None)
                     self._symbols.pop(name, None)
+                    self._symbol_operations_by_kind.pop(
+                        (cached_operation_name, name), None)
                     if cached_name is not None:
                         self._symbol_operations.setdefault(cached_name, cached)
                         self._symbols.setdefault(cached_name, object())
+                        self._symbol_operations_by_kind[(cached_operation_name,
+                                                         cached_name)] = cached
                 else:
-                    return (cached if operation_name is None or
-                            cached_operation_name == operation_name else None)
+                    if (operation_name is None or
+                            cached_operation_name == operation_name):
+                        return cached
         if not scan:
             return None
         for operation in self.walk():
@@ -184,6 +199,8 @@ class CompilationContext:
             attr = operation.attributes["sym_name"]
             candidate = str(getattr(attr, "value", attr)).strip('"')
             self._symbol_operations.setdefault(candidate, operation)
+            self._symbol_operations_by_kind.setdefault(
+                (operation.name, candidate), operation)
             if candidate == name:
                 return (operation if operation_name is None or
                         operation.name == operation_name else None)
@@ -201,6 +218,7 @@ class CompilationContext:
                 f"symbol operation @{symbol} does not match handle @{expected}")
         self._symbols.setdefault(symbol, object())
         self._symbol_operations[symbol] = operation
+        self._symbol_operations_by_kind[(operation.name, symbol)] = operation
         return symbol
 
     def _configure_module(self) -> None:
@@ -277,7 +295,7 @@ class CompilationContext:
             "kind": mlir_ir.StringAttr.get(kind, context=self.context),
         }
         if family == "action":
-            from ..algebra.clifford import (
+            from cudaq.logical.algebra.clifford import (
                 CliffordAction,
                 NonCliffordAction,
             )
@@ -336,10 +354,21 @@ class CompilationContext:
         existing = self.lookup(definition)
         if existing is not None:
             return existing
+        from cudaq.logical.programs.definition import ProgramDefinition
+
+        kernel = (definition.cudaq_kernel
+                  if isinstance(definition, ProgramDefinition) else None)
+        if kernel is not None and not hasattr(definition,
+                                              "_qlx_direct_snapshot"):
+            from cudaq.logical.programs.kernel_objective import (
+                materialize_kernel_objective,)
+
+            object.__setattr__(definition, "_qlx_direct_snapshot",
+                               materialize_kernel_objective(definition))
         snapshot = getattr(definition, "_qlx_direct_snapshot", None)
         if snapshot is not None:
             return self._import_direct_snapshot(definition, snapshot)
-        from ..codes import (
+        from cudaq.logical.codes import (
             Code,
             CodeProfile,
             Encoding,
@@ -349,10 +378,19 @@ class CompilationContext:
             EncodingProjection,
             PatchTransform,
         )
-        from ..gadgets import GadgetDefinition
-        from ..protocols.definition import ProtocolDefinition
-        from ..devices.definition import Device
-        from ..qec.lowering import QECLowering
+        from cudaq.logical.gadgets import (
+            GadgetDefinition,
+            GadgetProfile,
+        )
+        from cudaq.logical.protocols.definition import ProtocolDefinition
+        from cudaq.logical.devices.definition import Device
+        from cudaq.logical.architecture.physical_definition import (
+            PhysicalAction,
+            PhysicalInstrument,
+            PhysicalMachine,
+            PhysicalDefinition,
+        )
+        from cudaq.logical.qec.lowering import QECLowering
 
         if isinstance(
                 definition,
@@ -371,15 +409,46 @@ class CompilationContext:
 
             return materialize_qec(self, definition)
         if isinstance(definition, Device):
-            from ..architecture.builder import materialize_device
+            from cudaq.logical.architecture.builder import materialize_device
 
             return materialize_device(self, definition)
+        if isinstance(definition, PhysicalAction):
+            from cudaq.logical.architecture.builder import materialize_physical_action
+
+            return materialize_physical_action(self, definition)
+        if isinstance(definition, PhysicalInstrument):
+            from cudaq.logical.architecture.builder import materialize_physical_instrument
+
+            return materialize_physical_instrument(self, definition)
+        if isinstance(definition, PhysicalMachine):
+            from cudaq.logical.architecture.builder import materialize_physical_machine
+
+            return materialize_physical_machine(self, definition)
+        if isinstance(definition, PhysicalDefinition):
+            from cudaq.logical.architecture.builder import PhysicalBuilder
+
+            identity = id(definition)
+            if identity in self._resolving:
+                raise RuntimeError(
+                    f"recursive physical definition {definition.name!r}")
+            self._resolving.add(identity)
+            try:
+                builder = PhysicalBuilder(self, definition)
+                builder.trace()
+                handle = DefinitionHandle(symbol=builder.symbol,
+                                          kind="physical_graph",
+                                          profile="p3")
+                self.bind(definition, handle)
+                self.add_profile("p3")
+                return handle
+            finally:
+                self._resolving.remove(identity)
         if isinstance(definition, QECLowering):
             from .lowering import materialize_qec_lowering
 
             return materialize_qec_lowering(self, definition)
         if isinstance(definition, GadgetDefinition):
-            from ..gadgets.builder import GadgetBuilder
+            from cudaq.logical.gadgets.builder import GadgetBuilder
 
             identity = id(definition)
             if identity in self._resolving:
@@ -404,8 +473,26 @@ class CompilationContext:
                 return handle
             finally:
                 self._resolving.remove(identity)
+        if isinstance(definition, GadgetProfile):
+            from cudaq.logical.gadgets.profile_builder import GadgetProfileBuilder
+
+            identity = id(definition)
+            if identity in self._resolving:
+                raise RuntimeError(
+                    f"recursive definition cycle while materializing "
+                    f"{definition.name!r}")
+            self._resolving.add(identity)
+            try:
+                builder = GadgetProfileBuilder(self, definition)
+                builder.trace()
+                handle = builder.handle()
+                self.bind(definition, handle)
+                self.add_profile("p2a")
+                return handle
+            finally:
+                self._resolving.remove(identity)
         if isinstance(definition, ProtocolDefinition):
-            from ..protocols.builder import ProtocolBuilder
+            from cudaq.logical.protocols.builder import ProtocolBuilder
 
             identity = id(definition)
             if identity in self._resolving:
@@ -437,7 +524,7 @@ class CompilationContext:
             )
         self._resolving.add(identity)
         try:
-            from ..programs.builder import UnplacedBuilder
+            from cudaq.logical.programs.builder import UnplacedBuilder
 
             builder = UnplacedBuilder(self, definition)
             builder.trace()
@@ -463,7 +550,7 @@ class CompilationContext:
                         builder.symbol, context=self.context),
                 )
                 if family == "action":
-                    from ..algebra.clifford import (
+                    from cudaq.logical.algebra.clifford import (
                         CliffordAction,
                         NonCliffordAction,
                     )
@@ -509,8 +596,8 @@ class CompilationContext:
             return False
         ignored = {"sym_name"}
         if left.name == "fabric.encoding":
-            # This generated child symbol is determined by the canonical schema
-            # of the encoding and is remapped independently immediately after
+            # This generated child symbol is determined by the encoding's
+            # canonical schema and is remapped independently immediately after
             # its parent declaration.
             ignored.add("initial_epoch")
         left_names = tuple(
@@ -548,12 +635,17 @@ class CompilationContext:
         dependency.  Experiment metadata lives in the consuming Build bundle.
         """
 
-        from .build import Build
+        from .build import Build, _VerifiedLinkSnapshot
 
-        if not isinstance(build, Build):
+        if isinstance(build, Build):
+            snapshot = build._verified_link_snapshot()
+        elif isinstance(build, _VerifiedLinkSnapshot):
+            snapshot = build
+        else:
             raise TypeError(
-                "direct definition snapshot must be a CUDA-Q Logical Build")
-        imported = mlir_ir.Module.parse(build.to_mlir(), self.context)
+                "direct definition snapshot must be a QLX Build or verified "
+                "link snapshot")
+        imported = mlir_ir.Module.parse(snapshot.bytecode, self.context)
         profile_attr = (imported.operation.attributes["qlx.profiles"] if
                         "qlx.profiles" in imported.operation.attributes else ())
         profiles = tuple(
@@ -566,7 +658,7 @@ class CompilationContext:
             if (symbol := self._operation_symbol(view.operation)) is not None
         }
         reserved_symbols = {*self._symbols, *imported_symbols}
-        root_symbol = build.root.symbol
+        root_symbol = snapshot.root.symbol
 
         def fresh_import_symbol(requested: str) -> str:
             base = _symbol(requested)
@@ -667,8 +759,8 @@ class CompilationContext:
             self.add_profile(profile)
         handle = DefinitionHandle(
             root_symbol,
-            build.root.kind,
-            build.root.profile,
+            snapshot.root.kind,
+            snapshot.root.profile,
         )
         self.bind(definition, handle)
         return handle
@@ -713,7 +805,7 @@ class CompilationContext:
         ``qlx.profiles`` remains a temporary native-compatibility mirror. New
         consumers must use ``qlx.stages`` and ``qlx.facets``.
         """
-        from ..stages import stage_and_facets
+        from cudaq.logical.stages import stage_and_facets
 
         stage, facets = stage_and_facets(profile)
         if stage is not None:

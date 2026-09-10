@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""CUDA-Q Quake to canonical CUDA-Q Logical P0 import tests."""
+"""CUDA-Q Quake to canonical QLX P0 import tests."""
 
 import importlib
 import re
@@ -13,13 +13,13 @@ from pathlib import Path
 
 import pytest
 
-import cudaq.logical
+import cudaq.logical as qlx
 import cudaq.mlir.ir as mlir_ir
 from cudaq.logical._native import native
 
 pytestmark = pytest.mark.skipif(
     not native.has_quake_import,
-    reason="CUDA-Q Logical was built without CUDA-Q Quake support",
+    reason="QLX was built without CUDA-Q Quake support",
 )
 
 WIRE_BELL = r"""
@@ -132,10 +132,10 @@ def test_live_module_pass_has_no_file_or_text_round_trip():
     # Load the plugin before creating the context so Quake parses as a
     # registered dialect. A live module from SDK-mode CUDA-Q already has that
     # dialect loaded from the same shared compiler library.
-    cudaq.logical.compiler.import_quake(WIRE_BELL)
+    qlx.compiler.import_quake(WIRE_BELL)
     module = mlir_ir.Module.parse(WIRE_BELL, mlir_ir.Context())
 
-    converted = cudaq.logical.compiler.convert_quake_to_p0(module)
+    converted = qlx.compiler.convert_quake_to_p0(module)
 
     assert converted is module
     assert "qlx.program @bell" in str(module)
@@ -153,11 +153,11 @@ def test_closed_import_and_public_conversion_each_verify_linearity_once(
         return original(module, subject=subject)
 
     monkeypatch.setattr(quake_import, "verify_linearity", counted)
-    cudaq.logical.compiler.import_quake(WIRE_BELL)
+    qlx.compiler.import_quake(WIRE_BELL)
     assert subjects == ["imported Quake program @bell"]
 
     module = mlir_ir.Module.parse(WIRE_BELL, mlir_ir.Context())
-    cudaq.logical.compiler.convert_quake_to_p0(module)
+    qlx.compiler.convert_quake_to_p0(module)
     assert subjects[-1] == "converted Quake P0 module"
     assert len(subjects) == 2
 
@@ -171,7 +171,7 @@ def test_live_cudaq_module_uses_the_same_in_process_pass():
     with context:
         module = cudaq_ir.Module.parse(WIRE_BELL)
 
-    converted = cudaq.logical.compiler.convert_quake_to_p0(module)
+    converted = qlx.compiler.convert_quake_to_p0(module)
     # The pass mutates and returns the caller's exact live module object.
     assert converted is module
     assert "qlx.program @bell" in str(module)
@@ -179,36 +179,36 @@ def test_live_cudaq_module_uses_the_same_in_process_pass():
 
 
 def test_live_module_conversion_rolls_back_when_a_later_entry_fails():
-    cudaq.logical.compiler.import_quake(WIRE_BELL)
+    qlx.compiler.import_quake(WIRE_BELL)
     module = mlir_ir.Module.parse(MIXED_ENTRY_FAILURE, mlir_ir.Context())
     before = str(module)
 
     with pytest.raises(RuntimeError, match="value-semantics"):
-        cudaq.logical.compiler.convert_quake_to_p0(module)
+        qlx.compiler.convert_quake_to_p0(module)
 
     assert str(module) == before
     assert "qlx.program" not in str(module)
 
 
 def test_live_module_conversion_rolls_back_when_owner_closure_fails():
-    cudaq.logical.compiler.import_quake(WIRE_BELL)
+    qlx.compiler.import_quake(WIRE_BELL)
     module = mlir_ir.Module.parse(ENTRY_OWNER_LEAK, mlir_ir.Context())
     before = str(module)
 
     with pytest.raises(RuntimeError, match="leaves 1 live quantum owner"):
-        cudaq.logical.compiler.convert_quake_to_p0(module)
+        qlx.compiler.convert_quake_to_p0(module)
 
     assert str(module) == before
     assert "qlx.program" not in str(module)
 
 
 def test_live_module_conversion_rolls_back_boundary_cleanup_on_failure():
-    cudaq.logical.compiler.import_quake(WIRE_BELL)
+    qlx.compiler.import_quake(WIRE_BELL)
     module = mlir_ir.Module.parse(DEAD_CARRY_THEN_FAILURE, mlir_ir.Context())
     before = str(module)
 
     with pytest.raises(RuntimeError, match="value-semantics"):
-        cudaq.logical.compiler.convert_quake_to_p0(module)
+        qlx.compiler.convert_quake_to_p0(module)
 
     assert str(module) == before
     assert "cc.undef" in str(module)
@@ -217,22 +217,21 @@ def test_live_module_conversion_rolls_back_boundary_cleanup_on_failure():
 
 def test_quake_import_rejects_orphan_top_level_qlx_execution():
     with pytest.raises(RuntimeError, match="unexpected top-level operation"):
-        cudaq.logical.compiler.import_quake(TOP_LEVEL_EXECUTABLE_QLX)
+        qlx.compiler.import_quake(TOP_LEVEL_EXECUTABLE_QLX)
 
 
 def test_quake_import_selects_exact_source_entry_before_name_normalization():
-    p0 = cudaq.logical.compiler.import_quake(SAME_BASE_VARIANTS,
-                                             root="foo..0x2")
+    p0 = qlx.compiler.import_quake(SAME_BASE_VARIANTS, root="foo..0x2")
     assert p0.root.symbol == "foo"
-    assert cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL).actions == {
-            "qlx_standard_h": 1
-        }
+    assert qlx.analysis.estimate(p0,
+                                 tier=qlx.analysis.Tier.LOGICAL).actions == {
+                                     "qlx_standard_h": 1
+                                 }
 
 
 def test_quake_import_rejects_ambiguous_abbreviated_source_entry():
     with pytest.raises(RuntimeError, match="identified 2 source entries"):
-        cudaq.logical.compiler.import_quake(SAME_BASE_VARIANTS, root="foo")
+        qlx.compiler.import_quake(SAME_BASE_VARIANTS, root="foo")
 
 
 REFERENCE_QUBIT = r"""
@@ -416,15 +415,14 @@ module {
 
 
 def test_wire_semantics_quake_imports_as_verified_p0():
-    p0 = cudaq.logical.compiler.import_quake(WIRE_BELL)
+    p0 = qlx.compiler.import_quake(WIRE_BELL)
 
-    assert p0.stage == cudaq.logical.stages.P0
+    assert p0.stage == qlx.stages.P0
     assert p0.root.symbol == "bell"
     assert tuple(group.name for group in p0.values) == ("alloc0", "alloc1")
     assert [record.result for record in p0.evidence] == ["pass", "pass"]
 
-    logical = cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL)
+    logical = qlx.analysis.estimate(p0, tier=qlx.analysis.Tier.LOGICAL)
     assert logical.logical_qubits_peak == 2
     assert logical.actions == {
         "qlx_standard_h": 1,
@@ -432,99 +430,101 @@ def test_wire_semantics_quake_imports_as_verified_p0():
         "qlx_standard_t": 1,
     }
     assert logical.synthesis_demand == {"qlx_standard_t": 1}
+    assert logical.resource_requests == {}
+    assert logical.resource_consumptions == {}
 
 
 def test_quake_path_import_produces_p0(tmp_path: Path):
     source = tmp_path / "bell.qke"
     source.write_text(WIRE_BELL)
 
-    p0 = cudaq.logical.compiler.import_quake(source)
-    assert p0.stage == cudaq.logical.stages.P0
+    p0 = qlx.compiler.import_quake(source)
+    assert p0.stage == qlx.stages.P0
     assert p0.root.symbol == "bell"
 
 
-def test_quake_import_two_control_x_has_logical_ccz_demand():
-    p0 = cudaq.logical.compiler.import_quake(WIRE_CCX)
-    logical = cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL)
-    assert logical.synthesis_demand == {"qlx_standard_ccz": 1}
+def test_quake_import_two_control_x_has_logical_ccx_demand():
+    p0 = qlx.compiler.import_quake(WIRE_CCX)
+    logical = qlx.analysis.estimate(p0, tier=qlx.analysis.Tier.LOGICAL)
+    assert logical.synthesis_demand == {"qlx_standard_ccx": 1}
+    assert logical.resource_requests == {}
+    assert logical.resource_consumptions == {}
 
 
 def test_quake_import_tdg_remains_a_standard_action():
-    p0 = cudaq.logical.compiler.import_quake(WIRE_TDG)
-    logical = cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL)
+    p0 = qlx.compiler.import_quake(WIRE_TDG)
+    logical = qlx.analysis.estimate(p0, tier=qlx.analysis.Tier.LOGICAL)
     assert logical.actions == {"qlx_standard_tdg": 1}
     assert logical.synthesis_demand == {"qlx_standard_tdg": 1}
+    assert logical.resource_requests == {}
 
 
 def test_quake_import_rejects_controlled_swap():
     with pytest.raises(RuntimeError, match="controlled swap") as excinfo:
-        cudaq.logical.compiler.import_quake(WIRE_FREDKIN)
+        qlx.compiler.import_quake(WIRE_FREDKIN)
     # The captured diagnostic carries a source location (line:column).
     assert re.search(r":\d+:\d+", str(excinfo.value))
 
 
 def test_quake_import_rejects_negated_control():
     with pytest.raises(RuntimeError, match="negated controls"):
-        cudaq.logical.compiler.import_quake(NEGATED_CONTROL)
+        qlx.compiler.import_quake(NEGATED_CONTROL)
 
 
 def test_quake_import_rejects_excessive_controls():
     with pytest.raises(RuntimeError, match="unsupported gate shape"):
-        cudaq.logical.compiler.import_quake(EXCESSIVE_CONTROLS)
+        qlx.compiler.import_quake(EXCESSIVE_CONTROLS)
 
 
 def test_quake_import_rejects_excessive_swap_targets():
     # The Quake op verifier rejects this malformed shape before the conversion
     # pass runs; it is still a fail-closed boundary with an actionable error.
-    with pytest.raises(cudaq.mlir.ir.MLIRError,
+    with pytest.raises(mlir_ir.MLIRError,
                        match="number of targets is equal to 2"):
-        cudaq.logical.compiler.import_quake(EXCESSIVE_SWAP_TARGETS)
+        qlx.compiler.import_quake(EXCESSIVE_SWAP_TARGETS)
 
 
 def test_quake_import_rejects_quantum_entry_argument():
     with pytest.raises(
             RuntimeError,
             match="specialized entry point with no quantum arguments"):
-        cudaq.logical.compiler.import_quake(QUANTUM_ENTRY_ARGUMENT)
+        qlx.compiler.import_quake(QUANTUM_ENTRY_ARGUMENT)
 
 
 def test_quake_import_rejects_quantum_cfg_block_argument():
     with pytest.raises(RuntimeError, match="quantum CFG block arguments"):
-        cudaq.logical.compiler.import_quake(QUANTUM_CFG_BLOCK_ARGUMENT)
+        qlx.compiler.import_quake(QUANTUM_CFG_BLOCK_ARGUMENT)
 
 
 def test_quake_import_rejects_unspecialized_dynamic_angle():
     with pytest.raises(RuntimeError,
                        match="classical argument to be constant-folded"):
-        cudaq.logical.compiler.import_quake(DYNAMIC_ROTATION_ARGUMENT)
+        qlx.compiler.import_quake(DYNAMIC_ROTATION_ARGUMENT)
 
 
 def test_quake_import_rejects_unsupported_gate():
     with pytest.raises(
             RuntimeError,
             match="outside the typed Quake-to-P0 conversion contract"):
-        cudaq.logical.compiler.import_quake(UNSUPPORTED_PHASED_RX)
+        qlx.compiler.import_quake(UNSUPPORTED_PHASED_RX)
 
 
 def test_quake_import_rejects_nested_adaptive_control():
     with pytest.raises(RuntimeError,
                        match="flatten or outline the nested region"):
-        cudaq.logical.compiler.import_quake(NESTED_ADAPTIVE_CONTROL)
+        qlx.compiler.import_quake(NESTED_ADAPTIVE_CONTROL)
 
 
 def test_quake_import_rejects_reference_semantics():
     with pytest.raises(RuntimeError, match="only value-semantics !quake.wire"):
-        cudaq.logical.compiler.import_quake(REFERENCE_QUBIT)
+        qlx.compiler.import_quake(REFERENCE_QUBIT)
 
 
 # --- Phase B: folded loops + conditionals (normalized cc.loop / cc.if) -------
 
 
 # A normalized (post `cudaq-opt --cc-loop-normalize`) constant-trip loop:
-# `arith.cmpi ne` / initial value 0 / step +1, wrapped in cc.scope, carrying two
-# wires.
+# `arith.cmpi ne` / init 0 / step +1, wrapped in cc.scope, carrying two wires.
 def _normalized_loop(trip: int, predicate: str = "ne") -> str:
     return f"""
 module {{
@@ -595,52 +595,51 @@ RESOURCE_MEAS_IF = MEAS_IF.replace(
 
 
 def test_quake_import_folded_loop_multiplies_logical_estimate():
-    p0 = cudaq.logical.compiler.import_quake(_normalized_loop(5))
-    assert cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL).actions == {
-            "qlx_standard_h": 5,
-            "qlx_standard_cx": 5,
-        }
+    p0 = qlx.compiler.import_quake(_normalized_loop(5))
+    assert qlx.analysis.estimate(p0,
+                                 tier=qlx.analysis.Tier.LOGICAL).actions == {
+                                     "qlx_standard_h": 5,
+                                     "qlx_standard_cx": 5,
+                                 }
 
 
 def test_quake_import_zero_trip_loop_preserves_carries():
-    p0 = cudaq.logical.compiler.import_quake(_normalized_loop(0))
-    actions = cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL).actions
+    p0 = qlx.compiler.import_quake(_normalized_loop(0))
+    actions = qlx.analysis.estimate(p0, tier=qlx.analysis.Tier.LOGICAL).actions
     assert actions.get("qlx_standard_h", 0) == 0
 
 
 def test_quake_import_standard_t_stays_inside_folded_loop():
-    p0 = cudaq.logical.compiler.import_quake(_normalized_t_loop(5))
-    logical = cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL)
+    p0 = qlx.compiler.import_quake(_normalized_t_loop(5))
+    logical = qlx.analysis.estimate(p0, tier=qlx.analysis.Tier.LOGICAL)
+    assert logical.resource_requests == {}
+    assert logical.resource_consumptions == {}
     assert logical.synthesis_demand == {"qlx_standard_t": 5}
 
 
 def test_quake_import_rejects_unnormalized_loop():
     with pytest.raises(RuntimeError, match="condition must use"):
-        cudaq.logical.compiler.import_quake(_normalized_loop(5,
-                                                             predicate="sle"))
+        qlx.compiler.import_quake(_normalized_loop(5, predicate="sle"))
 
 
-def test_quake_import_measurement_conditional_remains_p0():
-    p0 = cudaq.logical.compiler.import_quake(MEAS_IF)
-    assert p0.stage == cudaq.logical.stages.P0
+def test_quake_import_measurement_conditional_counts_adaptive_branch():
+    p0 = qlx.compiler.import_quake(MEAS_IF)
     # Both branches are counted (conservative static upper bound).
-    assert cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL).actions == {
-            "qlx_standard_x": 1
-        }
+    assert qlx.analysis.estimate(p0,
+                                 tier=qlx.analysis.Tier.LOGICAL).actions == {
+                                     "qlx_standard_x": 1
+                                 }
 
 
 def test_quake_import_standard_t_stays_inside_adaptive_branch():
-    p0 = cudaq.logical.compiler.import_quake(RESOURCE_MEAS_IF)
-    logical = cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL)
+    p0 = qlx.compiler.import_quake(RESOURCE_MEAS_IF)
+    logical = qlx.analysis.estimate(p0, tier=qlx.analysis.Tier.LOGICAL)
+    assert logical.resource_requests == {}
+    assert logical.resource_consumptions == {}
     assert logical.synthesis_demand == {"qlx_standard_t": 1}
 
 
-# --- rotations: R1/RX/RY/RZ -> ``qlx.apply<pauli_rotation>`` ----------------
+# --- rotations: r1/rx/ry/rz -> qlx.apply<pauli_rotation> ---------------------
 
 ROTATIONS = r"""
 module {
@@ -676,13 +675,13 @@ module {
 
 
 def test_quake_import_rotation_logical_estimate():
-    p0 = cudaq.logical.compiler.import_quake(ROTATIONS)
-    assert cudaq.logical.analysis.estimate(
-        p0, tier=cudaq.logical.analysis.Tier.LOGICAL).actions == {
-            "qlx_standard_pauli_rotation": 3
-        }
+    p0 = qlx.compiler.import_quake(ROTATIONS)
+    assert qlx.analysis.estimate(p0,
+                                 tier=qlx.analysis.Tier.LOGICAL).actions == {
+                                     "qlx_standard_pauli_rotation": 3
+                                 }
 
 
 def test_quake_import_rejects_controlled_rotation():
     with pytest.raises(RuntimeError, match="controlled rotations"):
-        cudaq.logical.compiler.import_quake(CONTROLLED_RZ)
+        qlx.compiler.import_quake(CONTROLLED_RZ)

@@ -20,11 +20,11 @@ module attributes {qlx.profiles = ["p0", "p1"]} {
   }
   qlx.program @folded : () -> i1 attributes {qlx.stage = "p0"} {
     %q0 = qlx.prepare "zero" : !qlx.logical_qubit
-    %q1 = qlx.repeat 4
+    %q1 = cflow.repeat 4
         iter(%q : !qlx.logical_qubit = %q0) {
       %next = qlx.apply #qlx.action<h>(%q)
         : (!qlx.logical_qubit) -> !qlx.logical_qubit
-      qlx.yield %next : !qlx.logical_qubit
+      cflow.yield %next : !qlx.logical_qubit
     }
     %m = qlx.measure <Z> %q1 : !qlx.logical_qubit -> i1
     qlx.return %m : i1
@@ -33,7 +33,7 @@ module attributes {qlx.profiles = ["p0", "p1"]} {
 
 // CHECK: lvm.kernel @folded_placed
 // CHECK: %[[Q0:.*]] = lvm.prepare
-// CHECK: %[[Q1:.*]] = "lvm.repeat"(%[[Q0]]) <{count = 4 : i64}>
-// CHECK: lvm.yield
+// CHECK: %[[Q1:.*]] = cflow.repeat 4
+// CHECK: cflow.yield
 // CHECK: %[[M:.*]] = lvm.measure <Z> %[[Q1]]
 // CHECK: lvm.return %[[M]] : i1

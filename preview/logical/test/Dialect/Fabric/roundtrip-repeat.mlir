@@ -27,16 +27,15 @@ fabric.gadget @test_repeat(
     -> (!fabric.patch<@sc>, !fabric.syndrome<@sc>)
     flow #fabric.flow<{x = "x", z = "z"}>
 {
-  // CHECK: fabric.repeat 3
-  // CHECK-NEXT: iter(%arg2: !fabric.patch<@sc> = %arg0,
-  // CHECK-NEXT:      %arg3: !fabric.syndrome<@sc> = %arg1)
-  %p_out, %syn_out = fabric.repeat 3
+  // CHECK: cflow.repeat 3 iter(%arg2: !fabric.patch<@sc> = %arg0,
+  // CHECK-SAME: %arg3: !fabric.syndrome<@sc> = %arg1)
+  %p_out, %syn_out = cflow.repeat 3
       iter(%pi : !fabric.patch<@sc> = %p,
            %si : !fabric.syndrome<@sc> = %syn_in) {
     %pn, %sn = fabric.call @extract(%pi, %si)
         : (!fabric.patch<@sc>, !fabric.syndrome<@sc>)
         -> (!fabric.patch<@sc>, !fabric.syndrome<@sc>)
-    fabric.yield %pn, %sn : !fabric.patch<@sc>, !fabric.syndrome<@sc>
+    cflow.yield %pn, %sn : !fabric.patch<@sc>, !fabric.syndrome<@sc>
   }
 
   fabric.return %p_out, %syn_out
@@ -47,11 +46,11 @@ fabric.gadget @test_repeat(
 fabric.gadget @test_repeat_single_arg(%p: !fabric.patch<@sc>)
     -> !fabric.patch<@sc>
 {
-  // CHECK: fabric.repeat 5
-  %p_out = fabric.repeat 5
+  // CHECK: cflow.repeat 5
+  %p_out = cflow.repeat 5
       iter(%pi : !fabric.patch<@sc> = %p) {
     %pn = fabric.h %pi data : !fabric.patch<@sc>
-    fabric.yield %pn : !fabric.patch<@sc>
+    cflow.yield %pn : !fabric.patch<@sc>
   }
 
   fabric.return %p_out : !fabric.patch<@sc>

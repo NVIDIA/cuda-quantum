@@ -8,20 +8,20 @@
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields, is_dataclass, replace
 from hashlib import sha256
 import json
-import logging
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Iterable
+import weakref
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..programs.definition import DefinitionHandle
-from ..experiments.definition import Experiment
-from ..architecture.logical import ProgramValueSchema
-from ..stages import (
+from cudaq.logical.programs.definition import DefinitionHandle
+from cudaq.logical.experiments.definition import Experiment
+from cudaq.logical.architecture.logical import ProgramValueSchema
+from cudaq.logical.stages import (
     facets_for_kind,
     normalize_facets,
     stage_and_facets,
@@ -30,14 +30,14 @@ from .build_bundle import (
     _BUILD_V2_IR_VERSION,
     _BUILD_V2_MODEL_VERSION,
     _BUILD_V2_SCHEMA,
+    _FACET_MINIMUM_STAGE,
+    _STAGE_ORDINAL,
     _build_bundle_content_sha256,
     _root_operation_name,
     _root_profiles,
     _validate_v2_bundle,
     _validate_v2_nested_metadata,
 )
-
-_logger = logging.getLogger("cudaq.logical")
 
 _UNSET = object()
 
@@ -56,7 +56,23 @@ _FACET_WITNESS_OPERATIONS = {
         frozenset({"fabric.protocol"}),
     "patch_graph":
         frozenset({"fabric.patch_graph"}),
+    "patch_mapping":
+        frozenset({"fabric.patch_mapping"}),
+    "carrier_mapping":
+        frozenset({"phys.mapping", "phys.allocation_mapping"}),
+    "physical_routing":
+        frozenset({"phys.routing"}),
+    "zoned_movement":
+        frozenset({"phys.move"}),
+    "physical_schedule":
+        frozenset({"phys.schedule"}),
 }
+_ROOT_SCOPED_FACETS = frozenset({
+    "carrier_mapping",
+    "physical_routing",
+    "zoned_movement",
+    "physical_schedule",
+})
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,10 +96,107 @@ def _placement_witness_sha256(placement) -> str:
 def _qec_selection_sha256(qec_selection) -> str:
     """Canonical content commitment for a replayable P2 selection witness."""
 
-    payload = json.dumps(asdict(qec_selection),
-                         sort_keys=True,
-                         separators=(",", ":")).encode("utf-8")
+    def dataclass_fields(value):
+        if not is_dataclass(value):
+            raise TypeError(
+                "QEC selection commitment contains a non-JSON value "
+                f"{type(value).__module__}.{type(value).__qualname__}")
+        return {
+            field.name: getattr(value, field.name) for field in fields(value)
+        }
+
+    # ``dataclasses.asdict`` recursively duplicates the complete witness before
+    # JSON encoding.  For a paper-scale P2 selection that means copying hundreds
+    # of thousands of immutable action rows.  JSON's default hook visits the
+    # same dataclass fields lazily and yields exactly the prior canonical byte
+    # stream without the second full Python object graph.
+    payload = json.dumps(
+        qec_selection,
+        default=dataclass_fields,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
     return f"sha256:{sha256(payload).hexdigest()}"
+
+
+def _qec_network_source_sha256(
+    module,
+    input_p1: str,
+    placement,
+    qec_selection,
+) -> str:
+    """Commit the verifier-closed lineage from P0 through QEC selection.
+
+    The digest is deliberately reconstructible from a retained P2/P3 module.
+    It does not depend on a transient ``Build.serialize()`` envelope, so replay
+    can independently authenticate a provider request against the exact P0
+    program, P1 kernel, and placement witness.  The QEC selection is committed
+    separately by ``qec_selection_sha256`` and cross-checked against the
+    request's typed action/block ownership.
+    """
+
+    prefix = "QEC network source commitment is not reconstructible"
+    if not isinstance(input_p1, str) or not input_p1:
+        raise ValueError(f"{prefix}: input P1 identity is missing")
+    if qec_selection is None or qec_selection.input_p1 != input_p1:
+        raise ValueError(f"{prefix}: QEC selection input P1 differs")
+    kernel = _top_level_symbol(module, input_p1, {"lvm.kernel"}, prefix)
+    input_p0 = _verify_placement_witness(kernel, placement, prefix)
+    program = _top_level_symbol(module, input_p0, {"qlx.program"}, prefix)
+    fields = (
+        ("schema", b"qlx.qec_network.source/v2"),
+        ("input_p1", input_p1.encode("utf-8")),
+        ("input_p0", input_p0.encode("utf-8")),
+        (
+            "p1",
+            kernel.get_asm(assume_verified=True).encode("utf-8"),
+        ),
+        (
+            "p0",
+            program.get_asm(assume_verified=True).encode("utf-8"),
+        ),
+        ("placement", _placement_witness_sha256(placement).encode("ascii")),
+    )
+    digest = sha256()
+    for label, payload in fields:
+        label_bytes = label.encode("ascii")
+        digest.update(len(label_bytes).to_bytes(4, "big"))
+        digest.update(label_bytes)
+        digest.update(len(payload).to_bytes(8, "big"))
+        digest.update(payload)
+    return f"sha256:{digest.hexdigest()}"
+
+
+def _qec_network_region_runs(
+    module,
+    input_p1: str,
+    selected_sites,
+) -> tuple[tuple[str, ...], ...]:
+    """Re-derive maximal top-level selected-action runs from retained P1."""
+
+    prefix = "QEC network regions are not reconstructible"
+    kernel = _top_level_symbol(module, input_p1, {"lvm.kernel"}, prefix)
+    selected = frozenset(selected_sites)
+    runs = []
+    current = []
+    block = kernel.regions[0].blocks[0]
+    for operation_view in block.operations:
+        operation = operation_view.operation
+        symbol = (f"site{int(operation.attributes['site'])}"
+                  if "site" in operation.attributes else None)
+        if symbol not in selected:
+            if current:
+                runs.append(tuple(current))
+                current = []
+            continue
+        current.append(symbol)
+    if current:
+        runs.append(tuple(current))
+    covered = tuple(site for run in runs for site in run)
+    if sorted(covered) != sorted(selected) or len(covered) != len(selected):
+        raise ValueError(
+            f"{prefix}: selected action is nested, missing, or duplicated")
+    return tuple(runs)
 
 
 def _attr_text(attribute) -> str:
@@ -120,9 +233,371 @@ def _string_array_attribute(operation, name: str) -> tuple[str, ...]:
 def _retained_device_profile(operation) -> str:
     """Derive a device root's stage from its contiguous retained layers."""
 
+    if "physical" in operation.attributes:
+        return "p3"
     if "qec" in operation.attributes:
         return "p2"
     return "p1"
+
+
+def _selected_physical_graph_symbol(root) -> str | None:
+    if root.name == "phys.graph":
+        return _attr_text(root.attributes["sym_name"])
+    for attribute in ("graph", "physical_graph"):
+        if attribute in root.attributes:
+            return _attr_text(root.attributes[attribute])
+    return None
+
+
+def _selected_schedule_operations(module, root):
+    graph_symbol = _selected_physical_graph_symbol(root)
+    if graph_symbol is None:
+        return ()
+    explicit = None
+    for attribute in ("schedule", "physical_schedule"):
+        if attribute in root.attributes:
+            explicit = _attr_text(root.attributes[attribute])
+            break
+    # A non-graph P3 artifact owns schedule evidence only through its explicit
+    # schedule reference. Merely linking another schedule for the same graph
+    # does not classify the selected root.
+    if root.name != "phys.graph" and explicit is None:
+        return ()
+    return tuple(
+        operation for operation in _walk_operation(module.operation)
+        if operation.name == "phys.schedule" and "graph" in operation.attributes
+        and _attr_text(operation.attributes["graph"]) == graph_symbol and
+        (explicit is None or
+         _attr_text(operation.attributes["sym_name"]) == explicit))
+
+
+def _root_scoped_operation_names(module, root) -> tuple[str, ...]:
+    graph_symbol = _selected_physical_graph_symbol(root)
+    schedule_symbols = {
+        _attr_text(operation.attributes["sym_name"])
+        for operation in _selected_schedule_operations(module, root)
+    }
+    scoped_symbols = {_attr_text(root.attributes["sym_name"])}
+    if graph_symbol is not None:
+        scoped_symbols.add(graph_symbol)
+    scoped_symbols.update(schedule_symbols)
+    names = [operation.name for operation in _walk_operation(root)]
+    if graph_symbol is not None:
+        graph = next(
+            (operation for operation in _walk_operation(module.operation)
+             if operation.name == "phys.graph" and
+             _attr_text(operation.attributes["sym_name"]) == graph_symbol),
+            None,
+        )
+        if graph is not None and graph is not root:
+            names.extend(operation.name for operation in _walk_operation(graph))
+    for operation in _walk_operation(module.operation):
+        if operation is root:
+            continue
+        if (operation.name == "phys.schedule" and _attr_text(
+                operation.attributes["sym_name"]) not in schedule_symbols):
+            continue
+        for attribute in (
+                "graph",
+                "source_graph",
+                "source_protocol",
+                "protocol",
+        ):
+            if (attribute in operation.attributes and _attr_text(
+                    operation.attributes[attribute]) in scoped_symbols):
+                names.append(operation.name)
+                break
+    return tuple(names)
+
+
+def _root_scoped_facet_names(module, root) -> tuple[str, ...]:
+    operation_names = set(_root_scoped_operation_names(module, root))
+    return tuple(
+        facet for facet, witnesses in _FACET_WITNESS_OPERATIONS.items()
+        if facet in _ROOT_SCOPED_FACETS and
+        not witnesses.isdisjoint(operation_names))
+
+
+def _symbol_index(candidates):
+    """Index symbol definitions once for replay-link authentication."""
+
+    result = {}
+    for operation in candidates:
+        if "sym_name" not in operation.attributes:
+            continue
+        symbol = _attr_text(operation.attributes["sym_name"])
+        result.setdefault(symbol, []).append(operation)
+    return result
+
+
+def _require_unique_link(candidates, symbol: str, kinds: frozenset[str],
+                         label: str):
+    definitions = (candidates.get(symbol,
+                                  ()) if isinstance(candidates, dict) else
+                   (operation for operation in candidates
+                    if "sym_name" in operation.attributes and
+                    _attr_text(operation.attributes["sym_name"]) == symbol))
+    matches = tuple(
+        operation for operation in definitions if operation.name in kinds)
+    if len(matches) != 1:
+        expected = " or ".join(sorted(kinds))
+        raise ValueError(
+            f"qlx.build/v2 selected P3 {label} @{symbol} must resolve "
+            f"uniquely to {expected}")
+    return matches[0]
+
+
+def _state_resource_symbol(type_) -> str | None:
+    text = str(type_)
+    prefix = "!phys.state<@"
+    if not text.startswith(prefix) or not text.endswith(">"):
+        return None
+    return text[len(prefix):-1].split("::@")[-1]
+
+
+def _validate_v2_retained_p3_links(module) -> None:
+    """Require closure for every retained compiler-produced P3 authority."""
+
+    top_level = tuple(view.operation for view in module.body.operations)
+    top_level_index = _symbol_index(top_level)
+
+    # Standalone MLIR libraries may carry unresolved physical provenance
+    # symbols, but a replayable compiler-produced Build is a closed artifact.
+    # This closure is independent of the selected root kind and declared Build
+    # stage: retained sidecars and projection maps must never become unchecked
+    # merely because replay selects an earlier-stage or non-graph root.
+    for projection in (operation for operation in top_level
+                       if operation.name == "phys.record_projection"):
+        _require_unique_link(
+            top_level_index,
+            _attr_text(projection.attributes["graph"]),
+            frozenset({"phys.graph"}),
+            "record projection graph",
+        )
+        _require_unique_link(
+            top_level_index,
+            _attr_text(projection.attributes["source_protocol"]),
+            frozenset({"fabric.gadget", "fabric.protocol"}),
+            "record projection source protocol",
+        )
+
+    sidecar_kinds = frozenset({"phys.selection_sidecar"})
+    for sidecar in (operation for operation in top_level
+                    if operation.name in sidecar_kinds):
+        sidecar_graph = _attr_text(sidecar.attributes["graph"])
+        _require_unique_link(
+            top_level_index,
+            sidecar_graph,
+            frozenset({"phys.graph"}),
+            "sidecar graph",
+        )
+        if "source_profile" not in sidecar.attributes:
+            continue
+        if ("record_projection" not in sidecar.attributes or
+                "projection_indices" not in sidecar.attributes):
+            raise ValueError(
+                "qlx.build/v2 selected P3 sidecar source_profile requires "
+                "record_projection and projection_indices")
+        projection = _require_unique_link(
+            top_level_index,
+            _attr_text(sidecar.attributes["record_projection"]),
+            frozenset({"phys.record_projection"}),
+            "sidecar record projection",
+        )
+        if _attr_text(projection.attributes["graph"]) != sidecar_graph:
+            raise ValueError(
+                "qlx.build/v2 selected P3 sidecar record projection must "
+                "reference the same physical graph")
+        source_kind = _attr_text(sidecar.attributes["source_kind"])
+        if source_kind not in {"profile", "outcome_map"}:
+            raise ValueError(
+                "qlx.build/v2 selected P3 sidecar source_kind must be "
+                "profile or outcome_map")
+        profile = _require_unique_link(
+            top_level_index,
+            _attr_text(sidecar.attributes["source_profile"]),
+            frozenset({"fabric.gadget_profile"}),
+            "sidecar source profile",
+        )
+        gadget = _require_unique_link(
+            top_level_index,
+            _attr_text(profile.attributes["gadget"]),
+            frozenset({"fabric.gadget"}),
+            "sidecar source gadget",
+        )
+        if "spec" in gadget.attributes:
+            _require_unique_link(
+                top_level_index,
+                _attr_text(gadget.attributes["spec"]),
+                frozenset({"fabric.gadget_spec"}),
+                "sidecar source gadget spec",
+            )
+        elif source_kind == "outcome_map":
+            raise ValueError(
+                "qlx.build/v2 selected P3 outcome_map sidecar source gadget "
+                "must retain a GadgetSpec")
+
+
+def _validate_v2_selected_p3_links(module, root, bundle) -> None:
+    """Require complete links for the selected compiler-produced P3 graph."""
+
+    top_level = tuple(view.operation for view in module.body.operations)
+    top_level_index = _symbol_index(top_level)
+    graph_symbol = _selected_physical_graph_symbol(root)
+    if graph_symbol is None:
+        return
+    graph = _require_unique_link(top_level_index, graph_symbol,
+                                 frozenset({"phys.graph"}), "graph")
+    architecture_symbol = _attr_text(graph.attributes["architecture"])
+    architecture = _require_unique_link(
+        top_level_index,
+        architecture_symbol,
+        frozenset({"phys.machine"}),
+        "architecture",
+    )
+    architecture_symbols = tuple(_walk_operation(architecture))
+    architecture_index = _symbol_index(architecture_symbols)
+    has_concrete_action_closure = any(
+        operation.name == "phys.action" for operation in top_level)
+    has_concrete_instrument_closure = any(
+        operation.name == "phys.instrument" for operation in top_level)
+    selection = bundle["qec_selection"]
+    has_interconnect_actions = (selection is not None and any(
+        action["channel"] is not None for action in selection["actions"]))
+    require_action_definitions = (has_concrete_action_closure or
+                                  has_interconnect_actions)
+    require_instrument_definitions = (has_concrete_instrument_closure or
+                                      has_interconnect_actions)
+
+    if "source_protocol" in graph.attributes:
+        _require_unique_link(
+            top_level_index,
+            _attr_text(graph.attributes["source_protocol"]),
+            frozenset({"fabric.gadget", "fabric.protocol"}),
+            "source protocol",
+        )
+
+    resource_symbols = set()
+    for operation in _walk_operation(graph):
+        for value in (*operation.operands, *operation.results):
+            symbol = _state_resource_symbol(value.type)
+            if symbol is not None:
+                resource_symbols.add(symbol)
+        for region in operation.regions:
+            for block in region.blocks:
+                for argument in block.arguments:
+                    symbol = _state_resource_symbol(argument.type)
+                    if symbol is not None:
+                        resource_symbols.add(symbol)
+
+        if operation.name == "phys.apply":
+            action_symbol = _attr_text(operation.attributes["action"])
+            action_definitions = tuple(
+                candidate
+                for candidate in top_level_index.get(action_symbol, ())
+                if candidate.name == "phys.action")
+            if require_action_definitions or action_definitions:
+                _require_unique_link(
+                    top_level_index,
+                    action_symbol,
+                    frozenset({"phys.action"}),
+                    "action",
+                )
+            if "topology" in operation.attributes:
+                _require_unique_link(
+                    architecture_index,
+                    _attr_text(operation.attributes["topology"]),
+                    frozenset({"phys.topology"}),
+                    "action topology",
+                )
+        elif operation.name == "phys.measure":
+            instrument_symbol = _attr_text(operation.attributes["measurement"])
+            instrument_definitions = tuple(
+                candidate
+                for candidate in top_level_index.get(instrument_symbol, ())
+                if candidate.name == "phys.instrument")
+            if require_instrument_definitions or instrument_definitions:
+                _require_unique_link(
+                    top_level_index,
+                    instrument_symbol,
+                    frozenset({"phys.instrument"}),
+                    "measurement instrument",
+                )
+        elif operation.name == "phys.measure_product":
+            instrument_symbol = _attr_text(operation.attributes["instrument"])
+            instrument_definitions = tuple(
+                candidate
+                for candidate in top_level_index.get(instrument_symbol, ())
+                if candidate.name == "phys.instrument")
+            if require_instrument_definitions or instrument_definitions:
+                _require_unique_link(
+                    top_level_index,
+                    instrument_symbol,
+                    frozenset({"phys.instrument"}),
+                    "product-measurement instrument",
+                )
+        elif operation.name == "phys.call":
+            _require_unique_link(
+                top_level_index,
+                _attr_text(operation.attributes["callee"]),
+                frozenset({"fabric.gadget", "fabric.protocol"}),
+                "call target",
+            )
+            if "profile" in operation.attributes:
+                _require_unique_link(
+                    top_level_index,
+                    _attr_text(operation.attributes["profile"]),
+                    frozenset({"fabric.gadget_profile"}),
+                    "call profile",
+                )
+        elif operation.name == "phys.move":
+            _require_unique_link(
+                architecture_index,
+                _attr_text(operation.attributes["route"]),
+                frozenset({"phys.topology"}),
+                "movement route",
+            )
+
+    for symbol in resource_symbols:
+        resource = _require_unique_link(
+            top_level_index,
+            symbol,
+            frozenset({"phys.resource"}),
+            "resource",
+        )
+        _require_unique_link(
+            architecture_index,
+            _attr_text(resource.attributes["resource_class"]),
+            frozenset({"phys.resource_class"}),
+            "resource class",
+        )
+
+    mappings = tuple(
+        operation for operation in top_level
+        if (operation.name == "phys.mapping" and
+            _attr_text(operation.attributes["graph"]) == graph_symbol))
+    if len(mappings) > 1 or ("source_protocol" in graph.attributes and
+                             len(mappings) != 1):
+        raise ValueError(
+            f"qlx.build/v2 selected P3 graph @{graph_symbol} must have "
+            "unique patch-graph mapping provenance")
+    for mapping in mappings:
+        _require_unique_link(
+            top_level_index,
+            _attr_text(mapping.attributes["source_graph"]),
+            frozenset({"fabric.patch_graph"}),
+            "source patch graph",
+        )
+
+    for operation in top_level:
+        if (operation.name == "phys.routing" and
+                _attr_text(operation.attributes["graph"]) == graph_symbol):
+            _require_unique_link(
+                architecture_index,
+                _attr_text(operation.attributes["topology"]),
+                frozenset({"phys.topology"}),
+                "routing topology",
+            )
 
 
 def _validate_v2_module_classification(module, root, bundle) -> None:
@@ -164,6 +639,10 @@ def _validate_v2_module_classification(module, root, bundle) -> None:
         if actual_profile != bundle["profile"]:
             raise ValueError(
                 "qlx.build/v2 profile differs from the retained device layers")
+    _validate_v2_retained_p3_links(module)
+    if bundle["stage"] == "p3":
+        _validate_v2_selected_p3_links(module, root, bundle)
+
     retained_facets = set(_string_array_attribute(operation, "qlx.facets"))
     missing_facets = tuple(
         facet for facet in bundle["facets"] if facet not in retained_facets)
@@ -175,6 +654,15 @@ def _validate_v2_module_classification(module, root, bundle) -> None:
     module_operation_names = {
         candidate.name for candidate in _walk_operation(operation)
     }
+    root_operation_names = set(_root_scoped_operation_names(module, root))
+    schedules = _selected_schedule_operations(module, root)
+    if len(schedules) > 1:
+        raise ValueError(
+            "qlx.build/v2 selected root has ambiguous physical schedules")
+    if "physical_schedule" in bundle["facets"] and len(schedules) != 1:
+        raise ValueError(
+            "qlx.build/v2 physical_schedule facet is not established by "
+            "one selected-root schedule")
     pipeline_facets = []
     if bundle["pipeline"] is not None:
         for item in bundle["pipeline"]["passes"]:
@@ -197,10 +685,22 @@ def _validate_v2_module_classification(module, root, bundle) -> None:
         raise ValueError("qlx.build/v2 facets omit retained recipe facets: " +
                          ", ".join(missing_pipeline_facets))
 
+    missing_root_facets = [
+        facet for facet in _root_scoped_facet_names(module, root)
+        if facet not in bundle["facets"]
+    ]
+    if missing_root_facets:
+        raise ValueError("qlx.build/v2 facets omit retained root facets: " +
+                         ", ".join(sorted(missing_root_facets)))
+
     for facet in bundle["facets"]:
         witnesses = _FACET_WITNESS_OPERATIONS.get(facet)
-        if (witnesses is not None and facet not in pipeline_facets and
-                witnesses.isdisjoint(module_operation_names)):
+        requires_retained_witness = (facet == "physical_schedule" or
+                                     facet not in pipeline_facets)
+        operation_names = (root_operation_names if facet in _ROOT_SCOPED_FACETS
+                           else module_operation_names)
+        if (witnesses is not None and requires_retained_witness and
+                witnesses.isdisjoint(operation_names)):
             raise ValueError(
                 f"qlx.build/v2 facet {facet!r} is not established by "
                 "retained verified IR")
@@ -284,7 +784,15 @@ def _verify_placement_witness(kernel, placement, prefix: str) -> str:
     if (_attr_text(kernel.attributes["placement_witness_sha256"])
             != _placement_witness_sha256(placement)):
         raise ValueError(f"{prefix}: placement witness commitment differs")
-    retained = []
+    witnessed = {
+        binding.placement: binding
+        for binding in placement.bindings
+        if binding.source_group != "argument"
+    }
+    if len(witnessed) != sum(binding.source_group != "argument"
+                             for binding in placement.bindings):
+        raise ValueError(f"{prefix}: placement ownership is ambiguous")
+    retained = set()
     for operation in _walk_operation(kernel):
         if operation.name != "lvm.prepare":
             continue
@@ -300,79 +808,759 @@ def _verify_placement_witness(kernel, placement, prefix: str) -> str:
             raise ValueError(f"{prefix}: placement ownership facts are missing")
         allocation = int(operation.attributes["source_allocation"])
         group = _attr_text(operation.attributes["source_group"])
-        retained.append((
-            _attr_text(operation.attributes["placement_owner"]),
-            _symbol_path(operation.attributes["at"])[-1],
-            int(operation.attributes["placement_slot"]),
-            None if allocation < 0 else allocation,
-            None if not group else group,
-            tuple(int(value) for value in operation.attributes["source_path"]),
-        ))
-    witnessed = tuple((
-        binding.placement,
-        binding.space,
-        binding.slot,
-        binding.source_allocation,
-        binding.source_group,
-        binding.source_path,
-    ) for binding in placement.bindings)
-    if tuple(retained) != witnessed:
+        owner = _attr_text(operation.attributes["placement_owner"])
+        binding = witnessed.get(owner)
+        if binding is None or owner in retained:
+            raise ValueError(f"{prefix}: placement ownership facts differ")
+        # Local owners refer directly to their space, while distributed,
+        # trajectory, and topological owners refer to their explicit
+        # lvm.placement symbol. Both forms remain tied to the same detached
+        # binding by the compiler-derived owner identity.
+        if (_symbol_path(operation.attributes["at"])[-1]
+                not in {binding.space, binding.placement} or
+                int(operation.attributes["placement_slot"]) != binding.slot or
+            (None if allocation < 0 else allocation)
+                != binding.source_allocation or
+            (None if not group else group) != binding.source_group or tuple(
+                int(value) for value in operation.attributes["source_path"])
+                != binding.source_path):
+            raise ValueError(f"{prefix}: placement ownership facts differ")
+        retained.add(owner)
+    if retained != set(witnessed):
         raise ValueError(f"{prefix}: placement ownership facts differ")
     return input_p0
 
 
-def _verify_qec_selection_commitment(module, root, placement,
-                                     qec_selection) -> None:
-    """Bind a local P2 selection witness to retained P1 and Fabric truth."""
+def _p0_mpp_action_rows(program, placement, prefix: str):
+    """Derive exact MPP ownership without trusting retained P1/P2 markers."""
 
-    prefix = "QEC selection does not match retained verified IR"
-    candidates = tuple(
+    bindings = {binding.placement: binding for binding in placement.bindings}
+    by_source = {
+        (binding.source_allocation, tuple(binding.source_path)):
+            binding.placement
+        for binding in placement.bindings
+        if binding.source_allocation is not None
+    }
+    owner_by_value = {}
+    block = program.regions[0].blocks[0]
+    unallocated = iter(binding.placement
+                       for binding in placement.bindings
+                       if binding.source_allocation is None)
+    for argument in block.arguments:
+        if str(argument.type) == "!qlx.logical_qubit":
+            try:
+                owner_by_value[argument] = next(unallocated)
+            except StopIteration as error:
+                raise ValueError(
+                    f"{prefix}: retained P0 input ownership is incomplete"
+                ) from error
+
+    active = set()
+
+    def owner_of(value):
+        known = owner_by_value.get(value)
+        if known is not None:
+            return known
+        if value in active:
+            raise ValueError(f"{prefix}: retained P0 owner lineage is cyclic")
+        active.add(value)
+        try:
+            operation = value.owner
+            name = operation.name
+            if name == "qlx.prepare":
+                try:
+                    allocation = int(operation.attributes["allocation"])
+                    index = int(operation.attributes["value_index"])
+                except (KeyError, TypeError, ValueError) as error:
+                    raise ValueError(
+                        f"{prefix}: retained P0 preparation provenance is incomplete"
+                    ) from error
+                owner = by_source.get((allocation, (index,)))
+            elif name in {"qlx.apply", "qlx.instrument", "qlx.idle"}:
+                results = tuple(result for result in operation.results
+                                if str(result.type) == "!qlx.logical_qubit")
+                inputs = tuple(operand for operand in operation.operands
+                               if str(operand.type) == "!qlx.logical_qubit")
+                owner = owner_of(inputs[results.index(value)])
+            elif name == "qlx.consume_resource":
+                index = tuple(operation.results).index(value)
+                owner = owner_of(tuple(operation.operands)[index + 1])
+            elif name == "cflow.if":
+                index = tuple(operation.results).index(value)
+                yielded = tuple(
+                    region.blocks[0].operations[-1].operation.operands[index]
+                    for region in operation.regions)
+                owners = tuple(owner_of(item) for item in yielded)
+                owner = owners[0] if owners and len(set(owners)) == 1 else None
+            elif name in {"cflow.repeat", "cflow.while"}:
+                index = tuple(operation.results).index(value)
+                owner = owner_of(tuple(operation.operands)[index])
+            else:
+                owner = None
+            if owner is None or owner not in bindings:
+                raise ValueError(
+                    f"{prefix}: retained P0 logical owner is not in the "
+                    "placement witness")
+            owner_by_value[value] = owner
+            return owner
+        finally:
+            active.remove(value)
+
+    site_operations = {
+        "qlx.prepare",
+        "qlx.measure",
+        "qlx.instrument",
+        "qlx.apply",
+        "qlx.consume_resource",
+    }
+    site = 0
+    remote_sites = set()
+    rows = {}
+    for operation in _walk_operation(program):
+        if operation.name not in site_operations:
+            continue
+        current_site = site
+        site += 1
+        if (operation.name != "qlx.instrument" or
+                "instrument" not in operation.attributes or
+                _objective_text(operation.attributes["instrument"]) != "mpp"):
+            continue
+        quantum_inputs = tuple(operand for operand in operation.operands
+                               if str(operand.type) == "!qlx.logical_qubit")
+        owners = tuple(owner_of(value) for value in quantum_inputs)
+        site_name = f"site{current_site}"
+        rows[site_name] = {
+            "kind": "instrument",
+            "objective": "mpp",
+            "placements": owners,
+        }
+        spaces = {bindings[owner].space for owner in owners}
+        if len(spaces) > 1:
+            remote_sites.add(site_name)
+    return rows, remote_sites
+
+
+def _verify_qec_network_witness(
+    program,
+    placement,
+    qec_selection,
+    *,
+    accepted_encodings,
+    prefix: str,
+) -> set[str]:
+    """Authenticate network block/action rows against P0/P1 and exact codes."""
+
+    if placement is None:
+        raise ValueError(f"{prefix}: placement witness is missing")
+    bindings = {binding.placement: binding for binding in placement.bindings}
+    if len(bindings) != len(placement.bindings):
+        raise ValueError(f"{prefix}: placement owners are ambiguous")
+    if qec_selection.code is None or qec_selection.encoding is None:
+        raise ValueError(f"{prefix}: network code and encoding are missing")
+
+    accepted_encodings = tuple(accepted_encodings)
+    accepted = {
+        (code, encoding): capacity
+        for code, encoding, capacity in accepted_encodings
+    }
+    if len(accepted) != len(accepted_encodings):
+        raise ValueError(
+            f"{prefix}: accepted code/encoding identities are ambiguous")
+    selected_identity = (
+        qec_selection.code,
+        qec_selection.encoding,
+    )
+    if selected_identity not in accepted:
+        raise ValueError(
+            f"{prefix}: selected code/encoding is not accepted by the manifest")
+    selected_capacity = accepted[selected_identity]
+
+    witnessed_owners = {}
+    block_names = set()
+    for block in qec_selection.blocks:
+        if block.block in block_names:
+            raise ValueError(f"{prefix}: QEC block identity is duplicated")
+        block_names.add(block.block)
+        if (block.code != qec_selection.code or
+                block.encoding != qec_selection.encoding or
+                block.logical_capacity != selected_capacity):
+            raise ValueError(
+                f"{prefix}: QEC block differs from the selected encoding")
+        if not block.owners or len(block.owners) > block.logical_capacity:
+            raise ValueError(f"{prefix}: QEC block owner capacity is invalid")
+        logical_indices = tuple(owner.logical_index for owner in block.owners)
+        if len(set(logical_indices)) != len(logical_indices):
+            raise ValueError(
+                f"{prefix}: QEC block logical ports are duplicated")
+        for owner in block.owners:
+            binding = bindings.get(owner.placement)
+            if binding is None or owner.placement in witnessed_owners:
+                raise ValueError(
+                    f"{prefix}: QEC owner is missing or duplicated")
+            if block.space != binding.space:
+                raise ValueError(f"{prefix}: QEC owner space differs")
+            if (owner.source_allocation != binding.source_allocation or
+                    owner.source_group != binding.source_group or
+                    tuple(owner.source_path) != tuple(binding.source_path)):
+                raise ValueError(f"{prefix}: QEC owner source lineage differs")
+            if (owner.logical_index < 0 or
+                    owner.logical_index >= block.logical_capacity):
+                raise ValueError(f"{prefix}: QEC owner logical port is invalid")
+            witnessed_owners[owner.placement] = owner
+    if set(witnessed_owners) != set(bindings):
+        raise ValueError(
+            f"{prefix}: QEC owners do not cover the exact P1 placement")
+
+    expected_rows, remote_sites = _p0_mpp_action_rows(
+        program,
+        placement,
+        prefix,
+    )
+    witnessed_rows = {}
+    for action in qec_selection.actions:
+        if action.manifest_sha256 != qec_selection.network_manifest_sha256:
+            continue
+        if action.site in witnessed_rows:
+            raise ValueError(f"{prefix}: QEC action site is duplicated")
+        witnessed_rows[action.site] = {
+            "kind": action.kind,
+            "objective": action.objective,
+            "placements": tuple(action.placements),
+        }
+    if witnessed_rows != expected_rows:
+        raise ValueError(f"{prefix}: network MPP action rows differ")
+    return remote_sites
+
+
+def _network_manifest_encodings_from_ir(module, lowering, selection, prefix):
+    """Resolve exact accepted Code/Encoding identities from one manifest."""
+
+    accepted = []
+    for reference in lowering.attributes["codes"]:
+        path = _symbol_path(reference)
+        if len(path) != 1:
+            raise ValueError(
+                f"{prefix}: accepted code or encoding is not top-level")
+        target = _top_level_symbol(
+            module,
+            path[0],
+            {"fabric.code", "fabric.encoding"},
+            prefix,
+        )
+        if target.name == "fabric.encoding":
+            code_path = _symbol_path(target.attributes["code"])
+            if len(code_path) != 1:
+                raise ValueError(
+                    f"{prefix}: accepted encoding code is not top-level")
+            code = _top_level_symbol(
+                module,
+                code_path[0],
+                {"fabric.code"},
+                prefix,
+            )
+            accepted.append((code_path[0], path[0], int(code.attributes["k"])))
+            continue
+
+        matching_encodings = tuple(
+            view.operation
+            for view in module.body.operations
+            if view.operation.name == "fabric.encoding" and
+            "code" in view.operation.attributes and
+            _symbol_path(view.operation.attributes["code"]) == path and
+            "sym_name" in view.operation.attributes and _attr_text(
+                view.operation.attributes["sym_name"]) == selection.encoding)
+        if len(matching_encodings) != 1:
+            raise ValueError(
+                f"{prefix}: selected encoding for accepted code is missing or ambiguous"
+            )
+        accepted.append(
+            (path[0], selection.encoding, int(target.attributes["k"])))
+    return tuple(accepted)
+
+
+def _verify_qec_network_source(source, lowering, selection) -> None:
+    """Authenticate a transient compiler context against its canonical P1."""
+
+    prefix = "QEC network context does not match retained verified P1"
+    kernel = _top_level_symbol(
+        source.module,
+        source.root.symbol,
+        {"lvm.kernel"},
+        prefix,
+    )
+    input_p0 = _verify_placement_witness(
+        kernel,
+        source.placement,
+        prefix,
+    )
+    program = _top_level_symbol(
+        source.module,
+        input_p0,
+        {"qlx.program"},
+        prefix,
+    )
+    accepted = []
+    from cudaq.logical.codes import (
+        Code,
+        Encoding,
+    )
+
+    for value in lowering.codes:
+        if not isinstance(value, (Code, Encoding)):
+            raise TypeError(
+                "network QECLowering accepted definitions must be Code or Encoding"
+            )
+        encoding = value if isinstance(value,
+                                       Encoding) else value.default_encoding
+        accepted.append((encoding.code.name, encoding.name, encoding.code.k))
+    verification_selection = selection
+    if selection.network_manifest_sha256 is None:
+        verification_selection = replace(
+            selection,
+            network_manifest_sha256=lowering.manifest_sha256,
+        )
+    _verify_qec_network_witness(
+        program,
+        source.placement,
+        verification_selection,
+        accepted_encodings=tuple(accepted),
+        prefix=prefix,
+    )
+
+
+def _verify_communication_selection(module, root, placement, qec_selection,
+                                    device) -> None:
+    """Authenticate detached communication selection data against verified IR.
+
+    The MLIR verifiers close each communication-qualified ``fabric.call`` to
+    its action site and lowering manifest.  This cross-check makes that retained
+    chain authoritative for the corresponding public replay witness.
+    """
+
+    operations = tuple(_walk_operation(module.operation))
+    prefix = ("communication QEC selection does not match retained verified IR")
+
+    envelope_candidates = tuple(
         view.operation
         for view in module.body.operations
         if "sym_name" in view.operation.attributes and
         _attr_text(view.operation.attributes["sym_name"]) == root.symbol)
-    if len(candidates) != 1:
-        raise ValueError(f"{prefix}: selected root @{root.symbol} is missing")
-    selected = candidates[0]
-    if selected.name == "lvm.kernel":
-        if qec_selection is not None:
-            raise ValueError(f"{prefix}: P1 root carries a P2 witness")
-        if "input_p0" in selected.attributes or placement is not None:
-            _verify_placement_witness(selected, placement, prefix)
+    if not envelope_candidates and qec_selection is None:
         return
-    if selected.name not in {"fabric.gadget", "fabric.protocol"}:
-        if qec_selection is None and placement is None:
-            return
-        raise ValueError(f"{prefix}: selected root is not a P1/P2 artifact")
+    if len(envelope_candidates) != 1:
+        raise ValueError(
+            f"{prefix}: selected root @{root.symbol} is missing or ambiguous")
+    envelope_root = envelope_candidates[0]
+    if envelope_root.name == "lvm.kernel":
+        if qec_selection is not None:
+            raise ValueError(
+                f"{prefix}: P1 root cannot carry a P2 QEC selection witness")
+        if "input_p0" in envelope_root.attributes or placement is not None:
+            _verify_placement_witness(
+                envelope_root,
+                placement,
+                "placement witness does not match retained verified P1",
+            )
+        return
+    if qec_selection is None and envelope_root.name not in {
+            "fabric.gadget",
+            "fabric.protocol",
+            "phys.graph",
+    }:
+        return
+    if envelope_root.name in {"fabric.gadget", "fabric.protocol", "phys.graph"}:
+        selected = envelope_root
+    else:
+        projected_graphs = tuple(view.operation
+                                 for view in module.body.operations
+                                 if view.operation.name == "phys.graph" and
+                                 "source_protocol" in view.operation.attributes)
+        if len(projected_graphs) == 1:
+            selected = projected_graphs[0]
+        else:
+            selected_protocols = tuple(
+                view.operation
+                for view in module.body.operations
+                if view.operation.name in {"fabric.gadget", "fabric.protocol"}
+                and "metadata" in view.operation.attributes and
+                "input_p1" in view.operation.attributes["metadata"] and
+                (qec_selection is None or
+                 _attr_text(view.operation.attributes["metadata"]
+                            ["input_p1"]) == qec_selection.input_p1))
+            if len(selected_protocols) != 1:
+                raise ValueError(
+                    f"{prefix}: selected root does not identify one retained "
+                    "P2/P3 provenance chain")
+            selected = selected_protocols[0]
+    if selected.name == "phys.graph":
+        if "source_protocol" not in selected.attributes:
+            if qec_selection is None and placement is None:
+                return
+            raise ValueError(
+                f"{prefix}: selected P3 source protocol is missing")
+        source_path = _symbol_path(selected.attributes["source_protocol"])
+        if len(source_path) != 1:
+            raise ValueError(
+                f"{prefix}: selected P3 source protocol is not top-level")
+        selected = _top_level_symbol(
+            module,
+            source_path[0],
+            {"fabric.gadget", "fabric.protocol"},
+            prefix,
+        )
 
-    try:
-        metadata = selected.attributes["metadata"]
-        input_p1 = _attr_text(metadata["input_p1"])
-        committed = _attr_text(metadata["qec_selection_sha256"])
-    except KeyError as error:
+    if "metadata" not in selected.attributes or (
+            "input_p1" not in selected.attributes["metadata"]):
         if qec_selection is None and placement is None:
             return
         raise ValueError(
-            f"{prefix}: P2 provenance metadata is incomplete") from error
+            f"{prefix}: selected P2 input P1 provenance is missing")
+    input_p1 = _attr_text(selected.attributes["metadata"]["input_p1"])
+    kernel = _top_level_symbol(module, input_p1, {"lvm.kernel"}, prefix)
+    input_p0 = _verify_placement_witness(kernel, placement, prefix)
+    metadata = selected.attributes["metadata"]
+    if "qec_selection_sha256" not in metadata:
+        raise ValueError(f"{prefix}: QEC selection commitment is missing")
     if qec_selection is None:
         raise ValueError(f"{prefix}: QEC selection witness is missing")
+    if (_attr_text(metadata["qec_selection_sha256"])
+            != _qec_selection_sha256(qec_selection)):
+        raise ValueError(f"{prefix}: QEC selection commitment differs")
+    program = _top_level_symbol(module, input_p0, {"qlx.program"}, prefix)
+    _, p0_expected_sites = _p0_mpp_action_rows(
+        program,
+        placement,
+        prefix,
+    )
+
     if qec_selection.input_p1 != input_p1:
         raise ValueError(f"{prefix}: input P1 provenance differs")
-    if committed != _qec_selection_sha256(qec_selection):
-        raise ValueError(f"{prefix}: QEC selection commitment differs")
-    kernel = _top_level_symbol(module, input_p1, {"lvm.kernel"}, prefix)
-    _verify_placement_witness(kernel, placement, prefix)
-    callees = {
-        _symbol_path(operation.attributes["callee"])[-1]
-        for operation in _walk_operation(selected)
-        if operation.name == "fabric.call" and "callee" in operation.attributes
+
+    retained_realizations = {
+        _attr_text(operation.attributes["sym_name"])
+        for operation in operations
+        if operation.name in {"fabric.gadget", "fabric.protocol"} and
+        "sym_name" in operation.attributes
     }
     for action in qec_selection.actions:
         if action.selected not in action.feasible_candidates:
             raise ValueError(f"{prefix}: selected realization is not feasible")
-        if action.selected not in callees:
+        if (action.manifest_sha256 is None and
+                action.selected not in retained_realizations):
             raise ValueError(
                 f"{prefix}: selected realization is not retained by Fabric")
+
+    network_manifest = qec_selection.network_manifest_sha256
+    if network_manifest is not None:
+        network_actions = tuple(action for action in qec_selection.actions
+                                if action.manifest_sha256 == network_manifest)
+        identities = {(
+            action.selected,
+            action.provider,
+            action.version,
+            action.manifest_sha256,
+        ) for action in network_actions}
+        if not network_actions or len(identities) != 1:
+            raise ValueError(
+                f"{prefix}: network actions select different QEC manifests")
+        manifest_name, plugin, version, action_digest = next(iter(identities))
+        if action_digest != network_manifest:
+            raise ValueError(f"{prefix}: network manifest commitment differs")
+        if "generated_by" not in selected.attributes:
+            raise ValueError(
+                f"{prefix}: network P2 generated_by provenance is missing")
+        generated_path = _symbol_path(selected.attributes["generated_by"])
+        if len(generated_path) != 1:
+            raise ValueError(
+                f"{prefix}: network P2 generated_by is not top-level")
+        lowering = _top_level_symbol(
+            module,
+            generated_path[0],
+            {"qlx.qec_lowering"},
+            prefix,
+        )
+        required = {
+            "manifest_name": manifest_name,
+            "manifest_sha256": network_manifest,
+            "compiler_plugin": plugin,
+            "compiler_version": version,
+        }
+        if any(name not in lowering.attributes or
+               _attr_text(lowering.attributes[name]) != expected
+               for name, expected in required.items()):
+            raise ValueError(
+                f"{prefix}: generated_by differs from the selected network "
+                "QEC manifest")
+        accepted_encodings = _network_manifest_encodings_from_ir(
+            module,
+            lowering,
+            qec_selection,
+            prefix,
+        )
+        _verify_qec_network_witness(
+            program,
+            placement,
+            qec_selection,
+            accepted_encodings=accepted_encodings,
+            prefix=prefix,
+        )
+        required_network_attributes = {
+            "qlx.qec_network_request",
+            "qlx.qec_network_plan",
+        }
+        if not required_network_attributes.issubset(selected.attributes):
+            raise ValueError(
+                f"{prefix}: canonical network P2 requires its request and plan")
+        from ..qec import lattice_surgery
+
+        serialized_request = _attr_text(
+            selected.attributes["qlx.qec_network_request"])
+        payload = lattice_surgery._network_request_payload(serialized_request)
+        serialized_plan = _attr_text(
+            selected.attributes["qlx.qec_network_plan"])
+        plan = lattice_surgery.QECNetworkPlan.from_json(serialized_plan)
+        request_digest = json.loads(serialized_request)["digest"]
+        if payload["lowering_manifest_sha256"] != network_manifest:
+            raise ValueError(
+                f"{prefix}: network request manifest commitment differs")
+        expected_source = _qec_network_source_sha256(
+            module,
+            input_p1,
+            placement,
+            qec_selection,
+        )
+        if payload["source_sha256"] != expected_source:
+            raise ValueError(
+                f"{prefix}: network request source commitment differs")
+        commitments = (
+            (plan.request_sha256, request_digest, "request"),
+            (
+                plan.lowering_manifest_sha256,
+                network_manifest,
+                "manifest",
+            ),
+            (
+                plan.device_architecture_sha256,
+                payload["device_architecture_sha256"],
+                "device architecture",
+            ),
+            (
+                plan.policy_sha256,
+                lattice_surgery._digest(payload["policy"]),
+                "policy",
+            ),
+        )
+        for actual, expected, what in commitments:
+            if actual != expected:
+                raise ValueError(
+                    f"{prefix}: network plan {what} commitment differs")
+        metadata_required = {
+            "network_request_sha256":
+                request_digest,
+            "network_plan_sha256":
+                plan.digest,
+            "network_provider":
+                plan.provider_key,
+            "required_projector":
+                plan.required_projector_key,
+            "required_projector_pipeline_sha256":
+                (plan.required_projector_pipeline_sha256),
+        }
+        if any(name not in metadata or _attr_text(metadata[name]) != expected
+               for name, expected in metadata_required.items()):
+            raise ValueError(f"{prefix}: network request/plan metadata differs")
+        compiler_fields = (
+            "compiler_key",
+            "compiler_plugin",
+            "compiler_symbol",
+            "compiler_version",
+        )
+        if any(name not in lowering.attributes for name in compiler_fields):
+            raise ValueError(
+                f"{prefix}: selected network compiler identity is incomplete")
+        compiler_key = _attr_text(lowering.attributes["compiler_key"])
+        canonical_key = (
+            f"{_attr_text(lowering.attributes['compiler_plugin'])}:"
+            f"{_attr_text(lowering.attributes['compiler_symbol'])}@"
+            f"{_attr_text(lowering.attributes['compiler_version'])}")
+        if compiler_key != canonical_key or plan.provider_key != compiler_key:
+            raise ValueError(
+                f"{prefix}: network plan provider differs from its selected "
+                "compiler")
+        if device is not None:
+            request = lattice_surgery.QECNetworkRequest.from_dict(payload,
+                                                                  device=device)
+            lattice_surgery.validate_network_plan(request, plan)
+            lattice_surgery._validate_network_request_selection(
+                request,
+                qec_selection,
+            )
+            lattice_surgery._validate_network_request_regions(
+                request,
+                _qec_network_region_runs(
+                    module,
+                    input_p1,
+                    (value.site.symbol for value in request.actions),
+                ),
+            )
+            compiler, exact_lowering = (
+                lattice_surgery._network_compiler_for_manifest(
+                    device,
+                    network_manifest,
+                ))
+            if compiler.key != compiler_key or (exact_lowering.manifest_sha256
+                                                != network_manifest):
+                raise ValueError(
+                    f"{prefix}: network plan provider differs from the "
+                    "device-selected compiler")
+            architecture_digest = lattice_surgery._require_digest(
+                compiler.architecture_digest(device),
+                what=(f"network compiler {compiler.key!r} architecture digest"),
+            )
+            if architecture_digest != request.device_architecture_sha256:
+                raise ValueError(
+                    f"{prefix}: network compiler architecture differs")
+
+    calls = tuple(operation for operation in _walk_operation(selected)
+                  if operation.name == "fabric.call" and
+                  "channel" in operation.attributes)
+    communication_instruments = tuple(
+        operation for operation in _walk_operation(kernel)
+        if operation.name == "lvm.instrument" and
+        "channel" in operation.attributes)
+    domain = _top_level_symbol(
+        module,
+        _attr_text(kernel.attributes["domain"]),
+        {"lvm.domain"},
+        prefix,
+    )
+    witnessed_communication = (any(
+        any((
+            action.channel,
+            action.channel_capability,
+            action.endpoints,
+            action.direction,
+        )) for action in qec_selection.actions))
+    expected_sites: set[str] = set()
+    for operation in communication_instruments:
+        try:
+            site_name = f"site{int(operation.attributes['site'])}"
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(
+                f"{prefix}: retained P1 communication site is incomplete"
+            ) from error
+        if site_name in expected_sites:
+            raise ValueError(
+                f"{prefix}: retained P1 site @{site_name} is duplicated")
+        expected_sites.add(site_name)
+    if expected_sites != p0_expected_sites:
+        raise ValueError(
+            f"{prefix}: retained P0 and P1 communication sites differ")
+    if not expected_sites and not calls and not witnessed_communication:
+        return
+
+    def unique_by_symbol(path, kind):
+        matches = tuple(
+            operation for operation in operations
+            if operation.name == kind and "sym_name" in operation.attributes and
+            _operation_symbol_path(operation) == path)
+        if len(matches) != 1:
+            raise ValueError(
+                f"{prefix}: {kind} @{'::@'.join(path)} is missing or ambiguous")
+        return matches[0]
+
+    domain_path = _operation_symbol_path(domain)
+    for site_name in expected_sites:
+        unique_by_symbol((*domain_path, site_name), "lvm.action_site")
+
+    retained: dict[str, dict[str, Any]] = {}
+    for call in calls:
+        attributes = call.attributes
+        required = (
+            "action_site",
+            "channel",
+            "channel_capability",
+            "endpoints",
+            "generated_by",
+        )
+        if any(name not in attributes for name in required):
+            raise ValueError(f"{prefix}: retained call is incomplete")
+        site_path = _symbol_path(attributes["action_site"])
+        site_name = site_path[-1]
+        site = unique_by_symbol(site_path, "lvm.action_site")
+        site_attributes = site.attributes
+        lowering_path = _symbol_path(attributes["generated_by"])
+        lowering_name = lowering_path[-1]
+        lowering = unique_by_symbol(lowering_path, "qlx.qec_lowering")
+        lowering_attributes = lowering.attributes
+        try:
+            row = {
+                "site":
+                    site_name,
+                "kind":
+                    _attr_text(site_attributes["kind"]),
+                "objective":
+                    _objective_text(site_attributes["objective"]),
+                "feasible_candidates": (lowering_name,),
+                "selected":
+                    lowering_name,
+                "provider":
+                    _attr_text(lowering_attributes["compiler_plugin"]),
+                "version":
+                    _attr_text(lowering_attributes["compiler_version"]),
+                "channel":
+                    _symbol_path(site_attributes["channel"])[-1],
+                "channel_capability":
+                    _capability_text(site_attributes["channel_capability"]),
+                "endpoints":
+                    tuple(
+                        _symbol_path(item)[-1]
+                        for item in site_attributes["endpoints"]),
+                "direction":
+                    _attr_text(site_attributes["direction"]),
+            }
+        except (IndexError, KeyError) as error:
+            raise ValueError(
+                f"{prefix}: retained provenance is incomplete") from error
+        if site_name in retained:
+            raise ValueError(
+                f"{prefix}: site @{site_name} has a duplicate call occurrence")
+        retained[site_name] = row
+
+    witnessed: dict[str, dict[str, Any]] = {}
+    for action in qec_selection.actions:
+        communication_values = (
+            action.channel,
+            action.channel_capability,
+            action.endpoints,
+            action.direction,
+        )
+        if not any(communication_values):
+            continue
+        if (action.channel is None or action.channel_capability is None or
+                not action.endpoints or action.direction is None):
+            raise ValueError(
+                f"{prefix}: site @{action.site} has an incomplete row")
+        if action.site in witnessed:
+            raise ValueError(f"{prefix}: site @{action.site} is duplicated")
+        witnessed[action.site] = {
+            "site": action.site,
+            "kind": action.kind,
+            "objective": action.objective,
+            "feasible_candidates": tuple(action.feasible_candidates),
+            "selected": action.selected,
+            "provider": action.provider,
+            "version": action.version,
+            "channel": action.channel,
+            "channel_capability": action.channel_capability,
+            "endpoints": tuple(action.endpoints),
+            "direction": action.direction,
+        }
+
+    if witnessed != retained:
+        raise ValueError(f"{prefix}: communication rows differ")
+    if set(retained) != expected_sites:
+        raise ValueError(f"{prefix}: communication action sites differ")
 
 
 def _verify_ccz_resource_realization(module, root, placement,
@@ -441,7 +1629,26 @@ def _verify_ccz_resource_realization(module, root, placement,
     root_symbol = getattr(root, "symbol", None)
     if not root_symbol:
         raise ValueError("CCZ realization requires one exact retained root")
-    source_symbol = root_symbol
+    all_physical_graphs = tuple(view.operation
+                                for view in module.body.operations
+                                if view.operation.name == "phys.graph")
+    physical_graph = None
+    if all_physical_graphs:
+        matches = tuple(
+            operation for operation in all_physical_graphs
+            if "sym_name" in operation.attributes and
+            _attr_text(operation.attributes["sym_name"]) == root_symbol)
+        if len(matches) != 1:
+            raise ValueError(
+                "CCZ realization requires one exact retained physical graph")
+        physical_graph = matches[0]
+        if "source_protocol" not in physical_graph.attributes:
+            raise ValueError(
+                "CCZ physical graph is missing retained source_protocol")
+        source_symbol = _symbol_path(
+            physical_graph.attributes["source_protocol"])[-1]
+    else:
+        source_symbol = root_symbol
 
     sources = tuple(fabric_definitions.get(source_symbol, ()))
     if len(sources) != 1:
@@ -528,6 +1735,22 @@ def _verify_ccz_resource_realization(module, root, placement,
     }
     source_operations = tuple(operation for owner in source_owners.values()
                               for operation in _walk_operation(owner))
+    physical_operations = (tuple(_walk_operation(physical_graph))
+                           if physical_graph is not None else ())
+
+    if physical_graph is not None:
+        expected_call_tree = tuple(
+            (_symbol_path(call.attributes["callee"]), instance)
+            for call, instance in projected_fabric_calls)
+        actual_call_tree = tuple((
+            _symbol_path(operation.attributes["callee"]),
+            _attr_text(operation.attributes["instance"]),
+        ) for operation in physical_operations if operation.name == "phys.call")
+        if actual_call_tree != expected_call_tree:
+            raise ValueError(
+                "CCZ physical call callee and instance hierarchy differs "
+                "from the selected Fabric call tree in the retained source "
+                "protocol")
 
     def ints(operation, name):
         try:
@@ -543,19 +1766,43 @@ def _verify_ccz_resource_realization(module, root, placement,
             raise ValueError(f"CCZ realization is missing {name}") from error
 
     unpacks = tuple(
-        operation for operation in source_operations
-        if operation.name == "fabric.unpack_resource" and
-        "payload_action" in operation.attributes and
+        operation for operation in (*source_operations, *physical_operations)
+        if operation.name in {"fabric.unpack_resource", "phys.unpack_resource"
+                             } and "payload_action" in operation.attributes and
         _objective_text(operation.attributes["payload_action"]) == "ccz")
-    actual_payloads = {(
-        strings(unpack, "payload_logical_block_ids"),
-        ints(unpack, "payload_logical_blocks"),
-        ints(unpack, "payload_logical_ports"),
-    ) for unpack in unpacks}
-    if actual_payloads != set(expected_payloads):
-        raise ValueError(
-            "CCZ payload maps differ from selected QEC block ownership: "
-            f"expected {set(expected_payloads)!r}, got {actual_payloads!r}")
+    required = {"fabric.unpack_resource"}
+    if physical_graph is not None:
+        required.add("phys.unpack_resource")
+    for kind in required:
+        matches = tuple(op for op in unpacks if op.name == kind)
+        actual_payloads = Counter((
+            strings(unpack, "payload_logical_block_ids"),
+            ints(unpack, "payload_logical_blocks"),
+            ints(unpack, "payload_logical_ports"),
+        ) for unpack in matches)
+        expected = (expected_payloads if kind == "phys.unpack_resource" else
+                    set(expected_payloads))
+        actual = (actual_payloads
+                  if kind == "phys.unpack_resource" else set(actual_payloads))
+        if actual != expected:
+            raise ValueError(
+                "CCZ payload maps differ from selected QEC block ownership: "
+                f"expected {expected!r}, got {actual!r}")
+        if kind == "phys.unpack_resource":
+            segment_counts = {
+                record["payload"]: record["segment_count"]
+                for record in records.values()
+            }
+            for unpack in matches:
+                payload = (
+                    strings(unpack, "payload_logical_block_ids"),
+                    ints(unpack, "payload_logical_blocks"),
+                    ints(unpack, "payload_logical_ports"),
+                )
+                if len(ints(unpack, "payload_carrier_segments")) != (
+                        segment_counts[payload]):
+                    raise ValueError(
+                        "CCZ physical segments differ from selected QEC blocks")
 
     calls = tuple(
         (operation, instance)
@@ -606,6 +1853,37 @@ def _verify_ccz_resource_realization(module, root, placement,
                 "CCZ resource call payload differs from its selected action site"
             )
 
+    physical_resource_calls = tuple(
+        operation for operation in physical_operations
+        if operation.name == "phys.call" and
+        ("resource_action_site" in operation.attributes or
+         "resource_objective" in operation.attributes))
+    actual_physical_occurrences = Counter()
+    actual_physical_occurrence_order = []
+    for call in physical_resource_calls:
+        if ("resource_action_site" not in call.attributes or
+                "resource_objective" not in call.attributes):
+            raise ValueError(
+                "physical resource call has incomplete action provenance")
+        objective = _objective_text(call.attributes["resource_objective"])
+        if objective == "ccz":
+            occurrence = (
+                _symbol_path(call.attributes["resource_action_site"]),
+                objective,
+                _symbol_path(call.attributes["callee"]),
+                _attr_text(call.attributes["instance"]),
+            )
+            actual_physical_occurrences[occurrence] += 1
+            actual_physical_occurrence_order.append(occurrence)
+    if physical_graph is not None and (actual_physical_occurrences
+                                       != selected_fabric_occurrences or
+                                       actual_physical_occurrence_order
+                                       != selected_fabric_occurrence_order):
+        raise ValueError(
+            "CCZ physical resource calls differ from selected Fabric calls: "
+            f"expected {dict(selected_fabric_occurrences)!r}, "
+            f"got {dict(actual_physical_occurrences)!r}")
+
     streams = tuple(
         op for op in operations
         if op.name == "lvm.stream" and "produces" in op.attributes and
@@ -649,10 +1927,151 @@ def _verify_ccz_resource_realization(module, root, placement,
     if actual_destinations != expected_destinations:
         raise ValueError(
             "CCZ routed fabric transports differ from selected action sites")
-    if any(op.name == "fabric.resource_request" and "kind" in op.attributes and
+    if any(op.name in {"fabric.resource_request", "phys.resource_request"} and
+           "kind" in op.attributes and
            _attr_text(op.attributes["kind"]) == "ccz_state"
-           for op in source_operations):
+           for op in (*source_operations, *physical_operations)):
         raise ValueError("CCZ supply retained a generic resource request")
+    physical = tuple(
+        op for op in physical_operations
+        if op.name == "phys.transport_resource" and "route" in op.attributes and
+        "ccz_state" in str(op.result.type))
+    if "phys.unpack_resource" in required:
+
+        def terminal_physical_consumer(value):
+            visited = set()
+            qualified_calls = []
+            while value not in visited:
+                visited.add(value)
+                uses = tuple(value.uses)
+                if len(uses) != 1:
+                    raise ValueError(
+                        "CCZ physical payload must have one linear consumer")
+                use = uses[0]
+                owner = getattr(use.owner, "operation", use.owner)
+                if owner.name == "phys.unpack_resource":
+                    if use.operand_number != 0 or len(qualified_calls) != 1:
+                        raise ValueError(
+                            "CCZ physical transport lacks one exact selected "
+                            "unpack consumer call")
+                    return qualified_calls[0], owner
+                if owner.name == "phys.call":
+                    has_site = "resource_action_site" in owner.attributes
+                    has_objective = "resource_objective" in owner.attributes
+                    if has_site != has_objective:
+                        raise ValueError(
+                            "physical resource call has incomplete action "
+                            "provenance")
+                    if has_site:
+                        qualified_calls.append(owner)
+                        if len(qualified_calls) > 1:
+                            raise ValueError(
+                                "CCZ physical transport crosses multiple "
+                                "selected consumer calls")
+                    block = owner.regions[0].blocks[0]
+                    if use.operand_number >= len(block.arguments):
+                        raise ValueError(
+                            "CCZ physical consumer lineage is incomplete")
+                    value = block.arguments[use.operand_number]
+                    continue
+                if owner.name == "phys.yield":
+                    parent = owner.parent
+                    if (parent is None or parent.name != "phys.call" or
+                            use.operand_number >= len(parent.results)):
+                        raise ValueError(
+                            "CCZ physical consumer lineage is incomplete")
+                    value = parent.results[use.operand_number]
+                    continue
+                raise ValueError(
+                    "CCZ physical transport has a foreign consumer")
+            raise ValueError("CCZ physical consumer lineage is cyclic")
+
+        physical_destinations = Counter()
+        for transport in physical:
+            destination = _attr_text(transport.attributes["destination"])
+            physical_destinations[destination] += 1
+            if (_attr_text(transport.attributes["source"]) != backing or
+                    _attr_text(transport.attributes["protocol"]) != transfer):
+                raise ValueError(
+                    "CCZ physical transport differs from stream provenance")
+            value = transport.operands[0]
+            visited = set()
+            while value not in visited:
+                visited.add(value)
+                if isinstance(value, mlir_ir.BlockArgument):
+                    block = value.owner
+                    parent = getattr(block.owner, "operation", block.owner)
+                    if (parent.name != "phys.call" or
+                            value.arg_number >= len(parent.operands)):
+                        raise ValueError(
+                            "CCZ physical producer lineage is incomplete")
+                    value = parent.operands[value.arg_number]
+                    continue
+                owner = value.owner
+                if owner.name == "phys.produce_resource":
+                    if (_attr_text(owner.attributes["region"]) != backing or
+                            _attr_text(owner.attributes["resource_kind"])
+                            != "ccz_state" or _attr_text(
+                                owner.attributes["protocol"]) != producer):
+                        raise ValueError(
+                            "CCZ physical producer differs from stream provenance"
+                        )
+                    matching_provider_calls = []
+                    parent = owner.parent
+                    while parent is not None:
+                        if (parent.name == "phys.call" and
+                                "callee" in parent.attributes and _attr_text(
+                                    parent.attributes["callee"]) == producer):
+                            matching_provider_calls.append(parent)
+                        parent = parent.parent
+                    if len(matching_provider_calls) != 1:
+                        raise ValueError(
+                            "CCZ physical producer call differs from stream "
+                            "provenance")
+                    break
+                if owner.name != "phys.call":
+                    raise ValueError(
+                        "CCZ physical transport has a foreign producer")
+                index = next(
+                    (index for index, result in enumerate(owner.results)
+                     if result == value),
+                    None,
+                )
+                block = owner.regions[0].blocks[0]
+                terminator = block.operations[-1].operation
+                if index is None or terminator.name != "phys.yield":
+                    raise ValueError(
+                        "CCZ physical producer lineage is incomplete")
+                value = terminator.operands[index]
+            else:
+                raise ValueError("CCZ physical producer lineage is cyclic")
+            consumer, unpack = terminal_physical_consumer(transport.result)
+            site_path = _symbol_path(
+                consumer.attributes["resource_action_site"])
+            witness = (
+                site_path,
+                _objective_text(consumer.attributes["resource_objective"]),
+                _symbol_path(consumer.attributes["callee"]),
+                _attr_text(consumer.attributes["instance"]),
+            )
+            if selected_fabric_occurrences[witness] != 1:
+                raise ValueError(
+                    "CCZ physical consumer differs from its selected Fabric "
+                    "call")
+            site = site_path[-1]
+            payload = (
+                strings(unpack, "payload_logical_block_ids"),
+                ints(unpack, "payload_logical_blocks"),
+                ints(unpack, "payload_logical_ports"),
+            )
+            if (records[site]["destination"] != destination or
+                    records[site]["payload"] != payload):
+                raise ValueError(
+                    "CCZ physical transport and unpack differ from their "
+                    "selected action site")
+        if physical_destinations != expected_destinations:
+            raise ValueError(
+                "CCZ physical transports differ from selected action sites")
 
 
 class BuildDefinition:
@@ -755,8 +2174,19 @@ class SynthesisSummary:
         return self.clifford_count + self.t_count
 
 
+_VERIFIED_INCREMENT_AUTH = object()
+
+
+@dataclass(frozen=True, slots=True)
+class _VerifiedLinkSnapshot:
+    """Compact in-process replay of one already-verified Build closure."""
+
+    bytecode: bytes
+    root: DefinitionHandle[Any]
+
+
 class Build:
-    """A frozen CUDA-Q Logical compilation artifact backed by serialized MLIR."""
+    """A frozen QLX compilation product backed by a verified MLIR module."""
 
     __slots__ = (
         "_context",
@@ -774,6 +2204,9 @@ class Build:
         "qec_selection",
         "experiment",
         "source_modules",
+        "_device",
+        "_transient",
+        "_verified",
         "_sealed",
     )
 
@@ -783,23 +2216,26 @@ class Build:
         object.__setattr__(self, name, value)
 
     def __init__(
-            self,
-            *,
-            context,
-            module,
-            root: DefinitionHandle[Any],
-            profile: str,
-            facets=(),
-            pipeline,
-            evidence: Iterable[EvidenceRecord] = (),
-            value_groups=None,
-            placement=None,
-            qec_selection=None,
-            experiment=None,
-            device=None,
-            objective=None,
-            source_modules=(),
-            _facets_are_final=False,
+        self,
+        *,
+        context,
+        module,
+        root: DefinitionHandle[Any],
+        profile: str,
+        facets=(),
+        pipeline,
+        evidence: Iterable[EvidenceRecord] = (),
+        value_groups=None,
+        placement=None,
+        qec_selection=None,
+        experiment=None,
+        device=None,
+        objective=None,
+        source_modules=(),
+        _facets_are_final=False,
+        _transient=False,
+        _verified_increment=None,
+        _take_verified_increment_ownership=False,
     ) -> None:
         stage, legacy_facets = stage_and_facets(profile)
         initial_facets = normalize_facets(
@@ -823,16 +2259,38 @@ class Build:
             placement=placement,
             objective=objective,
         )
-
-        _logger.debug("Build from module: \n%s", module)
-
-        if not module.operation.verify():
-            raise ValueError("CUDA-Q Logical MLIR module failed verification")
-        _verify_qec_selection_commitment(module, root, placement, qec_selection)
-        _verify_ccz_resource_realization(module, root, placement, qec_selection)
+        verified_increment = _verified_increment is _VERIFIED_INCREMENT_AUTH
+        if _verified_increment is not None and not verified_increment:
+            raise ValueError("invalid verified Build increment authority")
+        if _take_verified_increment_ownership and not verified_increment:
+            raise ValueError(
+                "module ownership transfer requires verified increment authority"
+            )
+        if not verified_increment:
+            if not module.operation.verify():
+                raise ValueError("QLX MLIR module failed verification")
+            _verify_communication_selection(module, root, placement,
+                                            qec_selection, device)
+            _verify_ccz_resource_realization(module, root, placement,
+                                             qec_selection)
         self._context = context
-        self._module = module
-        self._snapshot = str(module)
+        self._transient = bool(_transient)
+        if self._transient or _take_verified_increment_ownership:
+            self._module = module
+        else:
+            # A caller may intentionally keep linking more definitions into a
+            # user-owned module after this Build is published.  Retain an
+            # in-memory clone at the publication boundary so lazy assembly
+            # generation cannot observe those later mutations.  Progressive
+            # compiler intermediates bypass this clone via _transient.
+            from cudaq.mlir._mlir_libs import _qlxRuntime
+
+            self._module = _qlxRuntime.clone_module(module)
+        # A verified live module is the in-process authority. Canonical
+        # assembly is generated only when a portable representation is
+        # explicitly requested. This keeps ordinary stage-to-stage lowering
+        # out of the MLIR printer/parser path.
+        self._snapshot = None
         self._cache = {}
         self.root = root
         self.profile = profile
@@ -845,7 +2303,25 @@ class Build:
         self.qec_selection = qec_selection
         self.experiment = experiment
         self.source_modules = tuple(dict.fromkeys(source_modules))
+        self._device = device
+        self._verified = True
         self._sealed = True
+
+    @classmethod
+    def _from_verified_increment(cls, **values):
+        """Seal an increment independently verified against a verified Build.
+
+        This is an internal compiler boundary for native passes that preserve
+        every existing operation and construct one schema-verified operation
+        from those already-authenticated definitions.  It is deliberately not
+        a public escape hatch for arbitrary ModuleOp construction.
+        """
+
+        return cls(
+            **values,
+            _verified_increment=_VERIFIED_INCREMENT_AUTH,
+            _take_verified_increment_ownership=True,
+        )
 
     @staticmethod
     def _declare_stage_facets(module, stage, facets) -> None:
@@ -905,7 +2381,10 @@ class Build:
             "program",
             "kernel",
             "gadget",
+            "gadget_profile",
             "protocol",
+            "physical_graph",
+            "control_plan",
         }
         # Experiment metadata belongs to the frozen Build/ExperimentBundle
         # envelope, not the executable semantic module. Strip manifests from
@@ -941,18 +2420,24 @@ class Build:
 
     @property
     def module(self):
-        """The linked MLIR module, parsed once from the frozen snapshot.
+        """A cached read-only inspection clone of the verified module.
 
-        The same module object is returned on every access, so repeated
-        typed inspection never re-parses the textual snapshot. The build is
-        immutable: treat this module as a read-only view. Compiler passes
-        that need a scratch copy to mutate must use :meth:`_fresh_module`.
+        The same clone is returned on every access, so repeated typed
+        inspection performs neither printing nor parsing. The private module
+        that authenticates this Build is never exposed. Compiler passes that
+        need a scratch copy to mutate must use :meth:`_fresh_module`.
 
         A cheap top-level fingerprint defensively detects mutation through
         external or legacy compatibility code, drops every derived handle,
-        and re-parses the pristine snapshot so the build stays observably
+        and reclones the private module so the build stays observably
         immutable. Core target lowering always uses :meth:`_fresh_module`.
         """
+
+        # Transient builds are compiler-owned transfer objects. They never
+        # escape the progressive compile transaction, so the next internal
+        # stage may consume the live ModuleOp directly.
+        if self._transient:
+            return self._module
 
         module = self._cache.get("module")
         if module is not None:
@@ -962,25 +2447,62 @@ class Build:
                 self._cache.clear()
                 module = None
         if module is None:
-            context = mlir_ir.Context()
-            module = mlir_ir.Module.parse(self._snapshot, context)
-            self._cache["context"] = context
+            module = self._clone_module()
             self._cache["module"] = module
             self._cache["fingerprint"] = tuple(
                 view.operation.name for view in module.body.operations)
         return module
 
-    def _fresh_module(self):
-        """Parse a private mutable copy of the snapshot in its own context.
+    def _clone_module(self):
+        """Deep-clone the private module without assembly round-tripping."""
 
-        Internal compiler entry points lower against this replayed clone so
-        the cached read-only :attr:`module` view is never mutated.
+        from cudaq.mlir._mlir_libs import _qlxRuntime
+
+        return _qlxRuntime.clone_module(self._module)
+
+    def _fresh_module(self):
+        """Return a private mutable module for one compiler consumer.
+
+        An unpublished intermediate Build transfers its live ModuleOp through
+        the progressive compiler transaction. A published Build instead
+        supplies an in-memory deep clone, preserving immutability without
+        printing or parsing MLIR.
         """
 
-        return mlir_ir.Module.parse(self._snapshot, mlir_ir.Context())
+        if self._transient:
+            return self._module
+        return self._clone_module()
+
+    def _ensure_snapshot(self) -> str:
+        """Materialize canonical assembly only for a portable request."""
+
+        snapshot = self._snapshot
+        if snapshot is None:
+            snapshot = self._module.operation.get_asm(assume_verified=True)
+            object.__setattr__(self, "_snapshot", snapshot)
+        return snapshot
+
+    def _verified_link_snapshot(self) -> _VerifiedLinkSnapshot:
+        """Return a compact cross-context linker snapshot of this Build.
+
+        MLIR bytecode preserves the exact verified operation graph without the
+        expensive canonical-text printer/parser round trip.  This is private
+        compiler interchange only; portable Build serialization remains the
+        versioned textual bundle required by the public replay contract.
+        """
+
+        snapshot = self._cache.get("verified_link_snapshot")
+        if snapshot is None:
+            from io import BytesIO
+
+            output = BytesIO()
+            self._module.operation.write_bytecode(output)
+            snapshot = _VerifiedLinkSnapshot(output.getvalue(), self.root)
+            self._cache["verified_link_snapshot"] = snapshot
+        return snapshot
 
     def to_mlir(self) -> str:
-        return self._snapshot
+        return self._ensure_snapshot()
 
     @property
     def content_sha256(self) -> str:
@@ -1105,7 +2627,7 @@ class Build:
             if handle.kind == "fabric.protocol" and "objective" in attributes:
                 names |= reference_names(attributes["objective"])
             if "generated_by" in attributes:
-                # ``qlx.qec_lowering`` provenance: a generated realization
+                # qlx.qec_lowering provenance: a generated realization
                 # implements its manifest's objective.
                 manifest = definitions.get(
                     _attr_text(attributes["generated_by"]))
@@ -1124,7 +2646,8 @@ class Build:
         """The gadget/protocol definition that implements ``objective``.
 
         Accepts an objective name (``"idle"``), a logical reference with a
-        ``.name`` (``cudaq.logical.std.idle``, an ``@cudaq.logical.objective`` definition),
+        ``.name`` (``cudaq.logical.logical.idle``, an
+        ``@cudaq.logical.objective`` definition),
         or a materialized handle with a ``.symbol``.  Resolution walks
         ``fabric.gadget_spec`` objective links, ``fabric.protocol``
         objective attributes, and ``qlx.qec_lowering`` ``generated_by``
@@ -1218,6 +2741,31 @@ class Build:
         return summary
 
     @property
+    def schedule(self):
+        """The :class:`PhysicalSchedule` this build carries, or ``None``.
+
+        ``cudaq.logical.schedule`` records its verified result as a
+        ``phys.schedule``
+        symbol inside the linked module, so a scheduled build (and its
+        ``serialize()``/``replay()`` round trip) reconstructs the typed
+        schedule directly from IR.  Builds that never went through the
+        physical scheduler carry no ``phys.schedule`` op and report
+        ``None``; schedules are not stored as detached Python state on the
+        Build envelope.
+        """
+
+        schedule = self._cache.get("schedule", _UNSET)
+        if isinstance(schedule, weakref.ReferenceType):
+            schedule = schedule()
+            if schedule is None:
+                schedule = _UNSET
+        if schedule is _UNSET:
+            schedule = self._parse_schedule()
+            self._cache["schedule"] = (None if schedule is None else
+                                       weakref.ref(schedule))
+        return schedule
+
+    @property
     def patch_graph(self):
         """Typed P2 patch interaction/mapping view, or ``None``."""
 
@@ -1228,6 +2776,169 @@ class Build:
             view = PatchGraphView.from_build(self)
             self._cache["patch_graph"] = view
         return view
+
+    @property
+    def carrier_graph(self):
+        """Typed P3 carrier topology/event view, or ``None``."""
+
+        view = self._cache.get("carrier_graph", _UNSET)
+        if view is _UNSET:
+            from .topology_view import CarrierGraphView
+
+            view = CarrierGraphView.from_build(self)
+            self._cache["carrier_graph"] = view
+        return view
+
+    def _parse_schedule(self, module=None, *, parse_entries=True):
+        from .schedule import PhysicalSchedule, scheduling
+
+        # Public/later access reconstructs schedule authority from a private
+        # in-memory clone. The scheduler may instead hand this method the exact
+        # verified private module while sealing the Build; parsing immutable
+        # scalar/tuple values from that authority does not expose MLIR handles
+        # and avoids cloning the largest stage immediately after construction.
+        if module is None:
+            module = self._fresh_module()
+        elif module is not self._module:
+            raise ValueError(
+                "schedule parsing requires the Build's verified private module")
+        selected_root = next(
+            (operation.operation
+             for operation in module.body.operations
+             if self._symbol(operation.operation) == self.root.symbol),
+            None,
+        )
+        if selected_root is None:
+            return None
+        selected_schedules = _selected_schedule_operations(
+            module, selected_root)
+        candidates = [
+            operation for operation in selected_schedules
+            if operation.name == "phys.schedule"
+        ]
+        if not candidates:
+            return None
+        if len(candidates) != 1:
+            raise ValueError(
+                "selected physical graph must have at most one schedule")
+        chosen = candidates[0]
+        attributes = chosen.attributes
+        graph_symbol = _attr_text(attributes["graph"])
+        graph = next(
+            (operation.operation
+             for operation in module.body.operations
+             if operation.operation.name == "phys.graph" and
+             self._symbol(operation.operation) == graph_symbol),
+            None,
+        )
+        if graph is None:
+            raise ValueError(
+                "selected physical schedule graph is missing from its Build")
+        machine_symbol = _attr_text(graph.attributes["architecture"])
+        operating_point_symbol = (_attr_text(
+            graph.attributes["operating_point"]) if "operating_point"
+                                  in graph.attributes else None)
+        entries = (tuple(
+            self._parse_schedule_entry(
+                str(getattr(item, "value", item)).strip('"'))
+            for item in attributes["entries"]) if parse_entries else ())
+        makespan = attributes["makespan_ns"]
+        makespan = float(getattr(makespan, "value", makespan))
+        strategy_name = _attr_text(attributes["strategy"])
+        if strategy_name != scheduling.greedy_asap.name:
+            raise ValueError(
+                f"physical schedule names unknown strategy {strategy_name!r}")
+        constraints = tuple(
+            _attr_text(value) for value in attributes["constraints"])
+        timing_profile = tuple(
+            (str(named.name), float(getattr(named.attr, "value", named.attr)))
+            for named in attributes["timing_profile"])
+        objective_value = None
+        if "objective_value" in attributes:
+            value = attributes["objective_value"]
+            objective_value = float(getattr(value, "value", value))
+        return PhysicalSchedule._from_verified_ir(
+            build=self,
+            _requested_root_symbol=self.root.symbol,
+            _graph_symbol=graph_symbol,
+            _schedule_symbol=self._symbol(chosen),
+            _machine_symbol=machine_symbol,
+            _operating_point_symbol=operating_point_symbol,
+            entries=entries,
+            strategy=scheduling.greedy_asap,
+            strategy_domain=_attr_text(attributes["strategy_domain"]),
+            provider=_attr_text(attributes["provider"]),
+            provider_version=_attr_text(attributes["provider_version"]),
+            constraint_profile=_attr_text(attributes["constraint_profile"]),
+            constraints=constraints,
+            timing_profile=timing_profile,
+            tie_break=_attr_text(attributes["tie_break"]),
+            optimization_status=_attr_text(attributes["optimization_status"]),
+            objective_value=objective_value,
+            makespan_ns=makespan,
+            _defer_entries=not parse_entries,
+        )
+
+    @staticmethod
+    def _parse_schedule_entry(text: str):
+        from .schedule import ScheduleEntry
+
+        event_id, kind, start, duration, resources, *rest = text.split("|")
+        details = {}
+        for item in rest:
+            key, _, value = item.partition("=")
+            details[key] = value
+
+        def optional(key):
+            return details.get(key) or None
+
+        def optional_int(key):
+            value = details.get(key, "")
+            return int(value) if value else None
+
+        def optional_float(key):
+            value = details.get(key, "")
+            return float(value) if value else None
+
+        return ScheduleEntry(
+            event_id=event_id,
+            kind=kind,
+            start_ns=float(start),
+            duration_ns=float(duration),
+            resources=tuple(part for part in resources.split(",") if part),
+            dependencies=tuple(
+                part for part in details.get("deps", "").split(",") if part),
+            parent=optional("parent"),
+            branch=optional("branch"),
+            condition=optional("condition"),
+            max_attempts=optional_int("max_attempts"),
+            exhaustion=optional("exhaustion"),
+            commit_point=optional("commit_point"),
+            repeat_count=optional_int("repeat_count"),
+            repeat_period_ns=optional_float("repeat_period_ns"),
+            repeat_epilogue_ns=optional_float("repeat_epilogue_ns"),
+            max_iterations=optional_int("max_iterations"),
+            callee=optional("callee"),
+            instance=optional("instance"),
+            profile=optional("profile"),
+            template_event=optional("template_event"),
+            attempt=optional("attempt"),
+            attempt_event=optional("attempt_event"),
+            decision_event=optional("decision_event"),
+            success_probability=optional_float("success_probability"),
+            success_probability_source=optional("success_probability_source"),
+            success_probability_evidence=optional(
+                "success_probability_evidence"),
+            data_dependencies=tuple(
+                part for part in details.get("data_deps", "").split(",")
+                if part),
+            resource_dependencies=tuple(
+                part for part in details.get("resource_deps", "").split(",")
+                if part),
+            domain_dependencies=tuple(
+                part for part in details.get("domain_deps", "").split(",")
+                if part),
+        )
 
     @staticmethod
     def _json_value(value):
@@ -1284,7 +2995,7 @@ class Build:
             "ir_version":
                 _BUILD_V2_IR_VERSION,
             "module":
-                self._snapshot,
+                self._ensure_snapshot(),
             "root": {
                 "symbol": self.root.symbol,
                 "kind": kind,
@@ -1344,11 +3055,11 @@ class Build:
         source_modules=_UNSET,
         experiment=_UNSET,
     ) -> "Build":
-        from ..architecture.constraints import (
+        from cudaq.logical.architecture.constraints import (
             PlacementBinding,
             PlacementWitness,
         )
-        from ..codes import (
+        from cudaq.logical.codes import (
             QECActionSelection,
             QECBlockBinding,
             QECBlockOwner,
@@ -1494,11 +3205,16 @@ class Build:
                                 "tie_break",
                                 "fixed-before-generated-then-symbol-order",
                             ),
+                            channel=action.get("channel"),
+                            channel_capability=action.get("channel_capability"),
+                            endpoints=tuple(action.get("endpoints", ())),
+                            direction=action.get("direction"),
                         ) for action in item.get("actions", ())),
                     code=item.get("code"),
                     encoding=item.get("encoding"),
                     objective=item.get("objective",
                                        "policy_then_device_then_candidate"),
+                    network_manifest_sha256=item.get("network_manifest_sha256"),
                     tie_break=item.get("tie_break", "declaration_order"),
                 )
             source_modules = tuple(bundle["source_modules"])
@@ -1590,4 +3306,4 @@ class Build:
         return bool(self._fresh_module().operation.verify())
 
     def __str__(self) -> str:
-        return self._snapshot
+        return self._ensure_snapshot()

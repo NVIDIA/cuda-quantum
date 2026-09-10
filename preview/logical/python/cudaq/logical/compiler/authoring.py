@@ -10,34 +10,41 @@ from __future__ import annotations
 from inspect import Parameter, Signature
 from types import GenericAlias
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..gadgets.builder import GadgetBuilder as _GadgetBackend
-from ..programs.builder import UnplacedBuilder as _UnplacedBackend
-from ..protocols.builder import ProtocolBuilder as _ProtocolBackend
+from cudaq.logical.gadgets.builder import GadgetBuilder as _GadgetBackend
+from cudaq.logical.architecture.builder import PhysicalBuilder as _PhysicalBackend
+from cudaq.logical.programs.builder import UnplacedBuilder as _UnplacedBackend
+from cudaq.logical.protocols.builder import ProtocolBuilder as _ProtocolBackend
 from .build import Build, EvidenceRecord
 from .context import CompilationContext
 from .pipeline import pipelines
-from ..types.values import (
+from cudaq.logical.types.values import (
     LogicalRegister,
     logical_qubit,
 )
-from ..codes import (
+from cudaq.logical.codes import (
     Code,
     StabilizerCode,
     SubsystemCode,
 )
-from ..programs.definition import (
+from cudaq.logical.programs.definition import (
     DefinitionHandle,
     ProgramDefinition,
 )
-from ..gadgets import GadgetDefinition
-from ..protocols.definition import ProtocolDefinition
-from ..architecture.logical import (
+from cudaq.logical.gadgets import (
+    GadgetDefinition,
+    GadgetProfile,
+    SuccessPredicate,
+)
+from cudaq.logical.stages import P2
+from cudaq.logical.architecture.physical_definition import PhysicalDefinition
+from cudaq.logical.protocols.definition import ProtocolDefinition
+from cudaq.logical.architecture.logical import (
     Space,
     SpaceSlot,
 )
-from ..architecture.constraints import local
+from cudaq.logical.architecture.constraints import local
 from ..std import LogicalActionRef, LogicalInstrumentRef
 
 
@@ -123,7 +130,7 @@ class UnplacedBuilder:
         Yields the builder's current insertion point so generated operations
         (``cudaq.mlir.ir.Operation.create(..., ip=ip)``) land exactly where typed
         helpers would emit.  Raw results rejoin typed helpers through explicit
-        adoption; operations that are not adopted remain visible only to MLIR.
+        adoption; unadopted operations remain visible only to MLIR.
         """
         return _RawInsertionScope(self._backend)
 
@@ -136,7 +143,7 @@ class UnplacedBuilder:
         module, and every input named in ``consumes`` leaves liveness exactly
         once so later typed use of a stale handle still fails closed.
         """
-        from ..types.values import logical_qubit as _logical_qubit
+        from cudaq.logical.types.values import logical_qubit as _logical_qubit
 
         if kind is not None and kind is not _logical_qubit:
             raise TypeError(
@@ -225,6 +232,48 @@ class UnplacedBuilder:
     def discard(self, *values, reason=None):
         self._backend.discard(values, reason=reason)
 
+    def request(self, kind):
+        return self._backend.request(kind)
+
+    def event_test(self, event):
+        return self._backend.event_test(event)
+
+    def event_poll(self, event):
+        return self._backend.event_poll(event)
+
+    def event_is(self, status, state):
+        return self._backend.event_is(status, state)
+
+    def event_select_ready(self, *events, policy="priority"):
+        return self._backend.event_select_ready(events, policy=policy)
+
+    def event_try_take(self, event, *, carries=(), ready, pending, failed):
+        scalar = not isinstance(carries, (tuple, list))
+        values = (carries,) if scalar else tuple(carries)
+        results = self._backend.event_try_take(
+            event,
+            values,
+            ready=ready,
+            pending=pending,
+            failed=failed,
+        )
+        return results[0] if scalar else results
+
+    def event_cancel(self, event, *, reason=None):
+        return self._backend.event_cancel(event, reason=reason)
+
+    def event_await(self, event):
+        return self._backend.event_await(event)
+
+    def consume(self, resource, *values, action=None):
+        results = self._backend.consume_resource(resource,
+                                                 values,
+                                                 action=action)
+        return results[0] if len(results) == 1 else tuple(results)
+
+    def fence(self, *effects):
+        self._backend.fence(effects)
+
     def finish(self, *results):
         if self._finished:
             raise RuntimeError("UnplacedBuilder root is already finished")
@@ -253,7 +302,7 @@ class UnplacedBuilder:
             pipeline=pipelines.logical(),
             evidence=(EvidenceRecord(
                 kind="direct_profile_verification",
-                producer="qlx-python@0.3",
+                producer="cudaq-logical-python@0.3",
                 result="pass",
                 obligations=("p0-signature", "linear-ownership"),
             ),),
@@ -514,7 +563,7 @@ class GadgetBuilder:
             pipeline=pipelines.gadgets(),
             evidence=(EvidenceRecord(
                 "direct_gadget_verification",
-                "qlx-python@0.3",
+                "cudaq-logical-python@0.3",
                 "pass",
                 ("typed-boundary", "logical-objective", "linear-ownership"),
             ),),
@@ -579,7 +628,7 @@ class ProtocolBuilder:
         exhaustion=None,
         commit_point=None,
     ):
-        from ..gadgets import RetryExhaustion
+        from cudaq.logical.gadgets import RetryExhaustion
 
         exhaustion = (RetryExhaustion.REPORT_FAILURE
                       if exhaustion is None else exhaustion)
@@ -640,7 +689,7 @@ class ProtocolBuilder:
             pipeline=pipelines.protocols(),
             evidence=(EvidenceRecord(
                 "direct_protocol_verification",
-                "qlx-python@0.3",
+                "cudaq-logical-python@0.3",
                 "pass",
                 ("typed-calls", "linear-ownership", "folded-control"),
             ),),
@@ -718,6 +767,189 @@ class CodeBuilder:
         )
 
 
+class GadgetProfileBuilder:
+    """Incremental convenience utility that freezes to GadgetProfile."""
+
+    def __init__(
+        self,
+        gadget,
+        *,
+        code_profile=None,
+        input_profiles=None,
+        output_profiles=None,
+        name=None,
+        metadata=None,
+    ):
+        self.gadget, self.name = gadget, name
+        self.code_profile = code_profile
+        self.input_profiles = input_profiles
+        self.output_profiles = output_profiles
+        self.metadata = metadata
+        self._success = []
+        self._boundary = {}
+
+    def success(self, parity):
+        self._success.append(SuccessPredicate(parity))
+        return self
+
+    def bind(self, target, value):
+        from cudaq.logical.gadgets import (
+            ProfileVectorExpr,
+            SyndromeBundleRef,
+        )
+
+        if not isinstance(target, SyndromeBundleRef):
+            raise TypeError(
+                "bind target must be an output endpoint.syndrome bundle")
+        if target.endpoint.gadget is not self.gadget:
+            raise ValueError("profile binding target belongs to another gadget")
+        if target in self._boundary:
+            raise ValueError("an output syndrome bundle may be bound only once")
+        width = (self.code_profile.effective_stabilizers.nrows
+                 if self.code_profile is not None else target.width)
+        self._boundary[target] = ProfileVectorExpr.from_value(value,
+                                                              width=width)
+        return self
+
+    def finish(self):
+        return GadgetProfile(
+            self.gadget,
+            code_profile=self.code_profile,
+            input_profiles=self.input_profiles,
+            output_profiles=self.output_profiles,
+            success=tuple(self._success),
+            boundary=self._boundary,
+            name=self.name,
+            metadata=self.metadata,
+        )
+
+
+class PhysicalBuilder:
+    """Advanced direct P3 event-graph authoring over a concrete architecture."""
+
+    profile = "p3"
+
+    def __init__(self, name, *, architecture):
+
+        def provider():
+            raise RuntimeError(
+                "direct PhysicalBuilder provider must not execute")
+
+        provider.__name__ = str(name)
+        provider.__qualname__ = str(name)
+        provider.__module__ = "__main__"
+        self.definition = PhysicalDefinition(provider,
+                                             architecture,
+                                             name=str(name))
+        self.transaction = CompilationContext()
+        self._backend = _PhysicalBackend(self.transaction, self.definition)
+        self.context = self.transaction.context
+        self.module = self.transaction.module
+        self.insertion_point = self._backend.insertion_point
+        self.architecture = architecture
+        self._finished = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def acquire(self, resource_class, *, count, kind=None, name=None):
+        from cudaq.logical.architecture.physical_definition import physical_qubit
+
+        return self._backend.acquire(
+            resource_class,
+            count=count,
+            kind=physical_qubit if kind is None else kind,
+            name=name,
+        )
+
+    def load(self, values, *, state="loaded"):
+        return self._backend.load(values, state=state)
+
+    def reset(self, values, *, state="zero"):
+        return self._backend.reset(values, state=state)
+
+    def move(self, values, *, via, trajectory=None):
+        return self._backend.move(values, via=via, trajectory=trajectory)
+
+    def apply(self, action, *values, **parameters):
+        return self._backend.apply_definition(action, values, parameters)
+
+    def measure(self, value, *, basis="z", destructive=True, record=None):
+        return self._backend.measure(
+            value,
+            basis=basis,
+            destructive=destructive,
+            record=record,
+        )
+
+    def delay(self, values, *, duration_ns):
+        return self._backend.delay(values, duration_ns=duration_ns)
+
+    def barrier(self, values=(), *, domains=()):
+        return self._backend.barrier(values, domains=domains)
+
+    def fence(self, *effects):
+        self._backend.fence(effects)
+
+    def release(self, values):
+        self._backend.release(values)
+
+    def seal(self, *outputs, source=None, source_imported=False):
+        """Seal the graph and return its handle without constructing a Build."""
+
+        if self._finished:
+            raise RuntimeError("PhysicalBuilder root is already finished")
+        if type(source_imported) is not bool:
+            raise TypeError("source_imported must be bool")
+        if source is not None:
+            if not isinstance(source, Build) or source.stage != P2:
+                raise TypeError("PhysicalBuilder source must be a P2 Build")
+            if not source_imported:
+                self.transaction._import_direct_snapshot(source, source)
+        elif source_imported:
+            raise ValueError("source_imported=True requires source=")
+        returned = outputs[0] if len(outputs) == 1 else outputs
+        self._backend.finish(returned)
+        self._finished = True
+        handle = DefinitionHandle(self._backend.symbol, "physical_graph", "p3")
+        self.transaction.bind(self.definition, handle)
+        self.transaction.add_profile("p3")
+        return handle
+
+    def finish(self, *outputs, source=None, source_imported=False):
+        handle = self.seal(
+            *outputs,
+            source=source,
+            source_imported=source_imported,
+        )
+        build = Build(
+            context=self.context,
+            module=self.module,
+            root=handle,
+            profile="p3",
+            pipeline=pipelines.physical(),
+            evidence=(
+                *(() if source is None else source.evidence),
+                EvidenceRecord(
+                    "direct_physical_graph_verification",
+                    "cudaq-logical-python@0.3",
+                    "pass",
+                    ("linear-resource-ownership", "event-dependencies"),
+                ),
+            ),
+            placement=None if source is None else source.placement,
+            qec_selection=None if source is None else source.qec_selection,
+            experiment=None if source is None else source.experiment,
+            source_modules=(("__main__",)
+                            if source is None else source.source_modules),
+        )
+        self.definition._qlx_direct_snapshot = build
+        return build
+
+
 __all__ = [
     "UnplacedBuilder",
     "ActionBuilder",
@@ -725,8 +957,6 @@ __all__ = [
     "GadgetBuilder",
     "ProtocolBuilder",
     "CodeBuilder",
+    "GadgetProfileBuilder",
+    "PhysicalBuilder",
 ]
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.advanced")

@@ -9,22 +9,23 @@ from __future__ import annotations
 
 from hashlib import sha256
 from inspect import signature
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass
 from enum import Enum
 import json
 import math
 from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
-from ..std import LogicalActionRef, LogicalInstrumentRef
-from .._core.immutable import ImmutableValue
-from ..programs.definition import ProgramDefinition
-from ..gadgets import GadgetDefinition
-from ..architecture.logical import CapabilityKey
-from ..protocols.definition import ProtocolDefinition
-from ..codes import (
+from ..std import LogicalActionRef, LogicalInstrumentRef, ResourceKind
+from cudaq.logical._core.immutable import ImmutableValue
+from cudaq.logical.programs.definition import ProgramDefinition
+from cudaq.logical.gadgets import GadgetDefinition
+from cudaq.logical.architecture.logical import CapabilityKey
+from cudaq.logical.protocols.definition import ProtocolDefinition
+from cudaq.logical.codes import (
     Code,
     Encoding,
+    QECSelectionWitness,
     _materialized_code_identity,
 )
 
@@ -41,6 +42,10 @@ class ActionSiteHandle:
     parameters: Mapping[str, Any]
     input_arity: int
     result_arity: int
+    channel: str | None = None
+    channel_capability: CapabilityKey | None = None
+    endpoints: tuple[str, ...] = ()
+    direction: str | None = None
     resource_kind: str | None = None
     resource_stream: str | None = None
     resource_stream_owner: str | None = None
@@ -49,6 +54,21 @@ class ActionSiteHandle:
         object.__setattr__(self, "placements", tuple(self.placements))
         object.__setattr__(self, "parameters",
                            MappingProxyType(dict(self.parameters)))
+        object.__setattr__(self, "endpoints", tuple(self.endpoints))
+        present = (
+            self.channel is not None,
+            self.channel_capability is not None,
+            bool(self.endpoints),
+            self.direction is not None,
+        )
+        if any(present) and not all(present):
+            raise ValueError(
+                "action-site communication obligation requires channel, "
+                "channel_capability, endpoints, and direction together")
+        if self.channel_capability is not None and not isinstance(
+                self.channel_capability, CapabilityKey):
+            raise TypeError(
+                "action-site communication capability must be a CapabilityKey")
         for field_name in ("resource_kind", "resource_stream",
                            "resource_stream_owner"):
             value = getattr(self, field_name)
@@ -78,12 +98,52 @@ class QECCompilerContext:
     policy: Mapping[str, Any]
     dependencies: tuple[Any, ...]
     placements: tuple[Any, ...] = ()
+    physical: Any = None
+    channel: Any = None
     qec_selection: Any = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "policy", MappingProxyType(dict(self.policy)))
         object.__setattr__(self, "dependencies", tuple(self.dependencies))
         object.__setattr__(self, "placements", tuple(self.placements))
+
+    def qec_region_for(self, placement: str):
+        """Return the selected device QEC region for one P1 placement."""
+
+        if not isinstance(placement, str) or not placement:
+            raise TypeError("qec_region_for requires a P1 placement name")
+        selected = next(
+            (item for item in self.placements
+             if getattr(item, "placement", None) == placement),
+            None,
+        )
+        if selected is None:
+            raise ValueError(
+                f"placement {placement!r} is not part of this QEC action site")
+        space = getattr(selected, "space", None)
+        regions = tuple(binding.qec_region
+                        for binding in self.device.logical_to_qec
+                        if binding.logical_region.name == space)
+        if len(regions) != 1:
+            raise ValueError(
+                f"placement {placement!r} has no unique selected QEC region")
+        return regions[0]
+
+    def qec_block_for(self, placement: str) -> str:
+        """Return the compiler-selected encoded block for one placement."""
+
+        if not isinstance(placement, str) or not placement:
+            raise TypeError("qec_block_for requires a P1 placement name")
+        selected = next(
+            (item for item in self.placements
+             if getattr(item, "placement", None) == placement),
+            None,
+        )
+        block = None if selected is None else getattr(selected, "block", None)
+        if not isinstance(block, str) or not block:
+            raise ValueError(
+                f"placement {placement!r} has no selected encoded block")
+        return block
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,9 +162,39 @@ class GeneratedQECArtifact:
 
 
 class QECCompiler:
-    """Typed site implementation carried by one :class:`QECLowering` manifest."""
+    """Typed implementation carried by one :class:`QECLowering` manifest.
+
+    Concrete compiler type determines its compilation scope.  Ordinary
+    callable providers are normalized to an internal site compiler, while a
+    network compiler such as ``LatticeSurgeryCompiler`` implements the whole
+    selected P1 network contract.  No public string-valued scope selector is
+    involved.
+    """
 
     __slots__ = ()
+
+
+class QECNetworkCompiler(QECCompiler):
+    """Typed compiler for a closed set of placed QEC action sites.
+
+    Core QLX owns source traversal, region boundaries, stage transitions, and
+    :class:`Build` construction.  A network compiler owns compatibility,
+    complete spatial/temporal planning, and typed protocol emission for the
+    regions selected through its :class:`QECLowering` manifests.
+
+    The concrete request, plan, and emission-context types live in
+    :mod:`cudaq.logical.qec.lattice_surgery` so providers can implement this
+    contract without
+    importing compiler internals or MLIR bindings.
+    """
+
+    __slots__ = ()
+
+    @property
+    def key(self) -> str:
+        """Canonical ``plugin:name@version`` planning-provider identity."""
+
+        raise NotImplementedError
 
 
 class _FunctionSiteCompiler(QECCompiler):
@@ -295,13 +385,19 @@ def _manifest_reference(value):
         return {"kind": "symbol", "name": value}
     if isinstance(value, (LogicalActionRef, LogicalInstrumentRef)):
         return {"kind": _manifest_type_name(value), "name": value.name}
+    if isinstance(value, ResourceKind):
+        return {
+            "kind": _manifest_type_name(value),
+            "name": value.name,
+            "payload_roles": list(value.payload_roles),
+        }
     if isinstance(value,
                   (ProgramDefinition, GadgetDefinition, ProtocolDefinition)):
         return {"kind": _manifest_type_name(value), "name": value.name}
     if isinstance(value, CapabilityKey):
         return {"kind": _manifest_type_name(value), "name": value.key}
     raise TypeError(
-        "QEC lowering manifest references require a typed CUDA-Q Logical program, "
+        "QEC lowering manifest references require a typed QLX program, "
         "gadget, protocol, "
         "capability, logical objective, or symbol string")
 
@@ -364,6 +460,9 @@ def _qec_lowering_manifest_sha256(definition) -> str:
         "dependencies": [
             _manifest_reference(value) for value in definition.dependencies
         ],
+        "consumes": [
+            _manifest_reference(value) for value in definition.consumes
+        ],
         "compiler_plugin":
             definition.plugin,
         "compiler_symbol":
@@ -402,6 +501,7 @@ class QECLowering(ImmutableValue):
         "codes",
         "requires",
         "dependencies",
+        "consumes",
         "plugin",
         "version",
         "name",
@@ -424,6 +524,7 @@ class QECLowering(ImmutableValue):
         codes: Iterable[Code | Encoding] = (),
         requires: Iterable[Any] = (),
         dependencies: Iterable[Any] = (),
+        consumes: Iterable[ResourceKind] = (),
         plugin: str,
         version: str,
         name: str | None = None,
@@ -447,16 +548,23 @@ class QECLowering(ImmutableValue):
                for code in normalized_codes):
             raise TypeError(
                 "QECLowering codes must contain Code or Encoding values")
+        normalized_consumes = tuple(consumes)
+        if any(not isinstance(kind, ResourceKind)
+               for kind in normalized_consumes):
+            raise TypeError(
+                "QECLowering consumes must contain ResourceKind values")
+        if len({kind.name for kind in normalized_consumes
+               }) != len(normalized_consumes):
+            raise ValueError(
+                "QECLowering consumes must not repeat a resource kind")
         compiler_name = getattr(compiler, "name", None)
         if not isinstance(compiler_name, str) or not compiler_name:
             raise TypeError("QECCompiler must expose a nonempty string name")
-        compile_site = getattr(compiler, "compile_site", None)
-        if not callable(compile_site):
-            raise TypeError(
-                "QECCompiler must implement compile_site(site, context)")
-        if len(signature(compile_site).parameters) != 2:
-            raise TypeError(
-                "QECCompiler.compile_site must accept (site, context)")
+        if isinstance(compiler, QECNetworkCompiler):
+            expected_key = f"{plugin}:{compiler_name}@{version}"
+            if compiler.key != expected_key:
+                raise ValueError("QECNetworkCompiler key must be canonical "
+                                 f"{expected_key!r}")
         _manifest_objective(objective)
         if name is not None and (not isinstance(name, str) or not name):
             raise TypeError("QECLowering name must be a nonempty string")
@@ -466,6 +574,7 @@ class QECLowering(ImmutableValue):
         self.codes = normalized_codes
         self.requires = tuple(requires)
         self.dependencies = tuple(dependencies)
+        self.consumes = normalized_consumes
         self.plugin = plugin
         self.version = version
         self.name = name or compiler_name
@@ -473,25 +582,33 @@ class QECLowering(ImmutableValue):
                                                field="policy_schema")
         self.metadata = _manifest_mapping(metadata, field="metadata")
         self.profile = "common"
-        from ..stages import (
+        from cudaq.logical.stages import (
             P1,
             P2,
+            PROTOCOL_NETWORK,
             QEC_REALIZATION,
         )
 
         self.input_stage = P1
         self.output_stage = P2
-        self.provides_facets = (QEC_REALIZATION,)
+        self.provides_facets = (QEC_REALIZATION, PROTOCOL_NETWORK)
         self.manifest_sha256 = _qec_lowering_manifest_sha256(self)
         self._seal()
 
     @property
     def provider(self):
-        """Legacy view of an ordinary site provider."""
+        """Legacy view of an ordinary site provider.
+
+        Network compilers intentionally have no callable site provider.  New
+        compiler code should inspect ``compiler`` and call ``compile_site``
+        only for a site compiler.
+        """
 
         provider = getattr(self.compiler, "provider", None)
         if provider is None:
-            raise AttributeError(f"QECLowering {self.name!r} has no provider")
+            raise AttributeError(
+                f"QECLowering {self.name!r} is implemented by a network compiler"
+            )
         return provider
 
     def compile_site(self, site, context):
@@ -505,6 +622,75 @@ class QECLowering(ImmutableValue):
         from ..compiler import compile
 
         return compile(self, module=module)
+
+
+@dataclass(frozen=True, slots=True)
+class QECNetworkContext:
+    """Compiler-owned P1 provenance supplied to a network materializer.
+
+    This context is transient transaction input, not another serialized plan.
+    The plan binds the exact provider; this value supplies the authenticated P1
+    artifact and selected lowering witness that the generated P2 root must
+    retain in its ordinary QLX provenance chain. Canonical whole-network
+    lowering also commits ``selection.network_manifest_sha256``; the explicit
+    operation-only compatibility route leaves that marker unset.
+    """
+
+    source: Any
+    lowering: QECLowering
+    selection: QECSelectionWitness
+    selection_digest: str
+    device: Any = None
+    policy: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        from ..compiler.build import (
+            Build,
+            _qec_selection_sha256,
+            _verify_qec_network_source,
+        )
+
+        if not isinstance(self.source, Build) or self.source.profile != "p1":
+            raise TypeError("QEC network context source must be a P1 Build")
+        if not isinstance(self.lowering, QECLowering):
+            raise TypeError("QEC network context requires a QECLowering")
+        if not isinstance(self.selection, QECSelectionWitness):
+            raise TypeError(
+                "QEC network context selection must be a QECSelectionWitness")
+        object.__setattr__(self, "policy", MappingProxyType(dict(self.policy)))
+        if self.selection.input_p1 != self.source.root.symbol:
+            raise ValueError(
+                "QEC network selection must reference the exact P1 root")
+        if not self.selection.actions or any(
+                action.selected != self.lowering.name or action.provider != self
+                .lowering.plugin or action.version != self.lowering.version or
+                action.manifest_sha256 != self.lowering.manifest_sha256
+                for action in self.selection.actions):
+            raise ValueError(
+                "QEC network selection must commit the exact lowering manifest")
+        if self.selection.network_manifest_sha256 not in {
+                None,
+                self.lowering.manifest_sha256,
+        }:
+            raise ValueError(
+                "QEC network witness identifies a different manifest")
+        prefix = "sha256:"
+        payload = (self.selection_digest[len(prefix):]
+                   if isinstance(self.selection_digest, str) and
+                   self.selection_digest.startswith(prefix) else "")
+        if len(payload) != 64 or any(
+                value not in "0123456789abcdef" for value in payload):
+            raise ValueError(
+                "QEC network selection digest must be canonical sha256 evidence"
+            )
+        if self.selection_digest != _qec_selection_sha256(self.selection):
+            raise ValueError(
+                "QEC network selection digest differs from its witness")
+        _verify_qec_network_source(
+            self.source,
+            self.lowering,
+            self.selection,
+        )
 
 
 def _inferred_objective_family(objective) -> str:
@@ -552,6 +738,7 @@ def qec_lowering(
         codes=(),
         requires=(),
         dependencies=(),
+        consumes=(),
         plugin=None,
         version=None,
         name=None,
@@ -572,6 +759,7 @@ def qec_lowering(
             codes=codes,
             requires=requires,
             dependencies=dependencies,
+            consumes=consumes,
             plugin=provider_plugin,
             version=provider_version,
             name=name,

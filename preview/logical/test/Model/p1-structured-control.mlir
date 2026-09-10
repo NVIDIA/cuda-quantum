@@ -18,21 +18,20 @@ module attributes {qlx.profiles = ["p0", "p1"]} {
   lvm.kernel @control on @machine : () -> () attributes {qlx.profile = "p1"} {
     %q = lvm.prepare "zero" at @machine::@compute : !lvm.logical_qubit<@machine::@compute>
     %condition = arith.constant true
-    %selected = "lvm.if"(%condition) ({
-      lvm.yield %q : !lvm.logical_qubit<@machine::@compute>
+    %selected = "cflow.if"(%condition) ({
+      cflow.yield %q : !lvm.logical_qubit<@machine::@compute>
     }, {
-      lvm.yield %q : !lvm.logical_qubit<@machine::@compute>
+      cflow.yield %q : !lvm.logical_qubit<@machine::@compute>
     }) : (i1) -> !lvm.logical_qubit<@machine::@compute>
-    %repeated = "lvm.repeat"(%selected) <{count = 4 : i64}> ({
+    %repeated = "cflow.repeat"(%selected) <{count = 4 : i64}> ({
     ^bb0(%iter: !lvm.logical_qubit<@machine::@compute>):
-      lvm.yield %iter : !lvm.logical_qubit<@machine::@compute>
+      cflow.yield %iter : !lvm.logical_qubit<@machine::@compute>
     }) : (!lvm.logical_qubit<@machine::@compute>) -> !lvm.logical_qubit<@machine::@compute>
     lvm.discard %repeated at [@machine::@compute] : !lvm.logical_qubit<@machine::@compute>
     lvm.return
   }
 }
 
-// CHECK: "lvm.if"
-// CHECK: "lvm.repeat"
-// CHECK: count = 4 : i64
-// CHECK: lvm.yield
+// CHECK: cflow.if
+// CHECK: cflow.repeat 4 iter
+// CHECK: cflow.yield

@@ -1,10 +1,10 @@
 # CUDA-Q Logical Resource Estimate
 
-[`00_cudaq_logical_resource_estimate.py`](../../../../examples/00_cudaq_logical_resource_estimate.py)
-lowers a CUDA-Q kernel through a distance-3 surface-code target and reports the
-resulting resources.
+[`02_surface_code_resource_estimate.py`](../../../../examples/02_surface_code_resource_estimate.py)
+lowers a CUDA-Q kernel through configurable surface-code targets and reports
+the resulting resources.
 
-```{literalinclude} ../../../../examples/00_cudaq_logical_resource_estimate.py
+```{literalinclude} ../../../../examples/02_surface_code_resource_estimate.py
 :language: python
 ```
 

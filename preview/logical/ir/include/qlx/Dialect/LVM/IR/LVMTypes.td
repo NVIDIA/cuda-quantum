@@ -1,10 +1,10 @@
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #ifndef QLX_LVM_TYPES_TD
 #define QLX_LVM_TYPES_TD
@@ -30,16 +30,6 @@ def LVM_LogicalResourceType : LVM_Type<"LogicalResource", "logical_resource"> {
     "mlir::SymbolRefAttr":$stream
   );
   let assemblyFormat = "`<` $kind `,` $stream `>`";
-}
-
-def LVM_LogicalEventType : LVM_Type<"LogicalEvent", "logical_event"> {
-  let summary = "typed asynchronous event bound to one machine stream";
-  let parameters = (ins
-    "mlir::Type":$payload,
-    "mlir::SymbolRefAttr":$stream,
-    StringRefParameter<"payload ownership">:$ownership
-  );
-  let assemblyFormat = "`<` $payload `,` $stream `,` $ownership `>`";
 }
 
 def LVM_LogicalFrameType : LVM_Type<"LogicalFrame", "logical_frame"> {

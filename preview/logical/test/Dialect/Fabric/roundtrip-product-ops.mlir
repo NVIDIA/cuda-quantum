@@ -11,12 +11,8 @@
 
 fabric.code @toric_3 {
   distance = 3 : i64,
-  partitions = {data = 18 : i64, sx = 8 : i64, sz = 8 : i64},
-  n = 18 : i64,
+  partitions = {data = 18 : i64, sx = 9 : i64, sz = 9 : i64},
   k = 2 : i64,
-  r = 0 : i64,
-  hx = [array<i64: 0, 1, 2, 3, 4, 5>, array<i64: 3, 4, 5, 6, 7, 8>, array<i64: 9, 10>, array<i64: 10, 11>, array<i64: 12, 13>, array<i64: 13, 14>, array<i64: 15, 16>, array<i64: 16, 17>],
-  hz = [array<i64: 0, 1>, array<i64: 1, 2>, array<i64: 3, 4>, array<i64: 4, 5>, array<i64: 6, 7>, array<i64: 7, 8>, array<i64: 9, 10, 11, 12, 13, 14>, array<i64: 12, 13, 14, 15, 16, 17>],
   lx = [array<i64: 0, 1, 2>, array<i64: 9, 12, 15>],
   lz = [array<i64: 0, 3, 6>, array<i64: 9, 10, 11>]
 }

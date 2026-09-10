@@ -8,8 +8,8 @@
 """The PBC normal-form verifier (``verify_pbc``).
 
 Certifies that a module is in Pauli-based-computation form: only prepare /
-signed pi/4 ``pauli_rotation`` / ``mpp`` / discard / return / constant ops;
-every rotation uses a positive pi/4 magnitude and carries its sign on the Pauli
+signed pi/4 pauli_rotation / mpp / discard / return / constant ops; every
+rotation uses a positive pi/4 magnitude and carries its sign on the Pauli
 product; rotations precede measurements; and the measured Pauli products
 pairwise commute. ``to_pbc`` output must always pass.
 """
@@ -19,7 +19,7 @@ from typing import Tuple
 
 import pytest
 
-import cudaq.logical
+import cudaq.logical as qlx
 from cudaq.mlir._mlir_libs import _qlxRuntime as rt
 
 
@@ -28,23 +28,21 @@ def _pbc(gates, meas):
                  [m[1] for m in meas])
 
     def prog():
-        q = cudaq.logical.allocate(nq, state=cudaq.logical.types.zero)
+        q = qlx.allocate(nq, state=qlx.types.zero)
         for g in gates:
             if g[0] == "h":
-                q[g[1]] = cudaq.logical.h(q[g[1]])
+                q[g[1]] = qlx.h(q[g[1]])
             elif g[0] == "cx":
-                q[g[1]], q[g[2]] = cudaq.logical.cx(q[g[1]], q[g[2]])
+                q[g[1]], q[g[2]] = qlx.cx(q[g[1]], q[g[2]])
             elif g[0] == "t":
-                (q[g[1]],) = cudaq.logical.ops.rotate(
-                    cudaq.logical.types.Z(q[g[1]]),
-                    angle=cudaq.logical.types.pi / 4)
-        return tuple(
-            cudaq.logical.measure_z(q[i]) for _, i in [(b, i) for b, i in meas])
+                (q[g[1]],) = qlx.ops.rotate(qlx.types.Z(q[g[1]]),
+                                            angle=qlx.types.pi / 4)
+        return tuple(qlx.measure_z(q[i]) for _, i in [(b, i) for b, i in meas])
 
     prog.__annotations__["return"] = Tuple[tuple(bool for _ in meas)]
-    prog = cudaq.logical.program(prog)
-    mlir = cudaq.logical.compile(
-        prog, pipeline=cudaq.logical.compiler.pipelines.logical()).to_mlir()
+    prog = qlx.program(prog)
+    mlir = qlx.compile(prog,
+                       pipeline=qlx.compiler.pipelines.logical()).to_mlir()
     return rt.synthesize_qlx(mlir,
                              1e-10), rt.to_pbc(rt.synthesize_qlx(mlir, 1e-10))
 
@@ -111,7 +109,7 @@ def test_rejects_rotation_after_measurement():
 
 
 def test_rejects_noncommuting_measurements():
-    # ``mpp`` X0 then ``mpp`` Z0 on the same qubit -> anticommute.
+    # mpp X0 then mpp Z0 on the same qubit -> anticommute.
     body = _PREP + _mpp("%2:2", "%0", 1, 0) + _mpp("%3:2", "%2#0", 0, 1)
     with pytest.raises(RuntimeError, match="pairwise commute"):
         rt.verify_pbc(_module(body, "%3#1"))

@@ -12,9 +12,6 @@ module {
   fabric.code @outer {distance = 1 : i64, k = 1 : i64, n = 1 : i64,
     partitions = {data = 1 : i64}, r = 0 : i64}
   fabric.code @child {distance = 1 : i64, k = 2 : i64, n = 2 : i64,
-    hx = [], hz = [],
-    lx = [array<i64: 0>, array<i64: 1>],
-    lz = [array<i64: 0>, array<i64: 1>],
     partitions = {data = 2 : i64}, r = 0 : i64}
   fabric.code @composite {distance = 0 : i64, k = 1 : i64, n = 2 : i64,
     partitions = {data = 2 : i64}, r = 0 : i64}
@@ -43,9 +40,6 @@ module {
   fabric.code @outer {distance = 1 : i64, k = 1 : i64, n = 1 : i64,
     partitions = {data = 1 : i64}, r = 0 : i64}
   fabric.code @child {distance = 1 : i64, k = 2 : i64, n = 2 : i64,
-    hx = [], hz = [],
-    lx = [array<i64: 0>, array<i64: 1>],
-    lz = [array<i64: 0>, array<i64: 1>],
     partitions = {data = 2 : i64}, r = 0 : i64}
   fabric.code @composite {distance = 0 : i64, k = 1 : i64, n = 2 : i64,
     partitions = {data = 2 : i64}, r = 0 : i64}

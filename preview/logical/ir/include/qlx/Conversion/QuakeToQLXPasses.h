@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #ifndef QLX_CONVERSION_QUAKETOQLX_PASSES_H
 #define QLX_CONVERSION_QUAKETOQLX_PASSES_H
@@ -20,8 +20,7 @@ namespace qlx {
 #include "qlx/Conversion/QuakeToQLXPasses.h.inc"
 
 /// Register the `prepare-quake-for-qlx` named MLIR pipeline. Its input must
-/// already have passed through the `convert-to-linear-values` preparation
-/// provided by CUDA-Q;
+/// already have passed through CUDA-Q's `convert-to-linear-values` preparation;
 /// the pipeline owns only the ordered QLX-side boundary cleanup required before
 /// typed P0 conversion.
 void registerPrepareQuakeForQLXPipeline();

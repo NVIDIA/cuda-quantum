@@ -19,19 +19,19 @@ module attributes {qlx.profiles = ["p0", "p1"]} {
   }
   qlx.program @fresh_join : (i1) -> i1 attributes {qlx.stage = "p0"} {
   ^bb0(%condition: i1):
-    %q = "qlx.if"(%condition) ({
+    %q = "cflow.if"(%condition) ({
       %then = qlx.prepare "zero" : !qlx.logical_qubit
-      qlx.yield %then : !qlx.logical_qubit
+      cflow.yield %then : !qlx.logical_qubit
     }, {
       %else = qlx.prepare "zero" : !qlx.logical_qubit
-      qlx.yield %else : !qlx.logical_qubit
+      cflow.yield %else : !qlx.logical_qubit
     }) : (i1) -> !qlx.logical_qubit
     %measured = qlx.measure <Z> %q : !qlx.logical_qubit -> i1
     qlx.return %measured : i1
   }
 }
 
-// CHECK: %[[Q:.*]] = "lvm.if"
+// CHECK: %[[Q:.*]] = cflow.if
 // CHECK: lvm.prepare "zero" at @vm::@compute
 // CHECK: lvm.prepare "zero" at @vm::@compute
 // CHECK: lvm.measure

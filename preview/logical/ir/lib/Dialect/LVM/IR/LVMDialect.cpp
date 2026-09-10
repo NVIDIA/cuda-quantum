@@ -1,21 +1,25 @@
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #include "qlx/Dialect/LVM/IR/LVMDialect.h"
+#include "qlx/Dialect/Event/IR/EventTypes.h"
 #include "qlx/Dialect/LVM/IR/LVMAttrs.h"
 #include "qlx/Dialect/LVM/IR/LVMOps.h"
 #include "qlx/Dialect/LVM/IR/LVMTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/SymbolTable.h"
 
@@ -26,26 +30,6 @@ using namespace qlx::lvm;
 
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/LVM/IR/LVMTypes.cpp.inc"
-
-Type LVMDialect::parseType(DialectAsmParser &parser) const {
-  SMLoc location = parser.getCurrentLocation();
-  StringRef mnemonic;
-  if (failed(parser.parseKeyword(&mnemonic)))
-    return {};
-  if (mnemonic == LogicalQubitType::getMnemonic())
-    return LogicalQubitType::parse(parser);
-  parser.emitError(location) << "unknown type in dialect 'lvm': " << mnemonic;
-  return {};
-}
-
-void LVMDialect::printType(Type type, DialectAsmPrinter &printer) const {
-  if (auto value = dyn_cast<LogicalQubitType>(type)) {
-    printer << LogicalQubitType::getMnemonic();
-    value.print(printer);
-    return;
-  }
-  llvm_unreachable("attempted to print an unregistered LVM type");
-}
 
 #define GET_ATTRDEF_CLASSES
 #include "qlx/Dialect/LVM/IR/LVMAttrs.cpp.inc"
@@ -143,6 +127,103 @@ LogicalResult DomainOp::verify() {
           "slot is already occupied by another logical placement");
     }
   }
+
+  // Authenticate generated P2 action-site provenance in one indexed pass.
+  // Verifying each ActionSiteOp by walking every retained kernel/apply made
+  // this proof quadratic in the number of sites (the Pinnacle L=16 body has
+  // more than 200k).  The domain owns both the site declarations and their
+  // placement namespace, so it can build the exact site-occurrence index once
+  // without weakening any per-site check or diagnostic location.
+  SmallVector<ActionSiteOp> sourcedActionSites;
+  getBody().walk([&](ActionSiteOp site) {
+    if (site.getSourceSiteAttr())
+      sourcedActionSites.push_back(site);
+  });
+  if (sourcedActionSites.empty())
+    return success();
+
+  Operation *scope = getOperation()->getParentOp();
+  if (!scope)
+    return sourcedActionSites.front().emitOpError(
+        "source_site requires a containing symbol-table scope");
+
+  DenseMap<int64_t, SmallVector<ApplyOp, 1>> appliesBySite;
+  scope->walk([&](KernelOp kernel) {
+    if (lookupDomain(kernel.getOperation(), kernel.getDomainAttr()) != *this)
+      return;
+    kernel.getBody().walk([&](ApplyOp apply) {
+      if (auto candidate = apply.getSiteAttr())
+        appliesBySite[candidate.getInt()].push_back(apply);
+    });
+  });
+
+  for (ActionSiteOp site : sourcedActionSites) {
+    int64_t sourceSite = site.getSourceSiteAttr().getInt();
+    if (sourceSite < 0)
+      return site.emitOpError("source_site must be nonnegative");
+    auto found = appliesBySite.find(sourceSite);
+    if (found == appliesBySite.end())
+      return site.emitOpError("source_site does not resolve to a retained "
+                              "lvm.apply in this domain");
+    ArrayRef<ApplyOp> matchingApplies = found->second;
+    if (matchingApplies.size() != 1)
+      return site.emitOpError(
+          "source_site must resolve uniquely to one retained lvm.apply in "
+          "this domain");
+
+    ApplyOp source = matchingApplies.front();
+    if (site.getKind() != "action")
+      return site.emitOpError(
+          "an lvm.apply source_site requires kind = action");
+    if (site.getObjectiveAttr() != source.getActionAttr())
+      return site.emitOpError(
+          "objective does not match the source_site lvm.apply action");
+    if (site.getPlacements() != source.getPlacements())
+      return site.emitOpError(
+          "placements do not match the source_site lvm.apply placements");
+    auto sourceParameters = source.getParametersAttr();
+    auto siteParameters = site.getParametersAttr();
+    if (sourceParameters) {
+      for (NamedAttribute parameter : sourceParameters) {
+        if (!siteParameters ||
+            siteParameters.get(parameter.getName()) != parameter.getValue())
+          return site.emitOpError("parameter '")
+                 << parameter.getName()
+                 << "' does not match the source_site lvm.apply";
+      }
+    }
+
+    Attribute derivedParameter;
+    StringRef derivedParameterName;
+    auto objective = dyn_cast<qlx::BuiltinActionAttr>(source.getActionAttr());
+    if (objective &&
+        objective.getValue() == qlx::BuiltinAction::pauli_rotation) {
+      if (auto constant =
+              source.getInputs().back().getDefiningOp<arith::ConstantOp>())
+        derivedParameter = dyn_cast<FloatAttr>(constant.getValue());
+      if (derivedParameter) {
+        derivedParameterName = "angle";
+      } else {
+        derivedParameterName = "dynamic_angle";
+        derivedParameter = BoolAttr::get(getContext(), true);
+      }
+      if (!siteParameters ||
+          siteParameters.get(derivedParameterName) != derivedParameter)
+        return site.emitOpError("derived parameter '")
+               << derivedParameterName
+               << "' does not match the source_site lvm.apply SSA angle";
+    }
+
+    size_t expectedParameterCount =
+        sourceParameters ? sourceParameters.size() : 0;
+    if (derivedParameter)
+      ++expectedParameterCount;
+    size_t actualParameterCount = siteParameters ? siteParameters.size() : 0;
+    if (actualParameterCount != expectedParameterCount)
+      return site.emitOpError(
+          "parameters must exactly equal the source_site lvm.apply parameters "
+          "plus canonical SSA-derived facts");
+  }
   return success();
 }
 
@@ -227,42 +308,7 @@ LogicalResult StreamOp::verify() {
 }
 
 LogicalResult ChannelOp::verify() {
-  if (failed(verifyMachineCapabilities(getOperation(), getCapabilities())))
-    return failure();
-  if (getCapabilities().size() != 1) {
-    return emitOpError(
-        "QLX channels are compiler-derived resource-supply edges");
-  }
-  auto capability = dyn_cast<CapabilityAttr>(*getCapabilities().begin());
-  if (!capability || capability.getKey() != "qlx.machine/resource_transfer")
-    return emitOpError(
-        "QLX channels require exactly resource_transfer capability");
-  if (getCapacityAttr())
-    return emitOpError("QLX resource-supply channels have no capacity");
-  if (getDirectionAttr() && getDirectionAttr().getValue() != "forward")
-    return emitOpError("QLX resource-supply channels are forward-only");
-  auto domain = (*this)->getParentOfType<DomainOp>();
-  auto source = dyn_cast_or_null<SpaceOp>(
-      SymbolTable::lookupSymbolIn(domain, getFromAttr().getValue()));
-  auto destination = dyn_cast_or_null<StreamOp>(
-      SymbolTable::lookupSymbolIn(domain, getToAttr().getValue()));
-  if (!source || !destination)
-    return emitOpError(
-        "QLX resource-supply channel must connect space to stream");
-  if (!destination.getBackingRegionAttr())
-    return emitOpError(
-        "QLX resource-supply destination must be a backed stream");
-  if (!destination.getProducedByAttr() ||
-      !destination->getAttrOfType<StringAttr>("produced_by_sha256"))
-    return emitOpError("QLX resource-supply destination requires authenticated "
-                       "produced_by provenance");
-  Operation *producer = lookupObjective(destination.getOperation(),
-                                        destination.getProducedByAttr());
-  if (!producer || producer->getName().getStringRef() != "fabric.protocol")
-    return emitOpError(
-        "QLX resource-supply produced_by must resolve to a typed "
-        "fabric.protocol");
-  return success();
+  return verifyMachineCapabilities(getOperation(), getCapabilities());
 }
 
 LogicalResult PlacementOp::verify() {
@@ -281,7 +327,6 @@ LogicalResult PlacementOp::verify() {
     auto kind = dyn_cast_or_null<StringAttr>(binding.get("kind"));
     if (!kind)
       return emitOpError("binding requires a string kind");
-    return emitOpError("nonlocal placement bindings are not supported by QLX");
     auto requireString = [&](StringRef key) -> LogicalResult {
       auto value = dyn_cast_or_null<StringAttr>(binding.get(key));
       if (!value || value.getValue().empty())
@@ -358,8 +403,10 @@ LogicalResult PlacementOp::verify() {
   return success();
 }
 
-static LogicalResult verifyPlacementReference(Operation *op, SymbolRefAttr ref,
-                                              DomainOp expectedDomain) {
+static LogicalResult
+verifyPlacementReference(Operation *op, SymbolRefAttr ref,
+                         DomainOp expectedDomain,
+                         SymbolTable *domainSymbols = nullptr) {
   if (!ref || ref.getNestedReferences().size() != 1)
     return op->emitOpError("placement references must be @domain::@placement");
   if (ref.getRootReference() != expectedDomain.getSymNameAttr())
@@ -367,7 +414,9 @@ static LogicalResult verifyPlacementReference(Operation *op, SymbolRefAttr ref,
            << ref << " is not rooted in kernel domain @"
            << expectedDomain.getSymName();
   Operation *target =
-      SymbolTable::lookupSymbolIn(expectedDomain, ref.getLeafReference());
+      domainSymbols
+          ? domainSymbols->lookup(ref.getLeafReference().getValue())
+          : SymbolTable::lookupSymbolIn(expectedDomain, ref.getLeafReference());
   if (!isa_and_nonnull<SpaceOp, PlacementOp>(target))
     return op->emitOpError("references unknown logical space or placement ")
            << ref;
@@ -386,6 +435,9 @@ static LogicalResult verifyPlacedType(Operation *op, Type type,
   return success();
 }
 
+static LogicalResult verifyP0KernelBodyRefinement(KernelOp kernel,
+                                                  qlx::ProgramOp portable);
+
 LogicalResult KernelOp::verify() {
   DomainOp domain = lookupDomain(getOperation(), getDomainAttr());
   if (!domain)
@@ -393,8 +445,9 @@ LogicalResult KernelOp::verify() {
   auto inputP0 = getInputP0Attr();
   if (getEstimateOnly() && !inputP0)
     return emitOpError("estimate_only requires an input_p0 refinement");
+  qlx::ProgramOp inputProgram;
   if (inputP0) {
-    auto inputProgram = dyn_cast_or_null<qlx::ProgramOp>(
+    inputProgram = dyn_cast_or_null<qlx::ProgramOp>(
         lookupObjective(getOperation(), inputP0));
     if (!inputProgram)
       return emitOpError("input_p0 must resolve to a qlx.program ") << inputP0;
@@ -438,23 +491,293 @@ LogicalResult KernelOp::verify() {
         "lvm.return operands do not match function_type results");
 
   LogicalResult result = success();
+  llvm::DenseSet<int64_t> callScopes;
+  // The placed body may contain hundreds of thousands of logical operands.
+  // A standalone SymbolTable::lookupSymbolIn performs a direct symbol-table
+  // lookup without retaining an index between calls.  Build one domain index
+  // for the whole kernel proof so placement authentication remains exact and
+  // linear in the body size.
+  SymbolTable domainSymbols(domain);
   getBody().walk([&](Operation *nested) {
     if (failed(result))
       return;
+    if (auto call = dyn_cast<CallOp>(nested)) {
+      int64_t scope = call.getScopeAttr().getInt();
+      if (!callScopes.insert(scope).second) {
+        call.emitOpError("scope must be unique within its lvm.kernel");
+        result = failure();
+        return;
+      }
+    }
     for (Type valueType : nested->getOperandTypes()) {
       if (auto logical = dyn_cast<LogicalQubitType>(valueType))
         if (failed(verifyPlacementReference(nested, logical.getPlacement(),
-                                            domain)))
+                                            domain, &domainSymbols)))
           result = failure();
     }
     for (Type valueType : nested->getResultTypes()) {
       if (auto logical = dyn_cast<LogicalQubitType>(valueType))
         if (failed(verifyPlacementReference(nested, logical.getPlacement(),
-                                            domain)))
+                                            domain, &domainSymbols)))
           result = failure();
     }
   });
+  if (succeeded(result) && inputProgram &&
+      failed(verifyP0KernelBodyRefinement(*this, inputProgram)))
+    return failure();
   return result;
+}
+
+static LogicalResult verifyP0Refinement(Operation *owner, TypeRange placed,
+                                        TypeRange portable,
+                                        StringRef description) {
+  if (placed.size() != portable.size())
+    return owner->emitOpError(description)
+           << " arity does not match retained P0 signature";
+  for (auto [actual, ideal] : llvm::zip(placed, portable)) {
+    if (isa<qlx::LogicalQubitType>(ideal)) {
+      if (!isa<LogicalQubitType>(actual))
+        return owner->emitOpError(description)
+               << " logical-qubit type does not refine P0";
+      continue;
+    }
+    if (actual != ideal)
+      return owner->emitOpError(description)
+             << " non-quantum type does not match retained P0 signature";
+  }
+  return success();
+}
+
+namespace {
+
+enum class PlacedBodyKind { Kernel, Call };
+
+static bool isP0TypeRefinement(Type placed, Type portable) {
+  if (isa<qlx::LogicalQubitType>(portable))
+    return isa<LogicalQubitType>(placed);
+  if (auto resource = dyn_cast<qlx::LogicalResourceType>(portable)) {
+    auto bound = dyn_cast<LogicalResourceType>(placed);
+    return bound && bound.getKind() == resource.getKind();
+  }
+  if (auto event = dyn_cast<qlx::event::HandleType>(portable)) {
+    auto bound = dyn_cast<qlx::event::HandleType>(placed);
+    return bound && bound.getOwnership() == event.getOwnership() &&
+           isP0TypeRefinement(bound.getPayload(), event.getPayload());
+  }
+  if (auto frame = dyn_cast<qlx::LogicalFrameType>(portable)) {
+    auto bound = dyn_cast<LogicalFrameType>(placed);
+    return bound && bound.getDomain() == frame.getDomain();
+  }
+  return placed == portable;
+}
+
+static bool operationNamesRefine(StringRef placed, StringRef portable,
+                                 PlacedBodyKind bodyKind) {
+  if (portable == "qlx.return")
+    return placed ==
+           (bodyKind == PlacedBodyKind::Call ? "lvm.yield" : "lvm.return");
+  if (portable.starts_with("qlx."))
+    return placed.starts_with("lvm.") &&
+           placed.drop_front(4) == portable.drop_front(4);
+  return placed == portable;
+}
+
+static bool isDroppedP0BookkeepingAttribute(Operation *portable,
+                                            StringRef name) {
+  return isa<qlx::PrepareOp>(portable) &&
+         (name == "allocation" || name == "value_index");
+}
+
+static bool isDerivedP1Attribute(StringRef operation, StringRef name) {
+  if (operation == "lvm.call")
+    return name == "scope";
+  if (operation == "lvm.prepare")
+    return name == "at" || name == "site" || name == "placement_owner" ||
+           name == "placement_slot" || name == "source_allocation" ||
+           name == "source_group" || name == "source_path";
+  if (operation == "lvm.apply")
+    return name == "placements" || name == "site";
+  if (operation == "lvm.instrument")
+    return name == "placements" || name == "site" || name == "channel" ||
+           name == "channel_capability" || name == "endpoints";
+  if (operation == "lvm.measure")
+    return name == "at" || name == "site";
+  if (operation == "lvm.idle" || operation == "lvm.discard")
+    return name == "placements";
+  if (operation == "lvm.resource_request")
+    return name == "stream";
+  if (operation == "lvm.consume_resource")
+    return name == "resource_kind" || name == "resource_stream" ||
+           name == "placements" || name == "site";
+  return false;
+}
+
+static LogicalResult verifyP0BlockRefinement(Operation *owner, Block &portable,
+                                             Block &placed,
+                                             DenseMap<Value, Value> values,
+                                             PlacedBodyKind bodyKind);
+
+static LogicalResult verifyP0OperationRefinement(Operation *owner,
+                                                 Operation *portable,
+                                                 Operation *placed,
+                                                 DenseMap<Value, Value> &values,
+                                                 PlacedBodyKind bodyKind) {
+  StringRef portableName = portable->getName().getStringRef();
+  StringRef placedName = placed->getName().getStringRef();
+  if (!operationNamesRefine(placedName, portableName, bodyKind))
+    return owner->emitOpError("placed body does not refine retained P0: ")
+           << "expected " << portableName << " but found " << placedName;
+
+  if (portable->getNumOperands() != placed->getNumOperands())
+    return owner->emitOpError(
+        "placed body operation operand arity differs from retained P0");
+  for (auto [portableOperand, placedOperand] :
+       llvm::zip(portable->getOperands(), placed->getOperands())) {
+    auto mapped = values.find(portableOperand);
+    if (mapped == values.end() || mapped->second != placedOperand)
+      return owner->emitOpError(
+          "placed body SSA operand wiring differs from retained P0");
+  }
+
+  if (portable->getNumResults() != placed->getNumResults())
+    return owner->emitOpError(
+        "placed body operation result arity differs from retained P0");
+  for (auto [portableResult, placedResult] :
+       llvm::zip(portable->getResults(), placed->getResults())) {
+    if (!isP0TypeRefinement(placedResult.getType(), portableResult.getType()))
+      return owner->emitOpError(
+          "placed body result type does not refine retained P0");
+    values[portableResult] = placedResult;
+  }
+
+  for (NamedAttribute attribute : portable->getAttrs()) {
+    StringRef name = attribute.getName().strref();
+    if (isDroppedP0BookkeepingAttribute(portable, name))
+      continue;
+    if (placed->getAttr(attribute.getName()) != attribute.getValue())
+      return owner->emitOpError("placed body attribute '")
+             << name << "' differs from retained P0";
+  }
+  for (NamedAttribute attribute : placed->getAttrs()) {
+    StringRef name = attribute.getName().strref();
+    if (portable->getAttr(attribute.getName()) ||
+        isDerivedP1Attribute(placedName, name))
+      continue;
+    return owner->emitOpError("placed body contains non-derived attribute '")
+           << name << "' absent from retained P0";
+  }
+
+  if (portableName == "qlx.call") {
+    auto call = dyn_cast<CallOp>(placed);
+    if (!call)
+      return owner->emitOpError(
+          "placed nested call is not represented by lvm.call");
+    return verifyP0CallBodyRefinement(call);
+  }
+
+  if (portable->getNumRegions() != placed->getNumRegions())
+    return owner->emitOpError(
+        "placed body region arity differs from retained P0");
+  for (auto [portableRegion, placedRegion] :
+       llvm::zip(portable->getRegions(), placed->getRegions())) {
+    if (portableRegion.getBlocks().size() != placedRegion.getBlocks().size())
+      return owner->emitOpError(
+          "placed body block arity differs from retained P0");
+    for (auto [portableBlock, placedBlock] :
+         llvm::zip(portableRegion.getBlocks(), placedRegion.getBlocks()))
+      if (failed(verifyP0BlockRefinement(owner, portableBlock, placedBlock,
+                                         values, bodyKind)))
+        return failure();
+  }
+  return success();
+}
+
+static LogicalResult verifyP0BlockRefinement(Operation *owner, Block &portable,
+                                             Block &placed,
+                                             DenseMap<Value, Value> values,
+                                             PlacedBodyKind bodyKind) {
+  if (portable.getNumArguments() != placed.getNumArguments())
+    return owner->emitOpError(
+        "placed body block-argument arity differs from retained P0");
+  for (auto [portableArgument, placedArgument] :
+       llvm::zip(portable.getArguments(), placed.getArguments())) {
+    if (!isP0TypeRefinement(placedArgument.getType(),
+                            portableArgument.getType()))
+      return owner->emitOpError(
+          "placed body block-argument type does not refine retained P0");
+    values[portableArgument] = placedArgument;
+  }
+  if (portable.getOperations().size() != placed.getOperations().size())
+    return owner->emitOpError(
+        "placed body operation count differs from retained P0");
+  for (auto [portableOperation, placedOperation] :
+       llvm::zip(portable.getOperations(), placed.getOperations()))
+    if (failed(verifyP0OperationRefinement(owner, &portableOperation,
+                                           &placedOperation, values, bodyKind)))
+      return failure();
+  return success();
+}
+
+static LogicalResult verifyP0BodyRefinement(Operation *owner,
+                                            qlx::ProgramOp portable,
+                                            Region &placed,
+                                            PlacedBodyKind bodyKind) {
+  if (!llvm::hasSingleElement(portable.getBody()) ||
+      !llvm::hasSingleElement(placed))
+    return owner->emitOpError(
+        "P0 and placed refinement bodies must each contain one block");
+  DenseMap<Value, Value> values;
+  return verifyP0BlockRefinement(owner, portable.getBody().front(),
+                                 placed.front(), std::move(values), bodyKind);
+}
+
+} // namespace
+
+LogicalResult qlx::lvm::verifyP0CallBodyRefinement(CallOp call) {
+  auto callee = dyn_cast_or_null<qlx::ProgramOp>(
+      lookupObjective(call.getOperation(), call.getCalleeAttr()));
+  if (!callee)
+    return call.emitOpError("references unknown qlx.program ")
+           << call.getCalleeAttr();
+  return verifyP0BodyRefinement(call.getOperation(), callee, call.getBody(),
+                                PlacedBodyKind::Call);
+}
+
+static LogicalResult verifyP0KernelBodyRefinement(KernelOp kernel,
+                                                  qlx::ProgramOp portable) {
+  return verifyP0BodyRefinement(kernel.getOperation(), portable,
+                                kernel.getBody(), PlacedBodyKind::Kernel);
+}
+
+LogicalResult CallOp::verify() {
+  auto kernel = (*this)->getParentOfType<KernelOp>();
+  if (!kernel)
+    return emitOpError("must appear inside lvm.kernel");
+  if (getScopeAttr().getInt() < 0)
+    return emitOpError("scope must be nonnegative");
+  auto callee = dyn_cast_or_null<qlx::ProgramOp>(
+      lookupObjective(getOperation(), getCalleeAttr()));
+  if (!callee)
+    return emitOpError("references unknown qlx.program ") << getCalleeAttr();
+  if (callee.getEstimateOnly() && !kernel.getEstimateOnly())
+    return emitOpError(
+               "executable placed kernel cannot call estimate-only P0 helper ")
+           << getCalleeAttr();
+  FunctionType portable = callee.getFunctionType();
+  if (failed(verifyP0Refinement(getOperation(), getInputs().getTypes(),
+                                portable.getInputs(), "input")) ||
+      failed(verifyP0Refinement(getOperation(), getResultTypes(),
+                                portable.getResults(), "result")))
+    return failure();
+  if (!llvm::hasSingleElement(getBody()))
+    return emitOpError("body must contain one block");
+  Block &body = getBody().front();
+  if (body.getArgumentTypes() != getInputs().getTypes())
+    return emitOpError("body arguments must match placed call inputs");
+  auto yield = dyn_cast<YieldOp>(body.getTerminator());
+  if (!yield || yield.getOperandTypes() != getResultTypes())
+    return emitOpError("yield types must match placed call results");
+  return verifyP0CallBodyRefinement(*this);
 }
 
 LogicalResult PrepareOp::verify() {
@@ -626,9 +949,6 @@ static LogicalResult verifyCommunicationObligation(InstrumentOp op) {
   unsigned present = static_cast<unsigned>(hasChannel) +
                      static_cast<unsigned>(hasChannelCapability) +
                      static_cast<unsigned>(hasEndpoints);
-  if (present != 0)
-    return op.emitOpError(
-        "communication-qualified instruments are not supported by QLX");
   auto kernel = op->getParentOfType<KernelOp>();
   if (!kernel)
     return op.emitOpError("must appear inside lvm.kernel");
@@ -752,6 +1072,16 @@ static LogicalResult verifyCommunicationObligation(InstrumentOp op) {
 LogicalResult ActionSiteOp::verify() {
   if (failed(rejectRetiredMachineCapabilityAttrs(getOperation())))
     return failure();
+
+  if (auto sourceSite = getSourceSiteAttr()) {
+    if (sourceSite.getInt() < 0)
+      return emitOpError("source_site must be nonnegative");
+
+    auto domain = (*this)->getParentOfType<DomainOp>();
+    if (!domain)
+      return emitOpError("must appear inside lvm.domain");
+  }
+
   bool hasChannel = static_cast<bool>(getChannelAttr());
   bool hasChannelCapability = static_cast<bool>(getChannelCapabilityAttr());
   bool hasEndpoints = static_cast<bool>(getEndpointsAttr());
@@ -760,8 +1090,6 @@ LogicalResult ActionSiteOp::verify() {
                      static_cast<unsigned>(hasChannelCapability) +
                      static_cast<unsigned>(hasEndpoints) +
                      static_cast<unsigned>(hasDirection);
-  if (present != 0)
-    return emitOpError("communication action sites are not supported by QLX");
   if (present == 0)
     return success();
   if (present != 4)
@@ -887,158 +1215,6 @@ LogicalResult IdleOp::verify() {
   return success();
 }
 
-LogicalResult IfOp::verify() {
-  for (Region *region : {&getThenRegion(), &getElseRegion()}) {
-    if (!llvm::hasSingleElement(*region))
-      return emitOpError("branches must each contain one block");
-    auto yield = dyn_cast<YieldOp>(region->front().getTerminator());
-    if (!yield || yield.getOperandTypes() != getResultTypes())
-      return emitOpError("branch yields must match result types");
-  }
-  return success();
-}
-
-LogicalResult RepeatOp::verify() {
-  if (!llvm::hasSingleElement(getBody()))
-    return emitOpError("body must contain one block");
-  Block &body = getBody().front();
-  if (body.getArgumentTypes() != getInits().getTypes() ||
-      getResultTypes() != getInits().getTypes())
-    return emitOpError(
-        "iter arguments, inits, and results must have equal types");
-  auto yield = dyn_cast<YieldOp>(body.getTerminator());
-  if (!yield || yield.getOperandTypes() != getResultTypes())
-    return emitOpError("yield types must match repeat result types");
-  return success();
-}
-
-LogicalResult WhileOp::verify() {
-  if (getMaxIterationsAttr() && getMaxIterationsAttr().getInt() <= 0)
-    return emitOpError("max_iterations must be positive when present");
-  if (!llvm::hasSingleElement(getBeforeRegion()) ||
-      !llvm::hasSingleElement(getAfterRegion()))
-    return emitOpError("before and after regions must each contain one block");
-  if (getInits().getTypes() != getResultTypes())
-    return emitOpError("init and result types must be identical");
-  Block &before = getBeforeRegion().front();
-  Block &after = getAfterRegion().front();
-  if (before.getArgumentTypes() != getResultTypes() ||
-      after.getArgumentTypes() != getResultTypes())
-    return emitOpError(
-        "before/after block arguments must match the carried result types");
-  auto condition = dyn_cast<WhileConditionOp>(before.getTerminator());
-  if (!condition)
-    return emitOpError("before region must terminate with lvm.while_condition");
-  if (condition.getForwarded().getTypes() != getResultTypes())
-    return emitOpError(
-        "while_condition forwarded types must match loop result types");
-  auto yield = dyn_cast<YieldOp>(after.getTerminator());
-  if (!yield)
-    return emitOpError("after region must terminate with lvm.yield");
-  if (yield.getOperandTypes() != getResultTypes())
-    return emitOpError("after-region yield types must match loop result types");
-  return success();
-}
-
-static LogicalResult verifyEventState(Operation *op, StringRef state) {
-  if (state != "pending" && state != "ready" && state != "failed" &&
-      state != "cancelled" && state != "exhausted")
-    return op->emitOpError(
-        "event state must be pending, ready, failed, cancelled, or exhausted");
-  return success();
-}
-
-static LogicalResult verifyReadySelection(Operation *op, ValueRange events,
-                                          StringRef policy) {
-  if (events.empty())
-    return op->emitOpError("requires at least one event");
-  Type eventType = events.front().getType();
-  if (!llvm::all_of(events,
-                    [&](Value event) { return event.getType() == eventType; }))
-    return op->emitOpError("all selected events must have the same type");
-  if (policy != "priority" && policy != "deterministic" && policy != "fair")
-    return op->emitOpError("policy must be priority, deterministic, or fair");
-  return success();
-}
-
-static LogicalResult verifyFenceEffects(Operation *op, ArrayAttr effects) {
-  if (effects.empty())
-    return op->emitOpError("requires at least one semantic effect");
-  llvm::StringSet<> seen;
-  for (Attribute effect : effects) {
-    auto value = dyn_cast<StringAttr>(effect);
-    if (!value)
-      return op->emitOpError("effects must be strings");
-    StringRef name = value.getValue();
-    if (name != "all" && name != "quantum" && name != "classical" &&
-        name != "resource" && name != "event" && name != "frame" &&
-        name != "outcome" && name != "selection")
-      return op->emitOpError("unknown semantic effect '") << name << "'";
-    if (!seen.insert(name).second)
-      return op->emitOpError("semantic effects must be unique");
-  }
-  if (seen.contains("all") && effects.size() != 1)
-    return op->emitOpError(
-        "effect 'all' cannot be combined with other effects");
-  return success();
-}
-
-LogicalResult EventIsOp::verify() {
-  return verifyEventState(getOperation(), getState());
-}
-
-LogicalResult EventSelectReadyOp::verify() {
-  return verifyReadySelection(getOperation(), getEvents(), getPolicy());
-}
-
-LogicalResult EventTryTakeOp::verify() {
-  if (getCarries().getTypes() != getResultTypes())
-    return emitOpError("carry and result types must match exactly");
-  auto verifyBranch = [&](Region &region, Type alternative,
-                          StringRef label) -> LogicalResult {
-    if (!llvm::hasSingleElement(region))
-      return emitOpError() << label << " region must contain one block";
-    Block &block = region.front();
-    if (block.getNumArguments() != getCarries().size() + 1)
-      return emitOpError()
-             << label
-             << " region requires one alternative argument plus carries";
-    if (block.getArgument(0).getType() != alternative)
-      return emitOpError() << label
-                           << " alternative argument has the wrong type";
-    for (auto [argument, carry] :
-         llvm::zip(block.getArguments().drop_front(), getCarries()))
-      if (argument.getType() != carry.getType())
-        return emitOpError()
-               << label << " carry arguments have the wrong types";
-    auto yield = dyn_cast<YieldOp>(block.getTerminator());
-    if (!yield || yield.getOperandTypes() != getResultTypes())
-      return emitOpError() << label << " yield types must match results";
-    return success();
-  };
-  auto eventType = getEvent().getType();
-  if (failed(verifyBranch(getReady(), eventType.getPayload(), "ready")) ||
-      failed(verifyBranch(getPending(), eventType, "pending")) ||
-      failed(verifyBranch(getFailed(), IntegerType::get(getContext(), 8),
-                          "failed")))
-    return failure();
-  return success();
-}
-
-LogicalResult FenceOp::verify() {
-  return verifyFenceEffects(getOperation(), getEffects());
-}
-
-LogicalResult SelectionOp::verify() {
-  StringRef mode = getMode();
-  if (mode != "require" && mode != "condition_results" && mode != "abort_on")
-    return emitOpError("mode must be require, condition_results, or abort_on");
-  bool expected = mode != "abort_on";
-  if (getAcceptWhen() != expected)
-    return emitOpError("accept_when disagrees with the selection mode");
-  return success();
-}
-
 LogicalResult ConsumeResourceOp::verify() {
   auto type = getResource().getType();
   if (type.getKind() != getResourceKindAttr().getValue())
@@ -1062,13 +1238,16 @@ LogicalResult ConsumeResourceOp::verify() {
 
 void LVMDialect::initialize() {
   addInterfaces<LVMDeviceBindingDialectInterface>();
-  addTypes<LogicalQubitType>();
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "qlx/Dialect/LVM/IR/LVMTypes.cpp.inc"
+      >();
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "qlx/Dialect/LVM/IR/LVMAttrs.cpp.inc"
       >();
-  addOperations<DomainOp, SpaceOp, StreamOp, ChannelOp, PlacementOp,
-                ActionSiteOp, ReturnOp, KernelOp, PrepareOp, ApplyOp,
-                InstrumentOp, MeasureOp, IdleOp, DiscardOp, SelectionOp, XorOp,
-                YieldOp, IfOp, RepeatOp, WhileConditionOp, WhileOp>();
+  addOperations<
+#define GET_OP_LIST
+#include "qlx/Dialect/LVM/IR/LVMOps.cpp.inc"
+      >();
 }

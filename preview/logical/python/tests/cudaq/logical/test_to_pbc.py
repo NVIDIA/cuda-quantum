@@ -9,7 +9,7 @@
 
 A synthesized Clifford+T program becomes pi/4 Pauli-product rotations (one per
 T) followed by the terminal measurements conjugated into Pauli products. Each
-run is checked against an independent Stim tableau oracle: a T at forward
+run is checked against an independent stim tableau oracle: a T at forward
 position p on qubit q rotates about ``V_before^dag Z_q V_before`` (V_before =
 the Clifford gates before it), and a measurement of basis B on qubit i becomes
 ``C^dag B_i C`` (C = all Clifford gates).
@@ -22,7 +22,7 @@ from typing import Tuple
 
 import pytest
 
-import cudaq.logical
+import cudaq.logical as qlx
 from cudaq.mlir._mlir_libs import _qlxRuntime as rt
 
 stim = pytest.importorskip("stim")
@@ -34,36 +34,34 @@ def _synth(gates, meas):
                  [m[1] for m in meas])
 
     def prog():
-        q = cudaq.logical.allocate(nq, state=cudaq.logical.types.zero)
+        q = qlx.allocate(nq, state=qlx.types.zero)
         for g in gates:
             if g[0] == "h":
-                q[g[1]] = cudaq.logical.h(q[g[1]])
+                q[g[1]] = qlx.h(q[g[1]])
             elif g[0] == "s":
-                q[g[1]] = cudaq.logical.s(q[g[1]])
+                q[g[1]] = qlx.s(q[g[1]])
             elif g[0] == "sdg":
-                q[g[1]] = cudaq.logical.sdg(q[g[1]])
+                q[g[1]] = qlx.sdg(q[g[1]])
             elif g[0] == "x":
-                q[g[1]] = cudaq.logical.x(q[g[1]])
+                q[g[1]] = qlx.x(q[g[1]])
             elif g[0] == "z":
-                q[g[1]] = cudaq.logical.z(q[g[1]])
+                q[g[1]] = qlx.z(q[g[1]])
             elif g[0] == "cx":
-                q[g[1]], q[g[2]] = cudaq.logical.cx(q[g[1]], q[g[2]])
+                q[g[1]], q[g[2]] = qlx.cx(q[g[1]], q[g[2]])
             elif g[0] == "t":
-                (q[g[1]],) = cudaq.logical.ops.rotate(
-                    cudaq.logical.types.Z(q[g[1]]),
-                    angle=cudaq.logical.types.pi / 4)
+                (q[g[1]],) = qlx.ops.rotate(qlx.types.Z(q[g[1]]),
+                                            angle=qlx.types.pi / 4)
             elif g[0] == "tdg":
-                (q[g[1]],) = cudaq.logical.ops.rotate(
-                    cudaq.logical.types.Z(q[g[1]]),
-                    angle=-cudaq.logical.types.pi / 4)
+                (q[g[1]],) = qlx.ops.rotate(qlx.types.Z(q[g[1]]),
+                                            angle=-qlx.types.pi / 4)
         return tuple(
-            cudaq.logical.measure_x(q[i]) if b ==
-            "X" else cudaq.logical.measure_z(q[i]) for b, i in meas)
+            qlx.measure_x(q[i]) if b == "X" else qlx.measure_z(q[i])
+            for b, i in meas)
 
     prog.__annotations__["return"] = Tuple[tuple(bool for _ in meas)]
-    prog = cudaq.logical.program(prog)
-    mlir = cudaq.logical.compile(
-        prog, pipeline=cudaq.logical.compiler.pipelines.logical()).to_mlir()
+    prog = qlx.program(prog)
+    mlir = qlx.compile(prog,
+                       pipeline=qlx.compiler.pipelines.logical()).to_mlir()
     return rt.synthesize_qlx(mlir, 1e-10)
 
 
@@ -146,7 +144,7 @@ def _parse_pbc(text):
     return rots, meass
 
 
-# -- Stim oracle ------------------------------------------------------------
+# -- stim oracle ------------------------------------------------------------
 def _tableau(gates, nq, upto=None):
     c = stim.Circuit()
     for idx, g in enumerate(gates):
@@ -253,17 +251,13 @@ def test_pbc_structure():
 
 
 def test_pbc_rejects_unsynthesized():
-    # A single-qubit ``pauli_rotation`` is rejected before synthesis, with
-    # guidance.
-    @cudaq.logical.program
+    # A single-qubit pauli_rotation (pre-synthesis) is rejected with guidance.
+    @qlx.program
     def raw() -> bool:
-        q = cudaq.logical.allocate(1)
-        (q[0],) = cudaq.logical.ops.rotate(cudaq.logical.types.Z(q[0]),
-                                           angle=0.3,
-                                           precision=1e-6)
-        return cudaq.logical.measure_z(q[0])
+        q = qlx.allocate(1)
+        (q[0],) = qlx.ops.rotate(qlx.types.Z(q[0]), angle=0.3, precision=1e-6)
+        return qlx.measure_z(q[0])
 
-    mlir = cudaq.logical.compile(
-        raw, pipeline=cudaq.logical.compiler.pipelines.logical()).to_mlir()
+    mlir = qlx.compile(raw, pipeline=qlx.compiler.pipelines.logical()).to_mlir()
     with pytest.raises(RuntimeError):
         rt.to_pbc(mlir)

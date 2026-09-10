@@ -25,18 +25,17 @@ from typing import (
     get_type_hints,
 )
 
-from ..programs.binding import (
+from cudaq.logical.programs.binding import (
     LogicalPortRef,
     ObjectiveOperandRef,
 )
-from .._core.immutable import ImmutableValue
+from cudaq.logical._core.immutable import ImmutableValue
 
 EncodingT = TypeVar("EncodingT")
 
 from .interface import (
     BlockEndpoint,
     BlockFlow,
-    OutcomeRole,
     EndpointCollection,
     GadgetInterface,
     _freeze_gadget_metadata,
@@ -252,7 +251,7 @@ class RecordFamily:
 
 @dataclass(frozen=True, slots=True)
 class RecordVectorParity:
-    """Shape-preserving element-wise XOR over equal-width record families."""
+    """Shape-preserving elementwise XOR over equal-width record families."""
 
     families: tuple[RecordFamily, ...]
 
@@ -459,7 +458,7 @@ def _resolve_gadget_code_profile(
     ambiguous.
     """
 
-    from ..codes import CodeProfile
+    from cudaq.logical.codes import CodeProfile
 
     endpoints = (*gadget.interface.inputs, *gadget.interface.outputs)
     profiles = [endpoint.code_profile for endpoint in endpoints]

@@ -19,8 +19,8 @@ from __future__ import annotations
 import math
 
 from .. import codes, std
-from ..programs.decorators import objective
-from ..ops._impl import (
+from cudaq.logical.programs.decorators import objective
+from cudaq.logical.ops._impl import (
     allocate_patch,
     discard,
     h,
@@ -37,14 +37,14 @@ from ..ops._impl import (
     s,
     unpack_resource,
 )
-from ..types.values import logical_qubit
-from ..algebra.pauli import Z
-from ..gadgets import (
+from cudaq.logical.types.values import logical_qubit
+from cudaq.logical.algebra.pauli import Z
+from cudaq.logical.gadgets import (
     gadget,
     patch,
 )
-from ..protocols.definition import protocol
-from ..types.semantic import resource
+from cudaq.logical.protocols.definition import protocol
+from cudaq.logical.types.semantic import resource
 
 # Columns 4..14 of the standard 15-to-1 triorthogonal matrix.  Columns
 # 0..3 are single-qubit rotations on the four check rows and are represented by
@@ -62,6 +62,22 @@ FIFTEEN_TO_ONE_ROTATION_SUPPORTS = (
     (0, 1, 2),
     (0, 1, 2, 3, 4),
 )
+
+# Gidney--Fowler Figure 5, represented as immutable circuit data shared by
+# concrete QLX protocol authoring and independent ideal-state tests.  The
+# first tuple is the four X-product checks on eleven level-2 patches.  The
+# eight masks map injection outcomes a..h to output-Z corrections 111..000;
+# the remaining check outcomes correct outputs 1, 3, and 2 (zero based
+# indices 0, 2, 1).
+CCZ_8TO1_CHECK_SUPPORTS = (
+    (0, 3, 4, 5, 6),
+    (3, 4, 5, 6, 7, 8, 9, 10),
+    (2, 3, 5, 7, 9),
+    (1, 3, 4, 7, 8),
+)
+CCZ_8TO1_INJECTION_TARGETS = tuple(range(3, 11))
+CCZ_8TO1_OUTPUT_CORRECTION_MASKS = (7, 6, 5, 4, 3, 2, 1, 0)
+CCZ_8TO1_SYNDROME_OUTPUTS = (0, 2, 1)
 
 
 def _make_rotation_step(index: int, support: tuple[int, ...]):
@@ -86,7 +102,9 @@ def _make_rotation_step(index: int, support: tuple[int, ...]):
         for port in support[1:]:
             product = product @ Z(values[port])
         updated = rotate(product, angle=math.pi / 4.0)
-        for port, value in zip(support, updated):
+        for operand, value in zip(product.operands, updated, strict=True):
+            port = next(
+                port for port, owner in enumerate(values) if owner is operand)
             values[port] = value
         return tuple(values)
 
@@ -110,7 +128,10 @@ def _make_rotation_step(index: int, support: tuple[int, ...]):
         for port in support[1:]:
             product = product @ Z(values[port][0])
         updated = resource_rotate(raw, product, angle=math.pi / 4.0)
-        for port, value in zip(support, updated):
+        for operand, value in zip(product.operands, updated, strict=True):
+            owner = getattr(operand, "patch", operand)
+            port = next(port for port, candidate in enumerate(values)
+                        if candidate is owner)
             values[port] = value
         return tuple(values)
 
@@ -146,7 +167,17 @@ def bare_measure_x(block: patch[codes.BareQubit]) -> bool:
     return outcome
 
 
-@protocol(implements=std.produce(std.T_STATE))
+@protocol(
+    implements=std.produce(std.T_STATE),
+    metadata={
+        "production_model": "distill-15to1-T",
+        "raw_inputs": 15,
+        "scratch_blocks": 11,
+        "cycles_per_attempt": 120,
+        "pipeline_depth": 4,
+        "circuit": "five_qubit_triorthogonal",
+    },
+)
 def distill_15to1() -> resource[std.T_STATE]:
     raw = request_many(std.RAW_T_STATE, count=15)
     output = prepare_plus(
@@ -174,6 +205,10 @@ def distill_15to1() -> resource[std.T_STATE]:
 
 
 __all__ = [
+    "CCZ_8TO1_CHECK_SUPPORTS",
+    "CCZ_8TO1_INJECTION_TARGETS",
+    "CCZ_8TO1_OUTPUT_CORRECTION_MASKS",
+    "CCZ_8TO1_SYNDROME_OUTPUTS",
     "FIFTEEN_TO_ONE_ROTATION_SUPPORTS",
     "FIFTEEN_TO_ONE_ROTATION_STEPS",
     "bare_measure_x",

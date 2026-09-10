@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #ifndef QLX_DIALECT_QLX_TRANSFORMS_PASSES_H
 #define QLX_DIALECT_QLX_TRANSFORMS_PASSES_H

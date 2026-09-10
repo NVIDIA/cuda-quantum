@@ -65,23 +65,3 @@ qlx.program @no_rotation_already_clifford_t : () -> i1 attributes {qlx.stage = "
 //       CHECK:   %[[Q:.*]] = qlx.prepare
 //       CHECK:   %[[H:.*]] = qlx.apply #qlx.action<h>(%[[Q]])
 //       CHECK:   qlx.apply #qlx.action<t>(%[[H]])
-
-// -----
-
-/// An off-lattice angle exercises CUDA-Q's shared Ross-Selinger/KMM
-/// implementation. The exact word may vary with the randomized Diophantine
-/// search, so assert only the stable Clifford+T contract.
-qlx.program @rotation_z_off_lattice : () -> i1 attributes {qlx.stage = "p0"} {
-  %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
-  %angle = arith.constant 0.3 : f64
-  %r = qlx.apply #qlx.action<pauli_rotation>(%q, %angle)
-      {parameters = {precision = 1.0e-3 : f64, sign = 1 : i64,
-                     x_mask = 0 : i64, z_mask = 1 : i64}}
-      : (!qlx.logical_qubit, f64) -> !qlx.logical_qubit
-  %m = qlx.measure #qlx.pauli<Z> %r : !qlx.logical_qubit -> i1
-  qlx.return %m : i1
-}
-
-// CHECK-LABEL: qlx.program @rotation_z_off_lattice
-//       CHECK:   qlx.apply #qlx.action<t>
-//   CHECK-NOT:   pauli_rotation

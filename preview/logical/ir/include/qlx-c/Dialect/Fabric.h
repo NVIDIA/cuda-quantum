@@ -1,12 +1,10 @@
-//===-- qlx-c/Dialect/Fabric.h - C API for Fabric dialect --------*- C -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #ifndef QLX_C_DIALECT_FABRIC_H
 #define QLX_C_DIALECT_FABRIC_H
@@ -46,6 +44,10 @@ MLIR_CAPI_EXPORTED MlirTypeID fabricResourceStateTypeGetTypeID(void);
 MLIR_CAPI_EXPORTED bool fabricTypeIsABit(MlirType type);
 MLIR_CAPI_EXPORTED MlirType fabricBitTypeGet(MlirContext ctx);
 MLIR_CAPI_EXPORTED MlirTypeID fabricBitTypeGetTypeID(void);
+
+MLIR_CAPI_EXPORTED bool fabricTypeIsAFrame(MlirType type);
+MLIR_CAPI_EXPORTED MlirType fabricFrameTypeGet(MlirContext ctx);
+MLIR_CAPI_EXPORTED MlirTypeID fabricFrameTypeGetTypeID(void);
 
 MLIR_CAPI_EXPORTED bool fabricTypeIsASlot(MlirType type);
 MLIR_CAPI_EXPORTED MlirType fabricSlotTypeGet(MlirContext ctx);

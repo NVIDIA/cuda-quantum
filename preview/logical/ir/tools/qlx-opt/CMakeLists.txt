@@ -12,34 +12,35 @@ add_llvm_executable(qlx-opt
   qlx-opt.cpp
 )
 
-target_link_libraries(qlx-opt PRIVATE
-  MLIRQLXDialect
-  MLIRLVMDialect
-  MLIRQLXTransforms
-  MLIRQuakeToQLX
-  MLIRQLXToLVM
-  MLIRFabricDialect
-  MLIRFabricTransforms
-
-  # CUDA-Q's Quake / CC dialects share CUDA-Q's MLIR image.
-  QLXCUDAQuantumDialects
-
+qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
   MLIRArithDialect
-  MLIRComplexDialect
   MLIRControlFlowDialect
   MLIRFuncDialect
-  MLIRLoopLikeInterface
   MLIRSCFDialect
+  MLIRLLVMDialect
   MLIROptLib
   MLIRIR
   MLIRSupport
   MLIRParser
 )
 
-llvm_update_compile_flags(qlx-opt)
+target_link_libraries(qlx-opt PRIVATE
+  MLIRQLXDialect
+  MLIRLVMDialect
+  MLIRPhysDialect
+  MLIRPhysTransforms
+  MLIRCflowDialect
+  MLIREventDialect
+  MLIRQLXTransforms
+  MLIRQuakeToQLX
+  MLIRQLXToLVM
+  MLIRFabricDialect
+  MLIRFabricTransforms
 
-# Link MLIR statically, like cudaq-opt.
-cudaq_use_static_mlir(qlx-opt)
+  ${_qlx_mlir_link_libraries}
+)
+
+llvm_update_compile_flags(qlx-opt)
 
 # Export all symbols so that dlopen'd pass/dialect plugins can resolve MLIR
 # symbols from this binary (equivalent to -rdynamic on Linux).
@@ -47,6 +48,18 @@ set_target_properties(qlx-opt PROPERTIES
   ENABLE_EXPORTS ON
   RUNTIME_OUTPUT_DIRECTORY ${QLX_TOOLS_DIR}
 )
+
+if(QLX_USE_CUDAQ_SDK)
+  qlx_select_mlir_link_libraries(_qlx_quake_mlir_link_libraries
+    MLIRComplexDialect
+    MLIRLoopLikeInterface
+  )
+  target_compile_definitions(qlx-opt PRIVATE QLX_HAS_CUDAQ_QUAKE=1)
+  target_link_libraries(qlx-opt PRIVATE
+    QLXCUDAQuantumDialects
+    ${_qlx_quake_mlir_link_libraries}
+  )
+endif()
 
 if(SKBUILD)
   set_target_properties(qlx-opt PROPERTIES

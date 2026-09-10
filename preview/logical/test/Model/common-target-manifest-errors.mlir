@@ -9,14 +9,28 @@
 // RUN: qlx-opt %s -verify-diagnostics
 
 module {
-  qlx.lowering_recipe @emit {
-    accepted_stages = ["p2"], required_facets = [], provides_facets = [],
-    capability = "emit_text", effect = "local", finalizer = "emit", stages = []
+  qlx.lowering_recipe @sample {
+    accepted_stages = ["p3"], required_facets = [], provides_facets = [],
+    capability = "sample", effect = "local", finalizer = "sample", stages = []
   }
-  // expected-error @+1 {{contains duplicate capability 'emit_text'}}
+  // expected-error @+1 {{capabilities must equal referenced recipe capabilities}}
+  qlx.target_manifest @missing {
+    availability = "local", capabilities = ["sample", "run"],
+    recipes = [@sample]
+  }
+}
+
+// -----
+
+module {
+  qlx.lowering_recipe @sample {
+    accepted_stages = ["p3"], required_facets = [], provides_facets = [],
+    capability = "sample", effect = "local", finalizer = "sample", stages = []
+  }
+  // expected-error @+1 {{contains duplicate capability 'sample'}}
   qlx.target_manifest @duplicate {
-    availability = "local", capabilities = ["emit_text", "emit_text"],
-    recipes = [@emit]
+    availability = "local", capabilities = ["sample", "sample"],
+    recipes = [@sample]
   }
 }
 

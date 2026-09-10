@@ -7,14 +7,13 @@
 # ============================================================================ #
 
 # Quake-import plugin: the CUDA-Q Quake/CC dialects packaged as a loadable
-# MLIR DialectPlugin. A no-op PassPlugin entry point keeps the generic QLX
+# MLIR DialectPlugin. A no-op PassPlugin entry point keeps the generic Logical
 # plugin loader compatible; the typed conversion pass lives in _qlxRuntime so
-# it shares the host QLX operation TypeIDs. Mirrors the xstab
-# plugin (runtime/simulation/xstab/lib/Plugin). Loaded at runtime by
+# it shares the host Logical operation TypeIDs. Loaded at runtime by
 # _qlxRuntime.load_plugin. The plugin links cudaq::MLIR, so all of its MLIR and
 # Quake/CC symbols resolve from libcudaqMLIR via DT_NEEDED -- no RTLD_GLOBAL
-# promotion of host images is needed or performed. The
-# plugin consumes Quake/CC from CUDA-Q's shared MLIR target.
+# promotion of host images is needed or performed. The plugin consumes Quake/CC
+# from CUDA-Q's shared MLIR target.
 #
 # This is a _qlxRuntime plugin only -- NOT a qlx-opt --load-*-plugin target
 # (qlx-opt already links the pass + Quake/CC itself).

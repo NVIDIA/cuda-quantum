@@ -13,12 +13,12 @@ from inspect import Parameter, Signature, signature
 from types import MappingProxyType, NoneType
 from typing import Any, Callable, Mapping, get_args, get_origin, get_type_hints
 
-from ..errors import InvalidDefinitionSignature
-from ..types.semantic import float64, index, record, resource
+from cudaq.logical.errors import InvalidDefinitionSignature
+from cudaq.logical.types.semantic import float64, index, record, resource
 
-_GADGET_INPUT = (
-    "cudaq.logical.patch[Code|Encoding], cudaq.logical.types.resource[ResourceKind], or "
-    "cudaq.logical.types.record[Code|Encoding]")
+_GADGET_INPUT = ("cudaq.logical.patch[Code|Encoding], "
+                 "cudaq.logical.types.resource[ResourceKind], or "
+                 "cudaq.logical.types.record[Code|Encoding]")
 _PROTOCOL_INPUT = f"{_GADGET_INPUT}, or bool"
 _OUTPUT = ("None or a fixed tuple/list of cudaq.logical.patch[Code|Encoding], "
            "cudaq.logical.types.resource[ResourceKind], "
@@ -74,7 +74,7 @@ def _is_encoded_boundary(annotation: Any, patch_type: type) -> bool:
     arguments = get_args(annotation)
     if len(arguments) != 1:
         return False
-    from ..codes import Code, Encoding
+    from cudaq.logical.codes import Code, Encoding
 
     return isinstance(arguments[0], (Code, Encoding))
 
@@ -85,7 +85,7 @@ def _is_resource_boundary(annotation: Any) -> bool:
     arguments = get_args(annotation)
     if len(arguments) != 1:
         return False
-    from ..std import ResourceKind
+    from cudaq.logical.std import ResourceKind
 
     return isinstance(arguments[0], ResourceKind)
 

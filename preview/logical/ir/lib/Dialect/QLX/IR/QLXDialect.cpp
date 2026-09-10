@@ -1,12 +1,10 @@
-//===- QLXDialect.cpp - QLX dialect registration ---------------*- C++ -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // This is the single translation unit for the QLX dialect. It includes all
 // generated .cpp.inc files for types, attributes, enums, and ops (logical
@@ -16,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
+#include "qlx/Dialect/Event/IR/EventTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
@@ -38,10 +37,75 @@ using namespace qlx;
 
 MLIR_DEFINE_EXPLICIT_TYPE_ID(qlx::DeviceBindingDialectInterface)
 
+namespace {
+
+constexpr StringLiteral allowedStages[] = {"p0", "p1", "p2", "p3"};
+constexpr StringLiteral allowedProfiles[] = {
+    "common", "p0", "p1", "p2", "p2s", "p2a", "p2n", "p2d", "p3"};
+
+bool isAllowedValue(StringRef value, ArrayRef<StringLiteral> allowed) {
+  return llvm::is_contained(allowed, value);
+}
+
+LogicalResult verifyStringValue(Operation *operation, NamedAttribute attribute,
+                                ArrayRef<StringLiteral> allowed,
+                                StringRef allowedDescription) {
+  auto value = dyn_cast<StringAttr>(attribute.getValue());
+  if (!value)
+    return operation->emitError() << attribute.getName() << " must be a string";
+  if (!isAllowedValue(value.getValue(), allowed))
+    return operation->emitError()
+           << attribute.getName() << " must be one of " << allowedDescription
+           << "; got '" << value.getValue() << "'";
+  return success();
+}
+
+LogicalResult verifyStringArray(Operation *operation, NamedAttribute attribute,
+                                ArrayRef<StringLiteral> allowed,
+                                StringRef allowedDescription) {
+  auto values = dyn_cast<ArrayAttr>(attribute.getValue());
+  if (!values)
+    return operation->emitError()
+           << attribute.getName() << " must be an array of strings";
+  for (auto [index, item] : llvm::enumerate(values)) {
+    auto value = dyn_cast<StringAttr>(item);
+    if (!value)
+      return operation->emitError() << attribute.getName() << " entry " << index
+                                    << " must be a string";
+    if (!isAllowedValue(value.getValue(), allowed))
+      return operation->emitError()
+             << attribute.getName() << " entry " << index << " must be one of "
+             << allowedDescription << "; got '" << value.getValue() << "'";
+  }
+  return success();
+}
+
+} // namespace
+
+LogicalResult QLXDialect::verifyOperationAttribute(Operation *operation,
+                                                   NamedAttribute attribute) {
+  StringRef name = attribute.getName().getValue();
+  if (name == "qlx.stage")
+    return verifyStringValue(operation, attribute, allowedStages,
+                             "p0, p1, p2, or p3");
+  if (name == "qlx.stages")
+    return verifyStringArray(operation, attribute, allowedStages,
+                             "p0, p1, p2, or p3");
+  if (name == "qlx.profile")
+    return verifyStringValue(operation, attribute, allowedProfiles,
+                             "common, p0, p1, p2, p2s, p2a, p2n, p2d, or p3");
+  if (name == "qlx.profiles")
+    return verifyStringArray(operation, attribute, allowedProfiles,
+                             "common, p0, p1, p2, p2s, p2a, p2n, p2d, or p3");
+  return success();
+}
+
 LogicalResult EstimateResultOp::verify() {
-  static constexpr StringLiteral tiers[] = {"logical", "static"};
+  static constexpr StringLiteral tiers[] = {"logical", "static", "analytical",
+                                            "schedule", "twin"};
   if (!llvm::is_contained(tiers, getTier()))
-    return emitOpError("tier must be logical or static");
+    return emitOpError(
+        "tier must be logical, static, analytical, schedule, or twin");
   if (getSchema().empty())
     return emitOpError("schema must be nonempty");
   Operation *root = SymbolTable::lookupNearestSymbolFrom(*this, getRootAttr());
@@ -74,6 +138,30 @@ LogicalResult EstimateResultOp::verify() {
     if (!getDeviceAttr() || lower)
       return emitOpError(
           "static tier requires a device and no lower-tier result");
+  } else if (getTier() == "analytical") {
+    if (!getDeviceAttr() || !lower || lower.getTier() != "static" ||
+        lower.getRootAttr() != getRootAttr() ||
+        lower.getDeviceAttr() != getDeviceAttr())
+      return emitOpError("analytical tier requires matching static root/device "
+                         "closure");
+  } else if (getTier() == "schedule") {
+    Operation *graph =
+        SymbolTable::lookupNearestSymbolFrom(*this, getRootAttr());
+    if (!graph || graph->getName().getStringRef() != "phys.graph")
+      return emitOpError("schedule tier root must resolve to phys.graph");
+    if (!lower || !getDeviceAttr() || lower.getTier() != "analytical" ||
+        lower.getDeviceAttr() != getDeviceAttr())
+      return emitOpError(
+          "schedule tier requires a matching analytical device closure");
+    auto device = dyn_cast_or_null<DeviceOp>(
+        SymbolTable::lookupNearestSymbolFrom(*this, getDeviceAttr()));
+    if (!device ||
+        graph->getAttrOfType<FlatSymbolRefAttr>("source_protocol") !=
+            lower.getRootAttr() ||
+        graph->getAttrOfType<FlatSymbolRefAttr>("architecture") !=
+            device.getPhysicalAttr())
+      return emitOpError(
+          "schedule root must refine the analytical protocol/device graph");
   }
   auto metadata = getMetadataAttr();
   if (!metadata || !metadata.getAs<StringAttr>("producer") ||
@@ -95,14 +183,16 @@ LogicalResult EstimateResultOp::verify() {
 
 LogicalResult DeviceOp::verify() {
   auto has = [&](StringRef name) { return (*this)->hasAttr(name); };
-  for (StringRef retired : {StringRef("physical"), StringRef("qec_to_physical"),
-                            StringRef("operating_point")})
-    if (has(retired))
-      return emitOpError() << "retired P3 attribute '" << retired
-                           << "' is outside the P0-P2 product slice";
+  if (has("physical") && !has("qec"))
+    return emitOpError("cannot skip QEC between logical and physical");
   if (has("logical_to_qec") != has("qec"))
     return emitOpError(
         "logical_to_qec must be present exactly when qec is present");
+  if (has("qec_to_physical") != has("physical"))
+    return emitOpError(
+        "qec_to_physical must be present exactly when physical is present");
+  if (has("operating_point") && !has("physical"))
+    return emitOpError("operating_point requires a physical machine");
 
   auto verifyReference = [&](StringRef attribute,
                              StringRef expected) -> LogicalResult {
@@ -118,7 +208,10 @@ LogicalResult DeviceOp::verify() {
   };
   if (failed(verifyReference("logical", "lvm.domain")) ||
       failed(verifyReference("qec", "fabric.machine")) ||
-      failed(verifyReference("logical_to_qec", "qlx.logical_to_qec")))
+      failed(verifyReference("physical", "phys.machine")) ||
+      failed(verifyReference("logical_to_qec", "qlx.logical_to_qec")) ||
+      failed(verifyReference("qec_to_physical", "qlx.qec_to_physical")) ||
+      failed(verifyReference("operating_point", "phys.operating_point")))
     return failure();
 
   auto verifyRefinementEndpoints =
@@ -138,8 +231,67 @@ LogicalResult DeviceOp::verify() {
                              << " endpoint must match the device layer";
     return success();
   };
-  if (failed(verifyRefinementEndpoints("logical_to_qec", {"logical", "qec"})))
+  if (failed(verifyRefinementEndpoints("logical_to_qec", {"logical", "qec"})) ||
+      failed(verifyRefinementEndpoints("qec_to_physical", {"qec", "physical"})))
     return failure();
+
+  if (has("physical")) {
+    auto qecRef = (*this)->getAttrOfType<FlatSymbolRefAttr>("qec");
+    auto physicalRef = (*this)->getAttrOfType<FlatSymbolRefAttr>("physical");
+    Operation *qecMachine =
+        qecRef ? SymbolTable::lookupNearestSymbolFrom(*this, qecRef) : nullptr;
+    Operation *physicalMachine =
+        physicalRef ? SymbolTable::lookupNearestSymbolFrom(*this, physicalRef)
+                    : nullptr;
+    if (qecMachine && physicalMachine) {
+      llvm::StringSet<> selected;
+      qecMachine->walk([&](Operation *operation) {
+        if (operation->getName().getStringRef() != "fabric.interconnect" ||
+            !operation->hasAttr("logical_channel"))
+          return;
+        if (auto name = operation->getAttrOfType<StringAttr>(
+                SymbolTable::getSymbolAttrName()))
+          selected.insert(name.getValue());
+      });
+
+      llvm::StringMap<unsigned> coverage;
+      LogicalResult bindingStatus = success();
+      physicalMachine->walk([&](Operation *operation) {
+        if (failed(bindingStatus) ||
+            operation->getName().getStringRef() != "phys.qec_channel_binding")
+          return;
+        auto reference = operation->getAttrOfType<SymbolRefAttr>("qec_channel");
+        if (!reference ||
+            reference.getRootReference().getValue() != qecRef.getValue() ||
+            reference.getNestedReferences().size() != 1) {
+          emitOpError(
+              "physical QEC-channel binding must target this device's QEC "
+              "machine");
+          bindingStatus = failure();
+          return;
+        }
+        StringRef name = reference.getLeafReference().getValue();
+        if (!selected.contains(name)) {
+          emitOpError() << "physical QEC-channel binding targets unselected "
+                           "interconnect @"
+                        << name;
+          bindingStatus = failure();
+          return;
+        }
+        ++coverage[name];
+      });
+      if (failed(bindingStatus))
+        return failure();
+      for (StringRef name : selected.keys()) {
+        unsigned count = coverage.lookup(name);
+        if (count != 1)
+          return emitOpError()
+                 << "selected P2 interconnect @" << name
+                 << " must have exactly one P3 qec_channel_binding; found "
+                 << count;
+      }
+    }
+  }
 
   if (auto bindings = (*this)->getAttrOfType<ArrayAttr>("resource_bindings")) {
     StringRef logical = getLogicalAttr().getValue();
@@ -451,6 +603,97 @@ LogicalResult LogicalToQECBindingOp::verify() {
   return success();
 }
 
+LogicalResult QECToPhysicalBindingOp::verify() {
+  Operation *qecMachine =
+      SymbolTable::lookupNearestSymbolFrom(*this, getQecAttr());
+  Operation *physicalMachine =
+      SymbolTable::lookupNearestSymbolFrom(*this, getPhysicalAttr());
+  if (qecMachine && qecMachine->getName().getStringRef() != "fabric.machine")
+    return emitOpError("qec must resolve to fabric.machine");
+  if (physicalMachine &&
+      physicalMachine->getName().getStringRef() != "phys.machine")
+    return emitOpError("physical must resolve to phys.machine");
+
+  llvm::StringSet<> qecRegions;
+  llvm::StringSet<> physicalBindings;
+  for (Attribute raw : getEntries()) {
+    auto entry = dyn_cast<DictionaryAttr>(raw);
+    auto qec = entry ? entry.getAs<StringAttr>("qec") : nullptr;
+    auto binding = entry ? entry.getAs<StringAttr>("binding") : nullptr;
+    auto resources = entry ? entry.getAs<ArrayAttr>("resources") : nullptr;
+    if (!entry || !qec || qec.getValue().empty() || !binding ||
+        binding.getValue().empty() || !resources || resources.empty())
+      return emitOpError(
+          "entries require nonempty qec, binding, and resources");
+    if (!qecRegions.insert(qec.getValue()).second)
+      return emitOpError("contains duplicate QEC region '")
+             << qec.getValue() << "'";
+    if (!physicalBindings.insert(binding.getValue()).second)
+      return emitOpError("contains duplicate physical binding '")
+             << binding.getValue() << "'";
+
+    if (qecMachine) {
+      Operation *target = SymbolTable(qecMachine).lookup(qec.getValue());
+      if (!target || target->getName().getStringRef() != "fabric.region")
+        return emitOpError("QEC region @")
+               << qec.getValue()
+               << " must resolve inside the referenced fabric.machine";
+    }
+    if (!physicalMachine)
+      continue;
+    Operation *physicalBinding =
+        SymbolTable(physicalMachine).lookup(binding.getValue());
+    if (!physicalBinding ||
+        physicalBinding->getName().getStringRef() != "phys.qec_binding")
+      return emitOpError("binding @")
+             << binding.getValue()
+             << " must resolve inside the referenced phys.machine";
+
+    auto boundQEC = physicalBinding->getAttrOfType<SymbolRefAttr>("qec_region");
+    if (!boundQEC ||
+        boundQEC.getRootReference().getValue() != getQecAttr().getValue() ||
+        boundQEC.getLeafReference().getValue() != qec.getValue())
+      return emitOpError("entry for QEC region @")
+             << qec.getValue() << " contradicts phys.qec_binding @"
+             << binding.getValue();
+
+    auto boundResources =
+        physicalBinding->getAttrOfType<ArrayAttr>("resources");
+    if (!boundResources || boundResources.size() != resources.size())
+      return emitOpError("resources for physical binding @")
+             << binding.getValue() << " must exactly match phys.qec_binding";
+    llvm::StringSet<> expectedResources;
+    for (Attribute value : resources) {
+      auto name = dyn_cast<StringAttr>(value);
+      if (!name || name.getValue().empty() ||
+          !expectedResources.insert(name.getValue()).second)
+        return emitOpError(
+            "entry resources must contain unique nonempty strings");
+    }
+    for (Attribute value : boundResources) {
+      auto reference = dyn_cast<FlatSymbolRefAttr>(value);
+      if (!reference || !expectedResources.contains(reference.getValue()))
+        return emitOpError("resources for physical binding @")
+               << binding.getValue() << " must exactly match phys.qec_binding";
+    }
+
+    auto verifyOptionalReference = [&](StringRef field) -> LogicalResult {
+      auto entryName = entry.getAs<StringAttr>(field);
+      auto boundName = physicalBinding->getAttrOfType<FlatSymbolRefAttr>(field);
+      if (static_cast<bool>(entryName) != static_cast<bool>(boundName) ||
+          (entryName && entryName.getValue() != boundName.getValue()))
+        return emitOpError()
+               << field << " for physical binding @" << binding.getValue()
+               << " must exactly match phys.qec_binding";
+      return success();
+    };
+    if (failed(verifyOptionalReference("topology")) ||
+        failed(verifyOptionalReference("patch_topology")))
+      return failure();
+  }
+  return success();
+}
+
 LogicalResult QECLoweringOp::verify() {
   if (getManifestName().empty())
     return emitOpError("manifest_name must be nonempty");
@@ -523,6 +766,60 @@ LogicalResult QECLoweringOp::verify() {
              << reference.getValue();
   }
 
+  if (auto selections = getRppSelectionsAttr()) {
+    if (getObjectiveFamily() != "pauli_product_rotation")
+      return emitOpError(
+          "rpp_selections requires pauli_product_rotation objective_family");
+    for (NamedAttribute entry : selections) {
+      StringRef adapterName = entry.getName().getValue();
+      auto selection = dyn_cast<DictionaryAttr>(entry.getValue());
+      if (adapterName.empty() || !selection || selection.size() != 2)
+        return emitOpError(
+            "rpp_selections entries require exactly strategy and "
+            "implementation");
+      auto strategy = selection.getAs<StringAttr>("strategy");
+      auto implementation =
+          selection.getAs<FlatSymbolRefAttr>("implementation");
+      if (!strategy || !implementation ||
+          (strategy.getValue() != "clifford" &&
+           strategy.getValue() != "t_injection" &&
+           strategy.getValue() != "native" &&
+           strategy.getValue() != "rotation_state" &&
+           strategy.getValue() != "synthesis"))
+        return emitOpError(
+            "rpp_selections entries require a canonical strategy and flat "
+            "implementation reference");
+      if (!dependencies.contains(adapterName))
+        return emitOpError("RPP adapter @")
+               << adapterName << " must be a declared dependency";
+      Operation *adapter = SymbolTable::lookupNearestSymbolFrom(
+          *this, FlatSymbolRefAttr::get(getContext(), adapterName));
+      Operation *implementationTarget =
+          SymbolTable::lookupNearestSymbolFrom(*this, implementation);
+      if (!adapter || adapter->getName().getStringRef() != "fabric.protocol")
+        return emitOpError("RPP selection adapter @")
+               << adapterName << " must resolve to fabric.protocol";
+      if (!implementationTarget ||
+          (implementationTarget->getName().getStringRef() != "fabric.gadget" &&
+           implementationTarget->getName().getStringRef() != "fabric.protocol"))
+        return emitOpError("RPP selection implementation ")
+               << implementation << " must resolve to fabric.gadget or "
+               << "fabric.protocol";
+    }
+  }
+
+  llvm::StringSet<> consumedResources;
+  if (auto resources = getConsumesResources())
+    for (Attribute value : *resources) {
+      auto resource = dyn_cast<StringAttr>(value);
+      if (!resource || resource.getValue().empty())
+        return emitOpError(
+            "consumes_resources must contain nonempty resource-kind names");
+      if (!consumedResources.insert(resource.getValue()).second)
+        return emitOpError("contains duplicate consumed resource kind ")
+               << resource;
+    }
+
   if (getInputStage() != "p1" || getOutputStage() != "p2")
     return emitOpError("must lower exactly from p1 to p2");
   llvm::StringSet<> facets;
@@ -552,9 +849,6 @@ LogicalResult QECLoweringOp::verify() {
 LogicalResult LoweringRecipeOp::verify() {
   if (getCapability().empty())
     return emitOpError("capability must be nonempty");
-  if (getCapability() == "sample")
-    return emitOpError(
-        "sampling capabilities are outside the P0-P2 product slice");
   if (getFinalizer().empty())
     return emitOpError("finalizer must be nonempty");
   if (getEffect() != "local" && getEffect() != "filesystem" &&
@@ -569,14 +863,6 @@ LogicalResult LoweringRecipeOp::verify() {
       if (!isa<StringAttr>(value))
         return emitOpError() << label << " entries must be strings";
   }
-  auto isProductStage = [](StringRef stage) {
-    return stage == "p0" || stage == "p1" || stage == "p2";
-  };
-  for (Attribute value : getAcceptedStages())
-    if (!isProductStage(cast<StringAttr>(value).getValue()))
-      return emitOpError("accepted_stages entries must be p0, p1, or p2");
-  if (getProducedStage() && !isProductStage(*getProducedStage()))
-    return emitOpError("produced_stage must be p0, p1, or p2");
   return success();
 }
 
@@ -615,10 +901,10 @@ LogicalResult TargetManifestOp::verify() {
 }
 
 LogicalResult ExperimentOp::verify() {
-  static constexpr StringLiteral allowedStages[] = {"p0", "p1", "p2"};
+  static constexpr StringLiteral allowedStages[] = {"p0", "p1", "p2", "p3"};
   if (llvm::none_of(allowedStages,
                     [&](StringRef stage) { return getStage() == stage; }))
-    return emitOpError("stage must be one of p0, p1, or p2");
+    return emitOpError("stage must be one of p0, p1, p2, or p3");
 
   for (Attribute value : getFacets())
     if (!isa<StringAttr>(value))
@@ -668,25 +954,6 @@ LogicalResult ExperimentOp::verify() {
 
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/QLX/IR/QLXTypes.cpp.inc"
-
-Type QLXDialect::parseType(DialectAsmParser &parser) const {
-  SMLoc location = parser.getCurrentLocation();
-  StringRef mnemonic;
-  if (failed(parser.parseKeyword(&mnemonic)))
-    return {};
-  if (mnemonic == LogicalQubitType::getMnemonic())
-    return LogicalQubitType::get(parser.getContext());
-  parser.emitError(location) << "unknown type in dialect 'qlx': " << mnemonic;
-  return {};
-}
-
-void QLXDialect::printType(Type type, DialectAsmPrinter &printer) const {
-  if (isa<LogicalQubitType>(type)) {
-    printer << LogicalQubitType::getMnemonic();
-    return;
-  }
-  llvm_unreachable("attempted to print an unregistered QLX type");
-}
 
 //===----------------------------------------------------------------------===//
 // Generated enum definitions
@@ -746,195 +1013,6 @@ CliffordActionAttr::verify(llvm::function_ref<InFlightDiagnostic()> emitError,
                << "matrix does not preserve the binary symplectic form";
     }
   }
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
-// EntryOp: custom assembly format
-//
-// Syntax:
-//   qlx.entry @name(%arg0: !qlx.region, %arg1: !qlx.region) {
-//     ...
-//   }
-//===----------------------------------------------------------------------===//
-
-ParseResult EntryOp::parse(OpAsmParser &parser, OperationState &result) {
-  StringAttr nameAttr;
-  if (parser.parseSymbolName(nameAttr, SymbolTable::getSymbolAttrName(),
-                             result.attributes))
-    return failure();
-
-  SmallVector<OpAsmParser::Argument> args;
-  if (parser.parseLParen())
-    return failure();
-
-  if (parser.parseOptionalRParen()) {
-    do {
-      OpAsmParser::Argument arg;
-      if (parser.parseArgument(arg, /*allowType=*/true, /*allowAttrs=*/false))
-        return failure();
-      args.push_back(arg);
-    } while (succeeded(parser.parseOptionalComma()));
-
-    if (parser.parseRParen())
-      return failure();
-  }
-
-  auto *body = result.addRegion();
-  if (parser.parseRegion(*body, args))
-    return failure();
-
-  if (body->empty())
-    body->emplaceBlock();
-
-  EntryOp::ensureTerminator(*body, parser.getBuilder(), result.location);
-
-  if (parser.parseOptionalAttrDictWithKeyword(result.attributes))
-    return failure();
-
-  return success();
-}
-
-void EntryOp::print(OpAsmPrinter &p) {
-  p << ' ';
-  p.printSymbolName(getSymName());
-  p << '(';
-  auto &entryBlock = getBody().front();
-  llvm::interleaveComma(entryBlock.getArguments(), p,
-                        [&](BlockArgument arg) { p.printRegionArgument(arg); });
-  p << ") ";
-  p.printRegion(getBody(), /*printEntryBlockArgs=*/false,
-                /*printBlockTerminators=*/true);
-
-  SmallVector<StringRef> elided = {SymbolTable::getSymbolAttrName()};
-  p.printOptionalAttrDictWithKeyword((*this)->getAttrs(), elided);
-}
-
-//===----------------------------------------------------------------------===//
-// MppOp: custom assembly format
-//===----------------------------------------------------------------------===//
-
-ParseResult MppOp::parse(OpAsmParser &parser, OperationState &result) {
-  SmallVector<OpAsmParser::UnresolvedOperand> allOperands;
-  if (parser.parseOperandList(allOperands))
-    return failure();
-
-  std::string pauliStr;
-  if (parser.parseKeyword("pauli") || parser.parseEqual() ||
-      parser.parseString(&pauliStr))
-    return failure();
-  result.addAttribute("pauli", parser.getBuilder().getStringAttr(pauliStr));
-
-  if (parser.parseOptionalAttrDict(result.attributes))
-    return failure();
-
-  if (parser.parseColon())
-    return failure();
-
-  SmallVector<Type> resultTypes;
-  if (parser.parseTypeList(resultTypes))
-    return failure();
-
-  unsigned numQubits = 0;
-  for (auto ty : resultTypes) {
-    if (isa<qlx::LQBitType>(ty))
-      numQubits++;
-  }
-
-  if (allOperands.size() != 2 * numQubits)
-    return parser.emitError(parser.getNameLoc(),
-                            "expected 2*N operands (N qubits + N regions)");
-
-  auto lqbitType = qlx::LQBitType::get(parser.getContext());
-  auto regionType = qlx::RegionType::get(parser.getContext());
-
-  SmallVector<OpAsmParser::UnresolvedOperand> qubits(
-      allOperands.begin(), allOperands.begin() + numQubits);
-  SmallVector<OpAsmParser::UnresolvedOperand> regions(
-      allOperands.begin() + numQubits, allOperands.end());
-
-  SmallVector<Type> qubitTypes(numQubits, lqbitType);
-  SmallVector<Type> regionTypes(numQubits, regionType);
-
-  if (parser.resolveOperands(qubits, qubitTypes, parser.getNameLoc(),
-                             result.operands) ||
-      parser.resolveOperands(regions, regionTypes, parser.getNameLoc(),
-                             result.operands))
-    return failure();
-
-  result.addAttribute(MppOp::getOperandSegmentSizeAttr(),
-                      parser.getBuilder().getDenseI32ArrayAttr(
-                          {(int32_t)numQubits, (int32_t)numQubits}));
-  result.addAttribute(
-      MppOp::getResultSegmentSizeAttr(),
-      parser.getBuilder().getDenseI32ArrayAttr({(int32_t)numQubits, 1}));
-
-  result.addTypes(resultTypes);
-  return success();
-}
-
-void MppOp::print(OpAsmPrinter &p) {
-  p << ' ';
-  p.printOperands(getQubits());
-  if (!getQubits().empty() && !getQubitRegions().empty())
-    p << ", ";
-  p.printOperands(getQubitRegions());
-  p << " pauli = \"" << getPauli() << "\"";
-
-  // Pauli is rendered above; everything else (operand_segment_sizes /
-  // result_segment_sizes) lives in Properties storage and isn't in the
-  // discardable attr dict, so no elision is needed.
-  p.printOptionalAttrDict(
-      (*this)->getAttrs(),
-      /*elidedAttrs=*/{"pauli", "operandSegmentSizes", "resultSegmentSizes"});
-  p << " : ";
-  llvm::interleaveComma((*this)->getResultTypes(), p);
-}
-
-LogicalResult MppOp::verify() {
-  StringRef p = getPauli();
-  size_t nq = getQubits().size();
-  if (p.size() != nq)
-    return emitOpError() << "pauli length (" << p.size()
-                         << ") must equal qubit count (" << nq << ")";
-  for (char c : p)
-    if (c != 'X' && c != 'Y' && c != 'Z')
-      return emitOpError() << "pauli must contain only X/Y/Z; got '" << c
-                           << "'";
-  if (getQubitRegions().size() != nq)
-    return emitOpError() << "qubit_regions count (" << getQubitRegions().size()
-                         << ") must equal qubits count (" << nq << ")";
-  if (getQubitResults().size() != nq)
-    return emitOpError() << "qubit_results count (" << getQubitResults().size()
-                         << ") must equal qubits count (" << nq << ")";
-  if (getBitResults().size() != 1)
-    return emitOpError() << "bit_results must have exactly 1 entry; got "
-                         << getBitResults().size();
-  return success();
-}
-
-LogicalResult RppOp::verify() {
-  StringRef p = getPauliProduct();
-  size_t nq = getQubits().size();
-  if (nq == 0)
-    return emitOpError("requires at least one qubit operand");
-  if (p.size() != nq)
-    return emitOpError() << "pauli_product length (" << p.size()
-                         << ") must equal qubit count (" << nq << ")";
-  for (char c : p)
-    if (c != 'X' && c != 'Y' && c != 'Z')
-      return emitOpError() << "pauli_product must contain only X/Y/Z; got '"
-                           << c << "'";
-  if (getQubitRegions().size() != nq)
-    return emitOpError() << "qubit_regions count (" << getQubitRegions().size()
-                         << ") must equal qubits count (" << nq << ")";
-  if (getQubitResults().size() != nq)
-    return emitOpError() << "qubit_results count (" << getQubitResults().size()
-                         << ") must equal qubits count (" << nq << ")";
-  StringRef synthesis = getSynthesis();
-  if (synthesis != "auto" && synthesis != "native" && synthesis != "decompose")
-    return emitOpError("synthesis must be one of auto, native, decompose; got ")
-           << synthesis;
   return success();
 }
 
@@ -1009,20 +1087,6 @@ LogicalResult ProgramOp::verify() {
       legality = failure();
       return;
     }
-    for (Type type : op->getOperandTypes()) {
-      if (isa<RegionType>(type)) {
-        op->emitError("P0 may not carry !qlx.region values");
-        legality = failure();
-        return;
-      }
-    }
-    for (Type type : op->getResultTypes()) {
-      if (isa<RegionType>(type)) {
-        op->emitError("P0 may not carry !qlx.region values");
-        legality = failure();
-        return;
-      }
-    }
   });
   return legality;
 }
@@ -1063,10 +1127,9 @@ LogicalResult ObjectiveBodyOp::verify() {
   static const llvm::StringSet<> forbidden = [] {
     llvm::StringSet<> names;
     for (StringRef name :
-         {"qlx.resource_request", "qlx.event_test", "qlx.event_poll",
-          "qlx.event_is", "qlx.event_select_ready", "qlx.event_try_take",
-          "qlx.event_cancel", "qlx.event_await", "qlx.fence",
-          "qlx.consume_resource"})
+         {"qlx.resource_request", "event.test", "event.poll", "event.is",
+          "event.select_ready", "event.try_take", "event.cancel", "event.await",
+          "event.fence", "qlx.consume_resource"})
       names.insert(name);
     return names;
   }();
@@ -1110,6 +1173,7 @@ LogicalResult ApplyOp::verify() {
     expectedArity = 2;
     break;
   case BuiltinAction::ccz:
+  case BuiltinAction::ccx:
     expectedArity = 3;
     break;
   case BuiltinAction::pauli_rotation:
@@ -1212,111 +1276,6 @@ LogicalResult ResourceRequestOp::verify() {
   return success();
 }
 
-static LogicalResult verifyEventState(Operation *op, StringRef state) {
-  if (state != "pending" && state != "ready" && state != "failed" &&
-      state != "cancelled" && state != "exhausted")
-    return op->emitOpError(
-        "event state must be pending, ready, failed, cancelled, or exhausted");
-  return success();
-}
-
-static LogicalResult verifyReadySelection(Operation *op, ValueRange events,
-                                          StringRef policy) {
-  if (events.empty())
-    return op->emitOpError("requires at least one event");
-  Type eventType = events.front().getType();
-  if (!llvm::all_of(events,
-                    [&](Value event) { return event.getType() == eventType; }))
-    return op->emitOpError("all selected events must have the same type");
-  if (policy != "priority" && policy != "deterministic" && policy != "fair")
-    return op->emitOpError("policy must be priority, deterministic, or fair");
-  return success();
-}
-
-static LogicalResult verifyFenceEffects(Operation *op, ArrayAttr effects) {
-  if (effects.empty())
-    return op->emitOpError("requires at least one semantic effect");
-  llvm::StringSet<> seen;
-  for (Attribute effect : effects) {
-    auto value = dyn_cast<StringAttr>(effect);
-    if (!value)
-      return op->emitOpError("effects must be strings");
-    StringRef name = value.getValue();
-    if (name != "all" && name != "quantum" && name != "classical" &&
-        name != "resource" && name != "event" && name != "frame" &&
-        name != "outcome" && name != "selection")
-      return op->emitOpError("unknown semantic effect '") << name << "'";
-    if (!seen.insert(name).second)
-      return op->emitOpError("semantic effects must be unique");
-  }
-  if (seen.contains("all") && effects.size() != 1)
-    return op->emitOpError(
-        "effect 'all' cannot be combined with other effects");
-  return success();
-}
-
-LogicalResult EventIsOp::verify() {
-  return verifyEventState(getOperation(), getState());
-}
-
-LogicalResult EventSelectReadyOp::verify() {
-  return verifyReadySelection(getOperation(), getEvents(), getPolicy());
-}
-
-LogicalResult EventTryTakeOp::verify() {
-  if (getCarries().getTypes() != getResultTypes())
-    return emitOpError("carry and result types must match exactly");
-  auto verifyBranch = [&](Region &region, Type alternative,
-                          StringRef label) -> LogicalResult {
-    if (!llvm::hasSingleElement(region))
-      return emitOpError() << label << " region must contain one block";
-    Block &block = region.front();
-    if (block.getNumArguments() != getCarries().size() + 1)
-      return emitOpError()
-             << label
-             << " region requires one alternative argument plus carries";
-    if (block.getArgument(0).getType() != alternative)
-      return emitOpError() << label
-                           << " alternative argument has the wrong type";
-    for (auto [argument, carry] :
-         llvm::zip(block.getArguments().drop_front(), getCarries()))
-      if (argument.getType() != carry.getType())
-        return emitOpError()
-               << label << " carry arguments have the wrong types";
-    auto yield = dyn_cast<YieldOp>(block.getTerminator());
-    if (!yield || yield.getOperandTypes() != getResultTypes())
-      return emitOpError() << label << " yield types must match results";
-    return success();
-  };
-  auto eventType = getEvent().getType();
-  if (failed(verifyBranch(getReady(), eventType.getPayload(), "ready")) ||
-      failed(verifyBranch(getPending(), eventType, "pending")) ||
-      failed(verifyBranch(getFailed(), IntegerType::get(getContext(), 8),
-                          "failed")))
-    return failure();
-  return success();
-}
-
-LogicalResult FenceOp::verify() {
-  return verifyFenceEffects(getOperation(), getEffects());
-}
-
-LogicalResult SelectionOp::verify() {
-  StringRef mode = getMode();
-  if (mode != "require" && mode != "condition_results" && mode != "abort_on")
-    return emitOpError("mode must be require, condition_results, or abort_on");
-  bool expected = mode != "abort_on";
-  if (getAcceptWhen() != expected)
-    return emitOpError("accept_when disagrees with the selection mode");
-  return success();
-}
-
-LogicalResult EventAwaitOp::verify() {
-  if (getPayload().getType() != getEvent().getType().getPayload())
-    return emitOpError("result type must match the event payload type");
-  return success();
-}
-
 LogicalResult ConsumeResourceOp::verify() {
   if (getInputs().size() != getResults().size())
     return emitOpError("must return one logical-qubit successor per input");
@@ -1352,6 +1311,7 @@ LogicalResult ConsumeResourceOp::verify() {
     expectedArity = 2;
     break;
   case BuiltinAction::ccz:
+  case BuiltinAction::ccx:
     expectedArity = 3;
     break;
   case BuiltinAction::pauli_rotation:
@@ -1381,164 +1341,6 @@ LogicalResult FrameTransformOp::verify() {
   return success();
 }
 
-LogicalResult XorOp::verify() {
-  Type type = getLhs().getType();
-  if (!type.isInteger(1))
-    return emitOpError("operands must be builtin i1");
-  if (getRhs().getType() != type || getResult().getType() != type)
-    return emitOpError("operand and result types must be identical");
-  return success();
-}
-
-LogicalResult IfOp::verify() {
-  Type conditionType = getCondition().getType();
-  if (!conditionType.isInteger(1))
-    return emitOpError("condition must be builtin i1");
-  for (Region *region : {&getThenRegion(), &getElseRegion()}) {
-    if (!llvm::hasSingleElement(*region))
-      return emitOpError("branches must each contain exactly one block");
-    auto yield = dyn_cast<YieldOp>(region->front().getTerminator());
-    if (!yield)
-      return emitOpError("branches must terminate with qlx.yield");
-    if (yield.getNumOperands() != getNumResults() ||
-        !llvm::equal(yield.getOperandTypes(), getResultTypes()))
-      return emitOpError("branch yield types must match qlx.if results");
-  }
-  return success();
-}
-
-LogicalResult WhileOp::verify() {
-  if (getMaxIterationsAttr() && getMaxIterationsAttr().getInt() <= 0)
-    return emitOpError("max_iterations must be positive when present");
-  if (!llvm::hasSingleElement(getBeforeRegion()) ||
-      !llvm::hasSingleElement(getAfterRegion()))
-    return emitOpError("before and after regions must each contain one block");
-  if (getInits().getTypes() != getResultTypes())
-    return emitOpError("init and result types must be identical");
-
-  Block &before = getBeforeRegion().front();
-  Block &after = getAfterRegion().front();
-  if (before.getArgumentTypes() != getResultTypes() ||
-      after.getArgumentTypes() != getResultTypes())
-    return emitOpError(
-        "before/after block arguments must match the carried result types");
-
-  auto condition = dyn_cast<WhileConditionOp>(before.getTerminator());
-  if (!condition)
-    return emitOpError("before region must terminate with qlx.while_condition");
-  if (condition.getForwarded().getTypes() != getResultTypes())
-    return emitOpError(
-        "while_condition forwarded types must match loop result types");
-
-  auto yield = dyn_cast<YieldOp>(after.getTerminator());
-  if (!yield)
-    return emitOpError("after region must terminate with qlx.yield");
-  if (yield.getOperandTypes() != getResultTypes())
-    return emitOpError("after-region yield types must match loop result types");
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
-// RepeatOp — structured loop (assembly mirrors fabric.repeat)
-//===----------------------------------------------------------------------===//
-
-ParseResult RepeatOp::parse(OpAsmParser &parser, OperationState &result) {
-  // Parse count.
-  int64_t count;
-  if (parser.parseInteger(count))
-    return failure();
-  result.addAttribute("count", parser.getBuilder().getI64IntegerAttr(count));
-
-  // Parse iter args: iter(%name : type = %init, ...)
-  SmallVector<OpAsmParser::Argument> iterArgs;
-  SmallVector<OpAsmParser::UnresolvedOperand> initOperands;
-  SmallVector<Type> initTypes;
-
-  if (parser.parseKeyword("iter") || parser.parseLParen())
-    return failure();
-
-  if (failed(parser.parseOptionalRParen())) {
-    if (parser.parseCommaSeparatedList([&]() -> ParseResult {
-          OpAsmParser::Argument arg;
-          OpAsmParser::UnresolvedOperand init;
-          if (parser.parseArgument(arg, /*allowType=*/true,
-                                   /*allowAttrs=*/false))
-            return failure();
-          if (parser.parseEqual() || parser.parseOperand(init))
-            return failure();
-          iterArgs.push_back(arg);
-          initOperands.push_back(init);
-          initTypes.push_back(arg.type);
-          return success();
-        }))
-      return failure();
-    if (parser.parseRParen())
-      return failure();
-  }
-
-  // Resolve init operands.
-  if (parser.resolveOperands(initOperands, initTypes,
-                             parser.getCurrentLocation(), result.operands))
-    return failure();
-
-  // Result types match iter-arg types.
-  result.addTypes(initTypes);
-
-  // Parse body region with iter-args as block arguments.
-  auto *body = result.addRegion();
-  if (parser.parseRegion(*body, iterArgs, /*enableNameShadowing=*/false))
-    return failure();
-  ensureTerminator(*body, parser.getBuilder(), result.location);
-
-  return success();
-}
-
-void RepeatOp::print(OpAsmPrinter &printer) {
-  printer << " " << getCount();
-
-  auto &entryBlock = getBody().front();
-  auto inits = getInits();
-  printer << "\n    iter(";
-  for (unsigned i = 0, e = entryBlock.getNumArguments(); i < e; ++i) {
-    if (i > 0)
-      printer << ",\n         ";
-    printer.printRegionArgument(entryBlock.getArgument(i));
-    printer << " = " << inits[i];
-  }
-  printer << ")";
-
-  printer << " ";
-  printer.printRegion(getBody(), /*printEntryBlockArgs=*/false,
-                      /*printBlockTerminators=*/true);
-}
-
-LogicalResult RepeatOp::verify() {
-  if (getCountAttr().getInt() < 0)
-    return emitOpError("count must be non-negative");
-  Block &body = getBody().front();
-  if (body.getNumArguments() != getInits().size())
-    return emitOpError("body block argument count (")
-           << body.getNumArguments() << ") must equal iter-init count ("
-           << getInits().size() << ")";
-  for (auto [arg, init] : llvm::zip(body.getArguments(), getInits()))
-    if (arg.getType() != init.getType())
-      return emitOpError("body block argument type ")
-             << arg.getType() << " must match iter-init type "
-             << init.getType();
-
-  auto yield = cast<YieldOp>(body.getTerminator());
-  if (yield.getOperands().size() != getResults().size())
-    return emitOpError("yield operand count (")
-           << yield.getOperands().size() << ") must equal result count ("
-           << getResults().size() << ")";
-  for (auto [res, yv] : llvm::zip(getResults(), yield.getOperands()))
-    if (res.getType() != yv.getType())
-      return emitOpError("result type ")
-             << res.getType() << " must match yielded type " << yv.getType();
-
-  return success();
-}
-
 //===----------------------------------------------------------------------===//
 // Generated op definitions
 //===----------------------------------------------------------------------===//
@@ -1551,17 +1353,18 @@ LogicalResult RepeatOp::verify() {
 //===----------------------------------------------------------------------===//
 
 void QLXDialect::initialize() {
-  // The source tree still carries alpha/migration definitions so historical
-  // branches can be compared and rebased, but the product dialect registers
-  // only the P0-P2 contract. Unregistered physical-region, asynchronous
-  // resource/event, timing, route, and execution operations fail at parse.
-  addTypes<LogicalQubitType>();
-  addAttributes<BuiltinActionAttr, BuiltinInstrumentAttr, PauliAttr,
-                CliffordActionAttr>();
-  addOperations<EstimateResultOp, DeviceOp, LogicalToQECBindingOp,
-                QECLoweringOp, LoweringRecipeOp, TargetManifestOp, ExperimentOp,
-                ReturnOp, ProgramOp, ObjectiveBodyOp, ActionOp,
-                InstrumentDeclOp, ApplyOp, InstrumentOp, PrepareOp, MeasureOp,
-                CallOp, IdleOp, DiscardOp, SelectionOp, RepeatOp, YieldOp,
-                WhileConditionOp, WhileOp, IfOp, XorOp>();
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "qlx/Dialect/QLX/IR/QLXTypes.cpp.inc"
+      >();
+
+  addAttributes<
+#define GET_ATTRDEF_LIST
+#include "qlx/Dialect/QLX/IR/QLXAttrs.cpp.inc"
+      >();
+
+  addOperations<
+#define GET_OP_LIST
+#include "qlx/Dialect/QLX/IR/QLXOps.cpp.inc"
+      >();
 }

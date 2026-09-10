@@ -19,16 +19,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
+
+from ..errors import QLXError
 
 SUPPORTED_IR_VERSIONS = ("0.4-draft",)
 SUPPORTED_MODEL_VERSIONS = ("0.3.10-proposed",)
 
-_STAGE_VOCABULARY = {"p0", "p1", "p2"}
+_STAGE_VOCABULARY = {"p0", "p1", "p2", "p3"}
 _FACET_VOCABULARY = {
     "qec_spec",
     "qec_realization",
     "protocol_network",
+    "physical_schedule",
 }
 # Compatibility profile spellings retained by serialized builds.
 _PROFILE_VOCABULARY = {
@@ -38,11 +41,12 @@ _PROFILE_VOCABULARY = {
     "p2s",
     "p2a",
     "p2n",
+    "p3",
     "common",
 }
 
 
-class LinkageError(Exception):
+class LinkageError(QLXError):
     """A canonical build referenced a symbol it does not contain."""
 
 
@@ -63,8 +67,7 @@ def _collect_symbol_refs(attr, sink) -> None:
         return
     # FlatSymbolRefAttr and SymbolRefAttr print as @name or @outer::@inner;
     # walk the printed form once rather than depending on binding classes
-    # that differ across attribute kinds (arrays, dictionaries, and custom
-    # typed attributes).
+    # that differ across attribute kinds (arrays, dicts, typed customs).
     index = 0
     while True:
         index = text.find("@", index)
@@ -173,9 +176,7 @@ def verify_linked(build, *, allow_unresolved=()) -> LinkReport:
     typed :class:`LinkageError`.
     """
 
-    # A linkage report is authoritative build evidence.  Never derive it from
-    # the mutable cached inspection view exposed as ``Build.module``.
-    module = build._fresh_module() if hasattr(build, "_fresh_module") else build
+    module = build.module if hasattr(build, "module") else build
     report = check_linkage(module)
     allowed = set(allow_unresolved)
     dangling = tuple(name for name in report.unresolved if name not in allowed)

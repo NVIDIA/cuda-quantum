@@ -1,12 +1,10 @@
-//===- EmitStim.cpp - Fabric to Stim circuit export ------------*- C++ -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Translates fabric.* IR to Stim circuit text format. Mirrors the fabric
 // emitter (ir/lib/Translate/QLX/EmitStim.cpp) but walks the richer Fabric
@@ -17,6 +15,8 @@
 
 #include "qlx/Target/Fabric/EmitStim.h"
 
+#include "qlx/Dialect/Cflow/IR/CflowDialect.h"
+#include "qlx/Dialect/Cflow/IR/CflowOps.h"
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"
 #include "qlx/Dialect/Fabric/IR/FabricOps.h"
@@ -452,9 +452,10 @@ private:
         })
         // Control flow.
         .Case<CallOp>([&](auto o) { emitCall(o); })
-        .Case<RepeatOp>([&](auto o) { emitRepeat(o); })
-        .Case<IfOp>([&](auto o) { emitIf(o); })
-        .Case<YieldOp>([&](auto) { /* consumed by emitRepeat / emitIf */ })
+        .Case<qlx::cflow::RepeatOp>([&](auto o) { emitRepeat(o); })
+        .Case<qlx::cflow::IfOp>([&](auto o) { emitIf(o); })
+        .Case<qlx::cflow::YieldOp>(
+            [&](auto) { /* consumed by emitRepeat / emitIf */ })
         .Case<ReturnOp>([&](auto) { /* terminates the walk naturally */ })
         .Case<BarrierOp>([&](auto o) {
           for (auto [in, out] : llvm::zip(o.getPatches(), o.getResults())) {
@@ -814,8 +815,14 @@ private:
       return;
     }
     if (pairs.empty()) {
-      op.emitError("fabric-to-stim: ")
-          << stimName << " resolved to no carrier interactions";
+      if (schedule && (*schedule == "hx" || *schedule == "hz")) {
+        op.emitOpError("schedule '")
+            << *schedule << "' requires nonempty " << *schedule
+            << " checks on code @" << pi->codeName;
+      } else {
+        op.emitError("fabric-to-stim: ")
+            << stimName << " resolved to no carrier interactions";
+      }
       hadError = true;
       return;
     }
@@ -1434,7 +1441,7 @@ private:
     activeCallables.erase(callee);
   }
 
-  void emitRepeat(RepeatOp op) {
+  void emitRepeat(qlx::cflow::RepeatOp op) {
     int64_t count = op.getCount();
     auto &body = op.getBody().front();
     auto inits = op.getInits();
@@ -1455,7 +1462,7 @@ private:
       seed(lastYielded);
       SmallVector<Value> thisYielded;
       for (Operation &bodyOp : body) {
-        if (auto y = dyn_cast<YieldOp>(&bodyOp)) {
+        if (auto y = dyn_cast<qlx::cflow::YieldOp>(&bodyOp)) {
           for (Value v : y.getOperands())
             thisYielded.push_back(v);
           break;
@@ -1475,7 +1482,7 @@ private:
     }
   }
 
-  void emitIf(IfOp op) {
+  void emitIf(qlx::cflow::IfOp op) {
     op.emitError("fabric-to-stim: fabric.if conditional control flow is "
                  "not supported by this emitter");
     hadError = true;
@@ -1523,6 +1530,6 @@ void qlx::fabric::registerFabricToStimTranslation() {
         return emitStim(module, os);
       },
       [](DialectRegistry &registry) {
-        registry.insert<qlx::fabric::FabricDialect>();
+        registry.insert<qlx::fabric::FabricDialect, qlx::cflow::CflowDialect>();
       });
 }

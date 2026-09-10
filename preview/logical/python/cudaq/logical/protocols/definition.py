@@ -10,11 +10,11 @@ from __future__ import annotations
 from inspect import Signature
 from typing import Any, Callable, Mapping, get_args, get_origin
 
-from .._core.immutable import (
+from cudaq.logical._core.immutable import (
     ImmutableValue,
     freeze_mapping,
 )
-from ..types.semantic import resource
+from cudaq.logical.types.semantic import resource
 
 
 def _flatten_boundary_annotations(annotation):
@@ -53,8 +53,8 @@ class ProtocolDefinition(ImmutableValue):
         type_hints: Mapping[str, Any] | None = None,
         _factory_region=None,
     ) -> None:
-        from .._core.definition_signature import resolve_definition_signature
-        from ..gadgets import patch
+        from cudaq.logical._core.definition_signature import resolve_definition_signature
+        from cudaq.logical.gadgets import patch
 
         resolved_signature, resolved_hints = resolve_definition_signature(
             provider,
@@ -71,7 +71,7 @@ class ProtocolDefinition(ImmutableValue):
         self._verify_production_boundary()
         self.metadata = freeze_mapping(metadata)
         self.profile = "p2n"
-        from ..stages import (
+        from cudaq.logical.stages import (
             P2,
             PROTOCOL_NETWORK,
         )
@@ -99,7 +99,8 @@ class ProtocolDefinition(ImmutableValue):
         if (len(boundaries) != 1 or get_origin(boundaries[0]) is not resource or
                 get_args(boundaries[0]) != (objective.resource,)):
             raise TypeError(
-                "a protocol implementing cudaq.logical.std.produce(kind) must "
+                "a protocol implementing cudaq.logical.logical.produce(kind) "
+                "must "
                 "return exactly cudaq.logical.types.resource[kind]")
 
     def _resource_input_kinds(self):
@@ -124,7 +125,7 @@ class ProtocolDefinition(ImmutableValue):
     def _bind_factory(self, region):
         """Return a device-authoring clone with a derived allocation region."""
 
-        from ..architecture.logical import Space
+        from cudaq.logical.architecture.logical import Space
 
         if not isinstance(region, Space):
             raise TypeError("protocol factory binding requires a logical Space")
@@ -154,12 +155,12 @@ class ProtocolDefinition(ImmutableValue):
         object.__setattr__(self, "_qlx_direct_snapshot", build)
 
     def __call__(self, *args, **kwargs):
-        from ..programs.context import current_trace
+        from cudaq.logical.programs.context import current_trace
 
         trace = current_trace()
         if trace is None:
             raise RuntimeError(
-                f"{self.name} is a CUDA-Q Logical protocol definition; materialize it or "
+                f"{self.name} is a QLX protocol definition; materialize it or "
                 "call it inside a compatible protocol trace")
         return trace.call(self, args, kwargs)
 
@@ -177,8 +178,8 @@ def protocol(
     localns = dict(frame.f_back.f_locals) if frame and frame.f_back else {}
 
     def decorate(provider):
-        from .._core.definition_signature import resolve_definition_signature
-        from ..gadgets import patch
+        from cudaq.logical._core.definition_signature import resolve_definition_signature
+        from cudaq.logical.gadgets import patch
 
         _, hints = resolve_definition_signature(
             provider,

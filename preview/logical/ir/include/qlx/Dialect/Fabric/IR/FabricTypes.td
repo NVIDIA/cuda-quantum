@@ -1,12 +1,10 @@
-//===- FabricTypes.td - Fabric type definitions -----------*- tablegen -*-===//
-//
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-// All rights reserved.
-//
-// This source code and the accompanying materials are made available under
-// the terms of the Apache License 2.0 which accompanies this distribution.
-//
-//===----------------------------------------------------------------------===//
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 //
 // Type definitions for the Fabric dialect.
 //
@@ -99,7 +97,8 @@ def Fabric_SyndromeType : TypeDef<Fabric_Dialect, "Syndrome"> {
     Parameterized by the code type, making syndromes self-describing.
 
     Produced by `fabric.read_syndrome_ancillas` or
-    `fabric.assemble_syndrome` and available to protocol success predicates.
+    `fabric.assemble_syndrome`. Consumed by syndrome-decoding and
+    correction operations.
 
     The code type parameter enables composition passes to verify that
     syndromes from different gadgets are compatible without inspecting
@@ -202,16 +201,6 @@ def Fabric_ResourceStateType : TypeDef<Fabric_Dialect, "ResourceState"> {
       return llvm::cast<qlx::fabric::ResourceTypeAttr>(getKind()).getValue();
     }
   }];
-}
-
-def Fabric_EventType : TypeDef<Fabric_Dialect, "Event"> {
-  let mnemonic = "event";
-  let summary = "typed asynchronous Fabric resource result";
-  let parameters = (ins
-    "mlir::Type":$payload,
-    StringRefParameter<"payload ownership">:$ownership
-  );
-  let assemblyFormat = "`<` $payload `,` $ownership `>`";
 }
 
 //===----------------------------------------------------------------------===//

@@ -25,7 +25,7 @@ def _identity(arity):
 def _conjugate(images, name, wires):
     if name == "idle":
         return
-    if name in {"t", "tdg", "ccz"}:
+    if name in {"t", "tdg", "ccz", "ccx"}:
         raise NonCliffordAction(
             f"logical objective contains non-Clifford action {name!r}")
     if name in {"x", "y", "z", "h", "s", "sdg"}:
@@ -244,7 +244,7 @@ class CliffordAction:
 
     @classmethod
     def from_program(cls, definition):
-        from ..programs.definition import ProgramDefinition
+        from cudaq.logical.programs.definition import ProgramDefinition
         from ..compiler import compile
 
         if not isinstance(definition,
@@ -252,9 +252,7 @@ class CliffordAction:
             raise TypeError(
                 "CliffordAction.from_program expects @cudaq.logical.objective")
         build = compile(definition)
-        # Clifford semantics are derived evidence, so inspect a private replay
-        # of the immutable Build rather than its mutable cached module view.
-        module = build._fresh_module()
+        module = build.module
         action = next(
             (view.operation
              for view in module.body.operations
@@ -280,7 +278,7 @@ class CliffordAction:
                                          definition.signature.parameters))
 
     def to_mlir_attr(self, context):
-        from cudaq.mlir import ir as mlir_ir
+        import cudaq.mlir.ir as mlir_ir
 
         matrix = ", ".join(str(bit) for row in self.matrix for bit in row)
         phases = ", ".join(str(bit) for bit in self.phases)

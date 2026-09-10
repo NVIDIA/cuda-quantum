@@ -11,12 +11,12 @@
 
 qlx.program @dynamic : (i1) -> i1 attributes {qlx.stage = "p0"} {
 ^bb0(%condition: i1):
-  %0 = "qlx.while"(%condition) <{max_iterations = 8 : i64}> ({
+  %0 = "cflow.while"(%condition) <{max_iterations = 8 : i64}> ({
   ^bb0(%current: i1):
-    "qlx.while_condition"(%current, %current) : (i1, i1) -> ()
+    "cflow.while_condition"(%current, %current) : (i1, i1) -> ()
   }, {
   ^bb0(%current: i1):
-    qlx.yield %current : i1
+    cflow.yield %current : i1
   }) : (i1) -> i1
   qlx.return %0 : i1
 }

@@ -17,7 +17,7 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 
-from ..stages import (
+from cudaq.logical.stages import (
     facets_for_kind,
     normalize_facets,
     stage_and_facets,
@@ -81,6 +81,7 @@ _BUILD_V2_QEC_SELECTION_FIELDS = frozenset({
     "encoding",
     "objective",
     "tie_break",
+    "network_manifest_sha256",
 })
 _BUILD_V2_QEC_BLOCK_FIELDS = frozenset({
     "block",
@@ -108,6 +109,10 @@ _BUILD_V2_QEC_ACTION_FIELDS = frozenset({
     "version",
     "manifest_sha256",
     "tie_break",
+    "channel",
+    "channel_capability",
+    "endpoints",
+    "direction",
 })
 _BUILD_V2_EXPERIMENT_FIELDS = frozenset({
     "root",
@@ -121,7 +126,9 @@ _BUILD_V2_EXPERIMENT_FIELDS = frozenset({
 _BUILD_V2_EXPERIMENT_BINDINGS = frozenset({
     "device",
     "device_provenance",
+    "operating_point",
     "placement",
+    "noise",
     "target",
     "policy",
     "parameters",
@@ -133,8 +140,13 @@ _ROOT_OPERATION_BY_KIND = {
     "program": "qlx.program",
     "kernel": "lvm.kernel",
     "gadget": "fabric.gadget",
+    "gadget_profile": "fabric.gadget_profile",
     "protocol": "fabric.protocol",
+    "physical_graph": "phys.graph",
     "device": "qlx.device",
+    "physical_action": "phys.action",
+    "physical_instrument": "phys.instrument",
+    "physical_machine": "phys.machine",
     "qec_lowering": "qlx.qec_lowering",
     "target_manifest": "qlx.target_manifest",
     "Code": "fabric.code",
@@ -152,8 +164,13 @@ _ROOT_PROFILES_BY_KIND = {
     "program": frozenset({"p0"}),
     "kernel": frozenset({"p1"}),
     "gadget": frozenset({"p2a"}),
+    "gadget_profile": frozenset({"p2a"}),
     "protocol": frozenset({"p2n"}),
-    "device": frozenset({"p1", "p2", "p2n"}),
+    "physical_graph": frozenset({"p3"}),
+    "device": frozenset({"p1", "p2", "p2n", "p3"}),
+    "physical_action": frozenset({"p3"}),
+    "physical_instrument": frozenset({"p3"}),
+    "physical_machine": frozenset({"p3"}),
     "qec_lowering": frozenset({"common"}),
     "target_manifest": frozenset({"common"}),
     "Code": frozenset({"p2s"}),
@@ -180,8 +197,14 @@ _FACET_MINIMUM_STAGE = {
     "qec_realization": "p2",
     "protocol_network": "p2",
     "patch_graph": "p2",
+    "patch_mapping": "p3",
+    "native_legalization": "p3",
+    "carrier_mapping": "p3",
+    "physical_routing": "p3",
+    "zoned_movement": "p3",
+    "physical_schedule": "p3",
 }
-_STAGE_ORDINAL = {"p0": 0, "p1": 1, "p2": 2}
+_STAGE_ORDINAL = {"p0": 0, "p1": 1, "p2": 2, "p3": 3}
 
 
 def _build_bundle_content_sha256(bundle) -> str:
@@ -356,6 +379,10 @@ def _validate_v2_nested_metadata(bundle):
             _require_nonempty_string(selection[field], f"QEC selection {field}")
         for field in ("code", "encoding"):
             _require_optional_string(selection[field], f"QEC selection {field}")
+        _require_optional_sha256(
+            selection["network_manifest_sha256"],
+            "QEC selection network manifest",
+        )
         blocks = selection["blocks"]
         actions = selection["actions"]
         if not isinstance(blocks, list) or not isinstance(actions, list):
@@ -421,10 +448,17 @@ def _validate_v2_nested_metadata(bundle):
                     "tie_break",
             ):
                 _require_nonempty_string(action[field], f"QEC action {field}")
-            for field in ("placements", "feasible_candidates"):
+            for field in (
+                    "placements",
+                    "feasible_candidates",
+                    "endpoints",
+            ):
                 _require_string_list(action[field],
                                      f"QEC action {field}",
                                      unique=True)
+            for field in ("channel", "channel_capability", "direction"):
+                _require_optional_string(
+                    action[field], f"QEC action communication field {field}")
             _require_optional_sha256(
                 action["manifest_sha256"],
                 "QEC action manifest",
@@ -531,7 +565,7 @@ def _validate_v2_bundle(bundle) -> None:
     if not kind_name[:1].islower():
         # Accept the historical spelling on replay while serializing newly
         # authored typed roots with their semantic package owner.
-        allowed_kinds.add(f"cudaq.logical.model.qec.{kind_name}")
+        allowed_kinds.add(f"qlx.model.qec.{kind_name}")
         owner = _TYPED_ROOT_KIND_OWNERS.get(kind_name)
         if owner is not None:
             allowed_kinds.add(owner)

@@ -35,5 +35,6 @@ def require_trace(operation: str):
     trace = current_trace()
     if trace is None:
         raise NoActiveTrace(
-            f"qlx.{operation}() requires an active CUDA-Q Logical trace")
+            f"cudaq.logical.{operation}() requires an active CUDA-Q Logical "
+            "trace")
     return trace

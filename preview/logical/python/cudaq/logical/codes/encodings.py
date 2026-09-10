@@ -17,15 +17,15 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
 from ..errors import InvalidCodeAlgebra
-from .._core.immutable import ImmutableValue
-from ..algebra.clifford import CliffordAction
-from ..algebra.gf2 import (
+from cudaq.logical._core.immutable import ImmutableValue
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.algebra.gf2 import (
     GF2Matrix,
     _normalize_binary_value,
     _normalize_binary_values,
     _row_bits,
 )
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     LogicalValueGroup,
     LogicalValueRef,
 )
@@ -171,7 +171,7 @@ class Encoding(ImmutableValue):
     def ports(self):
         """Typed protected-logical references exposed by this encoding."""
 
-        from ..programs.binding import LogicalPorts
+        from cudaq.logical.programs.binding import LogicalPorts
 
         return LogicalPorts(self)
 

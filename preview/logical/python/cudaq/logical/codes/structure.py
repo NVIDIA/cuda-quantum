@@ -17,15 +17,15 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
 from ..errors import InvalidCodeAlgebra
-from .._core.immutable import ImmutableValue
-from ..algebra.clifford import CliffordAction
-from ..algebra.gf2 import (
+from cudaq.logical._core.immutable import ImmutableValue
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.algebra.gf2 import (
     GF2Matrix,
     _normalize_binary_value,
     _normalize_binary_values,
     _row_bits,
 )
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     LogicalValueGroup,
     LogicalValueRef,
 )
@@ -115,7 +115,7 @@ class CarrierRoleMap:
 class PatchTransform:
     """A linear QEC boundary change over an explicit local carrier frame.
 
-    The transform is structural and serves as evidence. It does not stand in for
+    The transform is structural and evidentiary.  It does not stand in for the
     physical circuit: a gadget using it still contains the reset, gate, and
     measurement operations that realize the claimed code change.
     """

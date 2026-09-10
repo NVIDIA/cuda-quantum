@@ -12,11 +12,12 @@ from typing import Optional
 
 
 class Stage(str, Enum):
-    """Semantic commitment stage of one verified CUDA-Q Logical root."""
+    """Semantic commitment stage of one verified QLX root."""
 
     P0 = "p0"
     P1 = "p1"
     P2 = "p2"
+    P3 = "p3"
 
     def __str__(self) -> str:
         return self.value
@@ -25,14 +26,20 @@ class Stage(str, Enum):
 class Facet(str, Enum):
     """Orthogonal verified facts attached to a semantic-stage root.
 
-    Facets are products or capabilities, not additional points in the P0-P2
-    lowering order. Several may coexist for one immutable semantic root.
+    Facets are products or capabilities, not additional points in the P0-P3
+    lowering order.  Several may coexist for one immutable semantic root.
     """
 
     QEC_SPEC = "qec_spec"
     QEC_REALIZATION = "qec_realization"
     PROTOCOL_NETWORK = "protocol_network"
     PATCH_GRAPH = "patch_graph"
+    PATCH_MAPPING = "patch_mapping"
+    NATIVE_LEGALIZATION = "native_legalization"
+    CARRIER_MAPPING = "carrier_mapping"
+    PHYSICAL_ROUTING = "physical_routing"
+    ZONED_MOVEMENT = "zoned_movement"
+    PHYSICAL_SCHEDULE = "physical_schedule"
 
     def __str__(self) -> str:
         return self.value
@@ -41,19 +48,23 @@ class Facet(str, Enum):
 P0 = Stage.P0
 P1 = Stage.P1
 P2 = Stage.P2
+P3 = Stage.P3
 
 QEC_SPEC = Facet.QEC_SPEC
 QEC_REALIZATION = Facet.QEC_REALIZATION
 PROTOCOL_NETWORK = Facet.PROTOCOL_NETWORK
 PATCH_GRAPH = Facet.PATCH_GRAPH
+PATCH_MAPPING = Facet.PATCH_MAPPING
+NATIVE_LEGALIZATION = Facet.NATIVE_LEGALIZATION
+CARRIER_MAPPING = Facet.CARRIER_MAPPING
+PHYSICAL_ROUTING = Facet.PHYSICAL_ROUTING
+ZONED_MOVEMENT = Facet.ZONED_MOVEMENT
+PHYSICAL_SCHEDULE = Facet.PHYSICAL_SCHEDULE
 
 _legacy_products = {
     "p2s": (Stage.P2, (Facet.QEC_SPEC,)),
-    "p2a": (Stage.P2, (Facet.QEC_SPEC, Facet.QEC_REALIZATION)),
-    "p2n": (
-        Stage.P2,
-        (Facet.QEC_SPEC, Facet.QEC_REALIZATION, Facet.PROTOCOL_NETWORK),
-    ),
+    "p2a": (Stage.P2, ()),
+    "p2n": (Stage.P2, (Facet.QEC_SPEC, Facet.PROTOCOL_NETWORK)),
 }
 
 
@@ -96,6 +107,7 @@ def facets_for_kind(kind) -> tuple[Facet, ...]:
         "PatchTransform": (Facet.QEC_SPEC,),
         "gadget": (Facet.QEC_SPEC, Facet.QEC_REALIZATION),
         "protocol": (Facet.PROTOCOL_NETWORK,),
+        "physical_schedule": (Facet.PHYSICAL_SCHEDULE,),
     }
     return mapping.get(name, ())
 
@@ -106,10 +118,17 @@ __all__ = [
     "P0",
     "P1",
     "P2",
+    "P3",
     "QEC_SPEC",
     "QEC_REALIZATION",
     "PROTOCOL_NETWORK",
     "PATCH_GRAPH",
+    "PATCH_MAPPING",
+    "NATIVE_LEGALIZATION",
+    "CARRIER_MAPPING",
+    "PHYSICAL_ROUTING",
+    "ZONED_MOVEMENT",
+    "PHYSICAL_SCHEDULE",
     "stage_and_facets",
     "normalize_facets",
     "facets_for_kind",

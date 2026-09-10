@@ -31,11 +31,11 @@ fabric.gadget @idle_test(%p: !fabric.patch<@sc>) -> !fabric.patch<@sc> {
 // CHECK-LABEL: func.func @if_test
 func.func @if_test(%cond: i1, %p0: !fabric.patch<@sc>, %p1: !fabric.patch<@sc>)
     -> !fabric.patch<@sc> {
-  // CHECK: fabric.if
-  %r = fabric.if %cond -> !fabric.patch<@sc> {
-    fabric.yield %p0 : !fabric.patch<@sc>
+  // CHECK: cflow.if
+  %r = cflow.if %cond -> !fabric.patch<@sc> {
+    cflow.yield %p0 : !fabric.patch<@sc>
   } else {
-    fabric.yield %p1 : !fabric.patch<@sc>
+    cflow.yield %p1 : !fabric.patch<@sc>
   }
   return %r : !fabric.patch<@sc>
 }

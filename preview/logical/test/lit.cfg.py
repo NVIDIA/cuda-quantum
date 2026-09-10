@@ -10,26 +10,27 @@ import os
 import lit.formats
 import lit.util
 
-config.name = "CUDA-Q Logical"
+config.name = "QLX"
 config.test_format = lit.formats.ShTest(True)
 
 config.suffixes = [".mlir", ".test"]
 
 config.test_source_root = os.path.dirname(__file__)
-config.substitutions.append(("%qlx_src_dir", config.qlx_src_dir))
 
 # test_exec_root is set by the site config before loading us.
+
+# Retained CLI workflow tests consume the checked-in top-level examples.
+config.substitutions.append(("%qlx_src_dir", config.qlx_src_dir))
 
 # Features for REQUIRES lines. Each entry advertises a feature when the
 # corresponding tool exists in ${QLX_TOOLS_DIR}.
 for _tool in ("qlx-opt", "qlx-translate"):
     if os.path.isfile(os.path.join(config.qlx_tools_dir, _tool)):
         config.available_features.add(_tool)
-# Quake ingress is unconditional: CUDA-Q Logical only builds against a CUDA-Q development
-# installation, which always supplies the Quake and CC dialects.
-config.available_features.add("cudaq-quake")
+if getattr(config, "has_cudaq_quake", "").upper() in ("1", "ON", "TRUE", "YES"):
+    config.available_features.add("cudaq-quake")
 
-# Build PATH with our tools directory and FileCheck.
+# Build PATH with our tools dir and FileCheck.
 path = os.environ.get("PATH", "")
 if hasattr(config, "qlx_tools_dir") and config.qlx_tools_dir:
     path = config.qlx_tools_dir + os.pathsep + path

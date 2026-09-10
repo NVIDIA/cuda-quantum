@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
+  MLIRIR
+  MLIRSupport
+  MLIRTranslateLib
+)
+
 add_mlir_translation_library(MLIRFabricTranslate
   EmitStim.cpp
 
@@ -17,9 +23,8 @@ add_mlir_translation_library(MLIRFabricTranslate
 
   LINK_LIBS PUBLIC
   MLIRFabricDialect
-  MLIRIR
-  MLIRSupport
-  MLIRTranslateLib
+  MLIRCflowDialect
+  ${_qlx_mlir_link_libraries}
 )
 
 qlx_propagate_llvm_rtti_eh(MLIRFabricTranslate)

@@ -134,6 +134,7 @@ def standard_objective_operand_names(name: str, arity: int) -> tuple[str, ...]:
         "cx": ("control", "target"),
         "cz": ("left", "right"),
         "ccz": ("a", "b", "c"),
+        "ccx": ("control_a", "control_b", "target"),
     }.get(name)
     return named or tuple(f"q{index}" for index in range(arity))
 

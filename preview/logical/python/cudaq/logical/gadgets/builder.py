@@ -13,15 +13,15 @@ from itertools import permutations
 from types import NoneType
 from typing import get_args, get_origin, get_type_hints
 
-from cudaq.mlir import ir as mlir_ir
+import cudaq.mlir.ir as mlir_ir
 
-from ..algebra.angle import Angle
+from cudaq.logical.algebra.angle import Angle
 from ..errors import InvalidSyndromeSchedule, ObjectiveMismatch
-from ..programs.context import (
+from cudaq.logical.programs.context import (
     pop_trace,
     push_trace,
 )
-from ..types.values import (
+from cudaq.logical.types.values import (
     GaugeRecordsValue,
     MeasurementBits,
     LogicalBool,
@@ -34,34 +34,32 @@ from ..types.values import (
     SyndromeValue,
     _BBSyndromeContinuation,
 )
-
-
-class _ExcludedBBSyndromeSchedule:
-    """Sentinel preserving fail-closed dispatch after BB research removal."""
-
-
-BBSyndromeSchedule = _ExcludedBBSyndromeSchedule
-from ..codes import (
+from cudaq.logical.codes.bb import BBSyndromeSchedule
+from cudaq.logical.codes import (
     Code,
     Encoding,
     EncodingEpoch,
     GaugeMeasurementMap,
     PatchTransform,
 )
-from ..gadgets.definition import GadgetDefinition
-from ..gadgets.interface import patch
-from ..gadgets.records import ProfileParity, RecordRef
-from ..gadgets.semantics import OutcomeMap, OutcomeRole, OutcomeSyndromeTerm
-from ..algebra.gf2 import GF2Matrix
-from ..algebra.pauli import PauliProduct
-from ..devices.definition import QECRegion
-from ..programs.definition import ProgramDefinition
-from ..qec.objectives import SubsystemFragmentObjective
-from ..types.semantic import (
+from cudaq.logical.gadgets.definition import GadgetDefinition
+from cudaq.logical.gadgets.interface import patch
+from cudaq.logical.gadgets.profiles import GadgetProfile
+from cudaq.logical.gadgets.records import ProfileParity, RecordRef
+from cudaq.logical.gadgets.semantics import (
+    OutcomeMap,
+    OutcomeRole,
+    OutcomeSyndromeTerm,
+)
+from cudaq.logical.algebra.gf2 import GF2Matrix
+from cudaq.logical.devices.definition import QECRegion
+from cudaq.logical.programs.definition import ProgramDefinition
+from cudaq.logical.qec.objectives import SubsystemFragmentObjective
+from cudaq.logical.types.semantic import (
     record,
     resource,
 )
-from ..gadgets.specification import _inferred_port_table
+from cudaq.logical.gadgets.specification import _inferred_port_table
 from ..std import (
     LogicalActionRef,
     LogicalInstrumentRef,
@@ -241,6 +239,14 @@ class GadgetBuilder:
     def _kind_name(kind):
         return str(getattr(kind, "name", kind))
 
+    @classmethod
+    def _resource_payload_roles(cls, kind):
+        from ..std import AUTO_CCZ_STATE
+
+        if cls._kind_name(kind) == AUTO_CCZ_STATE.name:
+            return AUTO_CCZ_STATE.payload_roles
+        return tuple(getattr(kind, "payload_roles", ()))
+
     def _input_boundary(self, annotation):
         if get_origin(annotation) is patch:
             return "patch", self._encoding_from_annotation(annotation)
@@ -402,7 +408,8 @@ class GadgetBuilder:
                 kind == "patch" for kind, _ in self.result_boundaries)
             if patch_inputs != 1 or patch_results != 1:
                 raise TypeError(
-                    "cudaq.logical.qec.subsystem_fragment derivation currently requires "
+                    "cudaq.logical.qec.subsystem_fragment derivation currently "
+                    "requires "
                     "one inout encoded patch; use an explicit ObjectiveGraph for "
                     "multi-block, split, merge, or terminal fragments")
             logical_symbol = None
@@ -413,7 +420,7 @@ class GadgetBuilder:
         elif logical is None:
             # A root P2 gadget may be the user-facing entry point instead of a
             # selectable realization of a separate logical objective.  Keep
-            # its inferred boundary contract behind an internal entry point
+            # its inferred boundary contract behind an internal entrypoint
             # declaration and gadget spec, but do not claim equivalence to a
             # user-authored logical objective.
             logical_symbol = self.transaction.objective(
@@ -426,10 +433,10 @@ class GadgetBuilder:
             self.objective_parameter_names = ()
             self.logical_objective_symbol = logical_symbol
         else:
-            raise TypeError(
-                "@cudaq.logical.gadget implements= requires cudaq.logical.std.<objective>, "
-                "cudaq.logical.qec.subsystem_fragment, or a "
-                "@cudaq.logical.objective definition")
+            raise TypeError("@cudaq.logical.gadget implements= requires "
+                            "cudaq.logical.logical.<objective>, "
+                            "cudaq.logical.qec.subsystem_fragment, or a "
+                            "@cudaq.logical.objective definition")
         with self.context:
             logical_type_attr = mlir_ir.TypeAttr.get(logical_function_type)
             gadget_type_attr = mlir_ir.TypeAttr.get(self.function_type)
@@ -557,7 +564,7 @@ class GadgetBuilder:
         if self.transform_handle is not None:
             attrs["transform"] = mlir_ir.FlatSymbolRefAttr.get(
                 self.transform_handle.symbol, context=self.context)
-        # Preserve the boundary inferred from the callable independently of an
+        # Preserve the callable's inferred boundary independently of an
         # explicit GadgetSpec. Certificate consumers compare this witness with
         # the authoritative spec before trusting its metadata.
         self.realization_boundary = mlir_ir.DictAttr.get(
@@ -721,6 +728,7 @@ class GadgetBuilder:
             "cx": ("control", "target"),
             "cz": ("left", "right"),
             "ccz": ("a", "b", "c"),
+            "ccx": ("control_a", "control_b", "target"),
         }.get(logical.name)
         return names or tuple(f"q{index}" for index in range(logical.arity))
 
@@ -742,7 +750,7 @@ class GadgetBuilder:
     def _conjugate_clifford(images, name, wires):
         if name == "idle":
             return
-        if name in {"t", "tdg", "ccz"}:
+        if name in {"t", "tdg", "ccz", "ccx"}:
             raise TypeError(
                 f"logical objective contains non-Clifford action {name!r}")
         if name in {"x", "y", "z", "h", "s", "sdg"}:
@@ -800,12 +808,12 @@ class GadgetBuilder:
 
     @classmethod
     def _standard_clifford_action(cls, name, arity):
-        from ..algebra.clifford import CliffordAction
+        from cudaq.logical.algebra.clifford import CliffordAction
 
         return CliffordAction.standard(name, arity).images
 
     def _program_clifford_action(self, action_symbol, arity):
-        from ..algebra.clifford import CliffordAction
+        from cudaq.logical.algebra.clifford import CliffordAction
 
         action = self.transaction.find_symbol(action_symbol, "qlx.action")
         if action is None or "semantics" not in action.attributes:
@@ -1099,6 +1107,54 @@ class GadgetBuilder:
             raise RuntimeError(
                 "gadget leaves a resource owner live at its boundary")
         self._validate_explicit_spec_records()
+        self._derive_clifford_call_equivalence()
+
+    def _derive_clifford_call_equivalence(self):
+        """Mark only the exact Clifford constructions verified natively."""
+
+        objective = self.logical_objective
+        if not isinstance(objective, LogicalActionRef):
+            return
+        patch_encodings = tuple(
+            value for kind, value in self.input_boundaries if kind == "patch")
+        exact_bare_h = (len(patch_encodings) == 1 and
+                        patch_encodings[0].code.n == 1 and
+                        patch_encodings[0].code.k == 1 and
+                        not getattr(patch_encodings[0].code, "hx", ()) and
+                        not getattr(patch_encodings[0].code, "hz", ()))
+        semantic = tuple(child.operation
+                         for child in self.block.operations
+                         if child.operation.name != "fabric.return")
+        terminator = self.block.operations[-1].operation
+        if objective.name == "cx" and len(
+                semantic) == 1 and semantic[0].name == "fabric.cx" and tuple(
+                    terminator.operands) == tuple(semantic[0].results) and str(
+                        semantic[0].operands[0].type) == str(
+                            semantic[0].operands[1].type):
+            equivalence = "derived_exact_css_transversal_cx"
+        elif (objective.name == "h" and
+              (exact_bare_h or
+               self.definition.metadata.get("exact_action_certificate")
+               is not None) and len(semantic) >= 1 and
+              semantic[0].name == "fabric.h" and
+              all(operation.name == "fabric.cx" for operation in semantic[1:])):
+            # The native verifier re-derives the complete signed logical action
+            # from the retained code, transversal H, and exact SWAP network.
+            # Python only classifies the candidate shape here.
+            equivalence = "derived_exact_css_transversal_h_permutation"
+        elif (objective.name == "cz" and len(semantic) == 3 and
+              all(operation.name == "fabric.call" for operation in semantic)):
+            equivalence = "derived_exact_clifford_call_composition"
+        elif objective.name == "cz" and len(
+                semantic) == 1 and semantic[0].name == "fabric.cz":
+            equivalence = "derived_exact_bare_physical_cz"
+        else:
+            return
+        self.spec_operation.attributes[
+            "action_equivalence"] = mlir_ir.StringAttr.get(equivalence,
+                                                           context=self.context)
+        self.spec_operation.attributes["epoch_map"] = mlir_ir.StringAttr.get(
+            "preserve", context=self.context)
 
     def _derive_inferred_outcome_map(self, values) -> None:
         """Materialize canonical affine result semantics when Python can prove it."""
@@ -1344,12 +1400,21 @@ class GadgetBuilder:
             mlir_ir.DictAttr.get(fragment_values, context=self.context))
 
     def call(self, definition, args, kwargs):
+        analysis = kwargs.pop("analysis", None)
         if kwargs:
             raise TypeError(
                 f"unsupported gadget call keyword arguments: {sorted(kwargs)}")
         if not isinstance(definition, GadgetDefinition):
             raise TypeError(
                 "gadgets may call only other @cudaq.logical.gadget values")
+        if analysis is not None:
+            if not isinstance(analysis, GadgetProfile):
+                raise TypeError(
+                    "analysis= requires a cudaq.logical.GadgetProfile")
+            if analysis.gadget is not definition:
+                raise ValueError(
+                    "analysis profile does not describe this gadget")
+
         hints = definition.type_hints
         input_boundaries = tuple(
             self._input_boundary(hints.get(name, parameter.annotation))
@@ -1407,6 +1472,10 @@ class GadgetBuilder:
                 mlir_ir.FlatSymbolRefAttr.get(callee.symbol,
                                               context=self.context)
         }
+        if analysis is not None:
+            profile = self.transaction.materialize(analysis)
+            attrs["profile"] = mlir_ir.FlatSymbolRefAttr.get(
+                profile.symbol, context=self.context)
         operation = self._emit(
             "fabric.call",
             operands=operands,
@@ -1606,7 +1675,7 @@ class GadgetBuilder:
     def consume_resource(self, resource_value, values, *, action=None):
         del resource_value, values, action
         raise TypeError(
-            "cudaq.logical.consume is portable P0/P1 intent and cannot appear inside a "
+            "qlx.consume is portable P0/P1 intent and cannot appear inside a "
             "P2 gadget; use cudaq.logical.unpack_resource(...) and explicitly author "
             "the code-specific injection circuit")
 
@@ -1633,6 +1702,11 @@ class GadgetBuilder:
             raise ValueError(
                 "unpack_resource like= collection must contain distinct patch owners"
             )
+        payload_roles = self._resource_payload_roles(resource_value.kind)
+        if payload_roles and len(anchors) != len(payload_roles):
+            raise ValueError(
+                f"{self._kind_name(resource_value.kind)} requires exactly "
+                f"{len(payload_roles)} payload roles")
         if encoding is None:
             payload_encodings = tuple(anchor.encoding for anchor in anchors)
         else:
@@ -1656,10 +1730,18 @@ class GadgetBuilder:
         for anchor in anchors:
             anchor._consume("fabric.unpack_resource")
         attrs = {}
+        if payload_roles:
+            attrs["payload_roles"] = mlir_ir.ArrayAttr.get(
+                [
+                    mlir_ir.StringAttr.get(role, context=self.context)
+                    for role in payload_roles
+                ],
+                context=self.context,
+            )
         if mapping is not None:
             block_indices, port_indices = mapping
             action = resource_value.kind.consume_action
-            attrs = {
+            attrs.update({
                 "payload_action":
                     mlir_ir.Attribute.parse(f"#qlx.action<{action.name}>",
                                             context=self.context),
@@ -1667,7 +1749,7 @@ class GadgetBuilder:
                     mlir_ir.DenseI64ArrayAttr.get(block_indices, self.context),
                 "payload_logical_ports":
                     mlir_ir.DenseI64ArrayAttr.get(port_indices, self.context),
-            }
+            })
         operation = self._emit(
             "fabric.unpack_resource",
             operands=[
@@ -1750,24 +1832,49 @@ class GadgetBuilder:
         )
 
     def pack_resource(self, payload, *, kind):
-        if not isinstance(payload, PatchValue) or payload.owner is not self:
-            raise TypeError("pack_resource expects one live encoded patch")
+        payloads = ((payload,)
+                    if isinstance(payload, PatchValue) else tuple(payload))
+        if not payloads or any(
+                not isinstance(value, PatchValue) or value.owner is not self
+                for value in payloads):
+            raise TypeError(
+                "pack_resource expects one live encoded patch or a nonempty "
+                "collection of live encoded patches")
+        if len({id(value) for value in payloads}) != len(payloads):
+            raise ValueError("pack_resource payload patches must be distinct")
         kind_name = self._kind_name(kind)
-        payload._consume("fabric.pack_resource")
+        payload_roles = self._resource_payload_roles(kind)
+        if payload_roles and len(payloads) != len(payload_roles):
+            raise ValueError(
+                f"{kind_name} requires exactly {len(payload_roles)} payload roles"
+            )
+        for value in payloads:
+            value._consume("fabric.pack_resource")
+        attributes = {
+            "resource_kind":
+                mlir_ir.FlatSymbolRefAttr.get(kind_name, context=self.context),
+            "payload_encodings":
+                mlir_ir.ArrayAttr.get([
+                    mlir_ir.FlatSymbolRefAttr.get(
+                        self.transaction.materialize(value.encoding).symbol,
+                        context=self.context,
+                    ) for value in payloads
+                ],
+                                      context=self.context),
+        }
+        if payload_roles:
+            attributes["payload_roles"] = mlir_ir.ArrayAttr.get(
+                [
+                    mlir_ir.StringAttr.get(role, context=self.context)
+                    for role in payload_roles
+                ],
+                context=self.context,
+            )
         operation = self._emit(
             "fabric.pack_resource",
-            operands=[payload.mlir_value],
+            operands=[value.mlir_value for value in payloads],
             results=[self._resource_type(kind)],
-            attributes={
-                "resource_kind":
-                    mlir_ir.FlatSymbolRefAttr.get(kind_name,
-                                                  context=self.context),
-                "payload_encoding":
-                    mlir_ir.FlatSymbolRefAttr.get(
-                        self.transaction.materialize(payload.encoding).symbol,
-                        context=self.context,
-                    ),
-            },
+            attributes=attributes,
         )
         return self._new_resource(operation.result, kind)
 
@@ -1776,7 +1883,8 @@ class GadgetBuilder:
         if not values or any(
                 not isinstance(value, PatchValue) or value.owner is not self
                 for value in values):
-            raise TypeError("gadget qlx.discard expects live whole patches")
+            raise TypeError(
+                "gadget cudaq.logical.discard expects live whole patches")
         for value in values:
             operand = value.mlir_value
             if (self.patch_transform is not None and
@@ -2143,7 +2251,7 @@ class GadgetBuilder:
 
         ``schedule`` reorders each check's canonical support without adding
         time layers. ``cx_schedule`` accepts the layered output of
-        ``code.colored_schedule(...)`` and emits those CX layers in order. The
+        ``code.colored_schedule(...)`` and inserts ticks between layers. The
         two representations are intentionally mutually exclusive.
         """
 
@@ -2230,7 +2338,7 @@ class GadgetBuilder:
         if not sx_width and not sz_width:
             raise ValueError(
                 "standard CSS extraction requires hx or hz checks; use "
-                "measure_gauges/infer_syndrome or an explicit MPP gadget")
+                "measure_gauges or an explicit MPP gadget")
 
         hx_incidences = tuple(
             (check, data)
@@ -2244,10 +2352,13 @@ class GadgetBuilder:
                                                      hz_incidences)
 
         current = patch_value
+        scheduled = cx_schedule is not None
         if sx_width:
             current = self.apply_standard("reset", (current.sx,))[0]
             current = self.apply_standard("h", (current.sx,))[0]
-            for layer in x_layers:
+            for index, layer in enumerate(x_layers):
+                if scheduled and index:
+                    self.tick()
                 current = self.apply_standard(
                     "cx",
                     (current.sx, current.data),
@@ -2255,8 +2366,12 @@ class GadgetBuilder:
                 )[0]
             current = self.apply_standard("h", (current.sx,))[0]
         if sz_width:
+            if scheduled and sx_width:
+                self.tick()
             current = self.apply_standard("reset", (current.sz,))[0]
-            for layer in z_layers:
+            for index, layer in enumerate(z_layers):
+                if scheduled and index:
+                    self.tick()
                 current = self.apply_standard(
                     "cx",
                     (current.data, current.sz),
@@ -2276,6 +2391,7 @@ class GadgetBuilder:
         current = patch_value
         if prime:
             current = self._init_basis(current.sz, basis="z")
+            self.tick()
 
         sx_bits = None
         sz_bits = None
@@ -2304,6 +2420,15 @@ class GadgetBuilder:
                                                        record=f"{record}.sx")
             if moment.initialize_z and not final_cycle:
                 current = self._init_basis(current.sz, basis="z")
+            if moment.index != schedule.moments[-1].index:
+                self.tick()
+
+        # Preserve the eighth-to-first boundary between adjacent calls.  A
+        # terminal cycle deliberately omits both the next-cycle Z reset and
+        # this boundary, reproducing the finite `8*Nc+1` paper convention.
+        if not final_cycle:
+            self.tick()
+
         if sx_bits is None or sz_bits is None:
             raise InvalidSyndromeSchedule(
                 "BB depth-8 schedule did not produce both syndrome bundles")
@@ -2628,7 +2753,7 @@ class GadgetBuilder:
         if any(not isinstance(value, LogicalBool) or value.owner is not self
                for value in (lhs, rhs)):
             raise TypeError(
-                "qlx.xor expects two Boolean values from this gadget")
+                "cudaq.logical.xor expects two Boolean values from this gadget")
         operation = self._emit(
             "fabric.xor",
             operands=[lhs.mlir_value, rhs.mlir_value],
@@ -2643,7 +2768,8 @@ class GadgetBuilder:
     def all_zero(self, bits):
         if not isinstance(bits, MeasurementBits) or bits.owner is not self:
             raise TypeError(
-                "qlx.all_zero expects measurement bits from this gadget")
+                "cudaq.logical.all_zero expects measurement bits from this gadget"
+            )
         operation = self._emit(
             "fabric.all_zero",
             operands=[bits.mlir_value],
@@ -2659,21 +2785,21 @@ class GadgetBuilder:
     def measure_pauli(self, selection, *, paulis, record=None):
         owner, partition, indices = self._view(selection)
         if owner.owner is not self:
-            raise TypeError("qlx.measure_pauli expects a view from this gadget")
+            raise TypeError(
+                "cudaq.logical.measure_pauli expects a view from this gadget")
         if indices is None:
             indices = tuple(range(self._partition_width(owner, partition)))
         else:
             indices = tuple(indices)
         if len(set(indices)) != len(indices):
             raise ValueError(
-                "measure_pauli requires distinct physical carrier indices")
+                "measure_pauli requires each distinct physical carrier once")
         if not isinstance(paulis, str):
             raise TypeError(
                 "measure_pauli paulis must match the selected width")
         paulis = paulis.upper()
         # One optional leading '-' measures the negated product: identical
-        # projectors and a complemented record (the inverted-target MPP form
-        # used by Stim).
+        # projectors, complemented record (Stim's inverted-target MPP form).
         labels = paulis.removeprefix("-")
         if len(labels) != len(indices):
             raise TypeError(
@@ -2719,7 +2845,7 @@ class GadgetBuilder:
         if not bits or any(not isinstance(value, MeasurementBits) or
                            value.owner is not self for value in bits):
             raise TypeError(
-                "qlx.parity expects one or more measurement bundles from this gadget"
+                "cudaq.logical.parity expects one or more measurement bundles from this gadget"
             )
         operation = self._emit(
             "fabric.parity",
@@ -2740,7 +2866,7 @@ class GadgetBuilder:
                 not isinstance(value, LogicalBool) or value.owner is not self
                 for value in events):
             raise TypeError(
-                "qlx.all_false expects one or more Boolean events from this gadget"
+                "cudaq.logical.all_false expects one or more Boolean events from this gadget"
             )
         operation = self._emit(
             "fabric.all_false",
@@ -2751,6 +2877,9 @@ class GadgetBuilder:
         if isinstance(producer, ProfileParity):
             producer = producer ^ True
         return LogicalBool(operation.result, owner=self, producer=producer)
+
+    def tick(self):
+        self._emit("fabric.tick")
 
     @staticmethod
     def _mask(row):
@@ -3024,7 +3153,7 @@ class GadgetBuilder:
         return binding
 
     def _product_terms(self, product, operation):
-        from ..algebra.pauli import PauliProduct
+        from cudaq.logical.algebra.pauli import PauliProduct
 
         if not isinstance(product, PauliProduct):
             raise TypeError(f"{operation} expects a cudaq.logical.PauliProduct")

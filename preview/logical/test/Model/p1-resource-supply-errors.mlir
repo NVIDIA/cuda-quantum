@@ -13,12 +13,13 @@ module {
     lvm.space @factory {
       capabilities = [#lvm.capability<"qlx.machine/logical_factory">]
     }
+    lvm.space @not_a_protocol {capabilities = []}
+    // expected-error @+1 {{produced_by must resolve to a typed fabric.protocol}}
     lvm.stream @states {
       produces = @state, backing_region = @factory,
-      produced_by = @ghost,
+      produced_by = @not_a_protocol,
       produced_by_sha256 = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
     }
-    // expected-error @+1 {{QLX resource-supply produced_by must resolve to a typed fabric.protocol}}
     lvm.channel @forged_supply {
       from = @factory, to = @states,
       capabilities = [#lvm.capability<"qlx.machine/resource_transfer">]
@@ -33,10 +34,12 @@ module {
     lvm.space @factory {
       capabilities = [#lvm.capability<"qlx.machine/logical_factory">]
     }
+    // expected-error @+1 {{produced_by requires a canonical sha256 payload commitment}}
     lvm.stream @states {
-      produces = @state, backing_region = @factory
+      produces = @state, backing_region = @factory,
+      produced_by = @later_stage_provider,
+      produced_by_sha256 = "not-a-canonical-digest"
     }
-    // expected-error @+1 {{QLX resource-supply destination requires authenticated produced_by provenance}}
     lvm.channel @forged_supply {
       from = @factory, to = @states,
       capabilities = [#lvm.capability<"qlx.machine/resource_transfer">]

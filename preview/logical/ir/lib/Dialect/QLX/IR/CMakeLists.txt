@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
+  MLIRIR
+  MLIRSupport
+  MLIRBytecodeOpInterface
+)
+
 add_mlir_dialect_library(MLIRQLXDialect
   QLXDialect.cpp
 
@@ -14,11 +20,11 @@ add_mlir_dialect_library(MLIRQLXDialect
 
   DEPENDS
   MLIRQLXIncGen
+  MLIREventIncGen
 
   LINK_LIBS PUBLIC
-  MLIRIR
-  MLIRSupport
-  MLIRBytecodeOpInterface
+  MLIREventDialect
+  ${_qlx_mlir_link_libraries}
 )
 
 # Enable PIC so the dialect library can be linked into Python shared modules.

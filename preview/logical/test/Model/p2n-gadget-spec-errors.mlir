@@ -31,7 +31,7 @@ module {
     encodings = [@c_encoding],
     outcome_map = {
       constants = array<i64: 0>, input_syndromes = [[]],
-      records = ["flag.outcome"], roles = [[]],
+      records = ["flag.outcome"], roles = [["result"]],
       rows = dense<1> : tensor<1x1xi1>
     },
     ports = [{

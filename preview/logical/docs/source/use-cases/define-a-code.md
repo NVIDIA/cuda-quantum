@@ -11,11 +11,11 @@ The shipped examples define the self-dual `[[7,1,3]]` Steane code by stating its
 CSS check rows once:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/03_code_and_gadget.py
+.. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :start-at: @ql.code
-   :end-before: @ql.objective
-   :caption: The Steane code, from examples/03_code_and_gadget.py.
+   :start-at: @cql.code
+   :end-before: @cql.objective
+   :caption: The Steane code, from examples/standalone/02_code_and_gadget.py.
 ```
 
 Check rows are carrier-index supports. `n` comes from the block, `k` from the

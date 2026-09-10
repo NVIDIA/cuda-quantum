@@ -11,13 +11,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from ..architecture.logical import (
+from cudaq.logical.architecture.logical import (
     LogicalMachine,
     LogicalValueGroup,
     LogicalValueRef,
     Space,
 )
-from ..architecture.constraints import (
+from cudaq.logical.architecture.constraints import (
     AllowSpaces,
     Prefer,
     RequireCapability,

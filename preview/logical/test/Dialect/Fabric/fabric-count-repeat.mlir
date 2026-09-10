@@ -9,9 +9,9 @@
 // REQUIRES: qlx-opt
 // RUN: qlx-opt --fabric-count %s | FileCheck %s
 
-// Tier-1 counter: `fabric.repeat` multiplies gate counts inside its body
-// by `count`. One Hadamard inside `repeat 3` → 3 total. Nested repeats
-// compose multiplicatively.
+// Tier-1 counter: `cflow.repeat` multiplies gate counts inside its body
+// by `count`. One Hadamard inside `repeat 3` → 3 total. One tick inside
+// the loop → 3 total ticks. Nested repeats would compose multiplicatively.
 
 fabric.code @steane {
   distance = 3 : i64,
@@ -28,9 +28,10 @@ fabric.machine @dev {
 
 fabric.gadget @prog {entry} on @dev() {
   %p = fabric.alloc {code = @steane, region = @C0} : !fabric.patch<@steane>
-  %p_out = fabric.repeat 3 iter(%pi : !fabric.patch<@steane> = %p) {
+  %p_out = cflow.repeat 3 iter(%pi : !fabric.patch<@steane> = %p) {
     %p1 = fabric.h %pi data : !fabric.patch<@steane>
-    fabric.yield %p1 : !fabric.patch<@steane>
+    fabric.tick
+    cflow.yield %p1 : !fabric.patch<@steane>
   }
   fabric.dealloc %p_out : !fabric.patch<@steane>
   fabric.return
@@ -38,3 +39,4 @@ fabric.gadget @prog {entry} on @dev() {
 
 // CHECK:      fabric.counts =
 // CHECK-SAME:   gate_counts = {dealloc = 1 : i64, h = 3 : i64}
+// CHECK-SAME:   rounds_by_kind = {tick = 3 : i64}

@@ -31,8 +31,9 @@ module attributes {qlx.profiles = ["p2n"]} {
          !fabric.patch<@Steane, @steane_encoding, @epoch0>)
         -> (!fabric.patch<@Steane, @steane_encoding, @epoch0>,
             !fabric.patch<@BareQubit, @bare_encoding, @bare_epoch0>)
-    %packed = fabric.pack_resource %payload as @t_state
-      : !fabric.patch<@BareQubit, @bare_encoding, @bare_epoch0>
+    %packed = fabric.pack_resource (%payload) as @t_state
+      {payload_encodings = [@bare_encoding]}
+      : (!fabric.patch<@BareQubit, @bare_encoding, @bare_epoch0>)
         -> !fabric.resource<@t_state>
     fabric.protocol_return %next, %packed
       : !fabric.patch<@Steane, @steane_encoding, @epoch0>,

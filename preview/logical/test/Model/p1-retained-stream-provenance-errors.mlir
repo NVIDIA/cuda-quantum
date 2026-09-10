@@ -76,6 +76,36 @@ module {
   }
 }
 
+// -----
+
+module {
+  lvm.domain @logical {
+    lvm.space @compute {capabilities = [], capacity = 1 : i64}
+    lvm.stream @magic {
+      external, produces = @t_state, transfer = @wrong_inject,
+      transfer_sha256 = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+  lvm.kernel @consume on @logical : (!lvm.logical_resource<"t_state", @logical::@magic>, !lvm.logical_qubit<@logical::@compute>) -> !lvm.logical_qubit<@logical::@compute> {
+  ^bb0(%state: !lvm.logical_resource<"t_state", @logical::@magic>, %q: !lvm.logical_qubit<@logical::@compute>):
+    %next = lvm.consume_resource %state with #qlx.action<t>(%q) at [@logical::@compute] {
+      resource_kind = @t_state,
+      resource_stream = @logical::@magic
+    } : !lvm.logical_resource<"t_state", @logical::@magic>, (!lvm.logical_qubit<@logical::@compute>) -> !lvm.logical_qubit<@logical::@compute>
+    lvm.return %next : !lvm.logical_qubit<@logical::@compute>
+  }
+  // expected-error @+1 {{retained stream transfer objective must exactly equal its P1 resource-consume action}}
+  fabric.protocol @wrong_inject : (!fabric.patch<@code>, !fabric.resource<@t_state>) -> !fabric.patch<@code> attributes {
+    objective = #qlx.action<s>
+  } {
+  ^bb0(%patch: !fabric.patch<@code>, %state: !fabric.resource<@t_state>):
+    fabric.discard_resource %state : !fabric.resource<@t_state>
+    fabric.protocol_return %patch : !fabric.patch<@code>
+  }
+}
+
+// -----
+
 module {
   lvm.domain @logical {
     lvm.space @factory {capabilities = [#lvm.capability<"qlx.machine/logical_factory">]}

@@ -30,8 +30,8 @@ fabric.gadget @prog {entry} on @dev() -> tensor<7xi1> {
   %p1 = fabric.h %p data : !fabric.patch<@steane>
   %p2 = fabric.h %p1 data : !fabric.patch<@steane>
   %p3 = fabric.h %p2 data : !fabric.patch<@steane>
-  %p4 = fabric.cx %p3 data -> data {pairs = "0:1"} : <@steane>
-  %pout, %bits = fabric.mz %p4 data
+  %after_cx = fabric.cx %p3 data -> data {schedule = "hx"} : <@steane>
+  %pout, %bits = fabric.mz %after_cx data
     : !fabric.patch<@steane> -> tensor<7xi1>
   fabric.dealloc %pout : !fabric.patch<@steane>
   fabric.return %bits : tensor<7xi1>
@@ -43,6 +43,7 @@ fabric.gadget @prog {entry} on @dev() -> tensor<7xi1> {
 // CHECK-SAME:   per_region = {
 // CHECK-SAME:     C0 = {
 // CHECK-SAME:       code = "steane"
+// CHECK-SAME:       distance = 3 : i64
 // CHECK-SAME:       gate_counts = {cx = 1 : i64, dealloc = 1 : i64, h = 3 : i64, mz = 1 : i64}
 // CHECK-SAME:       patches = 1 : i64
 // CHECK-SAME:       role = "compute"

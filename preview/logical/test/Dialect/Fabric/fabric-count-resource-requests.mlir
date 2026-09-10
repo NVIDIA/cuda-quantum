@@ -12,22 +12,24 @@
 // A repeated protocol call multiplies both the typed resource-kind demand and
 // the demand attributed to its fully qualified logical stream.
 fabric.protocol @request_once : () -> !fabric.resource<@t_state> {
-  %resource = fabric.resource_request "t_state" from @supply::@t_state_stream
-      : !fabric.resource<@t_state>
+  %event = fabric.resource_request "t_state" from @supply::@t_state_stream
+      : !event.handle<!fabric.resource<@t_state>, "linear">
+  %resource = event.await %event
+      : !event.handle<!fabric.resource<@t_state>, "linear">
+        -> !fabric.resource<@t_state>
   fabric.protocol_return %resource : !fabric.resource<@t_state>
 }
 
 fabric.protocol @request_batch : () -> () {
-  fabric.repeat 3 iter() {
+  cflow.repeat 3 iter() {
     %resource = fabric.call @request_once()
         : () -> !fabric.resource<@t_state>
     fabric.discard_resource %resource : !fabric.resource<@t_state>
-    fabric.yield
+    cflow.yield
   }
   fabric.protocol_return
 }
 
 // CHECK: fabric.counts = {
-// CHECK-SAME: operation_counts = {call = 3 : i64, discard_resource = 3 : i64, repeat = 1 : i64, resource_request = 3 : i64}
-// CHECK-SAME: resource_requests = {t_state = 3 : i64}
-// CHECK-SAME: resource_stream_requests = {"supply::t_state_stream" = 3 : i64}
+// CHECK-SAME: operation_counts = {call = 3 : i64, discard_resource = 3 : i64, event_await = 3 : i64, repeat = 1 : i64, resource_request = 3 : i64}
+// CHECK-SAME: resource_requests = [{count = 3 : i64, kind = "t_state", stream = @supply::@t_state_stream}]

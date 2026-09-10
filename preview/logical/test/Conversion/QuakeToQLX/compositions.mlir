@@ -97,34 +97,30 @@ module {
 // CHECK: %[[AR_FLAG:.*]] = qlx.prepare "zero" {allocation = 4 : i64
 // CHECK: %[[AR_CTRL_H:.*]] = qlx.apply #qlx.action<h>(%[[AR_Q0]])
 // CHECK: %[[AR_FLAG_H:.*]] = qlx.apply #qlx.action<h>(%[[AR_FLAG]])
-// CHECK: %[[AR_REPEAT:.*]]:4 = qlx.repeat 4
+// CHECK: %[[AR_REPEAT:.*]]:4 = cflow.repeat 4
 // CHECK: iter(%[[AR_CTRL:.*]]: !qlx.logical_qubit = %[[AR_CTRL_H]],
 // CHECK: %[[AR_A0:.*]]: !qlx.logical_qubit = %[[AR_Q1]],
 // CHECK: %[[AR_A1:.*]]: !qlx.logical_qubit = %[[AR_Q2]],
 // CHECK: %[[AR_A2:.*]]: !qlx.logical_qubit = %[[AR_Q3]])
 // CHECK: %[[AR_FANOUT:.*]]:2 = qlx.apply #qlx.action<cx>(%[[AR_CTRL]], %[[AR_A0]])
-// CHECK: %[[AR_CARRY0_H:.*]] = qlx.apply #qlx.action<h>(%[[AR_A1]])
-// CHECK: %[[AR_CCZ0:.*]]:3 = qlx.apply #qlx.action<ccz>(%[[AR_FANOUT]]#0, %[[AR_FANOUT]]#1, %[[AR_CARRY0_H]])
-// CHECK: %[[AR_CARRY0:.*]] = qlx.apply #qlx.action<h>(%[[AR_CCZ0]]#2)
-// CHECK: %[[AR_CARRY1_H:.*]] = qlx.apply #qlx.action<h>(%[[AR_A2]])
-// CHECK: %[[AR_CCZ1:.*]]:3 = qlx.apply #qlx.action<ccz>(%[[AR_CCZ0]]#0, %[[AR_CARRY0]], %[[AR_CARRY1_H]])
-// CHECK: %[[AR_CARRY1:.*]] = qlx.apply #qlx.action<h>(%[[AR_CCZ1]]#2)
+// CHECK: %[[AR_CCX0:.*]]:3 = qlx.apply #qlx.action<ccx>(%[[AR_FANOUT]]#0, %[[AR_FANOUT]]#1, %[[AR_A1]])
+// CHECK: %[[AR_CCX1:.*]]:3 = qlx.apply #qlx.action<ccx>(%[[AR_CCX0]]#0, %[[AR_CCX0]]#2, %[[AR_A2]])
 // CHECK: %[[AR_ANGLE:.*]] = arith.constant 1.250000e-01 : f64
-// CHECK: %[[AR_ROT:.*]] = qlx.apply #qlx.action<pauli_rotation>(%[[AR_CARRY1]], %[[AR_ANGLE]]) {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
+// CHECK: %[[AR_ROT:.*]] = qlx.apply #qlx.action<pauli_rotation>(%[[AR_CCX1]]#2, %[[AR_ANGLE]]) {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
 // CHECK: %[[AR_T:.*]] = qlx.apply #qlx.action<t>(%[[AR_ROT]])
-// CHECK: %[[AR_SWAP0:.*]]:2 = qlx.apply #qlx.action<cx>(%[[AR_CCZ0]]#1, %[[AR_CCZ1]]#1)
+// CHECK: %[[AR_SWAP0:.*]]:2 = qlx.apply #qlx.action<cx>(%[[AR_CCX0]]#1, %[[AR_CCX1]]#1)
 // CHECK: %[[AR_SWAP1:.*]]:2 = qlx.apply #qlx.action<cx>(%[[AR_SWAP0]]#1, %[[AR_SWAP0]]#0)
 // CHECK: %[[AR_SWAP2:.*]]:2 = qlx.apply #qlx.action<cx>(%[[AR_SWAP1]]#1, %[[AR_SWAP1]]#0)
-// CHECK: %[[AR_NEXT_CTRL:.*]] = qlx.apply #qlx.action<h>(%[[AR_CCZ1]]#0)
-// CHECK: qlx.yield %[[AR_NEXT_CTRL]], %[[AR_SWAP2]]#0, %[[AR_SWAP2]]#1, %[[AR_T]]
+// CHECK: %[[AR_NEXT_CTRL:.*]] = qlx.apply #qlx.action<h>(%[[AR_CCX1]]#0)
+// CHECK: cflow.yield %[[AR_NEXT_CTRL]], %[[AR_SWAP2]]#0, %[[AR_SWAP2]]#1, %[[AR_T]]
 // CHECK: %[[AR_MEAS:.*]] = qlx.measure <Z> %[[AR_FLAG_H]]
-// CHECK: %[[AR_IF:.*]]:4 = "qlx.if"(%[[AR_MEAS]])
+// CHECK: %[[AR_IF:.*]]:4 = cflow.if %[[AR_MEAS]]
 // CHECK: %[[AR_THEN_X:.*]] = qlx.apply #qlx.action<x>(%[[AR_REPEAT]]#0)
 // CHECK: %[[AR_THEN_CZ:.*]]:2 = qlx.apply #qlx.action<cz>(%[[AR_REPEAT]]#1, %[[AR_REPEAT]]#2)
-// CHECK: qlx.yield %[[AR_THEN_X]], %[[AR_THEN_CZ]]#0, %[[AR_THEN_CZ]]#1, %[[AR_REPEAT]]#3
+// CHECK: cflow.yield %[[AR_THEN_X]], %[[AR_THEN_CZ]]#0, %[[AR_THEN_CZ]]#1, %[[AR_REPEAT]]#3
 // CHECK: %[[AR_ELSE_CX:.*]]:2 = qlx.apply #qlx.action<cx>(%[[AR_REPEAT]]#0, %[[AR_REPEAT]]#1)
 // CHECK: %[[AR_ELSE_Y:.*]] = qlx.apply #qlx.action<y>(%[[AR_REPEAT]]#3)
-// CHECK: qlx.yield %[[AR_ELSE_CX]]#0, %[[AR_ELSE_CX]]#1, %[[AR_REPEAT]]#2, %[[AR_ELSE_Y]]
+// CHECK: cflow.yield %[[AR_ELSE_CX]]#0, %[[AR_ELSE_CX]]#1, %[[AR_REPEAT]]#2, %[[AR_ELSE_Y]]
 // CHECK: qlx.discard %[[AR_IF]]#0, %[[AR_IF]]#1, %[[AR_IF]]#2, %[[AR_IF]]#3
 // CHECK: qlx.return %[[AR_MEAS]]
 
@@ -175,12 +171,12 @@ module {
 // CHECK: %[[MW_Q2:.*]] = qlx.prepare "zero" {allocation = 3 : i64
 // CHECK: %[[MW_Q3:.*]] = qlx.prepare "zero" {allocation = 4 : i64
 // CHECK: %[[MW_MEAS:.*]] = qlx.measure <Z> %[[MW_COND_Q]]
-// CHECK: %[[MW_IF:.*]]:4 = "qlx.if"(%[[MW_MEAS]])
+// CHECK: %[[MW_IF:.*]]:4 = cflow.if %[[MW_MEAS]]
 // CHECK: %[[MW_THEN_01:.*]]:2 = qlx.apply #qlx.action<cx>(%[[MW_Q0]], %[[MW_Q1]])
 // CHECK: %[[MW_THEN_23:.*]]:2 = qlx.apply #qlx.action<cx>(%[[MW_Q2]], %[[MW_Q3]])
-// CHECK: qlx.yield %[[MW_THEN_01]]#0, %[[MW_THEN_01]]#1, %[[MW_THEN_23]]#0, %[[MW_THEN_23]]#1
+// CHECK: cflow.yield %[[MW_THEN_01]]#0, %[[MW_THEN_01]]#1, %[[MW_THEN_23]]#0, %[[MW_THEN_23]]#1
 // CHECK: %[[MW_ELSE_02:.*]]:2 = qlx.apply #qlx.action<cx>(%[[MW_Q0]], %[[MW_Q2]])
 // CHECK: %[[MW_ELSE_13:.*]]:2 = qlx.apply #qlx.action<cx>(%[[MW_Q1]], %[[MW_Q3]])
-// CHECK: qlx.yield %[[MW_ELSE_02]]#0, %[[MW_ELSE_13]]#0, %[[MW_ELSE_02]]#1, %[[MW_ELSE_13]]#1
+// CHECK: cflow.yield %[[MW_ELSE_02]]#0, %[[MW_ELSE_13]]#0, %[[MW_ELSE_02]]#1, %[[MW_ELSE_13]]#1
 // CHECK: qlx.discard %[[MW_IF]]#0, %[[MW_IF]]#1, %[[MW_IF]]#2, %[[MW_IF]]#3
 // CHECK: qlx.return %[[MW_MEAS]]

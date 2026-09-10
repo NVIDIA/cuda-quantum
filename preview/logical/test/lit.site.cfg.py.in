@@ -12,11 +12,12 @@ import os
 
 config.llvm_tools_dir = "@LLVM_TOOLS_BINARY_DIR@"
 config.qlx_tools_dir = "@QLX_TOOLS_DIR@"
-config.qlx_src_dir = "@PROJECT_SOURCE_DIR@"
-config.qlx_build_dir = "@PROJECT_BINARY_DIR@"
+config.qlx_src_dir = "@CMAKE_SOURCE_DIR@"
+config.qlx_build_dir = "@CMAKE_BINARY_DIR@"
 config.filecheck_path = "@FILECHECK_PATH@"
 config.python_executable = "@Python3_EXECUTABLE@"
 config.qlx_python_dir = "@QLX_PYTHON_DIR@"
+config.has_cudaq_quake = "@QLX_USE_CUDAQ_SDK@"
 config.test_exec_root = os.path.join(config.qlx_build_dir, "test")
 
 # Let the main config do the real work.

@@ -4,9 +4,10 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #include "qlx/Conversion/Passes.h"
+#include "qlx/Dialect/Cflow/IR/CflowOps.h"
 #include "qlx/Dialect/LVM/IR/LVMOps.h"
 #include "qlx/Dialect/LVM/IR/LVMTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
@@ -250,22 +251,22 @@ private:
         return failure();
       return placementOf(quantumInputs[index]);
     }
-    if (auto repeat = dyn_cast<qlx::RepeatOp>(owner)) {
+    if (auto repeat = dyn_cast<qlx::cflow::RepeatOp>(owner)) {
       unsigned index = cast<OpResult>(value).getResultNumber();
       if (index < repeat.getInits().size())
         return placementOf(repeat.getInits()[index]);
     }
-    if (auto whileOp = dyn_cast<qlx::WhileOp>(owner)) {
+    if (auto whileOp = dyn_cast<qlx::cflow::WhileOp>(owner)) {
       unsigned index = cast<OpResult>(value).getResultNumber();
       if (index < whileOp.getInits().size())
         return placementOf(whileOp.getInits()[index]);
     }
-    if (auto ifOp = dyn_cast<qlx::IfOp>(owner)) {
+    if (auto ifOp = dyn_cast<qlx::cflow::IfOp>(owner)) {
       unsigned index = cast<OpResult>(value).getResultNumber();
-      auto thenYield =
-          dyn_cast<qlx::YieldOp>(ifOp.getThenRegion().front().getTerminator());
-      auto elseYield =
-          dyn_cast<qlx::YieldOp>(ifOp.getElseRegion().front().getTerminator());
+      auto thenYield = dyn_cast<qlx::cflow::YieldOp>(
+          ifOp.getThenRegion().front().getTerminator());
+      auto elseYield = dyn_cast<qlx::cflow::YieldOp>(
+          ifOp.getElseRegion().front().getTerminator());
       if (!thenYield || !elseYield || index >= thenYield.getNumOperands() ||
           index >= elseYield.getNumOperands())
         return failure();
@@ -302,15 +303,15 @@ private:
         return failure();
       return allocationOf(quantumInputs[index]);
     }
-    if (auto repeat = dyn_cast<qlx::RepeatOp>(owner))
+    if (auto repeat = dyn_cast<qlx::cflow::RepeatOp>(owner))
       return allocationOf(
           repeat.getInits()[cast<OpResult>(value).getResultNumber()]);
-    if (auto ifOp = dyn_cast<qlx::IfOp>(owner)) {
+    if (auto ifOp = dyn_cast<qlx::cflow::IfOp>(owner)) {
       unsigned index = cast<OpResult>(value).getResultNumber();
-      auto thenYield =
-          cast<qlx::YieldOp>(ifOp.getThenRegion().front().getTerminator());
-      auto elseYield =
-          cast<qlx::YieldOp>(ifOp.getElseRegion().front().getTerminator());
+      auto thenYield = cast<qlx::cflow::YieldOp>(
+          ifOp.getThenRegion().front().getTerminator());
+      auto elseYield = cast<qlx::cflow::YieldOp>(
+          ifOp.getElseRegion().front().getTerminator());
       auto left = allocationOf(thenYield.getOperand(index));
       auto right = allocationOf(elseYield.getOperand(index));
       if (failed(left) || failed(right) || left->space != right->space ||
@@ -696,7 +697,7 @@ private:
           {builder.getNamedAttr("placements", builder.getArrayAttr(attrs))});
       return mapAllocatedResults(operation, target, resultAllocations);
     }
-    if (auto repeat = dyn_cast<qlx::RepeatOp>(operation)) {
+    if (auto repeat = dyn_cast<qlx::cflow::RepeatOp>(operation)) {
       auto operands = mapOperands(repeat.getInits());
       if (failed(operands))
         return failure();
@@ -723,7 +724,7 @@ private:
         types.push_back(*type);
       }
       Operation *target = create(
-          qlx::lvm::RepeatOp::getOperationName(), location, *operands, types,
+          qlx::cflow::RepeatOp::getOperationName(), location, *operands, types,
           {builder.getNamedAttr("count", repeat.getCountAttr())}, 1);
       auto entrySpaces = spaces;
       if (failed(convertRegion(repeat.getBody(), target->getRegion(0),
@@ -738,7 +739,7 @@ private:
                 "native placement requires a live-slot fixed point across "
                 "repeat iterations");
         auto yield =
-            cast<qlx::YieldOp>(repeat.getBody().front().getTerminator());
+            cast<qlx::cflow::YieldOp>(repeat.getBody().front().getTerminator());
         unsigned quantumIndex = 0;
         for (auto [index, init] : llvm::enumerate(repeat.getInits())) {
           if (!isQubit(init.getType()))
@@ -756,14 +757,14 @@ private:
       }
       return mapAllocatedResults(operation, target, resultAllocations);
     }
-    if (auto ifOp = dyn_cast<qlx::IfOp>(operation)) {
+    if (auto ifOp = dyn_cast<qlx::cflow::IfOp>(operation)) {
       auto condition = mapped(ifOp.getCondition());
       if (failed(condition))
         return failure();
-      auto thenYield =
-          cast<qlx::YieldOp>(ifOp.getThenRegion().front().getTerminator());
-      auto elseYield =
-          cast<qlx::YieldOp>(ifOp.getElseRegion().front().getTerminator());
+      auto thenYield = cast<qlx::cflow::YieldOp>(
+          ifOp.getThenRegion().front().getTerminator());
+      auto elseYield = cast<qlx::cflow::YieldOp>(
+          ifOp.getElseRegion().front().getTerminator());
       SmallVector<Type> types;
       SmallVector<SymbolRefAttr> refs;
       SmallVector<Allocation> resultAllocations;
@@ -815,7 +816,7 @@ private:
           return failure();
         types.push_back(*type);
       }
-      Operation *target = create(qlx::lvm::IfOp::getOperationName(), location,
+      Operation *target = create(qlx::cflow::IfOp::getOperationName(), location,
                                  {*condition}, types, {}, 2);
       auto entrySpaces = spaces;
       if (failed(convertRegion(ifOp.getThenRegion(), target->getRegion(0))))
@@ -854,11 +855,11 @@ private:
       }
       return mapAllocatedResults(operation, target, resultAllocations);
     }
-    if (auto yield = dyn_cast<qlx::YieldOp>(operation)) {
+    if (auto yield = dyn_cast<qlx::cflow::YieldOp>(operation)) {
       auto operands = mapOperands(yield.getOperands());
       if (failed(operands))
         return failure();
-      create(qlx::lvm::YieldOp::getOperationName(), location, *operands, {},
+      create(qlx::cflow::YieldOp::getOperationName(), location, *operands, {},
              {});
       return success();
     }

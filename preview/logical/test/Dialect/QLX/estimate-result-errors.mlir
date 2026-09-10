@@ -22,4 +22,4 @@ qlx.estimate_result @bad {
   tier = "future"
 }
 
-// CHECK: error: 'qlx.estimate_result' op tier must be logical or static
+// CHECK: error: 'qlx.estimate_result' op tier must be logical, static, analytical, schedule, or twin

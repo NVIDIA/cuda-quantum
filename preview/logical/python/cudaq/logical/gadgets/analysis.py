@@ -5,13 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Typed analysis entry points over immutable CUDA-Q Logical definitions/builds."""
+"""Typed analysis entry points over immutable QLX definitions/builds."""
 
 from __future__ import annotations
 
-from ..algebra.clifford import CliffordAction
-from ..gadgets.definition import GadgetDefinition
-from ..programs.definition import ProgramDefinition
+from cudaq.logical.algebra.clifford import CliffordAction
+from cudaq.logical.gadgets.definition import GadgetDefinition
+from cudaq.logical.programs.definition import ProgramDefinition
 from ..std import LogicalActionRef
 
 
@@ -40,12 +40,9 @@ def clifford_action(value) -> CliffordAction:
             ports=tuple(range(len(function_type.inputs))),
         )
     raise TypeError(
-        "cudaq.logical.analysis.clifford_action expects an action-like @cudaq.logical.objective, a gadget "
-        "implementing one, a qlx.program operation, or CliffordAction")
+        "cudaq.logical.analysis.clifford_action expects an action-like "
+        "@cudaq.logical.objective, a gadget implementing one, a qlx.program operation, "
+        "or CliffordAction")
 
 
 __all__ = ["clifford_action"]
-
-from .._compat import preserve_legacy_module as _preserve_legacy_module
-
-_preserve_legacy_module(globals(), "cudaq.logical.analyze")

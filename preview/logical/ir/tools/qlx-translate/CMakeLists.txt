@@ -12,22 +12,22 @@ add_llvm_executable(qlx-translate
   qlx-translate.cpp
 )
 
-target_link_libraries(qlx-translate PRIVATE
-  MLIRQLXDialect
-  MLIRFabricDialect
-  MLIRFabricTranslate
-
-  MLIRArithDialect
+qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
   MLIRIR
   MLIRSupport
   MLIRParser
   MLIRTranslateLib
 )
 
-llvm_update_compile_flags(qlx-translate)
+target_link_libraries(qlx-translate PRIVATE
+  MLIRQLXDialect
+  MLIRFabricDialect
+  MLIRFabricTranslate
 
-# Link MLIR statically, like cudaq-translate.
-cudaq_use_static_mlir(qlx-translate)
+  ${_qlx_mlir_link_libraries}
+)
+
+llvm_update_compile_flags(qlx-translate)
 
 set_target_properties(qlx-translate PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${QLX_TOOLS_DIR}

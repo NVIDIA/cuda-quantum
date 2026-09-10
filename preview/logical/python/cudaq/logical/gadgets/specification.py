@@ -25,11 +25,11 @@ from typing import (
     get_type_hints,
 )
 
-from ..programs.binding import (
+from cudaq.logical.programs.binding import (
     LogicalPortRef,
     ObjectiveOperandRef,
 )
-from .._core.immutable import ImmutableValue
+from cudaq.logical._core.immutable import ImmutableValue
 
 EncodingT = TypeVar("EncodingT")
 
@@ -96,7 +96,7 @@ class Port:
         return cls(name, "inout", encoding, **kwargs)
 
     def __post_init__(self) -> None:
-        from ..codes import (
+        from cudaq.logical.codes import (
             Code,
             Encoding,
         )
@@ -267,8 +267,8 @@ class GadgetSpec:
             ("parameter_map", self.parameter_map, ParameterMap),
         ):
             if value is not None and not isinstance(value, expected):
-                raise TypeError(
-                    f"GadgetSpec {label} must be a qlx.{expected.__name__}")
+                raise TypeError(f"GadgetSpec {label} must be a "
+                                f"cudaq.logical.{expected.__name__}")
         referenced = self.outcome_map.records if self.outcome_map else ()
         if referenced and self.record_schema is None:
             raise ValueError(
@@ -320,7 +320,7 @@ class GadgetSpec:
 
 
 def _profile_for_patch(annotation):
-    from ..codes import (
+    from cudaq.logical.codes import (
         Code,
         Encoding,
     )
@@ -336,7 +336,7 @@ def _profile_for_patch(annotation):
 
 
 def _encoding_for_patch(annotation):
-    from ..codes import (
+    from cudaq.logical.codes import (
         Code,
         Encoding,
     )
@@ -457,10 +457,10 @@ def _verify_explicit_spec(definition: "GadgetDefinition") -> None:
     """An explicit spec constrains the realization boundary, never overrides it."""
 
     from ..errors import InvalidPortBinding, ObjectiveMismatch
-    from ..types.values import logical_qubit
+    from cudaq.logical.types.values import logical_qubit
     from ..std import LogicalInstrumentRef
-    from ..programs.definition import ProgramDefinition
-    from ..types.semantic import (
+    from cudaq.logical.programs.definition import ProgramDefinition
+    from cudaq.logical.types.semantic import (
         logical_event,
         logical_frame,
         logical_record,

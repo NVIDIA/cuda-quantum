@@ -9,31 +9,30 @@ from __future__ import annotations
 
 import pytest
 
-import cudaq.logical
+import cudaq.logical as qlx
+from cudaq.logical.std import LogicalInstrumentRef
 
 
 def test_standard_y_state_consumes_with_logical_s():
-    assert cudaq.logical.std.Y_STATE == cudaq.logical.types.ResourceKind(
+    assert qlx.standard.Y_STATE == qlx.types.ResourceKind(
         "y_state",
-        consume_action=cudaq.logical.std.s,
+        consume_action=qlx.logical.s,
     )
-    assert cudaq.logical.std.Y_STATE.consume_action is cudaq.logical.std.s
+    assert qlx.standard.Y_STATE.consume_action is qlx.logical.s
 
 
 def test_produce_uses_typed_region_and_enclosing_protocol_symbol():
-    builder = cudaq.logical.devices.DeviceBuilder("TypedFactoryDevice")
+    builder = qlx.devices.DeviceBuilder("TypedFactoryDevice")
     factory = builder.logical.add_region("factory", capacity=1)
 
-    @cudaq.logical.protocol(
-        implements=cudaq.logical.std.produce(cudaq.logical.std.Y_STATE),
+    @qlx.protocol(
+        implements=qlx.logical.produce(qlx.standard.Y_STATE),
         name="typed_y_factory",
     )
-    def typed_y_factory(
-    ) -> cudaq.logical.types.resource[cudaq.logical.std.Y_STATE]:
-        return cudaq.logical.ops.produce(cudaq.logical.std.Y_STATE,
-                                         region=factory)
+    def typed_y_factory() -> qlx.types.resource[qlx.standard.Y_STATE]:
+        return qlx.ops.produce(qlx.standard.Y_STATE, region=factory)
 
-    build = cudaq.logical.compile(typed_y_factory)
+    build = qlx.compile(typed_y_factory)
     text = build.to_mlir()
 
     assert "fabric.produce_resource" in text
@@ -45,48 +44,52 @@ def test_produce_uses_typed_region_and_enclosing_protocol_symbol():
 
 def test_produce_rejects_raw_string_region():
 
-    @cudaq.logical.protocol(
-        implements=cudaq.logical.std.produce(cudaq.logical.std.Y_STATE),
+    @qlx.protocol(
+        implements=qlx.logical.produce(qlx.standard.Y_STATE),
         name="raw_string_y_factory",
     )
-    def raw_string_y_factory(
-    ) -> cudaq.logical.types.resource[cudaq.logical.std.Y_STATE]:
-        return cudaq.logical.ops.produce(cudaq.logical.std.Y_STATE,
-                                         region="factory")
+    def raw_string_y_factory() -> qlx.types.resource[qlx.standard.Y_STATE]:
+        return qlx.ops.produce(qlx.standard.Y_STATE, region="factory")
 
     with pytest.raises(
             TypeError,
             match="region= requires a typed logical region",
     ):
-        cudaq.logical.compile(raw_string_y_factory)
+        qlx.compile(raw_string_y_factory)
 
 
 def test_concrete_y_factory_authors_and_packs_its_encoded_payload():
-    builder = cudaq.logical.devices.DeviceBuilder("ConcreteFactoryDevice")
+    builder = qlx.devices.DeviceBuilder("ConcreteFactoryDevice")
     factory = builder.logical.add_region("factory", capacity=1)
-    encoding = cudaq.logical.codes.Surface[3]
-    prepare_encoded_y = cudaq.logical.gadgets.stabilizer_preparation(
-        encoding,
-        logical_stabilizers=(cudaq.logical.types.Y(0),),
-        name="prepare_concrete_encoded_y",
-    )
+    encoding = qlx.codes.Surface[3]
 
-    @cudaq.logical.protocol(implements=cudaq.logical.std.produce(
-        cudaq.logical.std.Y_STATE),)
-    def concrete_y_factory(
-    ) -> cudaq.logical.types.resource[cudaq.logical.std.Y_STATE]:
-        payload = cudaq.logical.ops.allocate_patch(encoding, region=factory)
+    @qlx.gadget(
+        implements=LogicalInstrumentRef("prepare_y", 0, 1),
+        name="prepare_encoded_y",
+    )
+    def prepare_encoded_y(block: qlx.patch[encoding],) -> qlx.patch[encoding]:
+        # S H |0> = |+i>, the positive Y eigenstate. This belongs in a
+        # gadget: a protocol composes typed realizations but does not emit
+        # physical logical operations directly.
+        block = qlx.h(block.data)
+        return qlx.s(block.data)
+
+    @qlx.protocol(implements=qlx.logical.produce(qlx.standard.Y_STATE),)
+    def concrete_y_factory() -> qlx.types.resource[qlx.standard.Y_STATE]:
+        payload = qlx.ops.allocate_patch(encoding, region=factory)
         payload = prepare_encoded_y(payload)
-        return cudaq.logical.ops.pack_resource(
+        return qlx.ops.pack_resource(
             payload,
-            kind=cudaq.logical.std.Y_STATE,
+            kind=qlx.standard.Y_STATE,
         )
 
-    text = cudaq.logical.compile(concrete_y_factory).to_mlir()
+    text = qlx.compile(concrete_y_factory).to_mlir()
 
     assert "fabric.alloc" in text
     assert "region = @factory" in text
-    assert "fabric.call @prepare_concrete_encoded_y" in text
+    assert "fabric.call @prepare_encoded_y" in text
+    assert "fabric.h" in text
+    assert "fabric.s" in text
     assert "fabric.pack_resource" in text
     assert "as @y_state" in text
     assert "fabric.produce_resource" not in text
@@ -100,19 +103,17 @@ def test_concrete_y_factory_authors_and_packs_its_encoded_payload():
 
 
 def test_p2_gadgets_compose_through_an_ordinary_nested_call():
-    steane = cudaq.logical.codes.Steane
-    inner = cudaq.logical.gadgets.logical_pauli(
+    steane = qlx.codes.Steane
+    inner = qlx.gadgets.logical_pauli(
         steane,
         basis="x",
         name="nested_steane_logical_x",
     )
 
-    @cudaq.logical.gadget(implements=inner.implements)
-    def outer(
-        block: cudaq.logical.patch[steane],) -> cudaq.logical.patch[steane]:
+    @qlx.gadget(implements=inner.implements)
+    def outer(block: qlx.patch[steane],) -> qlx.patch[steane]:
         return inner(block)
 
-    text = cudaq.logical.compile(outer).to_mlir()
-
+    text = qlx.compile(outer).to_mlir()
     assert "fabric.call @nested_steane_logical_x" in text
     assert "fabric.x" in text

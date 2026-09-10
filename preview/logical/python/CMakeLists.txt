@@ -99,118 +99,46 @@ declare_mlir_python_sources(QLXPythonSources)
 declare_mlir_python_sources(QLXPythonSources.Dialects
   ADD_TO_PARENT QLXPythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
-  SOURCES dialects/lvm.py)
+  SOURCES
+    dialects/lvm.py
+    dialects/phys.py)
 
-# MLIR's Python binding generator does not implement the C++ generator's
-# operation filters. Generate into a private intermediate, then structurally
-# retain only the native product registry before the underscore module is
-# staged or installed.
-function(declare_qlx_product_dialect_python_bindings)
-  cmake_parse_arguments(ARG
-    "GEN_ENUM_BINDINGS"
-    "ROOT_DIR;ADD_TO_PARENT;TD_FILE;DIALECT_NAME;GEN_ENUM_BINDINGS_TD_FILE"
-    "SOURCES;DEPENDS;OP_CLASSES"
-    ${ARGN})
-
-  set(_dialect_target "${ARG_ADD_TO_PARENT}.${ARG_DIALECT_NAME}")
-  declare_mlir_python_sources(${_dialect_target}
-    ROOT_DIR "${ARG_ROOT_DIR}"
-    ADD_TO_PARENT "${ARG_ADD_TO_PARENT}"
-    SOURCES "${ARG_SOURCES}")
-
-  set(_tablegen_target "${_dialect_target}.tablegen")
-  set(_td_file "${ARG_ROOT_DIR}/${ARG_TD_FILE}")
-  get_filename_component(_relative_td_directory "${ARG_TD_FILE}" DIRECTORY)
-  file(MAKE_DIRECTORY
-    "${CMAKE_CURRENT_BINARY_DIR}/${_relative_td_directory}")
-  set(_full_filename
-    "${_relative_td_directory}/_${ARG_DIALECT_NAME}_ops_full.py")
-  set(_product_filename
-    "${_relative_td_directory}/_${ARG_DIALECT_NAME}_ops_gen.py")
-  set(LLVM_TARGET_DEFINITIONS "${_td_file}")
-  mlir_tablegen("${_full_filename}"
-    -gen-python-op-bindings -bind-dialect=${ARG_DIALECT_NAME}
-    DEPENDS ${ARG_DEPENDS})
-  add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${_product_filename}"
-    COMMAND "${Python_EXECUTABLE}"
-      "${CMAKE_CURRENT_SOURCE_DIR}/cmake/filter_generated_ops.py"
-      "${CMAKE_CURRENT_BINARY_DIR}/${_full_filename}"
-      "${CMAKE_CURRENT_BINARY_DIR}/${_product_filename}"
-      ${ARG_OP_CLASSES}
-    DEPENDS
-      "${CMAKE_CURRENT_BINARY_DIR}/${_full_filename}"
-      "${CMAKE_CURRENT_SOURCE_DIR}/cmake/filter_generated_ops.py"
-    COMMAND_EXPAND_LISTS
-    VERBATIM
-    COMMENT "Filtering ${ARG_DIALECT_NAME} product Python operations")
-  list(APPEND TABLEGEN_OUTPUT
-    "${CMAKE_CURRENT_BINARY_DIR}/${_product_filename}")
-  add_public_tablegen_target(${_tablegen_target})
-
-  set(_generated_sources "${_product_filename}")
-  if(ARG_GEN_ENUM_BINDINGS OR ARG_GEN_ENUM_BINDINGS_TD_FILE)
-    if(ARG_GEN_ENUM_BINDINGS_TD_FILE)
-      set(_enum_td_file
-        "${ARG_ROOT_DIR}/${ARG_GEN_ENUM_BINDINGS_TD_FILE}")
-      set(LLVM_TARGET_DEFINITIONS "${_enum_td_file}")
-    endif()
-    set(_enum_filename
-      "${_relative_td_directory}/_${ARG_DIALECT_NAME}_enum_gen.py")
-    mlir_tablegen("${_enum_filename}" -gen-python-enum-bindings
-      -bind-dialect=${ARG_DIALECT_NAME})
-    list(APPEND _generated_sources "${_enum_filename}")
-  endif()
-
-  declare_mlir_python_sources("${_dialect_target}.ops_gen"
-    ROOT_DIR "${CMAKE_CURRENT_BINARY_DIR}"
-    ADD_TO_PARENT "${_dialect_target}"
-    SOURCES ${_generated_sources})
-endfunction()
-
-set(_QLX_PRODUCT_OP_CLASSES
-  EstimateResultOp DeviceOp LogicalToQECBindingOp QECLoweringOp
-  LoweringRecipeOp TargetManifestOp ExperimentOp ReturnOp ProgramOp
-  ObjectiveBodyOp ActionOp InstrumentDeclOp ApplyOp InstrumentOp PrepareOp
-  MeasureOp CallOp IdleOp DiscardOp SelectionOp RepeatOp YieldOp
-  WhileConditionOp WhileOp IfOp XorOp)
-
-declare_qlx_product_dialect_python_bindings(
+# Expose the complete operation registries for each retained dialect.
+declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT QLXPythonSources.Dialects
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/QLXOps.td
   SOURCES dialects/qlx.py
   DIALECT_NAME qlx
-  OP_CLASSES ${_QLX_PRODUCT_OP_CLASSES}
   GEN_ENUM_BINDINGS
   GEN_ENUM_BINDINGS_TD_FILE dialects/QLXAttrs.td
   DEPENDS MLIRQLXIncGen)
 
-set(_FABRIC_PRODUCT_OP_CLASSES
-  DeviceOp RegionOp InterconnectOp CodeOp CodeProfileOp EncodingOp PatchGraphOp
-  EncodingEpochSchemaOp EncodingEpochOp EpochTransitionOp EncodingHierarchyOp
-  EncodingProjectionOp PatchTransformOp TransformBeginOp TransformEndOp
-  ObjectiveOp GadgetSpecOp ReturnOp CircuitOp GadgetOp CallOp RelocateOp
-  EstablishSupportOp RetryOp ProtocolReturnOp ProtocolOp EncodingUnpackOp
-  MapChildrenOp EncodingPackOp AllocOp PrepZOp PrepXOp DeallocOp HOp SOp SdgOp
-  XOp ZOp TOp TdgOp ResetOp InitBasisOp PermuteOp MzOp MeasureBasisOp MppOp
-  ReadSyndromeAncillasOp AssembleSyndromeOp MeasureGaugesOp CXOp CZOp
-  TransversalCXOp MergeOp SplitOp MultiMeasureOp MeasureProductOp RotateProductOp
-  ResourceRotateProductOp ResourceRequestOp SelectionOp ProduceResourceOp
-  UnpackResourceOp PackResourceOp InjectOp DiscardResourceOp TransportOp MoveOp
-  SendOp RecvOp BarrierOp IdleOp YieldOp WhileConditionOp WhileOp IfOp RepeatOp
-  XorOp AllZeroOp ParityOp AllFalseOp)
-
-declare_qlx_product_dialect_python_bindings(
+declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT QLXPythonSources.Dialects
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/FabricOps.td
   SOURCES dialects/fabric.py
   DIALECT_NAME fabric
-  OP_CLASSES ${_FABRIC_PRODUCT_OP_CLASSES}
   GEN_ENUM_BINDINGS
   GEN_ENUM_BINDINGS_TD_FILE dialects/FabricAttrs.td
   DEPENDS MLIRFabricIncGen)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT QLXPythonSources.Dialects
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/CflowOps.td
+  SOURCES dialects/cflow.py
+  DIALECT_NAME cflow
+  DEPENDS MLIRCflowIncGen)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT QLXPythonSources.Dialects
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/EventOps.td
+  SOURCES dialects/event.py
+  DIALECT_NAME event
+  DEPENDS MLIREventIncGen)
 
 # --------------------------------------------------------------------------- #
 # C++ extensions
@@ -228,7 +156,10 @@ declare_mlir_python_extension(QLXPythonSources.Init
   EMBED_CAPI_LINK_LIBS
     QLXCAPIDialectQLX
     QLXCAPIDialectLVM
+    QLXCAPIDialectPhys
     QLXCAPIDialectFabric
+    QLXCAPIDialectCflow
+    QLXCAPIDialectEvent
     QLXCAPIPasses
 )
 
@@ -244,9 +175,12 @@ declare_mlir_python_extension(QLXPythonSources.Ext
     _qlx_ext.cpp
     DialectQLX.cpp
     DialectFabric.cpp
+    DialectEvent.cpp
   EMBED_CAPI_LINK_LIBS
     QLXCAPIDialectQLX
     QLXCAPIDialectFabric
+    QLXCAPIDialectEvent
+    MLIRCAPIIR
 )
 
 # Textual / module-level helpers (verify / lower / translate). Link deps that
@@ -263,6 +197,7 @@ declare_mlir_python_extension(QLXPythonSources.Runtime
     QLXCAPIDialectFabric
     QLXCAPITranslate
     QLXCAPIPasses
+    MLIRCAPIIR
 )
 
 # --------------------------------------------------------------------------- #
@@ -301,6 +236,39 @@ set_property(TARGET QLXPythonCAPI APPEND PROPERTY
 target_link_libraries(QLXPythonCAPI PRIVATE
   cudaq::cudaqMLIRCAPI
   cudaq::MLIRPythonSupport)
+
+# CUDA-Q's aggregate helper exports the standard MLIR/CUDA-Q C APIs. Extend
+# that export set with every retained CUDA-Q Logical P0-P3 C API so the Python
+# extensions and the Quake plugin share one symbol/type universe.
+get_target_property(_qlx_capi_link_options QLXPythonCAPI LINK_OPTIONS)
+if(NOT _qlx_capi_link_options
+    OR _qlx_capi_link_options STREQUAL "_qlx_capi_link_options-NOTFOUND")
+  set(_qlx_capi_link_options)
+endif()
+if(APPLE)
+  list(FILTER _qlx_capi_link_options EXCLUDE REGEX "exported_symbols_list")
+  set(_qlx_capi_exports
+    "${CMAKE_CURRENT_BINARY_DIR}/QLXPythonCAPI-qlx-exported.txt")
+  file(WRITE "${_qlx_capi_exports}"
+    "_mlir*\n_cudaq*\n_qlx*\n_lvm*\n_phys*\n_fabric*\n_event*\n")
+  set(_qlx_capi_export_option
+    "LINKER:-exported_symbols_list,${_qlx_capi_exports}")
+else()
+  list(FILTER _qlx_capi_link_options EXCLUDE REGEX "version-script")
+  set(_qlx_capi_exports
+    "${CMAKE_CURRENT_BINARY_DIR}/QLXPythonCAPI-qlx.map")
+  file(WRITE "${_qlx_capi_exports}"
+    "{\n  global:\n    mlir*;\n    cudaq*;\n    qlx*;\n    lvm*;\n"
+    "    phys*;\n    fabric*;\n    event*;\n"
+    "  local:\n    *;\n};\n")
+  set(_qlx_capi_export_option
+    "LINKER:--version-script=${_qlx_capi_exports}")
+endif()
+set_property(TARGET QLXPythonCAPI PROPERTY
+  LINK_OPTIONS "${_qlx_capi_link_options}")
+set_property(TARGET QLXPythonCAPI APPEND PROPERTY
+  LINK_DEPENDS "${_qlx_capi_exports}")
+target_link_options(QLXPythonCAPI PRIVATE "${_qlx_capi_export_option}")
 cudaq_check_mlir_symbol_closure(QLXPythonCAPI
   PROVIDERS cudaq::cudaqMLIRCAPI cudaq::MLIRPythonSupport)
 
@@ -314,11 +282,13 @@ add_cudaq_python_modules(QLXPythonModules
     cudaq::MLIRPythonSupport
 )
 
-# MLIRPythonSupport lives in the CUDA-Q install's cudaq/mlir/_mlir_libs, not
-# in lib/. The build-tree output directory is also named _mlir_libs, so CMake
-# warns about an RPATH cycle; that path must still be on BUILD_RPATH for the
-# DSOs to load from the build tree.
-set(_qlx_cudaq_py_libs "${QLX_CUDAQ_PREFIX}/cudaq/mlir/_mlir_libs")
+# MLIRPythonSupport and nanobind live in the runtime wheel's
+# cudaq/mlir/_mlir_libs, not in lib/. The build-tree output directory is
+# also named _mlir_libs, so CMake warns about an RPATH cycle; the installed
+# wheel path must still be on BUILD_RPATH for the DSOs to load from the
+# build tree.
+set(_qlx_cudaq_py_libs
+  "${CUDAQ_LOGICAL_CUDAQ_PREFIX}/cudaq/mlir/_mlir_libs")
 set_property(TARGET QLXPythonCAPI APPEND PROPERTY
   BUILD_RPATH "${_qlx_cudaq_py_libs}")
 get_property(_qlx_py_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
@@ -339,11 +309,16 @@ endforeach()
 
 set(_qlx_runtime_target "QLXPythonModules.extension._qlxRuntime.dso")
 if(TARGET ${_qlx_runtime_target})
+  qlx_select_mlir_link_libraries(_qlx_runtime_mlir_link_libraries
+    MLIRPluginsLib
+  )
   target_link_libraries(${_qlx_runtime_target} PRIVATE
     MLIRQLXTransforms
     MLIRFabricTransforms
-    MLIRPluginsLib
+    ${_qlx_runtime_mlir_link_libraries}
   )
+  target_compile_definitions(${_qlx_runtime_target} PRIVATE
+    QLX_HAS_CUDAQ_QUAKE=1)
 endif()
 
 # The Python Quake conversion APIs load qlx-quake-plugin at runtime. Make the
@@ -460,7 +435,9 @@ if _libs_p not in list(_libs.__path__):
 # Tests (CTest registrations)
 # --------------------------------------------------------------------------- #
 
-set(_qlx_runtime_pytest_env "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}")
+set(_qlx_runtime_pytest_env_modifications
+  "PYTHONPATH=path_list_prepend:${CUDAQ_LOGICAL_CUDAQ_PREFIX}"
+  "PYTHONPATH=path_list_prepend:${CMAKE_CURRENT_BINARY_DIR}")
 # The Python suite is a first-class CTest conformance test rather than an
 # unrecorded direct pytest invocation; pytest reports the live collected count,
 # so documentation never needs to pin a number that immediately goes stale.
@@ -471,8 +448,13 @@ add_test(NAME qlx-python-tests
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 set_tests_properties(qlx-python-tests PROPERTIES
-  ENVIRONMENT "${_qlx_runtime_pytest_env}"
-  DEPENDS QLXPythonModules
+  # The QLX build tree contains only the additions to the cudaq package. Keep
+  # the configured CUDA-Q installation on the module search path so the core
+  # package and its MLIR bindings remain importable. ENVIRONMENT_MODIFICATION
+  # uses the platform's native path-list separator and preserves any paths from
+  # the invoking environment.
+  ENVIRONMENT_MODIFICATION
+    "${_qlx_runtime_pytest_env_modifications}"
   LABELS "qlx;conformance"
   TIMEOUT 1200
 )

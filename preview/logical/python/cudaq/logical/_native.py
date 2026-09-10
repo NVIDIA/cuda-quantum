@@ -5,26 +5,32 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Backward-compatibility shim exposing the CUDA-Q Logical native extensions under
+"""Backwards-compat shim exposing the QLX native extensions under
 single namespace objects.
 
 The previous monolithic ``_qlxDialects`` extension exposed a single
-``qlx`` (and ``fabric``) submodule.  After registering into CUDA-Q
-``cudaq.mlir`` bindings the native code lives in three extensions:
+``qlx`` (and ``fabric``) submodule.  After the embedded-MLIR refactor
+the native code lives in two extensions:
 
-  - :mod:`cudaq.mlir._mlir_libs._qlx_ext`   -- two submodules ``qlx`` and
+  - :mod:`cudaq.mlir._mlir_libs._qlx_ext` -- two submodules ``qlx`` and
         ``fabric`` exposing the dialects' types, attributes, and helpers
         (dialect registration is handled automatically at import via the
-        ``_site_initialize_1`` hook -- there is no explicit
+        ``_site_initialize_0`` hook -- there is no explicit
         ``register_dialect`` / ``ensure_dialects`` entry point here)
-  - :mod:`cudaq.mlir._mlir_libs._qlxRuntime` -- verify /
-        lower / translate / run_pass
+  - :mod:`cudaq.mlir._mlir_libs._qlxRuntime` -- parse / verify /
+        lower / translate / run_pass / load_plugin
 
 This module recombines them into the historical ``_native`` /
-``_fabric_native`` shapes so existing consumers only have to change their
-import line: ``from cudaq.mlir._mlir_libs._qlxDialects import qlx as _native``
-becomes ``from cudaq.logical._native import native as _native``, and likewise
-``fabric`` becomes ``from cudaq.logical._native import fabric_native``.
+``_fabric_native`` shapes so existing consumers don't have to change
+beyond their import line::
+
+    # before
+    from cudaq.mlir._mlir_libs._qlxDialects import qlx as _native
+    from cudaq.mlir._mlir_libs._qlxDialects import fabric as _fabric_native
+
+    # after
+    from cudaq.logical._native import native as _native
+    from cudaq.logical._native import fabric_native as _fabric_native
 """
 
 from __future__ import annotations
@@ -38,7 +44,7 @@ class _NativeFacade:
 
     set_inherent_attr = staticmethod(_qlx_ext.qlx.set_inherent_attr)
 
-    # Product CUDA-Q Logical attribute classes.
+    # Attr classes.
     PauliAttr = _qlx_ext.qlx.PauliAttr
 
     # Text helpers (from _qlxRuntime).
@@ -48,10 +54,21 @@ class _NativeFacade:
     lower_to_pbc_module = staticmethod(_qlxRuntime.lower_to_pbc_module)
     verify_pbc_module = staticmethod(_qlxRuntime.verify_pbc_module)
     clone_module_capsule = staticmethod(_qlxRuntime.clone_module_capsule)
+    clone_module_into_context_capsule = staticmethod(
+        _qlxRuntime.clone_module_into_context_capsule)
     replace_module_contents_capsule = staticmethod(
         _qlxRuntime.replace_module_contents_capsule)
     run_pass = staticmethod(_qlxRuntime.run_pass)
     run_pass_capsule = staticmethod(_qlxRuntime.run_pass_capsule)
+    estimate_schedule_json = staticmethod(_qlxRuntime.estimate_schedule_json)
+    _estimate_verified_schedule_json = staticmethod(
+        _qlxRuntime._estimate_verified_schedule_json)
+    _materialize_verified_analytical_lower_tier = staticmethod(
+        _qlxRuntime._materialize_verified_analytical_lower_tier)
+    schedule_and_estimate_json = staticmethod(
+        _qlxRuntime.schedule_and_estimate_json)
+    _schedule_verified_and_estimate_json = staticmethod(
+        _qlxRuntime._schedule_verified_and_estimate_json)
     translate = staticmethod(_qlxRuntime.translate)
     has_quake_import: bool = _qlxRuntime.has_quake_import
 

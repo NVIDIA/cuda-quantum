@@ -13,14 +13,14 @@ execution or sampling service.
 The projection comes as a typed artifact: `ql.lower.emit_stim` returns the
 text, while `ql.lower.emit_stim_artifact` returns a `ql.lower.StimEmission` —
 the text plus a `CompiledInterfaceManifest` recording the exact boundary the
-circuit was projected from. The snippet below emits example 03's compiled
-Steane terminal-memory gadget (`examples/03_code_and_gadget.py`):
+circuit was projected from. The snippet below emits the standalone compiled
+Steane terminal-memory gadget (`examples/standalone/02_code_and_gadget.py`):
 
 <!--
 % invisible-code-block: python
 %
 % steane_memory = load_ql_example(
-% "preview/logical/examples/03_code_and_gadget.py", "steane_memory")
+% "preview/logical/examples/standalone/02_code_and_gadget.py", "steane_memory")
 -->
 
 ```python

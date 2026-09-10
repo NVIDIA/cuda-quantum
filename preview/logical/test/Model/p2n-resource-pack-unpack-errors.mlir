@@ -28,7 +28,7 @@ module attributes {qlx.profiles = ["p2n"]} {
   func.func @missing_selected_block_ids(
       %anchor: !fabric.patch<@Steane, @steane_encoding, @epoch0>,
       %state: !fabric.resource<@ccz_state>) {
-    // expected-error @+1 {{CCZ payload handoff requires exact selected QEC block identities}}
+    // expected-error @+1 {{selected three-qubit magic-state handoff requires exact QEC block identities}}
     %next:2 = fabric.unpack_resource %state like(%anchor) {
       payload_action = #qlx.action<ccz>,
       payload_logical_blocks = array<i64: 0, 0, 0>,
@@ -108,7 +108,7 @@ module attributes {qlx.profiles = ["p2n"]} {
   func.func @legacy_injection(
       %patch: !fabric.patch<@Steane, @steane_encoding, @epoch0>,
       %state: !fabric.resource<@t_state>) {
-    // expected-error @+1 {{is legacy logical intent and is not legal in canonical P2}}
+    // expected-error @+1 {{is legacy logical intent and is not legal in canonical P2/P3}}
     %next = fabric.inject %patch, %state {
       protocol = #fabric.spec_only<"legacy-t-injection">,
       gate = "t"
@@ -125,8 +125,9 @@ module attributes {qlx.profiles = ["p2n"]} {
   func.func @bad_kind(
       %payload: !fabric.patch<@Steane, @steane_encoding, @epoch0>) {
     // expected-error @+1 {{resource_kind must match the packed result resource type}}
-    %state = fabric.pack_resource %payload as @t_state
-      : !fabric.patch<@Steane, @steane_encoding, @epoch0>
+    %state = fabric.pack_resource (%payload) as @t_state
+      {payload_encodings = [@steane_encoding]}
+      : (!fabric.patch<@Steane, @steane_encoding, @epoch0>)
         -> !fabric.resource<@ccz_state>
     return
   }
