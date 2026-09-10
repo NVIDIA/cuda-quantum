@@ -8582,22 +8582,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1a427813b94672a42814459459e30e0930 .target}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[[result]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext6resultE "Permalink to this definition"){.headerlink}\
-
-    :   Measurement counts for a CUDA-Q kernel invocation.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1a6eefeeea0be24e461e56eb8150004cb9 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[expectationValue]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext16expectationValueE "Permalink to this definition"){.headerlink}\
-
-    :   A computed expectation value.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1ExecutionContext_1a7a508d29f07472fa255e3193ef3281dc .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[optimization_result]{.pre}]{.n}](#_CPPv4N5cudaq19optimization_resultE "cudaq::optimization_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[optResult]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext9optResultE "Permalink to this definition"){.headerlink}\
 
     :   An optimization result.
@@ -8746,38 +8730,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   Whether or not to simply concatenate measurements in execution
         order.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1ae3f00ca492659c5715faa185edecff1e .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_probabilities]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE "Permalink to this definition"){.headerlink}\
-
-    :   Probability of occurrence of each error mechanism (column) in
-        Measurement Syndrome Matrix (0-1 range).
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1a9a7627c0aa37bcf0938be2941795b2aa .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_prob_err_id]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext15msm_prob_err_idE "Permalink to this definition"){.headerlink}\
-
-    :   Error mechanism ID. From a probability perspective, each error
-        mechanism ID is independent of all other error mechanism ID. For
-        all errors with the *same* ID, only one of them can happen. That
-        is - the errors containing the same ID are correlated with each
-        other.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1a676ed0f74e3f9f671c1066e5476b8f22 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_dimensions]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext14msm_dimensionsE "Permalink to this definition"){.headerlink}\
-
-    :   The number of rows and columns of a Measurement Syndrome Matrix.
-        Note: Measurement Syndrome Matrix is defined in
-        [https://arxiv.org/pdf/2407.13826](https://arxiv.org/pdf/2407.13826){.reference
-        .external}.
 
     ```{=html}
     <!-- -->

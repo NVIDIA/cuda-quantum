@@ -2152,8 +2152,8 @@ declarations are under
 [`cudaq/lib/Optimizer`{.docutils .literal .notranslate}]{.pre}. Focused
 C++ tests for dialect operations and interfaces are under
 [`cudaq/unittests/Optimizer`{.docutils .literal .notranslate}]{.pre}.
-Textual IR coverage is under [`cudaq/test/Transforms`{.docutils .literal
-.notranslate}]{.pre}, [`cudaq/test/AST-Quake`{.docutils .literal
+Textual IR coverage is under [`cudaq/test/Optimizer`{.docutils .literal
+.notranslate}]{.pre}, [`cudaq/test/Frontend`{.docutils .literal
 .notranslate}]{.pre}, and [`python/tests/mlir`{.docutils .literal
 .notranslate}]{.pre}.
 :::

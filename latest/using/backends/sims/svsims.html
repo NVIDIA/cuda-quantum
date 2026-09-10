@@ -1230,6 +1230,17 @@ The <code class="docutils literal notranslate"><span class="pre">nvidia</span></
 on host-migrated states without a dense-matrix fallback, so migrated Pauli
 terms no longer require a separate width limit.</p>
 </div>
+<div class="admonition note" id="grace-superchip-host-migration">
+<p class="admonition-title">Note</p>
+<p><strong>Grace host-migration tuning:</strong> The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target uses
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/overview/ex-sv-migration.html">cuStateVec</a>
+to extend a state vector into host memory when migration is enabled. To get
+the most out of Grace Hopper and Grace Blackwell systems, follow the
+<a class="reference external" href="https://docs.nvidia.com/dccpu/grace-perf-tuning-guide/os-settings.html">NVIDIA Grace Performance Tuning Guide</a>.
+Relevant operating-system settings include page size, Transparent Huge
+Pages, Init on Alloc, and Automatic NUMA Scheduling and Balancing. Refer to
+the tuning guide for the current recommendations.</p>
+</div>
 </section>
 <section id="multi-gpu-multi-node">
 <h2>Multi-GPU multi-node<a class="headerlink" href="#multi-gpu-multi-node" title="Permalink to this heading">¶</a></h2>
@@ -1294,7 +1305,9 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> libraries may result in an <code class="code docutils literal notranslate"><span class="pre">invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code> error. See
 <a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for installation instructions.</p>
 <p>The number of processes and nodes should be always power-of-2.</p>
-<p>Host-device state vector migration is also supported in the multi-GPU multi-node configuration.</p>
+<p>Host-device state vector migration is also supported in the multi-GPU multi-node configuration.
+On Grace Hopper and Grace Blackwell systems, see <a class="reference internal" href="#grace-superchip-host-migration"><span class="std std-ref">the Grace
+host-migration tuning note</span></a>.</p>
 </div>
 <p>In addition to those environment variable options supported in the single-GPU mode,
 the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend provides the following environment variable options particularly for

@@ -2225,6 +2225,21 @@ now evaluates Pauli expectations directly on host-migrated states
 without a dense-matrix fallback, so migrated Pauli terms no longer
 require a separate width limit.
 :::
+
+::: {#grace-superchip-host-migration .admonition .note}
+Note
+
+**Grace host-migration tuning:** The [`nvidia`{.code .docutils .literal
+.notranslate}]{.pre} target uses
+[cuStateVec](https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/overview/ex-sv-migration.html){.reference
+.external} to extend a state vector into host memory when migration is
+enabled. To get the most out of Grace Hopper and Grace Blackwell
+systems, follow the [NVIDIA Grace Performance Tuning
+Guide](https://docs.nvidia.com/dccpu/grace-perf-tuning-guide/os-settings.html){.reference
+.external}. Relevant operating-system settings include page size,
+Transparent Huge Pages, Init on Alloc, and Automatic NUMA Scheduling and
+Balancing. Refer to the tuning guide for the current recommendations.
+:::
 :::
 
 ::: {#multi-gpu-multi-node .section}
@@ -2360,7 +2375,9 @@ error. See [[Dependencies and Compatibility]{.std
 The number of processes and nodes should be always power-of-2.
 
 Host-device state vector migration is also supported in the multi-GPU
-multi-node configuration.
+multi-node configuration. On Grace Hopper and Grace Blackwell systems,
+see [[the Grace host-migration tuning note]{.std
+.std-ref}](#grace-superchip-host-migration){.reference .internal}.
 :::
 
 In addition to those environment variable options supported in the
