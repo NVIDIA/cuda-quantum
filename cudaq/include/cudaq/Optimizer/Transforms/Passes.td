@@ -1966,8 +1966,6 @@ def SROA : Pass<"cc-sroa"> {
 def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
   let summary = "Stack frame preallocation.";
   let description = [{
-    This pass is intended to be run on the CFG (low-level semantics) level.
-
     Stack slots may end up being allocated across the body of a function. It
     is generally beneficial however to collect them in the function preamble
     (or entry block).
@@ -1982,6 +1980,14 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     ```
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
+
+    The pass can run over IR that still has high-level control flow
+    (`cc.scope`, `cc.if`, `cc.loop`) present, rather than requiring it to
+    have already been lowered to a plain CFG first: `cc.scope`/`cc.if` act as
+    region fences, a structural analogue of the stacksave/stackrestore-pair
+    fencing recognized for already-lowered CFG form, and `cc.loop` is
+    treated as a loop boundary in its own right, exactly like a strongly
+    connected component of a lowered CFG.
 
     Not all allocations can be moved in this way, which implies that not all
     stack guards can be safely removed.  Transport layer conformity tools may
