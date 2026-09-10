@@ -104,14 +104,16 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Retrieve the noise model setting (if provided)
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
-  // Retrieve the API key from the environment variables
+  // Retrieve the API key from the target arguments or the environment
   bool isTokenRequired = [&]() {
     auto it = config.find("emulate");
     if (it != config.end() && it->second == "true")
       return false;
     return true;
   }();
-  backendConfig["token"] = getEnvVar("IONQ_API_KEY", "0", isTokenRequired);
+  std::string apiKey = getValueOrDefault(config, "api_key", "");
+  backendConfig["token"] =
+      apiKey.empty() ? getEnvVar("IONQ_API_KEY", "0", isTokenRequired) : apiKey;
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
