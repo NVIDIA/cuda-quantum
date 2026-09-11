@@ -46,6 +46,8 @@ protected:
   using GateApplicationTask = typename Base::GateApplicationTask;
 
   using Base::flushGateQueue;
+  using Base::flushPendingQubits;
+  using Base::m_pendingQubits;
   using Base::nQubitsAllocated;
   using Base::previousStateDimension;
   using Base::shouldObserveFromSampling;
@@ -124,32 +126,7 @@ public:
 protected:
   void addQubitToState() override { addQubitsToState(1, nullptr); }
 
-  /// Allocations that start in |0..0> carry no information beyond their count,
-  /// so record the count but delay growing the state to batch allocations.
   void addQubitsToState(std::size_t count, const void *stateData) override {
-    if (count == 0)
-      return;
-    if (!stateData) {
-      m_pendingQubits += count;
-      return;
-    }
-    // First, handle queued allocs.
-    flushPendingQubits();
-    // Next, materialize new allocs with \p stateData.
-    materializeQubits(count, stateData);
-  }
-
-  /// Materialize any allocations deferred by `addQubitsToState`. Must be called
-  /// before anything reads or writes the state vector.
-  void flushPendingQubits() {
-    if (m_pendingQubits == 0)
-      return;
-    const std::size_t count = m_pendingQubits;
-    m_pendingQubits = 0;
-    materializeQubits(count, nullptr);
-  }
-
-  void materializeQubits(std::size_t count, const void *stateData) {
     // Note this cannot test `nQubitsAllocated == count`: that counter tracks
     // the qubits the caller has asked for, which runs ahead of the state while
     // allocations sit deferred.
@@ -233,7 +210,6 @@ protected:
   }
 
   void addQubitsToState(const cudaq::SimulationState &input) override {
-    flushPendingQubits();
     if (input.getPrecision() != simulationPrecision())
       throw std::invalid_argument("Initial-state precision mismatch.");
     if (const auto *const exState =
@@ -273,7 +249,6 @@ protected:
   }
 
   void deallocateStateImpl() override {
-    m_pendingQubits = 0;
     m_materializedQubits = 0;
     if (m_config.forceAllocateState)
       m_state.reset();
@@ -1390,8 +1365,6 @@ protected:
 
   CuStateVecConfig m_config;
   std::optional<CuStateVecState<Scalar>> m_state;
-  // Deferred qubit allocations for batching
-  std::size_t m_pendingQubits = 0;
   // Tracks the number of actually allocated qubits
   std::size_t m_materializedQubits = 0;
   std::unique_ptr<GateEngine<Scalar>> m_engine;

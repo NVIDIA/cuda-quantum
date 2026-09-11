@@ -625,6 +625,9 @@ protected:
   /// Never decreases (unless reset to 0) and may be more than getNumQubits().
   std::size_t nQubitsAllocated = 0;
 
+  /// @brief Queued allocations deferred to state change
+  std::size_t m_pendingQubits = 0;
+
   /// @brief The dimension of the multi-qubit state.
   std::size_t stateDimension = 0;
 
@@ -689,6 +692,30 @@ protected:
   /// This is subclass specific.
   virtual void addQubitToState() = 0;
 
+  /// @brief Take an allocation request. Null allocs are enqueued to be
+  /// performed in a batch upon state change.
+  virtual void requestQubits(std::size_t count, const void *state) {
+    if (count == 0)
+      return;
+    if (state == nullptr) {
+      m_pendingQubits += count;
+      return;
+    }
+    // First, handle queued allocs.
+    flushPendingQubits();
+    // Next, materialize new allocs with \p state.
+    addQubitsToState(count, state);
+  }
+
+  /// @brief Materialize deferred allocs. Must precede any state access.
+  void flushPendingQubits() {
+    if (m_pendingQubits == 0)
+      return;
+    const std::size_t count = m_pendingQubits;
+    m_pendingQubits = 0;
+    addQubitsToState(count, nullptr);
+  }
+
   /// @brief Subclass specific part of deallocateState().
   /// It will be invoked by deallocateState()
   virtual void deallocateStateImpl() = 0;
@@ -701,6 +728,7 @@ protected:
     tracker.reset();
     nQubitsAllocated = 0;
     stateDimension = 0;
+    m_pendingQubits = 0;
   }
 
   /// @brief Perform the actual mechanics of measuring a qubit,
@@ -991,6 +1019,7 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
+    flushPendingQubits();
 
     // If an earlier operation in this kernel run already failed, drop any
     // queued gates without applying them. The recorded error is re-thrown by
@@ -1068,7 +1097,7 @@ public:
   std::size_t allocateQubit() override {
     auto qubits = allocateQubitsInternal(1, [this](std::size_t numAllocs) {
       assert(numAllocs == 1);
-      addQubitToState();
+      requestQubits(numAllocs, nullptr);
     });
 
     assert(qubits.size() == 1);
@@ -1097,7 +1126,7 @@ public:
     }
 
     return allocateQubitsInternal(count, [this, state](std::size_t numAllocs) {
-      addQubitsToState(numAllocs, state);
+      requestQubits(numAllocs, state);
     });
   }
 
@@ -1119,6 +1148,7 @@ public:
             "currently not supported. See "
             "https://github.com/NVIDIA/cuda-quantum/issues/3795.");
       }
+      flushPendingQubits();
       addQubitsToState(*state);
     });
   }

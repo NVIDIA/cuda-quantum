@@ -664,6 +664,8 @@ protected:
 
   /// @brief Set the current state back to the |0> state.
   void setToZeroState() override {
+    // Without this the reset below would drop queued allocs.
+    flushPendingQubits();
     if (!tableau || !sampleSim) {
       deallocateState();
       return;

@@ -117,8 +117,8 @@ protected:
 
   bool supportsBatchedTrajectories() const override { return false; }
 
-  void addQubitsToState(std::size_t count, const void *stateData) override {
-    Base::addQubitsToState(count, stateData);
+  void requestQubits(std::size_t count, const void *stateData) override {
+    Base::requestQubits(count, stateData);
     // Distribution decisions below depend on the actual wire count, so this
     // path opts out of the base class's deferred allocation and materializes
     // immediately.
