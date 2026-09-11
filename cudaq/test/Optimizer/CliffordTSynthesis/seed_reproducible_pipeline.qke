@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 seed=42' %s -o %t.1
+// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 seed=42' %s -o %t.2
+// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 seed=42' %s -o %t.3
+// RUN: diff %t.1 %t.2
+// RUN: diff %t.1 %t.3
+// RUN: FileCheck --input-file=%t.1 %s
+
+// The registered pipeline must forward its seed to CliffordTSynthesis. pi/8 at
+// epsilon=1e-3 is an angle whose synthesized word varies from run to run when
+// the seed does not reach the pass, so the diffs above catch a dropped seed.
+
+func.func @seeded() {
+  %theta = arith.constant 0.39269908169872414 : f64
+  %q = quake.alloca !quake.ref
+  quake.rz (%theta) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @seeded()
+// CHECK-NOT:     quake.rz
+// CHECK:         call @__cliffordt_rz_
