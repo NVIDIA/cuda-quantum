@@ -265,7 +265,7 @@ protected:
 
   /// @brief Set the current state back to the |0> state.
   void setToZeroState() override {
-    // `stateDimension` already counts queued allocs.
+    // `stateDimension` already counts queued allocations.
     flushPendingQubits();
     state = qpp::ket::Zero(stateDimension);
     state(0) = 1.0;

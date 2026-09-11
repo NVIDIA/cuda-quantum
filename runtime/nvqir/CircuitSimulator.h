@@ -692,7 +692,7 @@ protected:
   /// This is subclass specific.
   virtual void addQubitToState() = 0;
 
-  /// @brief Take an allocation request. Null allocs are enqueued to be
+  /// @brief Take an allocation request. Null allocations are enqueued to be
   /// performed in a batch upon state change.
   void requestQubits(std::size_t count, const void *state) {
     if (count == 0)
@@ -701,13 +701,13 @@ protected:
       m_pendingQubits += count;
       return;
     }
-    // First, handle queued allocs.
+    // First, handle queued allocations.
     flushPendingQubits();
-    // Next, materialize new allocs with \p state.
+    // Next, materialize new allocations with \p state.
     addQubitsToState(count, state);
   }
 
-  /// @brief Materialize deferred allocs. Must precede any state access.
+  /// @brief Materialize deferred allocations. Must precede any state access.
   void flushPendingQubits() {
     if (m_pendingQubits == 0)
       return;
