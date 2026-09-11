@@ -209,9 +209,9 @@ private:
   Pass::Statistic &stat;
 };
 
-static void populateRotationsToCliffordTPatterns(RewritePatternSet &patterns,
-                                                 double epsilon,
-                                                 Pass::Statistic &stat) {
+[[maybe_unused]] static void
+populateRotationsToCliffordTPatterns(RewritePatternSet &patterns,
+                                    double epsilon, Pass::Statistic &stat) {
   patterns.add<RewriteRotationToCliffordT<cudaq::quake::R1Op>,
                RewriteRotationToCliffordT<cudaq::quake::RxOp>,
                RewriteRotationToCliffordT<cudaq::quake::RyOp>,

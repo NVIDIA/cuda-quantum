@@ -188,6 +188,11 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     semantics (`!quake.wire` targets, threaded) are handled. The synthesized
     per-angle helper mirrors the form of the rotation it replaces.
 
+    An angle within `epsilon` of a multiple of `pi/4` is lowered to its exact
+    named-gate form rather than approximated. This repeats what
+    `quake-simplify{rotations-to-clifford-t=true}` does earlier, catching the
+    exact angles a pass in between creates.
+
     Preconditions (must be enforced by upstream passes):
     - Rx/Ry/R1 rotations are reduced to Rz - run the `decomposition` pass with
       the `RxToRz`, `RyToRz`, `R1ToRz` patterns enabled first.
@@ -278,6 +283,10 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       "threshold, rather than synthesizing a Clifford+T approximation for "
       "them. Set to 0 to disable and synthesize every constant-angle "
       "rotation.">,
+  ];
+  let statistics = [
+    Statistic<"numExactRotations", "exact-rotations",
+              "Number of rotations lowered exactly instead of approximated">,
   ];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
