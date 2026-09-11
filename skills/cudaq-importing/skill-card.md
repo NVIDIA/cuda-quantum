@@ -1,5 +1,5 @@
 ## Description: <br>
-Use for CUDA-Q setup, simulation targets, QPU access, and @cudaq.kernel authoring guidance. <br>
+Use when porting circuits from another framework (e.g. Qiskit) into CUDA-Q kernels while preserving the source algorithm and validation fidelity. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -7,9 +7,9 @@ This skill is ready for commercial/non-commercial use. <br>
 NVIDIA <br>
 
 ### License/Terms of Use: <br>
-Apache-2.0 <br>
+Apache 2.0 <br>
 ## Use Case: <br>
-Developers and engineers use this skill for CUDA-Q installation, GPU simulation target selection, QPU access setup, multi-GPU execution, and Python @cudaq.kernel authoring guidance. <br>
+Developers and engineers porting quantum circuits from other frameworks (e.g. Qiskit) into CUDA-Q Python kernels while preserving algorithm correctness and validation fidelity. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
@@ -25,14 +25,12 @@ Risk: Review before execution as proposals could introduce incorrect or misleadi
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [CUDA-Q Onboarding Reference](references/onboarding.md) <br>
-- [CUDA-Q Authoring Reference](references/authoring.md) <br>
-- [CUDA-Q Documentation](https://nvidia.github.io/cuda-quantum/latest/) <br>
+- [Qiskit to CUDA-Q Porting Reference](references/porting-reference.md) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Analysis, Configuration instructions] <br>
-**Output Format:** [Markdown with inline code blocks] <br>
+**Output Type(s):** [Code, Analysis, Configuration instructions] <br>
+**Output Format:** [Markdown with inline Python code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
@@ -43,39 +41,39 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-13 evaluation tasks (10 positive, 3 negative), 3 attempts per task in isolated sandbox pods. <br>
+4 evaluation tasks (3 positive, 1 negative), each run with 3 attempts in isolated sandbox pods. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
-- Security: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
-- Correctness: Checks final-answer correctness against reference answers. <br>
-- Discoverability: Checks whether the expected skill was selected and activated when needed. <br>
-- Effectiveness: Checks whether the skill helped the agent complete the user's goal and follow expected workflow. <br>
-- Efficiency: Checks tool-call productivity and token usage efficiency. <br>
+- Security: Whether the skill avoids unsafe operations, secret leakage, and unauthorized access. <br>
+- Correctness: Whether the final answer is correct against the reference answer. <br>
+- Discoverability: Whether the right skill was loaded and activated when needed. <br>
+- Effectiveness: Whether the skill helped complete the user's goal and expected workflow (goal_accuracy 50% + behavior_check 50%). <br>
+- Efficiency: Whether the skill avoided wasted tool calls and token usage (skill_efficiency 50% + token_efficiency 50%). <br>
 
 Underlying evaluation signals used in this run: <br>
 - `security`: Unsafe operations, secret leakage, and unauthorized access. <br>
-- `accuracy`: Final-answer correctness against the reference answer. <br>
 - `skill_execution`: Whether the expected skill was selected, decoys were avoided, and the workflow executed. <br>
+- `accuracy`: Final-answer correctness against the reference answer. <br>
 - `goal_accuracy`: Whether the user's goal was achieved. <br>
 - `behavior_check`: Whether the expected workflow behavior was followed. <br>
-- `skill_efficiency`: Tool-call productivity (routing scored under Discoverability). <br>
+- `skill_efficiency`: Tool-call productivity. <br>
 - `token_efficiency`: Actual uncached prompt plus completion token usage. <br>
 
 
 
 ## Evaluation Results: <br>
-| Measure | Claude Code (Baseline → Skill Uplift) | Codex (Baseline → Skill Uplift) |
+| Measure | Claude Code (Baseline → Skill) | Codex (Baseline → Skill) |
 |---|---:|---:|
-| Overall | 94.9% | 88.2% |
-| Security | 100.0% → 100.0% (±0.0 pts) | 84.6% → 92.3% (+7.7 pts) |
-| Correctness | 87.7% → 100.0% (+12.3 pts) | 92.3% → 95.4% (+3.1 pts) |
-| Discoverability | 97.5% | 93.0% |
-| Effectiveness | 67.1% → 85.4% (+18.3 pts) | 73.9% → 84.8% (+10.9 pts) |
-| Efficiency | 91.6% | 75.7% |
+| Overall | 81.9% | 95.5% |
+| Security | 75.0% → 50.0% (-25.0 pts) | 100.0% → 100.0% (±0.0 pts) |
+| Correctness | 90.0% → 100.0% (+10.0 pts) | 90.0% → 100.0% (+10.0 pts) |
+| Discoverability | 93.3% | 95.0% |
+| Effectiveness | 79.8% → 90.4% (+10.6 pts) | 77.9% → 95.0% (+17.1 pts) |
+| Efficiency | 75.6% | 87.5% |
 
 ## Skill Version(s): <br>
-1.1.1 (source: frontmatter) <br>
+1.0.1 (source: frontmatter) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>
