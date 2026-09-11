@@ -96,8 +96,10 @@ struct BasisTarget : public ConversionTarget {
                     cudaq::cc::CCDialect, func::FuncDialect,
                     math::MathDialect>();
     addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>([&](Operation *op) {
-      // quake.phase is compiler bookkeeping rather than a physical basis
-      // gate. Keep it legal until the dedicated late lowering removes it.
+      // quake.phase is an exact global/predicate-phase correction, not a
+      // physical-basis gate; its target is only an ordering and wire-flow
+      // anchor. Preserve it across phase-producing decompositions. The shared
+      // phase lifecycle lowers it before code generation.
       if (isa<cudaq::quake::PhaseOp>(op))
         return true;
 
