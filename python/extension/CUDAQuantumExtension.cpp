@@ -156,8 +156,11 @@ NB_MODULE(_quakeDialects, m) {
   bindCustomOpRegistry(cudaqRuntime);
   bindTrace(cudaqRuntime);
 
-  cudaqRuntime.def("set_random_seed", &set_random_seed,
-                   "Provide the seed for backend quantum kernel simulation.");
+  cudaqRuntime.def(
+      "set_random_seed", &set_random_seed,
+      "Provide the seed for backend quantum kernel simulation, and for "
+      "randomized compiler passes such as Clifford+T synthesis. A seed of 0 "
+      "leaves both unseeded.");
   cudaqRuntime.def("num_available_gpus", &num_available_gpus,
                    "The number of available GPUs detected on the system.");
 
