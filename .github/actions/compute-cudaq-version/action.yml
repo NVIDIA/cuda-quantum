@@ -56,10 +56,11 @@ runs:
         venv="$(mktemp -d)/venv"
         python3 -m venv "$venv"
         "$venv/bin/python" -m pip install --quiet "setuptools-scm>=8,<9"
-        cudaq_logical_version="$(
+        cudaq_logical_scmversion="$(
           "$venv/bin/python" -m setuptools_scm \
             -c preview/logical/python/pyproject.toml
         )"
 
+        cudaq_logical_version=$(echo ${cudaq_logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
         echo "cudaq_logical_version=$cudaq_logical_version" >> "$GITHUB_OUTPUT"
         echo "CUDA-Q Logical version: $cudaq_logical_version"

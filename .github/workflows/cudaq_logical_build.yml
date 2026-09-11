@@ -227,9 +227,10 @@ jobs:
           # Resolve the version while the checkout is still clean. Stamping
           # the runtime dependencies below intentionally modifies pyproject,
           # which must not add setuptools-scm's dirty-tree date suffix.
-          logical_version="$(
+          logical_scmversion="$(
             python -m setuptools_scm -c python/pyproject.toml
           )"
+          logical_version=$(echo ${logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
 
           python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
             --distribution cuda-quantum-cu12 \
