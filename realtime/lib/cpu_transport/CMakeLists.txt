@@ -9,8 +9,9 @@
 # ==============================================================================
 # CPU RoCE transport library (Phase 1 of cpu_transport umbrella)
 #
-# Builds cudaq-realtime-cpu-roce-transport, a static library exporting the
-# CpuRoceTransceiver class plus its extern-C wrapper. Used by:
+# Builds cudaq-realtime-cpu-roce-transport. Both backends export the
+# cpu_roce_* C ABI; only the legacy backend also provides CUDA-Q's
+# CpuRoceTransceiver C++ implementation. Used by:
 #   - hsb_bridge_cpu (Phase 1, FPGA-facing bridge; tx_mode=kRdmaSend -- the
 #     bridge Sends to the FPGA, which Writes its syndromes back)
 #   - CpuRoceChannel (Phase 2, device_call caller / FPGA stand-in;
@@ -18,9 +19,9 @@
 #   - cpu_roce_test_daemon (Phase 2, service / bridge stand-in;
 #     tx_mode=kRdmaSend -- Sends responses)
 #
-# Depends only on libibverbs + standard C++; deliberately no DOCA, no HSB libraries,
-# no Holoscan, no CUDA at link time so the library is buildable on hosts
-# without GPUs.
+# The legacy backend depends directly on libibverbs; the Hololink backend uses
+# hololink::transport::roce. Neither uses DOCA, HSB libraries, Holoscan, or CUDA,
+# so the target remains buildable on hosts without GPUs.
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -56,16 +57,48 @@ install(TARGETS cudaq-realtime-udp-transport
 
 message(STATUS "  - cudaq-realtime-udp-transport (CPU UDP transport)")
 
-find_library(IBVERBS_LIBRARY NAMES ibverbs)
-if (NOT IBVERBS_LIBRARY)
-  message(STATUS "  - cpu_transport: libibverbs not found, skipping RoCE transport")
-  return()
+set(CUDAQ_REALTIME_CPU_ROCE_USES_HOLOLINK OFF CACHE INTERNAL
+    "Whether the configured CPU RoCE backend uses Hololink" FORCE)
+
+set(CUDAQ_REALTIME_CPU_ROCE_BACKEND "legacy" CACHE STRING
+    "CPU RoCE backend: legacy or hololink (explicit opt-in)")
+set_property(CACHE CUDAQ_REALTIME_CPU_ROCE_BACKEND PROPERTY STRINGS legacy hololink)
+
+if(CUDAQ_REALTIME_CPU_ROCE_BACKEND STREQUAL "hololink")
+  find_package(HololinkRoce 2.7 CONFIG REQUIRED COMPONENTS transport)
+  set(_cudaq_cpu_roce_backend "hololink")
+elseif(CUDAQ_REALTIME_CPU_ROCE_BACKEND STREQUAL "legacy")
+  set(_cudaq_cpu_roce_backend "legacy")
+else()
+  message(FATAL_ERROR
+          "CUDAQ_REALTIME_CPU_ROCE_BACKEND must be 'legacy' or 'hololink', "
+          "got '${CUDAQ_REALTIME_CPU_ROCE_BACKEND}'")
+endif()
+
+if(_cudaq_cpu_roce_backend STREQUAL "hololink")
+  set(_cudaq_cpu_roce_sources
+      roce_wrapper_hololink.cpp)
+  set(CUDAQ_REALTIME_CPU_ROCE_USES_HOLOLINK ON CACHE INTERNAL
+      "Whether the configured CPU RoCE backend uses Hololink" FORCE)
+else()
+  find_library(IBVERBS_LIBRARY NAMES ibverbs)
+  if(NOT IBVERBS_LIBRARY)
+    message(STATUS
+      "  - cpu_transport: libibverbs not found, skipping legacy RoCE transport")
+    unset(_cudaq_cpu_roce_backend)
+    return()
+  endif()
+  set(_cudaq_cpu_roce_sources
+      roce_transceiver.cpp  # legacy ibv setup, RX/TX threads, ring lifecycle
+      roce_wrapper.cpp)     # legacy extern-C shim
+  set(CUDAQ_REALTIME_CPU_ROCE_USES_HOLOLINK OFF CACHE INTERNAL
+      "Whether the configured CPU RoCE backend uses Hololink" FORCE)
 endif()
 
 add_library(cudaq-realtime-cpu-roce-transport STATIC
-  roce_transceiver.cpp  # class CpuRoceTransceiver: ibv setup, RX/TX threads, ring lifecycle
-  roce_wrapper.cpp      # extern-C shim used by bridge tools and CpuRoceChannel
+  ${_cudaq_cpu_roce_sources}
 )
+unset(_cudaq_cpu_roce_sources)
 # Source-tree CUDA-Q integration uses the same cudaq:: target names
 # that installed exports provide.
 add_library(cudaq::cudaq-realtime-cpu-roce-transport ALIAS cudaq-realtime-cpu-roce-transport)
@@ -78,9 +111,19 @@ target_include_directories(cudaq-realtime-cpu-roce-transport
 
 target_link_libraries(cudaq-realtime-cpu-roce-transport
   PUBLIC
-    ${IBVERBS_LIBRARY}
     Threads::Threads
 )
+if(_cudaq_cpu_roce_backend STREQUAL "hololink")
+  target_link_libraries(cudaq-realtime-cpu-roce-transport
+    PUBLIC
+      hololink::transport::roce
+  )
+else()
+  target_link_libraries(cudaq-realtime-cpu-roce-transport
+    PUBLIC
+      ${IBVERBS_LIBRARY}
+  )
+endif()
 
 set_target_properties(cudaq-realtime-cpu-roce-transport PROPERTIES
   POSITION_INDEPENDENT_CODE ON
@@ -93,4 +136,7 @@ install(TARGETS cudaq-realtime-cpu-roce-transport
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-message(STATUS "  - cudaq-realtime-cpu-roce-transport (CPU RoCE transport; libibverbs)")
+message(STATUS
+        "  - cudaq-realtime-cpu-roce-transport "
+        "(CPU RoCE transport; ${_cudaq_cpu_roce_backend} backend)")
+unset(_cudaq_cpu_roce_backend)
