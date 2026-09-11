@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
@@ -2097,11 +2098,123 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
     return failure();
   }
 };
+
+// For a loop which has an internally carried value that is never used (other
+// than to thread around the loop) and the same corresponding loop result is
+// also never used, is dead.
+//
+// We used this hand-rolled canonicalization, rather than try to use the MLIR
+// builtin generic `RegionBranchOpInterface` "tied successor inputs" machinery
+// because MLIR bakes in assumptions that do not apply for `cc.loop`. Those
+// assumptions result in MLIR's greedy rewriter destroying the composite
+// structure of `cc.loop`. It does not respect the multi-region internal
+// structure and the semantics of terminators between those regions cannot be
+// properly encoded into their algorithm. Hence, we want to avoid MLIR.
+struct EraseDeadCarriedValues : public OpRewritePattern<cudaq::cc::LoopOp> {
+  using Base = OpRewritePattern<cudaq::cc::LoopOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<Operation *> terminators;
+    for (auto *reg : loop.getRegions())
+      for (auto &block : *reg)
+        if (block.hasNoSuccessors())
+          terminators.push_back(block.getTerminator());
+
+    const unsigned numArgs = loop.getInitialArgs().size();
+    llvm::BitVector dead(numArgs, true);
+    for (auto *reg : loop.getRegions()) {
+      if (reg->empty())
+        continue;
+      auto &entry = reg->front();
+      for (unsigned i = 0; i < numArgs; ++i) {
+        if (!dead[i])
+          continue;
+        Value arg = entry.getArgument(i);
+        for (auto *user : arg.getUsers()) {
+          if (llvm::none_of(terminators,
+                            [&](Operation *t) { return t == user; })) {
+            dead.reset(i);
+            break;
+          }
+        }
+      }
+    }
+    for (unsigned i = 0; i < numArgs; ++i)
+      if (dead[i] && !loop.getResult(i).use_empty())
+        dead.reset(i);
+
+    if (dead.none())
+      return failure();
+
+    // Fix terminators, dropping the dead-indexed operands.
+    auto keepLive = [&](ValueRange operands) {
+      SmallVector<Value> kept;
+      for (auto [i, v] : llvm::enumerate(operands))
+        if (!dead[i])
+          kept.push_back(v);
+      return kept;
+    };
+    for (auto *term : terminators) {
+      OpBuilder::InsertionGuard guard(rewriter);
+      rewriter.setInsertionPoint(term);
+      if (auto cond = dyn_cast<cudaq::cc::ConditionOp>(term))
+        rewriter.replaceOpWithNewOp<cudaq::cc::ConditionOp>(
+            cond, cond.getCondition(), keepLive(cond.getResults()));
+      else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(term))
+        rewriter.replaceOpWithNewOp<cudaq::cc::ContinueOp>(
+            cont, keepLive(cont.getOperands()));
+      else if (auto brk = dyn_cast<cudaq::cc::BreakOp>(term))
+        rewriter.replaceOpWithNewOp<cudaq::cc::BreakOp>(
+            brk, keepLive(brk.getOperands()));
+    }
+
+    // Erase the dead block arguments from every region's entry, descending so
+    // earlier indices stay valid.
+    for (auto *reg : loop.getRegions()) {
+      if (reg->empty())
+        continue;
+      for (int i = numArgs - 1; i >= 0; --i)
+        if (dead[i])
+          reg->front().eraseArgument(i);
+    }
+
+    // Assemble the new initial args and result types, then rebuild.
+    SmallVector<Value> newInitArgs;
+    SmallVector<Type> newResultTypes;
+    for (unsigned i = 0; i < numArgs; ++i)
+      if (!dead[i]) {
+        newInitArgs.push_back(loop.getInitialArgs()[i]);
+        newResultTypes.push_back(loop.getResultTypes()[i]);
+      }
+
+    rewriter.setInsertionPoint(loop);
+    auto newLoop = cudaq::cc::LoopOp::create(
+        rewriter, loop.getLoc(), newResultTypes, newInitArgs,
+        loop.isPostConditional(), [](OpBuilder &, Location, Region &) {},
+        [](OpBuilder &, Location, Region &) {},
+        /*stepBuilder=*/nullptr);
+    newLoop->setDiscardableAttrs(loop->getDiscardableAttrDictionary());
+    newLoop.getWhileRegion().takeBody(loop.getWhileRegion());
+    newLoop.getBodyRegion().takeBody(loop.getBodyRegion());
+    newLoop.getStepRegion().takeBody(loop.getStepRegion());
+    newLoop.getElseRegion().takeBody(loop.getElseRegion());
+
+    unsigned newIdx = 0;
+    for (unsigned i = 0; i < numArgs; ++i)
+      if (!dead[i])
+        loop.getResult(i).replaceAllUsesWith(newLoop.getResult(newIdx++));
+
+    rewriter.eraseOp(loop);
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::cc::LoopOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                     MLIRContext *context) {
-  patterns.add<HoistLoopInvariantArgs>(context);
+  patterns.add<HoistLoopInvariantArgs, EraseDeadCarriedValues>(context);
 }
 
 //===----------------------------------------------------------------------===//
