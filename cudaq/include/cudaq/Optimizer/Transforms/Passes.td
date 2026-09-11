@@ -1187,6 +1187,39 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
+def LoopCableRotation : Pass<"loop-cable-rotation", "mlir::func::FuncOp"> {
+  let summary = "Rotate a cable around a counted loop over a fixed-size veq.";
+  let description = [{
+    A `cc.loop` that is a compile-time counted loop (a normalized, definite
+    trip count, no early exit - see `isaCountedLoop` in `LoopAnalysis.h`)
+    whose body contains exactly one `quake.extract_ref` indexing a
+    statically sized `veq` by the loop's own induction variable touches
+    every qubit of that `veq` exactly once, in order. Each iteration
+    ordinarily still pays for reference-form traffic (`unwrap`/gate/`wrap`)
+    even though the whole access pattern is known statically.
+
+    This pass rewrites that shape to thread a single `!quake.cable<C>`
+    value around the loop instead of leaving the `veq` in reference form:
+    a `quake.detach_wire` pulls the front wire off the cable in place of
+    the `extract_ref` each iteration, and a `quake.attach_wire` puts it
+    back on the back before the iteration ends, so after all `C`
+    iterations the cable is back in its original order. The detached wire
+    is bound to a fresh reference with `quake.wrap_new` so the body's gate
+    ops are left completely unchanged in reference form; this pass does
+    not itself linearize them; the existing `memtoreg` pass, run
+    afterwards, threads `quake.wrap_new`'s fresh reference into proper wire
+    SSA form the same way it already does elsewhere.
+
+    This pass is independent of, and does not modify, `cable-rough-in` -
+    that pass handles a whole veq passed to a call; this one handles a veq
+    walked element-by-element inside a loop. A loop that does not match
+    the required shape exactly (early exit, non-constant trip count, more
+    than one `extract_ref` in the body, an index expression other than the
+    bare induction variable, a `veq` of unknown size, or a `veq` with any
+    other use inside the loop) is left completely untouched.
+  }];
+}
+
 def LoopInductionFusion : Pass<"cc-loop-induction-fusion"> {
   let summary = "Fuse secondary loop inductions into the primary induction.";
   let description = [{
@@ -1997,8 +2030,6 @@ def ShrinkWrap : Pass<"shrink-wrap", "mlir::func::FuncOp"> {
 def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
   let summary = "Stack frame preallocation.";
   let description = [{
-    This pass is intended to be run on the CFG (low-level semantics) level.
-
     Stack slots may end up being allocated across the body of a function. It
     is generally beneficial however to collect them in the function preamble
     (or entry block).
@@ -2013,6 +2044,14 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     ```
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
+
+    The pass can be run on IR that still has high-level control flow
+    (`cc.scope`, `cc.if`, `cc.loop`) present and does not require lowering
+    to a plain CFG first. As `cc.scope` gives rise to the `stacksave` /
+    `stackrestore` primitives, it is treated as simply another form of the
+    same fencing. `cc.scope` that is in place to delimit atomic quantum regions
+    may or may not have classical allocations, and will be treated no different
+    by this pass.
 
     Not all allocations can be moved in this way, which implies that not all
     stack guards can be safely removed.  Transport layer conformity tools may
