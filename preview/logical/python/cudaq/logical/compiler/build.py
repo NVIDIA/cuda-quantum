@@ -11,6 +11,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, fields, is_dataclass, replace
 from hashlib import sha256
 import json
+import logging
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Iterable
@@ -38,6 +39,8 @@ from .build_bundle import (
     _validate_v2_bundle,
     _validate_v2_nested_metadata,
 )
+
+_logger = logging.getLogger("cudaq.logical")
 
 _UNSET = object()
 
@@ -2259,6 +2262,13 @@ class Build:
             placement=placement,
             objective=objective,
         )
+
+        # Use the package logger so CUDAQ_LOG_LEVEL and application-provided
+        # handlers expose the output of every compiler boundary uniformly.
+        # Passing the module as a logging argument keeps MLIR printing lazy
+        # when debug logging is disabled.
+        _logger.debug("Build from module:\n%s", module)
+
         verified_increment = _verified_increment is _VERIFIED_INCREMENT_AUTH
         if _verified_increment is not None and not verified_increment:
             raise ValueError("invalid verified Build increment authority")
