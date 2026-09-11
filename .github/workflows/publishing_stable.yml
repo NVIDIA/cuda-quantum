@@ -143,6 +143,8 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.setup.outputs.platforms }}
+          # nvcr.io 400s on buildx's default attestation manifest.
+          provenance: false
           push: true
 
       - name: Install Cosign
