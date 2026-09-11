@@ -6,9 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
-#include "cudaq/Target/CompileTarget.h"
-#include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/algorithms/msm/policy.h"
@@ -16,6 +15,7 @@
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
