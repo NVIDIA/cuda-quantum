@@ -694,7 +694,7 @@ protected:
 
   /// @brief Take an allocation request. Null allocs are enqueued to be
   /// performed in a batch upon state change.
-  virtual void requestQubits(std::size_t count, const void *state) {
+  void requestQubits(std::size_t count, const void *state) {
     if (count == 0)
       return;
     if (state == nullptr) {

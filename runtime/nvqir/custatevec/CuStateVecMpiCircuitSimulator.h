@@ -117,17 +117,6 @@ protected:
 
   bool supportsBatchedTrajectories() const override { return false; }
 
-  void requestQubits(std::size_t count, const void *stateData) override {
-    Base::requestQubits(count, stateData);
-    // Distribution decisions below depend on the actual wire count, so this
-    // path opts out of the base class's deferred allocation and materializes
-    // immediately.
-    Base::flushPendingQubits();
-    // The initial ensureState() may defer distribution until the newly
-    // allocated wires make a valid distributed state.
-    ensureState();
-  }
-
   /// Lazily (re)build this rank's state descriptor. Below the multi-GPU
   /// threshold every rank keeps the same full (replicated) single-process state
   /// through the base class; once the circuit is large enough to distribute,
