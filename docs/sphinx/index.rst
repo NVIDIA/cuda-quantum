@@ -4,17 +4,25 @@ CUDA-Q
 
 Welcome to the CUDA-Q documentation page!
 
+**CUDA-Q** is a programming model and toolchain for using quantum acceleration in heterogeneous
+computing architectures available in C++ and Python.
 CUDA-Q streamlines hybrid application development and promotes productivity and scalability
 in quantum computing. It offers a unified programming model designed for a hybrid
 setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA-Q contains support for 
 programming in Python and in C++.
 
+The CUDA-Q ecosystem supports a wide variety of QPU hardware and high-performance simulators.
+It includes Python and C++ interfaces for quantum programming, compiler toolchains for optimization and hardware support
+and low-level QPU runtimes for detailed hardware control.
+CUDA-Q also provides an open, extensible logical layer for fault-tolerant fault-tolerant
+workloads, Quantum Error Correction (QEC) codes and QPU architecture co-design, currently in preview.
+See the `CUDA-Q Logical documentation <https://nvidia.github.io/cuda-quantum/preview/logical/index.html>`__
+for installation instructions, an end-to-end resource estimate, and the current scope and limitations.
+
 You are browsing the documentation for |version| version of CUDA-Q. You can find documentation for all released versions :doc:`here <versions>`.
 
-**CUDA-Q** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
-
-Research Preview: Pulse-Level Programming
------------------------------------------
+Research Preview: CUDA-Q Pulse
+------------------------------
 
 CUDA-Q pulse is a new research-preview package for programming at the pulse level. It provides a Python
 kernel DSL, pulse and operator dialects, compiler passes, and an experimental GPU execution path. Because it
@@ -42,6 +50,12 @@ quick example, build instructions, and the current scope and limitations.
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
       Other Versions <versions.rst>
+
+.. toctree::
+   :caption: Preview
+   :maxdepth: 1
+
+   CUDA-Q Logical <https://nvidia.github.io/cuda-quantum/preview/logical/index.html>
 
 .. |---|   unicode:: U+2014 .. EM DASH
    :trim:
