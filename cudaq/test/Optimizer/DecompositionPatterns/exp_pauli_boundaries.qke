@@ -148,8 +148,9 @@ func.func @dynamic_vector_control_with_separate_anchor(%theta: f64,
 }
 
 // CHECK-LABEL: func.func @dynamic_vector_control_with_separate_anchor(
-// CHECK: %[[NEG:.*]] = arith.negf %{{.*}} : f64
-// CHECK: quake.phase (%[[NEG]]) {{\[}}%{{.*}} neg [true]{{\]}} %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: %[[NEG:.*]] = arith.negf %[[THETA]] : f64
+// CHECK: quake.phase (%[[NEG]]) {{\[}}%[[CONTROLS]] neg [true]{{\]}} %[[ANCHOR]] : (f64, !quake.veq<?>, !quake.ref) -> ()
 // CHECK-NOT: quake.exp_pauli
 // CHECK: return
 

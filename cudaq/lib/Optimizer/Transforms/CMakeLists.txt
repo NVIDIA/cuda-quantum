@@ -51,6 +51,7 @@ add_cudaq_library(OptTransforms
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
+  LoopCableRotation.cpp
   LoopInductionFusion.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
@@ -84,6 +85,7 @@ add_cudaq_library(OptTransforms
   ResourceCountPreprocess.cpp
   RunSemanticsHackery.cpp
   SROA.cpp
+  ShrinkWrap.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp

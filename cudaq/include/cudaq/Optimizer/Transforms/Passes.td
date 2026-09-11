@@ -443,6 +443,11 @@ def CombineQuantumAllocations :
     This pass will only process `quake.alloca` operations at the top-level of
     a function. It assumes all calls have been inlined, loops unrolled, etc.
 
+    To keep the greedy rewrite worklist small, the pass starts with only
+    existing `quake.alloca`, `quake.extract_ref`, `quake.get_member`,
+    `quake.subveq`, and `quake.concat` operations. It also considers any
+    operations created while rewriting them.
+
     If the function contains deallocations, these are combined as well. The
     combined deallocation will be added to each exit block.
   }];
@@ -1182,6 +1187,39 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
+def LoopCableRotation : Pass<"loop-cable-rotation", "mlir::func::FuncOp"> {
+  let summary = "Rotate a cable around a counted loop over a fixed-size veq.";
+  let description = [{
+    A `cc.loop` that is a compile-time counted loop (a normalized, definite
+    trip count, no early exit - see `isaCountedLoop` in `LoopAnalysis.h`)
+    whose body contains exactly one `quake.extract_ref` indexing a
+    statically sized `veq` by the loop's own induction variable touches
+    every qubit of that `veq` exactly once, in order. Each iteration
+    ordinarily still pays for reference-form traffic (`unwrap`/gate/`wrap`)
+    even though the whole access pattern is known statically.
+
+    This pass rewrites that shape to thread a single `!quake.cable<C>`
+    value around the loop instead of leaving the `veq` in reference form:
+    a `quake.detach_wire` pulls the front wire off the cable in place of
+    the `extract_ref` each iteration, and a `quake.attach_wire` puts it
+    back on the back before the iteration ends, so after all `C`
+    iterations the cable is back in its original order. The detached wire
+    is bound to a fresh reference with `quake.wrap_new` so the body's gate
+    ops are left completely unchanged in reference form; this pass does
+    not itself linearize them; the existing `memtoreg` pass, run
+    afterwards, threads `quake.wrap_new`'s fresh reference into proper wire
+    SSA form the same way it already does elsewhere.
+
+    This pass is independent of, and does not modify, `cable-rough-in` -
+    that pass handles a whole veq passed to a call; this one handles a veq
+    walked element-by-element inside a loop. A loop that does not match
+    the required shape exactly (early exit, non-constant trip count, more
+    than one `extract_ref` in the body, an index expression other than the
+    bare induction variable, a `veq` of unknown size, or a `veq` with any
+    other use inside the loop) is left completely untouched.
+  }];
+}
+
 def LoopInductionFusion : Pass<"cc-loop-induction-fusion"> {
   let summary = "Fuse secondary loop inductions into the primary induction.";
   let description = [{
@@ -1221,8 +1259,9 @@ def LowerPhase : Pass<"lower-phase", "mlir::func::FuncOp"> {
   let description = [{
     Lowers controlled `quake.phase` operations to exact `quake.r1`/`quake.rz`
     gate sequences and erases uncontrolled phases after forwarding their wire
-    results. This pass is intentionally exposed in isolation until the global
-    phase lifecycle is integrated into production pipelines.
+    results. It remains independently invocable for tests and custom pipeline
+    composition; production pipelines invoke it through the shared phase
+    lifecycle before code generation.
   }];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "cudaq::quake::QuakeDialect"];
@@ -1963,11 +2002,35 @@ def SROA : Pass<"cc-sroa"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def ShrinkWrap : Pass<"shrink-wrap", "mlir::func::FuncOp"> {
+  let summary = "Sink stack allocations into the conditional region that "
+                "actually needs them.";
+  let description = [{
+    A `cc.alloca` that lives at the top of a function is allocated (and, per
+    the rest of its lifetime, stored to and loaded from) on every call, even
+    when the variable it backs is only used along a specific control-flow path.
+    This pass moves such an allocation into a `cc.scope` nested within the
+    control-flow path, distributing the overhead and minimizing the variable's
+    lifetime to where it is actually used.
+
+    This is the exact converse of `stack-frame-prealloc`. It is a near converse
+    of `variable-coalesce`, which hoists allocations in the other direction
+    (into the entry block) but also performs merging on same-type,
+    disjoint-lifetime variables into a single slot to shrink total stack
+    footprint. This pass and `variable-coalesse` then are not merely
+    independent. `variable-coalesce`'s own candidate search only considers
+    allocations already nested inside a `cc.scope`. Since some front ends place
+    every local's `cc.alloca` in the entry block unconditionally, they leave
+    `variable-coalesce` no nested-scope candidates to find and coalesce at all.
+    Running `shrink-wrap` first, to push locals back down into the narrowest
+    scope their uses actually require, is what gives `variable-coalesce`
+    disjoint-lifetime candidates to work with in the first place.
+  }];
+}
+
 def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
   let summary = "Stack frame preallocation.";
   let description = [{
-    This pass is intended to be run on the CFG (low-level semantics) level.
-
     Stack slots may end up being allocated across the body of a function. It
     is generally beneficial however to collect them in the function preamble
     (or entry block).
@@ -1982,6 +2045,14 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     ```
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
+
+    The pass can be run on IR that still has high-level control flow
+    (`cc.scope`, `cc.if`, `cc.loop`) present and does not require lowering
+    to a plain CFG first. As `cc.scope` gives rise to the `stacksave` /
+    `stackrestore` primitives, it is treated as simply another form of the
+    same fencing. `cc.scope` that is in place to delimit atomic quantum regions
+    may or may not have classical allocations, and will be treated no different
+    by this pass.
 
     Not all allocations can be moved in this way, which implies that not all
     stack guards can be safely removed.  Transport layer conformity tools may
