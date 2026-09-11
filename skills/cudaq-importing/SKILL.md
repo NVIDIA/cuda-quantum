@@ -2,7 +2,7 @@
 name: "cudaq-importing"
 title: "CUDA-Q Importing"
 description: "Use when porting circuits from another framework (e.g. Qiskit) into CUDA-Q kernels while preserving the source algorithm and validation fidelity."
-version: "1.0.1"
+version: "1.0.2"
 author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
 tags: [cuda-quantum, quantum-computing, importing, porting, migration, qiskit, kernels, nvidia]
 tools: [Read, Glob, Grep]
