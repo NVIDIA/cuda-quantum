@@ -1335,6 +1335,13 @@ jobs:
           path: logical-wheels
           merge-multiple: true
 
+      - name: Download cudaq-devel wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "*-devel-wheel"
+          path: devel-wheels
+          merge-multiple: true
+
       # Wheels are attached as release assets only; PyPI push is manual.
       - name: Create draft release
         run: |
@@ -1354,6 +1361,11 @@ jobs:
               exit 1
             fi
             mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
+            if ! compgen -G "devel-wheels/cudaq_devel-*_${p}.whl" > /dev/null; then
+              echo "::error::No cudaq-devel wheel found for platform ${p} in devel-wheels/."
+              exit 1
+            fi
+            mv -v devel-wheels/cudaq_devel-*_${p}.whl wheelhouse-${p}/
             zip -r wheelhouse-${p}.zip wheelhouse-${p}
           done
           zip -r metapackages.zip metapackages
