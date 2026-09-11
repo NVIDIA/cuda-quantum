@@ -113,6 +113,8 @@ void quantum_platform::reset_noise(std::size_t qpu_id) {
   set_noise(nullptr, qpu_id);
 }
 
+std::size_t get_random_seed();
+
 cudaq::CompileTarget
 createDefaultCompileTarget(quantum_platform *platform = nullptr) {
   if (!platform)
@@ -131,6 +133,8 @@ createDefaultCompileTarget(quantum_platform *platform = nullptr) {
     targetConfig = rt->config;
     runtimeConfig = rt->runtimeConfig;
   }
+  if (auto seed = cudaq::get_random_seed(); seed != 0)
+    runtimeConfig.emplace("seed", std::to_string(seed));
   auto ct = cudaq::CompileTarget::createFromConfig(targetConfig, runtimeConfig);
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
