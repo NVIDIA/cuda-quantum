@@ -202,12 +202,14 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     complete the phase lifecycle; the `cudaq-fault-tolerant-target` pipeline
     does.
 
-    Gridsynth is probabilistic, and its cost grows sharply as `epsilon`
-    tightens: roughly 2 ms per distinct rotation at the default 1e-10, but
-    orders of magnitude more below 1e-30. Repeated angles are cached, so the
-    cost is per distinct angle rather than per operation. This pass is opt-in
-    via the `cudaq-fault-tolerant-target` pipeline only. It is not added to
-    the default target-prep pipeline.
+    Gridsynth is probabilistic. Unseeded, it may return a different (equally
+    valid) Clifford+T word for the same angle on every run. Set `seed` to make
+    the pass reproducible. Its cost grows sharply as `epsilon` tightens.
+    Roughly 2 ms per distinct rotation at the default 1e-10, but orders of
+    magnitude more below 1e-30. Repeated angles are cached, so the cost is per
+    distinct angle rather than per operation. This pass is opt-in via the
+    `cudaq-fault-tolerant-target` pipeline only. It is not added to the default
+    target-prep pipeline.
 
     The work-budget options below cap the search work gridsynth may spend on
     each rotation. They trade compile time against T-count: raise
@@ -273,6 +275,11 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       /*default=*/"false",
       "Fail instead of preserving a controlled rotation that cannot be "
       "synthesized without global-phase support.">,
+    Option<"seed", "seed", "uint64_t", /*default=*/"0",
+      "Seed for the randomized integer factoring gridsynth uses to test a "
+      "candidate circuit. Set this to make synthesis reproducible. The same "
+      "seed, angle, epsilon, and budgets always produce the same circuit. 0 "
+      "means unseeded, matching `cudaq::set_random_seed`.">,
     Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
       "Erase (treat as identity) rotations whose |theta| is below this "
       "threshold, rather than synthesizing a Clifford+T approximation for "

@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 skip-below=0 seed=42' %s -o %t.1
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 skip-below=0 seed=42' %s -o %t.2
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 skip-below=0 seed=42' %s -o %t.3
+// RUN: diff %t.1 %t.2
+// RUN: diff %t.1 %t.3
+// RUN: FileCheck --input-file=%t.1 %s
+
+// pi/8 at epsilon=1e-3 is an angle whose synthesized word varies from run to
+// run when gridsynth's factoring is unseeded, so an unseeded pass fails the
+// diffs above. With `seed` set, the three runs must be byte-identical.
+
+func.func @seeded() {
+  %theta = arith.constant 0.39269908169872414 : f64
+  %q = quake.null_wire
+  %0 = quake.rz (%theta) %q : (f64, !quake.wire) -> !quake.wire
+  quake.sink %0 : !quake.wire
+  return
+}
+
+// The rotation becomes a call to the per-angle helper outlined ahead of it.
+// CHECK-LABEL: func.func private @__cliffordt_rz_wire_
+// CHECK-LABEL: func.func @seeded()
+// CHECK-NOT:     quake.rz
+// CHECK:         call @__cliffordt_rz_wire_
