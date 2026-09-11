@@ -16,47 +16,47 @@ import threading
 import numpy as np
 import pytest
 
-import cudaq.logical as qlx
+import cudaq.logical as cql
 import cudaq.mlir.ir as mlir_ir
 import cudaq.logical.architectures.surface as surface
 from cudaq.logical.analysis import Tier
 from cudaq.logical.architectures import pinnacle
 from cudaq.logical.estimate.types import ScheduleEstimate, ScheduleTermination
 
-TinyCode = qlx.codes.Steane
+TinyCode = cql.codes.Steane
 
 
-@qlx.gadget(implements=qlx.logical.h)
-def encoded_h(block: qlx.patch[TinyCode]) -> qlx.patch[TinyCode]:
-    return qlx.h(block.data)
+@cql.gadget(implements=cql.logical.h)
+def encoded_h(block: cql.patch[TinyCode]) -> cql.patch[TinyCode]:
+    return cql.h(block.data)
 
 
-@qlx.protocol(implements=qlx.logical.idle)
-def four_h(block: qlx.patch[TinyCode]) -> qlx.patch[TinyCode]:
-    return qlx.ops.repeat(4,
+@cql.protocol(implements=cql.logical.idle)
+def four_h(block: cql.patch[TinyCode]) -> cql.patch[TinyCode]:
+    return cql.ops.repeat(4,
                           carries=(block,),
                           body=lambda value: encoded_h(value))
 
 
-@qlx.gadget(implements=qlx.logical.idle)
-def memory(block: qlx.patch[TinyCode]) -> qlx.patch[TinyCode]:
-    block, _ = qlx.extract_syndrome(block, record="r0")
-    block, _ = qlx.extract_syndrome(block, record="r1")
+@cql.gadget(implements=cql.logical.idle)
+def memory(block: cql.patch[TinyCode]) -> cql.patch[TinyCode]:
+    block, _ = cql.extract_syndrome(block, record="r0")
+    block, _ = cql.extract_syndrome(block, record="r1")
     return block
 
 
 def test_callable_estimate_namespace_preserves_folded_logical_counts():
 
-    @qlx.program
+    @cql.program
     def folded() -> bool:
-        q = qlx.prepare_zero()
-        q, = qlx.ops.repeat(5,
+        q = cql.prepare_zero()
+        q, = cql.ops.repeat(5,
                             carries=(q,),
-                            body=lambda i, value: (qlx.h(value),))
-        return qlx.measure_z(q)
+                            body=lambda i, value: (cql.h(value),))
+        return cql.measure_z(q)
 
-    build = qlx.compile(folded)
-    profile = qlx.estimate(build, tier=Tier.LOGICAL)
+    build = cql.compile(folded)
+    profile = cql.estimate(build, tier=Tier.LOGICAL)
     # The body remains folded in IR, while its exact static multiplicity is
     # reflected in the estimate.
     assert profile.actions["qlx_standard_h"] == 5
@@ -70,13 +70,13 @@ def test_callable_estimate_namespace_preserves_folded_logical_counts():
 
 def test_in_scope_estimate_results_project_to_plain_data():
 
-    @qlx.program
+    @cql.program
     def portable() -> bool:
-        return qlx.measure_z(qlx.prepare_zero())
+        return cql.measure_z(cql.prepare_zero())
 
-    logical = qlx.estimate(portable, tier=Tier.LOGICAL)
-    static = qlx.estimate(qlx.compile(four_h))
-    analytical = qlx.estimate(
+    logical = cql.estimate(portable, tier=Tier.LOGICAL)
+    static = cql.estimate(cql.compile(four_h))
+    analytical = cql.estimate(
         memory,
         tier=Tier.ANALYTICAL,
         p_phys=1e-3,
@@ -90,13 +90,13 @@ def test_in_scope_estimate_results_project_to_plain_data():
 
 def test_estimate_results_rehydrate_from_cudaq_annotations():
 
-    @qlx.program
+    @cql.program
     def portable() -> bool:
-        return qlx.measure_z(qlx.prepare_zero())
+        return cql.measure_z(cql.prepare_zero())
 
-    logical = qlx.estimate(portable, tier=Tier.LOGICAL)
-    static = qlx.estimate(qlx.compile(four_h))
-    analytical = qlx.estimate(
+    logical = cql.estimate(portable, tier=Tier.LOGICAL)
+    static = cql.estimate(cql.compile(four_h))
+    analytical = cql.estimate(
         memory,
         tier=Tier.ANALYTICAL,
         p_phys=1e-3,
@@ -108,31 +108,31 @@ def test_estimate_results_rehydrate_from_cudaq_annotations():
         Tier.ANALYTICAL.name: analytical.to_dict(),
     }
 
-    assert qlx.estimate.LogicalProfile.from_annotations(annotations) == logical
-    assert qlx.estimate.FabricCounts.from_annotations(annotations) == static
-    assert qlx.estimate.FabricEstimate.from_annotations(
+    assert cql.estimate.LogicalProfile.from_annotations(annotations) == logical
+    assert cql.estimate.FabricCounts.from_annotations(annotations) == static
+    assert cql.estimate.FabricEstimate.from_annotations(
         annotations) == analytical
 
 
 def test_static_estimate_rejects_a_program_without_selected_p2_evidence():
 
-    @qlx.program
+    @cql.program
     def portable() -> bool:
-        return qlx.measure_z(qlx.prepare_zero())
+        return cql.measure_z(cql.prepare_zero())
 
     with pytest.raises(ValueError, match="selected P2"):
-        qlx.estimate(qlx.compile(portable))
+        cql.estimate(cql.compile(portable))
 
 
 def test_callable_estimate_materializes_authoring_definitions_implicitly():
 
-    @qlx.program
+    @cql.program
     def portable() -> bool:
-        return qlx.measure_z(qlx.prepare_zero())
+        return cql.measure_z(cql.prepare_zero())
 
-    logical = qlx.estimate(portable, tier=Tier.LOGICAL)
-    static = qlx.estimate(four_h, tier=Tier.STATIC)
-    analytical = qlx.estimate(
+    logical = cql.estimate(portable, tier=Tier.LOGICAL)
+    static = cql.estimate(four_h, tier=Tier.STATIC)
+    analytical = cql.estimate(
         memory,
         tier=Tier.ANALYTICAL,
         p_phys=1e-3,
@@ -145,7 +145,7 @@ def test_callable_estimate_materializes_authoring_definitions_implicitly():
 
 
 def test_static_estimate_expands_folded_call_multiplicity_analytically():
-    counts = qlx.estimate(qlx.compile(four_h))
+    counts = cql.estimate(cql.compile(four_h))
     assert counts.source_stage == "p2"
     assert "protocol_network" in counts.source_facets
     assert counts.operation_counts["repeat"] == 1
@@ -156,24 +156,24 @@ def test_static_estimate_expands_folded_call_multiplicity_analytically():
 
 
 def test_static_profile_counts_analysis_and_realization_separately():
-    profile = qlx.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetProfile(
         memory,
-        success=(qlx.gadgets.SuccessPredicate(memory.record("r1.s0")),),
+        success=(cql.gadgets.SuccessPredicate(memory.record("r1.s0")),),
         name="memory_analysis",
     )
-    counts = qlx.estimate(qlx.compile(profile))
+    counts = cql.estimate(cql.compile(profile))
     assert counts.success_count == 1
     assert counts.syndrome_rounds == 2
     assert counts.operation_counts["read_syndrome_ancillas"] == 2
 
 
 def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():
-    build = qlx.compile(four_h)
-    estimate = qlx.estimate(
+    build = cql.compile(four_h)
+    estimate = cql.estimate(
         build,
         tier=Tier.ANALYTICAL,
         p_phys=1e-3,
-        failure_budget=qlx.analysis.FailureBudget(total=0.01),
+        failure_budget=cql.analysis.FailureBudget(total=0.01),
         cycle_time=2.0,
     )
     assert estimate.counts.total_operations == 4
@@ -183,34 +183,34 @@ def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():
     assert estimate.logical_error == pytest.approx(1 - (1 - 1e-3)**4)
     assert estimate.budget_met
 
-    with pytest.raises(qlx.errors.MissingEvidence, match="not established"):
-        qlx.estimate(
+    with pytest.raises(cql.errors.MissingEvidence, match="not established"):
+        cql.estimate(
             build,
             tier=Tier.ANALYTICAL,
             p_phys=1e-3,
             failure_budget=0.01,
-            evidence_policy=qlx.analysis.EvidencePolicy.
+            evidence_policy=cql.analysis.EvidencePolicy.
             require_established_distance(),
         )
 
-    @qlx.program
+    @cql.program
     def portable() -> bool:
-        return qlx.measure_z(qlx.prepare_zero())
+        return cql.measure_z(cql.prepare_zero())
 
     with pytest.raises(ValueError, match="selected P2"):
-        qlx.estimate(qlx.compile(portable))
+        cql.estimate(cql.compile(portable))
 
 
 def test_analytical_probability_aggregation_is_stable_at_small_error():
 
-    @qlx.protocol
-    def three_sites(block: qlx.patch[TinyCode]) -> qlx.patch[TinyCode]:
+    @cql.protocol
+    def three_sites(block: cql.patch[TinyCode]) -> cql.patch[TinyCode]:
         block = encoded_h(block)
         block = encoded_h(block)
         return encoded_h(block)
 
-    build = qlx.compile(three_sites)
-    estimate = qlx.analysis.estimate(
+    build = cql.compile(three_sites)
+    estimate = cql.analysis.estimate(
         build,
         tier=Tier.ANALYTICAL,
         p_phys=1.0e-4,
@@ -221,7 +221,7 @@ def test_analytical_probability_aggregation_is_stable_at_small_error():
 
     for invalid in (math.nan, math.inf):
         with pytest.raises(ValueError, match="cycle_time must be finite"):
-            qlx.analysis.estimate(
+            cql.analysis.estimate(
                 build,
                 tier=Tier.ANALYTICAL,
                 p_phys=1.0e-4,
@@ -230,70 +230,70 @@ def test_analytical_probability_aggregation_is_stable_at_small_error():
             )
     for invalid in (math.nan, math.inf):
         with pytest.raises(ValueError, match="scaling prefactor"):
-            qlx.analysis.Scaling(prefactor=invalid)
+            cql.analysis.Scaling(prefactor=invalid)
 
 
-@qlx.machine
+@cql.machine
 class EstimateMachine:
-    compute = qlx.architecture.Space(capacity=1)
+    compute = cql.architecture.Space(capacity=1)
 
 
-estimate_qubits = qlx.architecture.ResourceClass("qubit", 2)
-estimate_architecture = qlx.architecture.PhysicalMachine(
+estimate_qubits = cql.architecture.ResourceClass("qubit", 2)
+estimate_architecture = cql.architecture.PhysicalMachine(
     "estimate_architecture",
     resource_classes={"qubits": estimate_qubits},
 )
 
 
-@qlx.physical(estimate_architecture)
+@cql.physical(estimate_architecture)
 def scheduled_experiment():
-    q, = qlx.ops.acquire(estimate_architecture.qubits,
+    q, = cql.ops.acquire(estimate_architecture.qubits,
                          count=1,
-                         kind=qlx.architecture.physical_qubit)
-    q, = qlx.ops.load((q,), state="zero")
-    q = qlx.ops.apply("h", q)
-    return qlx.measure(q, basis=qlx.architecture.Basis.Z)
+                         kind=cql.architecture.physical_qubit)
+    q, = cql.ops.load((q,), state="zero")
+    q = cql.ops.apply("h", q)
+    return cql.measure(q, basis=cql.architecture.Basis.Z)
 
 
-@qlx.physical(estimate_architecture)
+@cql.physical(estimate_architecture)
 def scheduled_experiment_same_metrics():
-    q, = qlx.ops.acquire(estimate_architecture.qubits,
+    q, = cql.ops.acquire(estimate_architecture.qubits,
                          count=1,
-                         kind=qlx.architecture.physical_qubit)
-    q, = qlx.ops.load((q,), state="zero")
-    q = qlx.ops.apply("h", q)
-    return qlx.measure(q, basis=qlx.architecture.Basis.Z)
+                         kind=cql.architecture.physical_qubit)
+    q, = cql.ops.load((q,), state="zero")
+    q = cql.ops.apply("h", q)
+    return cql.measure(q, basis=cql.architecture.Basis.Z)
 
 
-@qlx.program
+@cql.program
 def selected_schedule_experiment() -> bool:
-    qubit = qlx.prepare_zero()
-    qubit = qlx.h(qubit)
-    return qlx.measure_z(qubit)
+    qubit = cql.prepare_zero()
+    qubit = cql.h(qubit)
+    return cql.measure_z(qubit)
 
 
-@qlx.program
+@cql.program
 def selected_schedule_experiment_same_metrics() -> bool:
-    qubit = qlx.prepare_zero()
-    qubit = qlx.h(qubit)
-    return qlx.measure_z(qubit)
+    qubit = cql.prepare_zero()
+    qubit = cql.h(qubit)
+    return cql.measure_z(qubit)
 
 
 def _schedule_estimate_device():
     definitions = surface.definitions(3)
-    builder = qlx.devices.DeviceBuilder("ScheduleEstimateDevice")
+    builder = cql.devices.DeviceBuilder("ScheduleEstimateDevice")
     logical = builder.logical.add_compute(capacity=1, name="compute")
     encoded = builder.qec.bind(logical, architecture=definitions.wsc())
     patches = builder.physical.add_resources(
         "surface_code_patch",
         4,
         name="compute_patches",
-        granularity=qlx.architecture.ResourceGranularity.PATCH,
+        granularity=cql.architecture.ResourceGranularity.PATCH,
         footprint=definitions.square_patch_footprint,
-        native_actions=qlx.architecture.physical_actions.clifford_set(),
+        native_actions=cql.architecture.physical_actions.clifford_set(),
         native_instruments=(
-            qlx.architecture.physical_instruments.MX,
-            qlx.architecture.physical_instruments.MZ,
+            cql.architecture.physical_instruments.MX,
+            cql.architecture.physical_instruments.MZ,
         ),
     )
     builder.physical.bind(encoded, to=patches)
@@ -322,37 +322,37 @@ _SCHEDULE_ESTIMATE_OPTIONS = {"failure_budget": 0.1}
 def _selected_schedule_build(definition=selected_schedule_experiment):
     key = definition.name
     if key not in _SELECTED_SCHEDULE_BUILDS:
-        p2 = qlx.compile(
+        p2 = cql.compile(
             definition,
-            pipeline=qlx.compiler.pipelines.qec(),
+            pipeline=cql.compiler.pipelines.qec(),
             device=ScheduleEstimateDevice,
         )
-        _SELECTED_SCHEDULE_BUILDS[key] = qlx.compile(
+        _SELECTED_SCHEDULE_BUILDS[key] = cql.compile(
             p2,
-            pipeline=qlx.compiler.pipelines.physical(),
+            pipeline=cql.compiler.pipelines.physical(),
             device=ScheduleEstimateDevice,
         )
     return _SELECTED_SCHEDULE_BUILDS[key]
 
 
 def test_physical_parameters_default_to_the_device_operating_point():
-    selected = qlx.compile(
+    selected = cql.compile(
         selected_schedule_experiment,
-        pipeline=qlx.compiler.pipelines.qec(),
+        pipeline=cql.compiler.pipelines.qec(),
         device=ScheduleEstimateDevice,
     )
 
-    inferred = qlx.estimate(
+    inferred = cql.estimate(
         selected,
         tier=Tier.ANALYTICAL,
         failure_budget=0.1,
     )
-    overridden = qlx.estimate(
+    overridden = cql.estimate(
         selected,
         tier=Tier.ANALYTICAL,
         p_phys=2.0e-3,
         failure_budget=0.1,
-        scaling=qlx.estimate.Scaling(prefactor=0.2, threshold=0.02),
+        scaling=cql.estimate.Scaling(prefactor=0.2, threshold=0.02),
         cycle_time=2.0e-9,
     )
 
@@ -364,7 +364,7 @@ def test_physical_parameters_default_to_the_device_operating_point():
 
 def test_physical_error_is_required_without_a_calibrated_device():
     with pytest.raises(TypeError, match="selected device operating point"):
-        qlx.estimate(
+        cql.estimate(
             memory,
             tier=Tier.ANALYTICAL,
             failure_budget=0.1,
@@ -372,7 +372,7 @@ def test_physical_error_is_required_without_a_calibrated_device():
 
 
 def test_schedule_tier_uses_explicit_p3_intervals_and_resources():
-    result = qlx.estimate(
+    result = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -406,12 +406,12 @@ def test_schedule_tier_uses_explicit_p3_intervals_and_resources():
 
 
 def test_schedule_estimate_retains_typed_immutable_input_provenance():
-    first = qlx.estimate(
+    first = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
     )
-    other = qlx.estimate(
+    other = cql.estimate(
         _selected_schedule_build(selected_schedule_experiment_same_metrics),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -421,8 +421,8 @@ def test_schedule_estimate_retains_typed_immutable_input_provenance():
         "selected_schedule_experiment_placed_qec_physical")
     assert first.schedule_symbol == (
         "selected_schedule_experiment_placed_qec_physical_schedule")
-    assert first.source_stage is qlx.stages.P3
-    assert qlx.stages.PHYSICAL_SCHEDULE in first.source_facets
+    assert first.source_stage is cql.stages.P3
+    assert cql.stages.PHYSICAL_SCHEDULE in first.source_facets
     assert first.tier is Tier.SCHEDULE
     assert first.device_identity == "ScheduleEstimateDevice"
     assert first.physical_model_identity == (
@@ -471,7 +471,7 @@ def test_schedule_estimate_full_workload_policy_is_typed_and_native_authenticate
         monkeypatch):
     from cudaq.logical._native import native
 
-    program = qlx.estimate(
+    program = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -495,7 +495,7 @@ def test_schedule_estimate_full_workload_policy_is_typed_and_native_authenticate
         "_schedule_verified_and_estimate_json",
         full_workload_native,
     )
-    result = qlx.estimate(
+    result = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         termination=ScheduleTermination.FULL_WORKLOAD,
@@ -510,7 +510,7 @@ def test_schedule_estimate_full_workload_policy_is_typed_and_native_authenticate
 def test_schedule_estimate_rejects_untyped_or_mismatched_termination_policy(
         monkeypatch):
     with pytest.raises(TypeError, match="ScheduleTermination"):
-        qlx.estimate(
+        cql.estimate(
             _selected_schedule_build(),
             tier=Tier.SCHEDULE,
             termination="full_workload",
@@ -519,7 +519,7 @@ def test_schedule_estimate_rejects_untyped_or_mismatched_termination_policy(
 
     from cudaq.logical._native import native
 
-    program = qlx.estimate(
+    program = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -531,10 +531,10 @@ def test_schedule_estimate_rejects_untyped_or_mismatched_termination_policy(
         lambda *_args: json.dumps(payload),
     )
     with pytest.raises(
-            qlx.errors.ScheduleConflict,
+            cql.errors.ScheduleConflict,
             match="termination policy differs",
     ):
-        qlx.estimate(
+        cql.estimate(
             _selected_schedule_build(),
             tier=Tier.SCHEDULE,
             termination=ScheduleTermination.FULL_WORKLOAD,
@@ -545,7 +545,7 @@ def test_schedule_estimate_rejects_untyped_or_mismatched_termination_policy(
 def test_schedule_estimate_rejects_malformed_native_evidence(monkeypatch):
     from cudaq.logical._native import native
 
-    authenticated = qlx.estimate(
+    authenticated = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -599,10 +599,10 @@ def test_schedule_estimate_rejects_malformed_native_evidence(monkeypatch):
             lambda *_args, value=json.dumps(malformed): value,
         )
         with pytest.raises(
-                qlx.errors.ScheduleConflict,
+                cql.errors.ScheduleConflict,
                 match="invalid authenticated evidence",
         ):
-            qlx.estimate(
+            cql.estimate(
                 _selected_schedule_build(),
                 tier=Tier.SCHEDULE,
                 **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -613,7 +613,7 @@ def test_schedule_estimate_accepts_abort_conditioned_expected_below_first(
         monkeypatch):
     from cudaq.logical._native import native
 
-    authenticated = qlx.estimate(
+    authenticated = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -634,7 +634,7 @@ def test_schedule_estimate_accepts_abort_conditioned_expected_below_first(
         lambda *_args: json.dumps(payload),
     )
 
-    result = qlx.estimate(
+    result = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -648,7 +648,7 @@ def test_schedule_estimate_accepts_abort_conditioned_expected_below_first(
 def test_schedule_estimate_rejects_mismatched_native_provenance(monkeypatch):
     from cudaq.logical._native import native
 
-    authenticated = qlx.estimate(
+    authenticated = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -661,10 +661,10 @@ def test_schedule_estimate_rejects_mismatched_native_provenance(monkeypatch):
         lambda *_args: json.dumps(malformed),
     )
     with pytest.raises(
-            qlx.errors.ScheduleConflict,
+            cql.errors.ScheduleConflict,
             match="model provenance differs",
     ):
-        qlx.estimate(
+        cql.estimate(
             _selected_schedule_build(),
             tier=Tier.SCHEDULE,
             **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -674,7 +674,7 @@ def test_schedule_estimate_rejects_mismatched_native_provenance(monkeypatch):
 def test_native_schedule_estimate_diagnostics_are_context_scoped():
     from cudaq.logical._native import native
 
-    published = qlx.compiler.schedule(scheduled_experiment)
+    published = cql.compiler.schedule(scheduled_experiment)
     module = published.build._module
 
     def missing(symbol, barrier):
@@ -715,7 +715,7 @@ def test_end_to_end_schedule_estimate_consumes_native_rows_without_reparse(
         "_parse_schedule_entry",
         staticmethod(reject_standalone_parse),
     )
-    fused = qlx.estimate(
+    fused = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -725,23 +725,23 @@ def test_end_to_end_schedule_estimate_consumes_native_rows_without_reparse(
 
 
 def test_public_schedule_remains_available_beside_fused_native_estimation():
-    estimate = qlx.estimate(
+    estimate = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
     )
-    published = qlx.compiler.schedule(_selected_schedule_build())
+    published = cql.compiler.schedule(_selected_schedule_build())
     assert estimate.event_count == len(published.entries)
 
 
 def test_fused_and_published_schedule_estimates_are_identical():
-    fused = qlx.estimate(
+    fused = cql.estimate(
         _selected_schedule_build(),
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
     )
-    published = qlx.compiler.schedule(_selected_schedule_build())
-    standalone = qlx.estimate(
+    published = cql.compiler.schedule(_selected_schedule_build())
+    standalone = cql.estimate(
         published,
         tier=Tier.SCHEDULE,
         **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -753,15 +753,15 @@ def test_fused_and_published_schedule_estimates_are_identical():
     "name,value",
     (
         ("device", object()),
-        ("strategy", qlx.compiler.scheduling.greedy_asap),
+        ("strategy", cql.compiler.scheduling.greedy_asap),
         ("objective", "makespan"),
     ),
 )
 def test_standalone_schedule_rejects_compilation_overrides(name, value):
-    published = qlx.compiler.schedule(_selected_schedule_build())
-    with pytest.raises(qlx.errors.ScheduleConflict,
+    published = cql.compiler.schedule(_selected_schedule_build())
+    with pytest.raises(cql.errors.ScheduleConflict,
                        match=rf"{name}= cannot override.*PhysicalSchedule"):
-        qlx.estimate(
+        cql.estimate(
             published,
             tier=Tier.SCHEDULE,
             **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -770,7 +770,7 @@ def test_standalone_schedule_rejects_compilation_overrides(name, value):
 
 
 def test_standalone_schedule_estimate_rejects_tampered_portable_claims():
-    published = qlx.compiler.schedule(_selected_schedule_build())
+    published = cql.compiler.schedule(_selected_schedule_build())
     module = published.build._module
     schedule_op = next(operation for operation in module.body.operations
                        if operation.name == "phys.schedule")
@@ -779,10 +779,10 @@ def test_standalone_schedule_estimate_rejects_tampered_portable_claims():
             "tampered", context=module.context)
 
     with pytest.raises(
-            qlx.errors.ScheduleConflict,
+            cql.errors.ScheduleConflict,
             match="native Tier-3 schedule estimation failed",
     ):
-        qlx.estimate(
+        cql.estimate(
             published,
             tier=Tier.SCHEDULE,
             **_SCHEDULE_ESTIMATE_OPTIONS,
@@ -790,13 +790,13 @@ def test_standalone_schedule_estimate_rejects_tampered_portable_claims():
 
 
 def test_schedule_tier_rejects_detached_zero_schedule_forgery():
-    schedule = qlx.compiler.schedule(scheduled_experiment)
+    schedule = cql.compiler.schedule(scheduled_experiment)
     forged = copy.copy(schedule)
     object.__setattr__(forged, "entries", ())
     object.__setattr__(forged, "makespan_ns", 0.0)
 
-    with pytest.raises(qlx.errors.ScheduleConflict, match="no longer matches"):
-        qlx.analysis.estimate(
+    with pytest.raises(cql.errors.ScheduleConflict, match="no longer matches"):
+        cql.analysis.estimate(
             forged,
             tier=Tier.SCHEDULE,
             p_phys=1.0e-3,
@@ -805,12 +805,12 @@ def test_schedule_tier_rejects_detached_zero_schedule_forgery():
 
 
 def test_schedule_tier_rejects_p2_instead_of_reconstructing_tasks():
-    selected = qlx.compile(four_h)
+    selected = cql.compile(four_h)
 
-    assert selected.stage == qlx.stages.P2
+    assert selected.stage == cql.stages.P2
     with pytest.raises(ValueError,
                        match="never reconstructs.*directly from P2"):
-        qlx.estimate(
+        cql.estimate(
             selected,
             tier=Tier.SCHEDULE,
             p_phys=1.0e-3,
@@ -820,20 +820,20 @@ def test_schedule_tier_rejects_p2_instead_of_reconstructing_tasks():
 
 def test_estimation_tiers_are_reproducible_from_replayed_builds():
 
-    @qlx.program
+    @cql.program
     def portable() -> bool:
-        return qlx.measure_z(qlx.prepare_zero())
+        return cql.measure_z(cql.prepare_zero())
 
-    logical = qlx.compile(portable)
-    logical_replay = qlx.compiler.Build.replay(logical.serialize())
-    assert qlx.estimate(logical,
-                        tier=Tier.LOGICAL) == qlx.estimate(logical_replay,
+    logical = cql.compile(portable)
+    logical_replay = cql.compiler.Build.replay(logical.serialize())
+    assert cql.estimate(logical,
+                        tier=Tier.LOGICAL) == cql.estimate(logical_replay,
                                                            tier=Tier.LOGICAL)
 
-    selected = qlx.compile(four_h)
-    selected_replay = qlx.compiler.Build.replay(selected.serialize())
-    assert qlx.estimate(selected,
-                        tier=Tier.STATIC) == qlx.estimate(selected_replay,
+    selected = cql.compile(four_h)
+    selected_replay = cql.compiler.Build.replay(selected.serialize())
+    assert cql.estimate(selected,
+                        tier=Tier.STATIC) == cql.estimate(selected_replay,
                                                           tier=Tier.STATIC)
     analytical_options = {
         "tier": Tier.ANALYTICAL,
@@ -841,17 +841,17 @@ def test_estimation_tiers_are_reproducible_from_replayed_builds():
         "failure_budget": 0.1,
         "cycle_time": 2.0,
     }
-    assert qlx.estimate(selected, **analytical_options) == qlx.estimate(
+    assert cql.estimate(selected, **analytical_options) == cql.estimate(
         selected_replay, **analytical_options)
 
-    physical = qlx.compile(scheduled_experiment)
-    physical_replay = qlx.compiler.Build.replay(physical.serialize())
+    physical = cql.compile(scheduled_experiment)
+    physical_replay = cql.compiler.Build.replay(physical.serialize())
     for candidate in (physical, physical_replay):
         with pytest.raises(
-                qlx.analysis.MissingEvidence,
+                cql.analysis.MissingEvidence,
                 match="retaining its selected P2 source protocol",
         ):
-            qlx.estimate(
+            cql.estimate(
                 candidate,
                 tier=Tier.SCHEDULE,
                 p_phys=1.0e-3,

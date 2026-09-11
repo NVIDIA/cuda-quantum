@@ -6,18 +6,19 @@ and a program can never branch on a later-stage cost fact it should not know.
 
 ## Machines, devices, architectures
 
-- A **logical machine** (`@ql.machine`) is the P1 structure contract: regions,
-  resource streams, capabilities, and plain integer capacities. No codes, no
-  error rates:
+- A **logical machine** (`@cudaq.logical.machine`) is the P1 structure
+  contract: regions, resource streams, capabilities, and plain integer
+  capacities. No codes, no error rates:
 
   ```{eval-rst}
   .. literalinclude:: ../../../examples/standalone/01_logical_placement.py
      :language: python
-     :lines: 17-25
+     :start-at: @cql.machine
+     :end-before: # %%
      :caption: A logical machine with one capable region (examples/standalone/01_logical_placement.py).
   ```
 
-  Capabilities are typed keys in an open `ql.machine` vocabulary; the
+  Capabilities are typed keys in an open `cudaq.logical.machine` vocabulary; the
   compiler itself interprets `logical_compute`, `logical_measurement`,
   `logical_factory`, and `resource_transfer`.
 
@@ -36,14 +37,14 @@ device builder separates logical region facts from the vertical encoding
 binding:
 
 ```python
-import cudaq.logical as ql
+import cudaq.logical as cql
 
-builder = ql.devices.DeviceBuilder("SteaneMemory")
+builder = cql.devices.DeviceBuilder("SteaneMemory")
 memory = builder.logical.add_memory(capacity=8)
-builder.qec.bind(memory, encoding=ql.codes.Steane)
+builder.qec.bind(memory, encoding=cql.codes.Steane)
 SteaneMemory = builder.build()
 
-assert SteaneMemory.layers == (ql.stages.P1, ql.stages.P2)
+assert SteaneMemory.layers == (cql.stages.P1, cql.stages.P2)
 ```
 
 `builder.qec.bind(...)` sets the QEC refinement of a logical region; the
@@ -51,23 +52,41 @@ singular name is deliberate — each region has one selected encoding.
 
 ### Stop at the layer your study needs
 
-`ql.devices.DeviceBuilder` is progressively complete. `build()` does not demand
-code facts that the requested compiler stage cannot use:
+`cudaq.logical.devices.DeviceBuilder` is progressively complete. `build()` does
+not demand code facts that the requested compiler stage cannot use:
 
 | Declared layers | Builder boundary                                                                                                | Suitable work                                       |
 | --------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | P1              | `logical.add_compute(...)`, `logical.add_memory(...)`, `logical.add_factory(...)`, or `logical.add_region(...)` | logical placement, capacities, resource supply      |
 | P1 + P2         | `qec.bind(...)`                                                                                                 | code selection, gadgets, static/analytical estimates |
-| P1 + P2 + P3    | `physical.add_*`, `physical.bind(...)`, and an operating point                                                 | physical lowering, scheduling, schedule estimates   |
+| P1 + P2 + P3    | `physical.add_qubits(...)` or `physical.add_resources(...)`, `physical.bind(...)`, `physical.set_operating_point(...)` | physical lowering, scheduling, schedule estimates   |
+
+Adding the physical layer is the same shape as adding the QEC layer. Declare
+the carriers and what they can natively do, bind the encoded region onto them,
+and state an operating point:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/04_physical_schedule.py
+   :language: python
+   :start-at: carriers = builder.physical.add_qubits
+   :end-before: device = builder.build()
+   :caption: Binding an encoded region onto carriers (examples/standalone/04_physical_schedule.py).
+```
+
+`physical.bind(encoded, to=carriers)` is the vertical ownership boundary: the
+QEC region stays a P2 fact and the carrier allocation stays a P3 fact.
+`set_operating_point` turns dimensionless cycle counts into time. The compiler
+derives the event graph and the schedule from there; you do not hand-write
+either.
 
 A placement-only device is therefore complete as written:
 
 ```python
-logical = ql.devices.DeviceBuilder("LogicalPlacement")
+logical = cql.devices.DeviceBuilder("LogicalPlacement")
 logical.logical.add_compute(capacity=64)
 LogicalPlacement = logical.build()
 
-assert LogicalPlacement.layers == (ql.stages.P1,)
+assert LogicalPlacement.layers == (cql.stages.P1,)
 ```
 
 The stack views contain only the layers actually declared, so a P1-only device
@@ -90,7 +109,8 @@ solution is inspectable evidence, not solver state:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/01_logical_placement.py
    :language: python
-   :lines: 30-51
+   :start-at: @cql.program
+   :end-at: .placement == placed.placement
    :caption: Placing the Bell program and inspecting the witness (examples/standalone/01_logical_placement.py).
 ```
 
@@ -107,8 +127,8 @@ preference the solver had to give up, and the deterministic tie-break:
   region and slot;
 - `p1.placement.objective` and `p1.placement.relaxed_preferences` — what was
   optimized and what was surrendered;
-- `ql.compiler.Build.replay(p1.serialize()).placement == p1.placement` — the
-  witness is part of the immutable, replayable build.
+- `cudaq.logical.compiler.Build.replay(p1.serialize()).placement ==
+  p1.placement` — the witness is part of the immutable, replayable build.
 
 Hard constraints are hard. Requiring a capability that no region provides fails
 closed:
@@ -124,11 +144,11 @@ closed:
 ```python
 try:
     # ValueError: no machine space satisfies the placement constraints
-    ql.compiler.place(
+    cql.compiler.place(
         p0,
         device=TwoSlotMachine,
-        placement=(ql.architecture.require_capability(
-            ql.architecture.capability.logical_factory),),
+        placement=(cql.architecture.require_capability(
+            cql.architecture.capability.logical_factory),),
     )
 except ValueError as exc:
     assert "no machine space satisfies the placement constraints" in str(exc)
@@ -138,32 +158,32 @@ Placement never silently relaxes a hard requirement. Soft preferences, by
 contrast, may be surrendered — and the surrender is reported:
 
 ```python
-p1 = ql.compiler.place(
+p1 = cql.compiler.place(
     p0,
     device=TwoSlotMachine,
     placement=(
-        ql.architecture.colocate(p0.values.data),
-        ql.architecture.prefer(
+        cql.architecture.colocate(p0.values.data),
+        cql.architecture.prefer(
             space=TwoSlotMachine.compute,
-            for_=ql.architecture.lifecycle.ACTIVE,
+            for_=cql.architecture.lifecycle.ACTIVE,
         ),
     ),
-    objective=ql.architecture.metric.expected_spacetime_volume,
+    objective=cql.architecture.metric.expected_spacetime_volume,
 )
 
 assert p1.placement.relaxed_preferences == ()
 ```
 
-The constraint vocabulary is `ql.architecture`: `colocate`, `allow_spaces`,
-`require_capability`, `prefer`, and `local` for exact-slot pinning. Exact slots
-are singleton constraints, not a verification bypass — hand-authored placements
-produce the same verified witness as solved ones.
+The constraint vocabulary is `cudaq.logical.architecture`: `colocate`,
+`allow_spaces`, `require_capability`, `prefer`, and `local` for exact-slot
+pinning. Exact slots are singleton constraints, not a verification bypass —
+hand-authored placements produce the same verified witness as solved ones.
 
 ## Code-agnostic P1
 
 P1 placement never selects an encoding.
-`ql.architecture.colocate(p0.values.data)` keeps several logical owners in one
-logical region, but each owner consumes a distinct P1 slot, and a
+`cudaq.logical.architecture.colocate(p0.values.data)` keeps several logical
+owners in one logical region, but each owner consumes a distinct P1 slot, and a
 `PlacementBinding` carries no `encoding` field. Encodings enter at P2 — bound
 per region through `DeviceBuilder.qec.bind(...)` or carried by a compilation
 target — and the P2 witness is separate from `p1.placement`: changing the

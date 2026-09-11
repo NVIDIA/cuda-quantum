@@ -7,35 +7,35 @@
 # ============================================================================ #
 from __future__ import annotations
 
-import cudaq.logical as qlx
+import cudaq.logical as cql
 
 
-@qlx.gadget(implements=qlx.logical.idle)
+@cql.gadget(implements=cql.logical.idle)
 def extraction_round(
-    block: qlx.patch[qlx.codes.Steane],
-    previous: qlx.types.record[qlx.codes.Steane],
+    block: cql.patch[cql.codes.Steane],
+    previous: cql.types.record[cql.codes.Steane],
 ) -> tuple[
-        qlx.patch[qlx.codes.Steane],
-        qlx.types.record[qlx.codes.Steane],
+        cql.patch[cql.codes.Steane],
+        cql.types.record[cql.codes.Steane],
 ]:
-    block, current = qlx.extract_syndrome(block)
+    block, current = cql.extract_syndrome(block)
     return block, current
 
 
-@qlx.protocol(implements=qlx.logical.idle)
+@cql.protocol(implements=cql.logical.idle)
 def two_rounds(
-    block: qlx.patch[qlx.codes.Steane],
-    initial: qlx.types.record[qlx.codes.Steane],
+    block: cql.patch[cql.codes.Steane],
+    initial: cql.types.record[cql.codes.Steane],
 ) -> tuple[
-        qlx.patch[qlx.codes.Steane],
-        qlx.types.record[qlx.codes.Steane],
+        cql.patch[cql.codes.Steane],
+        cql.types.record[cql.codes.Steane],
 ]:
     block, current = extraction_round(block, initial)
     return extraction_round(block, current)
 
 
 def test_syndrome_records_are_direct_typed_gadget_boundaries():
-    text = qlx.compile(extraction_round).to_mlir()
+    text = cql.compile(extraction_round).to_mlir()
     patch = ("!fabric.patch<@Steane, @Steane_default_encoding, "
              "@Steane_default_encoding_initial_epoch>")
     syndrome = ("!fabric.syndrome<@Steane, @Steane_default_encoding, "
@@ -48,7 +48,7 @@ def test_syndrome_records_are_direct_typed_gadget_boundaries():
 
 
 def test_protocols_compose_record_boundaries():
-    build = qlx.compile(two_rounds)
+    build = cql.compile(two_rounds)
     text = build.to_mlir()
     assert text.count("fabric.call @extraction_round") == 2
     syndrome = ("!fabric.syndrome<@Steane, @Steane_default_encoding, "

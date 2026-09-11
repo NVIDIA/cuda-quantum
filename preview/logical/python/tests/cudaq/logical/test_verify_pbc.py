@@ -19,7 +19,7 @@ from typing import Tuple
 
 import pytest
 
-import cudaq.logical as qlx
+import cudaq.logical as cql
 from cudaq.mlir._mlir_libs import _qlxRuntime as rt
 
 
@@ -28,21 +28,21 @@ def _pbc(gates, meas):
                  [m[1] for m in meas])
 
     def prog():
-        q = qlx.allocate(nq, state=qlx.types.zero)
+        q = cql.allocate(nq, state=cql.types.zero)
         for g in gates:
             if g[0] == "h":
-                q[g[1]] = qlx.h(q[g[1]])
+                q[g[1]] = cql.h(q[g[1]])
             elif g[0] == "cx":
-                q[g[1]], q[g[2]] = qlx.cx(q[g[1]], q[g[2]])
+                q[g[1]], q[g[2]] = cql.cx(q[g[1]], q[g[2]])
             elif g[0] == "t":
-                (q[g[1]],) = qlx.ops.rotate(qlx.types.Z(q[g[1]]),
-                                            angle=qlx.types.pi / 4)
-        return tuple(qlx.measure_z(q[i]) for _, i in [(b, i) for b, i in meas])
+                (q[g[1]],) = cql.ops.rotate(cql.types.Z(q[g[1]]),
+                                            angle=cql.types.pi / 4)
+        return tuple(cql.measure_z(q[i]) for _, i in [(b, i) for b, i in meas])
 
     prog.__annotations__["return"] = Tuple[tuple(bool for _ in meas)]
-    prog = qlx.program(prog)
-    mlir = qlx.compile(prog,
-                       pipeline=qlx.compiler.pipelines.logical()).to_mlir()
+    prog = cql.program(prog)
+    mlir = cql.compile(prog,
+                       pipeline=cql.compiler.pipelines.logical()).to_mlir()
     return rt.synthesize_qlx(mlir,
                              1e-10), rt.to_pbc(rt.synthesize_qlx(mlir, 1e-10))
 

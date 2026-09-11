@@ -26,10 +26,17 @@ qlx-opt preview/logical/examples/mlir/physical_schedule_estimate.mlir \
   --phys-estimate-schedule='schedule=events_schedule lower-tier=analytical result=estimate'
 ```
 
-Translate an explicitly authored encoded memory gadget to Stim:
+Translate a trivial one-carrier memory gadget to Stim:
 
 ```bash
 qlx-translate preview/logical/examples/mlir/stim_memory.mlir --fabric-to-stim
+```
+
+Translate one round of Steane [[7,1,3]] syndrome extraction to Stim:
+
+```bash
+qlx-translate preview/logical/examples/mlir/stim_steane_memory.mlir \
+  --fabric-to-stim
 ```
 
 `qlx-opt --help` and `qlx-translate --help` list the registered compiler passes

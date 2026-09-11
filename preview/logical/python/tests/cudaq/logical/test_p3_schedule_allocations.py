@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import json
 
-import cudaq.logical as qlx
+import cudaq.logical as cql
 import pytest
 
 
-@qlx.code
+@cql.code
 class ScratchCode:
-    block = qlx.codes.CSSBlock(data=1)
+    block = cql.codes.CSSBlock(data=1)
     d = 1
     hx = ()
     hz = ()
@@ -23,24 +23,24 @@ class ScratchCode:
     lz = ((0,),)
 
 
-@qlx.machine
+@cql.machine
 class ScratchMachine:
-    compute = qlx.architecture.Space(capacity=2)
+    compute = cql.architecture.Space(capacity=2)
 
 
 def _scratch_device(name, carrier_count):
-    carriers = qlx.architecture.ResourceClass(
+    carriers = cql.architecture.ResourceClass(
         "qubit",
         carrier_count,
         native_actions=("x",),
-        native_instruments=(qlx.architecture.physical_instruments.MPP,),
+        native_instruments=(cql.architecture.physical_instruments.MPP,),
         name=f"{name}_carriers",
     )
-    architecture = qlx.architecture.PhysicalMachine(
+    architecture = cql.architecture.PhysicalMachine(
         f"{name}_architecture",
         resource_classes={carriers.name: carriers},
     )
-    builder = qlx.devices.DeviceBuilder(
+    builder = cql.devices.DeviceBuilder(
         name,
         logical=ScratchMachine,
         physical=architecture,
@@ -64,91 +64,91 @@ one_scratch_device = _scratch_device("one_scratch", 3)
 two_scratch_device = _scratch_device("two_scratch", 4)
 
 
-@qlx.protocol
+@cql.protocol
 def uses_internal_scratch(
-    block: qlx.patch[ScratchCode],) -> qlx.patch[ScratchCode]:
-    scratch = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    scratch = qlx.prepare_zero(scratch)
-    qlx.discard(scratch)
+    block: cql.patch[ScratchCode],) -> cql.patch[ScratchCode]:
+    scratch = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    scratch = cql.prepare_zero(scratch)
+    cql.discard(scratch)
     return block
 
 
-@qlx.protocol
+@cql.protocol
 def two_disjoint_calls() -> None:
-    left = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    right = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    left = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    right = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
     left = uses_internal_scratch(left)
     right = uses_internal_scratch(right)
-    qlx.discard((left, right))
+    cql.discard((left, right))
 
 
-@qlx.protocol
+@cql.protocol
 def two_chained_calls() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
     block = uses_internal_scratch(block)
     block = uses_internal_scratch(block)
-    qlx.discard(block)
+    cql.discard(block)
 
 
-@qlx.protocol
+@cql.protocol
 def repeated_scratch_call() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    block = qlx.ops.repeat(
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.repeat(
         3,
         carries=(block,),
         body=lambda value: uses_internal_scratch(value),
     )
-    qlx.discard(block)
+    cql.discard(block)
 
 
-@qlx.gadget(implements=qlx.logical.idle)
-def ticked_call(block: qlx.patch[ScratchCode],) -> qlx.patch[ScratchCode]:
-    qlx.ops.tick()
+@cql.gadget(implements=cql.logical.idle)
+def ticked_call(block: cql.patch[ScratchCode],) -> cql.patch[ScratchCode]:
+    cql.ops.tick()
     return block
 
 
-@qlx.protocol
+@cql.protocol
 def ticked_call_then_allocate() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
     block = ticked_call(block)
-    fresh = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    qlx.discard((block, fresh))
+    fresh = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    cql.discard((block, fresh))
 
 
-@qlx.protocol
+@cql.protocol
 def repeated_ticked_call_then_allocate() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    block = qlx.ops.repeat(
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.repeat(
         2,
         carries=(block,),
         body=lambda value: ticked_call(value),
     )
-    fresh = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    qlx.discard((block, fresh))
+    fresh = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    cql.discard((block, fresh))
 
 
-@qlx.protocol
+@cql.protocol
 def zero_repeat_ticked_call_then_allocate() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    block = qlx.ops.repeat(
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.repeat(
         0,
         carries=(block,),
         body=lambda value: ticked_call(value),
     )
-    fresh = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    qlx.discard((block, fresh))
+    fresh = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    cql.discard((block, fresh))
 
 
-@qlx.protocol
+@cql.protocol
 def alternative_branch_internal_scratch(
-        block: qlx.patch[ScratchCode],
-        selected: bool) -> qlx.patch[ScratchCode]:
+        block: cql.patch[ScratchCode],
+        selected: bool) -> cql.patch[ScratchCode]:
 
     def scratch_once(live):
-        scratch = qlx.ops.allocate_patch(ScratchCode,
+        scratch = cql.ops.allocate_patch(ScratchCode,
                                          region=ScratchMachine.compute)
-        scratch = qlx.prepare_zero(scratch)
-        qlx.discard(scratch)
+        scratch = cql.prepare_zero(scratch)
+        cql.discard(scratch)
         return live
 
     def one_scratch(live):
@@ -157,7 +157,7 @@ def alternative_branch_internal_scratch(
     def two_serial_scratch(live):
         return (scratch_once(scratch_once(live)),)
 
-    block, = qlx.ops.cond(
+    block, = cql.ops.cond(
         selected,
         carries=(block,),
         then=one_scratch,
@@ -166,70 +166,70 @@ def alternative_branch_internal_scratch(
     return block
 
 
-@qlx.protocol
+@cql.protocol
 def internally_conditioned_scratch() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
-    block = qlx.prepare_zero(block)
-    block, selected = qlx.mpp(qlx.types.Z(block[0]))
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.prepare_zero(block)
+    block, selected = cql.mpp(cql.types.Z(block[0]))
     block = alternative_branch_internal_scratch(block, selected)
-    qlx.discard(block)
+    cql.discard(block)
 
 
 _COUNT_MAX = (1 << 63) - 1
 
 
-@qlx.protocol
+@cql.protocol
 def max_nested_scratch_repeat() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
 
     def outer(value):
-        return qlx.ops.repeat(
+        return cql.ops.repeat(
             _COUNT_MAX,
             carries=(value,),
             body=lambda nested: uses_internal_scratch(nested),
         )
 
-    block = qlx.ops.repeat(1, carries=(block,), body=outer)
-    qlx.discard(block)
+    block = cql.ops.repeat(1, carries=(block,), body=outer)
+    cql.discard(block)
 
 
-@qlx.protocol
+@cql.protocol
 def overflowing_nested_scratch_repeat() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
 
     def outer(value):
-        return qlx.ops.repeat(
+        return cql.ops.repeat(
             _COUNT_MAX,
             carries=(value,),
             body=lambda nested: uses_internal_scratch(nested),
         )
 
-    block = qlx.ops.repeat(2, carries=(block,), body=outer)
-    qlx.discard(block)
+    block = cql.ops.repeat(2, carries=(block,), body=outer)
+    cql.discard(block)
 
 
-@qlx.protocol
+@cql.protocol
 def zero_nested_scratch_repeat() -> None:
-    block = qlx.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
+    block = cql.ops.allocate_patch(ScratchCode, region=ScratchMachine.compute)
 
     def outer(value):
-        return qlx.ops.repeat(
+        return cql.ops.repeat(
             _COUNT_MAX,
             carries=(value,),
             body=lambda nested: uses_internal_scratch(nested),
         )
 
-    block = qlx.ops.repeat(0, carries=(block,), body=outer)
-    qlx.discard(block)
+    block = cql.ops.repeat(0, carries=(block,), body=outer)
+    cql.discard(block)
 
 
 def _schedule(device):
-    build = qlx.compile(
+    build = cql.compile(
         two_disjoint_calls,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=device,
     )
-    return build, qlx.compiler.schedule(build)
+    return build, cql.compiler.schedule(build)
 
 
 def _raw_p3_build(text, *, root="g"):
@@ -239,7 +239,7 @@ def _raw_p3_build(text, *, root="g"):
     context = mlir_ir.Context()
     module = mlir_ir.Module.parse(text, context)
     assert module.operation.verify()
-    return qlx.compiler.Build(
+    return cql.compiler.Build(
         context=context,
         module=module,
         root=DefinitionHandle(root, "phys.graph", "p3"),
@@ -291,8 +291,8 @@ module attributes {{qlx.profiles = [\"p3\"]}} {{
 
 
 def test_call_template_schedule_matches_explicit_body_without_expanding_rows():
-    shared = qlx.compiler.schedule(_shared_call_graph(False))
-    explicit = qlx.compiler.schedule(_shared_call_graph(True))
+    shared = cql.compiler.schedule(_shared_call_graph(False))
+    explicit = cql.compiler.schedule(_shared_call_graph(True))
 
     assert shared.makespan_ns == explicit.makespan_ns == 6.0
     invocation = next(
@@ -306,12 +306,12 @@ def test_call_template_schedule_matches_explicit_body_without_expanding_rows():
 
 
 def test_schedule_checks_composed_i64_repeat_multiplicity_without_unrolling():
-    near_max = qlx.compile(
+    near_max = cql.compile(
         max_nested_scratch_repeat,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
-    near_schedule = qlx.compiler.schedule(near_max)
+    near_schedule = cql.compiler.schedule(near_max)
     repeats = [
         entry for entry in near_schedule.entries if entry.kind == "repeat"
     ]
@@ -319,12 +319,12 @@ def test_schedule_checks_composed_i64_repeat_multiplicity_without_unrolling():
     assert {entry.repeat_count for entry in repeats} == {1, _COUNT_MAX}
     assert len(near_schedule.entries) < 20
 
-    zero = qlx.compile(
+    zero = cql.compile(
         zero_nested_scratch_repeat,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
-    zero_schedule = qlx.compiler.schedule(zero)
+    zero_schedule = cql.compiler.schedule(zero)
     assert len([
         entry for entry in zero_schedule.entries if entry.kind == "repeat"
     ]) == 2
@@ -332,26 +332,26 @@ def test_schedule_checks_composed_i64_repeat_multiplicity_without_unrolling():
                  if entry.kind == "repeat" and entry.repeat_count == 0)
     assert outer.duration_ns == 0
 
-    overflowing = qlx.compile(
+    overflowing = cql.compile(
         overflowing_nested_scratch_repeat,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
     with pytest.raises(
-            qlx.errors.RepeatCountOverflow,
+            cql.errors.RepeatCountOverflow,
             match="multiplicity exceeds signed 64-bit",
     ):
-        qlx.compiler.schedule(overflowing)
+        cql.compiler.schedule(overflowing)
 
 
 def test_condition_envelope_covers_branch_local_allocations_and_estimate_is_exclusive(
 ):
-    build = qlx.compile(
+    build = cql.compile(
         internally_conditioned_scratch,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=two_scratch_device,
     )
-    scheduled = qlx.compiler.schedule(build)
+    scheduled = cql.compiler.schedule(build)
     by_id = {entry.event_id: entry for entry in scheduled.entries}
     condition = next(entry for entry in scheduled.entries if entry.kind == "if")
     descendants = []
@@ -413,9 +413,9 @@ def test_condition_envelope_covers_branch_local_allocations_and_estimate_is_excl
         return result
 
     expected_peak = max(peak(outside + branch) for branch in branches.values())
-    estimate = qlx.analysis.estimate(
+    estimate = cql.analysis.estimate(
         scheduled,
-        tier=qlx.analysis.Tier.SCHEDULE,
+        tier=cql.analysis.Tier.SCHEDULE,
         p_phys=0.0,
         failure_budget=1.0,
     )
@@ -475,7 +475,7 @@ def test_disjoint_calls_use_available_scratch_capacity_in_parallel():
 
 def test_schedule_dependency_causes_survive_ir_replay():
     _, schedule = _schedule(one_scratch_device)
-    replayed = qlx.compiler.Build.replay(schedule.build.serialize()).schedule
+    replayed = cql.compiler.Build.replay(schedule.build.serialize()).schedule
 
     assert replayed is not None
     assert replayed.entries == schedule.entries
@@ -484,12 +484,12 @@ def test_schedule_dependency_causes_survive_ir_replay():
 
 
 def test_shared_call_resource_effect_serializes_without_boundary_ssa():
-    build = qlx.compile(
+    build = cql.compile(
         two_chained_calls,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
-    schedule = qlx.compiler.schedule(build)
+    schedule = cql.compiler.schedule(build)
     calls = [
         entry for entry in schedule.entries
         if entry.kind in {"call", "call_template"}
@@ -507,15 +507,15 @@ def test_shared_call_resource_effect_serializes_without_boundary_ssa():
 
 
 def test_folded_repeat_keeps_one_call_template_and_exact_tier3_occupancy():
-    build = qlx.compile(
+    build = cql.compile(
         repeated_scratch_call,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
-    schedule = qlx.compiler.schedule(build)
-    estimate = qlx.estimate(
+    schedule = cql.compiler.schedule(build)
+    estimate = cql.estimate(
         schedule,
-        tier=qlx.analysis.Tier.SCHEDULE,
+        tier=cql.analysis.Tier.SCHEDULE,
         p_phys=0.0,
         failure_budget=1.0,
     )
@@ -544,12 +544,12 @@ def test_ticked_call_threads_local_state_without_ordering_new_resources(
     protocol,
     envelope_kind,
 ):
-    build = qlx.compile(
+    build = cql.compile(
         protocol,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
-    scheduled = qlx.compiler.schedule(build)
+    scheduled = cql.compiler.schedule(build)
     envelope = next(
         entry for entry in scheduled.entries if entry.kind == envelope_kind)
     barrier = next(entry for entry in scheduled.entries
@@ -566,17 +566,17 @@ def test_ticked_call_threads_local_state_without_ordering_new_resources(
     assert not barrier.domain_dependencies
     assert not top_level_acquires[-1].dependencies
     assert top_level_acquires[-1].start_ns == envelope.start_ns
-    assert qlx.compiler.Build.replay(
+    assert cql.compiler.Build.replay(
         scheduled.build.serialize()).schedule.entries == scheduled.entries
 
 
 def test_zero_count_repeat_does_not_export_its_inactive_local_boundary():
-    build = qlx.compile(
+    build = cql.compile(
         zero_repeat_ticked_call_then_allocate,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
-    scheduled = qlx.compiler.schedule(build)
+    scheduled = cql.compiler.schedule(build)
     repeat = next(
         entry for entry in scheduled.entries if entry.kind == "repeat")
     nested_barrier = next(
@@ -599,7 +599,7 @@ def test_zero_count_repeat_does_not_export_its_inactive_local_boundary():
     assert nested_barrier.resource_dependencies == ("acquire0",)
     assert not nested_barrier.domain_dependencies
     assert not later_acquire.dependencies
-    assert qlx.compiler.Build.replay(scheduled.build.serialize()).verify()
+    assert cql.compiler.Build.replay(scheduled.build.serialize()).verify()
 
 
 def test_branch_clock_frontier_expands_its_structured_envelope():
@@ -635,7 +635,7 @@ module attributes {qlx.profiles = ["p3"], qlx.stages = ["p3"]} {
 }
 """)
 
-    scheduled = qlx.compiler.schedule(build)
+    scheduled = cql.compiler.schedule(build)
     by_id = {entry.event_id: entry for entry in scheduled.entries}
 
     assert by_id["if0"].start_ns == 1.0
@@ -692,7 +692,7 @@ module attributes {qlx.profiles = ["p3"], qlx.stages = ["p3"]} {
 }
 """)
 
-    scheduled = qlx.compiler.schedule(build)
+    scheduled = cql.compiler.schedule(build)
     by_id = {entry.event_id: entry for entry in scheduled.entries}
 
     assert by_id["take"].start_ns == 1.0
@@ -740,7 +740,7 @@ module attributes {qlx.profiles = ["p3"], qlx.stages = ["p3"]} {
 }
 """)
 
-    scheduled = qlx.compiler.schedule(build)
+    scheduled = cql.compiler.schedule(build)
     by_id = {entry.event_id: entry for entry in scheduled.entries}
 
     assert by_id["loop"].start_ns == 1.0
@@ -754,12 +754,12 @@ def test_replay_rejects_a_redigested_schedule_with_a_missing_barrier_edge():
     import cudaq.mlir.ir as mlir_ir
     from cudaq.logical.compiler.build import _build_bundle_content_sha256
 
-    build = qlx.compile(
+    build = cql.compile(
         ticked_call_then_allocate,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=one_scratch_device,
     )
-    scheduled = qlx.compiler.schedule(build)
+    scheduled = cql.compiler.schedule(build)
     barrier = next(
         entry for entry in scheduled.entries if entry.kind == "barrier")
     assert barrier.data_dependencies == barrier.resource_dependencies
@@ -781,5 +781,5 @@ def test_replay_rejects_a_redigested_schedule_with_a_missing_barrier_edge():
             mlir_ir.MLIRError,
             match="data_deps must exactly match its graph SSA dependencies",
     ):
-        qlx.compiler.Build.replay(
+        cql.compiler.Build.replay(
             json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode())
