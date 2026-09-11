@@ -92,6 +92,7 @@ public:
   sampleWithPTSBE(const cudaq::ptsbe::PTSBatch &batch) override {
     if (batch.trajectories.empty())
       return {};
+    flushPendingQubits();
     const auto plan = analyzePTSBEBatch(batch);
     if (!plan)
       return cudaq::ptsbe::detail::samplePTSBEGeneric<Scalar>(*this, batch);
@@ -108,6 +109,7 @@ public:
   }
 
   void synchronize() override {
+    flushPendingQubits();
     // A noisy circuit must be replayed once per trajectory, so leave its queued
     // gates and channels deferred until the trajectory loop executes them.
     if (isNoisySimulation())
@@ -122,10 +124,37 @@ public:
 protected:
   void addQubitToState() override { addQubitsToState(1, nullptr); }
 
+  /// Allocations that start in |0..0> carry no information beyond their count,
+  /// so record the count but delay growing the state to batch allocations.
   void addQubitsToState(std::size_t count, const void *stateData) override {
     if (count == 0)
       return;
-    const bool firstAllocation = nQubitsAllocated == count;
+    if (!stateData) {
+      m_pendingQubits += count;
+      return;
+    }
+    // First, handle queued allocs.
+    flushPendingQubits();
+    // Next, materialize new allocs with \p stateData.
+    materializeQubits(count, stateData);
+  }
+
+  /// Materialize any allocations deferred by `addQubitsToState`. Must be called
+  /// before anything reads or writes the state vector.
+  void flushPendingQubits() {
+    if (m_pendingQubits == 0)
+      return;
+    const std::size_t count = m_pendingQubits;
+    m_pendingQubits = 0;
+    materializeQubits(count, nullptr);
+  }
+
+  void materializeQubits(std::size_t count, const void *stateData) {
+    // Note this cannot test `nQubitsAllocated == count`: that counter tracks
+    // the qubits the caller has asked for, which runs ahead of the state while
+    // allocations sit deferred.
+    const bool firstAllocation = m_materializedQubits == 0;
+    m_materializedQubits += count;
     if (firstAllocation)
       m_measurementRecorded = false;
     if (stateData)
@@ -204,6 +233,7 @@ protected:
   }
 
   void addQubitsToState(const cudaq::SimulationState &input) override {
+    flushPendingQubits();
     if (input.getPrecision() != simulationPrecision())
       throw std::invalid_argument("Initial-state precision mismatch.");
     if (const auto *const exState =
@@ -243,6 +273,8 @@ protected:
   }
 
   void deallocateStateImpl() override {
+    m_pendingQubits = 0;
+    m_materializedQubits = 0;
     if (m_config.forceAllocateState)
       m_state.reset();
     m_deferredTasks.clear();
@@ -252,6 +284,7 @@ protected:
   }
 
   void applyGate(const GateApplicationTask &task) override {
+    flushPendingQubits();
     ensureState();
     rejectOperationAfterMeasurement();
     if (isNoisySimulation()) {
@@ -275,6 +308,7 @@ protected:
   }
 
   void setToZeroState() override {
+    flushPendingQubits();
     ensureState();
     synchronize();
     m_state->setZeroState();
@@ -334,6 +368,7 @@ protected:
   }
 
   bool measureQubit(std::size_t qubit) override {
+    flushPendingQubits();
     replayDeferredFromCurrentState();
     synchronize();
     const int32_t wire = static_cast<int32_t>(qubit);
@@ -348,6 +383,7 @@ protected:
   }
 
   void resetQubit(std::size_t qubit) override {
+    flushPendingQubits();
     flushGateQueue();
     this->flushAnySamplingTasks();
     rejectOperationAfterMeasurement();
@@ -383,6 +419,7 @@ protected:
       nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubits, term);
       return;
     }
+    flushPendingQubits();
     if (isNoisySimulation() || m_config.forceExpPauliDecomposition) {
       // Noise models are specified on individual gates, so noisy exp-Pauli
       // operations must use the decomposed circuit form.
@@ -418,6 +455,7 @@ protected:
   // base ansatz independently. Reusing a post-measurement state would correlate
   // trajectories, while reversing basis changes could introduce extra noise.
   cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &op) override {
+    flushPendingQubits();
     if (!isNoisySimulation())
       return Base::measureSpinOp(op);
 
@@ -465,6 +503,7 @@ protected:
   }
 
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
+    flushPendingQubits();
     flushGateQueue();
     if (isNoisySimulation())
       return observeTrajectories(op);
@@ -514,6 +553,7 @@ protected:
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 int shots,
                                 bool includeSequentialData = true) override {
+    flushPendingQubits();
     flushGateQueue();
     if (isNoisySimulation())
       return sampleTrajectories(measuredBits, shots, includeSequentialData);
@@ -572,6 +612,7 @@ protected:
 
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::size_t> &qubits) override {
+    flushPendingQubits();
     flushGateQueue();
     applyNoiseTask(channel, qubits);
   }
@@ -594,6 +635,7 @@ protected:
   }
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    flushPendingQubits();
     flushGateQueue();
     if (isNoisySimulation())
       replayDeferredFromCurrentState();
@@ -756,6 +798,9 @@ protected:
   }
 
   virtual void ensureState() {
+    // Every state access must be preceded by a flush; catch a missed one here
+    // rather than letting it silently operate on an undersized state.
+    assert(m_pendingQubits == 0 && "deferred qubit allocations not flushed");
     if (m_state)
       return;
     int32_t device = 0;
@@ -1345,6 +1390,10 @@ protected:
 
   CuStateVecConfig m_config;
   std::optional<CuStateVecState<Scalar>> m_state;
+  // Deferred qubit allocations for batching
+  std::size_t m_pendingQubits = 0;
+  // Tracks the number of actually allocated qubits
+  std::size_t m_materializedQubits = 0;
   std::unique_ptr<GateEngine<Scalar>> m_engine;
   std::random_device m_randomDevice;
   std::mt19937 m_randomEngine;

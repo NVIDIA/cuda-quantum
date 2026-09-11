@@ -119,6 +119,10 @@ protected:
 
   void addQubitsToState(std::size_t count, const void *stateData) override {
     Base::addQubitsToState(count, stateData);
+    // Distribution decisions below depend on the actual wire count, so this
+    // path opts out of the base class's deferred allocation and materializes
+    // immediately.
+    Base::flushPendingQubits();
     // The initial ensureState() may defer distribution until the newly
     // allocated wires make a valid distributed state.
     ensureState();
