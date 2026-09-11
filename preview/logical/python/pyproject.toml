@@ -5,21 +5,17 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-[build-system]
-requires = [
-  "nanobind>=2.4,<3",
-  "scikit-build-core==0.12.2",
-  "setuptools-scm>=8,<9",
-  "cudaq-devel",
-]
-build-backend = "scikit_build_core.build"
 
 [project]
 name = "cudaq-logical"
 dynamic = ["version"]
 description = "Fault-tolerant logical resource estimation for CUDA-Q (cudaq.logical)."
+authors = [{name = "NVIDIA Corporation & Affiliates"}]
+maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
+readme = { file="README.md", content-type = "text/markdown"}
 requires-python = ">=3.11"
 license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 dependencies = [
   # The base package is runtime-agnostic: the CUDA-Q runtime arrives through
   # the cu12/cu13 extras below, and the much larger CUDA-Q development SDK
@@ -35,9 +31,6 @@ classifiers = [
   'Programming Language :: Python :: 3.12',
   'Programming Language :: Python :: 3.13',
   'Programming Language :: Python :: 3.14',
-  "Environment :: GPU :: NVIDIA CUDA",
-  "Environment :: GPU :: NVIDIA CUDA :: 12",
-  "Environment :: GPU :: NVIDIA CUDA :: 13",
   'Topic :: Software Development',
   'Topic :: Scientific/Engineering',
 ]
@@ -46,14 +39,29 @@ classifiers = [
 qlx-opt = "cudaq.logical._cli:qlx_opt"
 qlx-translate = "cudaq.logical._cli:qlx_translate"
 
+[project.urls]
+Homepage = "https://developer.nvidia.com/cuda-q"
+Documentation = "https://nvidia.github.io/cuda-quantum"
+Repository = "https://github.com/NVIDIA/cuda-quantum"
+Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
+
 [project.optional-dependencies]
 # The CUDA-Q runtime is an opt-in extra so that the base wheel stays
 # runtime-agnostic. Release CI stamps both bare entries with ==CUDAQ_VERSION
 # before building (scripts/stamp_cudaq_runtime_dependency.py).
 cu12 = ["cuda-quantum-cu12"]
 cu13 = ["cuda-quantum-cu13"]
-mlir = []                    # MLIR Python bindings are supplied by the matching CUDA-Q SDK.
 dev = ["pytest>=7.0"]
+
+[build-system]
+requires = [
+  "nanobind>=2.4,<3",
+  "scikit-build-core==0.12.2",
+  "setuptools-scm>=8,<9",
+  "cudaq-devel",
+]
+build-backend = "scikit_build_core.build"
+
 [tool.scikit-build]
 minimum-version = "build-system.requires"
 cmake.source-dir = ".."
