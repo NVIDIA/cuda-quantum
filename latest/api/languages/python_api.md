@@ -2154,7 +2154,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.kernel "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[external]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[backend_symbol]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.kernel "Permalink to this definition"){.headerlink}
 
 :   The [`cudaq.kernel`{.code .docutils .literal .notranslate}]{.pre}
     represents the CUDA-Q language function attribute that programmers
@@ -2166,6 +2166,27 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     [`atomic_quantum_region=True`{.code .docutils .literal
     .notranslate}]{.pre} to preserve the boundary around each kernel
     invocation from cross-boundary quantum optimization.
+
+    Set [`external=True`{.code .docutils .literal .notranslate}]{.pre}
+    to declare a quantum operation that the backend implements rather
+    than the compiler. The decorated function is a declaration. It is
+    never compiled, and a call to it from another kernel reaches the
+    backend as a call of [`backend_symbol`{.code .docutils .literal
+    .notranslate}]{.pre} (the function name by default).
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        @cudaq.kernel(external=True)
+        def wait(q: cudaq.qubit, duration: float) -> None:
+            ...
+
+        @cudaq.kernel
+        def kernel(d: float):
+            q = cudaq.qubit()
+            rx(numpy.pi / 2, q)
+            wait(q, d)
+    :::
+    :::
 :::
 
 ::: {#kernel-execution .section}
@@ -5992,7 +6013,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x53ad390\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 

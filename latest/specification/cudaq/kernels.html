@@ -1315,7 +1315,16 @@ default constructed and later filled with type <code class="code docutils litera
 </div>
 </div>
 </div>
-<p><strong>[7]</strong> All entry-point kernel arguments adhere to pass-by-value semantics.</p>
+<p><strong>[7]</strong> All entry-point kernel arguments adhere to pass-by-value semantics. This follows directly
+from the <a class="reference internal" href="machine_model.html"><span class="doc">machine model</span></a>: an entry-point kernel is invoked from host code
+running on a classical host processor, but executes on a QPU (or simulated QPU), a distinct
+processor with its own separate memory space (machine model items <strong>[1]</strong> and <strong>[4]</strong>). A
+reference into the host’s memory has no meaning on the QPU side, so an entry-point kernel’s
+classical arguments are copied and passed by value rather than by reference, regardless of whether
+the host language’s own ordinary calling convention is pass-by-value (C++) or pass-by-reference
+(Python). The same reasoning applies symmetrically to a kernel’s return value: it is produced in the
+QPU’s own memory space and used to construct a new object back on the host side, never used to
+mutate an object the caller already holds.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
@@ -1352,7 +1361,7 @@ default constructed and later filled with type <code class="code docutils litera
     <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.0</span>
 
 <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">]</span>
-<span class="n">kernel</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+<span class="n">kernel</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 
 <span class="c1"># k is still 2, pass by value</span>
 <span class="c1"># d is still {1.0, 2.0}, pass by value</span>
@@ -1360,6 +1369,10 @@ default constructed and later filled with type <code class="code docutils litera
 </div>
 </div>
 </div>
+<p>Calls from one kernel to another are governed by the same rule: a pure-device kernel’s classical
+arguments are likewise passed by value, not by reference, so a called kernel can never mutate a caller’s
+classical argument through the call. This keeps the calling convention uniform regardless of
+whether the call originates from host code or from another kernel.</p>
 <p><strong>[8]</strong> CUDA-Q kernel lambdas in C++ can capture variables of allowed type
 by value. CUDA-Q kernels defined as custom callable types can define non-reference type
 class members of any allowed type. These member variables can be set with

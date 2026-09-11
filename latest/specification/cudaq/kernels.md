@@ -2283,7 +2283,19 @@ Python
 :::
 
 **\[7\]** All entry-point kernel arguments adhere to pass-by-value
-semantics.
+semantics. This follows directly from the [[machine
+model]{.doc}](machine_model.html){.reference .internal}: an entry-point
+kernel is invoked from host code running on a classical host processor,
+but executes on a QPU (or simulated QPU), a distinct processor with its
+own separate memory space (machine model items **\[1\]** and **\[4\]**).
+A reference into the host's memory has no meaning on the QPU side, so an
+entry-point kernel's classical arguments are copied and passed by value
+rather than by reference, regardless of whether the host language's own
+ordinary calling convention is pass-by-value (C++) or pass-by-reference
+(Python). The same reasoning applies symmetrically to a kernel's return
+value: it is produced in the QPU's own memory space and used to
+construct a new object back on the host side, never used to mutate an
+object the caller already holds.
 
 ::: {.tab-set .docutils}
 C++
@@ -2330,7 +2342,7 @@ Python
         v[0] = 3.0
 
     k, d = 2, [1., 2.]
-    kernel(i, d)
+    kernel(k, d)
 
     # k is still 2, pass by value
     # d is still {1.0, 2.0}, pass by value
@@ -2338,6 +2350,13 @@ Python
 :::
 :::
 :::
+
+Calls from one kernel to another are governed by the same rule: a
+pure-device kernel's classical arguments are likewise passed by value,
+not by reference, so a called kernel can never mutate a caller's
+classical argument through the call. This keeps the calling convention
+uniform regardless of whether the call originates from host code or from
+another kernel.
 
 **\[8\]** CUDA-Q kernel lambdas in C++ can capture variables of allowed
 type by value. CUDA-Q kernels defined as custom callable types can
