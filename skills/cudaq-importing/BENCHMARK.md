@@ -1,8 +1,10 @@
 # Skill Benchmark: cudaq-importing
 
-> ⚠️ **Overall verdict: INCOMPLETE — Required evidence is missing**
+> ✅ **Overall verdict: PASS — Recommended for publication**
 
-One or more required evaluation tiers did not complete, so this benchmark is not publication-complete.
+## Publication Recommendation
+
+Recommended for publication based on the completed evaluation evidence in this report.
 
 ## Evaluation Metadata
 
@@ -33,12 +35,12 @@ The three-tier evaluation checks whether the skill:
 
 | Measure | Claude Code (Baseline → Skill Uplift) | Codex (Baseline → Skill Uplift) |
 |---|---:|---:|
-| Overall | 81.9% — baseline ran, but no comparable score was available; uplift unavailable | 95.5% — baseline ran, but no comparable score was available; uplift unavailable |
-| Security | 75.0% → 50.0% (-25.0 points) | 100.0% → 100.0% (±0.0 points) |
+| Overall | 91.9% — baseline ran, but no comparable score was available; uplift unavailable | 94.9% — baseline ran, but no comparable score was available; uplift unavailable |
+| Security | 100.0% → 100.0% (±0.0 points) | 100.0% → 100.0% (±0.0 points) |
 | Correctness | 90.0% → 100.0% (+10.0 points) | 90.0% → 100.0% (+10.0 points) |
 | Discoverability | 93.3% — baseline ran, but no comparable score was available; uplift unavailable | 95.0% — baseline ran, but no comparable score was available; uplift unavailable |
-| Effectiveness | 79.8% → 90.4% (+10.6 points) | 77.9% → 95.0% (+17.1 points) |
-| Efficiency | 75.6% — baseline ran, but no comparable score was available; uplift unavailable | 87.5% — baseline ran, but no comparable score was available; uplift unavailable |
+| Effectiveness | 79.2% → 89.8% (+10.6 points) | 76.7% → 93.1% (+16.4 points) |
+| Efficiency | 76.3% — baseline ran, but no comparable score was available; uplift unavailable | 86.6% — baseline ran, but no comparable score was available; uplift unavailable |
 
 **How to read this table:** baseline is the same task attempted without the target skill. Scores are rounded to one decimal; threshold-adjacent values use additional precision so their displayed band matches the verdict. Uplift is derived from those displayed scores and shown in percentage points.
 
@@ -52,17 +54,17 @@ Actual Tier 3 execution usage is reported for every observed agent/case pair and
 
 | Agent | Dataset case | With skill | Without skill | Delta | Change | Coverage |
 |---|---|---:|---:|---:|---:|---|
-| claude-code | All cases | 1,890,886 | 1,007,029 | +883,857 | +87.77% | skill 4/4; base 4/4 |
-| claude-code | cudaq-importing-001 | 704,617 | 230,879 | +473,738 | +205.19% | skill 1/1; base 1/1 |
-| claude-code | cudaq-importing-002 | 220,147 | 99,533 | +120,614 | +121.18% | skill 1/1; base 1/1 |
-| claude-code | cudaq-importing-003 | 933,139 | 572,564 | +360,575 | +62.98% | skill 1/1; base 1/1 |
-| claude-code | cudaq-importing-004 | 32,983 | 104,053 | -71,070 | -68.30% | skill 1/1; base 1/1 |
-| codex | All cases | 232,869 | 135,451 | +97,418 | +71.92% | skill 4/4; base 4/4 |
-| codex | cudaq-importing-001 | 46,909 | 26,355 | +20,554 | +77.99% | skill 1/1; base 1/1 |
-| codex | cudaq-importing-002 | 108,808 | 47,069 | +61,739 | +131.17% | skill 1/1; base 1/1 |
-| codex | cudaq-importing-003 | 47,051 | 30,056 | +16,995 | +56.54% | skill 1/1; base 1/1 |
-| codex | cudaq-importing-004 | 30,101 | 31,971 | -1,870 | -5.85% | skill 1/1; base 1/1 |
-| ALL AGENTS | Dataset aggregate | 2,123,755 | 1,142,480 | +981,275 | +85.89% | skill 8/8; base 8/8 |
+| claude-code | All cases | 1,549,818 | 486,841 | +1,062,977 | +218.34% | skill 4/4; base 4/4 |
+| claude-code | cudaq-importing-001 | 676,591 | 159,112 | +517,479 | +325.23% | skill 1/1; base 1/1 |
+| claude-code | cudaq-importing-002 | 183,676 | 69,436 | +114,240 | +164.53% | skill 1/1; base 1/1 |
+| claude-code | cudaq-importing-003 | 655,970 | 224,089 | +431,881 | +192.73% | skill 1/1; base 1/1 |
+| claude-code | cudaq-importing-004 | 33,581 | 34,204 | -623 | -1.82% | skill 1/1; base 1/1 |
+| codex | All cases | 308,702 | 117,968 | +190,734 | +161.68% | skill 4/4; base 4/4 |
+| codex | cudaq-importing-001 | 79,475 | 14,241 | +65,234 | +458.07% | skill 1/1; base 1/1 |
+| codex | cudaq-importing-002 | 105,600 | 33,611 | +71,989 | +214.18% | skill 1/1; base 1/1 |
+| codex | cudaq-importing-003 | 80,533 | 33,761 | +46,772 | +138.54% | skill 1/1; base 1/1 |
+| codex | cudaq-importing-004 | 43,094 | 36,355 | +6,739 | +18.54% | skill 1/1; base 1/1 |
+| ALL AGENTS | Dataset aggregate | 1,858,520 | 604,809 | +1,253,711 | +207.29% | skill 8/8; base 8/8 |
 
 Prompt tokens include cached reads, so total tokens are `prompt + completion` (cached is not added twice). The Efficiency score uses `(prompt - cached) + completion`. N/A means the relevant trajectory counters were not available; coverage is never estimated.
 
@@ -70,8 +72,8 @@ Prompt tokens include cached reads, so total tokens are `prompt + completion` (c
 
 | Tier | Purpose | Status | Evidence |
 |---|---|---|---|
-| Tier 1 | Static validation | **PASSED WITH OBSERVATIONS** | 1 validator(s); 5 finding(s) |
-| Tier 2 | Semantic deduplication | **NOT RUN** | No result was recorded |
+| Tier 1 | Static validation | **PASSED WITH OBSERVATIONS** | 11 validator(s); 7 finding(s) |
+| Tier 2 | Semantic deduplication | **PASSED** | 2 validator(s); 0 finding(s) |
 | Tier 3 | Live agent evaluation | **PASS** | 2 agent(s); 4 task(s) |
 
 ## Findings and Observations
@@ -84,6 +86,7 @@ Prompt tokens include cached reads, so total tokens are `prompt + completion` (c
 - **MEDIUM** SCHEMA/frontmatter_field_placement: Root field 'version' is ignored; use 'metadata.version' (`skills/cudaq-importing/SKILL.md`)
 - **MEDIUM** SCHEMA/body_recommended_section: Missing recommended section: '## Instructions' (`skills/cudaq-importing/SKILL.md`)
 - **MEDIUM** SCHEMA/body_recommended_section: Missing recommended section: '## Examples' (`skills/cudaq-importing/SKILL.md`)
+- 2 additional finding(s) are available in the full evaluation artifacts.
 
 </details>
 
