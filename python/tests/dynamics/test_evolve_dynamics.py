@@ -235,6 +235,28 @@ def test_batching_bugs():
         assert len(evolution_result.intermediate_states()) == len(steps)
 
 
+def test_should_use_mixed_state_batch_no_right_apply():
+    """
+    `should_use_mixed_state` must only promote to a mixed (density-matrix)
+    state when a super-operator actually has a right-apply term (i.e. is a
+    genuine dissipator). A batch of super-operators that are all pure
+    left-multiplies (no dissipator) does not need a mixed state, same as a
+    single such super-operator.
+    """
+    from cudaq.dynamics.cudm_solver import should_use_mixed_state
+
+    hamiltonian = boson.create(0) * boson.annihilate(0)
+    pure_left_multiply = SuperOperator.left_multiply(-1j * hamiltonian)
+    dissipative = SuperOperator.left_right_multiply(boson.annihilate(0),
+                                                     boson.create(0))
+
+    assert should_use_mixed_state(pure_left_multiply, []) == False
+    assert should_use_mixed_state([pure_left_multiply, pure_left_multiply],
+                                  []) == False
+    assert should_use_mixed_state(dissipative, []) == True
+    assert should_use_mixed_state([dissipative, dissipative], []) == True
+
+
 def test_precision_info():
     """
     Test that the target info is correct: double precision for dynamics
