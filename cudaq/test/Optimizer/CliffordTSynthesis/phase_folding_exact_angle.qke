@@ -1,0 +1,46 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt --mlir-disable-threading \
+// RUN:   --pass-pipeline='builtin.module(func.func(quake-simplify{rotations-to-clifford-t=true clifford-t-epsilon=0.001},phase-folding{min-length=0 min-rz-weight=0},canonicalize),clifford-t-synthesis{epsilon=0.001 skip-below=0 fail-on-controlled-rotation=true})' \
+// RUN:   %s | FileCheck %s --implicit-check-not='func.func private @__cliffordt_' \
+// RUN:     --implicit-check-not='quake.r{{[xyz1]}}'
+
+// Phase folding combines two of the four Rz(pi/8) into one Rz(pi/4), after
+// quake-simplify has already legalized the exact angles. The folded rotation
+// costs one T instead of gridsynth's 40, so only pi/8 is outlined.
+// min-length=0 forces phase folding to run on an input this small.
+
+func.func @phase_fold_creates_exact_rotation() {
+  // pi/8
+  %angle = arith.constant 0.39269908169872414 : f64
+  %a = quake.null_wire
+  %b = quake.null_wire
+  %0 = quake.rz (%angle) %b : (f64, !quake.wire) -> !quake.wire
+  %1:2 = quake.x [%a] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.rz (%angle) %1#1 : (f64, !quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.rz (%angle) %3#0 : (f64, !quake.wire) -> !quake.wire
+  %5 = quake.rz (%angle) %3#1 : (f64, !quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %6#0 : !quake.wire
+  quake.sink %6#1 : !quake.wire
+  return
+}
+
+// CHECK:       func.func private @__cliffordt_rz_wire_
+
+// CHECK-LABEL: func.func @phase_fold_creates_exact_rotation
+// CHECK:         quake.x
+// CHECK:         call @__cliffordt_rz_wire_
+// CHECK:         quake.x
+// CHECK:         call @__cliffordt_rz_wire_
+// CHECK:         quake.phase
+// CHECK-NEXT:    quake.t
+// CHECK-NOT:     call @__cliffordt_rz_wire_
