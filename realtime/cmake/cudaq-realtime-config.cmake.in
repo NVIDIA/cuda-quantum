@@ -16,6 +16,9 @@ if(@CUDA_FOUND@)
   find_dependency(CUDAToolkit REQUIRED)
 endif()
 find_dependency(Threads REQUIRED)
+if(@CUDAQ_REALTIME_CPU_ROCE_USES_HOLOLINK@)
+  find_dependency(HololinkRoce 2.7 CONFIG REQUIRED COMPONENTS transport)
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/cudaq-realtime-targets.cmake")
 

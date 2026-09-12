@@ -34,6 +34,20 @@ for more information about these tests.
 the basic CUDA-Q Realtime library, e.g., the dispatch library
 and host API; no networking transport layer is included.
 
+## Experimental Hololink CPU RoCE backend
+
+CPU RoCE uses CUDA-Q's legacy implementation by default. To test Hololink
+behind the existing `cpu_roce_*` C ABI, install a `HololinkRoce` package
+that provides `CpuRoceTransceiver::set_local_ip` and configure with:
+
+```bash
+cmake -G Ninja -S "$CUDAQ_REALTIME_DIR" -B build \
+  -DCUDAQ_REALTIME_CPU_ROCE_BACKEND=hololink
+```
+
+This backend implements the C ABI only. CUDA-Q's `CpuRoceTransceiver` C++
+class remains available from the legacy backend.
+
 ## Using the build script
 
 `realtime/scripts/build_realtime.sh` wraps the steps above: it configures,
