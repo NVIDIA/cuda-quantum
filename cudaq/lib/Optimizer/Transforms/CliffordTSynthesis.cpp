@@ -424,15 +424,19 @@ public:
     // Validate the numeric options. gridsynth needs a positive epsilon
     // (-log2(epsilon) feeds the precision heuristic), and the budgets/retry
     // count must be non-negative because the retry loop left-shifts the
-    // budgets by `attempt`.
-    if (!(epsilon > 0.0) || maxFactoringIterations < 0 ||
-        maxCandidateIterations < 0 || maxFactoringRestarts < 0 ||
-        maxOdgpScanSteps < 0 || retryCount < 0 || skipBelow < 0.0) {
+    // budgets by `attempt`. Both tolerances must also be finite. An infinite
+    // epsilon accepts every angle as an exact multiple of pi/4, and an
+    // infinite skip-below erases every rotation.
+    if (!(epsilon > 0.0) || !std::isfinite(epsilon) ||
+        maxFactoringIterations < 0 || maxCandidateIterations < 0 ||
+        maxFactoringRestarts < 0 || maxOdgpScanSteps < 0 || retryCount < 0 ||
+        skipBelow < 0.0 || !std::isfinite(skipBelow)) {
       getOperation().emitError(
-          "clifford-t-synthesis: invalid options; require epsilon > 0 and "
-          "non-negative max-factoring-iterations, max-candidate-iterations, "
-          "max-factoring-restarts, max-odgp-scan-steps, retry-count, and "
-          "skip-below.");
+          "clifford-t-synthesis: invalid options. Require a finite epsilon > 0 "
+          "and non-negative max-factoring-iterations, "
+          "max-candidate-iterations, max-factoring-restarts, "
+          "max-odgp-scan-steps, retry-count, and a "
+          "finite skip-below.");
       signalPassFailure();
       return;
     }
