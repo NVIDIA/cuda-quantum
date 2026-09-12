@@ -171,7 +171,7 @@ jobs:
             bash scripts/install_dev_prerequisites.sh
             # Build CUDA-Q Realtime
             cd /workspace/realtime
-            CUDAQ_REALTIME_INSTALL_PREFIX=/workspace/installer bash scripts/build_realtime.sh 
+            CUDAQ_REALTIME_INSTALL_PREFIX=/workspace/installer bash scripts/build_realtime.sh
 
       - name: 'Tar files'
         run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *

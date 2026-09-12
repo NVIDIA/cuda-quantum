@@ -1,0 +1,85 @@
+# For any PR that touches the cudaq.logical preview folder
+#  - retrieve cached CUDA-Q wheels (or build them),
+#  - run `cudaq_logical_build.yml` on platform x python version
+#  - run the docs `cudaq_logical_docs.yml` workflow
+#  - validate the built wheel across distros via `cudaq_logical_wheel_validation.yml`
+#    (trimmed: linux/amd64 x python 3.11 x the python 3.11 distro list).
+
+name: Build and test cudaq.logical
+
+on:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+  workflow_dispatch:
+
+jobs:
+  build_and_test_amd64_py311:
+    name: Build and test cudaq.logical (linux/amd64, 3.11)
+    uses: ./.github/workflows/cudaq_logical_build_or_retrieve.yml
+    with:
+      platform: linux/amd64
+      python_version: "3.11"
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+  docs:
+    needs: [build_and_test_amd64_py311]
+    name: Build cudaq.logical docs
+    uses: ./.github/workflows/cudaq_logical_docs.yml
+    with:
+      platform: linux/amd64
+      python_version: "3.11"
+      wheel_name: ${{ needs.build_and_test_amd64_py311.outputs.wheel_name }}
+      runtime_artifact_name:
+        ${{ needs.build_and_test_amd64_py311.outputs.runtime_artifact_name }}
+      metapackage_artifact_name:
+        ${{ needs.build_and_test_amd64_py311.outputs.metapackage_artifact_name
+        }}
+      cudaq_version:
+        ${{ needs.build_and_test_amd64_py311.outputs.cudaq_version }}
+      cudaq_logical_version:
+        ${{ needs.build_and_test_amd64_py311.outputs.logical_version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+  validate_distros:
+    needs: [build_and_test_amd64_py311]
+    name: Validate cudaq.logical wheel across distros (linux/amd64, 3.11)
+    uses: ./.github/workflows/cudaq_logical_wheel_validation.yml
+    with:
+      cudaq_logical_wheel:
+        ${{ needs.build_and_test_amd64_py311.outputs.wheel_name }}
+      cudaq_wheel:
+        ${{ needs.build_and_test_amd64_py311.outputs.runtime_artifact_name }}
+      cudaq_metapackage:
+        ${{ needs.build_and_test_amd64_py311.outputs.metapackage_artifact_name
+        }}
+      cudaq_version:
+        ${{ needs.build_and_test_amd64_py311.outputs.cudaq_version }}
+      cudaq_logical_version:
+        ${{ needs.build_and_test_amd64_py311.outputs.logical_version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+  build_and_test:
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        python_version: [3.11, 3.13, 3.14]
+        exclude:
+          # Runs as the dedicated build_and_test_amd64_py311 job above.
+          - platform: linux/amd64
+            python_version: 3.11
+
+    name: Build and test cudaq.logical
+    uses: ./.github/workflows/cudaq_logical_build_or_retrieve.yml
+    with:
+      platform: ${{ matrix.platform }}
+      python_version: ${{ matrix.python_version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}

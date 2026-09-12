@@ -380,6 +380,48 @@ jobs:
             -i dist \
             -p ${{ matrix.python_version }}
 
+      - name: Build cudaq metapackage
+        run: |
+          # Same recipe as the build_metapackages job in python_metapackages.yml,
+          # so that installing the `cudaq` metapackage is also covered on macOS.
+          sed -i '' "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
+          for file in LICENSE NOTICE CITATION.cff; do
+            cp $file python/metapackages/$file
+          done
+          cp -r LICENSES python/metapackages/LICENSES
+
+          echo "Creating README.md for cudaq package"
+          package_name=cudaq
+          cuda_version_requirement="12.x or 13.x"
+          cuda_version_conda=12.4.0 # only used as example in the install script
+          deprecation_notice=""
+          cat python/README.md.in > python/metapackages/README.md
+          for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do
+            sed -i '' "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
+          done
+          if grep -q -e '.{{.*}}' python/metapackages/README.md; then
+            echo "::error file=ci_macos.yml::Incomplete template substitutions in README."
+            exit 1
+          fi
+
+          echo "${{ needs.wheel.outputs.cudaq_version }}" > python/metapackages/_version.txt
+          # no cudaq-logical wheel on macOS
+          echo "0.0.0" > python/metapackages/_logical_version.txt
+          python3 -m pip install build
+          cd python/metapackages && CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
+          mkdir -p "$GITHUB_WORKSPACE/metapackage"
+          mv dist/cudaq-* "$GITHUB_WORKSPACE/metapackage/"
+
+      - name: Test metapackage installation
+        run: |
+          # Installing `cudaq` must resolve cuda-quantum-cu13 from the locally
+          # built wheels (the macOS wheel is the cu13 variant, CPU-only).
+          python3 -m venv metapkg-venv
+          source metapkg-venv/bin/activate
+          pip install "cudaq==${{ needs.wheel.outputs.cudaq_version }}" \
+            --find-links "$GITHUB_WORKSPACE/dist" --find-links "$GITHUB_WORKSPACE/metapackage"
+          python -c 'import cudaq; print(cudaq.get_target().name)'
+
   # ============================================================================
   # Build self-extracting installer for C++ SDK
   # ============================================================================

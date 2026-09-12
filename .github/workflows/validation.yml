@@ -209,6 +209,37 @@ jobs:
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-cpu-roce-transport.a"
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-device-call-runtime.so"
 
+  logical_release_image_validation:
+    name: CUDA-Q Logical image validation (${{ matrix.arch }})
+    needs: metadata
+    if: ${{ needs.metadata.outputs.release_images != '[]' }}
+    runs-on: linux-${{ matrix.arch }}-cpu8
+    timeout-minutes: 20
+    permissions:
+      packages: read
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        image: ${{ fromJson(needs.metadata.outputs.release_images) }}
+
+    container:
+      image: ${{ matrix.image }}
+      credentials:
+        username: ${{ startsWith(matrix.image, 'nvcr.io/') && '$oauthtoken' || (startsWith(matrix.image, 'ghcr.io/') && github.actor || '') }}
+        password: ${{ startsWith(matrix.image, 'nvcr.io/') && secrets.NGC_CREDENTIALS || (startsWith(matrix.image, 'ghcr.io/') && github.token || '') }}
+      options: --user root
+
+    steps:
+      - name: Import cudaq.logical
+        shell: bash
+        run: python3 -c 'import cudaq.logical'
+
   release_image_validation:
     name: Release image validation
     needs: metadata
@@ -560,15 +591,78 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      # -d builds the cudaq-devel wheel INSTEAD OF the runtime wheel (see
+      # scripts/build_wheel.sh usage), so it must be a separate build, not a
+      # build-arg on the step above -- that silently replaced the amd64/cu13/
+      # py3.11 runtime wheel with a devel wheel and broke that cell entirely.
+      # One devel wheel per architecture (cu13/py3.11) is reused across python
+      # versions to build cudaq-logical below -- same pattern as ci.yml's shared
+      # python_devel_wheel job.
+      - name: Build cudaq-devel wheel
+        id: build_devel_wheel
+        if: >-
+          matrix.python_version == '3.11' &&
+          steps.release_info.outputs.cuda_major_version == '13'
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+        with:
+          context: .
+          file: ./docker/release/cudaq.wheel.Dockerfile
+          build-args: |
+            base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}
+            release_version=${{ needs.metadata.outputs.cudaq_version }}
+            python_version=${{ matrix.python_version }}
+            build_devel=1
+          outputs: type=local,dest=/tmp/wheels-devel
+
+      - name: Upload cudaq-devel wheel
+        if: >-
+          matrix.python_version == '3.11' &&
+          steps.release_info.outputs.cuda_major_version == '13'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu13-devel-wheel
+          path: /tmp/wheels-devel/cudaq_devel*.whl
+          retention-days: 1
+          if-no-files-found: error
+
+  cudaq_logical_wheels:
+    name: Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
+    needs: [metadata, cudaq_wheels]
+    if: >-
+      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') ||
+      contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') }}
+    strategy:
+      matrix:
+        arch: >-
+          ${{ fromJson(
+          contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') &&
+          (contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') &&
+          '["x86_64", "aarch64"]' || '["x86_64"]') || '["aarch64"]') }}
+        python_version: ['3.11', '3.12', '3.13', '3.14']
+      fail-fast: false
+    uses: ./.github/workflows/cudaq_logical_build.yml
+    with:
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
+      runtime_artifact_name: ${{ matrix.arch }}-cu13-py${{ matrix.python_version }}-wheels
+      devel_artifact_name: ${{ matrix.arch }}-cu13-devel-wheel
+
   cudaq_metapackages:
     name: CUDA-Q metapackages
-    needs: [metadata, cudaq_wheels]
+    needs: [metadata, cudaq_wheels, cudaq_logical_wheels]
+    if: >-
+      ${{ !cancelled() && needs.metadata.result == 'success' &&
+      needs.cudaq_wheels.result == 'success' &&
+      needs.cudaq_logical_wheels.result != 'failure' }}
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
       python_versions: "['3.11', '3.12', '3.13', '3.14']"
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: '*-wheels'
+      logical_wheel_artifacts: 'cudaq_logical-*'
+      cudaq_logical_version: ${{ needs.cudaq_logical_wheels.outputs.logical_version }}
       github_commit: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
 
   macos_artifacts:
@@ -880,7 +974,7 @@ jobs:
 
   wheel_validation_piponly:
     name: Wheel validation, pip only
-    needs: [metadata, cudaq_wheels, cudaq_metapackages]
+    needs: [metadata, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages]
     permissions:
       contents: read
 
@@ -905,10 +999,17 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
 
-      - name: Load wheels
+      - name: Load CUDA-Q wheels
         uses: actions/download-artifact@v8
         with:
           pattern: '*-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load CUDA-Q Logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_logical-*'
           path: /tmp/wheels
           merge-multiple: true
 
@@ -1012,7 +1113,7 @@ jobs:
 
   metapackage_validation_conda:
     name: Python metapackage validation, conda environment
-    needs: [metadata, cudaq_wheels, cudaq_metapackages]
+    needs: [metadata, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
       contents: read
@@ -1042,10 +1143,17 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
 
-      - name: Load wheels
+      - name: Load CUDA-Q wheels
         uses: actions/download-artifact@v8
         with:
           pattern: '*-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load CUDA-Q Logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_logical-*'
           path: /tmp/wheels
           merge-multiple: true
 
@@ -1175,7 +1283,7 @@ jobs:
     name: CUDA-Q Release (draft)
     # Validation jobs stay in needs so the draft runs after them, but the if:
     # does not require them to pass.
-    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
+    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, logical_release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
     # Draft on a requested release title; tolerate validation flakes but require
     # the build jobs (nothing to attach otherwise).
     if: >-
@@ -1184,6 +1292,7 @@ jobs:
       && inputs.github_commit == ''
       && needs.cudaq_installers.result == 'success'
       && needs.cudaq_wheels.result == 'success'
+      && needs.cudaq_logical_wheels.result == 'success'
       && needs.cudaq_metapackages.result == 'success'
     runs-on: ubuntu-latest
 
@@ -1219,6 +1328,20 @@ jobs:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: metapackages
 
+      - name: Download CUDA-Q Logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_logical-*'
+          path: logical-wheels
+          merge-multiple: true
+
+      - name: Download cudaq-devel wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "*-devel-wheel"
+          path: devel-wheels
+          merge-multiple: true
+
       # Wheels are attached as release assets only; PyPI push is manual.
       - name: Create draft release
         run: |
@@ -1233,6 +1356,16 @@ jobs:
               dir=$(basename $fulldir)
               mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
             done
+            if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then
+              echo "::error::No cudaq-logical wheel found for platform ${p} in logical-wheels/."
+              exit 1
+            fi
+            mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
+            if [[ ${p} != "darwin" ]] && ! compgen -G "devel-wheels/cudaq_devel-*_${p}.whl" > /dev/null; then
+              echo "::error::No cudaq-devel wheel found for platform ${p} in devel-wheels/."
+              exit 1
+            fi
+            mv -v devel-wheels/cudaq_devel-*_${p}.whl wheelhouse-${p}/
             zip -r wheelhouse-${p}.zip wheelhouse-${p}
           done
           zip -r metapackages.zip metapackages
@@ -1251,6 +1384,7 @@ jobs:
           # Flag a draft cut despite validation failure so reviewers see it.
           validation_ok=true
           for r in "${{ needs.release_image_validation.result }}" \
+                   "${{ needs.logical_release_image_validation.result }}" \
                    "${{ needs.debug_image_validation.result }}" \
                    "${{ needs.installer_validation.result }}" \
                    "${{ needs.wheel_validation_piponly.result }}" \

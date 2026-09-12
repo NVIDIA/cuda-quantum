@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         description: Optional semicolon-separated list passed to CUDAQ_ENABLE_PROJECTS for cuda-quantum-dev builds.
+      include_logical:
+        required: false
+        type: boolean
+        default: false
+        description: Include the matching Python 3.12 CUDA-Q Logical wheel from this run. The caller must wait for wheel production.
       environment:
         required: false
         type: string
@@ -732,6 +737,44 @@ jobs:
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
+      # Ubuntu 24.04 release images use Python 3.12. `cudaq.logical` is CUDA version-independent.
+      - name: Select CUDA-Q Logical wheel
+        if: inputs.include_logical
+        id: logical_wheel
+        shell: bash
+        env:
+          PLATFORM: ${{ inputs.platforms }}
+        run: |
+          case "$PLATFORM" in
+            linux/amd64) arch=x86_64 ;;
+            linux/arm64) arch=aarch64 ;;
+            *)
+              echo "::error::Logical image packaging requires linux/amd64 or linux/arm64."
+              exit 1
+              ;;
+          esac
+          echo "arch=$arch" >> "$GITHUB_OUTPUT"
+
+      - name: Download CUDA-Q Logical wheel
+        if: inputs.include_logical
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_logical-*-cp312-*manylinux_2_28_${{ steps.logical_wheel.outputs.arch }}.whl
+          path: docker/release/logical-wheels
+          merge-multiple: true
+          skip-decompress: true
+
+      - name: Check CUDA-Q Logical wheel download
+        if: inputs.include_logical
+        shell: bash
+        run: |
+          shopt -s nullglob
+          wheels=(docker/release/logical-wheels/cudaq_logical-*.whl)
+          if [ "${#wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one cudaq.logical wheel, found ${#wheels[@]}."
+            exit 1
+          fi
+
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
@@ -746,6 +789,7 @@ jobs:
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.image_tag }}
             deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
+            include_logical=${{ inputs.include_logical }}
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}

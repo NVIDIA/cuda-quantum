@@ -1,0 +1,128 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+[project]
+name = "cudaq-logical"
+dynamic = ["version"]
+description = "Fault-tolerant logical resource estimation for CUDA-Q (cudaq.logical)."
+authors = [{name = "NVIDIA Corporation & Affiliates"}]
+maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
+readme = { file="README.md", content-type = "text/markdown"}
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+dependencies = [
+  # The base package is runtime-agnostic: the CUDA-Q runtime arrives through
+  # the cu12/cu13 extras below, and the much larger CUDA-Q development SDK
+  # wheel is installed only in the isolated CI build environment. Neither may
+  # ever appear in this list.
+]
+classifiers = [
+  'Intended Audience :: Science/Research',
+  'Intended Audience :: Developers',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'Programming Language :: Python :: 3.13',
+  'Programming Language :: Python :: 3.14',
+  'Topic :: Software Development',
+  'Topic :: Scientific/Engineering',
+]
+
+[project.scripts]
+qlx-opt = "cudaq.logical._cli:qlx_opt"
+qlx-translate = "cudaq.logical._cli:qlx_translate"
+
+[project.urls]
+Homepage = "https://developer.nvidia.com/cuda-q"
+Documentation = "https://nvidia.github.io/cuda-quantum"
+Repository = "https://github.com/NVIDIA/cuda-quantum"
+Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
+
+[project.optional-dependencies]
+# The CUDA-Q runtime is an opt-in extra so that the base wheel stays
+# runtime-agnostic. Release CI stamps both bare entries with ==CUDAQ_VERSION
+# before building (scripts/stamp_cudaq_runtime_dependency.py).
+cu12 = ["cuda-quantum-cu12"]
+cu13 = ["cuda-quantum-cu13"]
+dev = ["pytest>=7.0"]
+
+[build-system]
+requires = [
+  "nanobind>=2.4,<3",
+  "scikit-build-core==0.12.2",
+  "setuptools-scm>=8,<9",
+  "cudaq-devel",
+]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.source-dir = ".."
+cmake.build-type = "Release"
+# Persist the CMake tree at the CUDA-Q Logical subtree root.
+build-dir = "../build"
+wheel.packages = ["cudaq"]
+wheel.exclude = [
+  "cudaq/mlir/dialects/*.td",
+  "cudaq/mlir/_mlir_libs/libnanobind-cudaq.so",
+  "cudaq/mlir/_mlir_libs/libnanobind-cudaq.dylib",
+]
+install.components = ["QLXPythonModules", "QLXPythonWheelRuntimes", "QLXTools"]
+
+[tool.scikit-build.editable]
+# Keep false for this project: rebuild-on-import runs a full cmake --install.
+# Rebuild via `cmake --build ../build` or reinstall the editable package.
+rebuild = false
+
+[tool.scikit-build.cmake.define]
+CMAKE_DISABLE_FIND_PACKAGE_CUDAToolkit = "ON"
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.setuptools_scm"
+
+[tool.setuptools_scm]
+# CUDA-Q Logical versions independently of CUDA-Q.
+root = "../../.."
+tag_regex = '^cudaq-logical/v(?P<version>\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
+git_describe_command = [
+  "git",
+  "describe",
+  "--dirty",
+  "--tags",
+  "--long",
+  "--match",
+  "cudaq-logical/v*",
+]
+fallback_version = "0.0.0"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# Decorated bodies use traced CUDA-Q Logical proxy values that are intentionally more
+# precise than the annotations understood by static Python type checkers.
+[[tool.mypy.overrides]]
+module = "cudaq.logical.codes.*"
+disable_error_code = ["name-defined", "misc", "type-arg", "valid-type"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/cudaq/logical"]
+# Use importlib mode so pytest doesn't insert the source tree into sys.path,
+# which would shadow the build dir's cudaq.logical package (with compiled extensions).
+addopts = "--import-mode=importlib"
+# The packaging tests import the repo's `scripts/` helpers, so the repo root
+# (rootdir/..) must be importable regardless of the invocation directory. It
+# holds no top-level cudaq package, so this cannot shadow the built one.
+pythonpath = [".."]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
