@@ -563,6 +563,7 @@ void SimulatorTensorNetBase<ScalarType>::deallocateStateImpl() {
 template <typename ScalarType>
 void SimulatorTensorNetBase<ScalarType>::setToZeroState() {
   LOG_API_TIME();
+  this->flushPendingQubits();
   const auto numQubits = m_state->getNumQubits();
   m_state.reset();
   // Re-create a zero state of the same size

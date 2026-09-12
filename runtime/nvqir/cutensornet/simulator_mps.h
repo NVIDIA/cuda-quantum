@@ -435,6 +435,7 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
+    this->flushPendingQubits();
 
     if (!m_state || m_state->getNumQubits() == 0)
       return std::make_unique<MPSSimulationState<ScalarType>>(

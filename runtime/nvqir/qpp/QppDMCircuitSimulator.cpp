@@ -305,6 +305,8 @@ protected:
   }
 
   void setToZeroState() override {
+    // `stateDimension` already counts queued allocations.
+    flushPendingQubits();
     state = qpp::cmat::Zero(stateDimension, stateDimension);
     state(0, 0) = 1.0;
   }
