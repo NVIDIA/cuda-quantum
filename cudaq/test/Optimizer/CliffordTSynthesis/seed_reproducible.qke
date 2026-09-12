@@ -9,13 +9,15 @@
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 skip-below=0 seed=42' %s -o %t.1
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 skip-below=0 seed=42' %s -o %t.2
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 skip-below=0 seed=42' %s -o %t.3
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 skip-below=0 seed=1' %s -o %t.4
 // RUN: diff %t.1 %t.2
 // RUN: diff %t.1 %t.3
+// RUN: not diff %t.1 %t.4
 // RUN: FileCheck --input-file=%t.1 %s
 
-// pi/8 at epsilon=1e-3 is an angle whose synthesized word varies from run to
-// run when gridsynth's factoring is unseeded, so an unseeded pass fails the
-// diffs above. With `seed` set, the three runs must be byte-identical.
+// pi/8 at epsilon=1e-3 varies run to run when unseeded. The diffs catch a seed
+// that never reaches gridsynth, the `not diff` a seed that is ignored for a
+// fixed stream.
 
 func.func @seeded() {
   %theta = arith.constant 0.39269908169872414 : f64
