@@ -573,7 +573,10 @@ def __dir__():
 
 def parse_args(args: Sequence[str] | None = None):
     """
-    Parse command line arguments and initialize the CUDA-Q environment.
+    Parse CUDA-Q command-line arguments and initialize the CUDA-Q environment.
+
+    This function must be called explicitly. Importing ``cudaq`` does not
+    inspect or parse command-line arguments.
     """
     import argparse
 
@@ -598,16 +601,6 @@ def parse_args(args: Sequence[str] | None = None):
 
 
 if __name__ == '__main__':
-    parse_args()
-# TODO: remove this, see https://github.com/NVIDIA/cuda-quantum/issues/3863
-elif any(
-        w in ''.join(sys.argv) for w in
-    ['-target', '--target-option', '--emulate', '--cudaq-full-stack-trace']):
-    import warnings
-    warnings.warn(
-        "Will now parse command line arguments. This will be removed in a future "
-        "release, call cudaq.parse_args() explicitly to parse arguments.",
-        DeprecationWarning)
     parse_args()
 else:
     cudaq_runtime.initialize_cudaq()

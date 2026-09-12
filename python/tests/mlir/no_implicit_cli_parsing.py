@@ -1,24 +1,16 @@
 # ============================================================================ #
-# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../ python3 %s --cudaq-full-stack-trace 2> %t; cat %t | FileCheck %s -check-prefix=FAIL
+# Verify that importing CUDA-Q does not consume host application arguments.
+# RUN: PYTHONPATH=../../ python3 %s --target host-application-target | FileCheck %s
 
 import cudaq
 
-cudaq.parse_args()
+print("CUDA-Q import ignored host arguments")
 
-
-@cudaq.kernel
-def simple(numQubits: int) -> int:
-    qubits = cudaq.qvector(numQubits)
-    return 1
-
-
-cudaq.run(simple, [2])
-
-# FAIL: Invalid runtime argument type.
+# CHECK: CUDA-Q import ignored host arguments
