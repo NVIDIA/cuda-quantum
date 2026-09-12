@@ -350,19 +350,9 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
       break;
     }
 
-    // gridsynth would approximate a multiple of pi/4 that a few gates
-    // implement exactly. Upstream legalization misses the ones a later pass
-    // creates. Phase folding combines two Rz(pi/8) into one Rz(pi/4).
-    FloatAttr angleAttr;
-    matchPattern(op.getParameter(), m_Constant(&angleAttr));
-    assert(angleAttr && "validateRotationOperands admits only constant angles");
-    if (auto quarterTurns = classifyCliffordTAngle<cudaq::quake::RzOp>(
-            angleAttr.getValue(), opts.epsilon)) {
-      Value replacement = emitSimplifiedRotation(rewriter, op, *quarterTurns);
-      if (valueSemantics)
-        rewriter.replaceOp(op, replacement);
-      else
-        rewriter.eraseOp(op);
+    // Upstream legalization misses the exact angles a later pass creates.
+    // Phase folding combines two Rz(pi/8) into one Rz(pi/4).
+    if (succeeded(rewriteExactRotation(op, opts.epsilon, rewriter))) {
       ++*numExactRotations;
       return success();
     }
