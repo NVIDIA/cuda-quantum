@@ -156,6 +156,20 @@ static cudaq_status_t gpu_roce_bridge_get_transport_context(
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
 
+  // This provider implements both shapes, and create() has already committed
+  // to one of them: config.unified decides whether the transceiver was built
+  // with the 3-kernel path (use_3kernel above) and whether launch() starts a
+  // monitor thread.  So report only the configured shape, per the contract on
+  // cudaq_bridge_get_transport_context.  Describing the other one on request
+  // was worse than useless: a consumer that selected unified but forgot this
+  // bridge's --unified could take the launch_fn anyway, then watch launch()
+  // start the 3-kernel monitor underneath its unified dispatcher.  Refusing
+  // makes that a wiring error at the consumer instead.
+  if (context_type == UNIFIED && !ctx->config.unified)
+    return CUDAQ_ERR_UNSUPPORTED;
+  if (context_type == RING_BUFFER && ctx->config.unified)
+    return CUDAQ_ERR_UNSUPPORTED;
+
   auto &transceiver = ctx->transceiver;
   if (context_type == RING_BUFFER) {
     cudaq_ringbuffer_t *ringbuffer =

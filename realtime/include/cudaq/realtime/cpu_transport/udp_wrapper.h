@@ -30,6 +30,33 @@
 /// drained).
 ///
 /// Deliberately no `ibverbs`, no CUDA: buildable and runnable anywhere.
+///
+/// UNIFIED MODE
+/// ============
+///
+/// By default this transceiver is an active agent: it moves bytes wire<->ring
+/// on its own two threads and a consumer only ever touches the rings.
+/// cpu_udp_set_unified inverts that. No threads are started, and the consumer's
+/// single thread drives the wire itself through cpu_udp_rx_poll and
+/// cpu_udp_tx_publish. It exists for consumers that already own a dispatch loop
+/// and would otherwise be running two -- in-tree, the library's unified host
+/// dispatcher, reached through the `udp` bridge provider's `--unified` mode.
+///
+/// The ring contract above then changes in two ways that are not optional:
+///
+///   * rx_flags is UNUSED. cpu_udp_rx_poll reports a slot by return value
+///     instead of publishing an address, and a consumer of this shape never
+///     clears an rx flag -- so a flag set here would wedge that slot for good.
+///     Slot occupancy is tracked through tx_flags alone.
+///
+///   * Slot addresses are DERIVED, not carried. The consumer computes
+///     rx_data + slot * page_size itself, and cpu_udp_rx_poll places the
+///     datagram at exactly that address.
+///
+/// Every unified call must come from that one thread, which is what licenses
+/// the absence of locking on the peer address and the RX cursor. Mixing the two
+/// shapes is refused rather than raced: the hooks fail unless unified mode is
+/// set, and setting it is refused once running.
 
 #pragma once
 
@@ -86,11 +113,38 @@ int cpu_udp_connect(cpu_udp_transceiver_t handle, const char *host,
 /// Bound local UDP port (valid after cpu_udp_bind / cpu_udp_connect).
 uint16_t cpu_udp_get_port(cpu_udp_transceiver_t handle);
 
-/// Start the RX and TX pump threads. Returns 1 on success.
+/// Switch to unified (thread-free) mode; see "Unified mode" above. MUST precede
+/// cpu_udp_start, which is what it changes; returns 0 if already running. Once
+/// set, cpu_udp_start starts no pump threads and the two hooks below are the
+/// only data path.
+int cpu_udp_set_unified(cpu_udp_transceiver_t handle, int unified);
+
+/// Start the RX and TX pump threads. Returns 1 on success. Under unified mode
+/// there are no such threads: this only marks the transceiver running.
 int cpu_udp_start(cpu_udp_transceiver_t handle);
 
-/// Stop the pump threads and close the socket. Idempotent.
+/// Stop the pump threads and close the socket. Idempotent. Under unified mode
+/// the consumer MUST stop driving the hooks first -- they use this socket.
 void cpu_udp_close(cpu_udp_transceiver_t handle);
+
+//==============================================================================
+// Unified-mode data plane (see "Unified mode" above; both refused unless
+// cpu_udp_set_unified succeeded)
+//==============================================================================
+
+/// Non-blocking RX. Returns 1 and sets *out_slot when a datagram has been
+/// placed in that RX slot (at rx_data + slot * page_size, zero-filled past the
+/// received bytes). Returns 0 when nothing was ready, when the in-order slot is
+/// still occupied (tx_flags[slot] != 0, i.e. a response still in flight), or
+/// when the datagram exceeded this end's page_size (dropped, warned once).
+/// Never touches rx_flags.
+int cpu_udp_rx_poll(cpu_udp_transceiver_t handle, uint32_t *out_slot);
+
+/// Ship TX slot `slot` to the most recent inbound peer as one full-stride
+/// datagram. Returns 1 on success. Slot-addressed rather than FIFO, so
+/// responses may be published in any order. Does NOT touch tx_flags: the
+/// consumer owns them in this shape.
+int cpu_udp_tx_publish(cpu_udp_transceiver_t handle, uint32_t slot);
 
 //==============================================================================
 // Ring access (addresses are host pointers, same contract as roce_wrapper.h)
