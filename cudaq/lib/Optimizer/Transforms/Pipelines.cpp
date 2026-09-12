@@ -81,6 +81,10 @@ struct FaultTolerantTargetPipelineOptions
       *this, "fail-on-controlled-rotation",
       llvm::cl::desc("Reject controlled rotations left at synthesis."),
       llvm::cl::init(false)};
+  PassOptions::Option<uint64_t> seed{
+      *this, "seed",
+      llvm::cl::desc("Seed for Clifford+T synthesis. 0 leaves it unseeded."),
+      llvm::cl::init(0)};
 };
 } // namespace
 
@@ -177,7 +181,8 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
 }
 
 void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
-                                       bool failOnControlledRotation) {
+                                       bool failOnControlledRotation,
+                                       uint64_t seed) {
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
@@ -203,6 +208,7 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   cudaq::opt::CliffordTSynthesisOptions ctsOpts;
   ctsOpts.epsilon = epsilon;
   ctsOpts.failOnControlledRotation = failOnControlledRotation;
+  ctsOpts.seed = seed;
   pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
   // Synthesis emits the omega global phase of each Clifford+T word. It is
   // uncontrolled here, so lowering erases it. This is the one point where the
@@ -221,7 +227,8 @@ void cudaq::opt::registerFaultTolerantTargetPipeline() {
       "synthesis.",
       [](OpPassManager &pm, const FaultTolerantTargetPipelineOptions &options) {
         cudaq::opt::addCliffordTSynthesis(pm, options.epsilon,
-                                          options.failOnControlledRotation);
+                                          options.failOnControlledRotation,
+                                          options.seed);
       });
 }
 

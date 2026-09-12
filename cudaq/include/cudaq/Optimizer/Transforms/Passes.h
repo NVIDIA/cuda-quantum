@@ -83,8 +83,12 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// idempotent on already-lowered IR, so the duplication is safe.
 ///
 /// Opt-in only. This helper is not added to default target pipelines.
+///
+/// `seed` seeds the randomized factoring in CliffordTSynthesis. 0 leaves it
+/// unseeded, so the synthesized circuit may differ from run to run.
 void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
-                           bool failOnControlledRotation = false);
+                           bool failOnControlledRotation = false,
+                           uint64_t seed = 0);
 /// Append the common pipeline that expands, normalizes, and lowers
 /// `quake.phase` operations before final code generation.
 void addPhaseLifecycle(mlir::OpPassManager &pm);
