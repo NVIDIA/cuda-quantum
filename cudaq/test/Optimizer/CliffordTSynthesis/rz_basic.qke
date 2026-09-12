@@ -16,9 +16,9 @@
 // At epsilon=1e-3 the decomposition emits dozens of T gates.
 // 15 is a safety floor robust to gridsynth variance.
 
-func.func @rz_pi_over_4() {
+func.func @rz_pi_over_16() {
   %q = quake.alloca !quake.ref
-  %a = arith.constant 0.7853981633974483 : f64
+  %a = arith.constant 0.19634954084936207 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
   return
 }
@@ -26,6 +26,6 @@ func.func @rz_pi_over_4() {
 // CHECK-LABEL: func.func private @__cliffordt_rz_
 // CHECK-COUNT-15: quake.t
 
-// CHECK-LABEL: func.func @rz_pi_over_4
+// CHECK-LABEL: func.func @rz_pi_over_16
 // CHECK:         quake.alloca
 // CHECK:         call @__cliffordt_rz_

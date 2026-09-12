@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:              --implicit-check-not='__cliffordt_rz_'
+
+// A multiple of pi/4 lowers to its exact Clifford+T form. No gridsynth helper
+// is outlined, and pi/4 costs one T gate instead of dozens.
+
+func.func @rz_pi_over_4() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @rz_pi_over_4
+// CHECK:         %[[Q:.*]] = quake.alloca
+// CHECK:         quake.phase
+// CHECK:         quake.t %[[Q]]
+// CHECK:         return
+
+func.func @rz_pi_over_2_wire() {
+  %0 = quake.null_wire
+  %a = arith.constant 1.5707963267948966 : f64
+  %1 = quake.rz (%a) %0 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @rz_pi_over_2_wire
+// CHECK:         quake.phase
+// CHECK:         quake.s
+// CHECK:         quake.sink

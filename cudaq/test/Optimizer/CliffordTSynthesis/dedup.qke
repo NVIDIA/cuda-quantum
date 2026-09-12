@@ -17,7 +17,7 @@
 func.func @dedup() {
   %q0 = quake.alloca !quake.ref
   %q1 = quake.alloca !quake.ref
-  %a = arith.constant 0.7853981633974483 : f64
+  %a = arith.constant 0.19634954084936207 : f64
   quake.rz (%a) %q0 : (f64, !quake.ref) -> ()
   quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
   return
