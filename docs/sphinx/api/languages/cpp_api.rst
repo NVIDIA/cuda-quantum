@@ -419,10 +419,6 @@ Platform
 
 .. doxygentypedef:: cudaq::QuantumTask
 
-.. doxygentypedef:: cudaq::QubitConnectivity
-
-.. doxygentypedef:: cudaq::QubitEdge
-
 .. doxygentypedef:: cudaq::KernelExecutionTask
 
 .. doxygenstruct:: cudaq::KernelThunkResultType

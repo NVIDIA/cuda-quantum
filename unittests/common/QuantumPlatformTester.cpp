@@ -495,7 +495,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   TestPlatform platform;
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
-  expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
   expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
                          "get_remote_capabilities");
 }

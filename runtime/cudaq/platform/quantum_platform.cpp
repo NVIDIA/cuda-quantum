@@ -236,10 +236,6 @@ void quantum_platform::finalizeExecutionContext(ExecutionContext &ctx) const {
   platformQPU->finalizeExecutionContext(ctx);
 }
 
-std::optional<QubitConnectivity> quantum_platform::connectivity() {
-  return platformQPUs.front()->getConnectivity();
-}
-
 bool quantum_platform::is_simulator(std::size_t qpu_id) const {
   validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
   if (hasRuntimeEndpointOverride(qpu_id)) {
@@ -273,12 +269,6 @@ bool quantum_platform::supports_jit(std::size_t qpu_id) const {
     return runtimeEndpoints[qpu_id]->supportsJit;
   // A QPU always consumes the JIT artifact.
   return true;
-}
-
-std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "get_num_qubits");
-  return platformQPUs[qpu_id]->getNumQubits();
 }
 
 bool quantum_platform::supports_explicit_measurements(

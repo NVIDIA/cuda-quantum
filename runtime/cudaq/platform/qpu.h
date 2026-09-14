@@ -35,8 +35,8 @@ typedef sum_op<spin_handler> spin_op;
 
 /// A CUDA-Q QPU is an abstraction on the quantum processing unit which executes
 /// quantum kernel expressions. The QPU exposes certain information about the
-/// QPU being targeting, such as the number of available qubits, the logical ID
-/// for this QPU in a set of available QPUs, and its qubit connectivity. The QPU
+/// QPU being targeted, such as the compile target of the QPU, the logical ID
+/// for this QPU in a set of available QPUs and the current noise model. The QPU
 /// keeps track of an execution queue for enqueuing asynchronous tasks that
 /// execute quantum kernel expressions. The QPU also tracks the client-provided
 /// execution context to enable quantum kernel related tasks such as sampling
@@ -47,8 +47,6 @@ class QPU : public registry::RegisteredType<QPU> {
 protected:
   /// The logical id of this QPU in the platform set of QPUs
   std::size_t qpu_id = 0;
-  std::size_t numQubits = 30;
-  std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
   std::unique_ptr<QuantumExecutionQueue> execution_queue;
 
   /// @brief Noise model specified for QPU execution.
@@ -80,10 +78,6 @@ public:
   virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
   virtual const noise_model *getNoiseModel() { return noiseModel; }
 
-  /// Return the number of qubits
-  std::size_t getNumQubits() { return numQubits; }
-  /// Return the qubit connectivity
-  auto getConnectivity() { return connectivity; }
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
