@@ -57,6 +57,7 @@ struct RotationOptions {
   int32_t maxFactoringRestarts;
   int64_t maxOdgpScanSteps;
   int32_t retryCount;
+  std::optional<uint64_t> seed;
   std::string onDynamicAngle;
   bool failOnControlledRotation;
   double skipBelow;
@@ -221,6 +222,7 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
     synthOpts.maxFactoringRestarts =
         static_cast<uint32_t>(opts.maxFactoringRestarts);
     synthOpts.maxOdgpScanSteps = saturatingShl(opts.maxOdgpScanSteps, attempt);
+    synthOpts.seed = opts.seed;
     circuit = cudaq::synth::gridsynth(thetaReal, epsilonReal, synthOpts);
     if (llvm::succeeded(circuit))
       break;
@@ -407,8 +409,11 @@ public:
                << " max-factoring-iterations=" << maxFactoringIterations
                << " max-candidate-iterations=" << maxCandidateIterations
                << " max-factoring-restarts=" << maxFactoringRestarts
-               << " max-odgp-scan-steps=" << maxOdgpScanSteps << " retry-count="
-               << retryCount << " on-dynamic-angle=" << onDynamicAngle
+               << " max-odgp-scan-steps=" << maxOdgpScanSteps
+               << " retry-count=" << retryCount << " seed="
+               << (seed == 0 ? std::string("unset")
+                             : std::to_string(seed.getValue()))
+               << " on-dynamic-angle=" << onDynamicAngle
                << " skip-below=" << skipBelow << '\n');
 
     // Validate the numeric options. gridsynth needs a positive epsilon
@@ -438,12 +443,18 @@ public:
         cudaq::synth::details::required_precision(
             cudaq::synth::Real(epsilon.getValue())));
 
+    // 0 means unseeded.
+    std::optional<uint64_t> synthSeed;
+    if (seed != 0)
+      synthSeed = seed.getValue();
+
     RotationOptions opts{epsilon,
                          maxFactoringIterations,
                          maxCandidateIterations,
                          maxFactoringRestarts,
                          maxOdgpScanSteps,
                          retryCount,
+                         synthSeed,
                          onDynamicAngle.getValue(),
                          failOnControlledRotation,
                          skipBelow};
