@@ -149,6 +149,17 @@ jobs:
           rm -rf "$target_folder"
           unzip -d "$target_folder" "${{ steps.artifacts.outputs.docs_archive }}"
 
+          # Also place llms.txt/llms-full.txt at the site root, where the
+          # convention expects them and their root-relative links resolve.
+          if [ "$target_folder" == "latest" ]; then
+            for llms_file in llms.txt llms-full.txt; do
+              if [ -f "$target_folder/$llms_file" ]; then
+                cp "$target_folder/$llms_file" "$llms_file"
+                git add "$llms_file"
+              fi
+            done
+          fi
+
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
 
