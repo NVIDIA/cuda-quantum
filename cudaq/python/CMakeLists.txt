@@ -26,6 +26,14 @@
 include(HandleLLVMOptions)
 include(AddMLIRPython)
 
+# The CAPI aggregate below is built through MLIR's add_mlir_aggregate, which
+# routes into LLVM's llvm_add_library and stamps every shared library with
+# SOVERSION ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} on Linux. Consumers
+# of the wheel (and CUDA-Q's own runtime lookup in LinkedLibraryHolder) load
+# these by their unversioned name, so drop the version from the file name and
+# the soname, as python/CMakeLists.txt does for the modules built there.
+set(CMAKE_PLATFORM_NO_VERSIONED_SONAME 1)
+
 # Specifies that all MLIR packages are co-located under the cudaq top level
 # package (the API has been embedded in a relocatable way). Matches the
 # prefix used by python/extension/CMakeLists.txt so both halves assemble into
