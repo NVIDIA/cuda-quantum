@@ -237,6 +237,20 @@ latest
             .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](../../using/examples/rotation_synthesis.html){.reference
+        .internal}
+        -   [Synthesizing a
+            rotation](../../using/examples/rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](../../using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](../../using/examples/rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](../../using/examples/rotation_synthesis.html#dependencies){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1841,6 +1855,18 @@ latest
             -   [Trajectory and Selection
                 Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth
+            Submodule](../../api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -2505,7 +2531,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![b3ba8a3fde8443318e4c78502da29deb](../../_images/speedup.png){.no-scaled-link
+![4c7e6c0d1536420aaf0c0205c5196031](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2519,9 +2545,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![e863202e19bf4e7d8f4eb661197132ed](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![bfec733b0ca7480fb542fd80024f4625](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![5f24a72f2ad34b039cc6a7ba4cbd410d](../../_images/efficiency.jpeg){.no-scaled-link
+![5c7d32c64ed041dfb2569d6b611f6e1b](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

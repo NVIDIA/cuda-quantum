@@ -215,6 +215,19 @@ latest
             .internal}
         -   [Limitations](dem_from_kernel.html#limitations){.reference
             .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](rotation_synthesis.html){.reference .internal}
+        -   [Synthesizing a
+            rotation](rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](rotation_synthesis.html#dependencies){.reference
+            .internal}
     -   [Constructing Operators](#){.current .reference .internal}
         -   [Constructing Spin
             Operators](#constructing-spin-operators){.reference
@@ -1816,6 +1829,18 @@ latest
             -   [Trajectory and Selection
                 Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth
+            Submodule](../../api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1910,7 +1935,7 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](dem_from_kernel.html "Detector Error Models"){.btn
+Previous](rotation_synthesis.html "Rotation Synthesis (Clifford+T)"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn
@@ -2052,7 +2077,7 @@ C++
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](dem_from_kernel.html "Detector Error Models"){.btn
+Previous](rotation_synthesis.html "Rotation Synthesis (Clifford+T)"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn

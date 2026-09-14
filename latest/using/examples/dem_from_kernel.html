@@ -31,7 +31,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Operators" href="operators.html" />
+    <link rel="next" title="Rotation Synthesis (Clifford+T)" href="rotation_synthesis.html" />
     <link rel="prev" title="Pre-Trajectory Sampling with Batch Execution (PTSBE)" href="ptsbe.html" /> 
 </head>
 
@@ -221,6 +221,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#dem-options">DEM Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rotation_synthesis.html">   Rotation Synthesis (Clifford+T)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#synthesizing-a-rotation">Synthesizing a rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#estimating-the-t-count-of-a-kernel">Estimating the T count of a kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#choosing-epsilon">Choosing epsilon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#dependencies">Dependencies</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="operators.html">   Constructing Operators</a><ul>
@@ -1033,6 +1040,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#synth-submodule">Synth Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.gridsynth"><code class="docutils literal notranslate"><span class="pre">gridsynth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.rz_error"><code class="docutils literal notranslate"><span class="pre">rz_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.CliffordTSequence"><code class="docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -1094,7 +1107,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="ptsbe.html" class="btn btn-neutral float-left" title="Pre-Trajectory Sampling with Batch Execution (PTSBE)" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="operators.html" class="btn btn-neutral float-right" title="Operators" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="rotation_synthesis.html" class="btn btn-neutral float-right" title="Rotation Synthesis (Clifford+T)" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -1537,7 +1550,7 @@ hardware-decomposed circuit.</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="ptsbe.html" class="btn btn-neutral float-left" title="Pre-Trajectory Sampling with Batch Execution (PTSBE)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="operators.html" class="btn btn-neutral float-right" title="Operators" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="rotation_synthesis.html" class="btn btn-neutral float-right" title="Rotation Synthesis (Clifford+T)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

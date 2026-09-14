@@ -220,6 +220,13 @@
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/rotation_synthesis.html">   Rotation Synthesis (Clifford+T)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#synthesizing-a-rotation">Synthesizing a rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel">Estimating the T count of a kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#choosing-epsilon">Choosing epsilon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#dependencies">Dependencies</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -1030,6 +1037,12 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#synth-submodule">Synth Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.synth.gridsynth"><code class="docutils literal notranslate"><span class="pre">gridsynth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.synth.rz_error"><code class="docutils literal notranslate"><span class="pre">rz_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.synth.CliffordTSequence"><code class="docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/default_ops.html">Quantum Operations</a><ul>
@@ -1303,6 +1316,8 @@
         <li><a href="api/languages/python_api.html#cudaq.SampleResult.clear">(cudaq.SampleResult attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence">CliffordTSequence (class in cudaq.synth)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA">COBYLA (class in cudaq.optimizers)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.coefficient">coefficient (cudaq.operators.boson.BosonOperatorTerm property)</a>
@@ -2016,10 +2031,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channel11num_targetsE">cudaq::phase_flip_channel::num_targets (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq10product_opE">cudaq::product_op (C++ class)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq10product_opE">cudaq::product_op (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10product_op5beginEv">cudaq::product_op::begin (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op12canonicalizeERKNSt3setINSt6size_tEEE">cudaq::product_op::canonicalize (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op12canonicalizeEv">[1]</a>
@@ -3008,6 +3023,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent">GradientDescent (class in cudaq.optimizers)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.gridsynth">gridsynth() (in module cudaq.synth)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -3301,6 +3318,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel">NoiseModel (class in cudaq)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence.normalized">normalized() (cudaq.synth.CliffordTSequence method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.num_available_gpus">num_available_gpus() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.num_columns">num_columns (cudaq.ComplexMatrix attribute)</a>
@@ -3493,10 +3512,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.resolve_captured_arguments">resolve_captured_arguments() (cudaq.PyKernelDecorator method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Resources">Resources (class in cudaq)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.EstimateResult.resources">resources (cudaq.EstimateResult property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.right_multiply">right_multiply (cudaq.SuperOperator attribute)</a>
@@ -3508,6 +3527,8 @@
       <li><a href="api/languages/python_api.html#cudaq.run_async">run_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.RydbergHamiltonian">RydbergHamiltonian (class in cudaq.operators)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.rz_error">rz_error() (in module cudaq.synth)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -3597,6 +3618,8 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence.t_count">t_count (cudaq.synth.CliffordTSequence property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.t_depth">t_depth (cudaq.Resources property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target">Target (class in cudaq)</a>
@@ -3645,6 +3668,8 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.to_json">(cudaq.operators.spin.SpinOperatorTerm attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence.to_kernel">to_kernel() (cudaq.synth.CliffordTSequence method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.to_matrix">to_matrix (cudaq.operators.boson.BosonOperator attribute)</a>
 
       <ul>

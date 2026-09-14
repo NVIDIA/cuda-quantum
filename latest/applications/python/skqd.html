@@ -226,6 +226,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/rotation_synthesis.html">   Rotation Synthesis (Clifford+T)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#synthesizing-a-rotation">Synthesizing a rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel">Estimating the T count of a kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#choosing-epsilon">Choosing epsilon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#dependencies">Dependencies</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -1036,6 +1043,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#synth-submodule">Synth Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.gridsynth"><code class="docutils literal notranslate"><span class="pre">gridsynth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.rz_error"><code class="docutils literal notranslate"><span class="pre">rz_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.CliffordTSequence"><code class="docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -1462,12 +1475,12 @@ Generating Krylov state U^11...
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code></p>
 <p>This substantial acceleration comes from: - <strong>Parallel Pauli string evaluation</strong> across thousands of basis states simultaneously - <strong>Vectorized matrix element computation</strong> leveraging CUDA cores - <strong>GPU-optimized sparse linear algebra</strong> via cuSPARSE library for eigenvalue solving</p>
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
-<p><img alt="b3ba8a3fde8443318e4c78502da29deb" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
+<p><img alt="4c7e6c0d1536420aaf0c0205c5196031" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
 </section>
 <section id="Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">
 <h2>Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node<a class="headerlink" href="#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node" title="Permalink to this heading">¶</a></h2>
 <p>The plots below were generated using <code class="docutils literal notranslate"><span class="pre">distributed_eigsh()</span></code> with the Hamiltonian of an active site of a GPCR (G protein-coupled receptor) molecule. This demonstrates scaling behavior on a problem with a much larger computational subspace than the 22-qubit demo above.</p>
-<div style="display: flex; gap: 10px;"><p><img alt="e863202e19bf4e7d8f4eb661197132ed" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="5f24a72f2ad34b039cc6a7ba4cbd410d" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
+<div style="display: flex; gap: 10px;"><p><img alt="bfec733b0ca7480fb542fd80024f4625" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="5c7d32c64ed041dfb2569d6b611f6e1b" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
 </div><section id="Saving-Hamiltonian-Data">
 <h3>Saving Hamiltonian Data<a class="headerlink" href="#Saving-Hamiltonian-Data" title="Permalink to this heading">¶</a></h3>
 <p>To run the multi-GPU solver, we first save the Hamiltonian data (pauli words, coefficients) and the sampled basis states so they can be loaded by each MPI rank.</p>
