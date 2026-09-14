@@ -36,8 +36,8 @@ function retry {
 #   . "$(dirname "$0")/deps_common.sh"
 
 CUDAQ_REALTIME_DOCA_VERSION=3.3.0
-CUDAQ_REALTIME_HSB_REPO=https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git
-CUDAQ_REALTIME_HSB_REF=2.6.0-EA2
+CUDAQ_REALTIME_HSB_REPO=${CUDAQ_REALTIME_HSB_REPO:-https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git}
+CUDAQ_REALTIME_HSB_REF=${CUDAQ_REALTIME_HSB_REF:-2.6.0-EA2}
 
 # Major CUDA version reported by nvcc, e.g., 13.
 cudaq_realtime_cuda_major() {
@@ -151,6 +151,13 @@ cudaq_realtime_build_hsb() {
   git clone --depth 1 --branch "$CUDAQ_REALTIME_HSB_REF" \
     "$CUDAQ_REALTIME_HSB_REPO" "$HSB_ROOT"
 
+  # The CUDA-free HololinkRoce leaf exports its package during configure, but
+  # no target below depends on it, so name it explicitly when the ref has it.
+  local hololink_roce_targets=()
+  if [ -d "$HSB_ROOT/src/hololink/transport/roce" ]; then
+    hololink_roce_targets=(hololink_transport_roce)
+  fi
+
   if [ "${CUDAQ_REALTIME_HSB_STRIP_OPERATORS:-0}" = 1 ]; then
     # Strip operators we don't need to avoid configure failures from missing deps
     sed -i '/add_subdirectory(audio_packetizer)/d; /add_subdirectory(compute_crc)/d;
@@ -172,6 +179,7 @@ cudaq_realtime_build_hsb() {
     -DHOLOLINK_BUILD_EXAMPLES=OFF \
     -DHOLOLINK_BUILD_EMULATOR=OFF
   cmake --build "$HSB_BUILD" \
-    --target roce_receiver gpu_roce_transceiver hololink_core
+    --target roce_receiver gpu_roce_transceiver hololink_core \
+    "${hololink_roce_targets[@]}"
   echo "holoscan-sensor-bridge built at $HSB_BUILD"
 }
