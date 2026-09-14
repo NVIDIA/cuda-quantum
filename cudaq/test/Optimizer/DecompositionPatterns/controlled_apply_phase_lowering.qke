@@ -6,61 +6,122 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// Stage 3: start with the post-specialization IR from the preceding test.
-// LowerPhase moves a phase with one control onto that control, and a phase
-// with two controls onto the final control under the preceding predicate.
+// This test starts with IR captured from the specialization pipeline exercised
+// by controlled_apply_phase_specialization.qke. LowerPhase moves a phase with
+// one control onto that control, and a phase with two controls onto the final
+// control under the preceding predicate.
 // RUN: split-file %s %t
 // RUN: cudaq-opt --lower-phase --canonicalize %t/specialized.qke > %t.lowered
 // RUN: FileCheck %s --check-prefix=LOWERED \
 // RUN:   --implicit-check-not=quake.phase < %t.lowered
 // RUN: CircuitCheck --input=%t.lowered %t/reference.qke
 
-// LOWERED-LABEL: func.func @controlled_caller(
+// LOWERED-LABEL: func.func @controlled_calls(
 // LOWERED-SAME: %[[OUTER:.*]]: !quake.ref, %[[INNER:.*]]: !quake.ref,
 // LOWERED-SAME: %[[TARGET:.*]]: !quake.ref)
-// LOWERED-DAG: %[[THETA:.*]] = arith.constant 2.900000e-01 : f64
-// LOWERED-DAG: %[[AXIS:.*]] = arith.constant 1.230000e-01 : f64
 // LOWERED: quake.phased_rx {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
+// LOWERED: quake.phased_rx {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
+// LOWERED: quake.r1 {{.*}} %[[OUTER]]
+// LOWERED: quake.r1 {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[INNER]]
 // LOWERED: quake.rz {{.*}} {{\[}}%[[OUTER]], %[[INNER]]{{\]}} %[[TARGET]]
-// LOWERED: quake.r1 (%[[AXIS]]) %[[OUTER]]
-// LOWERED: quake.r1 (%[[THETA]]) {{\[}}%[[OUTER]]{{\]}} %[[INNER]]
+// LOWERED: quake.r1 {{.*}} %[[OUTER]]
+// LOWERED: quake.r1 {{.*}} %[[OUTER]]
+// LOWERED: quake.r1 {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[INNER]]
+// LOWERED: quake.r1 {{.*}} %[[OUTER]]
 // LOWERED: return
 
 //--- specialized.qke
 
-func.func @controlled_caller(%outer: !quake.ref, %inner: !quake.ref,
-                             %target: !quake.ref) {
-  %theta = arith.constant 2.900000e-01 : f64
-  %axis = arith.constant 1.230000e-01 : f64
-  %pi_2 = arith.constant 1.5707963267948966 : f64
-  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
-  quake.phased_rx (%theta, %axis) [%outer] %target
-      : (f64, f64, !quake.ref, !quake.ref) -> ()
-  quake.rz (%theta) [%outer, %inner] %target
-      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
-  quake.phase (%axis) [%outer] %target
-      : (f64, !quake.ref, !quake.ref) -> ()
-  quake.phase (%theta) [%outer, %inner] %target
-      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
-  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
-  return
+module {
+  func.func @controlled_calls(%arg0: !quake.ref, %arg1: !quake.ref,
+                              %arg2: !quake.ref) {
+    %cst = arith.constant -3.085000e-01 : f64
+    %cst_0 = arith.constant 3.085000e-01 : f64
+    %cst_1 = arith.constant 4.560000e-01 : f64
+    %cst_2 = arith.constant 1.230000e-01 : f64
+    %cst_3 = arith.constant 7.850000e-01 : f64
+    %cst_4 = arith.constant 0.78539816339744828 : f64
+    %cst_5 = arith.constant -0.78539816339744828 : f64
+    %cst_6 = arith.constant -1.5707963267948966 : f64
+    %cst_7 = arith.constant 2.895000e-01 : f64
+    %cst_8 = arith.constant 2.900000e-01 : f64
+    %cst_9 = arith.constant 1.5707963267948966 : f64
+    %cst_10 = arith.constant 3.1415926535897931 : f64
+    %cst_11 = arith.constant 0.000000e+00 : f64
+    quake.phased_rx (%cst_9, %cst_9) [%arg0] %arg2
+        : (f64, f64, !quake.ref, !quake.ref) -> ()
+    quake.phased_rx (%cst_10, %cst_11) [%arg0] %arg2
+        : (f64, f64, !quake.ref, !quake.ref) -> ()
+    quake.phase (%cst_9) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.phase (%cst_8) [%arg0, %arg1] %arg2
+        : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_1) [%arg0, %arg1] %arg2
+        : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.s [%arg0] %arg2 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%arg0, %arg1] %arg2
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.ry (%cst_5) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.x [%arg0, %arg1] %arg2
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.ry (%cst_4) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_6) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.phase (%cst_5) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_3) [%arg0, %arg1] %arg2
+        : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.s [%arg0] %arg2 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%arg0, %arg1] %arg2
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.ry (%cst_4) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.x [%arg0, %arg1] %arg2
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.ry (%cst_5) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_6) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.phase (%cst_5) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_2) [%arg0, %arg1] %arg2
+        : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.phase (%cst_7) [%arg0, %arg1] %arg2
+        : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.s [%arg0] %arg2 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%arg0, %arg1] %arg2
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.ry (%cst) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.x [%arg0, %arg1] %arg2
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.ry (%cst_0) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_6) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.phase (%cst_5) [%arg0] %arg2
+        : (f64, !quake.ref, !quake.ref) -> ()
+    return
+  }
 }
 
 //--- reference.qke
 
-func.func @controlled_caller(%outer: !quake.ref, %inner: !quake.ref,
-                             %target: !quake.ref) {
-  %theta = arith.constant 2.900000e-01 : f64
-  %axis = arith.constant 1.230000e-01 : f64
-  %pi_2 = arith.constant 1.5707963267948966 : f64
-  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
-  quake.phased_rx (%theta, %axis) [%outer] %target
-      : (f64, f64, !quake.ref, !quake.ref) -> ()
-  quake.rz (%theta) [%outer, %inner] %target
-      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
-  quake.r1 (%axis) %outer : (f64, !quake.ref) -> ()
-  quake.r1 (%theta) [%outer] %inner
+func.func @controlled_calls(%outer: !quake.ref, %inner: !quake.ref,
+                            %target: !quake.ref) {
+  %exp_theta = arith.constant 2.900000e-01 : f64
+  %u3_theta = arith.constant 7.850000e-01 : f64
+  %u3_phi = arith.constant 1.230000e-01 : f64
+  %u3_lambda = arith.constant 4.560000e-01 : f64
+  %rx_theta = arith.constant 6.170000e-01 : f64
+  quake.h [%outer] %target : (!quake.ref, !quake.ref) -> ()
+  quake.r1 (%exp_theta) [%outer] %inner
       : (f64, !quake.ref, !quake.ref) -> ()
-  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+  quake.u3 (%u3_theta, %u3_phi, %u3_lambda) [%outer, %inner] %target
+      : (f64, f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.rx (%rx_theta) [%outer, %inner] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
   return
 }

@@ -6,9 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// Stage 1: phase-producing decompositions must still run when their helper is
-// reached through a controlled quake.apply. The pattern-specific tests cover
-// each rewrite's unitary; this test covers the module-wide apply guard.
+// Test that phase-producing decompositions still run when their helpers are
+// reached through controlled `quake.apply` operations.
 // RUN: cudaq-opt \
 // RUN:   -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,ExpPauliDecomposition,U3ToRotations,CRxToCX})' \
 // RUN:   %s | FileCheck %s
