@@ -26,6 +26,9 @@
 include(HandleLLVMOptions)
 include(AddMLIRPython)
 
+# Don't version the soname of the Python libraries.
+set(CMAKE_PLATFORM_NO_VERSIONED_SONAME 1)
+
 # Specifies that all MLIR packages are co-located under the cudaq top level
 # package (the API has been embedded in a relocatable way). Matches the
 # prefix used by python/extension/CMakeLists.txt so both halves assemble into
