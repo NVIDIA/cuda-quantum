@@ -26,6 +26,8 @@ add_synthesis_test(synthesis_integer_test       Math/IntegerTest.cpp)
 add_synthesis_test(synthesis_real_test          Math/RealTest.cpp)
 add_synthesis_test(synthesis_odgp_test          Math/Grid/OdgpTest.cpp)
 add_synthesis_test(synthesis_zsqrt2_test        Math/Ring/Zsqrt2Test.cpp)
+add_synthesis_test(synthesis_zomega_test        Math/Ring/ZomegaTest.cpp)
+add_synthesis_test(synthesis_unitary_test       Math/UnitaryTest.cpp)
 add_synthesis_test(synthesis_stepper_test       Support/StepperTest.cpp)
 add_synthesis_test(synthesis_clifford_test      Circuit/CliffordTest.cpp)
 add_synthesis_test(synthesis_normalization_test Circuit/NormalizationTest.cpp)
@@ -42,6 +44,8 @@ add_custom_target(check-cudaq-synth-unittests
     synthesis_real_test
     synthesis_odgp_test
     synthesis_zsqrt2_test
+    synthesis_zomega_test
+    synthesis_unitary_test
     synthesis_stepper_test
     synthesis_clifford_test
     synthesis_normalization_test
