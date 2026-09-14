@@ -20,6 +20,7 @@
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
 #include "llvm/Support/LogicalResult.h"
 
 namespace {
@@ -775,6 +776,62 @@ TEST(GridsynthDeepEpsilonTest, SynthesizesOddMultiplesOfPiOverFour) {
     EXPECT_LE(Real(err_str), Real(epsilon_str))
         << "error " << err_str << " exceeds epsilon " << epsilon_str
         << " for theta=" << theta;
+  }
+}
+
+// ============================================================
+// Unit orbit selection
+// ============================================================
+
+// pi/8 at 1e-3 used to come back as 78 or 88 gates (same z, same T-count)
+// according to which member of the unit orbit of w the solver returned.
+static constexpr const char *kPiOverEight =
+    "0.392699081698724154807830422909937860524646174921888227621868074"
+    "038477050785776124828504353";
+
+TEST(GridsynthOrbitTest, EveryOrbitMemberHasTheSameError) {
+  llvm::FailureOr<cudaq::synth::DOmegaUnitary> u =
+      cudaq::synth::gridsynth_unitary(Real(kPiOverEight), Real("1e-3"));
+  ASSERT_TRUE(llvm::succeeded(u));
+
+  const double expected = std::stod(cudaq::synth::rz_gate_sequence_error(
+      kPiOverEight, cudaq::synth::kmm_synthesize(*u)));
+  for (int32_t j = 0; j < 8; j++) {
+    cudaq::synth::DOmegaUnitary member(
+        u->z(), cudaq::synth::mul_by_omega_power(u->w(), j), 0);
+    EXPECT_DOUBLE_EQ(std::stod(cudaq::synth::rz_gate_sequence_error(
+                         kPiOverEight, cudaq::synth::kmm_synthesize(member))),
+                     expected)
+        << "j=" << j;
+  }
+}
+
+// No orbit member beats the one the search returns.
+TEST(GridsynthOrbitTest, SelectedMemberIsMinimalByGateCount) {
+  llvm::FailureOr<cudaq::synth::DOmegaUnitary> u =
+      cudaq::synth::gridsynth_unitary(Real(kPiOverEight), Real("1e-3"));
+  ASSERT_TRUE(llvm::succeeded(u));
+  Circuit selected = cudaq::synth::kmm_synthesize(*u);
+
+  for (int32_t j = 0; j < 8; j++) {
+    Circuit member = cudaq::synth::kmm_synthesize(cudaq::synth::DOmegaUnitary(
+        u->z(), cudaq::synth::mul_by_omega_power(u->w(), j), 0));
+    EXPECT_GE(member.t_count(), selected.t_count()) << "j=" << j;
+    if (member.t_count() == selected.t_count())
+      EXPECT_GE(member.size(), selected.size()) << "j=" << j;
+  }
+}
+
+// Seeds still reach different grid points, so the circuit varies.
+TEST(GridsynthOrbitTest, ReproducerCostIsStableAcrossSeeds) {
+  cudaq::synth::GridsynthOptions options;
+  for (uint64_t seed : {1, 2, 3, 4, 5, 6, 7, 8}) {
+    options.seed = seed;
+    llvm::FailureOr<Circuit> result =
+        cudaq::synth::gridsynth(Real(kPiOverEight), Real("1e-3"), options);
+    ASSERT_TRUE(llvm::succeeded(result)) << "seed=" << seed;
+    EXPECT_EQ(result->t_count(), 32) << "seed=" << seed;
+    EXPECT_EQ(result->size(), 78) << "seed=" << seed << " circuit=" << *result;
   }
 }
 

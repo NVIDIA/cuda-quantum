@@ -125,6 +125,12 @@ struct GridsynthStats {
   details::Relaxed<int64_t> diophantine_calls = 0;
   details::Relaxed<int64_t> diophantine_successes = 0;
 
+  /// Members of the unit orbit of w (`omega^j * w`, j = 0..7) that tied the
+  /// selected unitary on T-count, so gate count decided between them. Zero
+  /// means T-count alone picked a unique winner. A high count is how much
+  /// Clifford content the scan is in a position to save.
+  details::Relaxed<int64_t> orbit_t_count_ties = 0;
+
   /// Integer-factoring attempts, and how many returned a factor.
   /// `factoring_restarts` counts re-rolls on a composite a previous attempt
   /// failed to split.
