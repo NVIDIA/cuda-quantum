@@ -94,17 +94,43 @@ TEST(DOmegaUnitaryRungTest, BonusRungMatchesOutOfPlace) {
   EXPECT_GT(compared, 0) << "no input satisfied the rung's precondition";
 }
 
-/// The peel loop reuses one scratch value across every rung.
+/// The peel loop reuses one scratch value across every rung, so each rung must
+/// treat `scratch` as write-only. Every pair is screened for the rung's own
+/// divisibility precondition first, exactly as the two tests above do.
 TEST(DOmegaUnitaryRungTest, RungsIgnoreIncomingScratchContents) {
-  ZOmega dirty(Integer(7), Integer(-11), Integer(13), Integer(-17));
-  ZOmega clean;
+  int compared = 0;
   for (const DOmegaUnitary &u : sample_unitaries()) {
-    DOmegaUnitary from_clean = u;
-    DOmegaUnitary from_dirty = u;
-    from_clean.mul_by_H_and_T_power_from_left_in_place(1, clean);
-    from_dirty.mul_by_H_and_T_power_from_left_in_place(1, dirty);
-    EXPECT_TRUE(from_clean == from_dirty);
+    for (int32_t m = 0; m < 8; ++m) {
+      DOmegaUnitary turned = u.mul_by_T_power_from_left(m);
+      const ZOmega &z = turned.z().u();
+      const ZOmega &w = turned.w().u();
+
+      ZOmega clean;
+      ZOmega dirty(Integer(7), Integer(-11), Integer(13), Integer(-17));
+
+      if (divisible_by_delta(z + w) && divisible_by_delta(z - w)) {
+        DOmegaUnitary from_clean = u;
+        DOmegaUnitary from_dirty = u;
+        from_clean.mul_by_H_and_T_power_from_left_in_place(m, clean);
+        from_dirty.mul_by_H_and_T_power_from_left_in_place(m, dirty);
+        EXPECT_TRUE(from_clean == from_dirty) << "bonus rung, m = " << m;
+        ++compared;
+      }
+
+      clean = ZOmega();
+      dirty = ZOmega(Integer(7), Integer(-11), Integer(13), Integer(-17));
+
+      if (u.k() >= 1 && divisible_by_two(z + w) && divisible_by_two(z - w)) {
+        DOmegaUnitary from_clean = u;
+        DOmegaUnitary from_dirty = u;
+        from_clean.reduce_by_H_and_T_power_from_left(m, clean);
+        from_dirty.reduce_by_H_and_T_power_from_left(m, dirty);
+        EXPECT_TRUE(from_clean == from_dirty) << "reducing rung, m = " << m;
+        ++compared;
+      }
+    }
   }
+  EXPECT_GT(compared, 0) << "no input satisfied either rung's precondition";
 }
 
 } // namespace
