@@ -5,6 +5,11 @@ on:
   # triggers the workflow.
   workflow_dispatch:
     inputs:
+      run_validation_after:
+        type: boolean
+        description: When this deployment completes successfully, also trigger the Validation workflow.
+        required: false
+        default: true
       update_registry_cache:
         type: boolean
         description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
@@ -33,11 +38,6 @@ on:
       include_macos:
         type: boolean
         description: Build and include macOS wheels and installer.
-        required: false
-        default: true
-      run_validation_after:
-        type: boolean
-        description: When this deployment completes successfully, also trigger the Validation workflow.
         required: false
         default: true
   workflow_run:
