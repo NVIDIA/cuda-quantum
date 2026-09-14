@@ -14,6 +14,10 @@ config:
   platform-qpu: remote_rest
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-rest-qpu"]
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
   # Add preprocessor defines to compilation

@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A missing device file must not crash the mapper.
+// RUN: cudaq-opt '--qubit-mapping=device=file(/nonexistent/does_not_exist.txt)' %s | FileCheck %s
+// RUN: not cudaq-opt '--qubit-mapping=device=file(/nonexistent/does_not_exist.txt) raise-fatal-errors=true' %s
+
+quake.wire_set @wires[2147483647]
+
+// CHECK-LABEL: func.func @bell
+// CHECK: quake.borrow_wire @wires[0]
+// CHECK: quake.borrow_wire @wires[1]
+func.func @bell() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %1#0 : !quake.wire
+  quake.return_wire %1#1 : !quake.wire
+  return
+}

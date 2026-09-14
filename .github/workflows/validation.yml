@@ -1,7 +1,11 @@
-# Runs automatically after Deployments completes, or on demand via
+# Runs automatically after Deployments completes (see its trigger_validation
+# job, which dispatches this with an explicit ref) or on demand via
 # workflow_dispatch with a deployment run id. Rebuilds installers/wheels/
 # metapackages from the deployment's dependency images and validates the
 # release image, debug image, and those artifacts.
+#
+# No workflow_run trigger: it always resolves this file, and what it
+# calls, from the default branch instead of the branch being validated.
 on:
   workflow_dispatch:
     inputs:
@@ -13,10 +17,6 @@ on:
         type: string
         description: Optional argument to set the GitHub commit to use for the validation sources.
         required: false
-  # Called inline by the Deployments workflow (see its trigger_validation job).
-  # workflow_call resolves ./.github/workflows/validation.yml against the caller's
-  # ref, so this works on feature branches without the workflow existing on the
-  # default branch (unlike a REST workflow_dispatch, which 404s until then).
   workflow_call:
     inputs:
       deployment_id:
@@ -27,16 +27,6 @@ on:
         type: string
         description: Optional argument to set the GitHub commit to use for the validation sources.
         required: false
-  workflow_run:
-    workflows:
-      - Deployments
-    types:
-      - completed
-    branches:
-      - 'main'
-      - 'releases/*'
-      - 'staging/*'
-      - 'experimental/*'
 
 name: Validation
 

@@ -384,7 +384,7 @@ passes and their options.
 Test pass behavior
 ==================
 
-Compiler pass regressions normally belong under ``cudaq/test/Transforms`` as
+Compiler pass regressions normally belong under ``cudaq/test/Optimizer`` as
 small textual IR tests. Use ``cudaq-opt`` in a ``RUN`` line and ``FileCheck`` to
 verify the relevant IR structure. Include the shortest positive case, important
 input outside the match that must remain unchanged, option-dependent behavior,

@@ -145,6 +145,11 @@ if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
   set(CUDAQ_ENABLE_OQC_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the OQC target.")
 endif()
 
+# Enable ORCA target by default.
+if (NOT DEFINED CUDAQ_ENABLE_ORCA_BACKEND)
+  set(CUDAQ_ENABLE_ORCA_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the ORCA target.")
+endif()
+
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
@@ -330,6 +335,57 @@ if(NOT "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
 endif()
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   set(CUDAQ_ENABLE_PYTHON ON CACHE BOOL "" FORCE)
+endif()
+
+# CUDAQ_ENABLE_PYTHON_BINDINGS controls whether cudaq/ builds its own MLIR
+# Python bindings (Quake, CC, QEC dialects), under cudaq/python/ -- mirroring
+# how LLVM/MLIR builds its own Python bindings as part of the mlir/
+# subproject (MLIR_ENABLE_BINDINGS_PYTHON) rather than in an unrelated
+# downstream consumer project. The python/ subproject REQUIRES these
+# bindings; default this to match whether "python" was requested above, but
+# let a build engineer override either direction explicitly (e.g. build
+# cudaq/'s bindings on their own, to produce a devel SDK for a python/ build
+# configured independently, later, against the installed result).
+if(NOT DEFINED CUDAQ_ENABLE_PYTHON_BINDINGS)
+  if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    set(CUDAQ_ENABLE_PYTHON_BINDINGS ON)
+  else()
+    set(CUDAQ_ENABLE_PYTHON_BINDINGS OFF)
+  endif()
+endif()
+set(CUDAQ_ENABLE_PYTHON_BINDINGS ${CUDAQ_ENABLE_PYTHON_BINDINGS} CACHE BOOL
+  "Build cudaq/'s own MLIR Python bindings (Quake, CC, QEC dialects) under cudaq/python/.")
+
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS AND NOT CUDAQ_ENABLE_PYTHON_BINDINGS)
+  message(FATAL_ERROR
+    "CUDAQ_ENABLE_PROJECTS includes 'python', but CUDAQ_ENABLE_PYTHON_BINDINGS "
+    "is OFF. The python/ subproject requires cudaq/'s own MLIR Python "
+    "bindings (Quake, CC, QEC dialects, built under cudaq/python/ when "
+    "CUDAQ_ENABLE_PYTHON_BINDINGS is ON). Either set "
+    "-DCUDAQ_ENABLE_PYTHON_BINDINGS=ON, or remove 'python' from "
+    "CUDAQ_ENABLE_PROJECTS.")
+endif()
+
+# Python/nanobind discovery for CUDAQ_ENABLE_PYTHON_BINDINGS must happen
+# before add_subdirectory(cudaq) below, since cudaq/python/ (built as part of
+# the cudaq/ subproject) needs it -- not just python/, which is added later
+# and may not even be enabled here (see the diagnostic above: a build
+# engineer can build cudaq/'s bindings standalone, without "python" in
+# CUDAQ_ENABLE_PROJECTS at all).
+if(CUDAQ_ENABLE_PYTHON_BINDINGS)
+  find_package(Python 3 COMPONENTS Interpreter Development)
+  find_package(Python3 COMPONENTS Interpreter Development)
+
+  # Locate nanobind via find_package. Default to the vendored copy under
+  # tpls/nanobind unless the user points nanobind_DIR (or CMAKE_PREFIX_PATH)
+  # at an alternative install (e.g. one from `pip install nanobind`).
+  # No version constraint here: the vendored tree has no
+  # nanobind-config-version.cmake (that file is only emitted by an install),
+  # so requesting a version would always fail against the in-tree copy.
+  if (NOT nanobind_DIR)
+    set(nanobind_DIR "${CMAKE_SOURCE_DIR}/tpls/nanobind/cmake")
+  endif()
+  find_package(nanobind CONFIG REQUIRED)
 endif()
 
 # Backward compatibility: map the old CUDAQ_ENABLE_STATIC_LINKING to the two
@@ -737,6 +793,15 @@ if (CUDAQ_ENABLE_REST)
     set(CUDAQ_ENABLE_REST OFF CACHE BOOL "" FORCE)
   endif()
 endif()
+if (CUDAQ_ENABLE_ORCA_BACKEND)
+  if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found — disabling the ORCA target. "
+      "OpenSSL is required when CUDAQ_ENABLE_ORCA_BACKEND is enabled (the "
+      "default). Install OpenSSL, set OPENSSL_ROOT_DIR, or pass "
+      "-DCUDAQ_ENABLE_ORCA_BACKEND=OFF to disable the ORCA target.")
+    set(CUDAQ_ENABLE_ORCA_BACKEND OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
 
 if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
@@ -970,20 +1035,8 @@ endif()
 add_subdirectory(utils)
 
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
-  find_package(Python 3 COMPONENTS Interpreter Development)
-  find_package(Python3 COMPONENTS Interpreter Development)
-
-  # Locate nanobind via find_package. Default to the vendored copy under
-  # tpls/nanobind unless the user points nanobind_DIR (or CMAKE_PREFIX_PATH)
-  # at an alternative install (e.g. one from `pip install nanobind`).
-  # No version constraint here: the vendored tree has no
-  # nanobind-config-version.cmake (that file is only emitted by an install),
-  # so requesting a version would always fail against the in-tree copy.
-  if (NOT nanobind_DIR)
-    set(nanobind_DIR "${CMAKE_SOURCE_DIR}/tpls/nanobind/cmake")
-  endif()
-  find_package(nanobind CONFIG REQUIRED)
-
+  # Python/nanobind were already found above (CUDAQ_ENABLE_PYTHON_BINDINGS is
+  # forced ON whenever "python" is requested; see the diagnostic above).
   add_subdirectory(python)
 endif()
 

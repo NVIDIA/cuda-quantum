@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <csignal>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -60,6 +61,8 @@ constexpr std::uint32_t RAM_NUM = 16;
 constexpr std::uint32_t RAM_DEPTH = 512;
 
 constexpr std::uint32_t PLAYER_ENABLE_SINGLEPASS = 0x0000'000D;
+// ram_ena | ptp_bram_ena: continuously replay the programmed BRAM payload.
+constexpr std::uint32_t PLAYER_ENABLE_LOOP = 0x0000'0009;
 constexpr std::uint32_t PLAYER_DISABLE = 0x0000'0000;
 
 constexpr std::uint32_t SIF_TX_THRESHOLD_ADDR = 0x0120'0000;
@@ -69,6 +72,10 @@ constexpr std::uint32_t METADATA_PACKET_ADDR = 0x102C;
 
 constexpr std::uint32_t DEFAULT_TIMER_SPACING_US = 120;
 constexpr std::uint32_t RF_SOC_TIMER_SCALE = 322;
+
+volatile std::sig_atomic_t loop_stop_requested = 0;
+
+extern "C" void request_loop_stop(int) { loop_stop_requested = 1; }
 
 // ============================================================================
 // ILA Capture Constants (SIF TX at 0x4000_0000)
@@ -114,6 +121,7 @@ struct PlaybackArgs {
   uint32_t hif_address = 0x0800;
   std::string bridge_ip = "10.0.0.1";
   bool verify = true;
+  bool loop = false;
   bool emulator = false;
   bool forward = false; ///< Forward (echo) mode: accept RPC_MAGIC_REQUEST
 };
@@ -164,6 +172,8 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
       args.bridge_ip = val_of("--bridge-ip=");
     else if (a == "--no-verify")
       args.verify = false;
+    else if (a == "--loop")
+      args.loop = true;
     else if (a == "--emulator")
       args.emulator = true;
     else if (a == "--forward")
@@ -187,6 +197,9 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
           << "  --bridge-ip=ADDR      Bridge IP for FPGA (default: 10.0.0.1)\n"
           << "  --emulator            Using emulator (skip FPGA reset)\n"
           << "  --no-verify           Skip ILA response verification\n"
+          << "  --loop                Continuously replay the loaded BRAM "
+             "windows "
+             "until Ctrl-C (requires --no-verify)\n"
           << "  --forward             Forward (echo) mode: accept echoed "
              "requests\n";
       exit(0);
@@ -471,6 +484,14 @@ int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
 
 int main(int argc, char *argv[]) {
   auto args = parse_args(argc, argv);
+  if (args.loop && args.verify) {
+    std::cerr << "ERROR: --loop requires --no-verify because a continuous "
+                 "loop has no finite ILA response sequence\n";
+    return 2;
+  }
+  // This direct FPGA utility intentionally offers manual loop control only.
+  // The CUDA-QX syndrome player adds software-emulator statistics and finite
+  // acceptance criteria through its --control-port contract.
 
   std::cout << "=== HSB Generic RPC Playback ===" << std::endl;
   std::cout << "HSB: " << args.hsb_ip << std::endl;
@@ -600,13 +621,27 @@ int main(int argc, char *argv[]) {
   if (!hsb->write_uint32(SIF_TX_THRESHOLD_ADDR, SIF_TX_THRESHOLD_IMMEDIATE))
     throw std::runtime_error("Failed to set SIF TX streaming threshold");
 
-  // Enable player in single-pass mode
-  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET,
-                         PLAYER_ENABLE_SINGLEPASS))
+  const std::uint32_t player_enable =
+      args.loop ? PLAYER_ENABLE_LOOP : PLAYER_ENABLE_SINGLEPASS;
+  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET, player_enable))
     throw std::runtime_error("Failed to enable player");
 
   std::cout << "  Playback triggered: " << args.num_messages << " messages"
-            << std::endl;
+            << (args.loop ? " (continuous loop mode)" : "") << std::endl;
+
+  if (args.loop) {
+    loop_stop_requested = 0;
+    std::signal(SIGINT, request_loop_stop);
+    std::cout << "  Loop playback is running. Press Ctrl-C to disable the "
+                 "player and exit."
+              << std::endl;
+    while (!loop_stop_requested)
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET, PLAYER_DISABLE))
+      throw std::runtime_error("Failed to disable loop player");
+    std::cout << "  Loop playback disabled." << std::endl;
+    return 0;
+  }
 
   // ------------------------------------------------------------------
   // Wait and verify ILA capture

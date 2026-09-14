@@ -5,6 +5,11 @@ on:
   # triggers the workflow.
   workflow_dispatch:
     inputs:
+      run_validation_after:
+        type: boolean
+        description: When this deployment completes successfully, also trigger the Validation workflow.
+        required: false
+        default: true
       update_registry_cache:
         type: boolean
         description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
@@ -35,11 +40,6 @@ on:
         description: Build and include macOS wheels and installer.
         required: false
         default: true
-      run_validation_after:
-        type: boolean
-        description: When this deployment completes successfully, also trigger the Validation workflow.
-        required: false
-        default: false
   workflow_run:
     workflows:
       - PR merged
@@ -933,8 +933,7 @@ jobs:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
       cudaq_version: ${{ inputs.create_release }}
 
-  # Validation also runs automatically via its workflow_run trigger on
-  # Deployments; this job is the opt-in path for manual dispatches.
+  # Dispatches validation.yml with an explicit ref, not main (see there).
   trigger_validation:
     name: Trigger Validation
     needs: [summary, python_wheels, binaries, realtime_binaries]

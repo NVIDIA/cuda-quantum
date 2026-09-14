@@ -45,6 +45,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+
 //==============================================================================
 // Global shutdown flag
 //==============================================================================
@@ -82,6 +84,23 @@ static constexpr uint32_t PLAYER_ENABLE = PLAYER_BASE + 0x04;
 static constexpr uint32_t PLAYER_TIMER = PLAYER_BASE + 0x08;
 static constexpr uint32_t PLAYER_WIN_SIZE = PLAYER_BASE + 0x0C;
 static constexpr uint32_t PLAYER_WIN_NUM = PLAYER_BASE + 0x10;
+// ram_ena | ptp_bram_ena: continuously replay the programmed BRAM payload.
+static constexpr uint32_t PLAYER_ENABLE_LOOP = 0x00000009;
+// LOOP_STATS register map — must match hsb_fpga_syndrome_playback.cpp in the
+// cudaqx repository.
+static constexpr uint32_t LOOP_STATS_BASE = 0xE0000000;
+static constexpr uint32_t LOOP_STATS_MAGIC = LOOP_STATS_BASE + 0x00;
+static constexpr uint32_t LOOP_STATS_STATE = LOOP_STATS_BASE + 0x04;
+static constexpr uint32_t LOOP_STATS_WINDOWS_LO = LOOP_STATS_BASE + 0x08;
+static constexpr uint32_t LOOP_STATS_WINDOWS_HI = LOOP_STATS_BASE + 0x0C;
+static constexpr uint32_t LOOP_STATS_RESPONSES_LO = LOOP_STATS_BASE + 0x10;
+static constexpr uint32_t LOOP_STATS_RESPONSES_HI = LOOP_STATS_BASE + 0x14;
+static constexpr uint32_t LOOP_STATS_ERRORS = LOOP_STATS_BASE + 0x18;
+static constexpr uint32_t LOOP_STATS_TIMEOUTS = LOOP_STATS_BASE + 0x1C;
+static constexpr uint32_t LOOP_STATS_ACK = LOOP_STATS_BASE + 0x20;
+static constexpr uint32_t LOOP_STATS_RESPONSE_FAILURES = LOOP_STATS_BASE + 0x24;
+static constexpr uint32_t LOOP_STATS_MAGIC_VALUE = 0x48534245; // HSBE
+static constexpr uint32_t LOOP_STATS_COMPLETE = 2;
 
 // Playback BRAM
 static constexpr uint32_t RAM_BASE = 0x50100000;
@@ -488,9 +507,13 @@ public:
 
   const RdmaTargetConfig &target() const { return target_; }
 
-  /// Check if player_enable was set to 1.
+  /// Check whether the player has been enabled.
   bool playback_triggered() const { return playback_triggered_.load(); }
   void clear_playback_trigger() { playback_triggered_ = false; }
+  bool player_enabled() const { return player_enable_.load() & 1; }
+  bool player_loop_enabled() const {
+    return player_enable_.load() == PLAYER_ENABLE_LOOP;
+  }
 
   /// Get player config.
   uint32_t window_size() const { return regs_.read(PLAYER_WIN_SIZE); }
@@ -720,9 +743,12 @@ private:
   }
 
   void check_player_enable(uint32_t addr, uint32_t val) {
-    if (addr == PLAYER_ENABLE && (val & 1)) {
+    if (addr != PLAYER_ENABLE)
+      return;
+
+    player_enable_ = val;
+    if (val & 1)
       playback_triggered_ = true;
-    }
   }
 
   uint16_t port_;
@@ -735,6 +761,7 @@ private:
   uint32_t my_qp_ = 0;
   RdmaTargetConfig target_;
   std::atomic<bool> playback_triggered_{false};
+  std::atomic<uint32_t> player_enable_{0};
 };
 
 //==============================================================================
@@ -763,6 +790,21 @@ static std::vector<uint8_t> reassemble_window(const RegisterFile &regs,
     }
   }
   return payload;
+}
+
+/// Snapshot the programmed BRAM windows before starting playback.
+///
+/// The player configuration and BRAM contents are immutable for the duration
+/// of one playback session. Keeping this snapshot avoids reassembling the same
+/// BRAM words and acquiring the register-file lock for every loop iteration.
+static std::vector<std::vector<uint8_t>>
+cache_playback_windows(const RegisterFile &regs, uint32_t window_count,
+                       uint32_t cycles_per_window) {
+  std::vector<std::vector<uint8_t>> windows;
+  windows.reserve(window_count);
+  for (uint32_t window = 0; window < window_count; ++window)
+    windows.emplace_back(reassemble_window(regs, window, cycles_per_window));
+  return windows;
 }
 
 //==============================================================================
@@ -1037,17 +1079,31 @@ int main(int argc, char *argv[]) {
     uint32_t win_num = server.window_number();
     uint32_t timer = server.timer_spacing();
     uint32_t cycles_per_window = (win_size + 63) / 64; // 64 bytes per beat
+    bool loop_mode = server.player_loop_enabled();
+    bool ila_armed = (regs.read(ILA_CTRL) & 0x01) != 0;
+
+    if (win_num == 0) {
+      std::cerr << "ERROR: Player was enabled with zero windows" << std::endl;
+      return 1;
+    }
+
+    const auto playback_windows =
+        cache_playback_windows(regs, win_num, cycles_per_window);
 
     std::cout << "  Window size: " << win_size << " bytes" << std::endl;
     std::cout << "  Window count: " << win_num << std::endl;
     std::cout << "  Timer spacing: " << timer << " (raw)" << std::endl;
     std::cout << "  Cycles per window: " << cycles_per_window << std::endl;
+    if (ila_armed && !loop_mode)
+      std::cout << "  Playback phase: ILA verification pass" << std::endl;
+    else
+      std::cout << "  Playback mode: "
+                << (loop_mode ? "continuous replay" : "single pass")
+                << std::endl;
 
     // Compute pacing interval from timer register (timer = 322 * microseconds)
     int pacing_us = (timer > 0) ? (timer / 322) : 10;
 
-    // Check if ILA is armed
-    bool ila_armed = (regs.read(ILA_CTRL) & 0x01) != 0;
     std::cout << "  ILA capture: " << (ila_armed ? "armed" : "not armed")
               << std::endl;
 
@@ -1058,142 +1114,260 @@ int main(int argc, char *argv[]) {
 
     std::cout << "\n=== Starting syndrome transmission ===" << std::endl;
 
-    auto start_time = std::chrono::high_resolution_clock::now();
-    uint32_t responses_received = 0;
+    const auto start_time = std::chrono::high_resolution_clock::now();
+    uint64_t windows_sent = 0;
+    uint64_t verification_windows = 0;
+    uint64_t responses_received = 0;
+    uint32_t response_failures = 0;
     uint32_t send_errors = 0;
     uint32_t recv_timeouts = 0;
+    uint64_t loop_windows_baseline = 0;
+    uint64_t loop_responses_baseline = 0;
+    uint32_t loop_response_failures_baseline = 0;
+    uint32_t loop_errors_baseline = 0;
+    uint32_t loop_timeouts_baseline = 0;
 
-    for (uint32_t window = 0; window < win_num && !g_shutdown; window++) {
-      uint32_t remote_slot = window % num_pages;
-      uint32_t local_slot = window % NUM_BUFFERS;
+    bool playback_complete = false;
+    while (!g_shutdown && !playback_complete) {
+      while (!g_shutdown &&
+             (loop_mode ? server.player_enabled() : windows_sent < win_num)) {
+        const uint64_t playback_index = windows_sent++;
+        uint32_t window = static_cast<uint32_t>(playback_index % win_num);
+        uint32_t remote_slot =
+            static_cast<uint32_t>(playback_index % num_pages);
+        uint32_t local_slot =
+            static_cast<uint32_t>(playback_index % NUM_BUFFERS);
 
-      // Reassemble syndrome payload from BRAM
-      auto payload = reassemble_window(regs, window, cycles_per_window);
+        const auto &payload = playback_windows[window];
 
-      // Copy to RDMA TX buffer slot (local buffer has NUM_BUFFERS slots)
-      uint8_t *tx_addr = static_cast<uint8_t *>(tx_buffer.data()) +
-                         (local_slot * rdma_page_size);
-      size_t copy_len = std::min<size_t>(payload.size(), rdma_page_size);
-      memcpy(tx_addr, payload.data(), copy_len);
+        // Copy to RDMA TX buffer slot (local buffer has NUM_BUFFERS slots)
+        uint8_t *tx_addr = static_cast<uint8_t *>(tx_buffer.data()) +
+                           (local_slot * rdma_page_size);
+        size_t copy_len = std::min<size_t>(payload.size(), rdma_page_size);
+        memcpy(tx_addr, payload.data(), copy_len);
 
-      // RDMA WRITE to bridge's ring buffer (remote has num_pages slots)
-      uint64_t remote_addr =
-          target.buffer_addr + (remote_slot * rdma_page_size);
-      if (!rdma.post_rdma_write_imm(qp, window, tx_addr, copy_len,
-                                    tx_buffer.lkey(), remote_addr, target.rkey,
-                                    remote_slot)) {
-        std::cerr << "ERROR: RDMA WRITE failed for window " << window
-                  << std::endl;
-        send_errors++;
-        continue;
-      }
-
-      // Wait for send completion
-      bool send_ok = false;
-      auto t0 = std::chrono::steady_clock::now();
-      while (!send_ok && !g_shutdown) {
-        ibv_wc wc;
-        int n = rdma.poll_cq(tx_cq, &wc, 1);
-        if (n > 0) {
-          send_ok = (wc.status == IBV_WC_SUCCESS);
-          if (!send_ok) {
-            std::cerr << "ERROR: Send CQE error: "
-                      << ibv_wc_status_str(wc.status) << std::endl;
-            send_errors++;
+        // RDMA WRITE to bridge's ring buffer (remote has num_pages slots)
+        uint64_t remote_addr =
+            target.buffer_addr + (remote_slot * rdma_page_size);
+        if (!rdma.post_rdma_write_imm(qp, playback_index, tx_addr, copy_len,
+                                      tx_buffer.lkey(), remote_addr,
+                                      target.rkey, remote_slot)) {
+          std::cerr << "ERROR: RDMA WRITE failed for window " << window
+                    << std::endl;
+          send_errors++;
+          if (loop_mode) {
+            // A bounded loop regression must fail promptly rather than retry
+            // the same failed transport operation until the client stops it.
+            playback_complete = true;
+            break;
           }
-          break;
+          continue;
         }
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           std::chrono::steady_clock::now() - t0)
-                           .count();
-        if (elapsed > 5000) {
-          std::cerr << "ERROR: Send timeout for window " << window << std::endl;
-          recv_timeouts++;
-          break;
+
+        // Wait for send completion
+        bool send_ok = false;
+        auto t0 = std::chrono::steady_clock::now();
+        while (!send_ok && !g_shutdown) {
+          ibv_wc wc;
+          int n = rdma.poll_cq(tx_cq, &wc, 1);
+          if (n > 0) {
+            send_ok = (wc.status == IBV_WC_SUCCESS);
+            if (!send_ok) {
+              std::cerr << "ERROR: Send CQE error: "
+                        << ibv_wc_status_str(wc.status) << std::endl;
+              send_errors++;
+            }
+            break;
+          }
+          auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - t0)
+                             .count();
+          if (elapsed > 5000) {
+            std::cerr << "ERROR: Send timeout for window " << window
+                      << std::endl;
+            recv_timeouts++;
+            break;
+          }
         }
-      }
-      if (!send_ok)
-        continue;
+        if (!send_ok) {
+          if (loop_mode) {
+            // See the RDMA post failure above: the loop acceptance criteria
+            // require a complete, error-free transport sequence.
+            playback_complete = true;
+            break;
+          }
+          continue;
+        }
 
-      // Wait for correction response (natural pacing)
-      bool corr_ok = false;
-      t0 = std::chrono::steady_clock::now();
-      while (!corr_ok && !g_shutdown) {
-        ibv_wc wc;
-        int n = rdma.poll_cq(rx_cq, &wc, 1);
-        if (n > 0) {
-          if (wc.status == IBV_WC_SUCCESS) {
-            corr_ok = true;
-            responses_received++;
+        // Wait for correction response (natural pacing)
+        bool corr_ok = false;
+        bool loop_stopped = false;
+        t0 = std::chrono::steady_clock::now();
+        while (!corr_ok && !g_shutdown) {
+          // A loop-mode player can be disabled while its final request is in
+          // flight. That request is intentionally outside the completed
+          // playback sequence, so do not report it as a correction timeout.
+          if (loop_mode && !server.player_enabled()) {
+            --windows_sent;
+            loop_stopped = true;
+            break;
+          }
 
-            // Store in ILA capture if armed
-            if (ila_armed) {
+          ibv_wc wc;
+          int n = rdma.poll_cq(rx_cq, &wc, 1);
+          if (n > 0) {
+            if (wc.status == IBV_WC_SUCCESS) {
+              corr_ok = true;
+              responses_received++;
+
               uint32_t rx_slot = wc.wr_id % NUM_BUFFERS;
               uint8_t *resp_data = static_cast<uint8_t *>(rx_buffer.data()) +
                                    (rx_slot * args.page_size);
-              store_ila_sample(regs, window, resp_data, wc.byte_len);
+              if (wc.byte_len < sizeof(cudaq::realtime::RPCHeader)) {
+                std::cerr << "ERROR: Short RPC response for window " << window
+                          << std::endl;
+                response_failures++;
+              } else {
+                cudaq::realtime::RPCHeader header{};
+                std::memcpy(&header, resp_data, sizeof(header));
+                if (header.magic == cudaq::realtime::RPC_MAGIC_RESPONSE) {
+                  cudaq::realtime::RPCResponse response{};
+                  std::memcpy(&response, resp_data, sizeof(response));
+                  if (response.status != 0) {
+                    std::cerr << "ERROR: Failed RPC response for window "
+                              << window << " (status=" << response.status << ")"
+                              << std::endl;
+                    response_failures++;
+                  }
+                } else if (header.magic != cudaq::realtime::RPC_MAGIC_REQUEST) {
+                  std::cerr << "ERROR: Failed RPC response for window "
+                            << window << " (magic=0x" << std::hex
+                            << header.magic << std::dec << ")" << std::endl;
+                  response_failures++;
+                }
+              }
+
+              // Store in ILA capture if armed
+              if (ila_armed) {
+                store_ila_sample(regs, window, resp_data, wc.byte_len);
+              }
+
+              // Re-post receive WQE
+              void *rx_addr = static_cast<uint8_t *>(rx_buffer.data()) +
+                              (rx_slot * args.page_size);
+              rdma.post_recv(qp, rx_slot, rx_addr, args.page_size,
+                             rx_buffer.lkey());
+            } else {
+              std::cerr << "ERROR: Recv CQE error: "
+                        << ibv_wc_status_str(wc.status) << std::endl;
             }
-
-            // Re-post receive WQE
-            uint32_t rx_slot = wc.wr_id % NUM_BUFFERS;
-            void *rx_addr = static_cast<uint8_t *>(rx_buffer.data()) +
-                            (rx_slot * args.page_size);
-            rdma.post_recv(qp, rx_slot, rx_addr, args.page_size,
-                           rx_buffer.lkey());
-          } else {
-            std::cerr << "ERROR: Recv CQE error: "
-                      << ibv_wc_status_str(wc.status) << std::endl;
+            break;
           }
-          break;
+          auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - t0)
+                             .count();
+          if (elapsed > 10000) {
+            std::cerr << "ERROR: Correction timeout for window " << window
+                      << std::endl;
+            recv_timeouts++;
+            break;
+          }
         }
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           std::chrono::steady_clock::now() - t0)
-                           .count();
-        if (elapsed > 10000) {
-          std::cerr << "ERROR: Correction timeout for window " << window
+
+        if (loop_stopped)
+          break;
+
+        // Progress
+        if (!loop_mode && (windows_sent % 10 == 0 || windows_sent == win_num)) {
+          std::cout << "  Window " << windows_sent << "/" << win_num
+                    << " (responses: " << responses_received
+                    << ", errors: " << send_errors << ")" << std::endl;
+        }
+
+        // Pacing delay
+        if (pacing_us > 0 && (loop_mode || windows_sent < win_num)) {
+          std::this_thread::sleep_for(std::chrono::microseconds(pacing_us));
+        }
+      }
+
+      // A loop run with ILA verification deliberately starts in single-pass
+      // mode. Once the playback tool has read the finite ILA capture, it
+      // switches PLAYER_ENABLE to loop mode. Keep this RDMA session alive and
+      // resume from the same BRAM load instead of waiting indefinitely for a
+      // manual Ctrl-C.
+      if (ila_armed && !loop_mode && !g_shutdown) {
+        regs.write(ILA_STATUS, regs.read(ILA_STATUS) | 0x02); // done bit
+        verification_windows = windows_sent;
+        std::cout << "\nWaiting for playback control after ILA verification..."
+                  << std::endl;
+        while (!g_shutdown && !server.player_loop_enabled())
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (!g_shutdown && server.player_loop_enabled()) {
+          // The final loop statistics must exclude this finite ILA preflight.
+          loop_windows_baseline = windows_sent;
+          loop_responses_baseline = responses_received;
+          loop_response_failures_baseline = response_failures;
+          loop_errors_baseline = send_errors;
+          loop_timeouts_baseline = recv_timeouts;
+          ila_armed = false;
+          loop_mode = true;
+          std::cout << "Continuous replay requested; resuming from the same "
+                       "BRAM load."
                     << std::endl;
-          recv_timeouts++;
-          break;
+          continue;
         }
       }
-
-      // Progress
-      if ((window + 1) % 10 == 0 || window == win_num - 1) {
-        std::cout << "  Window " << (window + 1) << "/" << win_num
-                  << " (responses: " << responses_received
-                  << ", errors: " << send_errors << ")" << std::endl;
-      }
-
-      // Pacing delay
-      if (pacing_us > 0 && window + 1 < win_num) {
-        std::this_thread::sleep_for(std::chrono::microseconds(pacing_us));
-      }
-    }
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-        end_time - start_time);
-
-    // Mark ILA as done
-    if (ila_armed) {
-      regs.write(ILA_STATUS, regs.read(ILA_STATUS) | 0x02); // done bit
+      playback_complete = true;
     }
 
     // Report results
+    const auto end_time = std::chrono::high_resolution_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+        end_time - start_time);
     std::cout << "\n=== Emulator Results ===" << std::endl;
-    std::cout << "  Windows sent: " << win_num << std::endl;
+    std::cout << "  Windows sent: " << windows_sent << std::endl;
+    if (verification_windows != 0 && loop_mode) {
+      std::cout << "  ILA verification frames: " << verification_windows
+                << std::endl;
+      std::cout << "  Continuous replay frames: "
+                << (windows_sent - verification_windows) << std::endl;
+    }
     std::cout << "  Responses received: " << responses_received << std::endl;
+    std::cout << "  RPC status failures: " << response_failures << std::endl;
     std::cout << "  Send errors: " << send_errors << std::endl;
     std::cout << "  Timeouts: " << recv_timeouts << std::endl;
     std::cout << "  Duration: " << duration.count() << " ms" << std::endl;
 
-    // Keep running to allow playback tool to read ILA capture data
-    if (ila_armed) {
-      std::cout << "\nWaiting for ILA readback (Ctrl+C to stop)..."
-                << std::endl;
-      while (!g_shutdown) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+    if (loop_mode) {
+      // Expose final software-emulator counters to the playback client. This
+      // control-plane exchange happens only after the player has stopped, so
+      // it is outside the RDMA/decode hot path.
+      const uint64_t loop_windows_sent = windows_sent - loop_windows_baseline;
+      const uint64_t loop_responses_received =
+          responses_received - loop_responses_baseline;
+      const uint32_t loop_response_failures =
+          response_failures - loop_response_failures_baseline;
+      const uint32_t loop_send_errors = send_errors - loop_errors_baseline;
+      const uint32_t loop_recv_timeouts =
+          recv_timeouts - loop_timeouts_baseline;
+      regs.write(LOOP_STATS_WINDOWS_LO,
+                 static_cast<uint32_t>(loop_windows_sent));
+      regs.write(LOOP_STATS_WINDOWS_HI,
+                 static_cast<uint32_t>(loop_windows_sent >> 32));
+      regs.write(LOOP_STATS_RESPONSES_LO,
+                 static_cast<uint32_t>(loop_responses_received));
+      regs.write(LOOP_STATS_RESPONSES_HI,
+                 static_cast<uint32_t>(loop_responses_received >> 32));
+      regs.write(LOOP_STATS_ERRORS, loop_send_errors);
+      regs.write(LOOP_STATS_TIMEOUTS, loop_recv_timeouts);
+      regs.write(LOOP_STATS_RESPONSE_FAILURES, loop_response_failures);
+      regs.write(LOOP_STATS_MAGIC, LOOP_STATS_MAGIC_VALUE);
+      regs.write(LOOP_STATS_STATE, LOOP_STATS_COMPLETE);
+      const auto stats_deadline =
+          std::chrono::steady_clock::now() + std::chrono::seconds(5);
+      while (!g_shutdown && std::chrono::steady_clock::now() < stats_deadline &&
+             regs.read(LOOP_STATS_ACK) != LOOP_STATS_MAGIC_VALUE)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     // Cleanup
@@ -1202,8 +1376,8 @@ int main(int argc, char *argv[]) {
     ibv_destroy_cq(tx_cq);
     ibv_destroy_cq(rx_cq);
 
-    if (send_errors == 0 && recv_timeouts == 0 &&
-        responses_received == win_num) {
+    if (send_errors == 0 && recv_timeouts == 0 && response_failures == 0 &&
+        responses_received == windows_sent) {
       std::cout << "\n*** EMULATOR: ALL WINDOWS PROCESSED ***" << std::endl;
       return 0;
     } else {

@@ -170,6 +170,34 @@ static Value emitSimplifiedRotation(PatternRewriter &rewriter, QOP rotation,
   return target;
 }
 
+/// Rewrite rotation to its exact Clifford+T form when its angle is a
+/// constant within epsilon of a multiple of `pi/4`. A `!quake.wire` rotation
+/// is replaced by the wire the gate sequence produces, a `!quake.ref` rotation
+/// is erased.
+template <typename QOP>
+static LogicalResult rewriteExactRotation(QOP rotation, double epsilon,
+                                          PatternRewriter &rewriter) {
+  FloatAttr angleAttr;
+  if (!matchPattern(rotation.getParameter(), m_Constant(&angleAttr)))
+    return failure();
+  llvm::APFloat angle = angleAttr.getValue();
+  if (rotation.isAdj())
+    angle.changeSign();
+
+  const auto quarterTurns = classifyCliffordTAngle<QOP>(angle, epsilon);
+  if (!quarterTurns)
+    return failure();
+
+  const bool valueSemantics =
+      isa<cudaq::quake::WireType>(rotation.getTarget().getType());
+  Value replacement = emitSimplifiedRotation(rewriter, rotation, *quarterTurns);
+  if (valueSemantics)
+    rewriter.replaceOp(rotation, replacement);
+  else
+    rewriter.eraseOp(rotation);
+  return success();
+}
+
 template <typename QOP>
 class RewriteRotationToCliffordT : public OpRewritePattern<QOP> {
 public:
@@ -186,20 +214,8 @@ public:
     if (!isa<cudaq::quake::WireType>(rotation.getTarget().getType()))
       return failure();
 
-    FloatAttr angleAttr;
-    if (!matchPattern(rotation.getParameter(), m_Constant(&angleAttr)))
+    if (failed(rewriteExactRotation(rotation, epsilon, rewriter)))
       return failure();
-    llvm::APFloat angle = angleAttr.getValue();
-    if (rotation.isAdj())
-      angle.changeSign();
-
-    const auto quarterTurns = classifyCliffordTAngle<QOP>(angle, epsilon);
-    // Skip angles that are not within `epsilon` of a multiple of `pi/4`.
-    if (!quarterTurns)
-      return failure();
-
-    rewriter.replaceOp(
-        rotation, emitSimplifiedRotation(rewriter, rotation, *quarterTurns));
     ++stat;
     return success();
   }
@@ -209,9 +225,9 @@ private:
   Pass::Statistic &stat;
 };
 
-static void populateRotationsToCliffordTPatterns(RewritePatternSet &patterns,
-                                                 double epsilon,
-                                                 Pass::Statistic &stat) {
+[[maybe_unused]] static void
+populateRotationsToCliffordTPatterns(RewritePatternSet &patterns,
+                                    double epsilon, Pass::Statistic &stat) {
   patterns.add<RewriteRotationToCliffordT<cudaq::quake::R1Op>,
                RewriteRotationToCliffordT<cudaq::quake::RxOp>,
                RewriteRotationToCliffordT<cudaq::quake::RyOp>,

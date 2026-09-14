@@ -10,7 +10,6 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Dominance.h"
-#include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/RegionUtils.h"

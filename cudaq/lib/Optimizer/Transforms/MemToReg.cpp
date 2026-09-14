@@ -87,8 +87,8 @@ static bool onlyTakesLinearTypeArguments(Operation *op) {
 /// `quake.compute_action`, `quake.apply_noise`, and `quake.call_by_ref`.
 /// Every other op only manages references/veqs — e.g. `quake.concat`,
 /// `quake.dealloc`, `quake.relax_size`, `cc.instantiate_callable`,
-/// `cc.callable_closure`, and (despite appearances) `quake.log_output` — and
-/// cannot alias or mutate a qubit we are tracking. `quake.log_output` merely
+/// `cc.callable_closure`, and (despite appearances) `quake.evince` — and
+/// cannot alias or mutate a qubit we are tracking. `quake.evince` merely
 /// marks a value as observable for later codegen; it does not dereference
 /// or modify anything, so it must not trigger the conservative
 /// wrap-and-cancel-everything path below.
@@ -1118,12 +1118,12 @@ public:
   }
 };
 
-/// The log_output operation is also an oddball like the reset operation.
-class LogOutputOpPattern : public OpRewritePattern<cudaq::quake::LogOutputOp> {
+/// The evince operation is also an oddball like the reset operation.
+class EvinceOpPattern : public OpRewritePattern<cudaq::quake::EvinceOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::LogOutputOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp op,
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
@@ -1141,7 +1141,7 @@ public:
       }
     }
 
-    auto newOp = cudaq::quake::LogOutputOp::create(rewriter, loc, newArgs);
+    auto newOp = cudaq::quake::EvinceOp::create(rewriter, loc, newArgs);
     for (auto namedAttr : op->getAttrs())
       newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
 
@@ -2102,12 +2102,14 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern,
-                    LogOutputOpPattern>(ctx);
+                    EvinceOpPattern>(ctx);
     ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                                 cudaq::quake::DeallocOp,
-                                 cudaq::quake::LogOutputOp>(
-        [](Operation *op) { return !cudaq::quake::hasNonVectorReference(op); });
+    target
+        .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
+                               cudaq::quake::DeallocOp, cudaq::quake::EvinceOp>(
+            [](Operation *op) {
+              return !cudaq::quake::hasNonVectorReference(op);
+            });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {

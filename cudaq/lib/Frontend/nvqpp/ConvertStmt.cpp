@@ -28,7 +28,7 @@ bool QuakeBridgeVisitor::VisitBreakStmt(clang::BreakStmt *x) {
   // statement. The bridge does not currently support switch statements.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
-    cc::UnwindBreakOp::create(builder, toLocation(x));
+    cc::UnwindBreakOp::create(builder, toLocation(x), currentLoopArgs());
   return true;
 }
 
@@ -36,7 +36,7 @@ bool QuakeBridgeVisitor::VisitContinueStmt(clang::ContinueStmt *x) {
   // It is a C++ syntax error if a continue statement is not in a loop.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
-    cc::UnwindContinueOp::create(builder, toLocation(x));
+    cc::UnwindContinueOp::create(builder, toLocation(x), currentLoopArgs());
   return true;
 }
 
@@ -201,7 +201,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      Value index = block.getArgument(0);
+      LoopArgsScope loopArgsScope(*this, block.getArguments());
+      Value index = initial ? block.getArgument(1) : block.getArgument(0);
       // May need to create a temporary for the loop variable. Create a new
       // scope.
       auto scopeBuilder = [&](OpBuilder &builder, Location loc) {
@@ -284,6 +285,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
+      LoopArgsScope loopArgsScope(*this, block.getArguments());
       Value index = block.getArgument(0);
       Value ref =
           cudaq::quake::ExtractRefOp::create(builder, loc, buffer, index);
@@ -483,6 +485,7 @@ bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
     auto &bodyBlock = region.front();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
+    LoopArgsScope loopArgsScope(*this, ValueRange{});
     if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
       result = false;
       return;
@@ -599,6 +602,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     auto &bodyBlock = region.front();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
+    LoopArgsScope loopArgsScope(*this, ValueRange{});
     if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
       result = false;
       return;

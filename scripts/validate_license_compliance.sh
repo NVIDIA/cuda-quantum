@@ -239,7 +239,7 @@ if ! $wheel_mode && [ -x "$install_root/bin/cudaq-opt" ]; then
     cat > "$smoke_dir/rz.qke" << 'EOF'
 func.func @rz() {
   %q = quake.alloca !quake.ref
-  %a = arith.constant 0.7853981633974483 : f64
+  %a = arith.constant 0.19634954084936207 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
   return
 }
@@ -248,7 +248,7 @@ EOF
                    "$smoke_dir/rz.qke")
     use_cudaq_opt=true
 else
-    synthesis_cmd=(python3 -c "import cudaq; gates = cudaq.synth.gridsynth(0.7853981633974483, 1e-3); assert 'T' in gates, gates")
+    synthesis_cmd=(python3 -c "import cudaq; gates = cudaq.synth.gridsynth(0.19634954084936207, 1e-3); assert 'T' in gates, gates")
     use_cudaq_opt=false
 fi
 

@@ -17,7 +17,7 @@
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
 
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <cstdio>
 #include <cudaq.h>

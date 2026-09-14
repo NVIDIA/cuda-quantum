@@ -18,6 +18,10 @@ config:
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-rest-qpu"]
   # Define the JIT lowering pipeline
   jit-mid-level-pipeline: "decomposition{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
   # Tell the rest-qpu that we are generating QIR.

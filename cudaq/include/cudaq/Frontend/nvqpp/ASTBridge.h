@@ -652,6 +652,28 @@ private:
   /// cannot disprove. See: https://github.com/NVIDIA/cuda-quantum/issues/4479.
   bool isBoundHandleVector(mlir::Value, llvm::SmallPtrSetImpl<mlir::Value> &);
 
+  /// Stack of the innermost enclosing loop's loop-carried arguments. `break`/
+  /// `continue` need these current values to build a `cc.unwind_break`/
+  /// `cc.unwind_continue` with the arity the enclosing `cc.loop` requires.
+  llvm::SmallVector<mlir::ValueRange, 4> loopArgsStack;
+
+  /// RAII helper to push/pop `loopArgsStack` around the construction of a
+  /// loop body.
+  struct LoopArgsScope {
+    LoopArgsScope(QuakeBridgeVisitor &visitor, mlir::ValueRange args)
+        : visitor(visitor) {
+      visitor.loopArgsStack.push_back(args);
+    }
+    ~LoopArgsScope() { visitor.loopArgsStack.pop_back(); }
+    QuakeBridgeVisitor &visitor;
+  };
+
+  /// The current loop-carried arguments for the nearest enclosing loop, to be
+  /// forwarded as operands to a `cc.unwind_break`/`cc.unwind_continue`.
+  mlir::ValueRange currentLoopArgs() {
+    return loopArgsStack.empty() ? mlir::ValueRange{} : loopArgsStack.back();
+  }
+
   /// Stack of Values built by the visitor. (right-to-left ordering)
   mlir::SmallVector<mlir::Value> valueStack;
   clang::ASTContext *astContext;

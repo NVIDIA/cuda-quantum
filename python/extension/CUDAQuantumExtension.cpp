@@ -316,6 +316,11 @@ Using ``mpi4py``:
 When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)doc",
       nanobind::arg("commPtr"));
 
+  // The ORCA submodule binds cudaq::orca::sample directly, so it exists only
+  // when the ORCA backend was built (OPENSSL_FOUND). Previously these
+  // sources were compiled into this extension unconditionally, which both
+  // ignored that build flag and shadowed libcudaq-orca-qpu at runtime.
+#ifdef CUDAQ_ORCA_BACKEND_ENABLED
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
   orcaSubmodule.def(
       "sample",
@@ -359,6 +364,7 @@ When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)
       nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
       nanobind::arg("bs_angles"), nanobind::arg("n_samples") = 10000,
       nanobind::arg("qpu_id") = 0);
+#endif
 
   auto photonicsSubmodule = cudaqRuntime.def_submodule("photonics");
   photonicsSubmodule.def(

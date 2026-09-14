@@ -287,23 +287,24 @@ public:
   virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
 
   /// @brief Process the results stored in the given execution context.
+  ///
+  /// Only valid for policies that deliver no result. Result-bearing policies
+  /// return their result by value from the typed launch path, so a named
+  /// result-bearing context arriving here would silently get nothing back;
+  /// reject it instead. In-tree this is unreachable — the mirrored guard in
+  /// `ExecutionManager::finalizeExecutionContext(ExecutionContext&)` catches it
+  /// first — but this entry point is public and callable directly.
   void finalizeExecutionContext(cudaq::ExecutionContext &ctx) {
     cudaq::policies::withPolicy(ctx.name, [&](auto policy) {
-      cudaq::policies::visitResult(
-          [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
-          [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
-          [&](cudaq::observe_result &&r) {
-            ctx.result = r.raw_data();
-            ctx.expectationValue = r.expectation();
-          },
-          [&](cudaq::run_result &&r) {},
-          [&](cudaq::msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
-          [&](cudaq::msm_result &&r) {
-            ctx.result = std::move(r.samples);
-            ctx.msm_probabilities = std::move(r.probabilities);
-            ctx.msm_prob_err_id = std::move(r.probability_error_ids);
-          },
-          [&](cudaq::policies::void_result &&r) {});
+      if constexpr (std::is_same_v<decltype(policy), cudaq::other_policies>) {
+        finalize_simulation_circuit(*this, policy, ctx);
+      } else {
+        throw std::runtime_error(
+            "Execution context '" + ctx.name +
+            "' names a result-bearing policy, which can no longer be finalized "
+            "through the execution context. Launch it with cudaq::launch or "
+            "cudaq::detail::launch and use the returned result instead.");
+      }
     });
   }
 

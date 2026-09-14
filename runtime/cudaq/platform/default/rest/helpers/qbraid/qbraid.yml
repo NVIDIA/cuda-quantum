@@ -15,6 +15,10 @@ config:
   gen-target-backend: true
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-rest-qpu"]
   # Define the JIT lowering pipeline. Mirrors Braket so that
   # `combine-measurements` runs and attaches the QIROutputNamesAttrName
   # metadata nvq++ needs to thread user-visible qubit indices through to
