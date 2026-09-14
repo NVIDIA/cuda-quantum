@@ -85,7 +85,8 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// Opt-in only. This helper is not added to default target pipelines.
 ///
 /// `seed` seeds the randomized factoring in CliffordTSynthesis. 0 leaves it
-/// unseeded, so the synthesized circuit may differ from run to run.
+/// unseeded, so the synthesized circuit may differ from run to run. Targets
+/// set it through their config.
 void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
                            bool failOnControlledRotation = false,
                            uint64_t seed = 0);

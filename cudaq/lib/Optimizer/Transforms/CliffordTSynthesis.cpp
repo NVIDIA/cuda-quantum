@@ -421,7 +421,7 @@ public:
         cudaq::synth::details::required_precision(
             cudaq::synth::Real(epsilon.getValue())));
 
-    // 0 means unseeded, matching `cudaq::set_random_seed`.
+    // 0 means unseeded.
     std::optional<uint64_t> synthSeed;
     if (seed != 0)
       synthSeed = seed.getValue();

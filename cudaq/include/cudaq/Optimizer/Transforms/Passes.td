@@ -279,7 +279,8 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       "Seed for the randomized integer factoring gridsynth uses to test a "
       "candidate circuit. Set this to make synthesis reproducible. The same "
       "seed, angle, epsilon, and budgets always produce the same circuit. 0 "
-      "means unseeded, matching `cudaq::set_random_seed`.">,
+      "means unseeded. Targets that want reproducible synthesis set this from "
+      "`cudaq::set_random_seed` through their config.">,
     Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
       "Erase (treat as identity) rotations whose |theta| is below this "
       "threshold, rather than synthesizing a Clifford+T approximation for "
