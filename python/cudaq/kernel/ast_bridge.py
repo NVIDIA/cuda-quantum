@@ -4738,7 +4738,7 @@ class PyASTBridge(ast.NodeVisitor):
         # is, exactly like a fixed-size local's storage - see the analogous
         # buffer in `toHandleIfBareStruct`. A comprehension that runs many
         # times (e.g. once per loop iteration) therefore does grow the stack
-        # unboundedly if nothing reclaims it; that is a real but lesser risk
+        # `unboundedly` if nothing reclaims it; that is a real but lesser risk
         # than the alternative of heap-managing this buffer's lifetime
         # ourselves, which cannot be done soundly here since Python list
         # assignment is reference/alias-based (`l2 = l1` aliases the same
