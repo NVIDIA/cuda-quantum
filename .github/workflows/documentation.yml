@@ -155,6 +155,7 @@ jobs:
 
           logical_docs_archive="${{ steps.artifacts.outputs.logical_docs_archive }}"
           if [ -n "$logical_docs_archive" ]; then
+            mkdir -p "$target_folder"/preview
             unzip -d "$target_folder"/preview/logical "$logical_docs_archive"
           fi
 
