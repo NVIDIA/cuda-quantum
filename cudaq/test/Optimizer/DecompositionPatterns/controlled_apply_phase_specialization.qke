@@ -1,0 +1,73 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Stage 2: start with representative post-decomposition IR. Specializing the
+// controlled apply must add its outer control to every gate, including both
+// forms of the exact phase residue.
+// RUN: split-file %s %t
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
+// RUN:   --expand-control-veqs --cse --canonicalize %t/decomposed.qke \
+// RUN:   > %t.specialized
+// RUN: FileCheck %s --check-prefix=SPECIALIZED \
+// RUN:   --implicit-check-not=quake.apply < %t.specialized
+// RUN: CircuitCheck --input=%t.specialized %t/reference.qke
+
+// SPECIALIZED-LABEL: func.func @controlled_caller(
+// SPECIALIZED-SAME: %[[OUTER:.*]]: !quake.ref, %[[INNER:.*]]: !quake.ref,
+// SPECIALIZED-SAME: %[[TARGET:.*]]: !quake.ref)
+// SPECIALIZED: quake.phased_rx {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
+// SPECIALIZED: quake.rz {{.*}} {{\[}}%[[OUTER]], %[[INNER]]{{\]}} %[[TARGET]]
+// SPECIALIZED: quake.phase {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
+// SPECIALIZED: quake.phase {{.*}} {{\[}}%[[OUTER]], %[[INNER]]{{\]}} %[[TARGET]]
+// SPECIALIZED: return
+
+//--- decomposed.qke
+
+func.func private @decomposed_helper(%inner: !quake.ref,
+                                     %target: !quake.ref) {
+  %theta = arith.constant 2.900000e-01 : f64
+  %axis = arith.constant 1.230000e-01 : f64
+  quake.phased_rx (%theta, %axis) %target
+      : (f64, f64, !quake.ref) -> ()
+  quake.rz (%theta) [%inner] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%axis) %target : (f64, !quake.ref) -> ()
+  quake.phase (%theta) [%inner] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @controlled_caller(%outer: !quake.ref, %inner: !quake.ref,
+                             %target: !quake.ref) {
+  %pi_2 = arith.constant 1.5707963267948966 : f64
+  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+  quake.apply @decomposed_helper [%outer] (%inner, %target)
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+  return
+}
+
+//--- reference.qke
+
+func.func @controlled_caller(%outer: !quake.ref, %inner: !quake.ref,
+                             %target: !quake.ref) {
+  %theta = arith.constant 2.900000e-01 : f64
+  %axis = arith.constant 1.230000e-01 : f64
+  %pi_2 = arith.constant 1.5707963267948966 : f64
+  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+  quake.phased_rx (%theta, %axis) [%outer] %target
+      : (f64, f64, !quake.ref, !quake.ref) -> ()
+  quake.rz (%theta) [%outer, %inner] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.phase (%axis) [%outer] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%theta) [%outer, %inner] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+  return
+}

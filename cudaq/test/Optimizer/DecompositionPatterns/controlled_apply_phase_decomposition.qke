@@ -1,0 +1,88 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Stage 1: phase-producing decompositions must still run when their helper is
+// reached through a controlled quake.apply. The pattern-specific tests cover
+// each rewrite's unitary; this test covers the module-wide apply guard.
+// RUN: cudaq-opt \
+// RUN:   -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,ExpPauliDecomposition,U3ToRotations,CRxToCX})' \
+// RUN:   %s | FileCheck %s
+
+func.func private @h_helper(%target: !quake.ref) {
+  quake.h %target : (!quake.ref) -> ()
+  return
+}
+
+func.func private @exp_helper(%inner: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 2.900000e-01 : f64
+  quake.exp_pauli (%theta) [%inner] %target to "I"
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @u3_helper(%inner: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 7.850000e-01 : f64
+  %phi = arith.constant 1.230000e-01 : f64
+  %lambda = arith.constant 4.560000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) [%inner] %target
+      : (f64, f64, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @crx_helper(%inner: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 6.170000e-01 : f64
+  quake.rx (%theta) [%inner] %target : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @controlled_calls(%outer: !quake.ref, %inner: !quake.ref,
+                            %target: !quake.ref) {
+  quake.apply @h_helper [%outer] (%target)
+      : (!quake.ref, !quake.ref) -> ()
+  quake.apply @exp_helper [%outer] (%inner, %target)
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.apply @u3_helper [%outer] (%inner, %target)
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.apply @crx_helper [%outer] (%inner, %target)
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func private @h_helper
+// CHECK-NOT: quake.h
+// CHECK: quake.phased_rx
+// CHECK-NOT: quake.h
+// CHECK: quake.phase {{.*}} %{{.*}} : (f64, !quake.ref) -> ()
+// CHECK-NOT: quake.h
+// CHECK: return
+
+// CHECK-LABEL: func.func private @exp_helper
+// CHECK-NOT: quake.exp_pauli
+// CHECK: quake.phase {{.*}} {{\[}}%{{.*}}{{\]}}
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+// CHECK-LABEL: func.func private @u3_helper
+// CHECK-NOT: quake.u3
+// CHECK: quake.rz
+// CHECK-NOT: quake.u3
+// CHECK: quake.phase {{.*}} {{\[}}%{{.*}}{{\]}}
+// CHECK-NOT: quake.u3
+// CHECK: return
+
+// CHECK-LABEL: func.func private @crx_helper
+// CHECK-NOT: quake.rx
+// CHECK: quake.phase {{.*}} %{{.*}} : (f64, !quake.ref) -> ()
+// CHECK-NOT: quake.rx
+// CHECK: return
+
+// CHECK-LABEL: func.func @controlled_calls
+// CHECK: quake.apply @h_helper {{\[}}%{{.*}}{{\]}}
+// CHECK: quake.apply @exp_helper {{\[}}%{{.*}}{{\]}}
+// CHECK: quake.apply @u3_helper {{\[}}%{{.*}}{{\]}}
+// CHECK: quake.apply @crx_helper {{\[}}%{{.*}}{{\]}}
