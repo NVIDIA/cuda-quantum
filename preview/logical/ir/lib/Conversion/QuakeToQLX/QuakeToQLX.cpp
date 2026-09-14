@@ -822,7 +822,7 @@ private:
     if (gate.getParameters().size() != 1 || gate.getTargets().size() != 1)
       return gate.emitOpError("rotation must have one angle and one target");
 
-    auto angle = constFloat(gate.getParameter(0));
+    auto angle = constFloat(gate.getParameter());
     if (!angle)
       return gate.emitOpError("dynamic/non-constant rotation angle is "
                               "unsupported; specialize or const-fold upstream");
