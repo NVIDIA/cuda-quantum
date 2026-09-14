@@ -49,40 +49,41 @@ The semantic spine. Facets (pink) attach to immutable stage roots; consumers
 
 Facets attach independently verified facts to stage roots
 (`cudaq.logical.stages.Facet`). P2 facets include `QEC_SPEC`,
-`QEC_REALIZATION`, `PROTOCOL_NETWORK`, and `PATCH_GRAPH`. Physical lowering adds
-`PATCH_MAPPING`, `NATIVE_LEGALIZATION`, `CARRIER_MAPPING`, and
-`PHYSICAL_ROUTING`; scheduling adds `PHYSICAL_SCHEDULE`. Estimate results attach
-the same way: typed records naming their producer, source, and evidence.
+`QEC_REALIZATION`, `PROTOCOL_NETWORK`, and `PATCH_GRAPH`; physical lowering and
+scheduling attach their own. A build reports the ones it carries, so
+`cudaq.logical.stages.PROTOCOL_NETWORK in p2.facets` is the way to ask.
+Estimate results attach the same way: typed records naming their producer,
+source, and evidence.
 
 ## Definitions versus builds
 
 Decorators create reusable definitions:
 
-- `@ql.program` defines an executable application kernel;
-- `@ql.objective` defines reusable ideal behavior to claim against;
-- `@ql.machine` defines logical spaces, capabilities, and capacity;
-- `@ql.code` defines a QEC code as validated data;
-- `@ql.gadget` defines one encoded realization of an objective; and
-- `@ql.protocol` composes resources, rotations, and postselection into a
-  reusable protocol.
+- `@cudaq.logical.program` defines an executable application kernel;
+- `@cudaq.logical.objective` defines reusable ideal behavior to claim against;
+- `@cudaq.logical.machine` defines logical spaces, capabilities, and capacity;
+- `@cudaq.logical.code` defines a QEC code as validated data;
+- `@cudaq.logical.gadget` defines one encoded realization of an objective; and
+- `@cudaq.logical.protocol` composes resources, rotations, and postselection
+  into a reusable protocol.
 
-(`ql` above is the shipped alias: `import cudaq.logical as ql`.)
+(`cql` above is the shipped alias: `import cudaq.logical as cql`.)
 
-`ql.compile` traces a definition into an immutable `Build`; `ql.compiler.place`
-continues a P0 build into a placed P1 build without retracing Python. Every
-build serializes and replays exactly: `Build.replay(build.serialize())`
-reproduces it, witness included.
+`cudaq.logical.compile` traces a definition into an immutable `Build`;
+`cudaq.logical.compiler.place` continues a P0 build into a placed P1 build
+without retracing Python. Every build serializes and replays exactly:
+`Build.replay(build.serialize())` reproduces it, witness included.
 
 ## The artifact model
 
 Three clusters of artifacts carry the system's semantics.
 
-**The QEC algebra.** You author a `@ql.code` as data — block shape, stabilizer
-checks, logical operators, distance. CUDA-Q Logical validates it at construction
-and materializes it into the `fabric` dialect on demand. Reusable families live in
-`cudaq.logical.codes` (Steane, rotated surface, repetition, Reed–Muller 15, bare
-qubit); `ql.codes.BareQubit` is the honest no-protection boundary used by
-protocol factories.
+**The QEC algebra.** You author a `@cudaq.logical.code` as data — block shape,
+stabilizer checks, logical operators, distance. CUDA-Q Logical validates it at
+construction and materializes it into the `fabric` dialect on demand. Reusable
+families live in `cudaq.logical.codes` (Steane, rotated surface, repetition,
+Reed–Muller 15, bare qubit); `cudaq.logical.codes.BareQubit` is the honest
+no-protection boundary used by protocol factories.
 
 **The gadget stack.** A gadget claims an objective through `implements=`; an
 ordinary authored body over typed patches realizes it. Matching compares the
@@ -90,21 +91,21 @@ body's derived Clifford action against the claimed objective — a typed contrac
 not a naming convention. Compilation materializes typed gadget records
 (`fabric-materialize-record-schemas`) before verification.
 
-**Machines, placement, and builds.** A `@ql.machine` declares logical regions
-with capabilities and capacity; a layered device binds those regions to QEC
-architectures and physical resources. Placement constraints such as
-`ql.architecture.colocate(...)` guide the P1 solver. QEC selection produces P2,
-and physical projection, routing, native legalization, and scheduling produce
-P3. Builds are immutable: continuing one never mutates it, and every estimate
-or emission reads a private view.
+**Machines, placement, and builds.** A `@cudaq.logical.machine` declares
+logical regions with capabilities and capacity; a layered device binds those
+regions to QEC architectures and physical resources. Placement constraints such
+as `cudaq.logical.architecture.colocate(...)` guide the P1 solver. QEC
+selection produces P2, and physical projection, routing, native legalization,
+and scheduling produce P3. Builds are immutable: continuing one never mutates
+it, and every estimate or emission reads a private view.
 
 ## Data ownership
 
 Logical qubits, encoded patches, and protocol resources are linear owners.
 Operations consume the incoming owner and return its successor; measurement or
-an explicit `ql.discard` ends ownership. The IR verifiers reject duplication,
-stale reuse, and mismatched branch carries — there is no in-place mutation
-anywhere in the IR.
+an explicit `cudaq.logical.discard` ends ownership. The IR verifiers reject
+duplication, stale reuse, and mismatched branch carries — there is no in-place
+mutation anywhere in the IR.
 
 ```{figure} ../_static/figures/patch-lifecycle.svg
 :alt: State machine of a patch's linear ownership from allocation through active execution to terminal readout.
@@ -116,9 +117,9 @@ produces a successor.
 
 ## The compile pipeline
 
-`ql.compiler.pipelines.*` presets name the canonical pass sequences. Passes
-declare the facets they require and provide, so an out-of-order pipeline fails
-verification instead of guessing:
+`cudaq.logical.compiler.pipelines.*` presets name the canonical pass sequences.
+Passes declare the facets they require and provide, so an out-of-order pipeline
+fails verification instead of guessing:
 
 | Preset                    | Passes                                                                                                                                | Output                                       |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
@@ -161,7 +162,7 @@ Three independent layers enforce correctness:
 
 - **Construction**: CUDA-Q Logical validates a code definition as you author
   it — stabilizer shape, logical operators, and distance evidence must agree
-  before a `@ql.code` exists at all.
+  before a `@cudaq.logical.code` exists at all.
 - **IR verifiers (C++)**: every stage boundary has a verify pass —
   `qlx-verify-p0`, `lvm-verify-p1`, `fabric-verify-p2s` / `-p2a` / `-p2n`,
   `fabric-verify-machine`, and `phys-verify-p3`, plus the gate-set verifiers

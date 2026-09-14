@@ -22,7 +22,7 @@ from typing import Tuple
 
 import pytest
 
-import cudaq.logical as qlx
+import cudaq.logical as cql
 from cudaq.mlir._mlir_libs import _qlxRuntime as rt
 
 stim = pytest.importorskip("stim")
@@ -34,34 +34,34 @@ def _synth(gates, meas):
                  [m[1] for m in meas])
 
     def prog():
-        q = qlx.allocate(nq, state=qlx.types.zero)
+        q = cql.allocate(nq, state=cql.types.zero)
         for g in gates:
             if g[0] == "h":
-                q[g[1]] = qlx.h(q[g[1]])
+                q[g[1]] = cql.h(q[g[1]])
             elif g[0] == "s":
-                q[g[1]] = qlx.s(q[g[1]])
+                q[g[1]] = cql.s(q[g[1]])
             elif g[0] == "sdg":
-                q[g[1]] = qlx.sdg(q[g[1]])
+                q[g[1]] = cql.sdg(q[g[1]])
             elif g[0] == "x":
-                q[g[1]] = qlx.x(q[g[1]])
+                q[g[1]] = cql.x(q[g[1]])
             elif g[0] == "z":
-                q[g[1]] = qlx.z(q[g[1]])
+                q[g[1]] = cql.z(q[g[1]])
             elif g[0] == "cx":
-                q[g[1]], q[g[2]] = qlx.cx(q[g[1]], q[g[2]])
+                q[g[1]], q[g[2]] = cql.cx(q[g[1]], q[g[2]])
             elif g[0] == "t":
-                (q[g[1]],) = qlx.ops.rotate(qlx.types.Z(q[g[1]]),
-                                            angle=qlx.types.pi / 4)
+                (q[g[1]],) = cql.ops.rotate(cql.types.Z(q[g[1]]),
+                                            angle=cql.types.pi / 4)
             elif g[0] == "tdg":
-                (q[g[1]],) = qlx.ops.rotate(qlx.types.Z(q[g[1]]),
-                                            angle=-qlx.types.pi / 4)
+                (q[g[1]],) = cql.ops.rotate(cql.types.Z(q[g[1]]),
+                                            angle=-cql.types.pi / 4)
         return tuple(
-            qlx.measure_x(q[i]) if b == "X" else qlx.measure_z(q[i])
+            cql.measure_x(q[i]) if b == "X" else cql.measure_z(q[i])
             for b, i in meas)
 
     prog.__annotations__["return"] = Tuple[tuple(bool for _ in meas)]
-    prog = qlx.program(prog)
-    mlir = qlx.compile(prog,
-                       pipeline=qlx.compiler.pipelines.logical()).to_mlir()
+    prog = cql.program(prog)
+    mlir = cql.compile(prog,
+                       pipeline=cql.compiler.pipelines.logical()).to_mlir()
     return rt.synthesize_qlx(mlir, 1e-10)
 
 
@@ -252,12 +252,12 @@ def test_pbc_structure():
 
 def test_pbc_rejects_unsynthesized():
     # A single-qubit pauli_rotation (pre-synthesis) is rejected with guidance.
-    @qlx.program
+    @cql.program
     def raw() -> bool:
-        q = qlx.allocate(1)
-        (q[0],) = qlx.ops.rotate(qlx.types.Z(q[0]), angle=0.3, precision=1e-6)
-        return qlx.measure_z(q[0])
+        q = cql.allocate(1)
+        (q[0],) = cql.ops.rotate(cql.types.Z(q[0]), angle=0.3, precision=1e-6)
+        return cql.measure_z(q[0])
 
-    mlir = qlx.compile(raw, pipeline=qlx.compiler.pipelines.logical()).to_mlir()
+    mlir = cql.compile(raw, pipeline=cql.compiler.pipelines.logical()).to_mlir()
     with pytest.raises(RuntimeError):
         rt.to_pbc(mlir)

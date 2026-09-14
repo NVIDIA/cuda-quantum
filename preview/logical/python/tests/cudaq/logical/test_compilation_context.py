@@ -7,11 +7,11 @@
 # ============================================================================ #
 from __future__ import annotations
 
-import cudaq.logical as qlx
+import cudaq.logical as cql
 import cudaq.mlir.ir as mlir_ir
 
 
-def _objective(context: qlx.compiler.CompilationContext, name: str = "cached"):
+def _objective(context: cql.compiler.CompilationContext, name: str = "cached"):
     symbol = context.declare_objective(
         family="action",
         requested_symbol=name,
@@ -23,7 +23,7 @@ def _objective(context: qlx.compiler.CompilationContext, name: str = "cached"):
 
 
 def test_find_symbol_evicts_an_erased_cached_operation():
-    context = qlx.compiler.CompilationContext()
+    context = cql.compiler.CompilationContext()
     symbol, operation = _objective(context)
 
     operation.erase()
@@ -33,7 +33,7 @@ def test_find_symbol_evicts_an_erased_cached_operation():
 
 
 def test_find_symbol_reindexes_a_renamed_cached_operation():
-    context = qlx.compiler.CompilationContext()
+    context = cql.compiler.CompilationContext()
     symbol, operation = _objective(context)
     operation.attributes["sym_name"] = mlir_ir.StringAttr.get(
         "renamed",
@@ -48,7 +48,7 @@ def test_find_symbol_reindexes_a_renamed_cached_operation():
 
 def test_find_symbol_can_skip_a_module_scan_when_the_index_is_complete(
         monkeypatch):
-    context = qlx.compiler.CompilationContext()
+    context = cql.compiler.CompilationContext()
     symbol, operation = _objective(context)
 
     def unexpected_walk():

@@ -6,19 +6,20 @@ and magic states come from distillation protocols. CUDA-Q Logical treats each
 protocol as a verified, inspectable definition — never a string-named leaf the
 compiler trusts.
 
-In the programming model, `ql.ops.rotate` (Pauli-product rotation) and `ql.mpp`
-(Pauli-product measurement) are _logical primitives_:
+In the programming model, rotations (`cudaq.logical.rz` and its siblings, and
+`cudaq.logical.resource_rotate` where a magic state is consumed) and
+Pauli-product measurement (`cudaq.logical.mpp`) are _logical primitives_:
 
 ```python
-import cudaq.logical as ql
+import cudaq.logical as cql
 
 
-@ql.program
+@cql.program
 def parity_check() -> bool:
-    q = ql.allocate(3, state=ql.types.zero)
-    q[0], q[1], q[2], parity = ql.mpp(
-        ql.types.X(q[0]) @ ql.types.Y(q[1]) @ ql.types.Z(q[2]))
-    ql.discard(q)
+    q = cql.allocate(3, state=cql.types.zero)
+    q[0], q[1], q[2], parity = cql.mpp(
+        cql.types.X(q[0]) @ cql.types.Y(q[1]) @ cql.types.Z(q[2]))
+    cql.discard(q)
     return parity
 ```
 
@@ -62,32 +63,33 @@ path the native `qlx-synthesize-rotations` pass takes before ever calling
 `gridsynth`: $k=1\to T$, $k=2\to S$, $k=4\to Z$, and $T^8 = I$. We drop
 global phase throughout: it is unobservable and carries no logical content.
 
-### Authoring exact angles with `ql.algebra.pi`
+### Authoring exact angles with `cudaq.logical.algebra.pi`
 
-Writing `angle=0.7853981633974483` leaves the compiler to _infer_ that you meant
-$\pi/4$ from a float, within a tolerance. To state the intent exactly, author
-with the symbol `ql.algebra.pi` — an exact rational multiple of $\pi$ that
-arithmetic keeps exact:
+Writing `angle=0.7853981633974483` leaves the compiler to _infer_ that you
+meant $\pi/4$ from a float, within a tolerance. To state the intent exactly,
+author with the symbol `cudaq.logical.algebra.pi` — an exact rational multiple
+of $\pi$ that arithmetic keeps exact:
 
 ```python
-@ql.program
+@cql.program
 def exact_angles() -> bool:
-    q = ql.allocate(1, state=ql.types.zero)
-    q[0], = ql.ops.rotate(ql.types.Z(q[0]), angle=ql.algebra.pi / 4)
-    q[0] = ql.rz(q[0], 3 * ql.algebra.pi / 4)
-    q[0] = ql.rz(q[0], ql.algebra.pi / 8)
-    return ql.measure_z(q[0])
+    q = cql.allocate(1, state=cql.types.zero)
+    q[0] = cql.rz(q[0], cql.algebra.pi / 4)
+    q[0] = cql.rz(q[0], 3 * cql.algebra.pi / 4)
+    q[0] = cql.rz(q[0], cql.algebra.pi / 8)
+    return cql.measure_z(q[0])
 
-ql.compile(exact_angles)
+cql.compile(exact_angles)
 ```
 
 An `Angle` authored this way stamps its reduced coefficient onto the rotation
 op, so the synthesis dispatch classifies it **authoritatively** —
-`ql.algebra.pi / 2` is the Clifford point and `ql.algebra.pi / 4` the magic
-point by construction, never a near-lattice float that a tolerance might snap or
-miss. `float(ql.algebra.pi / 4)` still yields the ordinary radian value, so a
-raw float angle (e.g. `0.3`) keeps the numeric path unchanged — both surfaces
-coexist.
+`cudaq.logical.algebra.pi / 2` is the Clifford point and
+`cudaq.logical.algebra.pi / 4` the magic point by construction, never a
+near-lattice float that a tolerance might snap or miss.
+`float(cudaq.logical.algebra.pi / 4)` still yields the ordinary radian value,
+so a raw float angle (e.g. `0.3`) keeps the numeric path unchanged — both
+surfaces coexist.
 
 Synthesis legalizes off-lattice rotations to Clifford+T; see
 [Logical Clifford+T synthesis](logical-synthesis.md).
@@ -95,12 +97,13 @@ Synthesis legalizes off-lattice rotations to Clifford+T; see
 ## Typed resource kinds
 
 Magic states are typed resources, not ad-hoc qubits. The standard library
-declares the kinds — `ql.std.T_STATE`, `RAW_T_STATE`, `Y_STATE`, `CCZ_STATE`,
-`CS_STATE`, `ENCODED_BELL_PAIR` — each with a typed consume action, and
-`ql.std.produce(...)` builds the objective a production protocol claims to
-implement. A protocol body sees resources through `ql.types.resource[...]`
-handles: `ql.request_many` draws raw inputs, `ql.unpack_resource` opens a
-resource into a patch, and `ql.pack_resource` certifies the output kind.
+namespace `cudaq.logical.logical` declares the kinds — `T_STATE`,
+`RAW_T_STATE`, `Y_STATE`, `CCZ_STATE`, `CS_STATE`, `ENCODED_BELL_PAIR` — each
+with a typed consume action, and its `produce(...)` builds the objective a
+production protocol claims to implement. A protocol body sees resources through
+`cudaq.logical.types.resource[...]` handles: `cudaq.logical.request_many` draws
+raw inputs, `cudaq.logical.unpack_resource` opens a resource into a patch, and
+`cudaq.logical.pack_resource` certifies the output kind.
 
 ## 15-to-1: a concrete factory
 
@@ -111,17 +114,18 @@ placeholder:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
    :language: python
-   :lines: 12-49
+   :start-at: import cudaq.logical as cql
+   :end-before: # %%
    :caption: The 15-to-1 T-state protocol (examples/standalone/03_magic_state_distillation.py).
 ```
 
-The protocol unpacks fifteen linear raw-state inputs onto bare patches;
-eleven resource-assisted product rotations from
-`ql.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal circuit;
-`ql.protocols.bare_s` converts the resulting T† on the odd row to the canonical
-T|+⟩; and exactly the four even rows must measure $+X$ — recorded with
-`ql.postselect`, so the acceptance condition is part of the definition rather
-than a comment about it.
+The protocol unpacks fifteen linear raw-state inputs onto bare patches; eleven
+resource-assisted product rotations from
+`cudaq.logical.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal
+circuit; `cudaq.logical.protocols.bare_s` converts the resulting T† on the odd
+row to the canonical T|+⟩; and exactly the four even rows must measure $+X$ —
+recorded with `cudaq.logical.postselect`, so the acceptance condition is part
+of the definition rather than a comment about it.
 
 Because the protocol is an ordinary compiled definition, the static estimation
 tier counts it directly:
@@ -129,7 +133,8 @@ tier counts it directly:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
    :language: python
-   :lines: 53-64
+   :start-at: # Estimate the protocol directly
+   :end-at: peak live patches
 ```
 
 ```text
@@ -145,12 +150,12 @@ The leading-order analytical curves attach to the _same_ protocol library entry
 for supply/demand studies — output error $35p^3$ and acceptance $1 - 15p$:
 
 ```python
-model = ql.protocols.DISTILL_15TO1_T
+model = cql.protocols.DISTILL_15TO1_T
 assert model.output_error(1e-3) == 3.510537795740123e-08
 assert model.acceptance_probability(1e-3) == 0.9851045810483217
 ```
 
-The `ql.protocols` library also exposes the reusable pieces —
+The `cudaq.logical.protocols` library also exposes the reusable pieces —
 `FIFTEEN_TO_ONE_ROTATION_STEPS` and their supports, `bare_s`, `bare_measure_x`,
 and the ready-made `distill_15to1` definition — so you can compose your own
 production protocol from verified parts.
@@ -161,6 +166,40 @@ A static estimate counts what the declared protocol costs; it does not sample
 the factory, decode its checks, or model the noise that makes distillation
 necessary. The estimate reports postselection as counts and success rows, not
 as simulated accept/reject statistics. :::
+
+## Compact factory models at P3
+
+A protocol says what a factory does; at P3 a factory binding can also say how
+fast it does it. `cudaq.logical.devices.FactoryModel` carries a startup
+latency, a steady output interval, and the evidence behind both:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/gidney_ekera_factory.py
+   :language: python
+   :start-at: builder.physical.bind(factory_qec
+   :end-before: builder.physical.set_operating_point
+   :dedent: 4
+   :caption: A declared factory model with explicit provenance (examples/gidney_ekera_factory.py).
+```
+
+Declaring the numbers is one option, and `evidence=` is where you say they are
+an assumption rather than a measurement. The other option is to derive them:
+`cudaq.logical.compiler.factory_model` reads a verified P3 schedule and
+characterizes the factory it implements.
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/gidney_ekera_factory.py
+   :language: python
+   :start-at: factory_model = cql.compiler.factory_model(
+   :end-before: # Make sure the compiler
+   :dedent: 4
+```
+
+The derived model reports the same two figures the declared one asserts —
+`startup_cycles` and `output_interval_cycles` — plus a characterization
+recording the physical units it took. A supply/demand study can then use a
+compact factory model in place of the full protocol schedule, without losing
+track of where its timing came from.
 
 ## Continue from here
 

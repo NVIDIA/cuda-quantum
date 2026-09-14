@@ -2,22 +2,25 @@
 
 Estimation in CUDA-Q Logical comes in four explicit tiers over the _same_
 linked definitions. One call shape serves all four:
-`ql.estimate(value, tier=...)`. You can pass a `Build`, schedule, or authoring
-definition. A definition is first compiled through its normal default pipeline;
-the estimator then checks that the resulting stage matches the requested tier
-and fails with a typed diagnostic when they disagree.
+`cudaq.logical.estimate(value, tier=...)`. You can pass a `Build`, schedule, or
+authoring definition. A definition is first compiled through its normal default
+pipeline; the estimator then checks that the resulting stage matches the
+requested tier and fails with a typed diagnostic when they disagree.
 
-| Tier                          | Needs                                                     | Returns                                                                                                                                                         |
-| ----------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ql.estimate.Tier.LOGICAL`    | a verified P0 program — no device, no code                | `ql.estimate.LogicalProfile`: action/instrument totals, peak logical qubits, idle/discard counts, action-depth upper bound, and synthesis demand                 |
-| `ql.estimate.Tier.STATIC`     | a selected P2 build — code, gadgets, and protocols chosen | `ql.estimate.FabricCounts`: per-operation counts, gadget/protocol call totals, resource requests, postselection bookkeeping, syndrome rounds, and peak patches  |
-| `ql.estimate.Tier.ANALYTICAL` | a selected P2 build and physical operating assumptions    | `ql.estimate.FabricEstimate`: modeled error, acceptance, wall-clock cost, physical-qubit peak, assumptions, and retry demand                                    |
-| `ql.estimate.Tier.SCHEDULE`   | a scheduled P3 physical graph                             | `ql.estimate.ScheduleEstimate`: authenticated event counts, makespan, resource-time, physical resources, utilization, and termination behavior                  |
+The tier names and result types below live in `cudaq.logical.estimate`,
+written here without that prefix:
 
-`Tier.STATIC` is the default, so `ql.estimate(p2_build)` needs no `tier=`
-argument. Results are immutable typed values, expose plain-data projections
-where applicable, and retain the source identity and evidence used to derive
-them.
+| Tier              | Needs                                                     | Returns                                                                                                                                            |
+| ----------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Tier.LOGICAL`    | a verified P0 program — no device, no code                | `LogicalProfile`: action/instrument totals, peak logical qubits, idle/discard counts, action-depth upper bound, and synthesis demand               |
+| `Tier.STATIC`     | a selected P2 build — code, gadgets, and protocols chosen | `FabricCounts`: per-operation counts, gadget/protocol call totals, resource requests, postselection bookkeeping, syndrome rounds, and peak patches |
+| `Tier.ANALYTICAL` | a selected P2 build and physical operating assumptions    | `FabricEstimate`: modeled error, acceptance, wall-clock cost, physical-qubit peak, assumptions, and retry demand                                   |
+| `Tier.SCHEDULE`   | a scheduled P3 physical graph                             | `ScheduleEstimate`: authenticated event counts, makespan, resource-time, physical resources, utilization, and termination behavior                 |
+
+`Tier.STATIC` is the default, so `cudaq.logical.estimate(p2_build)` needs no
+`tier=` argument. Results are immutable typed values, expose plain-data
+projections where applicable, and retain the source identity and evidence used
+to derive them.
 
 ## `Tier.LOGICAL` — cost the algorithm before any QEC choice
 
@@ -26,16 +29,16 @@ algorithm while it is still portable intent
 (`examples/standalone/00_logical_program.py`):
 
 ```python
-import cudaq.logical as ql
+import cudaq.logical as cql
 
-@ql.program
+@cql.program
 def bell() -> tuple[bool, bool]:
-    q = ql.allocate(2, state=ql.types.zero)
-    q[0] = ql.h(q[0])
-    q[0], q[1] = ql.cx(q[0], q[1])
-    return ql.measure_z(q[0]), ql.measure_z(q[1])
+    q = cql.allocate(2, state=cql.types.zero)
+    q[0] = cql.h(q[0])
+    q[0], q[1] = cql.cx(q[0], q[1])
+    return cql.measure_z(q[0]), cql.measure_z(q[1])
 
-profile = ql.estimate(ql.compile(bell), tier=ql.estimate.Tier.LOGICAL)
+profile = cql.estimate(cql.compile(bell), tier=cql.estimate.Tier.LOGICAL)
 assert profile.logical_qubits_peak == 2
 assert profile.actions == {"qlx_standard_h": 1, "qlx_standard_cx": 1}
 assert profile.instruments == {
@@ -65,7 +68,7 @@ the standalone Steane terminal-memory gadget
 -->
 
 ```python
-counts = ql.estimate(gadget_build, tier=ql.estimate.Tier.STATIC)
+counts = cql.estimate(gadget_build, tier=cql.estimate.Tier.STATIC)
 assert counts.patches_peak == 1
 assert counts.build_root == "steane_memory"
 assert counts.source_stage == "p2"
@@ -75,7 +78,7 @@ counts.operation_counts
 
 The syndrome-extraction gadget has been lowered to its physical primitives, so
 the counts report the reset/`H`/`CX`/measurement work of the actual circuit —
-not the one-line `ql.extract_syndrome` the author wrote.
+not the one-line `cudaq.logical.extract_syndrome` the author wrote.
 
 Protocols compose gadgets with resources and postselection, and the static
 tier keeps the bookkeeping visible. You can estimate the standalone 15-to-1
@@ -90,7 +93,7 @@ distillation example straight from its authoring definition:
 -->
 
 ```python
-counts = ql.estimate(distill_15to1, tier=ql.estimate.Tier.STATIC)
+counts = cql.estimate(distill_15to1, tier=cql.estimate.Tier.STATIC)
 assert counts.operation_counts["resource_request"] == 15
 assert counts.operation_counts["selection"] == 4
 assert counts.operation_counts["pack_resource"] == 1
@@ -143,43 +146,45 @@ same tier through `cudaq.estimate` annotations.
   unverifiable module is a typed error, never a partially computed number.
 - **Declared assumptions.** Where a fact is evidence rather than algebra — a
   code distance, say — the typed evidence constructors ask for a method and a
-  provenance, and `ql.analysis` provides the provenance spellings:
+  provenance, and `cudaq.logical.analysis` provides the provenance spellings:
   `citation(...)` for a published source, `report(...)` and `computation(...)`
   for internal analyses and recorded tool runs, and `user_assertion(...)` for an
   explicit, unproved statement.
 
 ## Direct spellings
 
-`ql.analysis.logical_counts(p0)`, `ql.analysis.count(build)`,
-`ql.estimate.analytical(build, ...)`, and `ql.estimate.scheduled(schedule, ...)`
-are the per-tier function forms of the same estimators. Reach for them when your
-code intentionally selects one specialized analysis; product flows should
-prefer the unified `ql.estimate(...)` front door.
+`cudaq.logical.analysis.logical_counts(p0)`,
+`cudaq.logical.analysis.count(build)`,
+`cudaq.logical.estimate.analytical(build, ...)`, and
+`cudaq.logical.estimate.scheduled(schedule, ...)` are the per-tier function
+forms of the same estimators. Reach for them when your code intentionally
+selects one specialized analysis; product flows should prefer the unified
+`cudaq.logical.estimate(...)` front door.
 
 ## Sweeps and reproducibility
 
 Design-space sweeps are first-class artifacts.
-`ql.compiler.compile_many(points, pipeline=...)` turns a tuple of
-`ql.compiler.Experiment` values into an immutable, self-describing
+`cudaq.logical.compiler.compile_many(points, pipeline=...)` turns a tuple of
+`cudaq.logical.compiler.Experiment` values into an immutable, self-describing
 `ExperimentBundle`. Its serialized form replays every build bit-identically in
 a clean process (`python/tests/cudaq/logical/test_experiments.py`):
 
 ```python
-import cudaq.logical as ql
+import cudaq.logical as cql
 
-@ql.program
+@cql.program
 def memory() -> bool:
-    q = ql.prepare_zero()
-    q = ql.idle(q, rounds=3)
-    return ql.measure_z(q)
+    q = cql.prepare_zero()
+    q = cql.idle(q, rounds=3)
+    return cql.measure_z(q)
 
 points = tuple(
-    ql.compiler.Experiment(root=memory, parameters={"p": p})
+    cql.compiler.Experiment(root=memory, parameters={"p": p})
     for p in (1e-4, 1e-3, 1e-2))
-bundle = ql.compiler.compile_many(
-    points, pipeline=ql.compiler.pipelines.logical())
+bundle = cql.compiler.compile_many(
+    points, pipeline=cql.compiler.pipelines.logical())
 assert len(bundle) == 3
-replayed = ql.compiler.ExperimentBundle.replay(bundle.serialize())
+replayed = cql.compiler.ExperimentBundle.replay(bundle.serialize())
 ```
 
 A serialized bundle needs no ambient Python state, so you can re-derive an
@@ -194,7 +199,7 @@ timing and layout equations. That default fast path deliberately does not call
 `Tier.ANALYTICAL`; its assumptions remain visible and editable in the example.
 The same example offers `--physical` as an opt-in P3 compilation and scheduling
 path. The related library calculation is available through
-`ql.algorithms.estimate_gidney_ekera`.
+`cudaq.logical.algorithms.estimate_gidney_ekera`.
 
 ## Estimating ordinary CUDA-Q kernels
 

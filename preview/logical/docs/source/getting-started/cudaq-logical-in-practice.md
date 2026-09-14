@@ -26,7 +26,8 @@ Start with a program that prepares and measures a Bell pair:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/00_logical_program.py
    :language: python
-   :lines: 12-28
+   :start-at: import cudaq.logical as cql
+   :end-at: tier=cql.estimate.Tier.LOGICAL)
    :caption: Define, compile, and estimate a Bell program (examples/standalone/00_logical_program.py).
 ```
 
@@ -35,12 +36,12 @@ code to use. That makes it portable.
 
 The assignments are important. A quantum value has one live owner, so an
 operation consumes the current value and returns its successor. For example,
-`qubits[0] = cql.h(qubits[0])` replaces the old value of `qubits[0]` with the
-one returned by `h`. This rule prevents stale or duplicated quantum values from
-reaching the compiled program.
+`qubits[0] = cudaq.logical.h(qubits[0])` replaces the old value of `qubits[0]`
+with the one returned by `h`. This rule prevents stale or duplicated quantum
+values from reaching the compiled program.
 
-`cql.compile(bell)` produces an immutable P0 build. At this point, a logical
-estimate can count the program's logical qubits and operations:
+`cudaq.logical.compile(bell)` produces an immutable P0 build. At this point, a
+logical estimate can count the program's logical qubits and operations:
 
 ```text
 Portable Bell program: 2 logical qubits
@@ -58,7 +59,8 @@ with two slots and supports logical computation and measurement:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/01_logical_placement.py
    :language: python
-   :lines: 17-25
+   :start-at: @cql.machine
+   :end-before: # %%
    :caption: Define a two-slot logical machine (examples/standalone/01_logical_placement.py).
 ```
 
@@ -72,7 +74,8 @@ together:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/01_logical_placement.py
    :language: python
-   :lines: 30-45
+   :start-at: @cql.program
+   :end-at: cql.architecture.colocate(logical.values.data)
    :caption: Place the Bell program and inspect the result.
 ```
 
@@ -96,7 +99,8 @@ that implements that objective:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :lines: 12-40
+   :start-at: import cudaq.logical as cql
+   :end-at: cql.discard(block)
    :caption: Define a Steane code and terminal-memory gadget (examples/standalone/02_code_and_gadget.py).
 ```
 
@@ -114,7 +118,8 @@ definitions and their operation counts:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :lines: 45-51
+   :start-at: code = cql.materialize(Steane)
+   :end-at: == (7, 1, 3)
 ```
 
 ```text
@@ -144,7 +149,8 @@ the cost of preparing and measuring a logical zero:
 ```{eval-rst}
 .. literalinclude:: ../../../examples/02_surface_code_resource_estimate.py
    :language: python
-   :lines: 13-36
+   :start-at: import cudaq.logical as cql
+   :end-at: baseline_estimate.annotations["SCHEDULE"]
    :caption: Estimate a CUDA-Q kernel with a surface-code target (examples/02_surface_code_resource_estimate.py).
 ```
 
@@ -156,32 +162,16 @@ simulation or hardware execution.
 
 ## 5. Emit a verified gadget as Stim
 
-A verified P2 entry gadget can also be projected to Stim circuit text:
+A selected P2 program can also leave CUDA-Q Logical as standards-compatible
+Stim circuit text. It is an interchange format, not another compilation stage:
+the output contains the explicit resets, Clifford operations, and measurements
+of the selected gadget, and CUDA-Q Logical does not use it to sample or decode
+detector events. If the required realization is missing, emission stops at that
+boundary instead of filling in an implementation.
 
-<!--
-% invisible-code-block: python
-%
-% steane_memory = load_ql_example(
-% "preview/logical/examples/standalone/02_code_and_gadget.py", "steane_memory")
--->
-
-```python
-import cudaq.logical as ql
-
-build = ql.compile(steane_memory)
-emission = ql.lower.emit_stim_artifact(
-    build.module, root_symbol=build.root.symbol)
-assert emission.text.startswith("R ")
-assert emission.interface is not None
-```
-
-The emitter accepts a verified P2 entry gadget. If the required realization is
-missing, it stops at that boundary instead of filling in an implementation.
-
-Stim emission is an interchange format, not another compilation stage. The
-output contains the explicit resets, Clifford operations, and measurements in
-the selected gadget; CUDA-Q Logical does not use it to sample or decode detector
-events.
+The projection runs through `qlx-translate`; see
+[Stim emission](../use-cases/stim-emission.md) for the command and its
+fail-closed boundaries.
 
 ## What each stage owns
 

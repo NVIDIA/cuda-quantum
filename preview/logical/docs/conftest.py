@@ -19,9 +19,10 @@ def _setup(namespace):
 
     import cudaq.logical.compiler.build as build_mod
 
-    # Sybil executes snippets with `exec()`, so `@ql.program` providers keep
+    # Sybil executes snippets with `exec()`, so `@cql.program` providers keep
     # __module__ as None and serialized builds would record source_modules=[None].
-    if not getattr(build_mod.Build.__init__, "_qlx_docs_patched", False):
+    if not getattr(build_mod.Build.__init__, "_cudaq_logical_docs_patched",
+                   False):
 
         def _init(self, /, **kwargs):
             source_modules = kwargs.get("source_modules", ())
@@ -29,11 +30,11 @@ def _setup(namespace):
                 dict.fromkeys(
                     item if isinstance(item, str) and item else "__main__"
                     for item in source_modules))
-            return build_mod.Build._qlx_original_init(self, **kwargs)
+            return build_mod.Build._cudaq_logical_original_init(self, **kwargs)
 
-        build_mod.Build._qlx_original_init = build_mod.Build.__init__
+        build_mod.Build._cudaq_logical_original_init = build_mod.Build.__init__
         build_mod.Build.__init__ = _init
-        build_mod.Build.__init__._qlx_docs_patched = True
+        build_mod.Build.__init__._cudaq_logical_docs_patched = True
 
     root = Path.cwd()
     while (root != root.parent and

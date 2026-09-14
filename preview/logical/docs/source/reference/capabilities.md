@@ -36,23 +36,27 @@ Every row cites its exercising evidence in this repository.
 | P3 physical lowering, routing, native legalization, and scheduling                                                                                      | shipped, exercised | `examples/04_carbon_code.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
 | Analytical and schedule estimation                                                                                                                      | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
 | Paper-specific Gidney–Ekerå RSA-2048 projection                                                                                                         | shipped, exercised | `examples/05_gidney_ekera.py`                                                                                          |
-| Stim text emission — typed `ql.lower.emit_stim` and `ql.lower.emit_stim_artifact`                                                                       | shipped, exercised | `examples/standalone/02_code_and_gadget.py`; Stim-emission tests                                                        |
+| Stim text emission — the `--fabric-to-stim` translation                                                                                                 | shipped, exercised | `examples/mlir/stim_memory.mlir` via `qlx-translate`; Stim-emission tests                                               |
 
 ## Present but not yet exercised
 
 These APIs exist in the package but carry no executed test or example in this
 release, so the documentation does not teach them yet: dynamic codes
 (`MeasurementPhase`, `EncodingEpoch`), code switching (`PatchTransform`),
-concatenation (`ql.codes.Concatenated`), meta-checks (`ql.codes.MetaChecks`),
-and P2 block requests (`ql.codes.qec_block`). Treat them as preview surface:
-use them at your own risk until exercised evidence lands.
+concatenation (`cudaq.logical.codes.Concatenated`), meta-checks
+(`cudaq.logical.codes.MetaChecks`), and P2 block requests
+(`cudaq.logical.codes.qec_block`). Treat them as preview surface: use them at
+your own risk until exercised evidence lands.
 
 ## Documented boundaries (all fail closed)
 
-**There is no noise, detector, DEM, decoder, or sampling surface.** CUDA-Q
-Logical emits Stim circuit text; it does not annotate detectors, build detector
-error models, sample, or decode. Those studies belong downstream of the emitted
-text, in the Stim ecosystem.
+**There are no detector, observable, detector-error-model, decoder, or sampling
+semantics.** P3 retains typed physical error and timing *assumptions* so that
+`Tier.ANALYTICAL` and `Tier.SCHEDULE` can cost a realization — that is a
+parameter surface, not a noise model. CUDA-Q Logical does not annotate
+detectors or observables, generate or compose detector error models, sample
+circuits, or decode results. Those studies begin downstream of the emitted
+Stim text, in the Stim ecosystem.
 
 **Stages stop at P3.** P3 represents physical carriers, routing, native events,
 and schedules. It remains a compiler and estimation artifact: CUDA-Q Logical
@@ -64,17 +68,18 @@ physical simulations.
 
 **The native P1 placer is a subset.** `qlx-to-lvm` is a deterministic first-fit
 placement for explicitly machine-scoped, inlined programs; the Python placement
-solver (`ql.compiler.place`) is the rich path. The native pass fails on inputs
-outside the shared supported subset rather than approximating.
+solver (`cudaq.logical.compiler.place`) is the rich path. The native pass fails
+on inputs outside the shared supported subset rather than approximating.
 
-**Stim emission is terminal and checked.** The Python emitter accepts a verified
-P2 entry gadget. Emission never invents an implementation that selection did not
-link.
+**Stim emission is terminal and checked.** The `--fabric-to-stim` translation
+accepts a verified P2 entry gadget. Emission never invents an implementation
+that selection did not link.
 
-**Rotation synthesis is explicit, not automatic.** `ql.compiler.synthesize`
-legalizes a logical program to a named gate set (Clifford+T, example 01) under
-an operator-norm `precision=` bound; unsupported gate sets are rejected with a
-`ValueError` rather than approximated.
+**Rotation synthesis is explicit, not automatic.**
+`cudaq.logical.compiler.synthesize` legalizes a logical program to a named gate
+set (Clifford+T, example 01) under an operator-norm `precision=` bound;
+unsupported gate sets are rejected with a `ValueError` rather than
+approximated.
 
 **Paper-specific projections are labeled as such.** Example 05's default
 Gidney–Ekerå path combines compiler-counted logical resources with explicit

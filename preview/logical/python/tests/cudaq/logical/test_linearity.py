@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-import cudaq.logical as qlx
+import cudaq.logical as cql
 import cudaq.logical.compiler.linearity as linearity
 import cudaq.mlir.ir as mlir_ir
 from cudaq.logical.compiler.linearity import (
@@ -20,9 +20,9 @@ from cudaq.logical.compiler.linearity import (
 )
 
 
-@qlx.code
+@cql.code
 class Steane:
-    block = qlx.codes.CSSBlock(data=7, sx=3, sz=3)
+    block = cql.codes.CSSBlock(data=7, sx=3, sz=3)
     d = 3
     hx = ((0, 1, 2, 3), (0, 1, 4, 5), (0, 2, 4, 6))
     hz = hx
@@ -44,31 +44,31 @@ def parse(body: str) -> mlir_ir.Module:
 
 def test_normal_program_and_gadget_bodies_verify_single_ownership():
 
-    @qlx.program
+    @cql.program
     def byproduct() -> bool:
-        q = qlx.prepare_zero()
-        q, parity = qlx.mpp(qlx.types.Z(q))
-        with qlx.ops.if_(parity, carries=(q,)) as branch:
+        q = cql.prepare_zero()
+        q, parity = cql.mpp(cql.types.Z(q))
+        with cql.ops.if_(parity, carries=(q,)) as branch:
             with branch.then():
-                branch.yield_(qlx.x(q))
+                branch.yield_(cql.x(q))
             with branch.else_():
                 branch.yield_(q)
         q, = branch.results
-        return qlx.measure_z(q)
+        return cql.measure_z(q)
 
-    report = check_linearity(qlx.compile(byproduct).module)
+    report = check_linearity(cql.compile(byproduct).module)
     # The same qubit is legitimately consumed once in each exclusive branch;
     # the analysis must accept the canonical Pauli-byproduct pattern.
     assert report.result == "pass"
     assert report.checked_bodies == ("qlx.program @byproduct",)
     assert report.linear_values > 0
 
-    @qlx.gadget(implements=qlx.logical.idle)
-    def idle_round(block: qlx.patch[Steane]) -> qlx.patch[Steane]:
-        block, _ = qlx.extract_syndrome(block, record="round")
+    @cql.gadget(implements=cql.logical.idle)
+    def idle_round(block: cql.patch[Steane]) -> cql.patch[Steane]:
+        block, _ = cql.extract_syndrome(block, record="round")
         return block
 
-    gadget_report = check_linearity(qlx.compile(idle_round).module)
+    gadget_report = check_linearity(cql.compile(idle_round).module)
     assert gadget_report.result == "pass"
     assert "fabric.gadget @idle_round" in gadget_report.checked_bodies
 
@@ -264,11 +264,11 @@ def test_linear_type_recognition_covers_the_contracted_families():
 
 def test_compiled_builds_carry_real_linearity_evidence():
 
-    @qlx.program
+    @cql.program
     def one() -> bool:
-        return qlx.measure_z(qlx.prepare_zero())
+        return cql.measure_z(cql.prepare_zero())
 
-    build = qlx.compile(one)
+    build = cql.compile(one)
     records = [
         record for record in build.evidence
         if record.kind == "linearity_verification"
@@ -290,12 +290,12 @@ def test_compiled_builds_carry_real_linearity_evidence():
     ]
     assert counted and int(counted[0].split(":", 1)[1]) >= 1
 
-    @qlx.gadget(implements=qlx.logical.idle)
-    def evidence_idle(block: qlx.patch[Steane]) -> qlx.patch[Steane]:
-        block, _ = qlx.extract_syndrome(block, record="round")
+    @cql.gadget(implements=cql.logical.idle)
+    def evidence_idle(block: cql.patch[Steane]) -> cql.patch[Steane]:
+        block, _ = cql.extract_syndrome(block, record="round")
         return block
 
-    gadget_build = qlx.compile(evidence_idle)
+    gadget_build = cql.compile(evidence_idle)
     gadget_records = [
         record for record in gadget_build.evidence
         if record.kind == "linearity_verification"
@@ -311,33 +311,33 @@ def test_compiled_builds_carry_real_linearity_evidence():
     assert static and "linear-patch-ownership" not in static[0].obligations
 
 
-@qlx.machine
+@cql.machine
 class ProjectionMachine:
-    compute = qlx.architecture.Space(
-        capabilities=(qlx.architecture.capability.logical_compute,), capacity=1)
+    compute = cql.architecture.Space(
+        capabilities=(cql.architecture.capability.logical_compute,), capacity=1)
 
 
-projection_qubits = qlx.architecture.ResourceClass(
+projection_qubits = cql.architecture.ResourceClass(
     "qubit",
     4,
     native_actions=("rpp",),
-    native_instruments=(qlx.architecture.physical_instruments.MPP,),
+    native_instruments=(cql.architecture.physical_instruments.MPP,),
 )
-projection_architecture = qlx.architecture.PhysicalMachine(
+projection_architecture = cql.architecture.PhysicalMachine(
     "linearity_projection_architecture",
     resource_classes={"qubits": projection_qubits},
 )
 
-trivial_pair = qlx.codes.CSSCode(
+trivial_pair = cql.codes.CSSCode(
     name="linearity_pair",
     n=2,
     k=2,
     d=1,
-    block=qlx.codes.CSSBlock(data=2),
+    block=cql.codes.CSSBlock(data=2),
     lx=((0,), (1,)),
     lz=((0,), (1,)),
 )
-projection_device_builder = qlx.devices.DeviceBuilder(
+projection_device_builder = cql.devices.DeviceBuilder(
     "ProjectionDevice",
     logical=ProjectionMachine,
     physical=projection_architecture,
@@ -357,23 +357,23 @@ def test_physical_projection_carries_real_linearity_evidence():
     # The P2->P3 projection route must discharge physical-state ownership
     # through the real linear-use analysis, exactly like compile(): the
     # unconditional projection record no longer asserts it for free.
-    @qlx.objective
+    @cql.objective
     def joint_parity_objective(
-        left: qlx.types.logical_qubit,
-        right: qlx.types.logical_qubit,
-    ) -> tuple[qlx.types.logical_qubit, qlx.types.logical_qubit, bool]:
-        return qlx.mpp(qlx.types.Z(left) @ qlx.types.Z(right))
+        left: cql.types.logical_qubit,
+        right: cql.types.logical_qubit,
+    ) -> tuple[cql.types.logical_qubit, cql.types.logical_qubit, bool]:
+        return cql.mpp(cql.types.Z(left) @ cql.types.Z(right))
 
-    @qlx.gadget(implements=joint_parity_objective)
+    @cql.gadget(implements=joint_parity_objective)
     def joint_parity(
-        block: qlx.patch[trivial_pair],
-    ) -> tuple[qlx.patch[trivial_pair], bool]:
-        block, outcome = qlx.mpp(qlx.types.Z(block[0]) @ qlx.types.Z(block[1]))
+        block: cql.patch[trivial_pair],
+    ) -> tuple[cql.patch[trivial_pair], bool]:
+        block, outcome = cql.mpp(cql.types.Z(block[0]) @ cql.types.Z(block[1]))
         return block, outcome
 
-    build = qlx.compile(
+    build = cql.compile(
         joint_parity,
-        pipeline=qlx.compiler.pipelines.physical(),
+        pipeline=cql.compiler.pipelines.physical(),
         device=ProjectionDevice,
     )
     assert build.profile == "p3"

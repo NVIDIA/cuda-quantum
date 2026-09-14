@@ -18,7 +18,7 @@ To execute inline Python snippets from the docs (requires an installed
 `cudaq-logical` wheel):
 
 ```bash
-uv run --directory preview/logical/docs --extra test-deps test-docs
+uv run --directory preview/logical/docs --extra test-deps --active test-docs
 ```
 
 From this directory, `make html` and `make clean` wrap the same `sphinx-build`

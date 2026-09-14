@@ -74,6 +74,10 @@ jobs:
               url=`echo $artifact | jq -r '.url'`
               retry gh api $url > cuda_quantum_docs.zip
               docs_found=true && echo "docs_archive=cuda_quantum_docs.zip" >> $GITHUB_OUTPUT
+            elif [ "$name" == "cudaq_logical_docs" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              retry gh api $url > cudaq_logical_docs.zip
+              echo "logical_docs_archive=cudaq_logical_docs.zip" >> $GITHUB_OUTPUT
             elif [ "$name" == "metadata_ci" ]; then
               url=`echo $artifact | jq -r '.url'`
               retry gh api $url > metadata.zip
@@ -148,6 +152,11 @@ jobs:
           target_folder="${target_folder:-${{ steps.artifacts.outputs.target_folder }}}"
           rm -rf "$target_folder"
           unzip -d "$target_folder" "${{ steps.artifacts.outputs.docs_archive }}"
+
+          logical_docs_archive="${{ steps.artifacts.outputs.logical_docs_archive }}"
+          if [ -n "$logical_docs_archive" ]; then
+            unzip -d "$target_folder"/preview/logical "$logical_docs_archive"
+          fi
 
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"

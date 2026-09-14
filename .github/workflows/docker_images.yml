@@ -948,6 +948,25 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      - name: Install uv
+        if: success()
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+
+      - name: Build CUDA-Q Logical documentation
+        if: success()
+        run: uv run --directory preview/logical/docs --extra build-deps build-docs
+
+      - name: Upload CUDA-Q Logical documentation
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq_logical_docs # changing the artifact name requires updating other workflows
+          path: preview/logical/docs/_build/html
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Spell check HTML documentation
         if: success()
         continue-on-error: true # to be removed once we update all docs for this check to pass
