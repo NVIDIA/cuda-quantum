@@ -500,9 +500,13 @@ private:
 
       active.insert(function.getOperation());
       LogicalResult result = success();
-      function.walk([&](cudaq::quake::CallByRefOp call) {
+      function.walk([&](cudaq::quake::ApplyOp call) {
         if (failed(result))
           return;
+        if (failed(requirePlainApply(call))) {
+          result = failure();
+          return;
+        }
         auto callee = dyn_cast_or_null<func::FuncOp>(
             SymbolTable::lookupSymbolIn(module, call.getCalleeAttr()));
         if (!callee) {
@@ -511,7 +515,7 @@ private:
           result = failure();
           return;
         }
-        if (callee.getNumArguments() != call.getArgs().size()) {
+        if (callee.getNumArguments() != call.getActuals().size()) {
           call.emitOpError(
               "helper call argument count does not match the callee ABI");
           result = failure();
@@ -519,7 +523,7 @@ private:
         }
         SmallVector<uint64_t> widths;
         for (auto [argument, parameter] :
-             llvm::zip(call.getArgs(), callee.getArgumentTypes())) {
+             llvm::zip(call.getActuals(), callee.getArgumentTypes())) {
           if (isa<cudaq::quake::RefType>(parameter) &&
               isa<cudaq::quake::WireType>(argument.getType())) {
             widths.push_back(1);
@@ -610,7 +614,7 @@ private:
         bool supportedCableBoundary =
             isa<cudaq::quake::CableType>(type) &&
             isa<cudaq::quake::BundleCableOp, cudaq::quake::SplitCableOp,
-                cudaq::quake::CallByRefOp>(op);
+                cudaq::quake::ApplyOp>(op);
         // CUDA-Q inserts quake.log_output solely to keep Python-owned quantum
         // values live until the end of an entry point.  It is transparent to
         // the logical program and may mention an aggregate that has otherwise
@@ -1008,11 +1012,25 @@ private:
     return commitReferenceWireResults(gate, inputs, gate.getWires(), state);
   }
 
-  LogicalResult convertReferenceCall(cudaq::quake::CallByRefOp call,
+  // CUDA-Q's linear value conversion should only emit plain, direct applies;
+  // that is the subset P0 can import. Reject the rest instead of dropping it.
+  static LogicalResult requirePlainApply(cudaq::quake::ApplyOp apply) {
+    if (!apply.getCalleeAttr())
+      return apply.emitOpError("helper call must name a direct callee");
+    if (apply.getIsAdj())
+      return apply.emitOpError("adjoint helper calls are unsupported");
+    if (!apply.getControls().empty())
+      return apply.emitOpError("controlled helper calls are unsupported");
+    return success();
+  }
+
+  LogicalResult convertReferenceCall(cudaq::quake::ApplyOp call,
                                      OpBuilder &builder, ImportState &state) {
+    if (failed(requirePlainApply(call)))
+      return failure();
     SmallVector<Value> inputs;
     SmallVector<int64_t> inputSlots;
-    for (Value argument : call.getArgs()) {
+    for (Value argument : call.getActuals()) {
       if (isa<cudaq::quake::WireType>(argument.getType())) {
         if (failed(hydrateReferenceWires(call, ValueRange{argument}, state)))
           return failure();
@@ -1064,7 +1082,8 @@ private:
       return call.emitOpError(
           "helper must return one flattened successor per input owner");
 
-    auto callee = qlxSymbolFor(call.getCallee(), call.getOperation());
+    auto callee = qlxSymbolFor(call.getCalleeAttr().getLeafReference(),
+                               call.getOperation());
     if (failed(callee))
       return failure();
     SmallVector<Type> resultTypes(
@@ -1148,7 +1167,7 @@ private:
         .Case<cudaq::quake::SwapOp>([&](auto swap) -> LogicalResult {
           return convertReferenceAwareSwap(swap, builder, state);
         })
-        .Case<cudaq::quake::CallByRefOp>([&](auto call) -> LogicalResult {
+        .Case<cudaq::quake::ApplyOp>([&](auto call) -> LogicalResult {
           return convertReferenceCall(call, builder, state);
         })
         .Case<cudaq::quake::BundleCableOp>([&](auto bundle) -> LogicalResult {
@@ -1384,7 +1403,7 @@ private:
           return success();
         })
         .Default([&](Operation *unsupported) -> LogicalResult {
-          if (unsupported->getName().getStringRef() == "quake.log_output") {
+          if (unsupported->getName().getStringRef() == "quake.evince") {
             // Python frontend lifetime logging has no logical effect.  The
             // scalar form forwards its wire, so retain the current owner for
             // the result; aggregate logging has no results and can disappear.

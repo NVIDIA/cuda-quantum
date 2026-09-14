@@ -23,7 +23,7 @@ module {
 module {
   func.func @__nvqpp__mlirgen__entry()
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    quake.call_by_ref @helper() : () -> ()
+    quake.apply @helper() : () -> ()
     return
   }
   // expected-error@+2 {{reachable helper without scalar quantum inputs is unsupported}}
