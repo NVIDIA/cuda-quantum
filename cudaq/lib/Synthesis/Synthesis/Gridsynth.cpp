@@ -533,11 +533,10 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
 
         // Every omega^j * w solves the same equation as w, and the error
         // depends on z alone (equation (13)), so all eight approximate
-        // R_z(theta) equally well while differing in Clifford content and,
-        // under the Lemma 7.3 T-count relation, by up to one T gate. Left to
-        // the solver's RNG the choice costs gates at random. Score the orbit
-        // on (T-count, gate count), so T-count cannot regress against the
-        // two-way Lemma 7.3 choice this replaces.
+        // R_z(theta) equally well. They differ in Clifford content, and by up
+        // to one T gate (Lemma 7.3). Left to the solver's RNG that choice
+        // costs gates at random. Score the orbit on (T-count, gate count):
+        // T-count leads, so it cannot regress.
         DOmegaUnitary u_approx(z_reduced, w_reduced, 0);
         Circuit best = kmm_synthesize(u_approx);
         int64_t t_count_ties = 0;
