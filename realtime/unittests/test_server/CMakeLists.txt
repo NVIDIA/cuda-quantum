@@ -38,6 +38,7 @@ target_compile_definitions(cudaq-realtime-test-server PRIVATE
 
 target_link_libraries(cudaq-realtime-test-server PRIVATE
   cudaq-realtime
+  cudaq-realtime-dispatch
   Threads::Threads
 )
 
