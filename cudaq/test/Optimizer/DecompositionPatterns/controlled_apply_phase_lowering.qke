@@ -7,28 +7,30 @@
 // ========================================================================== //
 
 // This test starts with IR captured from the specialization pipeline exercised
-// by controlled_apply_phase_specialization.qke. LowerPhase moves a phase with
-// one control onto that control, and a phase with two controls onto the final
-// control under the preceding predicate.
+// by controlled_apply_phase_specialization.qke. The `LowerPhase` pass replaces 
+// each controlled `quake.phase` with an equivalent `quake.r1`. A `quake.phase`
+// controlled by `[outer, inner]` becomes a `quake.r1` controlled by `[outer]`
+// and `inner` becomes the target. The original phase target is only a dataflow
+// anchor.
+
 // RUN: split-file %s %t
 // RUN: cudaq-opt --lower-phase --canonicalize %t/specialized.qke > %t.lowered
-// RUN: FileCheck %s --check-prefix=LOWERED \
-// RUN:   --implicit-check-not=quake.phase < %t.lowered
+// RUN: FileCheck %s --implicit-check-not=quake.phase < %t.lowered
 // RUN: CircuitCheck --input=%t.lowered %t/reference.qke
 
-// LOWERED-LABEL: func.func @controlled_calls(
-// LOWERED-SAME: %[[OUTER:.*]]: !quake.ref, %[[INNER:.*]]: !quake.ref,
-// LOWERED-SAME: %[[TARGET:.*]]: !quake.ref)
-// LOWERED: quake.phased_rx {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
-// LOWERED: quake.phased_rx {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
-// LOWERED: quake.r1 {{.*}} %[[OUTER]]
-// LOWERED: quake.r1 {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[INNER]]
-// LOWERED: quake.rz {{.*}} {{\[}}%[[OUTER]], %[[INNER]]{{\]}} %[[TARGET]]
-// LOWERED: quake.r1 {{.*}} %[[OUTER]]
-// LOWERED: quake.r1 {{.*}} %[[OUTER]]
-// LOWERED: quake.r1 {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[INNER]]
-// LOWERED: quake.r1 {{.*}} %[[OUTER]]
-// LOWERED: return
+// CHECK-LABEL: func.func @controlled_calls(
+// CHECK-SAME: %[[OUTER:.*]]: !quake.ref, %[[INNER:.*]]: !quake.ref,
+// CHECK-SAME: %[[TARGET:.*]]: !quake.ref)
+// CHECK: quake.phased_rx {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
+// CHECK: quake.phased_rx {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
+// CHECK: quake.r1 {{.*}} %[[OUTER]]
+// CHECK: quake.r1 {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[INNER]]
+// CHECK: quake.rz {{.*}} {{\[}}%[[OUTER]], %[[INNER]]{{\]}} %[[TARGET]]
+// CHECK: quake.r1 {{.*}} %[[OUTER]]
+// CHECK: quake.r1 {{.*}} %[[OUTER]]
+// CHECK: quake.r1 {{.*}} {{\[}}%[[OUTER]]{{\]}} %[[INNER]]
+// CHECK: quake.r1 {{.*}} %[[OUTER]]
+// CHECK: return
 
 //--- specialized.qke
 

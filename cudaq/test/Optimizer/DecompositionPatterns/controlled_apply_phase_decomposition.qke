@@ -8,9 +8,7 @@
 
 // Test that phase-producing decompositions still run when their helpers are
 // reached through controlled `quake.apply` operations.
-// RUN: cudaq-opt \
-// RUN:   -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,ExpPauliDecomposition,U3ToRotations,CRxToCX})' \
-// RUN:   %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,ExpPauliDecomposition,U3ToRotations,CRxToCX})' %s | FileCheck %s
 
 func.func private @h_helper(%target: !quake.ref) {
   quake.h %target : (!quake.ref) -> ()
