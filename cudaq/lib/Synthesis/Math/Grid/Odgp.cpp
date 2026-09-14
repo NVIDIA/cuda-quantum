@@ -121,21 +121,18 @@ const LambdaPowers &get_lambda_powers(const Integer &n) {
   return cache[idx];
 }
 
-/// Below this absolute slope the linear bound-refinement is treated as
-/// degenerate and the range-intersection step is skipped (the bounds are
-/// determined entirely by the base value).
-constexpr double SLOPE_ZERO_TOLERANCE = 1e-40;
-
 } // namespace
 
 //===----------------------------------------------------------------------===//
 // OdgpStepper
 //===----------------------------------------------------------------------===//
 
-OdgpStepper::OdgpStepper(Interval I, Interval J) {
+OdgpStepper::OdgpStepper(Interval I, Interval J, uint64_t max_scan_steps)
+    : max_scan_steps_(max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "I_width=" << I.width() << ", J_width=" << J.width() << '\n');
+             << "I_width=" << I.width() << ", J_width=" << J.width()
+             << ", max_scan_steps=" << max_scan_steps_ << '\n');
 
   // mpfr_t buffers must be initialized before any path that the destructor
   // could subsequently follow -- the destructor always clears them, even on
@@ -184,7 +181,7 @@ OdgpStepper::OdgpStepper(Interval I, Interval J) {
   // Repeatedly multiply cur_I by lambda^n and cur_J by (lambda*)^n until
   // cur_J is narrow enough for direct enumeration. Each iteration shrinks
   // cur_J by lambda^(2n) so the loop terminates quickly.
-  static PrecisionCachedReal lambda_real_cache;
+  static thread_local PrecisionCachedReal lambda_real_cache;
   const Real &lambda_real =
       lambda_real_cache.get([] { return to_real(ZSqrt2::lambda()); });
   while (cur_J.width() > 0) {
@@ -260,6 +257,15 @@ OdgpStepper::~OdgpStepper() {
   }
 }
 
+// True once this scan has taken max_scan_steps_ steps without yielding.
+// See GridsynthOptions::maxOdgpScanSteps for why the bound has to exist.
+bool OdgpStepper::out_of_budget() {
+  if (++fruitless_steps_ < max_scan_steps_)
+    return false;
+  close_reason_ = "scan limit reached without a solution";
+  return true;
+}
+
 const ZSqrt2 *OdgpStepper::next() {
   if (exhausted_)
     return nullptr;
@@ -292,6 +298,10 @@ const ZSqrt2 *OdgpStepper::next() {
       ++yielded_;
       return &last_sol_;
     }
+    if (out_of_budget()) {
+      exhausted_ = true;
+      return nullptr;
+    }
     post_yield_update();
     if (b_ > b_hi_) {
       ++a_;
@@ -306,8 +316,10 @@ const ZSqrt2 *OdgpStepper::next() {
 bool OdgpStepper::setup_current_a() {
   // Walk a_ forward until we find an outer index whose refined b-range is
   // non-empty, materialising the per-a line state for it. Returns false if
-  // a_ ran past a_max_ without finding a usable line.
+  // a_ ran past a_max_ without finding a usable line, or ran out of budget.
   while (a_ <= a_max_) {
+    if (out_of_budget())
+      return false;
     Integer b_lo = ceil_to_integer(Real::sqrt2() * (a_ - cur_J_r_) / 2);
     Integer b_hi_local = floor_to_integer(Real::sqrt2() * (a_ - cur_J_l_) / 2);
     if (b_hi_local < b_lo) {
@@ -433,31 +445,57 @@ void OdgpStepper::init_current_values(const Integer &b_adj) {
   mpfr_add(cur_conj_, conj_base_, scratch1_, MPFR_RNDN);
 }
 
+// Narrow [range_lo, range_hi] to the b with base + slope * b inside
+// [bound_lo, bound_hi]. Empty is reported as range_hi < range_lo.
+//
+// A filter next() re-checks each b exactly via b_in_bounds(). So a range that
+// comes out too wide only costs steps, while one that comes out too narrow
+// drops a real solution.
 void OdgpStepper::refine_range_against_bounds(
     const mpfr_t &bound_lo, const mpfr_t &bound_hi, const mpfr_t &slope,
     const mpfr_t &base, Integer &range_lo, Integer &range_hi) {
-  // Near-zero slope: there is no b that materially changes the value, so
-  // either every b is in-bounds (no refinement) or none is (empty range).
-  mpfr_abs(scratch1_, slope, MPFR_RNDN);
-  if (mpfr_cmp_d(scratch1_, SLOPE_ZERO_TOLERANCE) <= 0) {
+  // A flat line sits at `base` for every b, so the bound holds for all of
+  // them or none. Flat must mean exactly zero. What moves the value is
+  // slope * b, and b reaches ~1e45 at deep k, where a slope of 1e-46 still
+  // swings it by ~0.1. The old |slope| <= 1e-40 guard called that flat and
+  // emptied every range, leaving no candidate below epsilon 1e-32.
+  if (mpfr_zero_p(slope)) {
     if (mpfr_cmp(base, bound_lo) < 0 || mpfr_cmp(base, bound_hi) > 0)
       range_hi = range_lo - Integer(1);
     return;
   }
 
-  mpfr_sub(scratch2_, bound_lo, base, MPFR_RNDN);
-  mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
-  Integer lo_new;
-  mpfr_get_z(lo_new.get_mpz_t(), scratch2_, MPFR_RNDU);
+  // The line crosses `bound` at (bound - base) / slope; `rnd` rounds that to
+  // the integer limit it implies.
+  //
+  // A shallow slope puts the crossing far outside the range, where converting
+  // exactly would build a huge mpz for the max/min below to discard. Saturate
+  // to one step past the range instead, so that a crossing beyond the range
+  // can still empty it.
+  auto limit_from_bound = [&](const mpfr_t &bound, mpfr_rnd_t rnd) {
+    mpfr_sub(scratch2_, bound, base, MPFR_RNDN);
+    mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
+    if (mpfr_cmp_z(scratch2_, range_lo.get_mpz_t()) < 0)
+      return range_lo - Integer(1);
+    if (mpfr_cmp_z(scratch2_, range_hi.get_mpz_t()) > 0)
+      return range_hi + Integer(1);
+    Integer out;
+    mpfr_get_z(out.get_mpz_t(), scratch2_, rnd);
+    return out;
+  };
 
-  mpfr_sub(scratch2_, bound_hi, base, MPFR_RNDN);
-  mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
-  Integer hi_new;
-  mpfr_get_z(hi_new.get_mpz_t(), scratch2_, MPFR_RNDD);
-
-  // Negative slope inverts the [lo, hi] mapping computed above.
-  if (mpfr_sgn(slope) < 0)
-    std::swap(lo_new, hi_new);
+  // Ceil the crossing giving the smallest in-range b, floor the one giving
+  // the largest. Dividing by a negative slope flips the inequality, so which
+  // bound that is depends on the sign. Rounding first and swapping instead
+  // would round each the wrong way, widening the range by a step per side.
+  Integer lo_new, hi_new;
+  if (mpfr_sgn(slope) > 0) {
+    lo_new = limit_from_bound(bound_lo, MPFR_RNDU);
+    hi_new = limit_from_bound(bound_hi, MPFR_RNDD);
+  } else {
+    lo_new = limit_from_bound(bound_hi, MPFR_RNDU);
+    hi_new = limit_from_bound(bound_lo, MPFR_RNDD);
+  }
 
   range_lo = std::max(range_lo, lo_new);
   range_hi = std::min(range_hi, hi_new);
@@ -482,9 +520,10 @@ Interval scaled_parity_J(const Interval &J, int p) {
 } // namespace
 
 OdgpWithParityStepper::OdgpWithParityStepper(Interval I, Interval J,
-                                             ZSqrt2 parity_hint)
+                                             ZSqrt2 parity_hint,
+                                             uint64_t max_scan_steps)
     : inner_(scaled_parity_I(I, parity_hint.parity()),
-             scaled_parity_J(J, parity_hint.parity())),
+             scaled_parity_J(J, parity_hint.parity()), max_scan_steps),
       parity_p_(parity_hint.parity()) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs() << "parity=" << parity_p_ << '\n');
@@ -518,7 +557,8 @@ const ZSqrt2 *OdgpWithParityStepper::next() {
 // OdgpScaledStepper
 //===----------------------------------------------------------------------===//
 
-OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
+OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp,
+                                     uint64_t max_scan_steps)
     : denom_exp_(std::move(denom_exp)) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpScaledStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
@@ -529,7 +569,7 @@ OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
   Real scale = pow_sqrt2(denom_exp_);
   Interval scaled_I = I * scale;
   Interval scaled_J = (denom_exp_ & 1) ? J * (-scale) : J * scale;
-  inner_.emplace(scaled_I, scaled_J);
+  inner_.emplace(scaled_I, scaled_J, max_scan_steps);
 }
 
 OdgpScaledStepper::~OdgpScaledStepper() {
@@ -552,9 +592,9 @@ const DSqrt2 *OdgpScaledStepper::next() {
 // OdgpScaledWithParityStepper
 //===----------------------------------------------------------------------===//
 
-OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
-                                                         Integer denom_exp,
-                                                         DSqrt2 parity_hint) {
+OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(
+    Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint,
+    uint64_t max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpScaledWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(denom_exp)
@@ -565,7 +605,7 @@ OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
   // constraint at the next level down.
   if (denom_exp == 0) {
     ZSqrt2 beta_z = with_denom_exp(parity_hint, 0).alpha();
-    direct_.emplace(I, J, beta_z);
+    direct_.emplace(I, J, beta_z, max_scan_steps);
     return;
   }
 
@@ -573,7 +613,7 @@ OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
   offset_ = (p == 0) ? DSqrt2{0} : DSqrt2::power_of_inv_sqrt2(denom_exp);
   Interval shifted_I = I + (-to_real(offset_));
   Interval shifted_J = J + (-to_real(offset_.conj_sq2()));
-  recursive_.emplace(shifted_I, shifted_J, denom_exp - 1);
+  recursive_.emplace(shifted_I, shifted_J, denom_exp - 1, max_scan_steps);
 }
 
 OdgpScaledWithParityStepper::~OdgpScaledWithParityStepper() {

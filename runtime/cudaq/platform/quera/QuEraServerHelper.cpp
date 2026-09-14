@@ -8,6 +8,7 @@
 
 #include "QuEraServerHelper.h"
 #include "common/AnalogHamiltonian.h"
+#include "nlohmann/json.hpp"
 
 namespace cudaq {
 

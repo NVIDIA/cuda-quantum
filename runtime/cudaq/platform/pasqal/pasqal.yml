@@ -13,6 +13,10 @@ config:
   platform-qpu: pasqal
   # Add the pasqal-qpu library to the link list
   link-libs: ["-lcudaq-pasqal-qpu", "-lcudaq-serverhelper-pasqal"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-pasqal-qpu"]
   # Allow evolve API in C++
   preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
   # Tell NVQ++ to generate glue code to set the target backend name

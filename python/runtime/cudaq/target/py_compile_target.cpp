@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "py_compile_target.h"
-#include "cudaq/Target/CompileTarget.h"
+#include "common/CompileTarget.h"
 #include "cudaq/platform.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
@@ -86,6 +86,7 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       .def_rw("support_conditionals_on_measure_results",
               &CompileTarget::supportConditionalsOnMeasureResults)
       .def_rw("support_device_calls", &CompileTarget::supportDeviceCalls)
+      .def_rw("support_resource_counts", &CompileTarget::supportResourceCounts)
       .def_rw("support_explicit_measurements",
               &CompileTarget::supportExplicitMeasurements)
       .def_rw("support_observable_measurements",

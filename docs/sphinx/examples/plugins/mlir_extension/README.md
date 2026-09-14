@@ -31,7 +31,7 @@ Python interpreter explicitly using the `-DPython3_EXECUTABLE` flag.
 
 ```bash
 pip install cudaq-devel
-pip install nanobind
+pip install 'nanobind>=2.12.0,<3'
 
 site=$(python -c 'import site; print(site.getsitepackages()[0])')
 cmake -S examples/plugins/mlir_extension -B build \

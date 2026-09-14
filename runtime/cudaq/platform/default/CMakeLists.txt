@@ -66,6 +66,7 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 endif()
   
 add_target_config(opt-test)
+add_target_config(value-semantics-test)
 add_target_config(compiler-bench-nisq)
 add_target_config(compiler-bench-ftqc-logical)
 add_target_config(compiler-bench-ftqc-clifford-t)

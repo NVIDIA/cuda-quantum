@@ -1,0 +1,77 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A selected decomposition must preserve every source-control polarity. These
+// cases cover the paths that either forward a predicate to a replacement or
+// temporarily normalize a negative control with X gates.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToU3,SToR1,TToR1,CHToCX,CYToCX,SwapToCX})' %s > %t
+// RUN: CircuitCheck --input=%t %s
+// RUN: FileCheck %s --check-prefix=SWAP < %t
+
+func.func @r1_negative(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 3.700000e-01 : f64
+  quake.r1 (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @r1_negative_adjoint(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 6.100000e-01 : f64
+  quake.r1<adj> (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @r1_mixed(%positive: !quake.ref, %negative: !quake.ref,
+                    %target: !quake.ref) {
+  %theta = arith.constant 2.900000e-01 : f64
+  quake.r1 (%theta) [%positive, %negative neg [false, true]] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @s_negative(%control: !quake.ref, %target: !quake.ref) {
+  quake.s [%control neg [true]] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @t_negative(%control: !quake.ref, %target: !quake.ref) {
+  quake.t [%control neg [true]] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @ch_negative(%control: !quake.ref, %target: !quake.ref) {
+  quake.h [%control neg [true]] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @cy_negative(%control: !quake.ref, %target: !quake.ref) {
+  quake.y [%control neg [true]] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @controlled_swap(%control: !quake.ref, %first: !quake.ref,
+                           %second: !quake.ref) {
+  quake.swap [%control] %first, %second
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @negative_controlled_swap(%control: !quake.ref, %first: !quake.ref,
+                                    %second: !quake.ref) {
+  quake.swap [%control neg [true]] %first, %second
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// SWAP-LABEL: func.func @controlled_swap
+// SWAP: quake.x
+// SWAP: quake.x {{\[}}%{{.*}}, %{{.*}}{{\]}} %{{.*}}
+// SWAP: quake.x
+// SWAP-NOT: quake.swap
+// SWAP: return

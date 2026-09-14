@@ -10,6 +10,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Future.h"
 #include "common/SampleResult.h"
+#include "policy.h"
 #include "cudaq/platform/quantum_platform.h"
 
 #include <functional>

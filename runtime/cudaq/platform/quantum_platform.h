@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -18,8 +19,7 @@
 #include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
-#include "cudaq/Target/CompileTarget.h"
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -169,6 +169,9 @@ public:
 
   /// @brief Return true if QPU is locally emulating a remote QPU
   bool is_emulated(std::size_t qpu_id = 0) const;
+
+  /// @brief Return true if the QPU consumes JIT-compiled artifacts.
+  bool supports_jit(std::size_t qpu_id = 0) const;
 
   /// @brief Set the noise model for @p qpu_id on this platform.
   void set_noise(const noise_model *model, std::size_t qpu_id = 0);

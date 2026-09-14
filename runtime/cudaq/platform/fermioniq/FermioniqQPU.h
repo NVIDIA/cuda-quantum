@@ -13,8 +13,8 @@
 
 namespace cudaq {
 
-/// @brief The `FermioniqBaseQPU` is a QPU that allows users to
-// submit kernels to the Fermioniq simulator.
+/// @brief The `FermioniqQPU` is a QPU that allows users to
+/// submit kernels to the Fermioniq simulator.
 class FermioniqQPU : public BaseRemoteRESTQPU {
 public:
   // Overrides the `sample`/`observe` `launchKernel` overloads but inherits

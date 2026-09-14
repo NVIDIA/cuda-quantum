@@ -1,0 +1,211 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Exercise the removal of the controlled-apply guards with phase-producing
+// decompositions. Each caller creates an outer coherent superposition before
+// specialization, so a lost correction becomes an observable relative phase.
+// RUN: sed -n 's@^// SOURCE: @@p' %s > %t.source.qke
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.source.qke > %t.source
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,ExpPauliDecomposition,U3ToRotations,CRxToCX})' %s > %t.decomp
+// RUN: FileCheck %s --check-prefix=DECOMP < %t.decomp
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --canonicalize %t.decomp > %t.decomp.phase
+// RUN: FileCheck %s --check-prefix=PHASE < %t.decomp.phase
+// RUN: CircuitCheck --input=%t.decomp.phase %t.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %t.source.qke > %t.lower.source
+// RUN: FileCheck %s --check-prefix=LOWER-SOURCE --implicit-check-not=quake.phase < %t.lower.source
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --cse --normalize-phase-placement --lower-phase --canonicalize %t.decomp > %t.decomp.lower
+// RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase (' < %t.decomp.lower
+// RUN: CircuitCheck --input=%t.decomp.lower %t.lower.source
+
+func.func private @h_helper(%target: !quake.ref) {
+  quake.h %target : (!quake.ref) -> ()
+  return
+}
+
+func.func private @exp_helper(%inner: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 2.900000e-01 : f64
+  quake.exp_pauli (%theta) [%inner] %target to "I"
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @u3_helper(%inner: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 7.850000e-01 : f64
+  %phi = arith.constant 1.230000e-01 : f64
+  %lambda = arith.constant 4.560000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) [%inner] %target
+      : (f64, f64, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @crx_helper(%inner: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 6.170000e-01 : f64
+  quake.rx (%theta) [%inner] %target : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @h_outer(%outer: !quake.ref, %target: !quake.ref) {
+  %pi_2 = arith.constant 1.5707963267948966 : f64
+  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+  quake.apply @h_helper [%outer] (%target) : (!quake.ref, !quake.ref) -> ()
+  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @exp_outer(%outer: !quake.ref, %inner: !quake.ref,
+                     %target: !quake.ref) {
+  %pi_2 = arith.constant 1.5707963267948966 : f64
+  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+  quake.apply @exp_helper [%outer] (%inner, %target)
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @u3_outer(%outer: !quake.ref, %inner: !quake.ref,
+                    %target: !quake.ref) {
+  %pi_2 = arith.constant 1.5707963267948966 : f64
+  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+  quake.apply @u3_helper [%outer] (%inner, %target)
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @crx_outer(%outer: !quake.ref, %inner: !quake.ref,
+                     %target: !quake.ref) {
+  %pi_2 = arith.constant 1.5707963267948966 : f64
+  quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+  quake.apply @crx_helper [%outer] (%inner, %target)
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func private @h_helper
+// DECOMP: quake.phased_rx
+// DECOMP: quake.phase
+// DECOMP-NOT: quake.h
+// DECOMP: return
+
+// DECOMP-LABEL: func.func private @exp_helper
+// DECOMP: quake.phase {{.*}} {{\[}}%{{.*}}{{\]}}
+// DECOMP-NOT: quake.exp_pauli
+// DECOMP: return
+
+// DECOMP-LABEL: func.func private @u3_helper
+// DECOMP: quake.rz
+// DECOMP: quake.phase {{.*}} {{\[}}%{{.*}}{{\]}}
+// DECOMP-NOT: quake.u3
+// DECOMP: return
+
+// DECOMP-LABEL: func.func private @crx_helper
+// DECOMP: quake.phase
+// DECOMP-NOT: quake.rx
+// DECOMP: return
+
+// PHASE-LABEL: func.func @h_outer
+// PHASE: quake.phase {{.*}} {{\[}}%{{.*}}{{\]}}
+// PHASE: return
+
+// PHASE-LABEL: func.func @exp_outer
+// PHASE: quake.phase {{.*}} {{\[}}%{{.*}}, %{{.*}}{{\]}}
+// PHASE: return
+
+// PHASE-LABEL: func.func @u3_outer
+// PHASE: quake.phase {{.*}} {{\[}}%{{.*}}, %{{.*}}{{\]}}
+// PHASE: return
+
+// PHASE-LABEL: func.func @crx_outer
+// PHASE: quake.phase {{.*}} {{\[}}%{{.*}}{{\]}}
+// PHASE: return
+
+// LOWER-LABEL: func.func @h_outer
+// LOWER: quake.r1
+// LOWER: return
+
+// LOWER-LABEL: func.func @exp_outer
+// LOWER: quake.r1
+// LOWER: return
+
+// LOWER-LABEL: func.func @u3_outer
+// LOWER: quake.r1
+// LOWER: return
+
+// LOWER-LABEL: func.func @crx_outer
+// LOWER: quake.r1
+// LOWER: return
+
+// LOWER-SOURCE-LABEL: func.func @h_outer(
+// LOWER-SOURCE: return
+
+// SOURCE: func.func private @h_helper(%target: !quake.ref) {
+// SOURCE:   quake.h %target : (!quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }
+// SOURCE:
+// SOURCE: // Exact primitive reference for identity-word ExpPauli.
+// SOURCE: func.func private @exp_helper(%inner: !quake.ref, %target: !quake.ref) {
+// SOURCE:   %theta = arith.constant 2.900000e-01 : f64
+// SOURCE:   quake.phase (%theta) [%inner] %target
+// SOURCE:       : (f64, !quake.ref, !quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }
+// SOURCE:
+// SOURCE: func.func private @u3_helper(%inner: !quake.ref, %target: !quake.ref) {
+// SOURCE:   %theta = arith.constant 7.850000e-01 : f64
+// SOURCE:   %phi = arith.constant 1.230000e-01 : f64
+// SOURCE:   %lambda = arith.constant 4.560000e-01 : f64
+// SOURCE:   quake.u3 (%theta, %phi, %lambda) [%inner] %target
+// SOURCE:       : (f64, f64, f64, !quake.ref, !quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }
+// SOURCE:
+// SOURCE: func.func private @crx_helper(%inner: !quake.ref, %target: !quake.ref) {
+// SOURCE:   %theta = arith.constant 6.170000e-01 : f64
+// SOURCE:   quake.rx (%theta) [%inner] %target : (f64, !quake.ref, !quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }
+// SOURCE:
+// SOURCE: func.func @h_outer(%outer: !quake.ref, %target: !quake.ref) {
+// SOURCE:   %pi_2 = arith.constant 1.5707963267948966 : f64
+// SOURCE:   quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   quake.apply @h_helper [%outer] (%target) : (!quake.ref, !quake.ref) -> ()
+// SOURCE:   quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }
+// SOURCE:
+// SOURCE: func.func @exp_outer(%outer: !quake.ref, %inner: !quake.ref,
+// SOURCE:                      %target: !quake.ref) {
+// SOURCE:   %pi_2 = arith.constant 1.5707963267948966 : f64
+// SOURCE:   quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   quake.apply @exp_helper [%outer] (%inner, %target)
+// SOURCE:       : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// SOURCE:   quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }
+// SOURCE:
+// SOURCE: func.func @u3_outer(%outer: !quake.ref, %inner: !quake.ref,
+// SOURCE:                     %target: !quake.ref) {
+// SOURCE:   %pi_2 = arith.constant 1.5707963267948966 : f64
+// SOURCE:   quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   quake.apply @u3_helper [%outer] (%inner, %target)
+// SOURCE:       : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// SOURCE:   quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }
+// SOURCE:
+// SOURCE: func.func @crx_outer(%outer: !quake.ref, %inner: !quake.ref,
+// SOURCE:                      %target: !quake.ref) {
+// SOURCE:   %pi_2 = arith.constant 1.5707963267948966 : f64
+// SOURCE:   quake.rx (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   quake.apply @crx_helper [%outer] (%inner, %target)
+// SOURCE:       : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// SOURCE:   quake.rx<adj> (%pi_2) %outer : (f64, !quake.ref) -> ()
+// SOURCE:   return
+// SOURCE: }

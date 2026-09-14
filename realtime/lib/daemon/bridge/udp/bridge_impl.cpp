@@ -272,6 +272,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
                                      // contract)
       udp_bridge_get_endpoint_info,
       udp_bridge_get_ring_geometry,
+      /*set_function_table=*/nullptr, // no function table needed
   };
   return &cudaq_udp_bridge_interface;
 }

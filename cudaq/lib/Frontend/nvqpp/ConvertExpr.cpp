@@ -1426,6 +1426,15 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
     return pushValue(math::PowFOp::create(builder, loc, base, power));
   }
 
+  // Handle std::fmod(X,Y)
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "fmod" || funcName == "fmodf")) {
+    assert(func->getNumParams() == 2 && "must be binary");
+    SmallVector<Value> args = lastValues(2);
+    [[maybe_unused]] auto funcConst = popValue();
+    return pushValue(arith::RemFOp::create(builder, loc, args[0], args[1]));
+  }
+
   auto floatOperator = [&]<typename Op>(Op, const char *dblName) -> bool {
     assert(func->getNumParams() == 1 && "must be unary");
     Value arg = popValue();

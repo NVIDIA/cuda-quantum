@@ -519,9 +519,6 @@ if [ -d "$root_folder/targets" ]; then
             elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target fermioniq in $ex; skipping validation due to missing API key.\e[0m" >&2
                 skip_example=true
-            elif [ "$t" == "qci" ] && [ -z "${QCI_AUTH_TOKEN}" ]; then
-                echo -e "\e[01;31mWarning: Explicitly set target qci in $ex; skipping validation due to missing API key.\e[0m" >&2
-                skip_example=true
             elif [ "$t" == "oqc" ] && [ -z "${OQC_URL}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target oqc in $ex; skipping validation due to missing URL.\e[0m" >&2
                 skip_example=true

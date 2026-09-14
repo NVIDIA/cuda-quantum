@@ -79,4 +79,21 @@ public:
   }
 };
 
+/// Marks an op that is not itself a QuantumGate or QuantumMeasure but that
+/// implicitly `dereferences` a `!quake.ref`/`!quake.veq` operand and modifies
+/// the wire(s) it refers to (typically by macro-expanding to, or invoking,
+/// one or more quantum operators). Passes that reason about aliasing through
+/// quantum references (e.g. MemToReg's ref-to-wire promotion) must treat ops
+/// with this trait the same way they treat quantum operators: every other
+/// op only manages `refs`/`veqs` and cannot alias or mutate a qubit being
+/// tracked.
+template <typename ConcreteType>
+class QuantumSideEffects
+    : public mlir::OpTrait::TraitBase<ConcreteType, QuantumSideEffects> {
+public:
+  static mlir::LogicalResult verifyTrait(mlir::Operation *op) {
+    return mlir::success();
+  }
+};
+
 } // namespace cudaq

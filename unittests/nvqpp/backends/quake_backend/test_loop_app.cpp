@@ -224,21 +224,22 @@ __qpu__ int repeated_parent_dependent_triangular_expected_1_loop() {
   return result;
 }
 
-// Expected remaining payload loops: none. The middle loop does not directly
-// index quantum data, but the inner loop indexes q[outer]. Unrolling must
-// propagate through the non-blocking middle loop so every quantum access has a
-// static wire ID in the submitted payload.
+// Expected remaining payload loops: none. The middle loop does not contain
+// aliasing quantum access, but the inner loop indexes q[outer]. Unrolling must
+// propagate through the middle loop so every quantum access has a static wire
+// ID in the submitted payload.
 __qpu__ int transitive_parent_index_access_expected_0_loops() {
   constexpr int width = 3;
   cudaq::qvector q(width);
 
   // UNROLL: `outer` is used by the innermost quantum access q[outer].
   for (int outer = 0; outer < width; ++outer)
-    // UNROLL: this loop is not directly blocking, but it encloses the
-    // parent-dependent quantum access exposed by unrolling the inner loop.
+    // UNROLL: this loop does not directly contain aliasing quantum access, but
+    // it encloses the parent-dependent access exposed by unrolling the inner
+    // loop.
     for (int middle = 0; middle < 3; ++middle)
-      // UNROLL: this loop contains the q[outer] access that initially blocks
-      // wire conversion.
+      // UNROLL: this loop contains the q[outer] aliasing quantum access that
+      // must be resolved before wire conversion.
       for (int inner = 0; inner < 3; ++inner)
         x(q[outer]);
 

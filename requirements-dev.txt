@@ -27,5 +27,5 @@ h5py==3.12.1; python_version < "3.14"
 matplotlib
 pyspelling==2.10
 pymdown-extensions==11.0.1
-nanobind>=2.12.0
+nanobind>=2.12.0,<3
 yapf==0.43.0

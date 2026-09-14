@@ -9,11 +9,11 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
-#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/remote_capabilities.h"
 
@@ -139,6 +139,14 @@ public:
   virtual async_sample_result launchKernel(const async_sample_policy &policy,
                                            const CompiledModule &module,
                                            KernelArgs args);
+
+  virtual orca::sample_policy::result_type
+  launchKernel(const orca::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
+  virtual orca::async_sample_policy::result_type
+  launchKernel(const orca::async_sample_policy &policy,
+               const CompiledModule &module, KernelArgs args);
 
   virtual observe_result launchKernel(const observe_policy &policy,
                                       const CompiledModule &module,

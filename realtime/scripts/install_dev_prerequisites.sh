@@ -14,41 +14,49 @@
 #
 # Usage: 
 # bash install_dev_prerequisites.sh
+#
+# Environment variables:
+#   HSB_ROOT                     Where to clone and build HSB.
+#                                Default: /tmp/holoscan-sensor-bridge
+#   CUDA_NATIVE_ARCH             CUDA architectures to compile HSB for.
+#                                Default: derived from the CUDA toolkit version.
+#   CUDAQ_REALTIME_SKIP_HSB=1    Install the SDKs but skip the HSB build.
+#
+# Containers that already ship Mellanox OFED cannot use this script, because
+# doca-all conflicts with the OFED packages; use install_devdeps.sh instead.
 
+set -e
+
+. "$(dirname "$0")/deps_common.sh"
+retry apt-get update
 
 if [ -x "$(command -v apt-get)" ]; then
-  CUDA_MAJOR_VERSION=$(nvcc --version | sed -n 's/^.*release \([0-9]\+\).*$/\1/p')
-  if [ -z "$CUDA_MAJOR_VERSION" ]; then
-    echo "Could not determine CUDA version from nvcc. Is the CUDA toolkit installed?" >&2
-    echo "CUDA-Q Realtime requires CUDA toolkit to be installed." >&2
-    exit 1
-  fi
-  
+  # Fail early if the CUDA toolkit is missing.
+  cudaq_realtime_cuda_major > /dev/null
+
+  # [Build tools]
+  # Needed to build HSB from source below.
+  retry apt-get install -y --no-install-recommends git ninja-build pkg-config
+
   # [libibverbs]
   echo "Installing libibverbs..."
-  apt-get update && apt-get install -y --no-install-recommends libibverbs-dev
+  retry apt-get install -y --no-install-recommends libibverbs-dev
 
   # [DOCA Host]
-  if [ ! -x "$(command -v curl)" ]; then
-    apt-get update && apt-get install -y --no-install-recommends curl
-  fi
-
-  DOCA_VERSION=3.3.0
-  echo "Installing DOCA version $DOCA_VERSION..."
-  arch=$(uname -m)
-  if [ "$arch" == "aarch64" ] || [ "$arch" == "arm64" ]; then
-    arch="arm64-sbsa"
-  fi
-  distro=$(. /etc/os-release && echo ${ID}${VERSION_ID}) # e.g., ubuntu24.04
-  export DOCA_URL="https://linux.mellanox.com/public/repo/doca/$DOCA_VERSION/$distro/$arch/"
-  echo "Using DOCA_REPO_LINK=${DOCA_URL}" 
-  curl https://linux.mellanox.com/public/repo/doca/GPG-KEY-Mellanox.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
-  echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
-  apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get -y install doca-all libdoca-sdk-gpunetio-dev
+  cudaq_realtime_add_doca_repo
+  DEBIAN_FRONTEND=noninteractive retry apt-get -y install doca-all libdoca-sdk-gpunetio-dev
 
   # [Holoscan SDK]
-  apt-get update && apt-get install -y --no-install-recommends holoscan-cuda-$CUDA_MAJOR_VERSION
+  cudaq_realtime_install_holoscan
+
+  cudaq_realtime_verify_sdks
+
+  # [Holoscan Sensor Bridge]
+  if [ "${CUDAQ_REALTIME_SKIP_HSB:-0}" == "1" ]; then
+    echo "CUDAQ_REALTIME_SKIP_HSB is set, skipping the HSB build."
+  else
+    cudaq_realtime_build_hsb
+  fi
 
 elif [ -x "$(command -v dnf)" ]; then
   echo "RHEL is not supported. Please install DOCA and Holoscan SDK manually." >&2

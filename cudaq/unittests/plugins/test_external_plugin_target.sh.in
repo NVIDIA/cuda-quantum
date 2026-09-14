@@ -35,7 +35,7 @@ echo "topology" > "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/data/topology.t
 cat > "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets/nvqpp-b5-user-only.yml" <<'EOF'
 name: nvqpp-b5-user-only
 description: "B5 user plugin target."
-cudaq-version: "@CUDA_QUANTUM_VERSION@"
+cudaq-version: "mismatched-test-version"
 config:
   library-mode: true
   gen-target-backend: true
@@ -84,6 +84,8 @@ echo "$list_output" | grep -q 'nvqpp-b5-system-only'
 # --- Test: User plugin passes correct flags and expands %PLUGIN_ROOT% ---
 user_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-user-only \
               "$TRIVIAL_SRC" -o "${TMPDIR}/user.exe" 2>&1)
+echo "$user_output" | grep -q "warning: target 'nvqpp-b5-user-only' was built for CUDA-Q mismatched-test-version"
+echo "$user_output" | grep -q 'compatibility is not guaranteed'
 echo "$user_output" | grep -- '-DB5_USER_ONLY=' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/data/topology.txt'
 echo "$user_output" | grep -- '-Wl,-rpath,' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
 echo "$user_output" | grep -- '-L' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'

@@ -18,7 +18,7 @@ import cudaq
 import cudaq.mlir.ir as mlir
 import pytest
 
-from cudaq._experimental import set_runtime_endpoint
+from cudaq._experimental import set_runtime_endpoint, set_compile_target
 from cudaq._experimental.runtime_endpoint import (
     RuntimeEndpoint,
     SupportsSample,
@@ -26,6 +26,7 @@ from cudaq._experimental.runtime_endpoint import (
     SupportsDem,
     SupportsEstimate,
 )
+from cudaq._experimental.compile_target import CompileTarget
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
@@ -79,6 +80,7 @@ class DemoEndpoint(RuntimeEndpoint):
     def estimate(self, module, args, **kwargs):
         self.calls.append(("estimate", repr(args), kwargs))
         self.mlir_module = module.mlir_module
+        self.resource_counts = module.resource_counts
         return cudaq.EstimateResult(annotations={"estimated_by": "demo"})
 
 
@@ -192,10 +194,17 @@ def test_dem_launch_without_noise_model():
 
 
 def test_estimate_launch():
+
+    # producing resource counts fails in the presence of `qvector`s
+    @cudaq.kernel
+    def kernel_no_vec(n_qubits: int, array: list[int]):
+        q = cudaq.qubit()
+        h(q)
+
     endpoint = DemoEndpoint()
     set_runtime_endpoint(endpoint)
 
-    result = cudaq.estimate(kernel, 1, [1, 2, 3])
+    result = cudaq.estimate(kernel_no_vec, 1, [1, 2, 3])
 
     assert len(endpoint.calls) == 1
     name, args, kwargs = endpoint.calls[0]
@@ -208,6 +217,14 @@ def test_estimate_launch():
     assert result.resources.count() == 0
     assert result.annotations == {"estimated_by": "demo"}
     assert isinstance(endpoint.mlir_module, mlir.Module)
+    assert isinstance(endpoint.resource_counts, cudaq.Resources)
+
+    # Don't produce resource counts if target does not support it.
+    ct = CompileTarget()
+    ct.support_resource_counts = False
+    set_compile_target(ct)
+    result = cudaq.estimate(kernel_no_vec, 1, [1, 2, 3])
+    assert endpoint.resource_counts is None
 
 
 def test_estimate_forwards_the_choice_function():

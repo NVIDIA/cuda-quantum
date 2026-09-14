@@ -19,7 +19,6 @@ add_library(${LIBRARY_NAME}
     algorithms/draw.cpp
     algorithms/encoding.cpp
     algorithms/estimate/result.cpp
-    algorithms/evolve.cpp
     algorithms/policy_compile_options.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
@@ -29,6 +28,7 @@ add_library(${LIBRARY_NAME}
     platform/qpu_utils.cpp
     platform/qpu_state.cpp
     platform/quantum_platform.cpp
+    platform/RuntimeEndpoint.cpp
     platform/platform_iface.cpp
     qis/execution_manager_c_api.cpp
     qis/execution_manager.cpp

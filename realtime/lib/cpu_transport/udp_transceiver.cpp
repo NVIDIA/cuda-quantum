@@ -17,6 +17,7 @@
 /// full-stride datagram and clears the flag.
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
+#include "cudaq/realtime/daemon/dispatcher/cpu_relax.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -239,7 +240,7 @@ private:
     while (running) {
       const std::uint64_t value = load_flag(&tx_flags[cursor]);
       if (value == 0) {
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
+        CUDAQ_REALTIME_CPU_RELAX();
         continue;
       }
       const std::uint8_t *tx_slot = tx_data + cursor * page_size;

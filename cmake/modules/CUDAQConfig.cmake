@@ -46,6 +46,13 @@ find_dependency(CUDAQEnsmallen REQUIRED)
 set (CUDAQPythonInterop_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQPythonInterop)
 
+# Not REQUIRED: this sets CUDAQ_ENABLE_PYTHON_BINDINGS to reflect whether this
+# install was built with cudaq/'s own MLIR Python bindings, for a python/
+# build configured independently of cudaq/ to check. See
+# CUDAQPythonBindingsConfig.cmake.
+set (CUDAQPythonBindings_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQPythonBindings)
+
 if (CUDAQ_REALTIME_DIR)
   find_dependency(cudaq-realtime CONFIG REQUIRED
     PATHS "${CUDAQ_REALTIME_DIR}"
@@ -68,6 +75,9 @@ get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
 get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)
 get_filename_component(CUDAQ_INSTALL_DIR ${CUDAQ_LIBRARY_DIR} DIRECTORY)
 set(CUDAQ_INCLUDE_DIR ${CUDAQ_INSTALL_DIR}/include)
+
+find_dependency(GMP)
+find_dependency(MPFR)
 
 set (NVQIR_DIR "${PARENT_DIRECTORY}/nvqir")
 find_dependency(NVQIR REQUIRED)

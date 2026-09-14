@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
@@ -47,6 +48,14 @@ std::optional<APFloat> cudaq::opt::factory::getDoubleIfConstant(Value value) {
   if (matchPattern(value, m_ConstantFloat(&constant)))
     return {constant};
   return {};
+}
+
+std::string cudaq::cc::stringOfType(Type ty) {
+  std::string s;
+  llvm::raw_string_ostream os(s);
+  ty.print(os);
+  os.flush();
+  return s;
 }
 
 Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
@@ -1342,6 +1351,159 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// InstantiateCallableOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::InstantiateCallableOp::verify() {
+  auto calleeFunc = dyn_cast_if_present<func::FuncOp>(
+      SymbolTable::lookupNearestSymbolFrom(getOperation(), getCallee()));
+  if (!calleeFunc)
+    return emitOpError("must refer to a valid function");
+  FunctionType calleeFnTy = calleeFunc.getFunctionType();
+  if (!getNoCapture()) {
+    // Unless no capture is set, `callee` must have an argument that is a
+    // callable closure with a conforming type. That argument must be the first
+    // argument with a callable type. (Arguments of other types may be
+    // prepended, most notably an unsized veq.)
+    if (calleeFnTy.getInputs().size() < 1)
+      return emitOpError("callable must have at least 1 argument");
+    CallableType callableTy;
+    for (auto argTy : calleeFnTy.getInputs())
+      if (auto ty = dyn_cast<CallableType>(argTy)) {
+        callableTy = ty;
+        break;
+      }
+    if (!callableTy)
+      return emitOpError(
+          "instantiating a callable requires a closure argument");
+
+    // The first argument has callable type. Make sure the signature is
+    // compatible with our result and the thunk function type modulo the closure
+    // argument.
+    if (callableTy != getSignature().getType())
+      return emitOpError("result type (" + stringOfType(callableTy) +
+                         ") must match closure type (" +
+                         stringOfType(getSignature().getType()) + ")");
+    FunctionType callableFnTy = callableTy.getSignature();
+    if (calleeFnTy.getInputs().size() - 1 != callableFnTy.getInputs().size())
+      return emitOpError("arity must be the same (" +
+                         std::to_string(calleeFnTy.getInputs().size() - 1) +
+                         ", " +
+                         std::to_string(callableFnTy.getInputs().size()) + ")");
+    SmallVector<Type> calleeFnInTys;
+    bool found = false;
+    for (auto ty : calleeFnTy.getInputs()) {
+      if (!found)
+        if (auto callTy = dyn_cast<CallableType>(ty)) {
+          found = true;
+          continue;
+        }
+      calleeFnInTys.push_back(ty);
+    }
+    for (auto [ty1, ty2] : llvm::zip(calleeFnInTys, callableFnTy.getInputs())) {
+      if (ty1 != ty2)
+        return emitOpError("argument types must match (" + stringOfType(ty1) +
+                           ", " + stringOfType(ty2) + ")");
+    }
+    if (calleeFnTy.getResults().size() != callableFnTy.getResults().size())
+      return emitOpError("coarity must be the same (" +
+                         std::to_string(calleeFnTy.getResults().size()) + ", " +
+                         std::to_string(callableFnTy.getResults().size()) +
+                         ")");
+    for (auto [ty1, ty2] :
+         llvm::zip(calleeFnTy.getResults(), callableFnTy.getResults())) {
+      if (ty1 != ty2)
+        return emitOpError("result types must match (" + stringOfType(ty1) +
+                           ", " + stringOfType(ty2) + ")");
+    }
+  } else {
+    // In the degenerate case, we just check that the function being wrapped as
+    // a closure has a compatible function type to the degenerate closure's
+    // callable type, which is the result type of this Op.
+    auto resultFnTy =
+        cast<CallableType>(getSignature().getType()).getSignature();
+    if (calleeFnTy != resultFnTy)
+      return emitOpError("degenerate closure function must have compatible "
+                         "signature with the callable closure result");
+  }
+  return success();
+}
+
+// A closure that captures a quantum value (ref, veq, wire, ...) is not pure:
+// the captured value is a handle to mutable quantum state, and ops between
+// two otherwise-identical instantiations (e.g. a `quake.x` on the captured
+// ref) change what that handle observes even though the SSA value itself is
+// unchanged. Treating the op as unconditionally pure lets CSE merge such
+// instantiations, silently dropping the intervening mutation, which is bug.
+static bool capturesQuantumReference(cudaq::cc::InstantiateCallableOp op) {
+  return llvm::any_of(op.getClosureData(), [](mlir::Value v) {
+    return cudaq::quake::isQuantumType(v.getType());
+  });
+}
+
+void cudaq::cc::InstantiateCallableOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  // An instantiate_callable with no uses is dead, even if its arguments could
+  // have had quantum side effects.
+  if (!getOperation()->use_empty() && capturesQuantumReference(*this)) {
+    effects.emplace_back(MemoryEffects::Read::get(),
+                         SideEffects::DefaultResource::get());
+    effects.emplace_back(MemoryEffects::Write::get(),
+                         SideEffects::DefaultResource::get());
+  }
+}
+
+mlir::Speculation::Speculatability
+cudaq::cc::InstantiateCallableOp::getSpeculatability() {
+  return capturesQuantumReference(*this) ? Speculation::NotSpeculatable
+                                         : Speculation::Speculatable;
+}
+
+//===----------------------------------------------------------------------===//
+// CallableClosureOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// callable_closure(instantiate_callable(callee, args...)) folds directly to
+// args: by construction, instantiate_callable's closure_data operands are
+// exactly what a matching callable_closure unpacks back out, 1:1 in count
+// and type. CallableClosureOp is Pure, so this fold alone is enough: once
+// its result's uses are rewired away, and (per getEffects above) the
+// instantiate_callable's own effects disappear once it has no uses, generic
+// DCE cleans up both ops without this pattern needing to erase anything
+// itself.
+struct CallableClosureOpPattern
+    : public OpRewritePattern<cudaq::cc::CallableClosureOp> {
+  using Base = OpRewritePattern<cudaq::cc::CallableClosureOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CallableClosureOp closureOp,
+                                PatternRewriter &rewriter) const override {
+    auto instance = closureOp.getCallable()
+                        .getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+    if (!instance)
+      return failure();
+    auto capturedArgs = instance.getClosureData();
+    auto unpackedResults = closureOp.getClosureData();
+    if (capturedArgs.size() != unpackedResults.size())
+      return failure();
+    for (auto [captured, unpacked] :
+         llvm::zip_equal(capturedArgs, unpackedResults))
+      if (captured.getType() != unpacked.getType())
+        return failure();
+    rewriter.replaceOp(closureOp, capturedArgs);
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CallableClosureOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<CallableClosureOpPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // SequenceInitOp
 //===----------------------------------------------------------------------===//
 
@@ -1936,11 +2098,123 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
     return failure();
   }
 };
+
+// For a loop which has an internally carried value that is never used (other
+// than to thread around the loop) and the same corresponding loop result is
+// also never used, is dead.
+//
+// We used this hand-rolled canonicalization, rather than try to use the MLIR
+// builtin generic `RegionBranchOpInterface` "tied successor inputs" machinery
+// because MLIR bakes in assumptions that do not apply for `cc.loop`. Those
+// assumptions result in MLIR's greedy rewriter destroying the composite
+// structure of `cc.loop`. It does not respect the multi-region internal
+// structure and the semantics of terminators between those regions cannot be
+// properly encoded into their algorithm. Hence, we want to avoid MLIR.
+struct EraseDeadCarriedValues : public OpRewritePattern<cudaq::cc::LoopOp> {
+  using Base = OpRewritePattern<cudaq::cc::LoopOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<Operation *> terminators;
+    for (auto *reg : loop.getRegions())
+      for (auto &block : *reg)
+        if (block.hasNoSuccessors())
+          terminators.push_back(block.getTerminator());
+
+    const unsigned numArgs = loop.getInitialArgs().size();
+    llvm::BitVector dead(numArgs, true);
+    for (auto *reg : loop.getRegions()) {
+      if (reg->empty())
+        continue;
+      auto &entry = reg->front();
+      for (unsigned i = 0; i < numArgs; ++i) {
+        if (!dead[i])
+          continue;
+        Value arg = entry.getArgument(i);
+        for (auto *user : arg.getUsers()) {
+          if (llvm::none_of(terminators,
+                            [&](Operation *t) { return t == user; })) {
+            dead.reset(i);
+            break;
+          }
+        }
+      }
+    }
+    for (unsigned i = 0; i < numArgs; ++i)
+      if (dead[i] && !loop.getResult(i).use_empty())
+        dead.reset(i);
+
+    if (dead.none())
+      return failure();
+
+    // Fix terminators, dropping the dead-indexed operands.
+    auto keepLive = [&](ValueRange operands) {
+      SmallVector<Value> kept;
+      for (auto [i, v] : llvm::enumerate(operands))
+        if (!dead[i])
+          kept.push_back(v);
+      return kept;
+    };
+    for (auto *term : terminators) {
+      OpBuilder::InsertionGuard guard(rewriter);
+      rewriter.setInsertionPoint(term);
+      if (auto cond = dyn_cast<cudaq::cc::ConditionOp>(term))
+        rewriter.replaceOpWithNewOp<cudaq::cc::ConditionOp>(
+            cond, cond.getCondition(), keepLive(cond.getResults()));
+      else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(term))
+        rewriter.replaceOpWithNewOp<cudaq::cc::ContinueOp>(
+            cont, keepLive(cont.getOperands()));
+      else if (auto brk = dyn_cast<cudaq::cc::BreakOp>(term))
+        rewriter.replaceOpWithNewOp<cudaq::cc::BreakOp>(
+            brk, keepLive(brk.getOperands()));
+    }
+
+    // Erase the dead block arguments from every region's entry, descending so
+    // earlier indices stay valid.
+    for (auto *reg : loop.getRegions()) {
+      if (reg->empty())
+        continue;
+      for (int i = numArgs - 1; i >= 0; --i)
+        if (dead[i])
+          reg->front().eraseArgument(i);
+    }
+
+    // Assemble the new initial args and result types, then rebuild.
+    SmallVector<Value> newInitArgs;
+    SmallVector<Type> newResultTypes;
+    for (unsigned i = 0; i < numArgs; ++i)
+      if (!dead[i]) {
+        newInitArgs.push_back(loop.getInitialArgs()[i]);
+        newResultTypes.push_back(loop.getResultTypes()[i]);
+      }
+
+    rewriter.setInsertionPoint(loop);
+    auto newLoop = cudaq::cc::LoopOp::create(
+        rewriter, loop.getLoc(), newResultTypes, newInitArgs,
+        loop.isPostConditional(), [](OpBuilder &, Location, Region &) {},
+        [](OpBuilder &, Location, Region &) {},
+        /*stepBuilder=*/nullptr);
+    newLoop->setDiscardableAttrs(loop->getDiscardableAttrDictionary());
+    newLoop.getWhileRegion().takeBody(loop.getWhileRegion());
+    newLoop.getBodyRegion().takeBody(loop.getBodyRegion());
+    newLoop.getStepRegion().takeBody(loop.getStepRegion());
+    newLoop.getElseRegion().takeBody(loop.getElseRegion());
+
+    unsigned newIdx = 0;
+    for (unsigned i = 0; i < numArgs; ++i)
+      if (!dead[i])
+        loop.getResult(i).replaceAllUsesWith(newLoop.getResult(newIdx++));
+
+    rewriter.eraseOp(loop);
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::cc::LoopOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                     MLIRContext *context) {
-  patterns.add<HoistLoopInvariantArgs>(context);
+  patterns.add<HoistLoopInvariantArgs, EraseDeadCarriedValues>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1971,10 +2245,15 @@ void cudaq::cc::ScopeOp::print(OpAsmPrinter &p) {
     // Print terminator explicitly if the op defines values.
     printBlockTerminators = true;
   }
+  if (getAtomicQuantumRegionAttr())
+    p << " atomic";
   p << ' ';
   p.printRegion(getRegion(), /*printEntryBlockArgs=*/false,
                 printBlockTerminators);
-  p.printOptionalAttrDict((*this)->getAttrs());
+  // The `atomic_quantum_region` attribute is represented by the `atomic`
+  // keyword above, not the generic attribute dictionary.
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          /*elidedAttrs=*/{atomicQuantumRegionAttrName});
 }
 
 static void ensureScopeRegionTerminator(OpBuilder &builder,
@@ -1997,6 +2276,9 @@ ParseResult cudaq::cc::ScopeOp::parse(OpAsmParser &parser,
                                       OperationState &result) {
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
+  if (succeeded(parser.parseOptionalKeyword("atomic")))
+    result.addAttribute(atomicQuantumRegionAttrName,
+                        UnitAttr::get(parser.getContext()));
   auto *body = result.addRegion();
   if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseOptionalAttrDict(result.attributes))
@@ -2104,14 +2386,17 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
       cf::BranchOp::create(rewriter, loc, splitBlock);
     }
     // Inline the cc.scope's region into the parent and create a branch to the
-    // new successor block.
+    // new successor block. Walk the blocks to find the exits.
     auto &initRegion = scope.getInitRegion();
     auto *initBlock = &initRegion.front();
-    auto *initTerminator = initRegion.back().getTerminator();
-    auto initTerminatorOperands = initTerminator->getOperands();
-    rewriter.setInsertionPointToEnd(&initRegion.back());
-    cf::BranchOp::create(rewriter, loc, succBlock, initTerminatorOperands);
-    rewriter.eraseOp(initTerminator);
+    for (auto &block : initRegion) {
+      if (auto contOp =
+              dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+        rewriter.setInsertionPointToEnd(&block);
+        rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, succBlock,
+                                                  contOp.getOperands());
+      }
+    }
     rewriter.inlineRegionBefore(initRegion, succBlock);
     // Replace the cc.scope with a branch to the newly inlined region's entry
     // block.
@@ -2335,108 +2620,128 @@ LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
   return success();
 }
 
+void cudaq::cc::spliceRegionAsCFG(PatternRewriter &rewriter, Region &region,
+                                  Block *continueBlock) {
+  for (Block &block : region)
+    if (auto contOp = dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+      rewriter.setInsertionPointToEnd(&block);
+      rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, continueBlock,
+                                                contOp.getOperands());
+    }
+  rewriter.inlineRegionBefore(region, continueBlock);
+}
+
 namespace {
+// Can \p region hold more than one block? Some regions are restricted to a
+// single block, either by trait or by an ODS size constraint on the parent op.
+static bool takesMultipleBlocks(Region &region) {
+  if (!mayHaveSSADominance(region))
+    return false;
+  Operation *parent = region.getParentOp();
+  if (auto loop = dyn_cast<cudaq::cc::LoopOp>(parent))
+    return &region == &loop.getBodyRegion() || &region == &loop.getElseRegion();
+  return isa<func::FuncOp, cudaq::cc::IfOp, cudaq::cc::ScopeOp,
+             cudaq::cc::CreateLambdaOp>(parent);
+}
+
 struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
   using Base = OpRewritePattern<cudaq::cc::IfOp>;
   using Base::Base;
 
-  // This rewrite will determine if the condition is constant. If it is, then it
-  // will elide the true or false region completely, depending on the constant's
-  // value. For cc.if ops with results, it inlines the surviving region and
-  // replaces the results with the cc.continue operands.
+  // This rewrite will determine if the condition is constant. If it is, then
+  // the dead region is elided and the surviving region is spliced into the
+  // parent op in place of the cc.if. Any results are replaced with the operands
+  // of the region's cc.continue terminators.
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
-    auto cond = ifOp.getCondition();
-    auto con = cond.getDefiningOp<arith::ConstantIntOp>();
+    auto con = ifOp.getCondition().getDefiningOp<arith::ConstantIntOp>();
     if (!con)
       return failure();
-    auto val = con.value();
     auto loc = ifOp.getLoc();
+    Region &region = con.value() ? ifOp.getThenRegion() : ifOp.getElseRegion();
 
-    // Handle cc.if with results by inlining the surviving region.
-    if (!ifOp.getResults().empty()) {
-      Region *survivingRegion = nullptr;
-      if (val) {
-        // Condition is true: use then region.
-        survivingRegion = &ifOp.getThenRegion();
-      } else {
-        // Condition is false: use else region if it exists.
-        if (ifOp.getElseRegion().empty()) {
-          // No else region and condition is false - this shouldn't happen for
-          // a well-formed cc.if with results, but handle it gracefully.
-          return failure();
-        }
-        survivingRegion = &ifOp.getElseRegion();
-      }
-
-      // The surviving region should have a single block ending in cc.continue.
-      if (survivingRegion->empty())
-        return failure();
-
-      // Collect results from all cc.continue ops and inline the region.
-      // For a proper cc.if with results, there should be exactly one path
-      // through each region ending in cc.continue.
-      SmallVector<Value> results;
-      Block &entryBlock = survivingRegion->front();
-
-      // Find the terminator cc.continue to get the result values.
-      // We need to walk all blocks because there might be nested control flow.
-      for (Block &block : *survivingRegion) {
-        if (auto contOp =
-                dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
-          // For single-block regions, just grab the operands.
-          if (survivingRegion->hasOneBlock()) {
-            results = llvm::to_vector(contOp.getOperands());
-            rewriter.eraseOp(contOp);
-            break;
-          }
-        }
-      }
-
-      // If we couldn't find a simple single-block case, fall back to creating
-      // a new cc.if with only the surviving region.
-      if (results.empty() || results.size() != ifOp.getNumResults()) {
-        auto truth = arith::ConstantIntOp::create(rewriter, loc, 1, 1);
-        rewriter.replaceOpWithNewOp<cudaq::cc::IfOp>(
-            ifOp, ifOp.getResultTypes(), truth,
-            [&](OpBuilder &, Location, Region &region) {
-              region.takeBody(*survivingRegion);
-            });
-        return success();
-      }
-
-      // Inline the surviving region's block before the cc.if, replacing
-      // block arguments with the cc.if's linear args.
-      rewriter.inlineBlockBefore(&entryBlock, ifOp, ifOp.getLinearArgs());
-      rewriter.replaceOp(ifOp, results);
+    // An absent else region means there is nothing left to execute. (The
+    // verifier requires an else region whenever the cc.if has results.)
+    if (region.empty()) {
+      rewriter.eraseOp(ifOp);
       return success();
     }
 
-    // Original logic for cc.if without results.
-    auto truth = arith::ConstantIntOp::create(rewriter, loc, 1, 1);
-    Region *newRegion = nullptr;
-    if (val) {
-      // The else block, if any, is dead.
-      if (ifOp.getElseRegion().empty())
-        return failure();
-      newRegion = &ifOp.getThenRegion();
-    } else {
-      // The then block is dead.
-      newRegion = &ifOp.getElseRegion();
-      if (newRegion->empty()) {
-        // If there was no else, then build an empty dummy Region.
-        OpBuilder::InsertionGuard guard(rewriter);
-        Block *block = new Block();
-        rewriter.setInsertionPointToEnd(block);
-        cudaq::cc::ContinueOp::create(rewriter, loc);
-        newRegion->push_back(block);
-      }
+    // An unwind op requires a structured parent op, so leave the cc.if in place
+    // if inlining the region would reparent one. (Unwinds are removed by the
+    // lower-unwind pass, after which this pattern will apply.)
+    if (region
+            .walk([](Operation *op) {
+              return isa<cudaq::cc::UnwindReturnOp, cudaq::cc::UnwindBreakOp,
+                         cudaq::cc::UnwindContinueOp>(op)
+                         ? WalkResult::interrupt()
+                         : WalkResult::advance();
+            })
+            .wasInterrupted())
+      return failure();
+
+    // Split the parent block at the cc.if and stitch the region in with
+    // branches. That requires that the region containing the cc.if can hold
+    // more than one block.
+    if (!region.hasOneBlock() && !takesMultipleBlocks(*ifOp->getParentRegion()))
+      return failure();
+    auto *ifBlock = rewriter.getInsertionBlock();
+    auto *splitBlock =
+        rewriter.splitBlock(ifBlock, rewriter.getInsertionPoint());
+    Block *succBlock = splitBlock;
+    if (ifOp.getNumResults()) {
+      succBlock = rewriter.createBlock(
+          splitBlock, ifOp.getResultTypes(),
+          SmallVector<Location>(ifOp.getNumResults(), loc));
+      cf::BranchOp::create(rewriter, loc, splitBlock);
     }
-    rewriter.replaceOpWithNewOp<cudaq::cc::IfOp>(
-        ifOp, ifOp.getResultTypes(), truth,
-        [&](OpBuilder &, Location, Region &region) {
-          region.takeBody(*newRegion);
-        });
+    auto *entryBlock = &region.front();
+    cudaq::cc::spliceRegionAsCFG(rewriter, region, succBlock);
+    rewriter.setInsertionPointToEnd(ifBlock);
+    cf::BranchOp::create(rewriter, loc, entryBlock, ifOp.getLinearArgs());
+    rewriter.replaceOp(ifOp, succBlock->getArguments());
+    return success();
+  }
+};
+
+struct KillIfWithNoOpArms : public OpRewritePattern<cudaq::cc::IfOp> {
+  using Base = OpRewritePattern<cudaq::cc::IfOp>;
+  using Base::Base;
+
+  // Both arms of the cc.if do nothing but forward the very same values, so the
+  // condition has no bearing on the results and the op can be erased. (A cc.if
+  // with no results is left to dead code elimination.)
+  LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
+                                PatternRewriter &rewriter) const override {
+    if (ifOp.getResults().empty())
+      return failure();
+
+    // If the region is a single block that does nothing but forward values to
+    // the parent op, return those values. An entry block argument is mapped
+    // back to the corresponding linear argument of the cc.if.
+    auto noOpArm =
+        [&ifOp](Region &region) -> std::optional<SmallVector<Value>> {
+      if (!region.hasOneBlock())
+        return std::nullopt;
+      Block &block = region.front();
+      auto contOp = dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator());
+      if (!contOp || !block.without_terminator().empty())
+        return std::nullopt;
+      SmallVector<Value> results;
+      for (auto val : contOp.getOperands()) {
+        auto arg = dyn_cast<BlockArgument>(val);
+        results.push_back(arg && arg.getOwner() == &block
+                              ? ifOp.getLinearArgs()[arg.getArgNumber()]
+                              : val);
+      }
+      return results;
+    };
+    auto thenVals = noOpArm(ifOp.getThenRegion());
+    auto elseVals = noOpArm(ifOp.getElseRegion());
+    if (!thenVals || !elseVals ||
+        ArrayRef<Value>(*thenVals) != ArrayRef<Value>(*elseVals))
+      return failure();
+    rewriter.replaceOp(ifOp, *thenVals);
     return success();
   }
 };
@@ -2444,7 +2749,7 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
 
 void cudaq::cc::IfOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<KillRegionIfConstant>(context);
+  patterns.add<KillRegionIfConstant, KillIfWithNoOpArms>(context);
 }
 
 //===----------------------------------------------------------------------===//

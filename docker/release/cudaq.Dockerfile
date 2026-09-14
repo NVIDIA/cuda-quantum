@@ -51,6 +51,8 @@ ENV UCX_LOG_LEVEL=error
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates wget git sudo vim \
+        # needed to follow the backend credential setup in our documentation:
+        curl jq \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA-Q runtime dependencies.

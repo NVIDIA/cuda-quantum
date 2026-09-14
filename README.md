@@ -9,7 +9,7 @@ src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/ba
 />
 
 <img align="left"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publishing.yml/badge.svg?branch=main"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/validation.yml/badge.svg?branch=main"
 />
 
 <img align="left"
@@ -42,6 +42,19 @@ instructions](./Building.md).
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html#install-cuda-q
 [github_packages]:
     https://github.com/orgs/NVIDIA/packages?repo_name=cuda-quantum
+
+## Research Preview: Pulse-Level Programming
+
+CUDA-Q pulse is a new research-preview package for programming at the pulse
+level. It provides a Python kernel DSL, pulse and operator dialects, compiler
+passes, and an experimental GPU execution path. Because it is a research
+preview, its APIs and behavior may change incompatibly or be removed without
+notice, and it is not a product-supported CUDA-Q feature.
+
+See the [CUDA-Q pulse README][pulse_readme] for a quick example, build
+instructions, and the current scope and limitations.
+
+[pulse_readme]: https://github.com/NVIDIA/cuda-quantum/blob/feature/pulse/pulse/README.md
 
 ## Contributing
 

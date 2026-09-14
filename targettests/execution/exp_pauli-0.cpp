@@ -16,7 +16,6 @@
 // RUN: if %oqc_avail; then nvq++ -fkernel-exec-kind=2 -target oqc        --emulate %s -o %t && %t | FileCheck %s ; fi
 // RUN: if %anyon_avail; then nvq++ -fkernel-exec-kind=2 -target anyon      --emulate %s -o %t && %t | FileCheck %s ; fi
 // RUN: if %iqm_avail; then nvq++ -fkernel-exec-kind=2 -target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s ; fi
-// RUN: if %qci_avail; then nvq++ -fkernel-exec-kind=2 -target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

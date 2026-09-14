@@ -7,10 +7,12 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
 #include "common/EigenDense.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/bit.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
@@ -64,6 +66,79 @@ constexpr double RECON_TOL = 1e-5;
 
 /// Free helper shared by all decomposer structs.
 static bool isAboveThreshold(double value) { return std::abs(value) > TOL; }
+
+/// Find the deterministic scalar anchor for a synthesized phase correction.
+///
+/// Prefer the last scalar source target, matching the phase-placement policy.
+/// A generated helper can instead expose only an aggregate vector target. Since
+/// PhaseOp deliberately accepts only scalar anchors, materialize the last
+/// element of a statically sized vector in that case. If no scalar anchor can
+/// be found (for example, a vector-only unsized signature), use the exact
+/// legacy encoding below.
+static std::optional<Value>
+materializeSynthesizedPhaseAnchor(OpBuilder &rewriter, Location location,
+                                  ValueRange targets) {
+  for (Value target : llvm::reverse(targets))
+    if (cudaq::opt::isScalarPhaseAnchor(target))
+      return target;
+
+  for (Value target : llvm::reverse(targets)) {
+    auto veq = dyn_cast<cudaq::quake::VeqType>(target.getType());
+    if (!veq || !veq.hasSpecifiedSize() || veq.getSize() == 0)
+      continue;
+    return cudaq::quake::ExtractRefOp::create(rewriter, location, target,
+                                              veq.getSize() - 1)
+        .getResult();
+  }
+  return std::nullopt;
+}
+
+/// Preserve the exact legacy encoding when a generated helper does not expose
+/// a scalar anchor. This is needed for supported unsized vector arguments:
+/// PhaseOp cannot represent their anchor without choosing a runtime element.
+static void emitLegacySynthesizedGlobalPhase(OpBuilder &rewriter,
+                                             Location location, double phase,
+                                             FloatType floatType,
+                                             Value target) {
+  auto doubledPhase = cudaq::opt::factory::createFloatConstant(
+      location, rewriter, 2.0 * phase, floatType);
+  Value negatedPhase = arith::NegFOp::create(rewriter, location, doubledPhase);
+  cudaq::quake::R1Op::create(rewriter, location, doubledPhase, ValueRange{},
+                             target);
+  cudaq::quake::RzOp::create(rewriter, location, negatedPhase, ValueRange{},
+                             target);
+}
+
+/// Emit a non-negligible global-phase correction from a synthesis decomposer.
+///
+/// When a scalar anchor is available, retain the correction as `quake.phase`.
+/// This lets apply-op specialization propagate an outer control, making the
+/// phase observable before phase lowering materializes ordinary gates.
+///
+/// Unsized vector-only helpers cannot provide a scalar anchor, so retain the
+/// equivalent `r1`/`rz` gate sequence as a fallback.
+static void emitSynthesizedGlobalPhase(OpBuilder &rewriter, Location location,
+                                       double phase, FloatType floatType,
+                                       ValueRange targets) {
+  if (!isAboveThreshold(2.0 * phase))
+    return;
+
+  if (auto anchor =
+          materializeSynthesizedPhaseAnchor(rewriter, location, targets)) {
+    auto phaseValue = cudaq::opt::factory::createFloatConstant(
+        location, rewriter, phase, floatType);
+    cudaq::opt::emitPhaseCorrection(rewriter, location, phaseValue,
+                                    ValueRange{}, DenseBoolArrayAttr{},
+                                    *anchor);
+    return;
+  }
+
+  // The legacy pair remains an exact representation under subsequent control
+  // specialization, unlike omitting an unanchorable correction.
+  if (!targets.empty())
+    emitLegacySynthesizedGlobalPhase(rewriter, location, phase, floatType,
+                                     targets.front());
+}
 
 namespace {
 /// Forward declaration so NQubitOpQSD can store AnyDecomposer children via
@@ -127,18 +202,7 @@ struct OneQubitOpZYZ {
     /// is applied in a kernel that is called with `cudaq::control`, the global
     /// phase will become a local phase and give a wrong result if we don't keep
     /// track of that.
-    /// NOTE: R1-Rz pair results in a half the applied global phase angle,
-    /// hence, we need to multiply the angle by 2
-    auto globalPhase = 2.0 * phase;
-    if (isAboveThreshold(globalPhase)) {
-      auto phaseVal = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, globalPhase, floatTy);
-      Value negPhase = arith::NegFOp::create(rewriter, loc, phaseVal);
-      cudaq::quake::R1Op::create(rewriter, loc, phaseVal, ValueRange{},
-                                 arguments[0]);
-      cudaq::quake::RzOp::create(rewriter, loc, negPhase, ValueRange{},
-                                 arguments[0]);
-    }
+    emitSynthesizedGlobalPhase(rewriter, loc, phase, floatTy, arguments);
     func::ReturnOp::create(rewriter, loc);
     rewriter.restoreInsertionPoint(insPt);
   }
@@ -421,16 +485,8 @@ struct TwoQubitOpKAK {
         rewriter, loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
         ValueRange{}, ValueRange{arguments[0]});
-    auto globalPhase = 2.0 * std::arg(phase);
-    if (isAboveThreshold(globalPhase)) {
-      auto phaseVal = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, globalPhase, floatTy);
-      Value negPhase = arith::NegFOp::create(rewriter, loc, phaseVal);
-      cudaq::quake::R1Op::create(rewriter, loc, phaseVal, ValueRange{},
-                                 arguments[0]);
-      cudaq::quake::RzOp::create(rewriter, loc, negPhase, ValueRange{},
-                                 arguments[0]);
-    }
+    emitSynthesizedGlobalPhase(rewriter, loc, std::arg(phase), floatTy,
+                               arguments);
     func::ReturnOp::create(rewriter, loc);
     rewriter.restoreInsertionPoint(insPt);
   }

@@ -167,7 +167,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   // Cached log(lambda) for the Sigma / S exponent computations. Function-
   // local static so it is computed at most once per working precision and
   // only when execution actually reaches this point.
-  static PrecisionCachedReal lambda_real_cache;
+  static thread_local PrecisionCachedReal lambda_real_cache;
   const Real &lambda_real =
       lambda_real_cache.get([] { return to_real(ZSqrt2::lambda()); });
 

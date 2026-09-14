@@ -1,0 +1,211 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --stack-frame-prealloc %s | FileCheck %s
+
+// stack-frame-prealloc must be able to run over IR that still has high-level
+// control flow (cc.scope, cc.if, cc.loop) present, rather than requiring it
+// to have already been lowered to a plain CFG. cc.scope/cc.if act as region
+// fences (an alternative, structural form of the stacksave/stackrestore-pair
+// fencing this pass recognizes for lowered CFG form -- see sfp.qke);
+// cc.loop is a loop boundary in its own right, exactly like a strongly
+// connected component of a lowered CFG.
+
+// A cc.alloca directly inside a cc.scope that is itself directly inside a
+// cc.loop's `do` region is properly fenced: the scope resets per iteration,
+// so it is safe to preallocate the alloca once, at the function's entry.
+func.func @loop_scope_fenced(%n: i32) {
+  %c1 = arith.constant 1 : i32
+  %c0 = arith.constant 0 : i32
+  %i = cc.alloca i32
+  cc.store %c0, %i : !cc.ptr<i32>
+  cc.loop while {
+    %iv = cc.load %i : !cc.ptr<i32>
+    %cond = arith.cmpi ult, %iv, %n : i32
+    cc.condition %cond
+  } do {
+    cc.scope {
+      %x = cc.alloca i32
+      cc.store %c1, %x : !cc.ptr<i32>
+    }
+    cc.continue
+  } step {
+    %iv = cc.load %i : !cc.ptr<i32>
+    %inc = arith.addi %iv, %c1 : i32
+    cc.store %inc, %i : !cc.ptr<i32>
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @loop_scope_fenced(
+// CHECK:           %[[I:.*]] = cc.alloca i32
+// CHECK:           %[[X:.*]] = cc.alloca i32
+// CHECK:           cc.loop while {
+// CHECK:           } do {
+// CHECK:             cc.scope {
+// CHECK-NOT:           cc.alloca
+// CHECK:               cc.store %{{.*}}, %[[X]] : !cc.ptr<i32>
+// CHECK:             }
+// CHECK:           } step {
+
+// A cc.alloca directly inside a cc.scope that is itself directly inside a
+// cc.if's then-region is properly fenced the same way (cc.if is also
+// single-entry/single-exit: its region runs at most once).
+func.func @if_scope_fenced(%b: i1) {
+  %c1 = arith.constant 1 : i32
+  cc.if(%b) {
+    cc.scope {
+      %x = cc.alloca i32
+      cc.store %c1, %x : !cc.ptr<i32>
+    }
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @if_scope_fenced(
+// CHECK:           %[[X:.*]] = cc.alloca i32
+// CHECK:           cc.if(%{{.*}}) {
+// CHECK:             cc.scope {
+// CHECK-NOT:           cc.alloca
+// CHECK:               cc.store %{{.*}}, %[[X]] : !cc.ptr<i32>
+// CHECK:             }
+
+// The fencing cc.scope need not be the *direct* child of the enclosing
+// cc.loop: it is reached here through an intervening cc.if. Fencing is
+// determined by structural containment (the scope is nested somewhere
+// inside the loop's repeating `do` region and itself contains the alloca),
+// not by requiring the scope to be the loop's immediate child.
+func.func @loop_if_scope_fenced(%n: i32, %b: i1) {
+  %c1 = arith.constant 1 : i32
+  %c0 = arith.constant 0 : i32
+  %i = cc.alloca i32
+  cc.store %c0, %i : !cc.ptr<i32>
+  cc.loop while {
+    %iv = cc.load %i : !cc.ptr<i32>
+    %cond = arith.cmpi ult, %iv, %n : i32
+    cc.condition %cond
+  } do {
+    cc.if(%b) {
+      cc.scope {
+        %x = cc.alloca i32
+        cc.store %c1, %x : !cc.ptr<i32>
+      }
+      cc.continue
+    }
+    cc.continue
+  } step {
+    %iv = cc.load %i : !cc.ptr<i32>
+    %inc = arith.addi %iv, %c1 : i32
+    cc.store %inc, %i : !cc.ptr<i32>
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @loop_if_scope_fenced(
+// CHECK:           %[[I:.*]] = cc.alloca i32
+// CHECK:           %[[X:.*]] = cc.alloca i32
+// CHECK:           cc.loop while {
+// CHECK:           } do {
+// CHECK:             cc.if(%{{.*}}) {
+// CHECK:               cc.scope {
+// CHECK-NOT:             cc.alloca
+// CHECK:                 cc.store %{{.*}}, %[[X]] : !cc.ptr<i32>
+// CHECK:               }
+// CHECK:             }
+// CHECK:           } step {
+
+// A cc.create_lambda's body is an entirely separate allocation scope: it may
+// be invoked any number of times, on its own schedule, independent of the
+// enclosing function. Its cc.alloca ops are hoisted (if safe) to the
+// lambda's *own* entry, never into the enclosing func.func.
+func.func @lambda_selfcontained(%b: i1) {
+  %c1 = arith.constant 1 : i32
+  %lam = cc.create_lambda {
+    cc.scope {
+      %x = cc.alloca i32
+      cc.store %c1, %x : !cc.ptr<i32>
+    }
+    cc.return
+  } : !cc.callable<() -> ()>
+  return
+}
+
+// CHECK-LABEL:   func.func @lambda_selfcontained(
+// CHECK:           %[[LAM:.*]] = cc.create_lambda {
+// CHECK:             %[[X:.*]] = cc.alloca i32
+// CHECK:             cc.scope {
+// CHECK-NOT:           cc.alloca
+// CHECK:               cc.store %{{.*}}, %[[X]] : !cc.ptr<i32>
+// CHECK:             }
+// CHECK:             cc.return
+// CHECK:           }
+
+// A cc.alloca that appears in a block that is itself part of a loop already
+// lowered to a plain CFG (here, a single-block loop with a self-edge, not a
+// cc.loop) must not be promoted/hoisted to the function's entry block: a
+// fresh allocation is required on every iteration.
+func.func @not_in_scope(%arg0: i1) {
+  %c1_i32 = arith.constant 1 : i32
+  cf.br ^bb1
+^bb1:  // 2 preds: ^bb0, ^bb1
+  %0 = cc.alloca i32
+  cc.store %c1_i32, %0 : !cc.ptr<i32>
+  cf.cond_br %arg0, ^bb1, ^bb2
+^bb2:  // pred: ^bb1
+  return
+}
+
+// CHECK-LABEL:   func.func @not_in_scope(
+// CHECK-SAME:                                 %[[VAL_0:.*]]: i1) {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<i32>
+// CHECK:           cf.cond_br %[[VAL_0]], ^bb1, ^bb2
+// CHECK:         ^bb2:
+// CHECK:           return
+// CHECK:         }
+
+// A cc.scope only fences repetition of the cc.scope construct itself; it
+// does not, by itself, prove that the code inside it runs only once. Here
+// the cc.scope's own body is *already* a lowered CFG with a self-looping
+// block, so the alloca inside it must still be treated exactly like the
+// not_in_scope case above and left untouched: it is not fenced by anything
+// nested *inside* the loop, so hoisting it would collapse every iteration's
+// allocation into one, an unbounded-stack-growth bug (see modifiedKosaraju,
+// which must find SCCs in every region's own block graph, not just root's).
+func.func @cfg_loop_in_scope(%n: i1) {
+  cc.scope {
+    %c1 = arith.constant 1 : i32
+    cf.br ^bb1
+  ^bb1:
+    %x = cc.alloca i32
+    cc.store %c1, %x : !cc.ptr<i32>
+    cf.cond_br %n, ^bb1, ^bb2
+  ^bb2:
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @cfg_loop_in_scope(
+// CHECK-SAME:                                 %[[VAL_0:.*]]: i1) {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:             cf.br ^bb1
+// CHECK:           ^bb1:
+// CHECK:             %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:             cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<i32>
+// CHECK:             cf.cond_br %[[VAL_0]], ^bb1, ^bb2
+// CHECK:           ^bb2:
+// CHECK:             cc.continue
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }

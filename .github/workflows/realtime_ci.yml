@@ -166,17 +166,12 @@ jobs:
             # Build 
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp pkg-config
             cd /workspace/realtime
+            # Installs DOCA/Holoscan and builds HSB into $HSB_ROOT/build.
+            export HSB_ROOT=/workspace/holoscan-sensor-bridge
             bash scripts/install_dev_prerequisites.sh
-            # Build HSB (GPU RoCE transceiver and hololink_core)
-            export CUDA_NATIVE_ARCH="${{ (contains(matrix.cuda_version, '12') && '80-real;90') || '80-real;90-real;100f-real;110-real;120-real;100-virtual' }}"
-            cd /workspace/ && git clone -b 2.6.0-EA2 https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge
-            cmake -G Ninja -S /workspace/holoscan-sensor-bridge -B /workspace/holoscan-sensor-bridge/build -DCMAKE_BUILD_TYPE=Release -DHOLOLINK_BUILD_ONLY_NATIVE=OFF -DHOLOLINK_BUILD_PYTHON=OFF -DHOLOLINK_BUILD_TESTS=OFF -DHOLOLINK_BUILD_TOOLS=OFF -DHOLOLINK_BUILD_EXAMPLES=OFF -DHOLOLINK_BUILD_EMULATOR=OFF
-            cmake --build /workspace/holoscan-sensor-bridge/build --target roce_receiver gpu_roce_transceiver hololink_core
             # Build CUDA-Q Realtime
             cd /workspace/realtime
-            mkdir -p build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/workspace/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/workspace/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/workspace/installer
-            make -j$(nproc) install
+            CUDAQ_REALTIME_INSTALL_PREFIX=/workspace/installer bash scripts/build_realtime.sh 
 
       - name: 'Tar files'
         run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *

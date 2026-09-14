@@ -32,6 +32,10 @@ qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
 
+# The name of the cudaq module, as written in a kernel's annotations. A kernel
+# may reach it by an alias (`import cudaq as cq`), so this is only the default.
+cudaqModuleName = 'cudaq'
+
 ahkPrefix = '__analog_hamiltonian_kernel__'
 
 # Keep a global registry of all registered custom operations.
@@ -166,15 +170,20 @@ def resolve_qualified_symbol(y):
                 obj = getattr(obj, attr)
         except AttributeError:
             return None
-        from .kernel_decorator import isa_kernel_decorator
-        if not isa_kernel_decorator(obj):
+        from .kernel_decorator import (isa_extern_kernel_decorator,
+                                       isa_kernel_decorator)
+
+        def isa_kernel_like(obj):
+            return isa_kernel_decorator(obj) or isa_extern_kernel_decorator(obj)
+
+        if not isa_kernel_like(obj):
             # FIXME: Legacy hack to support incorrect Python spellings of kernel
             # names.
             try:
                 obj = getattr(obj, parts[-1])
             except AttributeError:
                 pass
-        return obj if isa_kernel_decorator(obj) else None
+        return obj if isa_kernel_like(obj) else None
     return None
 
 
@@ -395,6 +404,16 @@ def get_function_source_or_raise(function):
     return src, (filename, first_line)
 
 
+def isQuantumReferenceType(ty):
+    """
+    Return True if and only if `ty` is a quantum reference type, matching
+    `isQuantumReferenceType` in `QuakeTypes.h`. The quantum value types (wire,
+    cable, control) are not reference types and are not included.
+    """
+    return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+        ty) or quake.StruqType.isinstance(ty)
+
+
 def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
@@ -405,11 +424,7 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
 
     name = name or "tuple"
 
-    def isQuantumType(ty):
-        return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
-            ty) or quake.StruqType.isinstance(ty)
-
-    numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
+    numQuantumMembers = sum((isQuantumReferenceType(t) for t in mlirEleTypes))
     if numQuantumMembers == 0:
         if any((cc.PointerType.isinstance(t) for t in mlirEleTypes)):
             return None
@@ -429,7 +444,7 @@ def mlirTypeFromAnnotation(annotation,
     type annotation.  Throws an exception if the programmer did not annotate
     function argument types.
     """
-    _cudaq_names = cudaqAliases if cudaqAliases else {'cudaq'}
+    _cudaq_names = cudaqAliases if cudaqAliases else {cudaqModuleName}
 
     localEmitFatalError = emitFatalError
     if raiseError:
@@ -634,37 +649,6 @@ def mlirTypeFromAnnotation(annotation,
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation}"
         f" is not a supported type.")
-
-
-def pyInstanceFromName(name: str):
-    if name == 'bool':
-        return bool(False)
-    if name == 'int':
-        return int(0)
-    if name in ['numpy.int8', 'np.int8']:
-        return np.int8(0)
-    if name in ['numpy.int16', 'np.int16']:
-        return np.int16(0)
-    if name in ['numpy.int32', 'np.int32']:
-        return np.int32(0)
-    if name in ['numpy.int64', 'np.int64']:
-        return np.int64(0)
-    if name == 'int':
-        return int(0)
-    if name == 'float':
-        return float(0.0)
-    if name in ['numpy.float32', 'np.float32']:
-        return np.float32(0.0)
-    if name in ['numpy.float64', 'np.float64']:
-        return np.float64(0.0)
-    if name == 'complex':
-        return 0j
-    if name == 'pauli_word':
-        return pauli_word('')
-    if name in ['numpy.complex128', 'np.complex128']:
-        return np.complex128(0.0)
-    if name in ['numpy.complex64', 'np.complex64']:
-        return np.complex64(0.0)
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):

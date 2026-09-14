@@ -46,11 +46,13 @@ const Real &tdgp_ten() {
 TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
                          const ConvexSet &setB, const GridOp &opG_inv,
                          Rectangle bboxA, Rectangle bboxB,
-                         Interval bboxA_y_fattened, Interval bboxB_y_fattened)
+                         Interval bboxA_y_fattened, Interval bboxB_y_fattened,
+                         uint64_t max_scan_steps)
     : k_(std::move(k)), setA_(&setA), setB_(&setB), opG_inv_(opG_inv),
       bboxA_(std::move(bboxA)), bboxB_(std::move(bboxB)),
       bboxA_y_fattened_(std::move(bboxA_y_fattened)),
-      bboxB_y_fattened_(std::move(bboxB_y_fattened)) {
+      bboxB_y_fattened_(std::move(bboxB_y_fattened)),
+      max_scan_steps_(max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("TdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<int64_t>(k_) << '\n');
 
@@ -58,7 +60,8 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
   // x-ODGP is needed as a fixed reference for the per-beta line scan. The
   // local stepper is destroyed at the end of this block.
   {
-    OdgpScaledStepper x_gen(bboxA_.I_x(), bboxB_.I_x(), k_ + 1);
+    OdgpScaledStepper x_gen(bboxA_.I_x(), bboxB_.I_x(), k_ + 1,
+                            max_scan_steps_);
     const DSqrt2 *first_x = x_gen.next();
     if (!first_x) {
       exhausted_ = true;
@@ -79,7 +82,8 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
   // 2^k appears in the per-beta fattening factor. Precompute once.
   two_pow_k_ = Real((Integer(1) << k_));
 
-  beta_gen_.emplace(bboxA_y_fattened_, bboxB_y_fattened_, k_ + 1);
+  beta_gen_.emplace(bboxA_y_fattened_, bboxB_y_fattened_, k_ + 1,
+                    max_scan_steps_);
 }
 
 TdgpStepper::~TdgpStepper() {
@@ -138,7 +142,7 @@ bool TdgpStepper::advance_to_next_beta() {
                << ", intA_fat=" << intA << ", intB_fat=" << intB << '\n');
 
     current_beta_ = *beta;
-    alpha_gen_.emplace(intA, intB, Integer(1), parity);
+    alpha_gen_.emplace(intA, intB, Integer(1), parity, max_scan_steps_);
     return true;
   }
 }

@@ -741,6 +741,11 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
           func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
           break;
         }
+      for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
+        if (a->getAnnotation().str() == cudaq::atomicQuantumRegionAnnotation) {
+          func->setAttr(cc::atomicQuantumRegionAttrName, unitAttr);
+          break;
+        }
       bool hasDeviceOnlyTypes =
           hasAnyQuakeOrHandleTypes(func.getFunctionType());
       if (hasDeviceOnlyTypes)

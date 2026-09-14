@@ -97,17 +97,18 @@ cudaq_status_t cudaq_bridge_create_from_library(
     return CUDAQ_ERR_INTERNAL;
   }
 
-  // Check interface version compatibility BEFORE caching the interface:
-  // versions older than CURRENT are accepted (fields beyond `disconnect` are
-  // guarded by version checks at the call sites); newer versions are rejected
-  // since the provider's struct may reference callbacks this library does not
-  // know how to drive.
-  if (bridge_interface->version < 1 ||
-      bridge_interface->version > CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION) {
+  // Reject a version mismatch BEFORE caching the interface.  The whole struct
+  // is read from every provider, so a provider built against a different
+  // header may be a different shape; continuing past this point would read
+  // fields it never defined.
+  if (bridge_interface->version != CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION) {
     std::cerr << "ERROR: Bridge interface version mismatch for '" << lib_name
-              << "': this library supports versions 1.."
-              << CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION << ", got "
-              << bridge_interface->version << std::endl;
+              << "': this library was built against version "
+              << CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION
+              << ", provider reports " << bridge_interface->version
+              << ".  Rebuild the provider against the matching CUDA-Q "
+                 "realtime headers."
+              << std::endl;
     dlclose(lib_handle);
     return CUDAQ_ERR_INTERNAL;
   }
@@ -213,41 +214,17 @@ cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge) {
 }
 
 //==============================================================================
-// Version-2 capability queries.  Fields beyond `disconnect` may only be read
-// from providers reporting version >= 2 (a v1 provider's struct may simply
-// end at `disconnect`); missing capability => CUDAQ_ERR_UNSUPPORTED.
+// Optional capabilities.  A provider leaves the entries it does not implement
+// NULL; missing capability => CUDAQ_ERR_UNSUPPORTED, except for
+// set_function_table, where nothing to register is not an error.
 //==============================================================================
-
-namespace {
-// Look up the interface for `bridge` and return it only if it is a v2+
-// provider; sets `*status` and returns nullptr otherwise.
-cudaq_realtime_bridge_interface_t *
-find_v2_interface(cudaq_realtime_bridge_handle_t bridge, const char *what,
-                  cudaq_status_t *status) {
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in " << what << std::endl;
-    *status = CUDAQ_ERR_INVALID_ARG;
-    return nullptr;
-  }
-  if (it->second->version < 2) {
-    *status = CUDAQ_ERR_UNSUPPORTED;
-    return nullptr;
-  }
-  *status = CUDAQ_OK;
-  return it->second;
-}
-} // namespace
 
 cudaq_status_t
 cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
                                cudaq_cpu_dataplane_t *out_dataplane) {
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-  cudaq_status_t status;
-  auto *bridge_interface =
-      find_v2_interface(bridge, "get_cpu_dataplane", &status);
+  auto *bridge_interface = find_interface(bridge, "get_cpu_dataplane");
   if (!bridge_interface)
-    return status;
+    return CUDAQ_ERR_INVALID_ARG;
   if (!bridge_interface->get_cpu_dataplane)
     return CUDAQ_ERR_UNSUPPORTED;
   return bridge_interface->get_cpu_dataplane(bridge, out_dataplane);
@@ -256,12 +233,9 @@ cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
 cudaq_status_t
 cudaq_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t bridge, char *buf,
                                size_t buf_len) {
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-  cudaq_status_t status;
-  auto *bridge_interface =
-      find_v2_interface(bridge, "get_endpoint_info", &status);
+  auto *bridge_interface = find_interface(bridge, "get_endpoint_info");
   if (!bridge_interface)
-    return status;
+    return CUDAQ_ERR_INVALID_ARG;
   if (!bridge_interface->get_endpoint_info)
     return CUDAQ_ERR_UNSUPPORTED;
   return bridge_interface->get_endpoint_info(bridge, buf, buf_len);
@@ -271,14 +245,24 @@ cudaq_status_t
 cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
                                uint32_t *out_num_slots,
                                uint32_t *out_slot_size) {
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-  cudaq_status_t status;
-  auto *bridge_interface =
-      find_v2_interface(bridge, "get_ring_geometry", &status);
+  auto *bridge_interface = find_interface(bridge, "get_ring_geometry");
   if (!bridge_interface)
-    return status;
+    return CUDAQ_ERR_INVALID_ARG;
   if (!bridge_interface->get_ring_geometry)
     return CUDAQ_ERR_UNSUPPORTED;
   return bridge_interface->get_ring_geometry(bridge, out_num_slots,
                                              out_slot_size);
+}
+
+cudaq_status_t
+cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
+                                const cudaq_function_table_t *table) {
+  if (!table || !table->entries || table->count == 0)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *bridge_interface = find_interface(bridge, "set_function_table");
+  if (!bridge_interface)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (!bridge_interface->set_function_table)
+    return CUDAQ_OK;
+  return bridge_interface->set_function_table(bridge, table);
 }

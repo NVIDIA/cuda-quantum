@@ -37,5 +37,5 @@ def test_control_kernel():
     # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
     # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
     # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
-    # CHECK:           quake.apply %[[VAL_18]] {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
+    # CHECK:           quake.apply %[[VAL_18]] {{\[}}%[[VAL_1]]] (%[[VAL_2]]) : (!quake.ref, !quake.ref) -> ()
     # CHECK:           return

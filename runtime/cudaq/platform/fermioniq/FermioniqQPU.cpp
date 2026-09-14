@@ -47,7 +47,7 @@ cudaq::sample_result
 cudaq::FermioniqQPU::launchKernel(const cudaq::sample_policy &policy,
                                   const CompiledModule &module,
                                   KernelArgs args) {
-  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
              module.getName(), policy.name);
 
   if (module.getMlirArtifacts().empty())
@@ -62,7 +62,7 @@ cudaq::async_sample_result
 cudaq::FermioniqQPU::launchKernel(const cudaq::async_sample_policy &policy,
                                   const CompiledModule &module,
                                   KernelArgs args) {
-  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
              module.getName(), policy.inner.name);
 
   if (module.getMlirArtifacts().empty())
@@ -77,7 +77,7 @@ cudaq::observe_result
 cudaq::FermioniqQPU::launchKernel(const cudaq::observe_policy &policy,
                                   const CompiledModule &module,
                                   KernelArgs args) {
-  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
              module.getName(), policy.name);
 
   if (module.getMlirArtifacts().empty())
@@ -97,7 +97,7 @@ cudaq::async_observe_result
 cudaq::FermioniqQPU::launchKernel(const cudaq::async_observe_policy &policy,
                                   const CompiledModule &module,
                                   KernelArgs args) {
-  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
              module.getName(), policy.inner.name);
 
   if (module.getMlirArtifacts().empty())

@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from typing import Optional
+
 from ._cudaq_synth import gridsynth as _gridsynth
 from ._cudaq_synth import _normalized
 from ._cudaq_synth import rz_error as _rz_error
@@ -111,26 +113,64 @@ class CliffordTSequence:
 
 def gridsynth(theta,
               epsilon,
-              diophantine_timeout_ms: int = 200,
-              factoring_timeout_ms: int = 50) -> CliffordTSequence:
+              max_factoring_iterations: int = 500000,
+              max_candidate_iterations: int = 2000000,
+              max_factoring_restarts: int = 8,
+              max_odgp_scan_steps: int = 65536,
+              seed: Optional[int] = None,
+              timeout_ms: Optional[int] = None) -> CliffordTSequence:
     """Synthesize a Clifford+T sequence approximating R_z(theta).
 
     Implements the grid-synthesis algorithm of Ross & Selinger
     `(arXiv:1403.2975, Algorithm 7.6)`. The returned sequence is in
-    `Matsumoto-Amano` normal form with minimum T-count up to search
-    timeouts. The synthesized unitary U satisfies
+    `Matsumoto-Amano` normal form with minimum T-count up to the search
+    budgets below. The synthesized unitary U satisfies
     ``||R_z(theta) - U|| <= epsilon`` in the operator norm.
+
+    How the budgets trade. The search walks a denominator exponent k
+    upward, and at each k enumerates candidate circuits and tests each by
+    factoring an integer. The first candidate that works ends the search.
+    The T-count is ``2k-2`` or ``2k``, so a candidate solved at a smaller
+    k is a strictly shorter circuit. Every budget below bounds work spent
+    on one candidate, so lowering any of them is faster and never produces
+    a shorter circuit.
 
     Args:
         theta: Target rotation angle (float, or decimal `str` for
             arbitrary precision).
         epsilon: Approximation precision in operator norm, must be > 0
             (float, or `str`).
-        `diophantine_timeout_ms`: Per-candidate timeout for the Diophantine
-            solver. Higher values improve `optimality` at the cost of
-            worst-case latency. Default 200.
-        factoring_timeout_ms: Per-candidate timeout for integer factoring
-            inside the Diophantine solver. Default 50.
+        `max_factoring_iterations`: Pollard-rho iterations one factoring
+            attempt may spend before giving up on its composite. Nearly
+            all synthesis time goes here, and this is the budget that
+            decides when a candidate is abandoned, so it is the one to
+            raise to trade runtime for fewer T gates. Default 500000.
+        `max_candidate_iterations`: The same iterations, summed over every
+            factoring attempt made for one candidate. Bounds worst-case
+            time per call, which the two options around it do not. They
+            are per attempt and per composite. Doubling it costs ~1.8x
+            runtime and buys no T gates, so it is a tail control, not a
+            quality one. Default 2000000.
+        `max_factoring_restarts`: Consecutive failed factoring attempts
+            allowed on one composite before the candidate is abandoned.
+            Each attempt re-rolls a random parameter, so a retry searches
+            differently rather than repeating. Default 8, already well
+            above the measured need.
+        `max_odgp_scan_steps`: Steps one enumeration line scan may take
+            without producing a candidate. Candidates are found by
+            scanning along grid lines, and a line carrying none can be
+            scanned indefinitely. This governs the supply of candidates
+            rather than effort per candidate, so starving it makes
+            synthesis fail rather than return a longer circuit.
+            Default 65536.
+        seed: Seed for the internal factoring RNG. Default ``None`` draws
+            from system entropy, so repeated calls explore different
+            factoring attempts and their runtimes can differ by orders of
+            magnitude. Pass an `int` to make a run `replayable`.
+        `timeout_ms`: Optional wall-clock limit on the whole call. Default
+            ``None`` is the reproducible configuration: the budgets above
+            count work rather than time, so the same inputs do the same
+            work on any machine. An escape hatch, not a tuning knob.
 
     Returns:
         A :class:`CliffordTSequence`. ``str()`` of the result is the gate
@@ -145,8 +185,9 @@ def gridsynth(theta,
             epsilon region or search space exhausted).
     """
     return CliffordTSequence(
-        _gridsynth(theta, epsilon, diophantine_timeout_ms,
-                   factoring_timeout_ms))
+        _gridsynth(theta, epsilon, max_factoring_iterations,
+                   max_candidate_iterations, max_factoring_restarts,
+                   max_odgp_scan_steps, seed, timeout_ms))
 
 
 def rz_error(theta, sequence) -> float:

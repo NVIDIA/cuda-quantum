@@ -33,7 +33,7 @@ Documentation = "https://nvidia.github.io/cuda-quantum"
 Repository = "https://github.com/NVIDIA/cuda-quantum"
 
 [build-system]
-requires = ["scikit-build-core==0.11.6", "cmake>=4.0", "numpy>=1.24", "nanobind>=2.12.0"]
+requires = ["scikit-build-core==0.11.6", "cmake>=4.0", "numpy>=1.24", "nanobind>=2.12.0,<3"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]

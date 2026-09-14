@@ -59,9 +59,32 @@ function(add_cudaq_dialect_doc dialect dialect_namespace)
     -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
+# Replicate all build configs on `${name}` to `obj.${name}`
+function(_cudaq_forward_object_usage_requirements name)
+  if(NOT TARGET obj.${name})
+    return()
+  endif()
+  target_include_directories(obj.${name} SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_INCLUDE_DIRECTORIES>)
+  target_compile_definitions(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_DEFINITIONS>)
+  target_compile_options(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_OPTIONS>)
+endfunction()
+
+# target_link_libraries() for a library created by add_cudaq_library().  This ensures
+# the dependency is also set on obj.<target>, (used to build the `cudaqMLIR` shared library.
+function(cudaq_target_link_libraries target visibility)
+  target_link_libraries(${target} ${visibility} ${ARGN})
+  if(TARGET obj.${target})
+    target_link_libraries(obj.${target} PRIVATE ${ARGN})
+  endif()
+endfunction()
+
 function(add_cudaq_library name)
   add_mlir_library(${ARGV} DISABLE_INSTALL ENABLE_AGGREGATION)
   add_cudaq_library_install(${name})
+  _cudaq_forward_object_usage_requirements(${name})
 endfunction()
 
 # Define `CUDAQ_MLIR_BUNDLED_LIBS_PATH`: the file that lists all bundled MLIR libraries.
@@ -156,6 +179,17 @@ function(cudaq_check_mlir_symbol_closure name)
     VERBATIM)
 endfunction()
 
+# CUDAQ_PYTHON_BINDINGS_SHARED_LIBS controls whether the common CAPI
+# aggregate built by add_cudaq_python_common_capi_library() (below) is a
+# shared or static library. It defaults to ON: the aggregate is loaded
+# directly by a Python interpreter via the nanobind extension modules, so a
+# shared library is the correct default. A build engineer embedding these
+# bindings into a fully static, custom Python interpreter (or otherwise
+# assembling their own deployment) can flip this OFF.
+option(CUDAQ_PYTHON_BINDINGS_SHARED_LIBS
+  "Build the cudaq/ Python bindings' common CAPI library as a shared library."
+  ON)
+
 # --------------------------------------------------------------------------- #
 # add_cudaq_python_common_capi_library(<name> ...)``
 #
@@ -205,13 +239,22 @@ function(add_cudaq_python_common_capi_library name)
     endif()
   endforeach()
 
-  # 3. Create the shared library, with hidden visibility and linking to cudaqMLIR
+  # 3. Create the library, with hidden visibility and linking to cudaqMLIR
   #
   # We use the MLIR-provided aggregation utility but modify it to exclude any
   # libraries provided by `libcudaqMLIR.so` and instead link in `cudaq::cudaqMLIR`.
   # We then hide all symbols by default (same as add_mlir_python_common_capi_library).
+  #
+  # SHARED by default (CUDAQ_PYTHON_BINDINGS_SHARED_LIBS): this is what a
+  # Python interpreter dlopen()s. See that option's docstring for the STATIC
+  # override use case.
+  if(CUDAQ_PYTHON_BINDINGS_SHARED_LIBS)
+    set(_cudaq_python_capi_libtype SHARED)
+  else()
+    set(_cudaq_python_capi_libtype STATIC)
+  endif()
   add_mlir_aggregate(${name}
-    SHARED
+    ${_cudaq_python_capi_libtype}
     DISABLE_INSTALL
     EMBED_LIBS ${_embed_libs}
     PUBLIC_LIBS cudaq::cudaqMLIR)
@@ -322,8 +365,10 @@ endfunction()
 
 # Adds a CUDA Quantum dialect library target for installation. This should normally
 # only be called from add_cudaq_library().
+#
+# <name> will be registered as part of the `cudaq-dev-targets` export set.
 function(add_cudaq_library_install name)
-  install(TARGETS ${name} COMPONENT Development EXPORT CUDAQTargets)
+  install(TARGETS ${name} COMPONENT Development EXPORT cudaq-dev-targets)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_ALL_LIBS ${name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_EXPORTS ${name})
 endfunction()
@@ -356,10 +401,22 @@ function(cudaq_use_static_mlir target)
   set_target_properties(${target} PROPERTIES CUDAQ_MLIR_STATIC ON)
 endfunction()
 
+# Define the CUDAQ dev targets for downstream projects when they exist.
+if(NOT TARGET QuakeDialect
+    AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+endif()
+
 # Define the public alias ``cudaq::MLIR`` for use in downstream projects.
 if(NOT TARGET cudaq::MLIR)
   add_library(cudaq::MLIR INTERFACE IMPORTED GLOBAL)
   set_target_properties(cudaq::MLIR PROPERTIES
     INTERFACE_LINK_LIBRARIES cudaq::cudaqMLIR
   )
+  # Also expose the header files through `cudaq::MLIR`
+  if(CUDAQ_INCLUDE_DIR AND IS_DIRECTORY "${CUDAQ_INCLUDE_DIR}")
+    set_target_properties(cudaq::MLIR PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${CUDAQ_INCLUDE_DIR}"
+    )
+  endif()
 endif()

@@ -1,0 +1,111 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(func.func(variable-coalesce,canonicalize,memtoreg{classical=1 quantum=0},canonicalize,cc-loop-normalize,cc-loop-induction-fusion),apply-op-specialization)' %s | FileCheck %s
+
+// Regression test for issue #5223. Taking the adjoint of a kernel with a nested
+// loop. The inner loop's induction variable `j` is local to the outer loop's
+// body. If its `cc.alloca` is raised to the function entry block, `memtoreg`
+// promotes it to a value threaded through both loops that nothing ever reads,
+// `cc-loop-normalize` wraps that value in `subi`/`cmpi`/`select`, and reversing
+// the loop fails with "control-flow def-use not reversible".
+
+func.func @qft(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
+  %cst = arith.constant 6.2831853071795862 : f64
+  %c1_i32 = arith.constant 1 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %0 = quake.veq_size %arg0 : (!quake.veq<?>) -> i64
+  %1 = cc.cast %0 : (i64) -> i32
+  %2 = cc.alloca i32 {name = "n"}
+  cc.store %1, %2 : !cc.ptr<i32>
+  cc.scope {
+    %3 = cc.alloca i32 {name = "i"}
+    cc.store %c0_i32, %3 : !cc.ptr<i32>
+    cc.loop while {
+      %4 = cc.load %3 : !cc.ptr<i32>
+      %5 = cc.load %2 : !cc.ptr<i32>
+      %6 = arith.cmpi slt, %4, %5 : i32
+      cc.condition %6
+    } do {
+      %4 = cc.load %3 : !cc.ptr<i32>
+      %5 = cc.cast signed %4 : (i32) -> i64
+      %6 = quake.extract_ref %arg0[%5] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.h %6 : (!quake.ref) -> ()
+      cc.scope {
+        %7 = cc.load %3 : !cc.ptr<i32>
+        %8 = arith.addi %7, %c1_i32 : i32
+        %9 = cc.alloca i32 {name = "j"}
+        cc.store %8, %9 : !cc.ptr<i32>
+        cc.loop while {
+          %10 = cc.load %9 : !cc.ptr<i32>
+          %11 = cc.load %2 : !cc.ptr<i32>
+          %12 = arith.cmpi slt, %10, %11 : i32
+          cc.condition %12
+        } do {
+          cc.scope {
+            %10 = cc.load %9 : !cc.ptr<i32>
+            %11 = cc.load %3 : !cc.ptr<i32>
+            %12 = arith.subi %10, %11 : i32
+            %13 = arith.addi %12, %c1_i32 : i32
+            %14 = arith.shli %c1_i32, %13 : i32
+            %15 = cc.cast signed %14 : (i32) -> f64
+            %16 = arith.divf %cst, %15 : f64
+            %17 = cc.alloca f64 {name = "angle"}
+            cc.store %16, %17 : !cc.ptr<f64>
+            %18 = cc.load %17 : !cc.ptr<f64>
+            %19 = cc.load %9 : !cc.ptr<i32>
+            %20 = cc.cast signed %19 : (i32) -> i64
+            %21 = quake.extract_ref %arg0[%20] : (!quake.veq<?>, i64) -> !quake.ref
+            %22 = cc.load %3 : !cc.ptr<i32>
+            %23 = cc.cast signed %22 : (i32) -> i64
+            %24 = quake.extract_ref %arg0[%23] : (!quake.veq<?>, i64) -> !quake.ref
+            quake.r1 (%18) [%21] %24 : (f64, !quake.ref, !quake.ref) -> ()
+          }
+          cc.continue
+        } step {
+          %10 = cc.load %9 : !cc.ptr<i32>
+          %11 = arith.addi %10, %c1_i32 : i32
+          cc.store %11, %9 : !cc.ptr<i32>
+        }
+      }
+      cc.continue
+    } step {
+      %4 = cc.load %3 : !cc.ptr<i32>
+      %5 = arith.addi %4, %c1_i32 : i32
+      cc.store %5, %3 : !cc.ptr<i32>
+    }
+  }
+  return
+}
+
+func.func @entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.relax_size %0 : (!quake.veq<3>) -> !quake.veq<?>
+  quake.apply<adj> @qft (%1) : (!quake.veq<?>) -> ()
+  return
+}
+
+// The reversed body runs `r1` before `h`, and the forward loops each carry a
+// single iteration argument (the induction variable). A `j` raised to the
+// entry block would show up here as a second, unread iteration argument on both
+// loops, and reversal would fail outright.
+
+// CHECK-LABEL:   func.func private @qft.adj(
+// CHECK:           cc.loop while
+// CHECK:             cc.loop while
+// CHECK:               quake.r1
+// CHECK:             quake.h
+
+// CHECK-LABEL:   func.func @qft(
+// CHECK:           cc.loop while ((%[[I:.*]] = %{{.*}}) -> (i32)) {
+// CHECK:             quake.h
+// CHECK:             cc.loop while ((%[[J:.*]] = %{{.*}}) -> (i32)) {
+// CHECK:               quake.r1
+
+// CHECK-LABEL:   func.func @entry()
+// CHECK:           call @qft.adj(

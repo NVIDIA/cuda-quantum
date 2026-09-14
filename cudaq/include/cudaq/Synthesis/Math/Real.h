@@ -37,7 +37,14 @@ namespace cudaq::synth {
 class Real {
 private:
   mpfr_t value_;
-  static mpfr_prec_t default_precision_;
+  // Thread-local, not shared. The default precision is a setting the whole
+  // library reads on every construction, and gridsynth raises it for the
+  // duration of a call. Shared, two concurrent calls at different epsilons
+  // would each build Reals at whichever precision the other set last, and the
+  // save/restore in ScopedDefaultPrecision would interleave and leave the
+  // wrong value behind. Atomics would remove the data race and leave both bugs
+  // in place, per-thread state removes all three.
+  static thread_local mpfr_prec_t default_precision_;
 
   // Internal tag to construct at a specific precision without going through
   // the default-precision path twice.
@@ -404,11 +411,12 @@ public:
   // re-materialized whenever the default precision changes, so a later
   // higher-precision run does not read a stale low-precision constant. The
   // recompute is skipped on the common path where the precision is unchanged.
-  // Like `default_precision_` itself, this cache assumes the precision is not
-  // being changed concurrently from another thread.
+  // Thread-local for the same reason as `default_precision_`. The cached value
+  // is re-materialized whenever that thread's precision moves, so a shared one
+  // would be rebuilt under a thread still reading it.
 
   static const Real &sqrt2() {
-    static Real value = []() {
+    static thread_local Real value = []() {
       Real v;
       mpfr_sqrt_ui(v.get_mpfr(), 2, MPFR_RNDN);
       return v;
@@ -420,7 +428,7 @@ public:
     return value;
   }
   static const Real &pi() {
-    static Real value = []() {
+    static thread_local Real value = []() {
       Real v;
       mpfr_const_pi(v.get_mpfr(), MPFR_RNDN);
       return v;
@@ -431,8 +439,8 @@ public:
     }
     return value;
   }
-  // Infinity is precision-independent; use mpfr_set_inf directly rather
-  // than going through a double conversion.
+  // Infinity is precision-independent, so these two are never rebuilt and can
+  // stay shared.
   static const Real &inf() {
     static const Real value = []() {
       Real v;
@@ -486,7 +494,13 @@ private:
 //===----------------------------------------------------------------------===//
 
 /// Cache for a precision-dependent `Real` constant, meant to be held in a
-/// function-local static.
+/// function-local `static thread_local`.
+///
+/// `thread_local` is required, not a preference: `get()` overwrites the cached
+/// Real when the precision moves, and mpfr_set_prec reallocates the limbs
+/// underneath it. Shared between threads that synthesize at different
+/// tolerances, one thread frees the limbs another is mid-read of (a heap
+/// corruption).
 ///
 /// A constant materialized once on first use is only accurate to the default
 /// precision in force at that moment. `Real::set_default_precision` may raise
