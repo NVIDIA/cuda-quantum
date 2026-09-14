@@ -7,8 +7,14 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=0' -verify-diagnostics %s
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=inf' -verify-diagnostics %s
+// RUN: cudaq-opt --clifford-t-synthesis='skip-below=inf' -verify-diagnostics %s
 
-// expected-error @+1 {{clifford-t-synthesis: invalid options; require epsilon > 0}}
+// An infinite tolerance is rejected like a non-positive one. It would accept
+// every angle as an exact multiple of pi/4 (epsilon) or erase every rotation
+// (skip-below).
+
+// expected-error @+1 {{clifford-t-synthesis: invalid options. Require a finite epsilon > 0}}
 module {
   func.func @rotation() {
     %q = quake.alloca !quake.ref
