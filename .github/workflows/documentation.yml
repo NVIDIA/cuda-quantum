@@ -155,8 +155,10 @@ jobs:
 
           logical_docs_archive="${{ steps.artifacts.outputs.logical_docs_archive }}"
           if [ -n "$logical_docs_archive" ]; then
+            echo "--> adding logical tocs under $target_folder/preview"
             mkdir -p "$target_folder"/preview
             unzip -d "$target_folder"/preview/logical "$logical_docs_archive"
+            echo "--> folder contains" && ls "$target_folder"/preview
           fi
 
           git config --global user.name "cuda-quantum-bot"
@@ -167,6 +169,7 @@ jobs:
           fi
           git add "$target_folder"
           docs_changed=`git diff --cached --exit-code > /dev/null && echo false || echo true`
+          exit(0)
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             git commit -m "Docs update triggered manually for version ${{ inputs.version }} (workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
