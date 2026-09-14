@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](#){.icon .icon-home}
 
 ::: version
-latest
+0.16.0
 :::
 
 ::: {role="search"}
@@ -1914,6 +1914,11 @@ latest
                 .notranslate}]{.pre}](api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](versions.html){.reference .internal}
+
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 
@@ -1943,22 +1948,30 @@ aria-hidden="true"}](using/quick_start.html "Quick Start"){.btn
 
 Welcome to the CUDA-Q documentation page!
 
-CUDA-Q streamlines hybrid application development and promotes
-productivity and scalability in quantum computing. It offers a unified
-programming model designed for a hybrid setting---that is, CPUs, GPUs,
-and QPUs working together. CUDA-Q contains support for programming in
-Python and in C++.
+**CUDA-Q** is a programming model and toolchain for using quantum
+acceleration in heterogeneous computing architectures available in C++
+and Python. CUDA-Q streamlines hybrid application development and
+promotes productivity and scalability in quantum computing. It offers a
+unified programming model designed for a hybrid setting---that is, CPUs,
+GPUs, and QPUs working together. CUDA-Q contains support for programming
+in Python and in C++.
 
-You are browsing the documentation for latest version of CUDA-Q. You can
+The CUDA-Q ecosystem supports a wide variety of QPU hardware and
+high-performance simulators. It includes Python and C++ interfaces for
+quantum programming, compiler toolchains for optimization and hardware
+support and low-level QPU runtimes for detailed hardware control. CUDA-Q
+also provides an open, extensible logical layer for fault-tolerant
+fault-tolerant workloads, Quantum Error Correction (QEC) codes and QPU
+architecture co-design, currently in preview. See the [CUDA-Q
+Logical](./preview/logical/index.html#http://){.reference .external} for
+more information.
+
+You are browsing the documentation for 0.16.0 version of CUDA-Q. You can
 find documentation for all released versions
 [[here]{.doc}](versions.html){.reference .internal}.
 
-**CUDA-Q** is a programming model and toolchain for using quantum
-acceleration in heterogeneous computing architectures available in C++
-and Python.
-
-::: {#research-preview-pulse-level-programming .section}
-## Research Preview: Pulse-Level Programming[¶](#research-preview-pulse-level-programming "Permalink to this heading"){.headerlink}
+::: {#research-preview-cuda-q-pulse .section}
+## Research Preview: CUDA-Q Pulse[¶](#research-preview-cuda-q-pulse "Permalink to this heading"){.headerlink}
 
 CUDA-Q pulse is a new research-preview package for programming at the
 pulse level. It provides a Python kernel DSL, pulse and operator
@@ -2129,6 +2142,13 @@ scope and limitations.
         .internal}
     -   [Quantum Operations](api/default_ops.html){.reference .internal}
 -   [Other Versions](versions.html){.reference .internal}
+:::
+
+::: {.toctree-wrapper .compound}
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 :::

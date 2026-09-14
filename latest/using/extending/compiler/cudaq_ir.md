@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.16.0
 :::
 
 ::: {role="search"}
@@ -1915,6 +1915,11 @@ latest
                 .notranslate}]{.pre}](../../../api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../../versions.html){.reference .internal}
+
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 
@@ -2152,8 +2157,8 @@ declarations are under
 [`cudaq/lib/Optimizer`{.docutils .literal .notranslate}]{.pre}. Focused
 C++ tests for dialect operations and interfaces are under
 [`cudaq/unittests/Optimizer`{.docutils .literal .notranslate}]{.pre}.
-Textual IR coverage is under [`cudaq/test/Optimizer`{.docutils .literal
-.notranslate}]{.pre}, [`cudaq/test/Frontend`{.docutils .literal
+Textual IR coverage is under [`cudaq/test/Transforms`{.docutils .literal
+.notranslate}]{.pre}, [`cudaq/test/AST-Quake`{.docutils .literal
 .notranslate}]{.pre}, and [`python/tests/mlir`{.docutils .literal
 .notranslate}]{.pre}.
 :::

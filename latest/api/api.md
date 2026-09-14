@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.16.0
 :::
 
 ::: {role="search"}
@@ -1926,6 +1926,11 @@ latest
                 .notranslate}]{.pre}](default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../versions.html){.reference .internal}
+
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 

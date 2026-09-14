@@ -1,1 +1,611 @@
-<html><head><meta http-equiv="refresh" content="0; url=../../0.16.0/preview/logical/use-cases/gadgets-and-verification.html"></head></html>
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gadgets and verification &mdash; CUDA-Q Logical  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Devices and placement" href="devices-and-placement.html" />
+    <link rel="prev" title="Defining codes" href="define-a-code.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CUDA-Q Logical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#running-the-shipped-examples">Running the shipped examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-1-estimate-an-existing-cuda-q-kernel">Step 1 — Estimate an existing CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-2-author-a-portable-p0-program">Step 2 — Author a portable P0 program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-3-choose-a-code-and-a-gadget-p2">Step 3 — Choose a code and a gadget (P2)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-4-lower-to-physical-events-and-schedule-them-p3">Step 4 — Lower to physical events and schedule them (P3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-5-emit-stim-text-from-the-command-line">Step 5 — Emit Stim text from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#write-the-logical-program">1. Write the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-the-qubits-on-a-logical-machine">2. Place the qubits on a logical machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#define-a-qec-realization">3. Define a QEC realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#estimate-a-selected-realization">4. Estimate a selected realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#emit-a-verified-gadget-as-stim">5. Emit a verified gadget as Stim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#what-each-stage-owns">What each stage owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/concepts.html">Core concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#four-stages-one-direction">1. Four stages, one direction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#facets-not-extra-stages">2. Facets, not extra stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#linear-ownership">3. Linear ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#codes-profiles-encodings-three-different-things">4. Codes, profiles, encodings — three different things</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#objectives-gadgets-protocols-claims-and-proofs">5. Objectives, gadgets, protocols — claims and proofs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#evidence-follows-the-program">6. Evidence follows the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#there-is-no-registry-imports-are-the-linker">7. There is no registry — imports are the linker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#global-phase-is-not-observable">8. Global phase is not observable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#where-the-pieces-live">Where the pieces live</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">CUDA-Q Logical by Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/gidney-ekera.html">Gidney–Ekerå RSA-2048</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/distillation.html">T-State Distillation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Use cases</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="define-a-code.html">Defining codes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#css-codes-state-the-checks-once">CSS codes: state the checks once</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#distance-is-evidence-not-an-integer">Distance is evidence, not an integer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#the-catalog-and-parameterized-families">The catalog and parameterized families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#what-you-get-for-free">What you get for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Gadgets and verification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-implements-takes">What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#author-the-objective-in-cuda-q-logical">Author the objective in CUDA-Q Logical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reuse-a-cuda-q-kernel-as-the-claim">Reuse a CUDA-Q kernel as the claim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#what-the-signature-and-body-add">What the signature and body add</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#typed-records-at-the-boundary">Typed records at the boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#preparation-and-destructive-measurement">Preparation and destructive measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#selection-retry-and-postselection-belong-to-the-protocol">Selection: retry and postselection belong to the protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verification-claims-are-checked-not-trusted">Verification: claims are checked, not trusted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#design-rules-that-keep-the-model-crisp">Design rules that keep the model crisp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="devices-and-placement.html">Devices and placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#machines-devices-architectures">Machines, devices, architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="devices-and-placement.html#stop-at-the-layer-your-study-needs">Stop at the layer your study needs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#automatic-placement-constraints-preferences-witnesses">Automatic placement: constraints, preferences, witnesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#code-agnostic-p1">Code-agnostic P1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#where-the-firewall-pays-off">Where the firewall pays off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="magic-states-and-protocols.html">Magic states and protocols</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#phase-convention">Phase convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="magic-states-and-protocols.html#authoring-exact-angles-with-cudaq-logical-algebra-pi">Authoring exact angles with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.pi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#synthesize-a-program">Synthesize a program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#precision">Precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#inspect-and-replay-the-result">Inspect and replay the result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#use-the-pipeline-form">Use the pipeline form</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#pauli-based-computation-still-at-p0">Pauli-based computation, still at P0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#when-not-to-synthesize">When not to synthesize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="estimation.html">Resource estimation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-logical-cost-the-algorithm-before-any-qec-choice"><code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> — cost the algorithm before any QEC choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-static-count-one-selected-p2-realization"><code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code> — count one selected P2 realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-analytical-apply-an-explicit-physical-model"><code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> — apply an explicit physical model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-schedule-cost-the-physical-event-graph"><code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> — cost the physical event graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#the-rules-that-keep-estimates-honest">The rules that keep estimates honest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#direct-spellings">Direct spellings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#sweeps-and-reproducibility">Sweeps and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#paper-specific-projections-live-in-the-open">Paper-specific projections live in the open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#estimating-ordinary-cuda-q-kernels">Estimating ordinary CUDA-Q kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stim-emission.html">Stim emission</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stim-emission.html#emit-from-the-command-line">Emit from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stim-emission.html#fail-closed-boundaries">Fail-closed boundaries</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/capabilities.html">Capabilities and status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-dialect-stack">The dialect stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-semantic-spine-and-its-facets">The semantic spine and its facets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#definitions-versus-builds">Definitions versus builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-artifact-model">The artifact model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#data-ownership">Data ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-compile-pipeline">The compile pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-p2-patch-graph">The P2 patch graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#verification-layers">Verification layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#typed-inspection">Typed inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#package-map">Package map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-1-default-the-cudaq-devel-wheel">Option 1 (default): the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-2-a-cuda-q-installation-built-from-source">Option 2: a CUDA-Q installation built from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#build-options">Build options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#verifying-the-build">Verifying the build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/releases.html">Main CUDA-Q documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CUDA-Q Logical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Gadgets and verification</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/use-cases/gadgets-and-verification.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="define-a-code.html" class="btn btn-neutral float-left" title="Defining codes" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="devices-and-placement.html" class="btn btn-neutral float-right" title="Devices and placement" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="gadgets-and-verification">
+<h1>Gadgets and verification<a class="headerlink" href="#gadgets-and-verification" title="Link to this heading"></a></h1>
+<p>A gadget in CUDA-Q Logical is a bounded, typed realization of a logical
+objective. Three artifacts travel together through compilation: the
+<code class="docutils literal notranslate"><span class="pre">implements=</span></code> clause states the ideal logical claim, the
+<code class="docutils literal notranslate"><span class="pre">cudaq.logical.patch[...]</span></code> signature states the encoded boundary (code,
+encoding, ownership), and the body states the executable realization. The
+compiled <code class="docutils literal notranslate"><span class="pre">fabric</span></code> artifact keeps all three inspectable, and for supported
+realization classes the compiler proves the claim instead of trusting it.</p>
+<section id="what-implements-takes">
+<h2>What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes<a class="headerlink" href="#what-implements-takes" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">implements=</span></code> states a <em>claim</em>; the body supplies the <em>realization</em>. The claim
+is a declarative description of an ideal logical operation — it never executes.
+Instructions like <code class="docutils literal notranslate"><span class="pre">cudaq.logical.h</span></code> belong in the body, and passing one as the
+claim is rejected with a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>.</p>
+<p>There are two ways to write the claim, and the choice is about where the ideal
+operation already lives.</p>
+<section id="author-the-objective-in-cuda-q-logical">
+<h3>Author the objective in CUDA-Q Logical<a class="headerlink" href="#author-the-objective-in-cuda-q-logical" title="Link to this heading"></a></h3>
+<p>When the ideal operation has no existing definition, declare it with
+<code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.objective</span></code> and implement it in a gadget:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">An authored objective and the gadget that realizes it (examples/standalone/02_code_and_gadget.py).</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cql</span><span class="o">.</span><span class="n">objective</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">terminal_memory</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">logical_qubit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Implement that operation using encoded syndrome extraction and measurement.</span>
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">terminal_memory</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">steane_memory</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">Steane</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+</pre></div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">terminal_memory</span></code> says what the operation means at P0 — a logical qubit is
+discarded. <code class="docutils literal notranslate"><span class="pre">steane_memory</span></code> says how a Steane block does it: extract the
+syndrome, measure the data, release the block. The claim carries no code and no
+carriers; the realization carries both.</p>
+</section>
+<section id="reuse-a-cuda-q-kernel-as-the-claim">
+<h3>Reuse a CUDA-Q kernel as the claim<a class="headerlink" href="#reuse-a-cuda-q-kernel-as-the-claim" title="Link to this heading"></a></h3>
+<p>When the ideal operation already exists as a <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code>, pass it directly.
+The Carbon code carries two logical qubits per block, so its gadgets implement
+<em>paired</em> operations:</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Ideal operations written as ordinary CUDA-Q kernels (examples/04_carbon_code.py).</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">paired_h</span><span class="p">(</span><span class="n">left</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">right</span><span class="p">)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">paired_cx</span><span class="p">(</span>
+    <span class="n">control_left</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
+    <span class="n">control_right</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
+    <span class="n">target_left</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
+    <span class="n">target_right</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">control_left</span><span class="p">,</span> <span class="n">target_left</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">control_right</span><span class="p">,</span> <span class="n">target_right</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">The gadget that realizes the kernel’s claim on Carbon patches.</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span>
+    <span class="n">implements</span><span class="o">=</span><span class="n">paired_h</span><span class="p">,</span>
+    <span class="n">logical_ports</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"left"</span><span class="p">:</span> <span class="s2">"block.q0"</span><span class="p">,</span>
+        <span class="s2">"right"</span><span class="p">:</span> <span class="s2">"block.q1"</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">paired_h_gadget</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">Carbon</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">Carbon</span><span class="p">]:</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="ow">in</span> <span class="n">CARBON_H_SWAPS</span><span class="p">:</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">pairs</span><span class="o">=</span><span class="p">((</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">),))</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">pairs</span><span class="o">=</span><span class="p">((</span><span class="n">right</span><span class="p">,</span> <span class="n">left</span><span class="p">),))</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">pairs</span><span class="o">=</span><span class="p">((</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">),))</span>
+    <span class="k">return</span> <span class="n">block</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span>
+    <span class="n">implements</span><span class="o">=</span><span class="n">paired_cx</span><span class="p">,</span>
+    <span class="n">logical_ports</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"control_left"</span><span class="p">:</span> <span class="s2">"control.q0"</span><span class="p">,</span>
+        <span class="s2">"control_right"</span><span class="p">:</span> <span class="s2">"control.q1"</span><span class="p">,</span>
+        <span class="s2">"target_left"</span><span class="p">:</span> <span class="s2">"target.q0"</span><span class="p">,</span>
+        <span class="s2">"target_right"</span><span class="p">:</span> <span class="s2">"target.q1"</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>A kernel’s parameters are plain qubits, but a gadget’s inputs are patches, so
+something has to say which logical port each parameter denotes. That is
+<code class="docutils literal notranslate"><span class="pre">logical_ports=</span></code>: here <code class="docutils literal notranslate"><span class="pre">left</span></code> and <code class="docutils literal notranslate"><span class="pre">right</span></code> name the two logical qubits inside
+one Carbon block. Without it, a claim whose parameters do not map unambiguously
+onto the patch’s ports is a construction error
+(<code class="docutils literal notranslate"><span class="pre">cudaq.logical.errors.AmbiguousLogicalPortMap</span></code>), never a silent guess.</p>
+<p>Protocols take the same <code class="docutils literal notranslate"><span class="pre">implements=</span></code> field, with one extra form:
+<code class="docutils literal notranslate"><span class="pre">cudaq.logical.logical.produce(kind)</span></code> claims the production of a typed resource
+— the shape every distillation factory uses. See
+<a class="reference internal" href="magic-states-and-protocols.html"><span class="std std-doc">Magic states and protocols</span></a>.</p>
+</section>
+<section id="what-the-signature-and-body-add">
+<h3>What the signature and body add<a class="headerlink" href="#what-the-signature-and-body-add" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.patch[cudaq.logical.codes.Steane]</span></code> states the encoded boundary:
+the signature derives the inout encoded port and its linear ownership. The body
+states the bounded realization, where <code class="docutils literal notranslate"><span class="pre">cudaq.logical.h(block.data)</span></code> expands to
+one carrier operation per data carrier — “transversal” is a property the
+compiler reads off the support map, not a separate instruction.</p>
+<p>The compiled artifact keeps claim and realization side by side (abbreviated —
+the patch types spell out code, encoding, and epoch in full):</p>
+<div class="highlight-mlir notranslate"><div class="highlight"><pre><span></span><span class="k">fabric</span>.<span class="n">gadget</span> <span class="nv">@steane_h</span><span class="p">(</span><span class="nv">%arg0</span><span class="p">:</span> <span class="nv">!fabric.patch</span><span class="p">&lt;</span><span class="nv">@Steane</span><span class="p">,</span> …<span class="p">&gt;)</span> -<span class="p">&gt;</span> <span class="nv">!fabric.patch</span><span class="p">&lt;</span><span class="nv">@Steane</span><span class="p">,</span> …<span class="p">&gt;</span> <span class="p">{</span>
+  <span class="nv">%0</span> <span class="p">=</span> <span class="k">fabric</span>.<span class="n">h</span> <span class="nv">%arg0</span> <span class="n">data</span> <span class="p">:</span> <span class="nv">!fabric.patch</span><span class="p">&lt;</span><span class="nv">@Steane</span><span class="p">,</span> …<span class="p">&gt;</span>
+  <span class="k">fabric</span>.<span class="k">return</span> <span class="nv">%0</span> <span class="p">:</span> <span class="nv">!fabric.patch</span><span class="p">&lt;</span><span class="nv">@Steane</span><span class="p">,</span> …<span class="p">&gt;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The typed claim is machine-readable from Python: passing the standard action
+<code class="docutils literal notranslate"><span class="pre">h</span></code> to <code class="docutils literal notranslate"><span class="pre">cudaq.logical.gadgets.clifford_action</span></code> returns
+<code class="docutils literal notranslate"><span class="pre">CliffordAction(matrix=((0,</span> <span class="pre">1),</span> <span class="pre">(1,</span> <span class="pre">0)),</span> <span class="pre">phases=(0,</span> <span class="pre">0),</span> <span class="pre">…)</span></code> — the X/Z swap that
+<em>is</em> H. The same accessor applies to a compiled gadget.</p>
+</section>
+</section>
+<section id="typed-records-at-the-boundary">
+<h2>Typed records at the boundary<a class="headerlink" href="#typed-records-at-the-boundary" title="Link to this heading"></a></h2>
+<p>Syndrome-extraction results are first-class typed values, not raw bit vectors:
+<code class="docutils literal notranslate"><span class="pre">cudaq.logical.types.record[Code]</span></code> names the record family of one code, and
+gadget signatures may take and return records directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">objective</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">memory_round</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">logical_qubit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">logical_qubit</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">qubit</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">memory_round</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extraction_round</span><span class="p">(</span>
+    <span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">],</span>
+    <span class="n">previous</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">record</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">],</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">record</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">]]:</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">current</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">block</span><span class="p">,</span> <span class="n">current</span>
+</pre></div>
+</div>
+<p>The compiled boundary speaks the typed <code class="docutils literal notranslate"><span class="pre">fabric.syndrome&lt;&#64;Steane,</span> <span class="pre">…&gt;</span></code> form, and
+protocols compose such gadgets by passing records along — a two-round memory
+protocol is two ordinary calls, with no annotation glue. Inside a gadget,
+<code class="docutils literal notranslate"><span class="pre">cudaq.logical.analysis.count</span></code> reports the authored operations of the compiled
+realization (the quick start shows it on the Steane terminal-memory gadget).</p>
+</section>
+<section id="preparation-and-destructive-measurement">
+<h2>Preparation and destructive measurement<a class="headerlink" href="#preparation-and-destructive-measurement" title="Link to this heading"></a></h2>
+<p>Two boundary patterns cover most library gadgets:</p>
+<ul class="simple">
+<li><p><strong>Preparation</strong> has no encoded input seam and produces an encoded output —
+the <code class="docutils literal notranslate"><span class="pre">cudaq.logical.gadgets.prepare_zero</span></code> / <code class="docutils literal notranslate"><span class="pre">prepare_plus</span></code> factories build
+exactly this shape for any validated code.</p></li>
+<li><p><strong>Destructive measurement</strong> consumes its encoded input and returns classical
+results. It must not fabricate a live encoded output merely to make the
+boundary look symmetric.</p></li>
+</ul>
+<p>The shipped Steane example pairs both halves of the pattern — a terminal
+objective and the gadget that realizes it by one syndrome-extraction pass
+followed by data-qubit readout:</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">A terminal-memory objective and its gadget (examples/standalone/02_code_and_gadget.py).</span><a class="headerlink" href="#id4" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cql</span><span class="o">.</span><span class="n">objective</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">terminal_memory</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">logical_qubit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Implement that operation using encoded syndrome extraction and measurement.</span>
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">terminal_memory</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">steane_memory</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">Steane</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Materialize both definitions and inspect the gadget's static operations.</span>
+</pre></div>
+</div>
+</div>
+<p>Ownership is linear throughout: consuming a patch twice, or dropping one that is
+still live, is a construction error (<code class="docutils literal notranslate"><span class="pre">UseAfterConsume</span></code>), never a silent no-op.</p>
+</section>
+<section id="selection-retry-and-postselection-belong-to-the-protocol">
+<h2>Selection: retry and postselection belong to the protocol<a class="headerlink" href="#selection-retry-and-postselection-belong-to-the-protocol" title="Link to this heading"></a></h2>
+<p>Execution policy is not hidden inside reusable gadgets; the consuming protocol
+states it. Acceptance is explicit with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.postselect</span></code> — the shipped
+15-to-1 distillation protocol accepts exactly when all four even-parity checks
+measure +X:</p>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">Postselection in examples/standalone/03_magic_state_distillation.py.</span><a class="headerlink" href="#id5" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cql</span><span class="o">.</span><span class="n">protocol</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">produce</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">T_STATE</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">distill_15to1</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">resource</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">T_STATE</span><span class="p">]:</span>
+    <span class="n">raw_states</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">request_many</span><span class="p">(</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">RAW_T_STATE</span><span class="p">,</span>
+        <span class="n">count</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">prepare_plus</span><span class="p">(</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">allocate_patch</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">BareQubit</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="s2">"t_state_factory"</span><span class="p">))</span>
+
+    <span class="n">checks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">raw_states</span><span class="p">[:</span><span class="mi">4</span><span class="p">]:</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">check</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">unpack_resource</span><span class="p">(</span>
+            <span class="n">state</span><span class="p">,</span>
+            <span class="n">like</span><span class="o">=</span><span class="n">output</span><span class="p">,</span>
+            <span class="n">encoding</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">BareQubit</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">checks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">check</span><span class="p">)</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">checks</span><span class="p">,</span> <span class="n">output</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">state</span><span class="p">,</span> <span class="n">rotation</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">raw_states</span><span class="p">[</span><span class="mi">4</span><span class="p">:],</span>
+                               <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">FIFTEEN_TO_ONE_ROTATION_STEPS</span><span class="p">):</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rotation</span><span class="p">(</span><span class="o">*</span><span class="n">rows</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+    <span class="n">rows</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">bare_s</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">check</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">[:</span><span class="mi">4</span><span class="p">]:</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">postselect</span><span class="p">(</span>
+            <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">bare_measure_x</span><span class="p">(</span><span class="n">check</span><span class="p">),</span>
+            <span class="n">expected</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">pack_resource</span><span class="p">(</span>
+        <span class="n">rows</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+        <span class="n">kind</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">T_STATE</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+</pre></div>
+</div>
+</div>
+<p>Bounded retry is the same shape. It acts on a success predicate derived from
+one gadget attempt, and you spell out the policy — attempt budget, exhaustion
+behavior, commit point — at the retry site:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">policy</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">RetryPolicy</span><span class="p">(</span>
+    <span class="n">max_attempts</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">exhaustion</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">RetryExhaustion</span><span class="o">.</span><span class="n">REPORT_FAILURE</span><span class="p">,</span>
+    <span class="n">commit_point</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">before_output</span><span class="p">(),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The compiler tracks predicate provenance: a retry predicate must derive from the
+selected attempt, and the retry must carry every live patch result of that
+attempt exactly once — an ambiguous or externally observable replay boundary
+fails closed. Exhaustion is explicit (<code class="docutils literal notranslate"><span class="pre">RetryExhaustion.REPORT_FAILURE</span></code> / <code class="docutils literal notranslate"><span class="pre">ABORT</span></code>
+/ <code class="docutils literal notranslate"><span class="pre">RETURN_LAST</span></code>), and commit points mark where an attempt becomes irreversible
+(<code class="docutils literal notranslate"><span class="pre">before_output(...)</span></code>, <code class="docutils literal notranslate"><span class="pre">before_resource_output()</span></code>).</p>
+</section>
+<section id="verification-claims-are-checked-not-trusted">
+<h2>Verification: claims are checked, not trusted<a class="headerlink" href="#verification-claims-are-checked-not-trusted" title="Link to this heading"></a></h2>
+<p>Construction and MLIR verification establish local shape, ownership, symbol, and
+algebra invariants; semantic checks establish that a realization does what it
+claims. Do not conflate the levels:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Evidence</p></th>
+<th class="head"><p>What it establishes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Python construction</p></td>
+<td><p>typed fields, linear ownership, boundary liveness</p></td>
+</tr>
+<tr class="row-odd"><td><p>MLIR verification</p></td>
+<td><p>canonical cross-object and stage invariants (<code class="docutils literal notranslate"><span class="pre">build.module.operation.verify()</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>code algebra checks</p></td>
+<td><p>symplectic rank, commutation, canonical pairing</p></td>
+</tr>
+<tr class="row-odd"><td><p>objective equivalence</p></td>
+<td><p>the realization’s induced action matches its <code class="docutils literal notranslate"><span class="pre">implements=</span></code> claim</p></td>
+</tr>
+</tbody>
+</table>
+<p>Objective equivalence is automatic for <strong>code-automorphism realizations</strong> —
+gadgets whose realization is a single typed permutation of the code’s carriers.
+The compiler derives the induced logical action from the code algebra and
+compares it with the <code class="docutils literal notranslate"><span class="pre">implements=</span></code> claim, failing closed on mismatch: a
+permutation that is genuinely the identity on the logical qubit verifies, and
+one claiming to be a logical <code class="docutils literal notranslate"><span class="pre">H</span></code> is rejected with a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming the
+objective it failed to implement.</p>
+<p>For realization classes outside that set the claim is recorded rather than
+derived, and the boundary is stated on the build instead of assumed.</p>
+</section>
+<section id="design-rules-that-keep-the-model-crisp">
+<h2>Design rules that keep the model crisp<a class="headerlink" href="#design-rules-that-keep-the-model-crisp" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Derive canonical facts from the code algebra instead of asking users to
+repeat them.</p></li>
+<li><p>Keep the logical objective, the realization, and the execution policy in
+their owning objects — no hidden retry or acceptance inside a gadget.</p></li>
+<li><p>Use typed endpoints, records, and logical ports instead of raw strings where
+typed identities exist.</p></li>
+<li><p>Fail closed when a claim, a boundary, or a predicate provenance cannot be
+established.</p></li>
+<li><p>Use ordinary Python modules for reusable gadget families; there is no
+registry to populate.</p></li>
+</ol>
+</section>
+<section id="where-to-go-next">
+<h2>Where to go next<a class="headerlink" href="#where-to-go-next" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="define-a-code.html"><span class="std std-doc">Defining codes</span></a> — the validated algebra that gadgets build
+on, and the factories that consume it.</p></li>
+<li><p>The <a class="reference internal" href="../getting-started/quickstart.html"><span class="std std-doc">quick start</span></a> compiles a Steane gadget
+end to end and counts its authored operations.</p></li>
+<li><p><a class="reference internal" href="examples/index.html"><span class="std std-doc">Examples</span></a> links the shipped gadget and protocol sources,
+including 15-to-1 distillation.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="define-a-code.html" class="btn btn-neutral float-left" title="Defining codes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="devices-and-placement.html" class="btn btn-neutral float-right" title="Devices and placement" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright © 2026, NVIDIA Corporation &amp; affiliates. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
