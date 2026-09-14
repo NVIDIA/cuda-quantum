@@ -288,25 +288,6 @@ bool quantum_platform::supports_explicit_measurements(
   return ct.supportExplicitMeasurements;
 }
 
-void quantum_platform::launchVQE(const std::string kernelName,
-                                 const void *kernelArgs, gradient *gradient,
-                                 const spin_op &H, optimizer &optimizer,
-                                 const int n_params, const std::size_t shots,
-                                 std::size_t qpu_id) {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "Policy VQE");
-  auto &qpu = platformQPUs[qpu_id];
-  qpu->launchVQE(kernelName, kernelArgs, gradient, H, optimizer, n_params,
-                 shots);
-}
-
-RemoteCapabilities
-quantum_platform::get_remote_capabilities(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "get_remote_capabilities");
-  return platformQPUs[qpu_id]->getRemoteCapabilities();
-}
-
 KernelThunkResultType
 quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
                                       std::size_t qpu_id) {
