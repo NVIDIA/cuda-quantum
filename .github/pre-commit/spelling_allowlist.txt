@@ -509,6 +509,8 @@ hoistable
 homogenous
 homological
 homologically
+html
+http
 hx
 hyperedge
 hypergraph
