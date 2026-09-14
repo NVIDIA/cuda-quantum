@@ -260,7 +260,7 @@ jobs:
           python -m auditwheel repair \
             --plat "$PLAT" \
             --exclude libcudaqMLIR.so \
-            --exclude libcudaqMLIRCAPI.so \
+            --exclude libcudaqMLIRCAPI.so* \
             --exclude libnanobind-cudaq.so \
             --exclude libMLIRPythonSupport-cudaq.so \
             --exclude libgmp.so.10 \
