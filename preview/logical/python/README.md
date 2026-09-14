@@ -6,7 +6,8 @@ quantum error correction gadget, evaluate them across different system
 architectures, and understand the resources they need to run.
 
 > **Note:**
-> The tools in this package are currently in preview and subject to change without notice.
+> The tools in this package are currently in preview and subject to change
+> without notice.
 
 CUDA-Q Logical is supported on Linux (`x86_64` and `aarch64`/`arm64`).
 More details and documentation can be found on the [CUDA-Q docs][cudaq_docs] pages.
@@ -31,7 +32,8 @@ CUDA-Q Logical is an open source project. The source code is available on
 
 ## Feedback
 
-Please let us know your feedback and ideas for the CUDA-Q platform on our [GitHub repository][github_repo]. To report security concerns please reach out to
+Please let us know your feedback and ideas for the CUDA-Q platform on our
+[GitHub repository][github_repo]. To report security concerns please reach out to
 [cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).
 
 [github_repo]: https://github.com/NVIDIA/cuda-quantum
