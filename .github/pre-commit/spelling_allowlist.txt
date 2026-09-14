@@ -80,6 +80,7 @@ Hamiltonian
 Hamiltonians
 Higham
 Hololink
+HololinkRoce
 Holoscan
 Homebrew
 IB
