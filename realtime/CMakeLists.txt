@@ -78,6 +78,9 @@ option(CUDAQ_REALTIME_ENABLE_HSB_TOOLS
 option(CUDAQ_REALTIME_ENABLE_SANITIZERS
        "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)."
        OFF)
+option(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
+       "Link CPU RoCE against Hololink's CpuRoceTransceiver (default: CUDA-Q's legacy ibverbs backend)."
+       OFF)
 
 # Enable sanitizers if requested (must be done early to affect all targets).
 # Integrated CUDA-Q builds inherit whatever the top-level CUDAQ_ENABLE_SANITIZERS

@@ -96,6 +96,7 @@ Hamiltonian
 Hamiltonians
 Higham
 Hololink
+HololinkRoce
 Holoscan
 Homebrew
 Horner
