@@ -24,6 +24,7 @@ add_cudaq_library(OptTransforms
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   CommutationAwareRewrite.cpp
+  ConsolidateBroadcasts.cpp
   ConstantPropagation.cpp
   DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
@@ -36,6 +37,7 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
+  ExpandBroadcasts.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
@@ -49,6 +51,7 @@ add_cudaq_library(OptTransforms
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
+  LoopCableRotation.cpp
   LoopInductionFusion.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
@@ -60,6 +63,7 @@ add_cudaq_library(OptTransforms
   MemToReg.cpp
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
+  NormalizeAtomicQuantumRegions.cpp
   NormalizePhasePlacement.cpp
   ObserveAnsatz.cpp
   OptimizeSingleQubitCliffordT.cpp
@@ -81,6 +85,7 @@ add_cudaq_library(OptTransforms
   ResourceCountPreprocess.cpp
   RunSemanticsHackery.cpp
   SROA.cpp
+  ShrinkWrap.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp

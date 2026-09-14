@@ -1765,6 +1765,33 @@ class PyASTBridge(ast.NodeVisitor):
                                     pyVals[idx if len(pyVals) > 1 else 0])
         return startVal, endVal, stepVal, isDecrementing
 
+    def __processDecorator(self, name, path=None):
+        """Captures `name` as a callable argument if it is a kernel decorator;
+        returns None otherwise."""
+        from .kernel_decorator import isa_kernel_decorator
+
+        if path:
+            name = f"{path}.{name}"
+
+        if name in self.qualifiedDecoratorCache:
+            decorator = self.qualifiedDecoratorCache[name]
+        else:
+            decorator = recover_value_of_or_none(name, self.defFrame)
+            self.qualifiedDecoratorCache[name] = decorator
+        if decorator is None or not isa_kernel_decorator(decorator):
+            return None
+
+        if not name in self.symbolTable:
+            callableTy = decorator.signature.get_callable_type()
+
+            # `callee` will be a new `BlockArgument`
+            callee = cudaq_runtime.appendKernelArgument(self.kernelFuncOp,
+                                                        callableTy)
+            self.signature.add_variable_capture(name, callableTy)
+            self.symbolTable[name] = callee
+
+        return name
+
     def __groupValues(self, pyvals, groups: list[int | tuple[int, int]]):
         """Helper function that visits the given AST nodes (`pyvals`), and
         groups them according to the specified list.  The list contains integers
@@ -1999,45 +2026,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(
                 "lists, tuples, and dataclasses must not "
                 "contain modifiable values", self.currentNode)
-
-        if cc.StructType.isinstance(mlirVal.type):
-            structName = cc.StructType.getName(mlirVal.type)
-            # We need to give a proper error if we try to assign a mutable
-            # `dataclass` to an item in another container. Allowing this would
-            # lead to incorrect behavior (i.e. inconsistent with Python) unless
-            # we change the representation of structs to be like `SequenceType`
-            # where we have a container that is passed by value wrapping the
-            # actual pointer, thus ensuring that the reference behavior actually
-            # works across function boundaries.
-            if structName != 'tuple' and rootVal:
-                msg = ("only dataclass literals may be used as items in other "
-                       "container values")
-                self.emitFatalError(
-                    f"{msg} - use `.copy(deep)` to create a new {structName}",
-                    self.currentNode)
-
-        if self.signature.return_type and self.containsList(
-                self.signature.return_type) and self.containsList(mlirVal.type):
-            # For lists that were created inside a kernel, we have to copy the
-            # stack allocated array to the heap when we return such a list. In
-            # the case where the list was created by the caller, this copy leads
-            # to incorrect behavior (i.e. not matching Python behavior). We
-            # hence want to make sure that we can know when a host allocated
-            # list is returned. If we allow to assign lists passed as function
-            # arguments to inner items of other lists and `dataclasses`, we
-            # loose the information that this list was allocated by the parent.
-            # We hence forbid this. All of this applies regardless of how the
-            # list was passed (e.g. the list might be an inner item in a tuple
-            # or `dataclass` that was passed) or how it is assigned (e.g. the
-            # assigned value might be a tuple or `dataclass` that contains a
-            # list).
-            if rootVal and self.isFunctionArgument(rootVal):
-                msg = ("lists passed as or contained in function arguments "
-                       "cannot be inner items in other container values when a "
-                       "list is returned")
-                self.emitFatalError(
-                    f"{msg} - use `.copy(deep)` to create a new list",
-                    self.currentNode)
 
     @trace.traced("ast_bridge.visit_module")
     def visit_Module(self, node):
@@ -2302,37 +2290,11 @@ class PyASTBridge(ast.NodeVisitor):
             varTy = val.type
             if cc.PointerType.isinstance(varTy):
                 varTy = cc.PointerType.getElementType(varTy)
-            # If `buildingFunctionBody` is not set we are processing function
-            # arguments. Function arguments are always passed by value,
-            # except states. We can treat non-container function arguments
-            # like any local variable and create a stack slot for them.
-            # For container types, on the the other hand, we need to preserve
-            # them as values in the symbol table to make sure we can detect
-            # any access to reference types that are function arguments, or
-            # function argument items.
-            containerFuncArg = (not self.buildingFunctionBody and
-                                (cc.StructType.isinstance(varTy) or
-                                 cc.SequenceType.isinstance(varTy)))
-            # FIXME: Consider storing vectors and callables as pointers like
-            # other variables.
-            # A local `!cc.sequence<!cc.measure_handle>` is backed by a stack slot
-            # (like a scalar `!cc.measure_handle`) so it can be reassigned from a
-            # child block. Function-argument handle vectors stay value-backed via
-            # `containerFuncArg`; every other vector stays value-backed so
-            # reassigning a general list across scopes is still rejected.
-            # See https://github.com/NVIDIA/cuda-quantum/issues/4601.
-            # Discriminated measurement results (`i1` / `sequence<i1>` produced by
-            # `quake.discriminate`) are stored like any other value: the
-            # `!cc.measure_handle` type now carries the "is a measurement"
-            # distinction, so they no longer need a value-storage carve-out to
-            # preserve their discriminate origin.
-            isLocalHandleVec = (cc.SequenceType.isinstance(varTy) and
-                                cc.MeasureHandleType.isinstance(
-                                    cc.SequenceType.getElementType(varTy)))
-            storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
-                          cc.CallableType.isinstance(varTy) or
-                          (cc.SequenceType.isinstance(varTy) and
-                           not isLocalHandleVec))
+            # Quantum types are not stored to classical memory. Callables are
+            # abstract types and passed as values. Every other local gets a
+            # stack slot.
+            storeAsVal = (self.isQuantumType(varTy) or
+                          cc.CallableType.isinstance(varTy))
             # Nothing should ever produce a pointer to a type we store as value
             # in the symbol table.
             assert (not storeAsVal or not cc.PointerType.isinstance(val.type))
@@ -2375,70 +2337,11 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid target for assignment", node)
 
             def update_in_parent_block(destination, value):
-                assert not cc.PointerType.isinstance(value.type)
                 assert self.symbolTable.isFromParentBlock(target_root.id)
-                if cc.StructType.isinstance(
-                        value.type) and cc.StructType.getName(
-                            value.type) != 'tuple':
-
-                    # We can't properly deal with this case if the value we are
-                    # assigning is not an `rvalue`. Consider the case were we
-                    # have `v1` defined in the parent scope, `v2` in a child
-                    # scope, and we are assigning v2 to v1 in the child
-                    # scope. To do this assignment properly, we would need to
-                    # make sure that the pointers for both v1 and v2 points to
-                    # the same memory location such that any changes to v1 after
-                    # the assignment are reflected in v2 and vice versa (v2
-                    # could be changed in the child while v1 is still
-                    # alive). Since we merely store the raw pointer in the
-                    # symbol table for `dataclasses`, we have no way of updating
-                    # that pointer conditionally on the child scope being
-                    # executed.  To determine whether the value we assign is an
-                    # `rvalue`, it is sufficient to check whether its root is a
-                    # value in the symbol table (values returned from calls are
-                    # never `lvalues`).
-
-                    if value_root:
-
-                        # Note that this check also makes sure that function
-                        # arguments are not assigned to local variables, since
-                        # function arguments are in the symbol table.
-
-                        self.emitFatalError(
-                            "only literals can be assigned to variables defined"
-                            " in parent scope - use `.copy(deep)` to create a "
-                            "new value that can be assigned", node)
-                if cc.SequenceType.isinstance(destination.type):
-                    # In this case, we are assigning a list to a variable in a
-                    #  parent scope.
-                    assert isinstance(target, ast.Name)
-                    # If the value we are assigning is an `rvalue` then we can
-                    # do an in-place update of the data in the parent; the
-                    # restrictions for container items in
-                    # `__validate_container_entry` ensure that the value we are
-                    # assigning does not contain any references to `dataclass`
-                    # values, and any lists contained in the value behave like
-                    # proper references since they contain a data pointer
-                    # (i.e. in-place update only does a shallow copy).  TODO:
-                    # The only reason we cannot currently support this is
-                    # because we have no way of updating the size of an existing
-                    # vector...
-                    self.emitFatalError(
-                        "variable defined in parent scope cannot be modified",
-                        node)
-                # Allowing to assign vectors to container items in the parent
-                # scope should be fine regardless of whether the assigned value
-                # is an `rvalue` or not; replacing the item in the container
-                # with the value leads to the correct behavior much like it does
-                # for the case where the target is defined in the same scope.
-                # NOTE: The assignment is subject to the usual restrictions for
-                # container items - these should be validated before calling
-                # update_in_parent_block.
-                if not cc.SequenceType.isinstance(
-                        value.type) and storedAsValue(destination):
-                    # We can't properly deal with this, since there is no way to ensure that
-                    # the target in the symbol table is updated conditionally on the child
-                    # scope executing.
+                # Quantum and callable locals are the only remaining SSA value
+                # (no classical backing store) types. We cannot re-assign SSA
+                # values by definition.
+                if storedAsValue(destination):
                     self.emitFatalError(
                         "variable defined in parent scope cannot be modified",
                         node)
@@ -2452,102 +2355,46 @@ class PyASTBridge(ast.NodeVisitor):
             # Handle assignment `var = expr`
             if isinstance(target, ast.Name):
 
-                # This is so that we properly preserve the references to local
-                # variables. These variables can be of a reference type and
-                # other values in the symbol table may be assigned to the same
-                # reference. It is hence important to keep the reference as is,
-                # since otherwise changes to it would not be reflected in other
-                # values.  NOTE: we don't need to worry about any references in
-                # values that are not `ast.Name` objects, since we don't allow
-                # containers to contain references.
-                value_is_name, value_root = False, None
+                # Every variable is itself a pre-allocated header. For immutable
+                # types, the header is erased. The mutable types, the header may
+                # be two or one words long, depending on whether the extent of
+                # the data buffer is dynamic or not, respectively.
                 if (isinstance(value, ast.Name) and
                         value.id in self.symbolTable):
-                    value_is_name = True
-                    value_root = self.__get_root_value(value)
                     value = self.symbolTable[value.id]
+                    if cc.PointerType.isinstance(value.type):
+                        value = cc.LoadOp(value).result
                 if isinstance(value, ast.AST):
                     # Retain the variable name for potential children (like
                     # `mz(q, registerName=...)`)
                     self.currentAssignVariableName = target.id
                     self.visit(value)
-                    value_root = self.__get_root_value(value)
                     value = self.popValue()
                     self.currentAssignVariableName = None
                 storeAsVal = storedAsValue(value)
 
-                if value_root and self.isFunctionArgument(value_root):
-                    # If we assign a function argument or argument item to a
-                    # local variable, we need to be careful to not loose the
-                    # information about contained lists that have been allocated
-                    # by the caller, if the return value contains any
-                    # lists. This is problematic for reasons commented in
-                    # `__validate_container_entry`.
-                    if (cc.SequenceType.isinstance(value.type) and
-                            self.signature.return_type and
-                            self.containsList(self.signature.return_type)):
-                        # We loose this information if we assign an item of a
-                        # function argument.
-                        if not value_is_name:
-                            self.emitFatalError(
-                                "lists passed as or contained in function "
-                                "arguments cannot be assigned to to a local "
-                                "variable when a list is returned - use "
-                                "`.copy(deep)` to create a new value that can"
-                                " be assigned", node)
-                        # We also loose this information if we assign to a value
-                        # in the parent scope.
-                        elif self.symbolTable.isFromParentBlock(target_root.id):
-                            self.emitFatalError(
-                                "lists passed as or contained in function "
-                                "arguments cannot be assigned to variables in "
-                                "the parent scope when a list is returned - use"
-                                " `.copy(deep)` to create a new value that can "
-                                "be assigned", node)
-                    if cc.StructType.isinstance(value.type):
-                        structName = cc.StructType.getName(value.type)
+                def toHandleIfBareStruct(value):
+                    # Non-tuple `dataclasses` need their field data in a
+                    # separately allocated buffer, exactly like a list. `value`
+                    # here may be a bare struct (from construction, a function
+                    # call, etc.) in which case allocate a fresh buffer and
+                    # store it there; the result is the handle (a pointer to
+                    # that buffer). If `value` is already a handle (the aliasing
+                    # case, from the single-load Name-`RHS` fetch above), it's
+                    # returned as-is and we alias the existing buffer, Python
+                    # semantics, instead of allocating a new one.
+                    if (cc.StructType.isinstance(value.type) and
+                            cc.StructType.getName(value.type) != 'tuple'):
+                        structTy = value.type
+                        buffer = cc.AllocaOp(cc.PointerType.get(structTy),
+                                             TypeAttr.get(structTy)).result
+                        cc.StoreOp(value, buffer)
+                        return buffer
+                    return value
 
-                        # For `dataclasses`, we have to do an additional check
-                        # to ensure that their behavior (for cases that don't
-                        # give an error) is consistent with Python; since we
-                        # pass them by value across functions, we either have to
-                        # force that an explicit copy is made when using them as
-                        # call arguments, or we have to force that an explicit
-                        # copy is made when a `dataclass` argument is assigned
-                        # to a local variable (as long as it is not assigned, it
-                        # will not be possible to make any modification to it
-                        # since the argument itself is represented as an
-                        # immutable value). The latter seems more comprehensive
-                        # and also ensures that there is no unexpected behavior
-                        # with regards to kernels not being able to modify
-                        # `dataclass` values in host code.  NOTE: It is
-                        # sufficient to check the value itself (not its root) is
-                        # a function argument, (only!) since inner items are
-                        # never references to `dataclasses` (enforced in
-                        # `__validate_container_entry`).
-
-                        if value_is_name and structName != 'tuple':
-                            self.emitFatalError(
-                                "cannot assign dataclass passed as function "
-                                "argument to a local variable - use "
-                                "`.copy(deep)` to create a new value that can "
-                                "be assigned", node)
-                        elif (self.signature.return_type and
-                              self.containsList(self.signature.return_type) and
-                              self.containsList(value.type)):
-                            self.emitFatalError(
-                                "cannot assign tuple or dataclass passed as "
-                                "function argument to a local variable if it "
-                                "contains a list when a list is returned - use"
-                                " `.copy(deep)` to create a new value that can"
-                                " be assigned", node)
+                value = toHandleIfBareStruct(value)
 
                 if self.symbolTable.isFromParentBlock(target_root.id):
-                    if cc.PointerType.isinstance(value.type):
-                        # This is fine since/as long as update_in_parent_block
-                        # validates that `lvalues` of reference types cannot be
-                        # assigned. Note that tuples and states are value types.
-                        value = cc.LoadOp(value).result
                     destination = self.symbolTable[target.id]
                     update_in_parent_block(destination, value)
                     return target, None
@@ -2556,7 +2403,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # within the current scope; we can simply modify the symbol
                 # table entry.
 
-                if storeAsVal or cc.PointerType.isinstance(value.type):
+                if storeAsVal:
                     return target, value
 
                 # A variable that outlives the block it is assigned in needs
@@ -2723,6 +2570,20 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             self.visit(node.value)
             value = self.popValue()
+
+        # A dataclass local's own slot holds a pointer-to-handle (double
+        # indirection: variable slot -> handle -> separately allocated
+        # buffer). When `pushPointerValue` requested the raw, unloaded
+        # slot value above, `dereference` once to reach the handle - a
+        # single-indirection pointer to the struct - before the existing
+        # single-indirection logic below applies.
+        if cc.PointerType.isinstance(value.type):
+            handleTy = cc.PointerType.getElementType(value.type)
+            if cc.PointerType.isinstance(handleTy):
+                structTy = cc.PointerType.getElementType(handleTy)
+                if (cc.StructType.isinstance(structTy) and
+                        cc.StructType.getName(structTy) != 'tuple'):
+                    value = cc.LoadOp(value).result
 
         valType = value.type
         if cc.PointerType.isinstance(valType):
@@ -3040,8 +2901,14 @@ class PyASTBridge(ast.NodeVisitor):
                 processQuantumOperation(opName, controls, targets, [], params,
                                         **kwargs)
 
-        def processDecorator(name, path=None):
-            from .kernel_decorator import isa_kernel_decorator
+        processDecorator = self.__processDecorator
+
+        def lookupExternKernel(name, path=None):
+            """Return the `extern` kernel declared for a name, or None.
+
+            An `extern` kernel is resolved in the frame that defines it.
+            """
+            from .kernel_decorator import isa_extern_kernel_decorator
 
             if path:
                 name = f"{path}.{name}"
@@ -3051,19 +2918,50 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 decorator = recover_value_of_or_none(name, self.defFrame)
                 self.qualifiedDecoratorCache[name] = decorator
-            if decorator is None or not isa_kernel_decorator(decorator):
-                return None
+            if decorator is not None and isa_extern_kernel_decorator(decorator):
+                return decorator
 
-            if not name in self.symbolTable:
-                callableTy = decorator.signature.get_callable_type()
+            return None
 
-                # `callee` will be a new `BlockArgument`
-                callee = cudaq_runtime.appendKernelArgument(
-                    self.kernelFuncOp, callableTy)
-                self.signature.add_variable_capture(name, callableTy)
-                self.symbolTable[name] = callee
+        def processExternKernel(name, path=None):
+            """Emit a direct call to a function declared with
+            `cudaq.kernel(external=True)`. The declaration stays in reference
+            form and `cable-rough-in` rewrites the call into wire form later.
+            """
+            externKernel = lookupExternKernel(name, path=path)
+            if externKernel is None:
+                return False
 
-            return name
+            argTys = externKernel.arg_types()
+            if len(node.args) != len(argTys):
+                self.emitFatalError(
+                    f"extern kernel '{externKernel.name}' takes {len(argTys)} "
+                    f"argument(s), but {len(node.args)} were given.", node)
+            values = groupValues(node.args, [(len(argTys), len(argTys))])
+            values = convertArguments(argTys, values)
+
+            returnTy = externKernel.signature.return_type
+            resTys = [returnTy] if returnTy is not None else []
+
+            symbol = externKernel.backendSymbol
+            fnTy = FunctionType.get(argTys, resTys)
+            currentST = SymbolTable(self.module.operation)
+            if symbol in currentST:
+                declaredTy = currentST[symbol].type
+                if declaredTy != fnTy:
+                    self.emitFatalError(
+                        f"extern kernel '{externKernel.name}' declares symbol "
+                        f"'{symbol}' as {fnTy}, but it is already declared as "
+                        f"{declaredTy}.", node)
+            else:
+                with InsertionPoint(self.module.body):
+                    declOp = func.FuncOp(symbol, (argTys, resTys))
+                    declOp.sym_visibility = StringAttr.get("private")
+
+            call = func.CallOp(resTys, symbol, values)
+            if resTys:
+                self.pushValue(call.result)
+            return True
 
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
@@ -3201,6 +3099,10 @@ class PyASTBridge(ast.NodeVisitor):
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
+                # Handle kernels the backend implements
+                if processExternKernel(name, path=devKey):
+                    return
+
                 # Handle debug functions
                 if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
                         node.func):
@@ -3239,6 +3141,9 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
         if isinstance(node.func, ast.Name):
+            if processExternKernel(node.func.id):
+                return
+
             symName = (node.func.id if node.func.id in self.symbolTable else
                        processDecorator(node.func.id))
             if symName:
@@ -4520,23 +4425,63 @@ class PyASTBridge(ast.NodeVisitor):
         if_clauses = node.generators[0].ifs
         hasFilter = len(if_clauses) > 0
 
-        self.visit(node.generators[0].iter)
-        iterable = self.popValue()
-        orig_iterable_type = iterable.type
-        if cc.SequenceType.isinstance(iterable.type):
-            iterableSize = cc.SequenceSizeOp(self.getIntegerType(),
-                                             iterable).result
-            iterTy = cc.SequenceType.getElementType(iterable.type)
-            iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
-            iterable = cc.SequenceDataOp(iterArrPtrTy, iterable).result
-        elif quake.VeqType.isinstance(iterable.type):
-            iterableSize = quake.VeqSizeOp(self.getIntegerType(),
-                                           iterable).result
-            iterTy = quake.RefType.get()
+        i64Ty = self.getIntegerType()
+
+        # `range(...)` never needs to be materialized into a buffer: the loop
+        # induction variable *is* the element, so there is nothing to
+        # allocate or populate.
+        is_range_source = (isinstance(node.generators[0].iter, ast.Call) and
+                           isinstance(node.generators[0].iter.func, ast.Name)
+                           and node.generators[0].iter.func.id == 'range')
+        if is_range_source:
+            startVal, endVal, stepVal, isDecrementing = \
+                self.__processRangeLoopIterationBounds(
+                    node.generators[0].iter.args)
+            zero = self.getConstantInt(0)
+            one = self.getConstantInt(1)
+            totalSize = arith.SubIOp(endVal, startVal).result
+            roundingOffset = (arith.AddIOp(
+                stepVal, one).result if isDecrementing else arith.SubIOp(
+                    stepVal, one).result)
+            totalSize = arith.AddIOp(totalSize, roundingOffset).result
+            iterableSize = arith.MaxSIOp(
+                zero,
+                arith.DivSIOp(totalSize, stepVal).result).result
+            iterTy = i64Ty
+
+            def extractElem(i):
+                # `i` is a 0-based iteration count (needed for buffer
+                # indexing elsewhere), not the range value itself -- map it
+                # back to the real `range(start, end, step)` value.
+                return arith.AddIOp(startVal,
+                                    arith.MulIOp(i, stepVal).result).result
         else:
-            self.emitFatalError(
-                "CUDA-Q only supports list comprehension on ranges and arrays",
-                node)
+            self.visit(node.generators[0].iter)
+            iterable = self.popValue()
+            orig_iterable_type = iterable.type
+            if cc.SequenceType.isinstance(iterable.type):
+                iterableSize = cc.SequenceSizeOp(i64Ty, iterable).result
+                iterTy = cc.SequenceType.getElementType(iterable.type)
+                iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
+                iterable = cc.SequenceDataOp(iterArrPtrTy, iterable).result
+
+                def extractElem(i):
+                    elem_addr = cc.ComputePtrOp(
+                        cc.PointerType.get(iterTy), iterable, [i],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    return cc.LoadOp(elem_addr).result
+            elif quake.VeqType.isinstance(iterable.type):
+                iterableSize = quake.VeqSizeOp(i64Ty, iterable).result
+                iterTy = quake.RefType.get()
+
+                def extractElem(i):
+                    return quake.ExtractRefOp(iterTy, iterable, -1,
+                                              index=i).result
+            else:
+                self.emitFatalError(
+                    "CUDA-Q only supports list comprehension on ranges and "
+                    "arrays", node)
 
         def process_void_list():
             # NOTE: This does not actually create a valid value, and will fail
@@ -4768,93 +4713,107 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if quake.RefType.isinstance(listElemTy):
-            if quake.VeqType.isinstance(orig_iterable_type) and not hasFilter:
+            if (not is_range_source and
+                    quake.VeqType.isinstance(orig_iterable_type) and
+                    not hasFilter):
                 self.pushValue(iterable)
                 return
-            if (cc.SequenceType.isinstance(orig_iterable_type) or
+            if (is_range_source or
+                    cc.SequenceType.isinstance(orig_iterable_type) or
                     quake.VeqType.isinstance(orig_iterable_type)):
-                i64Ty = self.getIntegerType()
-                i1Ty = self.getIntegerType(1)
                 veqTy = self.getVeqType()
+                c0 = self.getConstantInt(0)
                 c1 = self.getConstantInt(1)
-                falseVal = self.getConstantInt(0, 1)
-                trueVal = self.getConstantInt(1, 1)
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
                 veq1_ty = quake.VeqType.get(1, context=self.ctx)
 
-                def extractElem(i):
-                    if quake.VeqType.isinstance(iterable.type):
-                        return quake.ExtractRefOp(iterTy, iterable, -1,
-                                                  index=i).result
-                    elem_addr = cc.ComputePtrOp(
-                        cc.PointerType.get(iterTy), iterable, [i],
+                # Build and record the set of indices described by the list
+                # comprehension itself.
+                idxBufTy = cc.PointerType.get(cc.ArrayType.get(i64Ty))
+                idxBuf = cc.AllocaOp(idxBufTy,
+                                     TypeAttr.get(i64Ty),
+                                     seqSize=iterableSize).result
+
+                def idxBufAddr(k):
+                    return cc.ComputePtrOp(
+                        cc.PointerType.get(i64Ty), idxBuf, [k],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx))
-                    return cc.LoadOp(elem_addr).result
 
-                def bodyBuilder(args):
-                    # `found` tracks whether a real `qubit` has been placed in
-                    # the accumulator yet. Until it has, `curr_veq` is just
-                    # the initial poison seed and is *never read* by this
-                    # body: a matching element always *replaces* it (a
-                    # fresh `veq<1>`), never concatenates onto it. Only once
-                    # `found` is true does a later match grow the (now
-                    # real) accumulator via `quake.concat`. A `!quake.veq<0>`
-                    # has no valid semantics, so it must never be an operand
-                    # to a `concat` -- it may only ever be the final, unread
-                    # result of a search that found nothing at all.
-                    i, found, curr_veq = args[0], args[1], args[2]
+                def collectBody(args):
+                    i, count = args[0], args[1]
                     idx_val = extractElem(i)
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    cond = evalFilter() if hasFilter else trueVal
-                    ifCond = cc.IfOp([i1Ty, veqTy], cond, [])
-                    condThen = Block.create_at_start(ifCond.thenRegion, [])
-                    with InsertionPoint(condThen):
+                    cond = evalFilter() if hasFilter else None
+                    self.symbolTable.endBlock()
+                    if cond is None:
+                        cc.StoreOp(i, idxBufAddr(count))
+                        cc.ContinueOp([i, arith.AddIOp(count, c1).result])
+                        return
+                    ifOp = cc.IfOp([i64Ty], cond, [])
+                    thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                    with InsertionPoint(thenBlock):
+                        cc.StoreOp(i, idxBufAddr(count))
+                        cc.ContinueOp([arith.AddIOp(count, c1).result])
+                    elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                    with InsertionPoint(elseBlock):
+                        cc.ContinueOp([count])
+                    cc.ContinueOp([i, ifOp.result])
+
+                collect = self.createForLoop(
+                    [i64Ty, i64Ty], collectBody, [c0, c0],
+                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
+                        0], iterableSize).result,
+                    lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
+                matchCount = collect.results[1]
+
+                # Construct the `veq` from the list comprehension set. If the
+                # set is empty then the `veq` is poison. This is a bug in the
+                # user's code that neither the bridge nor the compiler will
+                # paper over. Otherwise the set is used to drive a
+                # `quake.concat` chain seeded from the first match.
+                hasMatch = arith.CmpIOp(IntegerAttr.get(i64Ty, 4), matchCount,
+                                        c0).result
+                ifMatchOp = cc.IfOp([veqTy], hasMatch, [])
+                matchThen = Block.create_at_start(ifMatchOp.thenRegion, [])
+                with InsertionPoint(matchThen):
+                    idx0 = cc.LoadOp(idxBufAddr(c0)).result
+                    self.symbolTable.beginBlock()
+                    self.__deconstructAssignment(node.generators[0].target,
+                                                 extractElem(idx0))
+                    self.visit(node.elt)
+                    ref0 = self.popValue()
+                    veq1 = quake.ConcatOp(veq1_ty, [ref0]).result
+                    init_seed = quake.RelaxSizeOp(veqTy, veq1).result
+                    self.symbolTable.endBlock()
+
+                    def buildBody(args):
+                        k, curr_veq = args[0], args[1]
+                        idxK = cc.LoadOp(idxBufAddr(k)).result
+                        self.symbolTable.beginBlock()
+                        self.__deconstructAssignment(node.generators[0].target,
+                                                     extractElem(idxK))
                         self.visit(node.elt)
                         ref = self.popValue()
-                        ifFound = cc.IfOp([veqTy], found, [])
-                        foundThen = Block.create_at_start(
-                            ifFound.thenRegion, [])
-                        with InsertionPoint(foundThen):
-                            grown = quake.ConcatOp(veqTy,
-                                                   [curr_veq, ref]).result
-                            cc.ContinueOp([grown])
-                        foundElse = Block.create_at_start(
-                            ifFound.elseRegion, [])
-                        with InsertionPoint(foundElse):
-                            veq1 = quake.ConcatOp(veq1_ty, [ref]).result
-                            cc.ContinueOp(
-                                [quake.RelaxSizeOp(veqTy, veq1).result])
-                        cc.ContinueOp([trueVal, ifFound.result])
-                    condElse = Block.create_at_start(ifCond.elseRegion, [])
-                    with InsertionPoint(condElse):
-                        cc.ContinueOp([found, curr_veq])
-                    self.symbolTable.endBlock()
-                    cc.ContinueOp([i, ifCond.results[0], ifCond.results[1]])
+                        self.symbolTable.endBlock()
+                        grown = quake.ConcatOp(veqTy, [curr_veq, ref]).result
+                        cc.ContinueOp([k, grown])
 
-                # Seed the accumulator with poison: there is no sound
-                # zero-length `!quake.veq` to allocate and grow. The loop
-                # above only ever *replaces* this seed (with a real
-                # `veq<1>`) the first time a matching element is found; it
-                # is never grown from. If no element ever matches -- an
-                # empty source iterable, or a filter that rejects every
-                # element -- the poison seed survives as the final,
-                # unread-by-this-lowering result. Using that result (e.g.
-                # applying a gate to it) is then a bug in the user's kernel,
-                # not something this lowering can paper over.
-                poison = cc.PoisonOp(empty_veq_ty)
-                init_seed = quake.RelaxSizeOp(veqTy, poison.result).result
+                    build = self.createForLoop(
+                        [i64Ty, veqTy], buildBody, [c1, init_seed],
+                        lambda args: arith.CmpIOp(IntegerAttr.get(
+                            i64Ty, 2), args[0], matchCount).result, lambda args:
+                        [arith.AddIOp(args[0], c1).result, args[1]])
+                    cc.ContinueOp([build.results[1]])
+                matchElse = Block.create_at_start(ifMatchOp.elseRegion, [])
+                with InsertionPoint(matchElse):
+                    poison = cc.PoisonOp(empty_veq_ty)
+                    cc.ContinueOp(
+                        [quake.RelaxSizeOp(veqTy, poison.result).result])
 
-                loop = self.createForLoop(
-                    [i64Ty, i1Ty, veqTy], bodyBuilder,
-                    [self.getConstantInt(0), falseVal, init_seed],
-                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
-                        0], iterableSize).result, lambda args:
-                    [arith.AddIOp(args[0], c1).result, args[1], args[2]])
-
-                self.pushValue(loop.results[2])
+                self.pushValue(ifMatchOp.result)
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",
@@ -4867,15 +4826,6 @@ class PyASTBridge(ast.NodeVisitor):
         listValue = cc.AllocaOp(cc.PointerType.get(listTy),
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
-
-        def extractIterVal(iterVar):
-            if quake.VeqType.isinstance(iterable.type):
-                return quake.ExtractRefOp(iterTy, iterable, -1,
-                                          index=iterVar).result
-            eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(iterTy), iterable, [iterVar],
-                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-            return cc.LoadOp(eleAddr).result
 
         def storeElementAt(storeIdx):
             self.visit(node.elt)
@@ -4894,7 +4844,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             def bodyBuilder(iterVar):
                 self.symbolTable.beginBlock()
-                iterVal = extractIterVal(iterVar)
+                iterVal = extractElem(iterVar)
                 self.__deconstructAssignment(node.generators[0].target, iterVal)
                 storeElementAt(iterVar)
                 self.symbolTable.endBlock()
@@ -4912,7 +4862,7 @@ class PyASTBridge(ast.NodeVisitor):
         def filteredBodyBuilder(args):
             i, count = args[0], args[1]
             self.symbolTable.beginBlock()
-            iterVal = extractIterVal(i)
+            iterVal = extractElem(i)
             self.__deconstructAssignment(node.generators[0].target, iterVal)
             cond = evalFilter()
             ifOp = cc.IfOp([i64Ty], cond, [])
@@ -5389,9 +5339,30 @@ class PyASTBridge(ast.NodeVisitor):
                         "invalid number of arguments to enumerate "
                         "- expecting 1 argument", node)
 
-                self.visit(node.iter.args[0])
-                iterable = self.popValue()
-                getValues = lambda iterVar, v: (iterVar, v)
+                innerIterNode = node.iter.args[0]
+                if (isinstance(innerIterNode, ast.Call) and
+                        isinstance(innerIterNode.func, ast.Name) and
+                        innerIterNode.func.id == 'range'):
+                    # `enumerate(range(...))` never needs a buffer either:
+                    # drive the loop directly off the range bounds (as
+                    # above) and derive `enumerate's` 0-based index from the
+                    # loop variable arithmetically, since `step` is always a
+                    # compile-time constant. FIXME: handle `start` argument.
+                    iterable = None
+                    startVal, endVal, stepVal, isDecrementing = \
+                        self.__processRangeLoopIterationBounds(
+                            innerIterNode.args)
+                    rangeStart, rangeStep = startVal, stepVal
+
+                    def getValues(iterVar):
+                        idx = arith.DivSIOp(
+                            arith.SubIOp(iterVar, rangeStart).result,
+                            rangeStep).result
+                        return (idx, iterVar)
+                else:
+                    self.visit(innerIterNode)
+                    iterable = self.popValue()
+                    getValues = lambda iterVar, v: (iterVar, v)
 
         if not getValues:
             self.visit(node.iter)
@@ -5874,43 +5845,17 @@ class PyASTBridge(ast.NodeVisitor):
             return cc.SequenceInitOp(value.type, heapCopy,
                                      length=dynSize).result
 
-        rootVal = self.__get_root_value(node.value)
-        if rootVal and self.isFunctionArgument(rootVal):
-            # If we allow assigning a value that contains a list to an item of a
-            # function argument (which we do with the exceptions commented
-            # below), then we necessarily need to make a copy when we return
-            # function arguments, or function argument elements, that contain
-            # lists, since we have to assume that their data may be allocated on
-            # the stack. However, this leads to incorrect behavior if a returned
-            # list was indeed caller-side allocated (and should correspondingly
-            # have been returned by reference).  Rather than preventing that
-            # lists in function arguments can be updated, we instead ensure that
-            # lists contained in function arguments stay recognizable as such,
-            # and prevent that function arguments that contain list are
-            # returned.  NOTE: Why is seems straightforward in principle to fail
-            # only for when we return *inner* lists of function arguments, this
-            # is still not a good option for two reasons: 1) Even if we return
-            # the reference to the outer list correctly, any caller-side
-            # assignment of the return value would no longer be recognizable as
-            # being the same reference given as argument, which is a problem if
-            # the list was an argument to the caller.  I.e. while this works for
-            # one function indirection, it does not work for two (see assignment
-            # tests).  2) To ensure that we don't have any memory leaks, we copy
-            # any lists returned from function calls to the stack. This copy (as
-            # of the time of writing this) results in a segfault when the list
-            # is not on the heap. As it is, we hence indeed have to copy every
-            # returned list to the heap, followed by a copy to the stack in the
-            # caller. Subsequent optimization passes should largely eliminate
-            # unnecessary copies.
-            if self.containsList(result.type):
-                self.emitFatalError(
-                    "return value must not contain a list that is a function "
-                    "argument or an item in a function argument - for device "
-                    "kernels, lists passed as arguments will be modified in "
-                    "place; remove the return value or use .copy(deep) to "
-                    "create a copy", node)
-        else:
-            result = self.__migrateLists(result, copy_list_to_heap)
+        # A returned list is unconditionally promoted to storage that
+        # survives this frame's `teardown`, regardless of whether its data
+        # traces back to a function argument, a locally allocated list, or
+        # an alias of either: an argument-derived list is an ordinary local
+        # like any other (its data pointer just happens to point at a
+        # caller-owned stack slot), so it needs exactly the same lifetime
+        # promotion any other local list does when it crosses this return
+        # boundary. Subsequent optimization passes eliminate the copy
+        # wherever they can prove it is unnecessary (e.g. when the caller
+        # already has live storage for the value).
+        result = self.__migrateLists(result, copy_list_to_heap)
 
         if self.symbolTable.scopeDepth > 1:
             # We are in an inner block, release all MLIR scopes before returning.
@@ -6283,21 +6228,27 @@ class PyASTBridge(ast.NodeVisitor):
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
 
-            if (self.pushPointerValue or
-                    not cc.PointerType.isinstance(value.type)):
+            if self.pushPointerValue:
                 self.pushValue(value)
                 return
 
-            eleTy = cc.PointerType.getElementType(value.type)
+            # Fully `dereference`, one level at a time: a scalar/tuple/list
+            # local's own slot only ever needs one load to reach its
+            # fully-realized value, but a dataclass local's slot holds a
+            # pointer to a handle (itself a pointer to a separately
+            # allocated buffer), needing two. Iterating generalizes to any
+            # depth without special-casing by type.
+            while cc.PointerType.isinstance(value.type):
+                eleTy = cc.PointerType.getElementType(value.type)
 
-            # Retain state types as pointers
-            # (function arguments of `StateType` are passed as pointers)
-            if cc.StateType.isinstance(eleTy):
-                self.pushValue(value)
-                return
+                # Retain state types as pointers
+                # (function arguments of `StateType` are passed as pointers)
+                if cc.StateType.isinstance(eleTy):
+                    break
 
-            loaded = cc.LoadOp(value).result
-            self.pushValue(loaded)
+                value = cc.LoadOp(value).result
+
+            self.pushValue(value)
             return
 
         # Check if a non-local symbol, and process it.
@@ -6305,9 +6256,13 @@ class PyASTBridge(ast.NodeVisitor):
         if is_recovered_value_ok(value):
             from .kernel_decorator import isa_kernel_decorator
             from .kernel_builder import isa_dynamic_kernel
-            if isa_kernel_decorator(value) or isa_dynamic_kernel(value):
-                # Not a data variable. Symbol bound to kernel object. This case
-                # is handled elsewhere.
+            if isa_kernel_decorator(value):
+                symName = self.__processDecorator(node.id)
+                self.pushValue(self.symbolTable[symName])
+                return
+            if isa_dynamic_kernel(value):
+                # Not a data variable. Symbol bound to kernel object. This
+                # case is handled elsewhere.
                 return
 
             # If `node.id` is already captured, it should be in the symbol table

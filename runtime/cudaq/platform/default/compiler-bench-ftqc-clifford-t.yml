@@ -14,6 +14,11 @@ target-arguments:
     required: false
     type: string
     help-string: "Per-rotation approximation tolerance. Defaults to 1e-10."
+  - key: seed
+    required: false
+    type: string
+    help-string: "Seed for Clifford+T synthesis. Defaults to the value set by
+      cudaq.set_random_seed. 0 leaves synthesis unseeded."
 
 config:
   nvqir-simulation-backend: qpp
@@ -35,6 +40,10 @@ config:
   # Synthesis and one-qubit Clifford+T optimization both emit the omega global
   # phase, so the phase lifecycle runs again after the last of them.
   #
+  # Synthesis is randomized, so %SEED% carries cudaq.set_random_seed through
+  # to it. Without a seed the same angle can synthesize to a different
+  # Clifford+T word on every run, changing gate count and depth.
+  #
   # TODO: Remove fail-on-controlled-rotation after controlled Clifford+T
   # synthesis preserves the synthesis global phase.
-  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1)},func.func(quake-simplify{threshold=%EPSILON:1e-10% rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:1e-10%},normalize-phase-placement,lower-phase,canonicalize,dqe,phase-folding,canonicalize),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=0 fail-on-controlled-rotation=true},inline,func.func(quake-simplify),optimize-1q-clifford-t,func.func(phase-folding,normalize-phase-placement,lower-phase,canonicalize,dqe,regtomem),symbol-dce"
+  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1)},func.func(quake-simplify{threshold=%EPSILON:1e-10% rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:1e-10%},normalize-phase-placement,lower-phase,canonicalize,dqe,phase-folding,canonicalize),clifford-t-synthesis{epsilon=%EPSILON:1e-10% seed=%SEED:0% skip-below=0 fail-on-controlled-rotation=true},inline,func.func(quake-simplify),optimize-1q-clifford-t,func.func(phase-folding,normalize-phase-placement,lower-phase,canonicalize,dqe,regtomem),symbol-dce"

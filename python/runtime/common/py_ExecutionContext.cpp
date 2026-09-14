@@ -31,7 +31,6 @@ void bindExecutionContext(nanobind::module_ &mod) {
            nanobind::arg("name"), nanobind::arg("shots"),
            nanobind::arg("qpu_id") = 0)
       .def_rw("kernelName", &cudaq::ExecutionContext::kernelName)
-      .def_ro("result", &cudaq::ExecutionContext::result)
       .def_rw("asyncExec", &cudaq::ExecutionContext::asyncExec)
       .def_ro("asyncResult", &cudaq::ExecutionContext::asyncResult)
       .def_rw("hasConditionalsOnMeasureResults",
@@ -47,8 +46,6 @@ void bindExecutionContext(nanobind::module_ &mod) {
              ctx.spin = spin;
              assert(cudaq::spin_op::canonicalize(spin) == spin);
            })
-      .def("getExpectationValue",
-           [](cudaq::ExecutionContext &ctx) { return ctx.expectationValue; })
       // ----- Context management using with blocks -----
       // Unlike in C++, we do not support nested execution contexts in Python.
       .def(

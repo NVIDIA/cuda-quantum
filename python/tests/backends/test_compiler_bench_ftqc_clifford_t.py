@@ -113,3 +113,38 @@ def test_exact_clifford_t_angle_avoids_approximate_synthesis():
 
     assert set(operations).issubset(ALLOWED_CLIFFORD_T_OPS)
     assert t_count == 1
+
+
+def _synthesize_pi_over_eight():
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc()
+    kernel.rz(math.pi / 8, q)
+    resources = cudaq.estimate_resources(kernel)
+    return tuple(sorted(resources.to_dict().items())), resources.depth
+
+
+def test_random_seed_makes_synthesis_reproducible():
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='0.001')
+
+    results = set()
+    for _ in range(8):
+        cudaq.set_random_seed(42)
+        results.add(_synthesize_pi_over_eight())
+
+    assert len(results) == 1
+    (operations, depth), = results
+    assert dict(operations).get('t', 0) > 0
+    assert depth > 0
+
+
+def test_target_seed_overrides_random_seed():
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='0.001', seed='7')
+
+    results = set()
+    for seed in (1, 2, 3, 4):
+        cudaq.set_random_seed(seed)
+        results.add(_synthesize_pi_over_eight())
+
+    # The seed given to set_target wins, so the global seed does not perturb
+    # the result.
+    assert len(results) == 1

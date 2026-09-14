@@ -6,9 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
-#include "cudaq/Target/CompileTarget.h"
-#include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/algorithms/msm/policy.h"
@@ -16,6 +15,7 @@
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
@@ -496,8 +496,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
   expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
-  expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
-                         "get_remote_capabilities");
 }
 
 // The launch preamble queries these on every kernel run, so they must not
@@ -555,10 +553,9 @@ TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {
   TestPlatform platform(2);
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/1);
 
-  expectOverrideDisabled([&] { platform.get_remote_capabilities(1); },
-                         "get_remote_capabilities");
+  expectOverrideDisabled([&] { platform.get_num_qubits(1); }, "get_num_qubits");
 
-  EXPECT_NO_THROW(platform.get_remote_capabilities(0));
+  EXPECT_NO_THROW(platform.get_num_qubits(0));
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,

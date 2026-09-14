@@ -324,17 +324,17 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_only) {
   cudaq::set_noise(noise);
 
   // Stage 1 - get the MSM size by running with "msm_size". The
-  // result will be returned in ctx_msm_size.shots.
+  // dimensions are returned by launch.
   auto msm_dimensions = cudaq::launch(
       cudaq::msm_size_policy{}, multi_round_ghz{}, num_qubits, num_rounds);
 
   // Stage 2 - get the MSM using the size calculated above
-  // (ctx_msm_size.msm_dimensions).
+  // (msm_dimensions).
   cudaq::msm_policy policy;
   policy.dimensions = msm_dimensions;
   auto msm = cudaq::launch(policy, multi_round_ghz{}, num_qubits, num_rounds);
 
-  // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
+  // The MSM is now stored in msm.samples. More precisely, the unfiltered
   // MSM is stored there, but some post-processing may be required to
   // eliminate duplicate columns.
   auto msm_as_strings = msm.samples.sequential_data();
@@ -381,19 +381,19 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_corr) {
   cudaq::set_noise(noise);
 
   // Stage 1 - get the MSM size by running with "msm_size". The
-  // result will be returned in ctx_msm_size.shots.
+  // dimensions are returned by launch.
   auto msm_dimensions =
       cudaq::launch(cudaq::msm_size_policy{}, multi_round_ghz{}, num_qubits,
                     num_rounds, noise_bf_prob);
 
   // Stage 2 - get the MSM using the size calculated above
-  // (ctx_msm_size.msm_dimensions).
+  // (msm_dimensions).
   cudaq::msm_policy policy;
   policy.dimensions = msm_dimensions;
   auto msm = cudaq::launch(policy, multi_round_ghz{}, num_qubits, num_rounds,
                            noise_bf_prob);
 
-  // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
+  // The MSM is now stored in msm.samples. More precisely, the unfiltered
   // MSM is stored there, but some post-processing may be required to
   // eliminate duplicate columns.
   auto msm_as_strings = msm.samples.sequential_data();
@@ -456,12 +456,12 @@ get_msm_test(double noise_probability) {
   // the transposed MSM, the probabilities, and the error ids.
   auto run_msm = [&](auto kernel) {
     // Stage 1 - get the MSM size by running with "msm_size". The
-    // result will be returned in ctx_msm_size.shots.
+    // dimensions are returned by launch.
     auto msm_dimensions =
         cudaq::launch(cudaq::msm_size_policy{}, kernel, noise_probability);
 
     // Stage 2 - get the MSM using the size calculated above
-    // (ctx_msm_size.msm_dimensions).
+    // (msm_dimensions).
     cudaq::msm_policy policy;
     policy.dimensions = msm_dimensions;
     auto msm = cudaq::launch(policy, kernel, noise_probability);

@@ -113,6 +113,8 @@ void quantum_platform::reset_noise(std::size_t qpu_id) {
   set_noise(nullptr, qpu_id);
 }
 
+std::size_t get_random_seed();
+
 cudaq::CompileTarget
 createDefaultCompileTarget(quantum_platform *platform = nullptr) {
   if (!platform)
@@ -131,6 +133,8 @@ createDefaultCompileTarget(quantum_platform *platform = nullptr) {
     targetConfig = rt->config;
     runtimeConfig = rt->runtimeConfig;
   }
+  if (auto seed = cudaq::get_random_seed(); seed != 0)
+    runtimeConfig.emplace("seed", std::to_string(seed));
   auto ct = cudaq::CompileTarget::createFromConfig(targetConfig, runtimeConfig);
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
@@ -286,25 +290,6 @@ bool quantum_platform::supports_explicit_measurements(
   auto ct = getCompileTarget(other_policies{}, qpu_id,
                              /*skipPipelineSubstitutions=*/true);
   return ct.supportExplicitMeasurements;
-}
-
-void quantum_platform::launchVQE(const std::string kernelName,
-                                 const void *kernelArgs, gradient *gradient,
-                                 const spin_op &H, optimizer &optimizer,
-                                 const int n_params, const std::size_t shots,
-                                 std::size_t qpu_id) {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "Policy VQE");
-  auto &qpu = platformQPUs[qpu_id];
-  qpu->launchVQE(kernelName, kernelArgs, gradient, H, optimizer, n_params,
-                 shots);
-}
-
-RemoteCapabilities
-quantum_platform::get_remote_capabilities(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "get_remote_capabilities");
-  return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
 
 KernelThunkResultType

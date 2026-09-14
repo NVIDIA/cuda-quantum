@@ -484,7 +484,8 @@ def cc_ConditionOp : CCOp<"condition",
 }
 
 def cc_ContinueOp : CCOp<"continue", [Pure, ReturnLike, Terminator,
-        ParentOneOf<["LoopOp", "ScopeOp", "IfOp"]>]> {
+        ParentOneOf<["LoopOp", "ScopeOp", "IfOp"]>,
+        DeclareOpInterfaceMethods<RegionBranchTerminatorOpInterface>]> {
   let summary = "Continue branch.";
   let description = [{
     A ContinueOp is a generalized exit terminator for the dialect operations
@@ -521,7 +522,8 @@ def cc_ContinueOp : CCOp<"continue", [Pure, ReturnLike, Terminator,
 }
 
 def cc_BreakOp : CCOp<"break",
-        [Pure, ReturnLike, Terminator, ParentOneOf<["LoopOp"]>]> {
+        [Pure, ReturnLike, Terminator, ParentOneOf<["LoopOp"]>,
+         DeclareOpInterfaceMethods<RegionBranchTerminatorOpInterface>]> {
   let summary = "Break branch.";
   let description = [{
     A BreakOp can be used in a LoopOp's body region (only). A BreakOp is a

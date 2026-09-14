@@ -145,6 +145,22 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
     terms no longer require a separate width limit.
 
 
+.. _grace-superchip-host-migration:
+
+.. note::
+
+    **Grace host-migration tuning:** The :code:`nvidia` target uses
+    `cuStateVec
+    <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/overview/ex-sv-migration.html>`__
+    to extend a state vector into host memory when migration is enabled. To get
+    the most out of Grace Hopper and Grace Blackwell systems, follow the
+    `NVIDIA Grace Performance Tuning Guide
+    <https://docs.nvidia.com/dccpu/grace-perf-tuning-guide/os-settings.html>`__.
+    Relevant operating-system settings include page size, Transparent Huge
+    Pages, Init on Alloc, and Automatic NUMA Scheduling and Balancing. Refer to
+    the tuning guide for the current recommendations.
+
+
 Multi-GPU multi-node 
 +++++++++++++++++++++++
 
@@ -226,7 +242,9 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
   
   The number of processes and nodes should be always power-of-2. 
 
-  Host-device state vector migration is also supported in the multi-GPU multi-node configuration. 
+  Host-device state vector migration is also supported in the multi-GPU multi-node configuration.
+  On Grace Hopper and Grace Blackwell systems, see :ref:`the Grace
+  host-migration tuning note <grace-superchip-host-migration>`.
 
 
 In addition to those environment variable options supported in the single-GPU mode,

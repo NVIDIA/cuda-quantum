@@ -1,0 +1,417 @@
+# Build, test and upload the cudaq-logical wheel.
+#
+# Callers must pass pre-built CUDA-Q wheel artifacts:
+#  - `cudaq_logical_on_push.yml` and `cudaq_logical_build_or_retrieve.yml`
+#    retrieve them, then call this workflow.
+#  - `python_wheels.yml` passes wheels produced earlier in that workflow.
+
+name: Build and test cudaq.logical
+
+on:
+  workflow_call:
+    inputs:
+      cudaq_version:
+        type: string
+        required: true
+        description: CUDA-Q version of the provided wheels.
+      runtime_artifact_name:
+        type: string
+        required: true
+        description: Pre-built cudaq wheel artifact.
+      devel_artifact_name:
+        type: string
+        required: true
+        description: Pre-built cudaq-devel wheel artifact.
+      metapackage_artifact_name:
+        type: string
+        description: cudaq metapackage artifact (optional).
+        default: ""
+    outputs:
+      wheel_name:
+        description: "Artifact name of the built cudaq-logical wheel."
+        value: ${{ jobs.build.outputs.wheel_name }}
+      logical_version:
+        description: "Version of the built cudaq-logical wheel."
+        value: ${{ jobs.build.outputs.logical_version }}
+
+jobs:
+  resolve:
+    name: Infer platform and Python version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      platform: ${{ steps.parse.outputs.platform }}
+      python_version: ${{ steps.parse.outputs.python_version }}
+      python_tag: ${{ steps.container.outputs.python_tag }}
+      arch: ${{ steps.container.outputs.arch }}
+      image: ${{ steps.container.outputs.image }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions/parse-wheel-name
+          sparse-checkout-cone-mode: false
+
+      - name: Download CUDA-Q wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.runtime_artifact_name }}
+          path: dist
+
+      - name: Find runtime wheel
+        id: find
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheel="$(find dist -name 'cuda_quantum_cu*.whl' -print -quit)"
+          if [ -z "$wheel" ]; then
+            echo "::error::Missing runtime wheel under dist/."
+            exit 1
+          fi
+          echo "wheel_name=$(basename "$wheel")" >> "$GITHUB_OUTPUT"
+
+      - id: parse
+        name: Infer platform and Python version from wheel name
+        uses: ./.github/actions/parse-wheel-name
+        with:
+          wheel_name: ${{ steps.find.outputs.wheel_name }}
+
+      - name: Resolve the manylinux build container
+        id: container
+        shell: bash
+        env:
+          PLATFORM: ${{ steps.parse.outputs.platform }}
+          PYTHON_VERSION: ${{ steps.parse.outputs.python_version }}
+        run: |
+          set -euo pipefail
+          case "$PLATFORM" in
+            *arm64*) arch=aarch64 ;;
+            *) arch=x86_64 ;;
+          esac
+          {
+            echo "arch=$arch"
+            echo "image=ghcr.io/nvidia/pypa/manylinux_2_28_$arch:latest"
+            echo "python_tag=${PYTHON_VERSION/./}"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build and test cudaq.logical
+    needs: resolve
+    runs-on:
+      ${{ (contains(needs.resolve.outputs.platform, 'arm') &&
+      'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+    outputs:
+      wheel_name: ${{ steps.repair.outputs.wheel_name }}
+      logical_version: ${{ steps.repair.outputs.logical_version }}
+
+    # Build in a vanilla manylinux_2_28 container (AlmaLinux 8, glibc 2.28).
+    container:
+      image: ${{ needs.resolve.outputs.image }}
+      options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    env:
+      CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+      PY_TAG: ${{ needs.resolve.outputs.python_tag }}
+      PLAT: manylinux_2_28_${{ needs.resolve.outputs.arch }}
+
+    defaults:
+      run:
+        shell: bash -euo pipefail {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download runtime wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.runtime_artifact_name }}
+          path: dist
+
+      - name: Download devel wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.devel_artifact_name }}
+          path: dist
+
+      - name: Trust the mounted workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Set up the gcc-12 toolchain
+        run: |
+          # The cudaq-devel wheel is built with gcc-12 (see devdeps base
+          # image); the extension must be compiled with the same toolchain.
+          dnf install -y --setopt=install_weak_deps=False \
+            gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gmp-devel mpfr-devel
+
+          # `source` only affects this step, so republish what the toolset
+          # sets up for the steps that follow.
+          source /opt/rh/gcc-toolset-12/enable
+          echo /opt/rh/gcc-toolset-12/root/usr/bin >> "$GITHUB_PATH"
+          {
+            echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}"
+            echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH-}"
+            echo "CC=gcc"
+            echo "CXX=g++"
+            # AlmaLinux's ld links --no-as-needed by default while Ubuntu's
+            # toolchain defaults to --as-needed. Restore the host build's
+            # semantics so unused direct deps are not recorded as NEEDED.
+            echo "LDFLAGS=-Wl,--as-needed"
+          } >> "$GITHUB_ENV"
+
+          # `sed -n 1p` reads all of its input; `head -n 1` closes the pipe
+          # after line 1 and the producer dies with SIGPIPE (141) under
+          # `set -o pipefail`.
+          ldd --version | sed -n 1p
+          gcc --version | sed -n 1p
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Create the build environment
+        run: |
+          # Build against the matrix Python shipped by the manylinux image.
+          pybin="/opt/python/cp${PY_TAG}-cp${PY_TAG}/bin/python"
+          if [ ! -x "$pybin" ]; then
+            echo "::error::Expected interpreter $pybin in the manylinux image; /opt/python contains:"
+            ls /opt/python
+            exit 1
+          fi
+          uv venv --python "$pybin" /opt/build-venv
+
+          # Activate the venv
+          echo /opt/build-venv/bin >> "$GITHUB_PATH"
+          echo "VIRTUAL_ENV=/opt/build-venv" >> "$GITHUB_ENV"
+
+      - name: Install build dependencies
+        run: |
+          uv pip install \
+            "nanobind>=2.4,<3" \
+            "scikit-build-core==0.12.2" \
+            "setuptools-scm>=8,<9" \
+            "auditwheel==6.5.0" \
+            "cmake>=3.30" \
+            ninja \
+            "patchelf>=0.17" \
+            "lit<23"
+
+          echo "Contents of dist:"
+          find dist -type f
+          devel_wheel="$(find dist -name 'cudaq_devel*.whl' -print -quit)"
+          runtime_wheel="$(find dist -name 'cuda_quantum_cu*.whl' -print -quit)"
+          if [ -z "$devel_wheel" ] || [ -z "$runtime_wheel" ]; then
+            echo "::error::Missing downloaded wheels under dist/ (devel='$devel_wheel', runtime='$runtime_wheel')."
+            exit 1
+          fi
+
+          # Skip the metapackage sdist: install the local runtime wheel and
+          # cudaq-devel without resolving the `cudaq` PyPI dependency.
+          uv pip install "$runtime_wheel"
+          uv pip install --no-deps -f dist "cudaq-devel==$CUDAQ_VERSION"
+
+      - name: Build cudaq.logical
+        id: build
+        working-directory: preview/logical
+        run: |
+          # Resolve the version while the checkout is still clean. Stamping
+          # the runtime dependencies below intentionally modifies pyproject,
+          # which must not add setuptools-scm's dirty-tree date suffix.
+          logical_scmversion="$(
+            python -m setuptools_scm -c python/pyproject.toml
+          )"
+          logical_version=$(echo ${logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+
+          python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
+            --distribution cuda-quantum-cu12 \
+            --distribution cuda-quantum-cu13 \
+            --version "$CUDAQ_VERSION"
+
+          mkdir -p .wheel-raw
+          SETUPTOOLS_SCM_PRETEND_VERSION="$logical_version" \
+            SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
+            uv build --wheel --no-build-isolation \
+              --out-dir .wheel-raw python
+
+          raw_wheel="$(find .wheel-raw -name "cudaq_logical-*-cp${PY_TAG}-*.whl" -print -quit)"
+          test -n "$raw_wheel"
+          echo "raw_wheel=$PWD/$raw_wheel" >> "$GITHUB_OUTPUT"
+
+      - name: Repair the wheel for manylinux_2_28
+        id: repair
+        env:
+          RAW_WHEEL: ${{ steps.build.outputs.raw_wheel }}
+        run: |
+          echo "=== Pre-repair auditwheel analysis ==="
+          python -m auditwheel show "$RAW_WHEEL"
+
+          # CUDA-Q MLIR and gmp/mpfr ship in the runtime wheel; do not
+          # vendor them into cudaq-logical.
+          python -m auditwheel repair \
+            --plat "$PLAT" \
+            --exclude libcudaqMLIR.so \
+            --exclude libcudaqMLIRCAPI.so \
+            --exclude libnanobind-cudaq.so \
+            --exclude libMLIRPythonSupport-cudaq.so \
+            --exclude libgmp.so.10 \
+            --exclude libmpfr.so.6 \
+            --wheel-dir dist "$RAW_WHEEL"
+
+          wheel="$(find dist -name "cudaq_logical-*-cp${PY_TAG}-*${PLAT}.whl" -print -quit)"
+          if [ -z "$wheel" ]; then
+            echo "::error::Repaired $PLAT wheel not found under dist/."
+            exit 1
+          fi
+
+          echo "=== Post-repair auditwheel verification ==="
+          python -m auditwheel show "$wheel"
+
+          echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
+          echo "wheel_name=$(basename "$wheel")" >> "$GITHUB_OUTPUT"
+          wheel_basename="$(basename "$wheel")"
+          logical_version="${wheel_basename#cudaq_logical-}"
+          logical_version="${logical_version%%-cp*}"
+          echo "logical_version=$logical_version" >> "$GITHUB_OUTPUT"
+
+      - name: Upload cudaq-logical wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.repair.outputs.wheel_name }}
+          path: ${{ steps.repair.outputs.wheel_path }}
+          archive: false
+          if-no-files-found: error
+
+      - name: Run cudaq.logical FileCheck tests
+        timeout-minutes: 30
+        run: |
+          build_dir="preview/logical/build"
+          # only run FileCheck tests (other require qlx-opt and qlx-translate)
+          ctest_listing="$(ctest --test-dir "$build_dir" -N -R '^qlx-filecheck-tests$')"
+          if ! grep -q 'qlx-filecheck-tests' <<< "$ctest_listing"; then
+            echo "::error::qlx-filecheck-tests is not registered: lit and/or FileCheck were missing when CMake configured $build_dir."
+            exit 1
+          fi
+
+          ctest --test-dir "$build_dir" --output-on-failure -R '^qlx-filecheck-tests$'
+
+  test:
+    name: Test cudaq.logical
+    needs: [build, resolve]
+    runs-on:
+      ${{ (contains(needs.resolve.outputs.platform, 'arm') &&
+      'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    env:
+      CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+      CUDAQ_LOGICAL_VERSION: ${{ needs.build.outputs.logical_version }}
+      RUNTIME_ARTIFACT_NAME: ${{ inputs.runtime_artifact_name }}
+      METAPACKAGE_ARTIFACT_NAME: ${{ inputs.metapackage_artifact_name }}
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download cudaq-logical wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.wheel_name }}
+          path: dist
+
+      - name: Download runtime wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.RUNTIME_ARTIFACT_NAME }}
+          path: dist
+
+      - name: Download CUDA-Q metapackage
+        if: ${{ env.METAPACKAGE_ARTIFACT_NAME != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
+          path: dist
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ needs.resolve.outputs.python_version }}
+          activate-environment: true
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$METAPACKAGE_ARTIFACT_NAME" ]; then
+            uv pip install -f dist "cudaq==$CUDAQ_VERSION"
+          else
+            # No metapackage sdist: install the local runtime wheel and
+            # cudaq-logical without resolving the `cudaq` PyPI dependency.
+            RUNTIME_WHEEL="$(find dist -name 'cuda_quantum_cu*.whl' -print -quit)"
+            if [ -z "$RUNTIME_WHEEL" ]; then
+              echo "::error::Missing runtime wheel under dist/."
+              exit 1
+            fi
+            uv pip install "$RUNTIME_WHEEL"
+            uv pip install -f dist --no-deps \
+              "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+            uv pip install "stim>=1.16,<2"
+          fi
+
+      - name: Validate installed cudaq.logical tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          printf 'module {}\n' | qlx-opt
+          # Capture before grepping: `grep -q` exits on the first match and
+          # the closed pipe would kill qlx-translate with SIGPIPE (141) under
+          # pipefail.
+          stim_out="$(qlx-translate \
+            preview/logical/examples/mlir/stim_memory.mlir --fabric-to-stim)"
+          grep -q '^M ' <<< "$stim_out"
+
+      - name: Validate the cudaq.logical re-export
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Every import spelling must resolve to the installed cudaq.logical
+          # package (not a second copy under a legacy top-level name).
+          python -c "import cudaq.logical; print(cudaq.logical.__version__)"
+          python -c "import cudaq; print(cudaq.logical.__version__)"
+          python -c "from cudaq import logical; print(logical.std.idle)"
+          python -c "from cudaq.logical import program; print(program)"
+      - name: Run cudaq.logical Python tests
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          uv pip install "pytest>=7.0"
+
+          # Run from the workspace root: `python -m pytest` puts the working
+          # directory on sys.path, and preview/logical/python holds a source-only
+          # copy of the package that would shadow the installed wheel (with its
+          # compiled extensions) if it were importable.
+          logical_path="$(python -c 'import cudaq.logical; print(cudaq.logical.__file__)')"
+          echo "Testing installed cudaq.logical: $logical_path"
+          case "$logical_path" in
+            *"$GITHUB_WORKSPACE/preview/logical"*)
+              echo "::error::cudaq.logical resolved to the source tree, not the installed wheel."
+              exit 1
+              ;;
+          esac
+
+          python -m pytest preview/logical/python/tests/cudaq/logical -v

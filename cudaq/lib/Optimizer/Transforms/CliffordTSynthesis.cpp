@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
+#include "QuakeOperatorCreator.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -16,17 +17,24 @@
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/LogicalResult.h"
+#include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Matchers.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <optional>
+#include <type_traits>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CLIFFORDTSYNTHESIS
@@ -37,6 +45,9 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+// Shares the exact-angle classification and lowering with quake-simplify.
+#include "RewriteRotationsToCliffordT.inc"
+
 namespace {
 
 struct RotationOptions {
@@ -46,6 +57,7 @@ struct RotationOptions {
   int32_t maxFactoringRestarts;
   int64_t maxOdgpScanSteps;
   int32_t retryCount;
+  std::optional<uint64_t> seed;
   std::string onDynamicAngle;
   bool failOnControlledRotation;
   double skipBelow;
@@ -210,6 +222,7 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
     synthOpts.maxFactoringRestarts =
         static_cast<uint32_t>(opts.maxFactoringRestarts);
     synthOpts.maxOdgpScanSteps = saturatingShl(opts.maxOdgpScanSteps, attempt);
+    synthOpts.seed = opts.seed;
     circuit = cudaq::synth::gridsynth(thetaReal, epsilonReal, synthOpts);
     if (llvm::succeeded(circuit))
       break;
@@ -314,9 +327,9 @@ namespace {
 
 struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
   RzPattern(MLIRContext *ctx, RotationOptions opts, SynthState *state,
-            bool *hadHardError)
+            bool *hadHardError, Pass::Statistic *numExactRotations)
       : OpRewritePattern(ctx), opts(std::move(opts)), state(state),
-        hadHardError(hadHardError) {}
+        hadHardError(hadHardError), numExactRotations(numExactRotations) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
@@ -337,6 +350,13 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
       return success();
     case PreCheck::Action::Lower:
       break;
+    }
+
+    // Upstream legalization misses the exact angles a later pass creates.
+    // Phase folding combines two Rz(pi/8) into one Rz(pi/4).
+    if (succeeded(rewriteExactRotation(op, opts.epsilon, rewriter))) {
+      ++*numExactRotations;
+      return success();
     }
 
     auto symRef = getOrCreateRzHelper(check.theta, valueSemantics, opts, *state,
@@ -371,6 +391,7 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
   RotationOptions opts;
   SynthState *state;
   bool *hadHardError;
+  Pass::Statistic *numExactRotations;
 };
 
 } // namespace
@@ -388,22 +409,29 @@ public:
                << " max-factoring-iterations=" << maxFactoringIterations
                << " max-candidate-iterations=" << maxCandidateIterations
                << " max-factoring-restarts=" << maxFactoringRestarts
-               << " max-odgp-scan-steps=" << maxOdgpScanSteps << " retry-count="
-               << retryCount << " on-dynamic-angle=" << onDynamicAngle
+               << " max-odgp-scan-steps=" << maxOdgpScanSteps
+               << " retry-count=" << retryCount << " seed="
+               << (seed == 0 ? std::string("unset")
+                             : std::to_string(seed.getValue()))
+               << " on-dynamic-angle=" << onDynamicAngle
                << " skip-below=" << skipBelow << '\n');
 
     // Validate the numeric options. gridsynth needs a positive epsilon
     // (-log2(epsilon) feeds the precision heuristic), and the budgets/retry
     // count must be non-negative because the retry loop left-shifts the
-    // budgets by `attempt`.
-    if (!(epsilon > 0.0) || maxFactoringIterations < 0 ||
-        maxCandidateIterations < 0 || maxFactoringRestarts < 0 ||
-        maxOdgpScanSteps < 0 || retryCount < 0 || skipBelow < 0.0) {
+    // budgets by `attempt`. Both tolerances must also be finite. An infinite
+    // epsilon accepts every angle as an exact multiple of pi/4, and an
+    // infinite skip-below erases every rotation.
+    if (!(epsilon > 0.0) || !std::isfinite(epsilon) ||
+        maxFactoringIterations < 0 || maxCandidateIterations < 0 ||
+        maxFactoringRestarts < 0 || maxOdgpScanSteps < 0 || retryCount < 0 ||
+        skipBelow < 0.0 || !std::isfinite(skipBelow)) {
       getOperation().emitError(
-          "clifford-t-synthesis: invalid options; require epsilon > 0 and "
-          "non-negative max-factoring-iterations, max-candidate-iterations, "
-          "max-factoring-restarts, max-odgp-scan-steps, retry-count, and "
-          "skip-below.");
+          "clifford-t-synthesis: invalid options. Require a finite epsilon > 0 "
+          "and non-negative max-factoring-iterations, "
+          "max-candidate-iterations, max-factoring-restarts, "
+          "max-odgp-scan-steps, retry-count, and a "
+          "finite skip-below.");
       signalPassFailure();
       return;
     }
@@ -415,12 +443,18 @@ public:
         cudaq::synth::details::required_precision(
             cudaq::synth::Real(epsilon.getValue())));
 
+    // 0 means unseeded.
+    std::optional<uint64_t> synthSeed;
+    if (seed != 0)
+      synthSeed = seed.getValue();
+
     RotationOptions opts{epsilon,
                          maxFactoringIterations,
                          maxCandidateIterations,
                          maxFactoringRestarts,
                          maxOdgpScanSteps,
                          retryCount,
+                         synthSeed,
                          onDynamicAngle.getValue(),
                          failOnControlledRotation,
                          skipBelow};
@@ -430,7 +464,8 @@ public:
     state.module = getOperation();
     bool hadHardError = false;
     RewritePatternSet patterns(ctx);
-    patterns.add<RzPattern>(ctx, opts, &state, &hadHardError);
+    patterns.add<RzPattern>(ctx, opts, &state, &hadHardError,
+                            &numExactRotations);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))) ||
         hadHardError)
