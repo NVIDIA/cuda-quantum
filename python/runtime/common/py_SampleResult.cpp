@@ -123,7 +123,7 @@ Args:
 	bitstring (str): The binary string to return the measurement data of.
 
 Returns:
-	float: The number of times the given `bitstring` was measured
+	int: The number of times the given `bitstring` was measured
 	during the `shots_count` number of executions on the QPU.)#")
       .def(
           "__len__", [](sample_result &self) { return self.to_map().size(); },
