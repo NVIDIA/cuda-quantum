@@ -19,7 +19,6 @@
 #include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
-#include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -47,10 +46,6 @@ class TargetSetter;
 class with_platform_in_library_mode;
 } // namespace detail
 
-/// Typedefs for defining the connectivity structure of a QPU
-using QubitEdge = std::pair<std::size_t, std::size_t>;
-using QubitConnectivity = std::vector<QubitEdge>;
-
 /// A sampling tasks takes no input arguments and returns
 /// a sample_result instance.
 using KernelExecutionTask = std::function<sample_result()>;
@@ -61,8 +56,7 @@ using ObserveTask = std::function<observe_result()>;
 
 /// The quantum_platform corresponds to a specific quantum architecture.
 /// The quantum_platform exposes a public API for programmers to
-/// query specific information about the targeted QPU(s) (e.g. number
-/// of qubits, qubit connectivity, etc.). This type is meant to
+/// query specific information about the targeted QPU(s). This type is meant to
 /// be subclassed for concrete realizations of quantum platforms, which
 /// are intended to populate the QPUs of this base class via `addQPU` and
 /// `clearQPUs`.
@@ -70,12 +64,6 @@ class quantum_platform {
 public:
   quantum_platform() = default;
   virtual ~quantum_platform() = default;
-
-  /// Fetch the connectivity info
-  std::optional<QubitConnectivity> connectivity();
-
-  /// Get the number of qubits for the QPU with ID qpu_id.
-  std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
@@ -218,19 +206,8 @@ public:
   unifiedLaunchModule(const AnyModule &module, KernelArgs args,
                       std::size_t qpu_id = 0);
 
-  template <typename Policy>
   [[nodiscard]] cudaq::CompileTarget
-  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0,
-                   bool skipPipelineSubstitutions = false) const {
-    validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
-    if (compileTarget.has_value()) {
-      return compileTarget.value();
-    }
-    // Fallback to old behaviour: query the QPU for its compile target.
-    auto &qpu = platformQPUs[qpu_id];
-    skipPipelineSubstitutions |= std::is_same_v<Policy, cudaq::dem_policy>;
-    return qpu->getCompileTarget(skipPipelineSubstitutions);
-  }
+  getCompileTarget(std::size_t qpu_id = 0) const;
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

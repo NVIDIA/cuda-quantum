@@ -80,11 +80,10 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       cudaq::CompileOptions options;
       if constexpr (requires { policy.inner; }) {
         options = cudaq::get_compile_options(policy.inner);
-        target = platform.getCompileTarget(policy.inner, qpu_id);
       } else {
         options = cudaq::get_compile_options(policy);
-        target = platform.getCompileTarget(policy, qpu_id);
       }
+      target = platform.getCompileTarget(qpu_id);
       const bool isEmulated = platform.is_emulated(qpu_id);
       const bool isRemote = platform.is_remote(qpu_id);
       options.emulate = isEmulated;
