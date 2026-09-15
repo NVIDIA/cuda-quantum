@@ -1366,6 +1366,47 @@ def test_apply_call_captures_from_definition_scope():
     cudaq.sample(builder, shots_count=3)
 
 
+def test_apply_call_kernel_with_return_value():
+    """
+    A kernel builder calls (via apply_call) a decorator kernel that returns a
+    value. The builder discards the returned value, but the generated
+    `cc.call_callable` must still match the coarity of the callable's
+    signature.
+    """
+
+    @cudaq.kernel(defer_compilation=False)
+    def flipAndMeasure(qubit: cudaq.qubit) -> bool:
+        x(qubit)
+        return mz(qubit)
+
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.apply_call(flipAndMeasure, qubit)
+    kernel.mz(qubit)
+    print(kernel)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert len(counts) == 1
+    assert '1' in counts
+
+    @cudaq.kernel(defer_compilation=False)
+    def flipAndCount(qubits: cudaq.qview) -> int:
+        x(qubits[0])
+        return 1
+
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    kernel.apply_call(flipAndCount, qubits)
+    kernel.mz(qubits)
+    print(kernel)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert len(counts) == 1
+    assert '10' in counts
+
+
 def test_sample_with_no_qubits():
     kernel = cudaq.make_kernel()
     histogram = cudaq.sample(kernel)
