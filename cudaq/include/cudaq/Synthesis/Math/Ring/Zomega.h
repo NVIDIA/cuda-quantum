@@ -75,11 +75,6 @@ public:
   const Integer &c() const noexcept { return _c; }
   const Integer &d() const noexcept { return _d; }
 
-  Integer &a_mut() noexcept { return _a; }
-  Integer &b_mut() noexcept { return _b; }
-  Integer &c_mut() noexcept { return _c; }
-  Integer &d_mut() noexcept { return _d; }
-
   /// Embed integer x as 0*omega^3 + 0*omega^2 + 0*omega + x.
   static ZOmega from_int(const Integer &x) { return ZOmega(0, 0, 0, x); }
 
@@ -188,6 +183,16 @@ public:
   Real real() const { return Real(d()) + Real::sqrt2() * Real(c() - a()) / 2; }
 
   Real imag() const { return Real(b()) + Real::sqrt2() * Real(c() + a()) / 2; }
+
+private:
+  Integer &a_mut() noexcept { return _a; }
+  Integer &b_mut() noexcept { return _b; }
+  Integer &c_mut() noexcept { return _c; }
+  Integer &d_mut() noexcept { return _d; }
+
+  friend void mul_by_omega_power_in_place(ZOmega &x, int32_t n);
+  friend void halve_sum_and_difference(ZOmega &z, ZOmega &w, ZOmega &scratch);
+  friend void mul_by_sqrt2_in_place(ZOmega &x, ZOmega &scratch);
 };
 
 //===----------------------------------------------------------------------===//

@@ -48,9 +48,6 @@ public:
   const ZOmega &u() const { return _u; }
   const Integer &k() const { return _k; }
 
-  ZOmega &u_mut() { return _u; }
-  Integer &k_mut() { return _k; }
-
   /// In-place assignment that reuses the mpz_t buffers inside _u and _k.
   /// Saves the temporary's `allocator` traffic that `*this = DOmega(u, k)`
   /// would otherwise pay.
@@ -139,6 +136,12 @@ public:
   std::string to_string() const {
     return _u.to_string() + "/sqrt2^" + _k.to_string();
   }
+
+private:
+  ZOmega &u_mut() { return _u; }
+  Integer &k_mut() { return _k; }
+
+  friend class DOmegaUnitary;
 };
 
 //===----------------------------------------------------------------------===//

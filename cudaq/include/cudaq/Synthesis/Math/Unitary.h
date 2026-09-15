@@ -78,8 +78,10 @@ public:
 
   // -- Accessors --
 
-  const DOmega &z() const { return _z; }
-  const DOmega &w() const { return _w; }
+  const DOmega &z() const & { return _z; }
+  const DOmega &w() const & { return _w; }
+  DOmega z() const && { return _z; }
+  DOmega w() const && { return _w; }
   int32_t n() const { return _n; }
   int32_t k() const { return static_cast<int32_t>(_w.k()); }
 
