@@ -36,10 +36,8 @@ public:
     }
   }
 
-  CompileTarget
-  getCompileTarget(bool skipPipelineSubstitutions = false) override {
-    auto target =
-        BaseRemoteRESTQPU::getCompileTarget(skipPipelineSubstitutions);
+  CompileTarget getCompileTarget() override {
+    auto target = BaseRemoteRESTQPU::getCompileTarget();
     target.supportObservableMeasurements = true;
     return target;
   }
