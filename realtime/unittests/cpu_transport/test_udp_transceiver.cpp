@@ -17,6 +17,7 @@
 #include <cstring>
 #include <gtest/gtest.h>
 #include <string>
+#include <thread>
 
 using cudaq::realtime::testing::load_flag;
 using cudaq::realtime::testing::slot_data;
@@ -85,6 +86,81 @@ protected:
         reinterpret_cast<const char *>(slotData(serviceRxData, slot)));
     store_flag(serviceRxFlags, slot, 0);
     return payload;
+  }
+
+  cpu_udp_transceiver_t service = nullptr;
+  cpu_udp_transceiver_t caller = nullptr;
+  std::uint64_t serviceRxFlags = 0, serviceRxData = 0;
+  std::uint64_t serviceTxFlags = 0, serviceTxData = 0;
+  std::uint64_t callerRxFlags = 0, callerRxData = 0;
+  std::uint64_t callerTxFlags = 0, callerTxData = 0;
+};
+
+// A UNIFIED (thread-free) service paired with an ordinary pumping caller. This
+// test thread drives the service's data plane through the two hooks, standing
+// in for the consumer's dispatch loop. The caller is deliberately unchanged:
+// only one end opts into this shape, and the wire between them is identical.
+class UdpUnifiedServiceTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    service = cpu_udp_create_transceiver(kPageSize, kNumPages);
+    ASSERT_NE(nullptr, service);
+    ASSERT_EQ(1, cpu_udp_set_unified(service, 1));
+    ASSERT_EQ(1, cpu_udp_bind(service, /*port=*/0));
+    ASSERT_NE(0, cpu_udp_get_port(service));
+    ASSERT_EQ(1, cpu_udp_start(service)); // starts no threads in this mode
+
+    caller = cpu_udp_create_transceiver(kPageSize, kNumPages);
+    ASSERT_NE(nullptr, caller);
+    ASSERT_EQ(1,
+              cpu_udp_connect(caller, "127.0.0.1", cpu_udp_get_port(service)));
+    ASSERT_EQ(1, cpu_udp_start(caller));
+
+    serviceRxFlags = cpu_udp_get_rx_ring_flag_addr(service);
+    serviceRxData = cpu_udp_get_rx_ring_data_addr(service);
+    serviceTxFlags = cpu_udp_get_tx_ring_flag_addr(service);
+    serviceTxData = cpu_udp_get_tx_ring_data_addr(service);
+    callerRxFlags = cpu_udp_get_rx_ring_flag_addr(caller);
+    callerTxFlags = cpu_udp_get_tx_ring_flag_addr(caller);
+    callerRxData = cpu_udp_get_rx_ring_data_addr(caller);
+    callerTxData = cpu_udp_get_tx_ring_data_addr(caller);
+  }
+
+  void TearDown() override {
+    cpu_udp_destroy_transceiver(caller);
+    cpu_udp_destroy_transceiver(service);
+  }
+
+  void publishFromCaller(unsigned slot, const std::string &payload) {
+    ASSERT_LT(payload.size(), kPageSize);
+    std::uint8_t *tx = slotData(callerTxData, slot);
+    std::memset(tx, 0, kPageSize);
+    std::memcpy(tx, payload.data(), payload.size());
+    store_flag(callerTxFlags, slot, reinterpret_cast<std::uint64_t>(tx));
+  }
+
+  // cpu_udp_rx_poll is non-blocking, so spin the way a dispatch loop does.
+  bool pollService(std::uint32_t *slot, std::chrono::milliseconds budget =
+                                            std::chrono::milliseconds(2000)) {
+    const auto deadline = std::chrono::steady_clock::now() + budget;
+    do {
+      if (cpu_udp_rx_poll(service, slot))
+        return true;
+      std::this_thread::sleep_for(std::chrono::microseconds(200));
+    } while (std::chrono::steady_clock::now() < deadline);
+    return false;
+  }
+
+  // For the cases where the *absence* of delivery is the property under test.
+  bool serviceStaysEmpty(
+      std::chrono::milliseconds window = std::chrono::milliseconds(250)) {
+    std::uint32_t slot = 0;
+    return !pollService(&slot, window);
+  }
+
+  std::string serviceSlotPayload(std::uint32_t slot) const {
+    return std::string(
+        reinterpret_cast<const char *>(slotData(serviceRxData, slot)));
   }
 
   cpu_udp_transceiver_t service = nullptr;
@@ -264,6 +340,171 @@ TEST_F(UdpTransceiverPairTest, DropsDatagramsLargerThanOwnStride) {
       wait_for_flag(serviceRxFlags, 0, std::chrono::milliseconds(250)));
 
   cpu_udp_destroy_transceiver(bigCaller);
+}
+
+//==============================================================================
+// Unified (thread-free) mode
+//==============================================================================
+
+TEST_F(UdpUnifiedServiceTest, StartSpawnsNoPumpThreads) {
+  publishFromCaller(0, "queued");
+  // The caller's TX pump ships it, so it really is on the wire ...
+  ASSERT_TRUE(wait_for_flag_clear(callerTxFlags, 0));
+
+  // ... but no RX pump exists at the service to move it into a slot. A pump
+  // would have published the flag well inside this window.
+  EXPECT_FALSE(
+      wait_for_flag(serviceRxFlags, 0, std::chrono::milliseconds(250)));
+
+  // The datagram was queued, not lost: the hook still finds it.
+  std::uint32_t slot = 42;
+  ASSERT_TRUE(pollService(&slot));
+  EXPECT_EQ(0u, slot);
+  EXPECT_EQ("queued", serviceSlotPayload(slot));
+}
+
+TEST_F(UdpUnifiedServiceTest, RxPollReportsSlotByValueAndLeavesRxFlagsAlone) {
+  publishFromCaller(0, "request-0");
+
+  std::uint32_t slot = 42;
+  ASSERT_TRUE(pollService(&slot));
+  EXPECT_EQ(0u, slot);
+  // The payload is at the address the consumer derives for itself, since this
+  // shape carries no address in a flag.
+  EXPECT_EQ("request-0", serviceSlotPayload(slot));
+  // Nothing in this shape ever clears an rx flag, so the hook must not set
+  // one -- that slot would be occupied forever.
+  EXPECT_EQ(0u, load_flag(serviceRxFlags, slot));
+}
+
+TEST_F(UdpUnifiedServiceTest, HooksRoundTripToCaller) {
+  publishFromCaller(0, "ping");
+  std::uint32_t slot = 0;
+  ASSERT_TRUE(pollService(&slot));
+  EXPECT_EQ("ping", serviceSlotPayload(slot));
+
+  // Answer from the TX half of the same slot, as the dispatcher does. The
+  // response goes to the source of the most recent inbound datagram.
+  std::uint8_t *tx = slotData(serviceTxData, slot);
+  std::memset(tx, 0, kPageSize);
+  std::memcpy(tx, "pong", 4);
+  ASSERT_EQ(1, cpu_udp_tx_publish(service, slot));
+
+  // The caller is an ordinary pumping transceiver, so its RX ring behaves
+  // normally: publishing from the unified end is invisible on the wire.
+  ASSERT_TRUE(wait_for_flag(callerRxFlags, 0));
+  EXPECT_EQ(0, std::memcmp(slotData(callerRxData, 0), "pong", 4));
+  store_flag(callerRxFlags, 0, 0);
+
+  // tx_publish does not touch tx_flags: the consumer owns them here, and
+  // there is no TX pump to recycle them.
+  EXPECT_EQ(0u, load_flag(serviceTxFlags, slot));
+}
+
+TEST_F(UdpUnifiedServiceTest, RxPollBackPressuresOnPendingTxFlag) {
+  // tx_flags is the only occupancy marker in this shape: non-zero means a
+  // response is still in flight for that slot (in production, a running
+  // GRAPH_LAUNCH graph), so its RX half must not be handed out again.
+  store_flag(serviceTxFlags, 0, 1);
+  publishFromCaller(0, "blocked");
+  ASSERT_TRUE(wait_for_flag_clear(callerTxFlags, 0));
+
+  EXPECT_TRUE(serviceStaysEmpty());
+
+  // Back-pressure without consuming: releasing the slot releases the datagram
+  // that was waiting behind it.
+  store_flag(serviceTxFlags, 0, 0);
+  std::uint32_t slot = 42;
+  ASSERT_TRUE(pollService(&slot));
+  EXPECT_EQ(0u, slot);
+  EXPECT_EQ("blocked", serviceSlotPayload(slot));
+}
+
+TEST_F(UdpUnifiedServiceTest, RxPollFillsSlotsInStrictRingOrder) {
+  // Two laps of the ring: a cursor that failed to wrap or a slot that failed
+  // to recycle would stall this.
+  for (unsigned i = 0; i < 2 * kNumPages; ++i) {
+    const unsigned callerSlot = i % kNumPages;
+    const std::string payload = "msg-" + std::to_string(i);
+    publishFromCaller(callerSlot, payload);
+    ASSERT_TRUE(wait_for_flag_clear(callerTxFlags, callerSlot))
+        << "message " << i;
+
+    std::uint32_t slot = 42;
+    ASSERT_TRUE(pollService(&slot)) << "message " << i;
+    EXPECT_EQ(i % kNumPages, slot) << "message " << i;
+    EXPECT_EQ(payload, serviceSlotPayload(slot)) << "message " << i;
+  }
+}
+
+TEST_F(UdpUnifiedServiceTest, DropsOversizeDatagramInUnifiedMode) {
+  // Same policy as the RX pump (both ends must agree on page_size), reached
+  // through the hook instead: MSG_TRUNC reports the true length even though
+  // only page_size bytes were copied.
+  cpu_udp_transceiver_t bigCaller =
+      cpu_udp_create_transceiver(2 * kPageSize, kNumPages);
+  ASSERT_NE(nullptr, bigCaller);
+  ASSERT_EQ(1,
+            cpu_udp_connect(bigCaller, "127.0.0.1", cpu_udp_get_port(service)));
+  ASSERT_EQ(1, cpu_udp_start(bigCaller));
+
+  const std::uint64_t bigTxFlags = cpu_udp_get_tx_ring_flag_addr(bigCaller);
+  const std::uint64_t bigTxData = cpu_udp_get_tx_ring_data_addr(bigCaller);
+  std::uint8_t *tx = slotData(bigTxData, 0, 2 * kPageSize);
+  std::memset(tx, 0xAB, 2 * kPageSize);
+  store_flag(bigTxFlags, 0, reinterpret_cast<std::uint64_t>(tx));
+
+  ASSERT_TRUE(wait_for_flag_clear(bigTxFlags, 0)); // shipped ...
+  EXPECT_TRUE(serviceStaysEmpty());                // ... and dropped
+
+  // The drop consumed no slot, so a well-sized datagram still lands in slot 0.
+  publishFromCaller(0, "after-drop");
+  std::uint32_t slot = 42;
+  ASSERT_TRUE(pollService(&slot));
+  EXPECT_EQ(0u, slot);
+  EXPECT_EQ("after-drop", serviceSlotPayload(slot));
+
+  cpu_udp_destroy_transceiver(bigCaller);
+}
+
+TEST_F(UdpUnifiedServiceTest, RejectsMisuse) {
+  // The shape cannot be changed under a running transceiver: the pump threads
+  // and the hooks would contend for the same socket and slots.
+  EXPECT_EQ(0, cpu_udp_set_unified(service, 0));
+
+  // Out of range rather than reading past the end of the ring.
+  EXPECT_EQ(0, cpu_udp_tx_publish(service, kNumPages));
+
+  // The hooks are refused on a threaded transceiver, so a consumer that wires
+  // the wrong shape gets a failure rather than a race with the pumps. (The
+  // caller here is connected and pumping, hence has a peer to answer.)
+  std::uint32_t slot = 0;
+  EXPECT_EQ(0, cpu_udp_rx_poll(caller, &slot));
+  EXPECT_EQ(0, cpu_udp_tx_publish(caller, 0));
+
+  EXPECT_EQ(0, cpu_udp_set_unified(nullptr, 1));
+  EXPECT_EQ(0, cpu_udp_rx_poll(nullptr, &slot));
+  EXPECT_EQ(0, cpu_udp_rx_poll(service, nullptr));
+  EXPECT_EQ(0, cpu_udp_tx_publish(nullptr, 0));
+}
+
+TEST(UdpUnifiedLifecycle, PublishNeedsAPeerAndSetUnifiedPrecedesStart) {
+  cpu_udp_transceiver_t xcvr = cpu_udp_create_transceiver(kPageSize, kNumPages);
+  ASSERT_NE(nullptr, xcvr);
+  ASSERT_EQ(1, cpu_udp_set_unified(xcvr, 1));
+  // Unified mode does not remove the need for a socket.
+  EXPECT_EQ(0, cpu_udp_start(xcvr));
+  ASSERT_EQ(1, cpu_udp_bind(xcvr, /*port=*/0));
+  ASSERT_EQ(1, cpu_udp_start(xcvr));
+
+  // Nothing has arrived, so no peer has been learned and there is nowhere to
+  // send a response.
+  EXPECT_EQ(0, cpu_udp_tx_publish(xcvr, 0));
+  // And the mode is now frozen.
+  EXPECT_EQ(0, cpu_udp_set_unified(xcvr, 1));
+
+  cpu_udp_close(xcvr);
+  cpu_udp_destroy_transceiver(xcvr);
 }
 
 } // namespace

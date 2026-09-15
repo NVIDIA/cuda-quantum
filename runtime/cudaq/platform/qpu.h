@@ -15,7 +15,6 @@
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "cudaq/algorithms/policies.h"
-#include "cudaq/remote_capabilities.h"
 
 namespace mlir {
 class Type;
@@ -81,11 +80,6 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return the remote capabilities for this platform.
-  virtual RemoteCapabilities getRemoteCapabilities() const {
-    return RemoteCapabilities(/*initValues=*/false);
-  }
-
   /// Base class handling of shots is do-nothing,
   /// subclasses can handle as they wish
   virtual void setShots(int _nShots) {}
@@ -120,11 +114,6 @@ public:
   virtual void endExecution() {}
 
   virtual void setTargetBackend(const std::string &backend) {}
-
-  virtual void launchVQE(const std::string &name, const void *kernelArgs,
-                         cudaq::gradient *gradient, const cudaq::spin_op &H,
-                         cudaq::optimizer &optimizer, const int n_params,
-                         const std::size_t shots) {}
 
   virtual sample_result launchKernel(const sample_policy &policy,
                                      const CompiledModule &module,

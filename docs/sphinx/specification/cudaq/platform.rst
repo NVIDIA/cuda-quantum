@@ -35,7 +35,6 @@ The :code:`cudaq::quantum_platform`  should take the following structure
       bool is_remote(std::size_t qpu_id = 0) const;
       bool is_emulated(std::size_t qpu_id = 0) const;
       bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
-      RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
       std::string name() const;
 
     };

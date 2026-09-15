@@ -490,15 +490,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   expectOverrideDisabled([&] { platform.reset_noise(); }, "Using noise models");
 }
 
-TEST(QuantumPlatformDisableEndpointOverrideTester,
-     capabilityQueriesThrowWhenEndpointSet) {
-  TestPlatform platform;
-  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
-
-  expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
-                         "get_remote_capabilities");
-}
-
 // The launch preamble queries these on every kernel run, so they must not
 // throw when an endpoint override is set.
 TEST(QuantumPlatformDisableEndpointOverrideTester,
@@ -554,10 +545,9 @@ TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {
   TestPlatform platform(2);
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/1);
 
-  expectOverrideDisabled([&] { platform.get_remote_capabilities(1); },
-                         "get_remote_capabilities");
+  expectOverrideDisabled([&] { platform.get_num_qubits(1); }, "get_num_qubits");
 
-  EXPECT_NO_THROW(platform.get_remote_capabilities(0));
+  EXPECT_NO_THROW(platform.get_num_qubits(0));
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,

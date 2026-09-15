@@ -46,6 +46,10 @@ on:
         type: boolean
         description: Upload a combined all-wheels bundle artifact
         default: true
+      logical_wheel_artifacts:
+        type: string
+        description: Pattern matching cudaq-logical wheel artifacts.
+        default: 'cudaq_logical-*'
 
   workflow_call:
     inputs:
@@ -80,6 +84,10 @@ on:
         type: boolean
         description: Upload a combined all-wheels bundle artifact
         default: true
+      logical_wheel_artifacts:
+        type: string
+        description: Pattern matching cudaq-logical wheel artifacts.
+        default: 'cudaq_logical-*'
     outputs:
       cudaq_version:
         description: "The version of the resolved wheels."
@@ -146,6 +154,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Compute CUDA-Q version
         id: version
@@ -299,6 +309,7 @@ jobs:
       build_devel_wheel: ${{ needs.resolve.outputs.need_devel_build == 'true' }}
       runtime_artifact_name: ${{ needs.resolve.outputs.runtime_artifact_name }}
       run_validation: ${{ inputs.run_validation }}
+      build_logical_wheel: false
 
   metapackage:
     name: Build cudaq metapackage
@@ -314,6 +325,7 @@ jobs:
       python_versions: "['${{ inputs.python_version }}']"
       cuda_versions: "['${{ inputs.cuda_version }}']"
       wheel_artifacts: 'pycudaq-*'
+      logical_wheel_artifacts: ${{ inputs.logical_wheel_artifacts }}
       build_deprecated_package: false
       # Only run the metapackage test job on x86_64
       run_tests: ${{ inputs.run_validation && inputs.platform == 'linux/amd64' }}

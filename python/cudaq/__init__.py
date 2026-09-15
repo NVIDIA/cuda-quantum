@@ -254,6 +254,25 @@ else:
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
 
+# If cudaq-logical is installed, check that it can be imported. Catches cases where cudaq
+# and cudaq-logical are installed in different directories, which is currently not supported.
+try:
+    from . import logical  # noqa: F401
+except ImportError:
+    from importlib.metadata import PackageNotFoundError as _PkgNotFound, distribution as _dist
+    try:
+        _dist("cudaq-logical")
+    except _PkgNotFound:
+        pass
+    else:
+        import warnings as _warnings
+        _warnings.warn(
+            "cudaq-logical is installed but cudaq.logical could not be imported. "
+            "cudaq.logical must live inside the same directory tree as cudaq "
+            "(both wheels installed into the same site-packages, non-editable).",
+            RuntimeWarning,
+            stacklevel=2)
+
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
