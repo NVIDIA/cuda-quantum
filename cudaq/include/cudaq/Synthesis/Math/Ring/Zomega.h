@@ -11,6 +11,7 @@
 #include <cassert>
 #include <complex>
 #include <string>
+#include <utility>
 
 #include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Math/Real.h"
@@ -182,6 +183,16 @@ public:
   Real real() const { return Real(d()) + Real::sqrt2() * Real(c() - a()) / 2; }
 
   Real imag() const { return Real(b()) + Real::sqrt2() * Real(c() + a()) / 2; }
+
+private:
+  Integer &a_mut() noexcept { return _a; }
+  Integer &b_mut() noexcept { return _b; }
+  Integer &c_mut() noexcept { return _c; }
+  Integer &d_mut() noexcept { return _d; }
+
+  friend void mul_by_omega_power_in_place(ZOmega &x, int32_t n);
+  friend void halve_sum_and_difference(ZOmega &z, ZOmega &w, ZOmega &scratch);
+  friend void mul_by_sqrt2_in_place(ZOmega &x, ZOmega &scratch);
 };
 
 //===----------------------------------------------------------------------===//
@@ -198,6 +209,52 @@ inline ZSqrt2 ZSqrt2::from_zomega(const ZOmega &x) {
 //===----------------------------------------------------------------------===//
 // Free functions on ZOmega
 //===----------------------------------------------------------------------===//
+
+/// In-place x *= omega^n.
+inline void mul_by_omega_power_in_place(ZOmega &x, int32_t n) {
+  Integer wrapped;
+  for (int32_t i = 0, rounds = n & 0b111; i < rounds; ++i) {
+    // (a, b, c, d) -> (b, c, d, -a). Each move is an mpz_swap.
+    wrapped = std::move(x.a_mut());
+    x.a_mut() = std::move(x.b_mut());
+    x.b_mut() = std::move(x.c_mut());
+    x.c_mut() = std::move(x.d_mut());
+    mpz_neg(wrapped.get_mpz_t(), wrapped.get_mpz_t());
+    x.d_mut() = std::move(wrapped);
+  }
+}
+
+/// In-place (z, w) <- ((z + w) / 2, (z - w) / 2), for z and w of matching
+/// parity. `scratch` is caller-owned working space.
+inline void halve_sum_and_difference(ZOmega &z, ZOmega &w, ZOmega &scratch) {
+  auto coefficient = [](Integer &zi, Integer &wi, Integer &si) {
+    assert(zi.is_odd() == wi.is_odd() &&
+           "halve_sum_and_difference: sum and difference are not even");
+    mpz_sub(si.get_mpz_t(), zi.get_mpz_t(), wi.get_mpz_t());
+    mpz_add(zi.get_mpz_t(), zi.get_mpz_t(), wi.get_mpz_t());
+    mpz_tdiv_q_2exp(si.get_mpz_t(), si.get_mpz_t(), 1);
+    mpz_tdiv_q_2exp(zi.get_mpz_t(), zi.get_mpz_t(), 1);
+    mpz_swap(wi.get_mpz_t(), si.get_mpz_t());
+  };
+  coefficient(z.a_mut(), w.a_mut(), scratch.a_mut());
+  coefficient(z.b_mut(), w.b_mut(), scratch.b_mut());
+  coefficient(z.c_mut(), w.c_mut(), scratch.c_mut());
+  coefficient(z.d_mut(), w.d_mut(), scratch.d_mut());
+}
+
+/// In-place x *= `sqrt`(2) = omega - omega^3:
+///     (a, b, c, d) -> (b - d, c + a, b + d, c - a).
+/// `scratch` is caller-owned working space.
+inline void mul_by_sqrt2_in_place(ZOmega &x, ZOmega &scratch) {
+  mpz_sub(scratch.a_mut().get_mpz_t(), x.b().get_mpz_t(), x.d().get_mpz_t());
+  mpz_add(scratch.b_mut().get_mpz_t(), x.c().get_mpz_t(), x.a().get_mpz_t());
+  mpz_add(scratch.c_mut().get_mpz_t(), x.b().get_mpz_t(), x.d().get_mpz_t());
+  mpz_sub(scratch.d_mut().get_mpz_t(), x.c().get_mpz_t(), x.a().get_mpz_t());
+  x.a_mut() = std::move(scratch.a_mut());
+  x.b_mut() = std::move(scratch.b_mut());
+  x.c_mut() = std::move(scratch.c_mut());
+  x.d_mut() = std::move(scratch.d_mut());
+}
 
 /// Multiplication by omega = e^(i*pi/4). In the coefficient basis this is a
 /// cyclic left-shift with a sign flip on the wrapped coefficient:
