@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.16.0
+latest
 :::
 
 ::: {role="search"}
@@ -222,6 +222,20 @@
             Matrices](../examples/dem_from_kernel.html#measurement-matrices){.reference
             .internal}
         -   [Limitations](../examples/dem_from_kernel.html#limitations){.reference
+            .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](../examples/rotation_synthesis.html){.reference
+        .internal}
+        -   [Synthesizing a
+            rotation](../examples/rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](../examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](../examples/rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](../examples/rotation_synthesis.html#dependencies){.reference
             .internal}
     -   [Constructing Operators](../examples/operators.html){.reference
         .internal}
@@ -1832,6 +1846,18 @@
             -   [Trajectory and Selection
                 Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth
+            Submodule](../../api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1974,6 +2000,31 @@ what language constructs are supported within quantum kernels, take a
 look at the CUDA-Q
 [[specification]{.doc}](../../specification/cudaq/kernels.html){.reference
 .internal}.
+
+**Why doesn't calling a kernel behave like calling an ordinary function
+or method?**
+
+A kernel does not execute on the same processor as the rest of your
+program: it runs on a QPU, or a simulated QPU, which is a distinct
+processor with its own separate memory space (see the CUDA-Q [[machine
+model]{.doc}](../../specification/cudaq/machine_model.html){.reference
+.internal}). A reference into your program's own memory has no meaning
+there - there is nothing on the QPU side for it to point to.
+
+Because of this, calling a kernel is not quite the same as an ordinary
+function or method call, even though the syntax looks identical. In
+Python, arguments to an ordinary function are passed by reference, so a
+function can mutate the caller's own object; that does not apply to
+kernel arguments - every argument is copied and passed to the kernel by
+value, so changes a kernel makes to its arguments are never visible to
+the caller. Likewise, a kernel's return value is not written back into
+an existing object: the value is produced in the QPU's own memory space
+and used to construct an entirely new object back on the CPU side for
+the interpreter to use, not to update anything in place. C++ kernels
+follow exactly the same pass-by-value rules, so this behavior is
+consistent across every language CUDA-Q supports. See the [[language
+specification]{.doc}](../../specification/cudaq/kernels.html){.reference
+.internal} for the precise rules.
 
 **How do I build and run a quantum kernel?**
 

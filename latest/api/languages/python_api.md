@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.16.0
+latest
 :::
 
 ::: {role="search"}
@@ -236,6 +236,20 @@
             Matrices](../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
             .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](../../using/examples/rotation_synthesis.html){.reference
+        .internal}
+        -   [Synthesizing a
+            rotation](../../using/examples/rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](../../using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](../../using/examples/rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](../../using/examples/rotation_synthesis.html#dependencies){.reference
             .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -1818,6 +1832,16 @@
             -   [Trajectory and Selection
                 Types](#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth Submodule](#synth-submodule){.reference .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](../default_ops.html){.reference .internal}
         -   [Unitary Operations on
             Qubits](../default_ops.html#unitary-operations-on-qubits){.reference
@@ -2159,7 +2183,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.kernel "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[external]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[backend_symbol]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.kernel "Permalink to this definition"){.headerlink}
 
 :   The [`cudaq.kernel`{.code .docutils .literal .notranslate}]{.pre}
     represents the CUDA-Q language function attribute that programmers
@@ -2171,6 +2195,27 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     [`atomic_quantum_region=True`{.code .docutils .literal
     .notranslate}]{.pre} to preserve the boundary around each kernel
     invocation from cross-boundary quantum optimization.
+
+    Set [`external=True`{.code .docutils .literal .notranslate}]{.pre}
+    to declare a quantum operation that the backend implements rather
+    than the compiler. The decorated function is a declaration. It is
+    never compiled, and a call to it from another kernel reaches the
+    backend as a call of [`backend_symbol`{.code .docutils .literal
+    .notranslate}]{.pre} (the function name by default).
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        @cudaq.kernel(external=True)
+        def wait(q: cudaq.qubit, duration: float) -> None:
+            ...
+
+        @cudaq.kernel
+        def kernel(d: float):
+            q = cudaq.qubit()
+            rx(numpy.pi / 2, q)
+            wait(q, d)
+    :::
+    :::
 :::
 
 ::: {#kernel-execution .section}
@@ -3467,7 +3512,9 @@ discriminated bits into an integer.)
 
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_random_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_random_seed "Permalink to this definition"){.headerlink}
 
-:   Provide the seed for backend quantum kernel simulation.
+:   Provide the seed for backend quantum kernel simulation, and for
+    randomized compiler passes such as Clifford+T synthesis. A seed of 0
+    leaves both unseeded.
 :::
 
 ::: {#dynamics .section}
@@ -5997,7 +6044,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0xc084130\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 
@@ -9348,6 +9395,232 @@ with Batch Execution
 
     :   (self) -\> list\[int\]
 :::
+:::
+
+::: {#synth-submodule .section}
+## Synth Submodule[¶](#synth-submodule "Permalink to this heading"){.headerlink}
+
+The [`cudaq.synth`{.docutils .literal .notranslate}]{.pre} submodule
+approximates rotations as Clifford+T gate sequences, providing an
+implementation of the Gridsynth algorithm of Ross and Selinger
+([arXiv:1403.2975](https://arxiv.org/abs/1403.2975){.reference
+.external}). It is not imported with [`cudaq`{.docutils .literal
+.notranslate}]{.pre}, so import it explicitly with [`from`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`cudaq`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`import`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`synth`{.docutils .literal .notranslate}]{.pre}. For a
+usage guide see [[Rotation Synthesis
+(Clifford+T)]{.doc}](../../using/examples/rotation_synthesis.html){.reference
+.internal}.
+
+[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[gridsynth]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[theta]{.pre}]{.n}*, *[[epsilon]{.pre}]{.n}*, *[[max_factoring_iterations]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[500000]{.pre}]{.default_value}*, *[[max_candidate_iterations]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2000000]{.pre}]{.default_value}*, *[[max_factoring_restarts]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[8]{.pre}]{.default_value}*, *[[max_odgp_scan_steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[65536]{.pre}]{.default_value}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[timeout_ms]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[CliffordTSequence]{.pre}](#cudaq.synth.CliffordTSequence "cudaq.synth.CliffordTSequence"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.synth.gridsynth "Permalink to this definition"){.headerlink}
+
+:   Synthesize a Clifford+T sequence approximating R_z(theta).
+
+    Implements the grid-synthesis algorithm of Ross & Selinger
+    [`(arXiv:1403.2975,`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`Algorithm`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`7.6)`{.code .docutils .literal .notranslate}]{.pre}.
+    The returned sequence is in [`Matsumoto-Amano`{.code .docutils
+    .literal .notranslate}]{.pre} normal form with minimum T-count up to
+    the search budgets below. The synthesized unitary U satisfies
+    [`||R_z(theta)`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+    .literal .notranslate}[`-`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`U||`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`<=`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`epsilon`{.docutils .literal .notranslate}]{.pre} in
+    the operator norm.
+
+    How the budgets trade. The search walks a denominator exponent k
+    upward, and at each k enumerates candidate circuits and tests each
+    by factoring an integer. The first candidate that works ends the
+    search. The T-count is [`2k-2`{.docutils .literal
+    .notranslate}]{.pre} or [`2k`{.docutils .literal
+    .notranslate}]{.pre}, so a candidate solved at a smaller k is a
+    strictly shorter circuit. Every budget below bounds work spent on
+    one candidate, so lowering any of them is faster and never produces
+    a shorter circuit.
+
+    Parameters[:]{.colon}
+
+    :   -   **theta** -- Target rotation angle (float, or decimal
+            [`str`{.code .docutils .literal .notranslate}]{.pre} for
+            arbitrary precision).
+
+        -   **epsilon** -- Approximation precision in operator norm,
+            must be \> 0 (float, or [`str`{.code .docutils .literal
+            .notranslate}]{.pre}).
+
+        -   **max_factoring_iterations** -- Pollard-rho iterations one
+            factoring attempt may spend before giving up on its
+            composite. Nearly all synthesis time goes here, and this is
+            the budget that decides when a candidate is abandoned, so it
+            is the one to raise to trade runtime for fewer T gates.
+            Default 500000.
+
+        -   **max_candidate_iterations** -- The same iterations, summed
+            over every factoring attempt made for one candidate. Bounds
+            worst-case time per call, which the two options around it do
+            not. They are per attempt and per composite. Doubling it
+            costs \~1.8x runtime and buys no T gates, so it is a tail
+            control, not a quality one. Default 2000000.
+
+        -   **max_factoring_restarts** -- Consecutive failed factoring
+            attempts allowed on one composite before the candidate is
+            abandoned. Each attempt re-rolls a random parameter, so a
+            retry searches differently rather than repeating. Default 8,
+            already well above the measured need.
+
+        -   **max_odgp_scan_steps** -- Steps one enumeration line scan
+            may take without producing a candidate. Candidates are found
+            by scanning along grid lines, and a line carrying none can
+            be scanned indefinitely. This governs the supply of
+            candidates rather than effort per candidate, so starving it
+            makes synthesis fail rather than return a longer circuit.
+            Default 65536.
+
+        -   **seed** -- Seed for the internal factoring RNG. Default
+            [`None`{.docutils .literal .notranslate}]{.pre} draws from
+            system entropy, so repeated calls explore different
+            factoring attempts and their runtimes can differ by orders
+            of magnitude. Pass an [`int`{.code .docutils .literal
+            .notranslate}]{.pre} to make a run [`replayable`{.code
+            .docutils .literal .notranslate}]{.pre}.
+
+        -   **timeout_ms** -- Optional wall-clock limit on the whole
+            call. Default [`None`{.docutils .literal
+            .notranslate}]{.pre} is the reproducible configuration: the
+            budgets above count work rather than time, so the same
+            inputs do the same work on any machine. An escape hatch, not
+            a tuning knob.
+
+    Returns[:]{.colon}
+
+    :   A [[`CliffordTSequence`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.synth.CliffordTSequence "cudaq.synth.CliffordTSequence"){.reference
+        .internal}. [`str()`{.docutils .literal .notranslate}]{.pre} of
+        the result is the gate string over {H, S, T, X, W} in
+        matrix-multiplication order (see the class [`docstring`{.code
+        .docutils .literal .notranslate}]{.pre});
+        [`to_kernel()`{.docutils .literal .notranslate}]{.pre} builds a
+        CUDA-Q kernel for the sequence.
+
+    Raises[:]{.colon}
+
+    :   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.14)"){.reference
+        .external} -- if theta or epsilon is a string that does not
+        parse as a number, if theta is not finite, if epsilon is not
+        finite and strictly positive, or if synthesis fails (degenerate
+        epsilon region or search space exhausted).
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[rz_error]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[theta]{.pre}]{.n}*, *[[sequence]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.synth.rz_error "Permalink to this definition"){.headerlink}
+
+:   Operator-norm distance between R_z(theta) and a Clifford+T sequence.
+
+    Reconstructs the exact unitary U denoted by [`sequence`{.code
+    .docutils .literal .notranslate}]{.pre} and returns
+    [`||R_z(theta)`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+    .literal .notranslate}[`-`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`U||`{.docutils .literal .notranslate}]{.pre}, the
+    spectral norm (largest singular value) of the difference. This is
+    the same norm [[`gridsynth()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.synth.gridsynth "cudaq.synth.gridsynth"){.reference
+    .internal} measures its [`epsilon`{.code .docutils .literal
+    .notranslate}]{.pre} argument in, so the achieved error of a
+    synthesized sequence can be checked directly:
+
+    ::: {.highlight-default .notranslate}
+    ::: highlight
+        `seq = cudaq.synth.gridsynth(theta, epsilon)`
+        `assert cudaq.synth.rz_error(theta, seq) <= epsilon`
+    :::
+    :::
+
+    Parameters[:]{.colon}
+
+    :   -   **theta** -- Target rotation angle (float, or decimal
+            [`str`{.code .docutils .literal .notranslate}]{.pre} for
+            arbitrary precision).
+
+        -   **sequence** -- A [[`CliffordTSequence`{.xref .py .py-class
+            .docutils .literal
+            .notranslate}]{.pre}](#cudaq.synth.CliffordTSequence "cudaq.synth.CliffordTSequence"){.reference
+            .internal}, or a gate string over {H, S, T, X, W} in
+            matrix-multiplication order. The identity sentinel
+            [`"I"`{.docutils .literal .notranslate}]{.pre} is accepted
+            anywhere and contributes no gate.
+
+    Returns[:]{.colon}
+
+    :   The approximation error as a [`float`{.code .docutils .literal
+        .notranslate}]{.pre}. It is computed at full internal precision
+        and rounded toward zero on conversion.
+
+    Raises[:]{.colon}
+
+    :   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.14)"){.reference
+        .external} -- if theta is a string that does not parse as a
+        number, if theta is not finite, or if [`sequence`{.code
+        .docutils .literal .notranslate}]{.pre} contains a character
+        outside {H, S, T, X, W, I}.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[CliffordTSequence]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[gates]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren}[¶](#cudaq.synth.CliffordTSequence "Permalink to this definition"){.headerlink}
+
+:   An ordered Clifford+T gate sequence approximating an R_z rotation.
+
+    The sequence uses the gate alphabet {H, S, T, X, W}, where H is
+    Hadamard, S is the phase gate (S = T\^2), T is the pi/8 gate, X is
+    Pauli-X, and W is the scalar global-phase gate W = omega \* I with
+    omega = e\^{i\*pi/4}.
+
+    Gates are stored in matrix-multiplication order. The sequence "G0 G1
+    ... Gn-1" denotes the unitary U = G0 \* G1 \* ... \* G(n-1). When
+    read as a circuit (order of application to a state), gates apply
+    right-to-left: G(n-1) first, G0 last.
+
+    [`str(seq)`{.docutils .literal .notranslate}]{.pre} yields the gate
+    string, with the empty (identity) sequence rendered as the single
+    character [`"I"`{.docutils .literal .notranslate}]{.pre}. Iteration,
+    indexing, and [`len`{.docutils .literal .notranslate}]{.pre} operate
+    on the individual gate characters (the identity sequence has length
+    0).
+
+    [[normalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[CliffordTSequence]{.pre}](#cudaq.synth.CliffordTSequence "cudaq.synth.CliffordTSequence"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.synth.CliffordTSequence.normalized "Permalink to this definition"){.headerlink}
+
+    :   Return this sequence in exact [`Matsumoto-Amano`{.code .docutils
+        .literal .notranslate}]{.pre} normal form.
+
+        The result keeps matrix-multiplication order and preserves the
+        full U(2) operator, including scalar W phase factors.
+
+    *[property]{.pre}[ ]{.w}*[[t_count]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}*[¶](#cudaq.synth.CliffordTSequence.t_count "Permalink to this definition"){.headerlink}
+
+    :   Number of T gates in the sequence.
+
+    [[to_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.synth.CliffordTSequence.to_kernel "Permalink to this definition"){.headerlink}
+
+    :   Build a CUDA-Q kernel applying this sequence to a qubit.
+
+        Returns a kernel taking a single qubit argument, suitable for
+        standalone sampling or composition into a larger kernel via
+        [`kernel.apply_call`{.docutils .literal .notranslate}]{.pre}.
 :::
 :::
 :::

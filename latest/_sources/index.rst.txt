@@ -16,7 +16,7 @@ It includes Python and C++ interfaces for quantum programming, compiler toolchai
 and low-level QPU runtimes for detailed hardware control.
 CUDA-Q also provides an open, extensible logical layer for fault-tolerant fault-tolerant
 workloads, Quantum Error Correction (QEC) codes and QPU architecture co-design, currently in preview.
-See the `CUDA-Q Logical <./preview/logical/index.html#http://>`__ for more information.
+See `CUDA-Q Logical <./preview/logical/index.html#http://>`__ for more information.
 
 You are browsing the documentation for |version| version of CUDA-Q. You can find documentation for all released versions :doc:`here <versions>`.
 

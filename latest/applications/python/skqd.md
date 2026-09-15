@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.16.0
+latest
 :::
 
 ::: {role="search"}
@@ -236,6 +236,20 @@
             Matrices](../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
             .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](../../using/examples/rotation_synthesis.html){.reference
+        .internal}
+        -   [Synthesizing a
+            rotation](../../using/examples/rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](../../using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](../../using/examples/rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](../../using/examples/rotation_synthesis.html#dependencies){.reference
             .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -1841,6 +1855,18 @@
             -   [Trajectory and Selection
                 Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth
+            Submodule](../../api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -2510,7 +2536,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![9d0feab3f9194eb994cf7c8731a2e07e](../../_images/speedup.png){.no-scaled-link
+![6dd5ecd06ff847a98991b9fa82cb0257](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2524,9 +2550,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![a1b0cae7d9514f0fb0dc54e14b8dad3f](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![1777a6df077b45f79571409d0a23661c](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![0bd3be85192644098a09f95bf29310ea](../../_images/efficiency.jpeg){.no-scaled-link
+![d6cf8e4b45494828931d927f83e3ffda](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

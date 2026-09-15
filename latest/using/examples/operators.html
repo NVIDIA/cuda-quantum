@@ -34,7 +34,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Optimizing Performance" href="../../examples/python/performance_optimizations.html" />
-    <link rel="prev" title="Detector Error Models" href="dem_from_kernel.html" /> 
+    <link rel="prev" title="Rotation Synthesis (Clifford+T)" href="rotation_synthesis.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,7 +49,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.16.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -223,6 +223,13 @@
 <li class="toctree-l3"><a class="reference internal" href="dem_from_kernel.html#dem-options">DEM Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="dem_from_kernel.html#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="dem_from_kernel.html#limitations">Limitations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rotation_synthesis.html">   Rotation Synthesis (Clifford+T)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#synthesizing-a-rotation">Synthesizing a rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#estimating-the-t-count-of-a-kernel">Estimating the T count of a kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#choosing-epsilon">Choosing epsilon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rotation_synthesis.html#dependencies">Dependencies</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Constructing Operators</a><ul>
@@ -1035,6 +1042,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#synth-submodule">Synth Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.gridsynth"><code class="docutils literal notranslate"><span class="pre">gridsynth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.rz_error"><code class="docutils literal notranslate"><span class="pre">rz_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.synth.CliffordTSequence"><code class="docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -1099,7 +1112,7 @@
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="dem_from_kernel.html" class="btn btn-neutral float-left" title="Detector Error Models" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rotation_synthesis.html" class="btn btn-neutral float-left" title="Rotation Synthesis (Clifford+T)" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-right" title="Optimizing Performance" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -1184,7 +1197,7 @@ appears on the right of the product. Because these Pauli terms do not commute, r
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="dem_from_kernel.html" class="btn btn-neutral float-left" title="Detector Error Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rotation_synthesis.html" class="btn btn-neutral float-left" title="Rotation Synthesis (Clifford+T)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-right" title="Optimizing Performance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

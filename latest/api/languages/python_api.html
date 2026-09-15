@@ -49,7 +49,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.16.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -223,6 +223,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#dem-options">DEM Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/rotation_synthesis.html">   Rotation Synthesis (Clifford+T)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#synthesizing-a-rotation">Synthesizing a rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel">Estimating the T count of a kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#choosing-epsilon">Choosing epsilon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/rotation_synthesis.html#dependencies">Dependencies</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
@@ -1035,6 +1042,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#synth-submodule">Synth Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.synth.gridsynth"><code class="docutils literal notranslate"><span class="pre">gridsynth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.synth.rz_error"><code class="docutils literal notranslate"><span class="pre">rz_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.synth.CliffordTSequence"><code class="docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../default_ops.html">Quantum Operations</a><ul>
@@ -1330,13 +1343,29 @@ and/or return values.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.kernel">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.kernel" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend_symbol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.kernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>The <code class="code docutils literal notranslate"><span class="pre">cudaq.kernel</span></code> represents the CUDA-Q language function attribute that
 programmers leverage to indicate the following function is a CUDA-Q kernel
 and should be compile and executed on an available quantum coprocessor.</p>
 <p>Verbose logging can be enabled via <code class="code docutils literal notranslate"><span class="pre">verbose=True</span></code>. Set
 <code class="code docutils literal notranslate"><span class="pre">atomic_quantum_region=True</span></code> to preserve the boundary around each kernel
 invocation from cross-boundary quantum optimization.</p>
+<p>Set <code class="code docutils literal notranslate"><span class="pre">external=True</span></code> to declare a quantum operation that the backend
+implements rather than the compiler. The decorated function is a
+declaration. It is never compiled, and a call to it from another kernel
+reaches the backend as a call of <code class="code docutils literal notranslate"><span class="pre">backend_symbol</span></code> (the function name by
+default).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">(</span><span class="n">external</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">wait</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">duration</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="o">...</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">rx</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="n">wait</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>
@@ -2088,7 +2117,7 @@ depolarization channel, which has <code class="code docutils literal notranslate
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.set_random_seed">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_random_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.set_random_seed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Provide the seed for backend quantum kernel simulation.</p>
+<dd><p>Provide the seed for backend quantum kernel simulation, and for randomized compiler passes such as Clifford+T synthesis. A seed of 0 leaves both unseeded.</p>
 </dd></dl>
 
 </section>
@@ -3681,7 +3710,7 @@ on multiple degrees of freedom.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.State.from_data">
-<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0xc084130&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -6173,6 +6202,161 @@ allocating shots across trajectories.</p></li>
 </dd></dl>
 
 </section>
+</section>
+<section id="synth-submodule">
+<h2>Synth Submodule<a class="headerlink" href="#synth-submodule" title="Permalink to this heading">¶</a></h2>
+<p id="synth-api">The <code class="docutils literal notranslate"><span class="pre">cudaq.synth</span></code> submodule approximates rotations as Clifford+T gate
+sequences, providing an implementation of the Gridsynth algorithm of Ross and
+Selinger (<a class="reference external" href="https://arxiv.org/abs/1403.2975">arXiv:1403.2975</a>). It is not
+imported with <code class="docutils literal notranslate"><span class="pre">cudaq</span></code>, so import it explicitly with <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">cudaq</span> <span class="pre">import</span>
+<span class="pre">synth</span></code>. For a usage guide see <a class="reference internal" href="../../using/examples/rotation_synthesis.html"><span class="doc">Rotation Synthesis (Clifford+T)</span></a>.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.synth.gridsynth">
+<span class="sig-prename descclassname"><span class="pre">cudaq.synth.</span></span><span class="sig-name descname"><span class="pre">gridsynth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_factoring_iterations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_candidate_iterations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_factoring_restarts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_odgp_scan_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">65536</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.synth.CliffordTSequence" title="cudaq.synth.CliffordTSequence"><span class="pre">CliffordTSequence</span></a></span></span><a class="headerlink" href="#cudaq.synth.gridsynth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Synthesize a Clifford+T sequence approximating R_z(theta).</p>
+<p>Implements the grid-synthesis algorithm of Ross &amp; Selinger
+<code class="code docutils literal notranslate"><span class="pre">(arXiv:1403.2975,</span> <span class="pre">Algorithm</span> <span class="pre">7.6)</span></code>. The returned sequence is in
+<code class="code docutils literal notranslate"><span class="pre">Matsumoto-Amano</span></code> normal form with minimum T-count up to the search
+budgets below. The synthesized unitary U satisfies
+<code class="docutils literal notranslate"><span class="pre">||R_z(theta)</span> <span class="pre">-</span> <span class="pre">U||</span> <span class="pre">&lt;=</span> <span class="pre">epsilon</span></code> in the operator norm.</p>
+<p>How the budgets trade. The search walks a denominator exponent k
+upward, and at each k enumerates candidate circuits and tests each by
+factoring an integer. The first candidate that works ends the search.
+The T-count is <code class="docutils literal notranslate"><span class="pre">2k-2</span></code> or <code class="docutils literal notranslate"><span class="pre">2k</span></code>, so a candidate solved at a smaller
+k is a strictly shorter circuit. Every budget below bounds work spent
+on one candidate, so lowering any of them is faster and never produces
+a shorter circuit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Target rotation angle (float, or decimal <code class="code docutils literal notranslate"><span class="pre">str</span></code> for
+arbitrary precision).</p></li>
+<li><p><strong>epsilon</strong> – Approximation precision in operator norm, must be &gt; 0
+(float, or <code class="code docutils literal notranslate"><span class="pre">str</span></code>).</p></li>
+<li><p><strong>max_factoring_iterations</strong> – Pollard-rho iterations one factoring
+attempt may spend before giving up on its composite. Nearly
+all synthesis time goes here, and this is the budget that
+decides when a candidate is abandoned, so it is the one to
+raise to trade runtime for fewer T gates. Default 500000.</p></li>
+<li><p><strong>max_candidate_iterations</strong> – The same iterations, summed over every
+factoring attempt made for one candidate. Bounds worst-case
+time per call, which the two options around it do not. They
+are per attempt and per composite. Doubling it costs ~1.8x
+runtime and buys no T gates, so it is a tail control, not a
+quality one. Default 2000000.</p></li>
+<li><p><strong>max_factoring_restarts</strong> – Consecutive failed factoring attempts
+allowed on one composite before the candidate is abandoned.
+Each attempt re-rolls a random parameter, so a retry searches
+differently rather than repeating. Default 8, already well
+above the measured need.</p></li>
+<li><p><strong>max_odgp_scan_steps</strong> – Steps one enumeration line scan may take
+without producing a candidate. Candidates are found by
+scanning along grid lines, and a line carrying none can be
+scanned indefinitely. This governs the supply of candidates
+rather than effort per candidate, so starving it makes
+synthesis fail rather than return a longer circuit.
+Default 65536.</p></li>
+<li><p><strong>seed</strong> – Seed for the internal factoring RNG. Default <code class="docutils literal notranslate"><span class="pre">None</span></code> draws
+from system entropy, so repeated calls explore different
+factoring attempts and their runtimes can differ by orders of
+magnitude. Pass an <code class="code docutils literal notranslate"><span class="pre">int</span></code> to make a run <code class="code docutils literal notranslate"><span class="pre">replayable</span></code>.</p></li>
+<li><p><strong>timeout_ms</strong> – Optional wall-clock limit on the whole call. Default
+<code class="docutils literal notranslate"><span class="pre">None</span></code> is the reproducible configuration: the budgets above
+count work rather than time, so the same inputs do the same
+work on any machine. An escape hatch, not a tuning knob.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#cudaq.synth.CliffordTSequence" title="cudaq.synth.CliffordTSequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a>. <code class="docutils literal notranslate"><span class="pre">str()</span></code> of the result is the gate
+string over {H, S, T, X, W} in matrix-multiplication order (see
+the class <code class="code docutils literal notranslate"><span class="pre">docstring</span></code>); <code class="docutils literal notranslate"><span class="pre">to_kernel()</span></code> builds a CUDA-Q kernel for
+the sequence.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – if theta or epsilon is a string that does not parse
+    as a number, if theta is not finite, if epsilon is not finite
+    and strictly positive, or if synthesis fails (degenerate
+    epsilon region or search space exhausted).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.synth.rz_error">
+<span class="sig-prename descclassname"><span class="pre">cudaq.synth.</span></span><span class="sig-name descname"><span class="pre">rz_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#cudaq.synth.rz_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Operator-norm distance between R_z(theta) and a Clifford+T sequence.</p>
+<p>Reconstructs the exact unitary U denoted by <code class="code docutils literal notranslate"><span class="pre">sequence</span></code> and returns
+<code class="docutils literal notranslate"><span class="pre">||R_z(theta)</span> <span class="pre">-</span> <span class="pre">U||</span></code>, the spectral norm (largest singular value) of
+the difference. This is the same norm <a class="reference internal" href="#cudaq.synth.gridsynth" title="cudaq.synth.gridsynth"><code class="xref py py-func docutils literal notranslate"><span class="pre">gridsynth()</span></code></a> measures its
+<code class="code docutils literal notranslate"><span class="pre">epsilon</span></code> argument in, so the achieved error of a synthesized sequence
+can be checked directly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>`seq = cudaq.synth.gridsynth(theta, epsilon)`
+`assert cudaq.synth.rz_error(theta, seq) &lt;= epsilon`
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Target rotation angle (float, or decimal <code class="code docutils literal notranslate"><span class="pre">str</span></code> for
+arbitrary precision).</p></li>
+<li><p><strong>sequence</strong> – A <a class="reference internal" href="#cudaq.synth.CliffordTSequence" title="cudaq.synth.CliffordTSequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a>, or a gate string over
+{H, S, T, X, W} in matrix-multiplication order. The identity
+sentinel <code class="docutils literal notranslate"><span class="pre">&quot;I&quot;</span></code> is accepted anywhere and contributes no gate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The approximation error as a <code class="code docutils literal notranslate"><span class="pre">float</span></code>. It is computed at full
+internal precision and rounded toward zero on conversion.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – if theta is a string that does not parse as a number,
+    if theta is not finite, or if <code class="code docutils literal notranslate"><span class="pre">sequence</span></code> contains a character
+    outside {H, S, T, X, W, I}.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.synth.CliffordTSequence">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.synth.</span></span><span class="sig-name descname"><span class="pre">CliffordTSequence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.synth.CliffordTSequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>An ordered Clifford+T gate sequence approximating an R_z rotation.</p>
+<p>The sequence uses the gate alphabet {H, S, T, X, W}, where H is
+Hadamard, S is the phase gate (S = T^2), T is the pi/8 gate, X is
+Pauli-X, and W is the scalar global-phase gate W = omega * I with
+omega = e^{i*pi/4}.</p>
+<p>Gates are stored in matrix-multiplication order. The sequence
+“G0 G1 … Gn-1” denotes the unitary U = G0 * G1 * … * G(n-1). When
+read as a circuit (order of application to a state), gates apply
+right-to-left: G(n-1) first, G0 last.</p>
+<p><code class="docutils literal notranslate"><span class="pre">str(seq)</span></code> yields the gate string, with the empty (identity)
+sequence rendered as the single character <code class="docutils literal notranslate"><span class="pre">&quot;I&quot;</span></code>. Iteration,
+indexing, and <code class="docutils literal notranslate"><span class="pre">len</span></code> operate on the individual gate characters (the
+identity sequence has length 0).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.synth.CliffordTSequence.normalized">
+<span class="sig-name descname"><span class="pre">normalized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.synth.CliffordTSequence" title="cudaq.synth.CliffordTSequence"><span class="pre">CliffordTSequence</span></a></span></span><a class="headerlink" href="#cudaq.synth.CliffordTSequence.normalized" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return this sequence in exact <code class="code docutils literal notranslate"><span class="pre">Matsumoto-Amano</span></code> normal form.</p>
+<p>The result keeps matrix-multiplication order and preserves the full
+U(2) operator, including scalar W phase factors.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.synth.CliffordTSequence.t_count">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">t_count</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#cudaq.synth.CliffordTSequence.t_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of T gates in the sequence.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.synth.CliffordTSequence.to_kernel">
+<span class="sig-name descname"><span class="pre">to_kernel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.synth.CliffordTSequence.to_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a CUDA-Q kernel applying this sequence to a qubit.</p>
+<p>Returns a kernel taking a single qubit argument, suitable for
+standalone sampling or composition into a larger kernel via
+<code class="docutils literal notranslate"><span class="pre">kernel.apply_call</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 

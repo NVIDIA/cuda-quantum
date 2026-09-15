@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](index.html){.icon .icon-home}
 
 ::: version
-0.16.0
+latest
 :::
 
 ::: {role="search"}
@@ -232,6 +232,20 @@
             Matrices](using/examples/dem_from_kernel.html#measurement-matrices){.reference
             .internal}
         -   [Limitations](using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](using/examples/rotation_synthesis.html){.reference
+        .internal}
+        -   [Synthesizing a
+            rotation](using/examples/rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](using/examples/rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](using/examples/rotation_synthesis.html#dependencies){.reference
             .internal}
     -   [Constructing
         Operators](using/examples/operators.html){.reference .internal}
@@ -1837,6 +1851,18 @@
             -   [Trajectory and Selection
                 Types](api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth
+            Submodule](api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](api/default_ops.html){.reference .internal}
         -   [Unitary Operations on
             Qubits](api/default_ops.html#unitary-operations-on-qubits){.reference
@@ -1957,6 +1983,77 @@ about installing the nightly builds can be found
 
 -   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples){.reference
     .external}
+
+**0.16.0**
+
+This release integrates CUDA-Q Logical version 0.1.1. CUDA-Q Logical
+expands CUDA-Q with an open, extensible logical layer for fault-tolerant
+quantum computing. It provides additional language tools to express and
+compose quantum error correction gadget and understand the resources
+they need to run across different system architectures. For more
+information, see [our
+docs](https://nvidia.github.io/cuda-quantum/0.16.0/preview/logical/index.html){.reference
+.external}.
+
+0.16.0 also adds support for Python 3.14. It improves quantum
+optimization and qubit mapping capabilities, adds support for static
+rotation synthesis, and introduces atomic quantum regions among other
+exciting changes.
+
+-   [Docker
+    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags){.reference
+    .external}
+
+-   [Python wheel](https://pypi.org/project/cudaq/0.16.0){.reference
+    .external}
+
+-   [C++
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.16.0){.reference
+    .external}
+
+-   [CUDA-Q Realtime
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.16.0){.reference
+    .external}
+
+-   [Documentation](https://nvidia.github.io/cuda-quantum/0.16.0){.reference
+    .external}
+
+-   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.16.0/docs/sphinx/examples){.reference
+    .external}
+
+The full change log can be found
+[here](https://github.com/NVIDIA/cuda-quantum/releases/0.16.0){.reference
+.external}.
+
+**0.15.0**
+
+0.15.0 adds support for detectors and observables to CUDA-Q, and builds
+on LLVM 22.
+
+-   [Docker
+    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags){.reference
+    .external}
+
+-   [Python wheel](https://pypi.org/project/cudaq/0.15.0){.reference
+    .external}
+
+-   [C++
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.15.0){.reference
+    .external}
+
+-   [CUDA-Q Realtime
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.15.0){.reference
+    .external}
+
+-   [Documentation](https://nvidia.github.io/cuda-quantum/0.15.0){.reference
+    .external}
+
+-   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.15.0/docs/sphinx/examples){.reference
+    .external}
+
+The full change log can be found
+[here](https://github.com/NVIDIA/cuda-quantum/releases/0.15.0){.reference
+.external}.
 
 **0.14.0**
 

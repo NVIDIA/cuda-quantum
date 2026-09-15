@@ -18,11 +18,13 @@ You can build CUDA-Q Logical against CUDA-Q in two supported ways:
 
 ## Option 1 (default): the `cudaq-devel` wheel
 
-Install the CUDA-Q development wheel into the Python environment you build with,
-then configure with no CUDA-Q-specific flags:
+Obtain the CUDA-Q development wheel `cudaq-devel` for your platform from the
+[latest GitHub Release](https://github.com/NVIDIA/cuda-quantum/releases/latest).
+Then install `cudaq-devel` into the Python environment you build with, and
+configure with no CUDA-Q-specific flags:
 
 ```bash
-pip install cudaq-devel "nanobind<3" "lit<23" cmake ninja
+pip install <path-to-cudaq-devel-wheel> "nanobind<3" "lit<23" cmake ninja
 cmake -S preview/logical -B preview/logical/build -G Ninja
 cmake --build preview/logical/build
 ```

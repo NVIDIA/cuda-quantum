@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.16.0
+latest
 :::
 
 ::: {role="search"}
@@ -214,6 +214,19 @@
             Matrices](dem_from_kernel.html#measurement-matrices){.reference
             .internal}
         -   [Limitations](dem_from_kernel.html#limitations){.reference
+            .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](rotation_synthesis.html){.reference .internal}
+        -   [Synthesizing a
+            rotation](rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](rotation_synthesis.html#dependencies){.reference
             .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
@@ -1815,6 +1828,18 @@
                 .internal}
             -   [Trajectory and Selection
                 Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
+        -   [Synth
+            Submodule](../../api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
                 .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}

@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](#){.icon .icon-home}
 
 ::: version
-0.16.0
+latest
 :::
 
 ::: {role="search"}
@@ -232,6 +232,20 @@
             Matrices](using/examples/dem_from_kernel.html#measurement-matrices){.reference
             .internal}
         -   [Limitations](using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](using/examples/rotation_synthesis.html){.reference
+        .internal}
+        -   [Synthesizing a
+            rotation](using/examples/rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](using/examples/rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](using/examples/rotation_synthesis.html#dependencies){.reference
             .internal}
     -   [Constructing
         Operators](using/examples/operators.html){.reference .internal}
@@ -1837,6 +1851,18 @@
             -   [Trajectory and Selection
                 Types](api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth
+            Submodule](api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](api/default_ops.html){.reference .internal}
         -   [Unitary Operations on
             Qubits](api/default_ops.html#unitary-operations-on-qubits){.reference
@@ -1962,11 +1988,11 @@ quantum programming, compiler toolchains for optimization and hardware
 support and low-level QPU runtimes for detailed hardware control. CUDA-Q
 also provides an open, extensible logical layer for fault-tolerant
 fault-tolerant workloads, Quantum Error Correction (QEC) codes and QPU
-architecture co-design, currently in preview. See the [CUDA-Q
+architecture co-design, currently in preview. See [CUDA-Q
 Logical](./preview/logical/index.html#http://){.reference .external} for
 more information.
 
-You are browsing the documentation for 0.16.0 version of CUDA-Q. You can
+You are browsing the documentation for latest version of CUDA-Q. You can
 find documentation for all released versions
 [[here]{.doc}](versions.html){.reference .internal}.
 
@@ -2041,6 +2067,9 @@ scope and limitations.
         Execution](using/examples/ptsbe.html){.reference .internal}
     -   [Detector Error
         Models](using/examples/dem_from_kernel.html){.reference
+        .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](using/examples/rotation_synthesis.html){.reference
         .internal}
     -   [Constructing
         Operators](using/examples/operators.html){.reference .internal}

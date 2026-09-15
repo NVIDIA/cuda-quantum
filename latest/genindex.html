@@ -44,7 +44,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.16.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -218,6 +218,13 @@
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dem_from_kernel.html#dem-options">DEM Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dem_from_kernel.html#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/rotation_synthesis.html">   Rotation Synthesis (Clifford+T)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#synthesizing-a-rotation">Synthesizing a rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel">Estimating the T count of a kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#choosing-epsilon">Choosing epsilon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/rotation_synthesis.html#dependencies">Dependencies</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/operators.html">   Constructing Operators</a><ul>
@@ -1030,6 +1037,12 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#synth-submodule">Synth Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.synth.gridsynth"><code class="docutils literal notranslate"><span class="pre">gridsynth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.synth.rz_error"><code class="docutils literal notranslate"><span class="pre">rz_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.synth.CliffordTSequence"><code class="docutils literal notranslate"><span class="pre">CliffordTSequence</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/default_ops.html">Quantum Operations</a><ul>
@@ -1307,6 +1320,8 @@
         <li><a href="api/languages/python_api.html#cudaq.SampleResult.clear">(cudaq.SampleResult attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence">CliffordTSequence (class in cudaq.synth)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA">COBYLA (class in cudaq.optimizers)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.coefficient">coefficient (cudaq.operators.boson.BosonOperatorTerm property)</a>
@@ -1584,8 +1599,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringE">cudaq::ExecutionContext::ExecutionContext (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringENSt6size_tENSt6size_tE">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16expectationValueE">cudaq::ExecutionContext::expectationValue (C++ member)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext20explicitMeasurementsE">cudaq::ExecutionContext::explicitMeasurements (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext12futureResultE">cudaq::ExecutionContext::futureResult (C++ member)</a>
@@ -1597,12 +1610,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10kernelNameE">cudaq::ExecutionContext::kernelName (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext11kernelTraceE">cudaq::ExecutionContext::kernelTrace (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext14msm_dimensionsE">cudaq::ExecutionContext::msm_dimensions (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext15msm_prob_err_idE">cudaq::ExecutionContext::msm_prob_err_id (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE">cudaq::ExecutionContext::msm_probabilities (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext4nameE">cudaq::ExecutionContext::name (C++ member)</a>
 </li>
@@ -1617,8 +1624,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext13registerNamesE">cudaq::ExecutionContext::registerNames (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10reorderIdxE">cudaq::ExecutionContext::reorderIdx (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext6resultE">cudaq::ExecutionContext::result (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext5shotsE">cudaq::ExecutionContext::shots (C++ member)</a>
 </li>
@@ -2024,10 +2029,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_damping11num_targetsE">cudaq::phase_damping::num_targets (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channelE">cudaq::phase_flip_channel (C++ class)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channelE">cudaq::phase_flip_channel (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channel14num_parametersE">cudaq::phase_flip_channel::num_parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channel11num_targetsE">cudaq::phase_flip_channel::num_targets (C++ member)</a>
@@ -2268,8 +2273,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12getNumQubitsEv">cudaq::QPU::getNumQubits (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">cudaq::QPU::getRemoteCapabilities (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU11isSimulatorEv">cudaq::QPU::isSimulator (C++ function)</a>
@@ -2362,8 +2365,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform14get_num_qubitsENSt6size_tE">cudaq::quantum_platform::get_num_qubits (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesENSt6size_tE">cudaq::quantum_platform::get_remote_capabilities (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform18get_runtime_targetEv">cudaq::quantum_platform::get_runtime_target (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform11is_emulatedENSt6size_tE">cudaq::quantum_platform::is_emulated (C++ function)</a>
@@ -2373,8 +2374,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform9is_remoteENSt6size_tE">cudaq::quantum_platform::is_remote (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform12is_simulatorENSt6size_tE">cudaq::quantum_platform::is_simulator (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tENSt6size_tE">cudaq::quantum_platform::launchVQE (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14list_platformsEv">cudaq::quantum_platform::list_platforms (C++ function)</a>
 </li>
@@ -2465,14 +2464,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8registryE">cudaq::registry (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8registry14RegisteredTypeE">cudaq::registry::RegisteredType (C++ class)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilitiesE">cudaq::RemoteCapabilities (C++ struct)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb">cudaq::RemoteCapabilities::RemoteCapabilities (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE">cudaq::RemoteCapabilities::stateOverlap (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities3vqeE">cudaq::RemoteCapabilities::vqe (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13RemoteRESTQPUE">cudaq::RemoteRESTQPU (C++ class)</a>
 </li>
@@ -3022,6 +3013,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent">GradientDescent (class in cudaq.optimizers)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.gridsynth">gridsynth() (in module cudaq.synth)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -3315,6 +3308,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel">NoiseModel (class in cudaq)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence.normalized">normalized() (cudaq.synth.CliffordTSequence method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.num_available_gpus">num_available_gpus() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.num_columns">num_columns (cudaq.ComplexMatrix attribute)</a>
@@ -3507,10 +3502,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.resolve_captured_arguments">resolve_captured_arguments() (cudaq.PyKernelDecorator method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Resources">Resources (class in cudaq)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.EstimateResult.resources">resources (cudaq.EstimateResult property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.right_multiply">right_multiply (cudaq.SuperOperator attribute)</a>
@@ -3522,6 +3517,8 @@
       <li><a href="api/languages/python_api.html#cudaq.run_async">run_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.RydbergHamiltonian">RydbergHamiltonian (class in cudaq.operators)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.rz_error">rz_error() (in module cudaq.synth)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -3611,6 +3608,8 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence.t_count">t_count (cudaq.synth.CliffordTSequence property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.t_depth">t_depth (cudaq.Resources property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target">Target (class in cudaq)</a>
@@ -3659,6 +3658,8 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.to_json">(cudaq.operators.spin.SpinOperatorTerm attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.synth.CliffordTSequence.to_kernel">to_kernel() (cudaq.synth.CliffordTSequence method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.to_matrix">to_matrix (cudaq.operators.boson.BosonOperator attribute)</a>
 
       <ul>

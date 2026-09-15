@@ -206,6 +206,9 @@ if (CUDAQ_ENABLE_PYTHON)
   set(DEM_PY_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python/using/examples/dem)
   add_pycudaq_test(DEM_FromKernel dem_from_kernel.py SOURCE_DIR ${DEM_PY_SNIPPET_DIR})
 
+  set(SYNTH_PY_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python/using/examples/synthesis)
+  add_pycudaq_test(Synth_RotationSynthesis rotation_synthesis.py SOURCE_DIR ${SYNTH_PY_SNIPPET_DIR})
+
   if (CUDA_FOUND)
     add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     add_pycudaq_test(EvolveDynamicsStateBatching using/backends/dynamics_state_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)

@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../../index.html){.icon .icon-home}
 
 ::: version
-0.16.0
+latest
 :::
 
 ::: {role="search"}
@@ -232,6 +232,20 @@
             Matrices](../../examples/dem_from_kernel.html#measurement-matrices){.reference
             .internal}
         -   [Limitations](../../examples/dem_from_kernel.html#limitations){.reference
+            .internal}
+    -   [Rotation Synthesis
+        (Clifford+T)](../../examples/rotation_synthesis.html){.reference
+        .internal}
+        -   [Synthesizing a
+            rotation](../../examples/rotation_synthesis.html#synthesizing-a-rotation){.reference
+            .internal}
+        -   [Estimating the T count of a
+            kernel](../../examples/rotation_synthesis.html#estimating-the-t-count-of-a-kernel){.reference
+            .internal}
+        -   [Choosing
+            epsilon](../../examples/rotation_synthesis.html#choosing-epsilon){.reference
+            .internal}
+        -   [Dependencies](../../examples/rotation_synthesis.html#dependencies){.reference
             .internal}
     -   [Constructing
         Operators](../../examples/operators.html){.reference .internal}
@@ -1839,6 +1853,18 @@
             -   [Trajectory and Selection
                 Types](../../../api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
+        -   [Synth
+            Submodule](../../../api/languages/python_api.html#synth-submodule){.reference
+            .internal}
+            -   [[`gridsynth()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.synth.gridsynth){.reference
+                .internal}
+            -   [[`rz_error()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.synth.rz_error){.reference
+                .internal}
+            -   [[`CliffordTSequence`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.synth.CliffordTSequence){.reference
+                .internal}
     -   [Quantum Operations](../../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -2022,9 +2048,9 @@ registered MLIR passes. [`cudaq-translate`{.docutils .literal
 .notranslate}]{.pre} owns the standalone translation path, while
 [`cudaq-target-conf`{.docutils .literal .notranslate}]{.pre} reads
 target configuration for the C++ driver. Representative lit tests are
-grouped under [`cudaq/test/AST-Quake`{.docutils .literal
-.notranslate}]{.pre}, [`cudaq/test/Transforms`{.docutils .literal
-.notranslate}]{.pre}, and [`cudaq/test/Translate`{.docutils .literal
+grouped under [`cudaq/test/Frontend`{.docutils .literal
+.notranslate}]{.pre}, [`cudaq/test/Optimizer`{.docutils .literal
+.notranslate}]{.pre}, and [`cudaq/test/CodeGen`{.docutils .literal
 .notranslate}]{.pre}. Python MLIR regression tests are under
 [`python/tests/mlir`{.docutils .literal .notranslate}]{.pre}, with
 broader frontend behavior tested under [`python/tests/kernel`{.docutils

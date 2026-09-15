@@ -263,9 +263,11 @@ breaks in confusing ways.</p>
 <p>You can build CUDA-Q Logical against CUDA-Q in two supported ways:</p>
 <section id="option-1-default-the-cudaq-devel-wheel">
 <h2>Option 1 (default): the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel<a class="headerlink" href="#option-1-default-the-cudaq-devel-wheel" title="Link to this heading"></a></h2>
-<p>Install the CUDA-Q development wheel into the Python environment you build with,
-then configure with no CUDA-Q-specific flags:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cudaq-devel<span class="w"> </span><span class="s2">"nanobind&lt;3"</span><span class="w"> </span><span class="s2">"lit&lt;23"</span><span class="w"> </span>cmake<span class="w"> </span>ninja
+<p>Obtain the CUDA-Q development wheel <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> for your platform from the
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/latest">latest GitHub Release</a>.
+Then install <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> into the Python environment you build with, and
+configure with no CUDA-Q-specific flags:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>&lt;path-to-cudaq-devel-wheel&gt;<span class="w"> </span><span class="s2">"nanobind&lt;3"</span><span class="w"> </span><span class="s2">"lit&lt;23"</span><span class="w"> </span>cmake<span class="w"> </span>ninja
 cmake<span class="w"> </span>-S<span class="w"> </span>preview/logical<span class="w"> </span>-B<span class="w"> </span>preview/logical/build<span class="w"> </span>-G<span class="w"> </span>Ninja
 cmake<span class="w"> </span>--build<span class="w"> </span>preview/logical/build
 </pre></div>
