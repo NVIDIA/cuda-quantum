@@ -22,7 +22,7 @@ import numpy as np
 # Testing constants
 good_access_token = "Bearer good_access_token"
 
-bad_qubits_prx = ["QB2", "QB3"]
+bad_qubits_prx = []
 """
 To simulate a QPU with an imperfect calibration this list can be used to
 deliberately exclude `prx` gates from the dynamic quantum architecture.
@@ -402,7 +402,7 @@ def _simulate_circuit(instructions: list[iqm_client.Instruction],
         ms: int(np.round(np.real(prob * shots))) for ms, prob in zip(
             _generate_measurement_strings(len(measurement_qubits_positions)),
             probabilities,
-        ) # if np.real(prob * shots) >= 1  # to suppress < 1 shots occurrences
+        )  # if np.real(prob * shots) >= 1  # to suppress < 1 shots occurrences
     }, measurement_keys
 
 
@@ -529,7 +529,8 @@ async def get_job_status(job_id: str, request: Request):
         "runtime_ms":
             None,
         "status":
-            "completed" if job.status == iqm_client.Status.READY else job.status,
+            "completed"
+            if job.status == iqm_client.Status.READY else job.status,
         "message":
             job.result.message if job.result and job.result.message else None,
         "counts_batch":

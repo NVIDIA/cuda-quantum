@@ -46,7 +46,7 @@ add_test(NAME iqm-dqa-tests COMMAND bash IQMStartServerAndTest.sh test_iqm_dqa W
 set_property(TEST iqm-dqa-tests PROPERTY SKIP_RETURN_CODE 77)
 
 
-## Tests around split topology handling
+## Tests of split-topology handling
 configure_file(dqa_crystal-20_split10-10.txt.in
                dqa_crystal-20_split10-10.txt
                NO_SOURCE_PERMISSIONS COPYONLY)

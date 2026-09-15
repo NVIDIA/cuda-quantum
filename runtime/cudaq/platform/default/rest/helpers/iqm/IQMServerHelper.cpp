@@ -372,9 +372,8 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     try {
       ServerMessage job_payload;
 
-      job_payload = client.get(
-          iqmServerUrl,
-          "api/v1/jobs/" + jobId + "/payload", headers);
+      job_payload = client.get(iqmServerUrl,
+                               "api/v1/jobs/" + jobId + "/payload", headers);
       CUDAQ_DBG("got payload: {}", job_payload.dump());
 
       nlohmann::json mkey2qubit;

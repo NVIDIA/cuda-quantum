@@ -20,20 +20,20 @@ The following settings can be configured:
 | Setting               | Environment          | Python                            | C++                        |
 |                       | (variable name)      | (parameter to cudaq.set_target()) | (option to nvq++)          |
 +=======================+======================+===================================+============================+
-| IQM Server URL        | IQM_SERVER_URL       | url                               | ``--iqm-server-url``       |
+| IQM Server URL        | IQM_SERVER_URL       | ``url``                           | ``--iqm-server-url``       |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
-| IQM Quantum Computer  | IQM_QC               | qc                                | ``--iqm-quantum-computer`` |
+| IQM Quantum Computer  | IQM_QC               | ``qc``                            | ``--iqm-quantum-computer`` |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
 | API token             | IQM_TOKEN            |                                   |                            |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
 | Token file            | IQM_TOKENS_FILE      |                                   |                            |
 | (deprecated)          |                      |                                   |                            |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
-| load QPU architecture | IQM_QPU_QA           | mapping_file                      |                            |
+| load QPU architecture | IQM_QPU_QA           | ``mapping_file``                  |                            |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
 | save QPU architecture | IQM_SAVE_QPU_QA      |                                   |                            |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
-| Emulation mode        |                      | emulate                           | ``--emulate``              |
+| Emulation mode        |                      | ``emulate``                       | ``--emulate``              |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
 
 Please note that any value in an environment variable takes precedence over any value for the same setting in the code or at compile time.

@@ -34,7 +34,6 @@ void readConfig(std::string ref_filename, std::vector<std::string> &config) {
   }
 }
 
-
 bool configureMockServer(std::string ref_filename) {
   std::vector<std::string> config;
   readConfig(ref_filename, config);
@@ -42,8 +41,7 @@ bool configureMockServer(std::string ref_filename) {
 
   cpr::Response r;
   r = cpr::Get(cpr::Url{"http://0.0.0.0:62443/config/qa/qpu"},
-               cpr::Parameters{{"qpu", config[0]}},
-               cpr::Bearer{api_token});
+               cpr::Parameters{{"qpu", config[0]}}, cpr::Bearer{api_token});
   if (r.status_code != 200) {
     return false;
   }
@@ -69,7 +67,6 @@ bool configureMockServer(std::string ref_filename) {
   return true;
 }
 
-
 bool compareDQA(std::string ref_filename, std::string dqa_filename) {
   std::ifstream ref_file(ref_filename);
   std::ifstream dqa_file(dqa_filename);
@@ -93,7 +90,6 @@ bool compareDQA(std::string ref_filename, std::string dqa_filename) {
   }
   return ref_file.eof() && dqa_file.eof();
 }
-
 
 void runRefFile(std::string ref_filename) {
   bool status = configureMockServer(ref_filename);
@@ -169,7 +165,6 @@ CUDAQ_TEST(IQMTester, crystal_54_hsnake50) {
 CUDAQ_TEST(IQMTester, crystal_54_vsnake49) {
   runRefFile("dqa_crystal-54_vsnake49.txt");
 }
-
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
