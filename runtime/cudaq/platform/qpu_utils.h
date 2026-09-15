@@ -21,6 +21,7 @@
 
 namespace cudaq {
 class Executor;
+class QuantumExecutionQueue;
 class ServerHelper;
 namespace config {
 class TargetConfig;
@@ -69,6 +70,18 @@ void initServerHelperAndExecutor(
     const config::TargetConfig &targetConfig,
     owning_ptr<ServerHelper> &serverHelper,
     std::unique_ptr<Executor> &executor);
+
+/// @brief Add an execution queue to the process-wide registry.
+void registerExecutionQueue(QuantumExecutionQueue &queue);
+
+/// @brief Remove an execution queue from the process-wide registry.
+void unregisterExecutionQueue(QuantumExecutionQueue &queue);
+
+/// @brief Shut down every execution queue alive in this process.
+///
+/// Note: Queues are reached directly rather than through the current platform:
+/// changing targets leaves previous platforms alive with their queues loaded.
+void shutdownExecutionQueues();
 } // namespace detail
 
 } // namespace cudaq

@@ -1,0 +1,71 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Direct source predicates must be copied to all replacement gates and to the
+// phase correction. Both the explicit form and its late lowering are exact.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | FileCheck %s --check-prefix=PHASE
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not='quake.phase ('
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | CircuitCheck %s
+
+func.func @positive(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 4.560000e-01 : f64
+  quake.r1 (%theta) [%control] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @negative(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 7.890000e-01 : f64
+  quake.r1 (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @negative_adjoint(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 1.234000e+00 : f64
+  quake.r1<adj> (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @mixed_controls(%positive: !quake.ref, %negative: !quake.ref,
+                          %target: !quake.ref) {
+  %theta = arith.constant 9.870000e-01 : f64
+  quake.r1 (%theta) [%positive, %negative neg [false, true]] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// PHASE-LABEL: func.func @positive
+// PHASE-COUNT-3: quake.phased_rx {{.*}}[%{{.*}}]
+// PHASE: quake.phase {{.*}}[%{{.*}}]
+// PHASE-LABEL: func.func @negative
+// PHASE-COUNT-3: quake.phased_rx {{.*}} neg [true]
+// PHASE: quake.phase {{.*}} neg [true]
+// PHASE-LABEL: func.func @negative_adjoint
+// PHASE-COUNT-3: quake.phased_rx {{.*}} neg [true]
+// PHASE: quake.phase {{.*}} neg [true]
+
+// PHASE-LABEL: func.func @mixed_controls
+// PHASE-COUNT-3: quake.phased_rx {{.*}} neg [false, true]
+// PHASE: quake.phase {{.*}} neg [false, true]
+
+// LOWER-LABEL: func.func @positive
+// LOWER: quake.r1
+// LOWER-LABEL: func.func @negative
+// LOWER: quake.x
+// LOWER: quake.r1
+// LOWER: quake.x
+// LOWER-LABEL: func.func @negative_adjoint
+// LOWER: quake.x
+// LOWER: quake.r1
+// LOWER: quake.x
+
+// LOWER-LABEL: func.func @mixed_controls
+// LOWER: quake.r1

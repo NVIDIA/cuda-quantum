@@ -5,6 +5,11 @@ on:
   # triggers the workflow.
   workflow_dispatch:
     inputs:
+      run_validation_after:
+        type: boolean
+        description: When this deployment completes successfully, also trigger the Validation workflow.
+        required: false
+        default: true
       update_registry_cache:
         type: boolean
         description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
@@ -35,11 +40,6 @@ on:
         description: Build and include macOS wheels and installer.
         required: false
         default: true
-      run_publishing_after:
-        type: boolean
-        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
-        required: false
-        default: false
   workflow_run:
     workflows:
       - PR merged
@@ -167,17 +167,6 @@ jobs:
           path: deployment_info.txt
           retention-days: 30
           if-no-files-found: error
-
-      - name: Upload publishing flag
-        if: github.event_name == 'workflow_dispatch'
-        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
-      - name: Upload publishing_requested artifact
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v7
-        with:
-          name: publishing_requested
-          path: publishing_requested.txt
-          retention-days: 1
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -520,7 +509,8 @@ jobs:
 
   docker_images:
     name: Create Docker images
-    needs: [metadata, config, ext_config]
+    # `cudaq.logical` wheels must finish building and testing before images are published.
+    needs: [metadata, config, ext_config, python_wheels]
     if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
@@ -538,8 +528,10 @@ jobs:
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
       cudaq_enable_projects: 'cudaq;runtime;python;realtime'
+      include_logical: true
       build_docs: ${{ matrix.cuda_version == '12.6' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
       environment: ghcr-deployment
+      run_validation: false # validation runs in the Validation workflow
 
   digest_config:
     name: Aggregate digests
@@ -576,6 +568,10 @@ jobs:
 
     environment: ghcr-deployment
 
+    # The secrets context is unavailable in a step-level if, so mirror it to env.
+    env:
+      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -598,11 +594,12 @@ jobs:
           password: ${{ github.token }}
 
       - name: Log in to NGC
+        if: env.NGC_CREDENTIALS != ''
         uses: docker/login-action@v4
         with:
           registry: nvcr.io
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_CREDENTIALS }}
+          password: ${{ env.NGC_CREDENTIALS }}
 
       - name: metadata for jobs
         id: metadata
@@ -688,7 +685,7 @@ jobs:
 
           is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
           has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
-          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
+          push_to_ngc=`${{ secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
 
           echo "push to NGC? $push_to_ngc"
 
@@ -712,9 +709,6 @@ jobs:
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
-          suffix="-base"
-          image_tag="${image_tag}${suffix}"
-
           stitched_tag="${registry}:${image_tag}"
 
           echo "Stitching release image with tag: $stitched_tag"
@@ -723,7 +717,7 @@ jobs:
           retry docker buildx imagetools create --tag "$stitched_tag" $refs
           digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
-          stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "release-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
           echo "$stitched_output" | tee stitched_digests.json
 
       - name: Read stitched_digests.json
@@ -799,7 +793,7 @@ jobs:
           artifact_name="image_cu${cuda_major}_publishing"            
           info_file="$artifact_name.txt"
 
-          key="base-cu${cuda_major}"
+          key="release-cu${cuda_major}"
           cudaq_reference=$(echo "$STITCHED_CUDAQ_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
           key="dev-cu${cuda_major}"
@@ -819,7 +813,6 @@ jobs:
             echo "cuda-quantum-devdeps-image: ${devdeps_reference}"
             echo "platforms: ${platforms}"
             echo "cuda-version: ${cuda}"
-            cat .github/workflows/config/gitlab_commits.txt
           } | tee "$info_file"
           echo "Created $info_file"
 
@@ -834,10 +827,35 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  python_wheels:
-    name: Create Python wheels
+  # Build the devel wheel first so that all jobs in the `python_wheels` matrix can reuse it
+  python_devel_wheel:
+    name: Create shared Python development wheel (${{ matrix.platform }})
     needs: [metadata, config]
     if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      python_version: "3.11"
+      cuda_version: "13.0"
+      devdeps_image:
+        ${{
+        fromJson(needs.config.outputs.json).image_hash[format('{0}-cu13.0-python',
+        matrix.platform)] }}
+      build_runtime_wheel: false
+      build_devel_wheel: true
+      run_validation: false # validation runs in the Validation workflow
+
+  python_wheels:
+    name: Create Python wheels
+    needs: [metadata, config, python_devel_wheel]
+    if: ${{ !cancelled() && ! inputs.devcontainer_only && needs.metadata.result == 'success' && needs.config.result == 'success' }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -854,6 +872,13 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
+      run_validation: false # validation runs in the Validation workflow
+      # cudaq-devel-<platform> is deterministic (build-wheel-in-docker: "the
+      # devel wheel is CUDA- and Python-agnostic"), so this is constructed
+      # directly rather than read from needs.python_devel_wheel.outputs --
+      # that output is ambiguous across a matrixed job's instances.
+      devel_artifact_name: cudaq-devel-${{ matrix.platform }}
+      build_logical_wheel: ${{ matrix.cuda_version == '13.0' }}
 
   binaries:
     name: Create CUDA Quantum installer
@@ -875,6 +900,27 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment
+      run_validation: false # validation runs in the Validation workflow
+
+  realtime_binaries:
+    name: Create CUDA Quantum Realtime installer
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && ! inputs.devcontainer_only
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/realtime_prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ matrix.platform }}
+      cuda_version: ${{ matrix.cuda_version }}
+      environment: ghcr-deployment
 
   macos_ci:
     name: macOS CI
@@ -887,15 +933,16 @@ jobs:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
       cudaq_version: ${{ inputs.create_release }}
 
-  trigger_publishing:
-    name: Trigger Publishing
-    needs: [summary, python_wheels, binaries]
-    if: inputs.run_publishing_after
+  # Dispatches validation.yml with an explicit ref, not main (see there).
+  trigger_validation:
+    name: Trigger Validation
+    needs: [summary, python_wheels, binaries, realtime_binaries]
+    if: inputs.run_validation_after
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
-      - name: Trigger Publishing workflow
+      - name: Trigger Validation workflow
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -904,7 +951,7 @@ jobs:
             const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'publishing.yml',
+              workflow_id: 'validation.yml',
               ref: context.ref.replace('refs/heads/', ''),
               inputs: {
                 deployment_id: context.runId.toString(),

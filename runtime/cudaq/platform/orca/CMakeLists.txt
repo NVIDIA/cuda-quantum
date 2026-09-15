@@ -33,6 +33,7 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-platform-default
     cudaqMLIR)
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)
 
 add_target_config(orca)

@@ -7,10 +7,15 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -19,6 +24,9 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
+#include <cmath>
+#include <limits>
 #include <unordered_set>
 
 using namespace mlir;
@@ -60,6 +68,50 @@ static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   return success();
 }
 
+// Verify invariants shared by Quake operators: control polarity metadata must
+// align with control operands, and value-form wire results must remain linear.
+static LogicalResult
+verifyOperator(cudaq::quake::OperatorInterface operatorInterface) {
+  auto controlPolarities = operatorInterface.getNegatedControls();
+  if (controlPolarities &&
+      controlPolarities->size() != operatorInterface.getControls().size())
+    return operatorInterface->emitOpError(
+        "control polarity count must match control operand count");
+  return verifyWireResultsAreLinear(operatorInterface.getOperation());
+}
+
+static std::optional<std::size_t> checkedAdd(std::size_t lhs, std::size_t rhs) {
+  if (std::numeric_limits<std::size_t>::max() - lhs < rhs)
+    return std::nullopt;
+  return lhs + rhs;
+}
+
+// Return the total number of target qubits when every target has a known size.
+// Target operand count is insufficient because one fixed-size aggregate operand
+// may represent multiple qubits. With dynamic sizes, the count is unknown.
+static std::optional<std::size_t> getStaticTargetQubitCount(Value target) {
+  if (auto count = cudaq::quake::getQubitCount(target.getType()))
+    return count;
+  if (auto relaxOp = target.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    return getStaticTargetQubitCount(relaxOp.getInputVec());
+  return std::nullopt;
+}
+
+static std::optional<std::size_t>
+getStaticTargetQubitCount(ValueRange targets) {
+  std::size_t count = 0;
+  for (Value target : targets) {
+    auto targetCount = getStaticTargetQubitCount(target);
+    if (!targetCount)
+      return std::nullopt;
+    auto updatedCount = checkedAdd(count, *targetCount);
+    if (!updatedCount)
+      return std::nullopt;
+    count = *updatedCount;
+  }
+  return count;
+}
+
 /// When a quake operation is in value form, the number of wire arguments (wire
 /// arity) must be the same as the number of wires returned as results (wire
 /// coarity). This function verifies that this property is true.
@@ -87,7 +139,7 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, ResetOp, SinkOp,
-             ReturnWireOp>(op);
+             ReturnWireOp, EvinceOp>(op);
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {
@@ -117,6 +169,63 @@ ValueRange cudaq::quake::getQuantumResults(Operation *op) {
 
 ValueRange cudaq::quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
+}
+
+/// Collect the quantum operands that may thread a wire, controls before
+/// targets, together with the wire results they map onto.
+static std::optional<cudaq::quake::detail::ScalarWireFlow>
+getWireFlowOperands(Operation *operation) {
+  cudaq::quake::detail::ScalarWireFlow flow;
+  if (auto quantumOperator =
+          dyn_cast<cudaq::quake::OperatorInterface>(operation)) {
+    llvm::append_range(flow.inputs, quantumOperator.getControls());
+    llvm::append_range(flow.inputs, quantumOperator.getTargets());
+    llvm::append_range(flow.results, quantumOperator.getWires());
+  } else if (auto measurement =
+                 dyn_cast<cudaq::quake::MeasurementInterface>(operation)) {
+    llvm::append_range(flow.inputs, measurement.getTargets());
+    llvm::append_range(flow.results, measurement.getWires());
+  } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(operation)) {
+    flow.inputs.push_back(reset.getTargets());
+    llvm::append_range(flow.results, reset.getWires());
+  } else {
+    return std::nullopt;
+  }
+  return flow;
+}
+
+std::optional<cudaq::quake::detail::ScalarWireFlow>
+cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
+  if (operation->getNumRegions() != 0 || operation->getNumSuccessors() != 0)
+    return std::nullopt;
+  if (!isMemoryEffectFree(operation))
+    return std::nullopt;
+
+  auto flow = getWireFlowOperands(operation);
+  if (!flow)
+    return std::nullopt;
+
+  auto isScalarWire = [](Value value) {
+    return isa<WireType>(value.getType());
+  };
+  if (flow->inputs.size() != flow->results.size() ||
+      !llvm::all_of(flow->inputs, isScalarWire) ||
+      !llvm::all_of(flow->results, isScalarWire))
+    return std::nullopt;
+  return flow;
+}
+
+std::optional<cudaq::quake::detail::ScalarWireFlow>
+cudaq::quake::detail::getThreadedWireFlow(Operation *operation) {
+  auto flow = getWireFlowOperands(operation);
+  if (!flow)
+    return std::nullopt;
+
+  llvm::erase_if(flow->inputs,
+                 [](Value value) { return !isa<WireType>(value.getType()); });
+  if (flow->inputs.size() != flow->results.size())
+    return std::nullopt;
+  return flow;
 }
 
 LogicalResult cudaq::quake::setQuantumOperands(Operation *op,
@@ -165,6 +274,11 @@ LogicalResult cudaq::quake::AllocaOp::verify() {
     if (resTy.hasSpecifiedSize()) {
       if (getSize())
         return emitOpError("unexpected size operand");
+      // Make a check consistent with below in this case. Same TODO comment
+      // applies here.
+      std::int64_t specSize = resTy.getSize();
+      if (specSize < 0)
+        return emitOpError("expected a non-negative integer size.");
     } else {
       if (auto size = getSize()) {
         if (auto cnt =
@@ -205,7 +319,8 @@ void cudaq::quake::AllocaOp::getCanonicalizationPatterns(
   // Use a canonicalization pattern as folding the constant into the veq type
   // changes the type. Uses may still expect a veq with unspecified size.
   // Folding is strictly reductive and doesn't allow the creation of ops.
-  patterns.add<FuseConstantToAllocaPattern>(context);
+  patterns.add<ReplaceZeroSizeAllocaPattern, FuseConstantToAllocaPattern>(
+      context);
 }
 
 cudaq::quake::InitializeStateOp cudaq::quake::AllocaOp::getInitializedState() {
@@ -215,6 +330,11 @@ cudaq::quake::InitializeStateOp cudaq::quake::AllocaOp::getInitializedState() {
     return dyn_cast<cudaq::quake::InitializeStateOp>(*x);
   }
   return {};
+}
+
+void cudaq::quake::DeallocOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseEmptyVeqDeallocPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -230,7 +350,9 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
       return emitOpError("callee must be declared");
     asSig = fn.getFunctionType();
   } else {
-    Value callable = getIndirectCallee().front();
+    Value callable = getIndirectCallee();
+    if (!callable)
+      return emitOpError("must have a callee or an indirect callee");
     asSig = cast<cudaq::cc::CallableType>(callable.getType()).getSignature();
   }
 
@@ -244,31 +366,125 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
     return emitOpError("number of arguments must be consistent");
   }
 
-  // Quantum reference type values are allowed to implicitly coerce to a relaxed
-  // veq type when they appear as arguments to a `quake.apply` op. Specifically,
-  // lowering the apply op is required to add a `quake.concat` op to manifest
-  // the type conversion.
-  auto isRelaxedVeq = [](Type ty1, Type ty2) {
-    if (auto veq2 = dyn_cast<cudaq::quake::VeqType>(ty2))
-      return cudaq::quake::isQuantumReferenceType(ty1) &&
-             !veq2.hasSpecifiedSize();
+  // Type compatibility rules for quake.apply arguments and results:
+  //
+  //   (a) Any quantum reference type (ref, veq, struq) may coerce to an
+  //       unsized veq<?>.  The lowering inserts a concat op to manifest the
+  //       conversion.  (pre-existing rule)
+  //
+  //   (b) A wire actual may be used where the formal parameter is a ref.
+  //       wire and ref both represent a single qubit; wire is the linear-type
+  //       (value-semantic) counterpart of ref (reference-semantic).
+  //
+  //   (c) A cable<N> actual may be used where the formal parameter is a
+  //       veq<N> or an unsized veq<?>.  cable<N> is the linear-type
+  //       counterpart of veq<N>.
+  //
+  // For rules (b) and (c), because wire and cable are linear types they must
+  // appear in the result list.  The result signature of a wire/cable apply is:
+  //
+  //   [formal results of callee] ++ [linear actuals, left-to-right]
+  //
+  auto isCompatible = [](Type actual, Type formal) -> bool {
+    // (a) quantum ref/veq/struq → unsized veq.  Only return true here; if
+    // actual is not a reference type fall through so case (c) can handle
+    // cable → veq<?> without being blocked by this branch.
+    if (auto veqFormal = dyn_cast<cudaq::quake::VeqType>(formal))
+      if (!veqFormal.hasSpecifiedSize())
+        if (cudaq::quake::isQuantumReferenceType(actual))
+          return true;
+    // (b) wire → ref  /  control → ref
+    // Both wire and control represent a single qubit in value-semantic form.
+    // wire is linear (must be returned); control is not linear (may be reused).
+    if ((isa<cudaq::quake::WireType>(actual) ||
+         isa<cudaq::quake::ControlType>(actual)) &&
+        isa<cudaq::quake::RefType>(formal))
+      return true;
+    // (c) cable<N> → veq<N> or unsized veq<?>
+    if (isa<cudaq::quake::CableType>(actual)) {
+      if (auto veqFormal = dyn_cast<cudaq::quake::VeqType>(formal))
+        return !veqFormal.hasSpecifiedSize() ||
+               cudaq::quake::getWireCount(actual) ==
+                   cudaq::quake::getAllocationSize(formal);
+      // (d) cable<N> → struq, provided the struq's constant member sizes sum
+      // to N. Like (c), the individual wires making up the cable become the
+      // wrapped refs threaded into the struq's ref/veq members.
+      if (isa<cudaq::quake::StruqType>(formal))
+        return cudaq::quake::isConstantQuantumRefType(formal) &&
+               cudaq::quake::getWireCount(actual) ==
+                   cudaq::quake::getAllocationSize(formal);
+    }
     return false;
   };
 
   SmallVector<Type> actualTypes{getActuals().getTypes().begin() +
                                     (callingCallable ? 1 : 0),
                                 getActuals().getTypes().end()};
-  // The args are the formal arguments and they must match.
-  for (auto [ty1, ty2] : llvm::zip(actualTypes, asSig.getInputs()))
-    if (ty1 != ty2 && !isRelaxedVeq(ty1, ty2))
-      return emitOpError("argument types must match");
 
-  // The results are the formal results and they must match.
-  for (auto [ty1, ty2] : llvm::zip(getResultTypes(), asSig.getResults()))
-    if (ty1 != ty2 && !isRelaxedVeq(ty1, ty2))
-      return emitOpError("result types must match");
+  // Validate argument types against the formal signature.
+  for (auto [actual, formal] : llvm::zip(actualTypes, asSig.getInputs()))
+    if (actual != formal && !isCompatible(actual, formal))
+      return emitOpError("argument types must be compatible with callee");
+
+  // Collect linear-type controls.  Wire/cable controls are linear and must be
+  // returned so the caller can recover them after the apply.
+  SmallVector<Type> linearCtrlTypes;
+  for (Type ty : getControls().getTypes())
+    if (cudaq::quake::isLinearType(ty))
+      linearCtrlTypes.push_back(ty);
+
+  // Collect the linear-type actuals to coerce them to reference types.  If the
+  // formal parameter is already a linear type, the value is passed through
+  // directly and the function's own declared results must already carry it.
+  SmallVector<Type> linearActualTypes;
+  for (auto [actual, formal] : llvm::zip(actualTypes, asSig.getInputs()))
+    if (cudaq::quake::isLinearType(actual) &&
+        !cudaq::quake::isLinearType(formal))
+      linearActualTypes.push_back(actual);
+
+  // The result layout is:
+  //   [ formal callee results ]
+  //   [ linear controls from left to right ]
+  //   [ coerced linear actuals from left to right ]
+  unsigned formalResultCount = asSig.getResults().size();
+  unsigned expectedResultCount =
+      formalResultCount + linearCtrlTypes.size() + linearActualTypes.size();
+  if (getResultTypes().size() != expectedResultCount)
+    return emitOpError("result count (")
+           << getResultTypes().size() << ") must equal formal results ("
+           << formalResultCount << ") + linear controls ("
+           << linearCtrlTypes.size() << ") + linear actuals ("
+           << linearActualTypes.size() << ")";
+
+  // Validate formal result types (first formalResultCount results).
+  TypeRange allResults(getResultTypes());
+  for (auto [result, formal] :
+       llvm::zip(allResults.take_front(formalResultCount), asSig.getResults()))
+    if (result != formal && !isCompatible(result, formal))
+      return emitOpError("result types must match callee return types");
+
+  // Validate linear-control results.
+  for (auto [result, ctrl] :
+       llvm::zip(allResults.slice(formalResultCount, linearCtrlTypes.size()),
+                 linearCtrlTypes))
+    if (result != ctrl)
+      return emitOpError(
+          "appended result types must match linear-type controls in order");
+
+  // Validate appended linear-actual results.
+  for (auto [result, linear] : llvm::zip(
+           allResults.drop_front(formalResultCount + linearCtrlTypes.size()),
+           linearActualTypes))
+    if (result != linear)
+      return emitOpError(
+          "appended result types must match linear-type actuals in order");
 
   return success();
+}
+
+void cudaq::quake::ApplyOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseApplyEmptyVeqControlPattern>(context);
 }
 
 void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
@@ -283,14 +499,14 @@ void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
   p << ' ';
   if (!getControls().empty())
     p << '[' << getControls() << "] ";
-  p << getActuals() << " : ";
+  p << '(' << getActuals() << ") : ";
   SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(ArrayRef<Type>{operandTys}.drop_front(isDirect ? 0 : 1),
                         (*this)->getResultTypes());
   p.printOptionalAttrDict(
       (*this)->getAttrs(),
-      {"operand_segment_sizes", "is_adj", getCalleeAttrNameStr()});
+      {cudaq::runtime::operandSegmentSizes, "is_adj", getCalleeAttrNameStr()});
 }
 
 ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
@@ -323,14 +539,15 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
       return failure();
 
   SmallVector<OpAsmParser::UnresolvedOperand> miscOperands;
-  if (parser.parseOperandList(miscOperands) || parser.parseColon())
+  if (parser.parseLParen() || parser.parseOperandList(miscOperands) ||
+      parser.parseRParen() || parser.parseColon())
     return failure();
 
   FunctionType applyTy;
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(calleeOperand.size()),
                            static_cast<int32_t>(controlOperands.size()),
@@ -374,8 +591,9 @@ void cudaq::quake::ApplyNoiseOp::print(OpAsmPrinter &p) {
   SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(operandTys, (*this)->getResultTypes());
-  p.printOptionalAttrDict((*this)->getAttrs(),
-                          {"operand_segment_sizes", getNoiseFuncAttrName()});
+  p.printOptionalAttrDict(
+      (*this)->getAttrs(),
+      {cudaq::runtime::operandSegmentSizes, getNoiseFuncAttrName()});
 }
 
 ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
@@ -409,7 +627,7 @@ ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(keyOperand.size()),
                            static_cast<int32_t>(parameterOperands.size()),
@@ -435,11 +653,12 @@ LogicalResult cudaq::quake::ApplyNoiseOp::verify() {
       return emitOpError("cannot have a noise function and a key");
   }
 
-  // Parameters must be exactly one stdvec or 0 or more ptr<floating-point>.
+  // Parameters must be exactly one sequence or 0 or more ptr<floating-point>.
   auto params = getParameters();
   if (params.size() == 1) {
-    if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(params[0].getType())) {
-      if (stdvecTy.getElementType() != Float64Type::get(getContext()))
+    if (auto sequenceTy =
+            dyn_cast<cudaq::cc::SequenceType>(params[0].getType())) {
+      if (sequenceTy.getElementType() != Float64Type::get(getContext()))
         return emitOpError("must be std::vector<double>");
     } else if (auto ptrTy =
                    dyn_cast<cudaq::cc::PointerType>(params[0].getType())) {
@@ -459,6 +678,11 @@ LogicalResult cudaq::quake::ApplyNoiseOp::verify() {
   if (getQubits().empty())
     return emitOpError("must have at least one qubit");
   return success();
+}
+
+void cudaq::quake::ApplyNoiseOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseApplyNoiseEmptyVeqQubitPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -485,11 +709,14 @@ LogicalResult cudaq::quake::BorrowWireOp::verify() {
 
 void cudaq::quake::ConcatOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ConcatSizePattern, ConcatNoOpPattern, UselessConcatOpPattern>(
+  patterns.add<DropEmptyVeqConcatOperandsPattern, ConcatSizePattern,
+               ConcatNoOpPattern, UselessConcatOpPattern, ConcatFlattenPattern>(
       context);
 }
 
 LogicalResult cudaq::quake::ConcatOp::verify() {
+  if (!getTargets().size())
+    return emitOpError("must have at least 1 operand");
   bool isUnspecified = false;
   std::size_t size = 0;
   for (auto tq : getTargets()) {
@@ -548,20 +775,27 @@ void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
 
 void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern>(context);
+  patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern,
+               EraseEmptyVeqControlPattern<ExpPauliOp>>(context);
 }
 
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
   if (getPauliLiteralAttr()) {
     if (getPauli())
       return emitOpError("cannot have both a literal and a value Pauli word");
+    if (!symbolizePauliWord(*getPauliLiteral()))
+      return emitOpError("literal Pauli word must contain only I, X, Y, or Z");
+    auto targetQubitCount = getStaticTargetQubitCount(getTargets());
+    if (targetQubitCount && getPauliLiteral()->size() != *targetQubitCount)
+      return emitOpError(
+          "literal Pauli word length must match target qubit count");
   } else {
     if (!getPauli())
       return emitOpError("must have either a literal or a value Pauli word");
   }
   if (!(getParameters().empty() || getParameters().size() == 1))
     return emitOpError("can only have 0 or 1 parameter");
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -601,7 +835,8 @@ void printRawIndex(OpAsmPrinter &printer, OP refOp, Value index,
 
 void cudaq::quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
+  patterns.add<ReplaceEmptyVeqExtractRefPattern,
+               FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
                ForwardConcatExtractPattern, ExtractRefFromSubVeqPattern>(
       context);
 }
@@ -644,7 +879,7 @@ LogicalResult cudaq::quake::GetMemberOp::verify() {
 
 void cudaq::quake::GetMemberOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<BypassMakeStruq>(context);
+  patterns.add<ReplaceEmptyVeqGetMemberPattern, BypassMakeStruq>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -672,7 +907,8 @@ LogicalResult cudaq::quake::InitializeStateOp::verify() {
 
 void cudaq::quake::InitializeStateOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardAllocaTypePattern>(context);
+  patterns.add<ForwardEmptyVeqInitStatePattern, ForwardAllocaTypePattern>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -740,8 +976,9 @@ LogicalResult cudaq::quake::SubVeqOp::verify() {
 
 void cudaq::quake::SubVeqOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FixUnspecifiedSubveqPattern, FuseConstantToSubveqPattern,
-               RemoveSubVeqNoOpPattern, CombineSubVeqsPattern>(context);
+  patterns.add<ReplaceEmptyVeqSubVeqPattern, FixUnspecifiedSubveqPattern,
+               FuseConstantToSubveqPattern, RemoveSubVeqNoOpPattern,
+               CombineSubVeqsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -761,6 +998,15 @@ void cudaq::quake::VeqSizeOp::getCanonicalizationPatterns(
 void cudaq::quake::WrapOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<KillDeadWrapPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// WrapNewOp
+//===----------------------------------------------------------------------===//
+
+void cudaq::quake::WrapNewOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardUnwrappedRefPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -816,13 +1062,24 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
   //   . The next output type in the results exactly
   //   . The arity of a ref type argument in the `as_signature` function type.
   // - Each classical argument should match exactly.
+  // The results after the formal ones correspond one-to-one with the quantum
+  // value arguments, in left-to-right order, so track that index separately
+  // from the operand index.
   SmallVector<Type> myResultTypes{getResultTypes().begin(),
                                   getResultTypes().end()};
+  const std::size_t numQuantumValueArgs =
+      llvm::count_if(getOperandTypes(), cudaq::quake::isQuantumValueType);
+  if (myResultTypes.size() != formalResultsSize + numQuantumValueArgs)
+    return emitOpError("must return exactly one quantum value per quantum "
+                       "argument, in addition to the callee's results");
+
+  std::size_t quantumValueIdx = 0;
   for (auto iter :
        llvm::enumerate(llvm::zip(getOperandTypes(), asSig.getInputs()))) {
     auto i = iter.index();
     auto [operTy, sigTy] = iter.value();
     if (cudaq::quake::isQuantumValueType(operTy)) {
+      const std::size_t resultIndex = formalResultsSize + quantumValueIdx++;
       if (!quake::isQuantumReferenceType(sigTy))
         return emitOpError("argument #" + std::to_string(i) +
                            " must be a quantum type");
@@ -831,11 +1088,10 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
               cudaq::quake::getAllocationSize(sigTy))
         return emitOpError("argument #" + std::to_string(i) +
                            " must match in size");
-      if (operTy != myResultTypes[formalResultsSize + i])
-        return emitOpError("result quantum value type #" +
-                           std::to_string(formalResultsSize + i) +
-                           " must match argument value type #" +
-                           std::to_string(i));
+      if (operTy != myResultTypes[resultIndex])
+        return emitOpError(
+            "result quantum value type #" + std::to_string(resultIndex) +
+            " must match argument value type #" + std::to_string(i));
     } else {
       if (operTy != sigTy)
         return emitOpError("argument #" + std::to_string(i) +
@@ -856,17 +1112,18 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
                                  const Type bitsType) {
   if (failed(verifyWireResultsAreLinear(op)))
     return failure();
-  bool mustBeStdvec =
+  bool mustBeSequence =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<cudaq::quake::VeqType>(targetsType[0]));
-  if (mustBeStdvec) {
-    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(op.getMeasOut().getType());
-    if (!stdvecTy ||
+  if (mustBeSequence) {
+    auto sequenceTy =
+        dyn_cast<cudaq::cc::SequenceType>(op.getMeasOut().getType());
+    if (!sequenceTy ||
         !isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            stdvecTy.getElementType()))
+            sequenceTy.getElementType()))
       return op.emitOpError(
-          "must return `!cc.stdvec<!quake.measure>` or "
-          "`!cc.stdvec<!cc.measure_handle>` when measuring a qvector, a "
+          "must return `!cc.sequence<!quake.measure>` or "
+          "`!cc.sequence<!cc.measure_handle>` when measuring a qvector, a "
           "series of qubits, or both");
   } else {
     if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
@@ -901,11 +1158,11 @@ LogicalResult cudaq::quake::MzOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult cudaq::quake::DiscriminateOp::verify() {
-  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType())) {
-    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(getResult().getType());
-    if (!stdvecTy || !isa<IntegerType>(stdvecTy.getElementType()))
+  if (isa<cudaq::cc::SequenceType>(getMeasurement().getType())) {
+    auto sequenceTy = dyn_cast<cudaq::cc::SequenceType>(getResult().getType());
+    if (!sequenceTy || !isa<IntegerType>(sequenceTy.getElementType()))
       return emitOpError(
-          "must return a !cc.stdvec<integral> type, when discriminating a "
+          "must return a !cc.sequence<integral> type, when discriminating a "
           "qvector, a series of qubits, or both");
   } else {
     if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
@@ -920,14 +1177,14 @@ LogicalResult cudaq::quake::DiscriminateOp::verify() {
 void cudaq::quake::DiscriminateOp::getEffects(
     SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
         &effects) {
-  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType()))
+  if (isa<cudaq::cc::SequenceType>(getMeasurement().getType()))
     effects.emplace_back(MemoryEffects::Read::get(),
                          SideEffects::DefaultResource::get());
 }
 
 mlir::Speculation::Speculatability
 cudaq::quake::DiscriminateOp::getSpeculatability() {
-  return isa<cudaq::cc::StdvecType>(getMeasurement().getType())
+  return isa<cudaq::cc::SequenceType>(getMeasurement().getType())
              ? Speculation::NotSpeculatable
              : Speculation::Speculatable;
 }
@@ -1034,13 +1291,40 @@ void cudaq::quake::HOp::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2});
 }
 
+LogicalResult cudaq::quake::PhaseOp::verify() {
+  if (!isa<RefType, WireType>(getTarget().getType()))
+    return emitOpError("requires a scalar !quake.ref or !quake.wire anchor");
+  if (auto negated = getNegatedQubitControls();
+      negated && negated->size() != getControls().size())
+    return emitOpError("requires one negated-control flag per control operand");
+  return verifyWireResultsAreLinear(getOperation());
+}
+
+void cudaq::quake::PhaseOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  double phi;
+  if (failed(getParameterAsDouble(getParameter(), phi)))
+    return;
+  if (getIsAdj())
+    phi *= -1;
+  auto phase = std::exp(phi * 1i);
+  matrix.assign({phase, 0, 0, phase});
+}
+
+void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<AdjustAdjointPhasePattern, EraseZeroPhasePattern,
+               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>>(
+      context);
+}
+
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
   using namespace std::complex_literals;
 
   // Get parameters
   double theta;
   double phi;
-  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+  if (failed(getParameterAsDouble(getParameter(0), theta)) ||
       failed(getParameterAsDouble(getParameter(1), phi)))
     return;
 
@@ -1062,11 +1346,6 @@ void cudaq::quake::R1Op::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({1, 0, 0, std::exp(theta * 1i)});
 }
 
-void cudaq::quake::R1Op::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::R1Op>>(context);
-}
-
 void cudaq::quake::RxOp::getOperatorMatrix(Matrix &matrix) {
   using namespace std::complex_literals;
   double theta;
@@ -1076,11 +1355,6 @@ void cudaq::quake::RxOp::getOperatorMatrix(Matrix &matrix) {
     theta *= -1;
   matrix.assign({std::cos(theta / 2.), -1i * std::sin(theta / 2.),
                  -1i * std::sin(theta / 2.), std::cos(theta / 2.)});
-}
-
-void cudaq::quake::RxOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::RxOp>>(context);
 }
 
 void cudaq::quake::RyOp::getOperatorMatrix(Matrix &matrix) {
@@ -1096,11 +1370,6 @@ void cudaq::quake::RyOp::getOperatorMatrix(Matrix &matrix) {
                  -std::sin(theta / 2.), std::cos(theta / 2.)});
 }
 
-void cudaq::quake::RyOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::RyOp>>(context);
-}
-
 void cudaq::quake::RzOp::getOperatorMatrix(Matrix &matrix) {
   using namespace std::complex_literals;
 
@@ -1113,11 +1382,6 @@ void cudaq::quake::RzOp::getOperatorMatrix(Matrix &matrix) {
     theta *= -1;
 
   matrix.assign({std::exp(-1i * theta / 2.), 0, 0, std::exp(1i * theta / 2.)});
-}
-
-void cudaq::quake::RzOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::RzOp>>(context);
 }
 
 void cudaq::quake::SOp::getOperatorMatrix(Matrix &matrix) {
@@ -1148,7 +1412,7 @@ void cudaq::quake::U2Op::getOperatorMatrix(Matrix &matrix) {
   // Get parameters
   double phi;
   double lambda;
-  if (failed(getParameterAsDouble(getParameter(), phi)) ||
+  if (failed(getParameterAsDouble(getParameter(0), phi)) ||
       failed(getParameterAsDouble(getParameter(1), lambda)))
     return;
 
@@ -1169,7 +1433,7 @@ void cudaq::quake::U3Op::getOperatorMatrix(Matrix &matrix) {
   double theta;
   double phi;
   double lambda;
-  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+  if (failed(getParameterAsDouble(getParameter(0), theta)) ||
       failed(getParameterAsDouble(getParameter(1), phi)) ||
       failed(getParameterAsDouble(getParameter(2), lambda)))
     return;
@@ -1207,7 +1471,12 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
   auto fn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this, gen);
   if (!fn)
     return emitOpError("symbol must be a func.func");
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
+}
+
+void cudaq::quake::CustomUnitaryCallOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>>(context);
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
@@ -1296,7 +1565,12 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
           "Invalid matrix size, required 2^N * 2^N for N-qubit operation");
   }
 
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
+}
+
+void cudaq::quake::CustomUnitaryConstantOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1395,7 +1669,8 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   MACRO(CustomUnitaryConstantOp)
 #define GATE_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) CUSTOM_GATE_OPS(MACRO)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
-#define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(ExpPauliOp) GATE_OPS(MACRO)    \
+#define QUANTUM_OPS(MACRO)                                                     \
+  MACRO(ResetOp) MACRO(ExpPauliOp) MACRO(PhaseOp) GATE_OPS(MACRO)              \
   MEASURE_OPS(MACRO)
 #define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullCableOp) \
   MACRO(NullWireOp) MACRO(UnwrapOp)
@@ -1415,9 +1690,163 @@ QUANTUM_OPS(INSTANTIATE_CALLBACKS)
     return verifyWireResultsAreLinear(getOperation());                         \
   }
 
-#define VERIFY_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) WIRE_OPS(MACRO)
+#define INSTANTIATE_OPERATOR_VERIFY(Op)                                        \
+  LogicalResult cudaq::quake::Op::verify() {                                   \
+    return verifyOperator(                                                     \
+        cast<cudaq::quake::OperatorInterface>(getOperation()));                \
+  }
 
-VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
+BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_VERIFY)
+WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
+
+#define INSTANTIATE_OPERATOR_CANONICALIZATION(Op)                              \
+  void cudaq::quake::Op::getCanonicalizationPatterns(                          \
+      RewritePatternSet &patterns, MLIRContext *context) {                     \
+    patterns.add<EraseEmptyVeqControlPattern<Op>>(context);                    \
+  }
+
+BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)
+
+//===----------------------------------------------------------------------===//
+// EvinceOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::quake::EvinceOp::verify() {
+  SmallVector<Type> expected;
+  for (Value v : getArgs())
+    if (isLinearType(v.getType()))
+      expected.push_back(v.getType());
+  auto actual = getOuts().getTypes();
+  if (SmallVector<Type>(actual) != expected)
+    return emitOpError("result types must mirror wire/cable operand types "
+                       "in left-to-right order");
+  return success();
+}
+
+void cudaq::quake::EvinceOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<DropEmptyVeqEvinceArgsPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// Control and wire helpers
+//===----------------------------------------------------------------------===//
+
+bool cudaq::quake::isScalarQubitTarget(Value target) {
+  return isa<cudaq::quake::RefType, cudaq::quake::WireType>(target.getType());
+}
+
+std::optional<cudaq::quake::StaticQubitTarget>
+cudaq::quake::findLastStaticQubitTarget(ValueRange targets) {
+  return findLastStaticQubitTarget(
+      targets, [](const StaticQubitTarget &) { return true; });
+}
+
+Value cudaq::quake::materializeStaticQubitTarget(
+    OpBuilder &builder, Location location, const StaticQubitTarget &target) {
+  if (!target.elementIndex)
+    return target.source;
+  return cudaq::quake::ExtractRefOp::create(builder, location, target.source,
+                                            *target.elementIndex)
+      .getResult();
+}
+
+bool cudaq::quake::hasUnresolvedControlVeq(ValueRange controls) {
+  return llvm::any_of(controls, [](Value control) {
+    return isa<cudaq::quake::VeqType>(control.getType()) &&
+           !cudaq::quake::getVeqSize(control);
+  });
+}
+
+SmallVector<bool> cudaq::quake::getControlPolarities(
+    ValueRange controls, std::optional<llvm::ArrayRef<bool>> negatedControls) {
+  SmallVector<bool> polarities(controls.size(), false);
+  if (negatedControls)
+    for (auto [index, value] : llvm::enumerate(*negatedControls))
+      polarities[index] = value;
+  return polarities;
+}
+
+SmallVector<bool>
+cudaq::quake::getControlPolarities(cudaq::quake::OperatorInterface op) {
+  return cudaq::quake::getControlPolarities(op.getControls(),
+                                            op.getNegatedControls());
+}
+
+cudaq::quake::ExpandedControlVeqs
+cudaq::quake::expandKnownSizedControlVeqs(OpBuilder &builder, Location location,
+                                          ValueRange controls,
+                                          llvm::ArrayRef<bool> polarities) {
+  assert(controls.size() == polarities.size() &&
+         "every control must have a corresponding polarity");
+
+  ExpandedControlVeqs expanded;
+  for (auto [index, control] : llvm::enumerate(controls)) {
+    if (!isa<cudaq::quake::VeqType>(control.getType())) {
+      expanded.controls.push_back(control);
+      expanded.polarities.push_back(polarities[index]);
+      continue;
+    }
+
+    auto size = cudaq::quake::getVeqSize(control);
+    if (!size) {
+      expanded.controls.push_back(control);
+      expanded.polarities.push_back(polarities[index]);
+      continue;
+    }
+
+    // extract_ref requires the sized source of a relaxed vector.
+    Value vector = control;
+    if (auto relax = control.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+      vector = relax.getInputVec();
+    for (std::size_t i = 0; i < *size; ++i) {
+      expanded.controls.push_back(
+          cudaq::quake::ExtractRefOp::create(builder, location, vector, i));
+      expanded.polarities.push_back(polarities[index]);
+    }
+    expanded.didExpand = true;
+  }
+  return expanded;
+}
+
+SmallVector<Type> cudaq::quake::getWireResultTypes(ValueRange controls,
+                                                   ValueRange targets) {
+  SmallVector<Type> resultTypes;
+  for (Value control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      resultTypes.push_back(control.getType());
+  for (Value target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      resultTypes.push_back(target.getType());
+  return resultTypes;
+}
+
+SmallVector<Value> cudaq::quake::getWireValues(ValueRange controls,
+                                               ValueRange targets) {
+  SmallVector<Value> values;
+  for (Value control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      values.push_back(control);
+  for (Value target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      values.push_back(target);
+  return values;
+}
+
+void cudaq::quake::threadWireResults(cudaq::quake::OperatorInterface op,
+                                     llvm::MutableArrayRef<Value> controls,
+                                     llvm::MutableArrayRef<Value> targets) {
+  ValueRange wires = op.getWires();
+  unsigned result = 0;
+  for (Value &control : controls)
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      control = wires[result++];
+  for (Value &target : targets)
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      target = wires[result++];
+  assert(result == wires.size() &&
+         "gate result count does not match its wire operands");
+}
 
 //===----------------------------------------------------------------------===//
 // Generated logic

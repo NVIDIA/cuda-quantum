@@ -16,5 +16,6 @@ if(CUDAQ_ENABLE_TII_BACKEND)
     cudaq-common
     cudaq-logger
   )
-  install(TARGETS cudaq-serverhelper-tii DESTINATION lib)
+  install(TARGETS cudaq-serverhelper-tii DESTINATION lib
+        COMPONENT Runtime)
 endif()

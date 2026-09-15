@@ -14,4 +14,7 @@ target_link_libraries(cudaq-serverhelper-quantum_machines
     cudaq-common
     cudaq-logger
 )
-install(TARGETS cudaq-serverhelper-quantum_machines DESTINATION lib)
+target_link_libraries(cudaq-serverhelper-quantum_machines PRIVATE cudaqMLIR)
+
+install(TARGETS cudaq-serverhelper-quantum_machines DESTINATION lib
+        COMPONENT Runtime)

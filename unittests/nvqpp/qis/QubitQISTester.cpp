@@ -13,118 +13,11 @@
 #include <cudaq/operators.h>
 
 #ifndef CUDAQ_BACKEND_DM
-CUDAQ_TEST(QubitQISTester, checkAllocateDeallocateSubRegister) {
-
-  {
-    cudaq::qubit q, r;
-    EXPECT_EQ(q.id(), 0);
-    EXPECT_EQ(r.id(), 1);
-
-    h(q, r);
-    cudaq::qvector qq(3);
-    auto f = qq.front(2);
-    h(f, qq[2]);
-  }
-
-  EXPECT_FALSE(cudaq::getExecutionManager()->memoryLeaked());
-
-  {
-    cudaq::qvector q(10);
-    for (auto [i, q] : cudaq::enumerate(q)) {
-      EXPECT_EQ(i, q.id());
-    }
-
-    cudaq::qubit r, s;
-    EXPECT_EQ(r.id(), 10);
-    EXPECT_EQ(s.id(), 11);
-
-    // out of scope, qubits returned
-  }
-  EXPECT_FALSE(cudaq::getExecutionManager()->memoryLeaked());
-
-  {
-    cudaq::qvector q(15);
-    EXPECT_EQ(q[14].id(), 14);
-
-    EXPECT_EQ(q.front().id(), 0);
-    EXPECT_EQ(q.back().id(), 14);
-    auto f5 = q.front(5);
-    EXPECT_EQ(f5.size(), 5);
-    for (auto [i, qq] : cudaq::enumerate(f5)) {
-      EXPECT_EQ(i, qq.id());
-    }
-
-    auto b4 = q.back(4);
-    EXPECT_EQ(b4.size(), 4);
-    EXPECT_EQ(b4[0].id(), 11);
-    EXPECT_EQ(b4[1].id(), 12);
-    EXPECT_EQ(b4[2].id(), 13);
-    EXPECT_EQ(b4[3].id(), 14);
-    EXPECT_EQ(b4.front().id(), 11);
-    EXPECT_EQ(b4.back().id(), 14);
-
-    auto view_from_span = b4.front(2);
-    EXPECT_EQ(view_from_span[0].id(), 11);
-    EXPECT_EQ(view_from_span[1].id(), 12);
-
-    auto slice = q.slice(4, 7);
-    EXPECT_EQ(slice.size(), 7);
-    for (auto [i, qq] : cudaq::enumerate(slice)) {
-      EXPECT_EQ(i + 4, qq.id());
-    }
-
-    auto slice_from_span = b4.slice(1, 2);
-    EXPECT_EQ(slice_from_span.size(), 2);
-    EXPECT_EQ(slice_from_span[0].id(), 12);
-    EXPECT_EQ(slice_from_span[1].id(), 13);
-  }
-
-  EXPECT_FALSE(cudaq::getExecutionManager()->memoryLeaked());
-}
-
-CUDAQ_TEST(QubitQISTester, checkArray) {
-  {
-    cudaq::qarray<5> compileTimeQubits;
-    EXPECT_EQ(compileTimeQubits.size(), 5);
-    for (int i = 0; i < 5; i++)
-      EXPECT_EQ(compileTimeQubits[i].id(), i);
-  }
-
-  {
-    cudaq::qarray<15> q;
-    EXPECT_EQ(q[14].id(), 14);
-
-    EXPECT_EQ(q.front().id(), 0);
-    EXPECT_EQ(q.back().id(), 14);
-    auto f5 = q.front(5);
-    EXPECT_EQ(f5.size(), 5);
-    for (auto [i, qq] : cudaq::enumerate(f5)) {
-      EXPECT_EQ(i, qq.id());
-    }
-
-    auto b4 = q.back(4);
-    EXPECT_EQ(b4.size(), 4);
-    EXPECT_EQ(b4[0].id(), 11);
-    EXPECT_EQ(b4[1].id(), 12);
-    EXPECT_EQ(b4[2].id(), 13);
-    EXPECT_EQ(b4[3].id(), 14);
-    EXPECT_EQ(b4.front().id(), 11);
-    EXPECT_EQ(b4.back().id(), 14);
-
-    auto view_from_span = b4.front(2);
-    EXPECT_EQ(view_from_span[0].id(), 11);
-    EXPECT_EQ(view_from_span[1].id(), 12);
-
-    auto slice = q.slice(4, 7);
-    EXPECT_EQ(slice.size(), 7);
-    for (auto [i, qq] : cudaq::enumerate(slice)) {
-      EXPECT_EQ(i + 4, qq.id());
-    }
-  }
-}
+// Host-side quantum type tests (allocation, qarray, parameterized CustomU3)
+// live in unittests/qis/ . This file covers kernels compiled with nvq++.
 
 CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
-  auto ghz = []() {
+  auto ghz = []() __qpu__ {
     const int N = 5;
     cudaq::qvector q(N);
     h(q[0]);
@@ -143,7 +36,7 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
   EXPECT_EQ(counter, 1000);
 
 #ifndef CUDAQ_BACKEND_STIM
-  auto ansatz = [](double theta) {
+  auto ansatz = [](double theta) __qpu__ {
     cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
@@ -160,9 +53,60 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
 }
 
 #ifndef CUDAQ_BACKEND_STIM
+namespace qubit_qis_tester {
+// Local lambdas passed to cudaq::control / cudaq::adjoint are lifted to
+// separate functions; apply-op-specialization then fails on those calls
+// because inlining runs later in the nvq++ pipeline. Use named noinline
+// __qpu__ helpers instead (same pattern as adjoint_tester / grover_test).
+// See https://github.com/NVIDIA/cuda-quantum/issues/3762.
+__attribute__((noinline)) __qpu__ void apply_x(cudaq::qubit &q) { x(q); }
+
+__attribute__((noinline)) __qpu__ void test_inner_adjoint(cudaq::qubit &q) {
+  cudaq::adjoint(apply_x, q);
+}
+
+__attribute__((noinline)) __qpu__ void ctrl_x(cudaq::qubit &ctrl,
+                                              cudaq::qubit &target) {
+  cudaq::control(apply_x, ctrl, target);
+}
+
+struct ccnot_test {
+  void operator()() __qpu__ {
+    cudaq::qvector q(3);
+
+    x(q);
+    x(q[1]);
+
+    auto controls = q.front(2);
+    cudaq::control(test_inner_adjoint, controls, q[2]);
+
+    mz(q);
+  }
+};
+
+struct nested_ctrl {
+  void operator()() __qpu__ {
+    cudaq::qvector q(3);
+    // Create 101
+    x(q);
+    x(q[1]);
+
+    // Fancy nested CCX
+    // Walking inner nest to outer
+    // 1. Queue X(q[2])
+    // 2. Queue Ctrl (q[1]) X (q[2])
+    // 3. Queue Ctrl (q[0], q[1]) X(q[2]);
+    // 4. Apply
+    cudaq::control(ctrl_x, q[0], q[1], q[2]);
+
+    mz(q);
+  }
+};
+} // namespace qubit_qis_tester
+
 CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
 
-  auto ccnot = []() {
+  auto ccnot = []() __qpu__ {
     cudaq::qvector q(3);
 
     x(q);
@@ -173,60 +117,16 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
     mz(q);
   };
 
-  struct ccnot_test {
-    void operator()() __qpu__ {
-      cudaq::qvector q(3);
-
-      x(q);
-      x(q[1]);
-
-      auto apply_x = [](cudaq::qubit &q) { x(q); };
-      auto test_inner_adjoint = [&](cudaq::qubit &q) {
-        cudaq::adjoint(apply_x, q);
-      };
-
-      auto controls = q.front(2);
-      cudaq::control(test_inner_adjoint, controls, q[2]);
-
-      mz(q);
-    }
-  };
-
-  struct nested_ctrl {
-    void operator()() __qpu__ {
-      auto apply_x = [](cudaq::qubit &r) { x(r); };
-
-      cudaq::qvector q(3);
-      // Create 101
-      x(q);
-      x(q[1]);
-
-      // Fancy nested CCX
-      // Walking inner nest to outer
-      // 1. Queue X(q[2])
-      // 2. Queue Ctrl (q[1]) X (q[2])
-      // 3. Queue Ctrl (q[0], q[1]) X(q[2]);
-      // 4. Apply
-      cudaq::control(
-          [&](cudaq::qubit &r) {
-            cudaq::control([&](cudaq::qubit &r) { apply_x(r); }, q[1], r);
-          },
-          q[0], q[2]);
-
-      mz(q);
-    }
-  };
-
   auto counts = cudaq::sample(ccnot);
   counts.dump();
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "101");
 
-  auto counts2 = cudaq::sample(ccnot_test{});
+  auto counts2 = cudaq::sample(qubit_qis_tester::ccnot_test{});
   EXPECT_EQ(1, counts2.size());
   EXPECT_TRUE(counts2.begin()->first == "101");
 
-  auto counts3 = cudaq::sample(nested_ctrl{});
+  auto counts3 = cudaq::sample(qubit_qis_tester::nested_ctrl{});
   EXPECT_EQ(1, counts3.size());
   EXPECT_TRUE(counts3.begin()->first == "101");
 }
@@ -375,7 +275,7 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
 
 #ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkU3Op) {
-  auto check_x = []() {
+  auto check_x = []() __qpu__ {
     cudaq::qubit q;
     // mimic Pauli-X gate
     u3(M_PI, M_PI, M_PI_2, q);
@@ -386,7 +286,7 @@ CUDAQ_TEST(QubitQISTester, checkU3Op) {
     EXPECT_TRUE(bits == "1");
   }
 
-  auto bell_pair = []() {
+  auto bell_pair = []() __qpu__ {
     cudaq::qvector qubits(2);
     // mimic Hadamard gate
     u3(M_PI_2, 0., M_PI, qubits[0]);
@@ -402,7 +302,7 @@ CUDAQ_TEST(QubitQISTester, checkU3Op) {
 
 #ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkU3Ctrl) {
-  auto another_bell_pair = []() {
+  auto another_bell_pair = []() __qpu__ {
     cudaq::qvector qubits(2);
     u3(M_PI_2, 0., M_PI, qubits[0]);
     u3<cudaq::ctrl>(M_PI, M_PI, M_PI_2, qubits[0], qubits[1]);
@@ -417,7 +317,7 @@ CUDAQ_TEST(QubitQISTester, checkU3Ctrl) {
 
 #ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkU3Adj) {
-  auto rotation_adjoint_test = []() {
+  auto rotation_adjoint_test = []() __qpu__ {
     cudaq::qubit q;
     // mimic Rx gate
     u3(1.1, -M_PI_2, M_PI_2, q);
@@ -436,8 +336,6 @@ CUDAQ_TEST(QubitQISTester, checkU3Adj) {
 }
 #endif
 
-using namespace std::complex_literals;
-
 #ifndef CUDAQ_BACKEND_STIM
 
 // Test someone can build a library of custom operations
@@ -447,19 +345,14 @@ CUDAQ_REGISTER_OPERATION(
 CUDAQ_REGISTER_OPERATION(CustomX, 1, 0, {0, 1, 1, 0});
 CUDAQ_REGISTER_OPERATION(CustomCNOT, 2, 0,
                          {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0});
-CUDAQ_REGISTER_OPERATION(
-    CustomU3, 1, 3,
-    {std::cos(parameters[0] / 2.),
-     -std::exp(1i * parameters[2]) * std::sin(parameters[0] / 2.),
-     std::exp(1i * parameters[1]) * std::sin(parameters[0] / 2.),
-     std::exp(1i * (parameters[2] + parameters[1])) *
-         std::cos(parameters[0] / 2.)})
+// Parameterized CustomU3 (std::exp on complex values) lives in
+// unittests/qis/ under CUDAQ_LIBRARY_MODE.
 CUDAQ_REGISTER_OPERATION(CustomSwap, 2, 0,
                          {1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1})
 
 CUDAQ_TEST(CustomUnitaryTester, checkBasic) {
   {
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qubit q, r;
       CustomHadamard(q);
       CustomCNOT(q, r);
@@ -476,7 +369,7 @@ CUDAQ_TEST(CustomUnitaryTester, checkBasic) {
   }
   {
     // Can be controlled
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qubit q, r;
       x(q);
       CustomX<cudaq::ctrl>(q, r);
@@ -493,7 +386,7 @@ CUDAQ_TEST(CustomUnitaryTester, checkBasic) {
   }
   {
     // Can be controlled with negation
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qubit q, r;
       CustomX<cudaq::ctrl>(!q, r);
     };
@@ -509,69 +402,10 @@ CUDAQ_TEST(CustomUnitaryTester, checkBasic) {
   }
 }
 
-/// NOTE: This is supported only in library mode
-CUDAQ_TEST(CustomUnitaryTester, checkParameterized) {
-  {
-    // parameterized op, custom u3
-    auto check_x = []() {
-      cudaq::qubit q;
-      // mimic Pauli-X gate
-      CustomU3(M_PI, M_PI, M_PI_2, q);
-    };
-    auto counts = cudaq::sample(check_x);
-    counts.dump();
-    for (auto &[bits, count] : counts) {
-      EXPECT_TRUE(bits == "1");
-    }
-
-    auto bell_pair = []() {
-      cudaq::qvector qubits(2);
-      // mimic Hadamard gate
-      CustomU3(M_PI_2, 0., M_PI, qubits[0]);
-      x<cudaq::ctrl>(qubits[0], qubits[1]);
-    };
-    counts = cudaq::sample(bell_pair);
-    counts.dump();
-    for (auto &[bits, count] : counts) {
-      EXPECT_TRUE(bits == "00" || bits == "11");
-    }
-
-    // Can control
-    auto another_bell_pair = []() {
-      cudaq::qvector qubits(2);
-      CustomU3(M_PI_2, 0., M_PI, qubits[0]);
-      CustomU3<cudaq::ctrl>(M_PI, M_PI, M_PI_2, qubits[0], qubits[1]);
-    };
-    counts = cudaq::sample(another_bell_pair);
-    counts.dump();
-    for (auto &[bits, count] : counts) {
-      EXPECT_TRUE(bits == "00" || bits == "11");
-    }
-
-    // can adjoint
-    auto rotation_adjoint_test = []() {
-      cudaq::qubit q;
-      // mimic Rx gate
-      CustomU3(1.1, -M_PI_2, M_PI_2, q);
-      // rx<adj>(angle) = u3<adj>(angle, pi/2, -pi/2)
-      CustomU3<cudaq::adj>(1.1, M_PI_2, -M_PI_2, q);
-      // mimic Ry gate
-      CustomU3(1.1, 0., 0., q);
-      CustomU3<cudaq::adj>(1.1, 0., 0., q);
-    };
-
-    counts = cudaq::sample(rotation_adjoint_test);
-    counts.dump();
-    for (auto &[bits, count] : counts) {
-      EXPECT_TRUE(bits == "0");
-    }
-  }
-}
-
 CUDAQ_TEST(CustomUnitaryTester, checkMultiQubitOps) {
   {
     // Test swap operation
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qubit q, r;
       x(q);             // q -> 1, r -> 0
       CustomSwap(q, r); // q -> 0 , r -> 1
@@ -591,7 +425,7 @@ CUDAQ_TEST(CustomUnitaryTester, checkMultiQubitOps) {
 #ifndef CUDAQ_BACKEND_TENSORNET
   {
     // Multi-qubit can be controlled, with one-control
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qvector q(3);
       x(q[0]);
       x(q[1]);
@@ -608,7 +442,7 @@ CUDAQ_TEST(CustomUnitaryTester, checkMultiQubitOps) {
   }
   {
     // Multi-qubit can be controlled, with multi-qubit control
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qvector q(4);
       x(q.front(3));
       CustomCNOT<cudaq::ctrl>(q[0], q[1], q[2], q[3]);
@@ -624,7 +458,7 @@ CUDAQ_TEST(CustomUnitaryTester, checkMultiQubitOps) {
   }
   {
     // Test controlled swap operation
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qubit q, r, c;
       x(q);
       CustomSwap<cudaq::ctrl>(c, q, r); // no swap
@@ -640,7 +474,7 @@ CUDAQ_TEST(CustomUnitaryTester, checkMultiQubitOps) {
   }
   {
     // Test multi-controlled swap operation
-    auto kernel = []() {
+    auto kernel = []() __qpu__ {
       cudaq::qvector q(4);
       x(q.front(3));
       CustomSwap<cudaq::ctrl>(q[0], q[1], q[2], q[3]); // swap q[3] and q[2]

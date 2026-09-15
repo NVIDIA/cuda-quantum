@@ -39,9 +39,11 @@
 #include "runtime/cudaq/operators/py_scalar_op.h"
 #include "runtime/cudaq/operators/py_spin_op.h"
 #include "runtime/cudaq/operators/py_super_op.h"
+#include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_pauli_word.h"
+#include "runtime/cudaq/target/py_compile_target.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/cudaq/trace/py_trace.h"
@@ -54,6 +56,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/Pass.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include <nanobind/stl/complex.h>
@@ -111,6 +114,7 @@ NB_MODULE(_quakeDialects, m) {
       nanobind::arg("target") = nanobind::none(),
       "Initialize the CUDA-Q environment.");
 
+  bindCompileTarget(cudaqRuntime);
   bindRuntimeTarget(cudaqRuntime, *holder.get());
   bindMeasureCounts(cudaqRuntime);
   bindResources(cudaqRuntime);
@@ -147,12 +151,16 @@ NB_MODULE(_quakeDialects, m) {
   bindAltLaunchKernel(cudaqRuntime, [holderPtr = holder.get()]() {
     return python::getTransportLayer(holderPtr);
   });
+  bindRuntimeEndpoint(cudaqRuntime);
   bindTestUtils(cudaqRuntime, *holder.get());
   bindCustomOpRegistry(cudaqRuntime);
   bindTrace(cudaqRuntime);
 
-  cudaqRuntime.def("set_random_seed", &set_random_seed,
-                   "Provide the seed for backend quantum kernel simulation.");
+  cudaqRuntime.def(
+      "set_random_seed", &set_random_seed,
+      "Provide the seed for backend quantum kernel simulation, and for "
+      "randomized compiler passes such as Clifford+T synthesis. A seed of 0 "
+      "leaves both unseeded.");
   cudaqRuntime.def("num_available_gpus", &num_available_gpus,
                    "The number of available GPUs detected on the system.");
 
@@ -311,6 +319,11 @@ Using ``mpi4py``:
 When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)doc",
       nanobind::arg("commPtr"));
 
+  // The ORCA submodule binds cudaq::orca::sample directly, so it exists only
+  // when the ORCA backend was built (OPENSSL_FOUND). Previously these
+  // sources were compiled into this extension unconditionally, which both
+  // ignored that build flag and shadowed libcudaq-orca-qpu at runtime.
+#ifdef CUDAQ_ORCA_BACKEND_ENABLED
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
   orcaSubmodule.def(
       "sample",
@@ -354,6 +367,7 @@ When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)
       nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
       nanobind::arg("bs_angles"), nanobind::arg("n_samples") = 10000,
       nanobind::arg("qpu_id") = 0);
+#endif
 
   auto photonicsSubmodule = cudaqRuntime.def_submodule("photonics");
   photonicsSubmodule.def(
@@ -396,9 +410,28 @@ When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)
   cudaqRuntime.def(
       "runPassManager",
       [](MlirPassManager pm, MlirModule mod) {
+        auto module = unwrap(mod);
+        // Collect error diagnostics so the Python exception carries the reason
+        // the pipeline failed. Returning success consumes the diagnostic, which
+        // keeps the default handler from also printing it to `stderr`.
+        std::string diagnostics;
+        llvm::raw_string_ostream os(diagnostics);
+        mlir::ScopedDiagnosticHandler collect(
+            module.getContext(), [&](mlir::Diagnostic &diag) {
+              if (diag.getSeverity() != mlir::DiagnosticSeverity::Error)
+                return mlir::failure();
+              os << diag.getLocation() << ": error: " << diag << '\n';
+              for (auto &note : diag.getNotes())
+                os << note.getLocation() << ": note: " << note << '\n';
+              return mlir::success();
+            });
         if (mlir::failed(cudaq_internal::compiler::runPassManager(
-                *unwrap(pm), unwrap(mod).getOperation())))
-          throw std::runtime_error("pass pipeline failed");
+                *unwrap(pm), module.getOperation())))
+          throw std::runtime_error("pass pipeline failed\n" + diagnostics);
+        // A pass can emit an error and still report success, so the collected
+        // text would otherwise be dropped. Print it rather than lose it.
+        if (!diagnostics.empty())
+          llvm::errs() << diagnostics;
       },
       "Run an MLIR PassManager on a Module via the runtime helper that "
       "installs TracePassInstrumentation and releases the GIL. Used by "

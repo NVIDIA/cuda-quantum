@@ -29,8 +29,8 @@
 // reads" handshake is insufficient.  We do a minimal bidirectional TCP swap of
 // {qp, rkey, roce-ipv4} inside initialize(), between the transceiver's setup()
 // (mints our QP/rkey) and connect() (needs the peer's QP + rx_data rkey).  No
-// HSB / no Hololink dependency.  For a real FPGA caller the same setup()/
-// connect() seam is driven instead by the HSB control plane
+// HSB / no GpuRoceTransceiver dependency.  For a real FPGA caller the same
+// setup()/ connect() seam is driven instead by the HSB control plane
 // (authenticate/configure_roce); only this rendezvous step changes, not the
 // data-plane wire.
 //

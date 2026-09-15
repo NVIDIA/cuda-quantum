@@ -1,0 +1,22 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// quake.phase is compiler bookkeeping, not a physical member of the target
+// basis, and must survive basis conversion until its dedicated late lowering.
+
+// RUN: cudaq-opt --basis-conversion="basis=x" %s | FileCheck %s
+
+// CHECK-LABEL: func.func @preserve_phase(
+// CHECK-SAME: %[[THETA:[^: ]+]]: f64, %[[CONTROL:[^: ]+]]: !quake.ref, %[[ANCHOR:[^: )]+]]: !quake.ref)
+// CHECK: quake.phase (%[[THETA]]) {{\[}}%[[CONTROL]]{{\]}} %[[ANCHOR]] : (f64, !quake.ref, !quake.ref) -> ()
+func.func @preserve_phase(%theta: f64, %control: !quake.ref,
+                          %anchor: !quake.ref) {
+  quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}

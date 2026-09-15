@@ -719,7 +719,7 @@ CUDAQ_TEST(BuilderTester, checkSlice) {
 #endif
 
 #ifndef CUDAQ_BACKEND_STIM
-CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
+CUDAQ_TEST(BuilderTester, checkSequenceValidate) {
   auto [kernel, thetas] = cudaq::make_kernel<std::vector<double>>();
   auto q = kernel.qalloc(2);
   kernel.rx(thetas[0], q[0]);
@@ -735,12 +735,12 @@ CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
 }
 #endif
 
-CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
+CUDAQ_TEST(BuilderTester, checkIsArgSequence) {
   auto [kernel, one, two, thetas, four] =
       cudaq::make_kernel<double, float, std::vector<double>, int>();
 
-  EXPECT_TRUE(kernel.isArgStdVec(2));
-  EXPECT_FALSE(kernel.isArgStdVec(1));
+  EXPECT_TRUE(kernel.isArgSequence(2));
+  EXPECT_FALSE(kernel.isArgSequence(1));
 }
 
 // Stim does not currently support a controlled H gate.
@@ -1092,14 +1092,14 @@ CUDAQ_TEST(BuilderTester, checkMeasureHandleEmission) {
   }
 
   {
-    // Vector `mz` on a register produces `!cc.stdvec<!cc.measure_handle>`
+    // Vector `mz` on a register produces `!cc.sequence<!cc.measure_handle>`
     // before `expand-measurements`.
     auto kernel = cudaq::make_kernel();
     auto q = kernel.qalloc(3);
     kernel.h(q);
     kernel.mz(q, "vectorHandle");
     auto ir = kernel.to_quake();
-    EXPECT_NE(ir.find("!cc.stdvec<!cc.measure_handle>"), std::string::npos);
+    EXPECT_NE(ir.find("!cc.sequence<!cc.measure_handle>"), std::string::npos);
     EXPECT_NE(ir.find("\"vectorHandle\""), std::string::npos);
     EXPECT_EQ(ir.find("quake.discriminate"), std::string::npos);
     EXPECT_EQ(ir.find("!quake.measure"), std::string::npos);

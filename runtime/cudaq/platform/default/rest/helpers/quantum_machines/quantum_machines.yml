@@ -14,14 +14,25 @@ config:
   platform-qpu: remote_rest
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
+  # ...and load it at runtime. `link-libs` only covers the AOT path, where
+  # nvq++ links it in; on the JIT/Python path nothing links it, so it must
+  # be dlopen'd before `platform-qpu` can be found in the QPU registry.
+  plugin-libraries: ["libcudaq-rest-qpu"]
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipeline
-  jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
-  # Tell the rest-qpu that we are generating OpenQASM 2.0.
-  codegen-emission: qasm2
+  # Decompose source operations before mapping so the mapper sees only gates
+  # supported by its two-qubit coupling graph. Keep the second decomposition
+  # after mapping to lower any SWAP operations introduced by routing.
+  jit-high-level-pipeline: "func.func(add-measurements)"
+  jit-mid-level-pipeline: "prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)},qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
+  jit-low-level-pipeline: "symbol-dce"
+  # Tell the rest-qpu that the required output format is quake.
+  codegen-emission: nop
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
 
 target-arguments:
   - key: url
@@ -34,9 +45,28 @@ target-arguments:
     type: string
     platform-arg: executor
     help-string: "Specify the executor to run. Default is mock"
+  - key: qubit_mapping_mode
+    required: false
+    platform-arg: qubit_mapping_mode
+    type: string
+    help-string: "'local_file': manually edited file located at <>, 'local_get_latest': use the local SABRE mapping algorithm, get the latest qpu config from the backend, 'backend': assign qubits in the backend, as part of the compilation process. Default is 'local_get_latest'."
   - key: api_key
     required: false
     type: string
     platform-arg: api_key
     help-string: "An API key to access the Qoperator server"
-  
+  - key: api_key_file
+    required: false
+    type: string
+    platform-arg: api_key_file
+    help-string: "Path to a file containing an API key to access the Qoperator server"
+  - key: simulator_duration
+    required: false
+    type: string
+    platform-arg: simulator_duration
+    help-string: "The duration of simulation. Relevant only if the executor is set to 'simulator'."
+  - key: extra-payload-provider
+    required: false
+    type: string
+    platform-arg: extra_payload_provider
+    help-string: "Specify the extra payload provider if any."

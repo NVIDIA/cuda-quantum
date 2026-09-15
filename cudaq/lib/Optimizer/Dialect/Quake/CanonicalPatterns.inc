@@ -27,10 +27,12 @@ struct AdjustAdjointExpPauliPattern
     if (!pauli.getParameters().empty())
       negp.push_back(arith::NegFOp::create(rewriter, pauli.getLoc(),
                                            pauli.getParameters()[0]));
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto dict = pauli->getDiscardableAttrDictionary();
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
         pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
         pauli.getPauli(), pauli.getPauliLiteralAttr());
+    newPauli->setDiscardableAttrs(std::move(dict));
     return success();
   }
 };
@@ -38,12 +40,12 @@ struct AdjustAdjointExpPauliPattern
 // Bind an exp_pauli operation to its constant pauli word.
 //
 //   %a = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
-//   %4 = cc.stdvec_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
+//   %4 = cc.sequence_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
 //           !cc.charspan
 //   quake.exp_pauli (%c) %q to %4 : (f64, !quake.ref, !cc.charspan) -> ()
 //   ─────────────────────────────────────────────────────────────────────
 //   %a = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
-//   %4 = cc.stdvec_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
+//   %4 = cc.sequence_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
 //           !cc.charspan  // DCE?
 //   quake.exp_pauli (%c) %q to "IZ" : (f64, !quake.ref) -> ()
 //
@@ -65,17 +67,19 @@ public:
     auto pauliWord = pauli.getPauli();
     if (!pauliWord)
       return failure();
-    auto vecInit = pauliWord.getDefiningOp<cudaq::cc::StdvecInitOp>();
+    auto vecInit = pauliWord.getDefiningOp<cudaq::cc::SequenceInitOp>();
     Value litVal = vecInit ? vecInit.getBuffer() : pauliWord;
     auto buffer = litVal.getDefiningOp<cudaq::cc::CreateStringLiteralOp>();
     if (!buffer)
       return failure();
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto dict = pauli->getDiscardableAttrDictionary();
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), pauli.getIsAdjAttr(),
         pauli.getParameters(), pauli.getControls(), pauli.getTargets(),
         pauli.getNegatedQubitControlsAttr(), Value{},
         buffer.getStringLiteralAttr());
+    newPauli->setDiscardableAttrs(std::move(dict));
     return success();
   }
 };
@@ -124,6 +128,208 @@ struct ForwardEmptyVeqSizePattern
     }
     rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize,
                                                       veqSize.getType(), 0);
+    return success();
+  }
+};
+
+// %0 = quake.alloca !quake.veq<0>
+// ─────────────────────────────────
+// %0 = cc.poison !quake.veq<0>
+struct ReplaceZeroSizeAllocaPattern
+    : public OpRewritePattern<cudaq::quake::AllocaOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::AllocaOp alloc,
+                                PatternRewriter &rewriter) const override {
+    auto veqTy = dyn_cast<cudaq::quake::VeqType>(alloc.getType());
+    if (!veqTy || !veqTy.hasSpecifiedSize() || veqTy.getSize() != 0)
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(alloc, veqTy);
+    return success();
+  }
+};
+
+// `!quake.veq<0>` has no semantics of its own: it is only permitted because a
+// frontend may legitimately materialize an empty qubit vector. Once such an
+// operand shows up as a control (or an apply control), it is pure baggage --
+// there is nothing there to gate on -- so peel it out here rather than let
+// every later pass special-case a zero-size veq.
+static bool isEmptyVeqType(Value value) {
+  auto veqTy = dyn_cast<cudaq::quake::VeqType>(value.getType());
+  if (veqTy && veqTy.hasSpecifiedSize() && veqTy.getSize() == 0)
+    return true;
+  if (auto relax = value.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    return isEmptyVeqType(relax.getInputVec());
+  return false;
+}
+
+// quake.dealloc %empty : !quake.veq<0>
+// ─────────────────────────────────────
+// removed
+//
+// There are no qubits to free, so the op is dead.
+struct EraseEmptyVeqDeallocPattern
+    : public OpRewritePattern<cudaq::quake::DeallocOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::DeallocOp dealloc,
+                                PatternRewriter &rewriter) const override {
+    if (!isEmptyVeqType(dealloc.getReference()))
+      return failure();
+    rewriter.eraseOp(dealloc);
+    return success();
+  }
+};
+
+// quake.x [%c, %empty] %t : (!quake.ref, !quake.veq<0>, !quake.ref) -> ()
+// ─────────────────────────────────────────────────────────────────────
+// quake.x [%c] %t : (!quake.ref, !quake.ref) -> ()
+//
+// Applies to any quantum operator (`quake.h`, `quake.x`, `quake.exp_pauli`,
+// etc.) that carries a `controls` operand segment together with a matching
+// `negated_qubit_controls` array.
+template <typename ConcreteOp>
+struct EraseEmptyVeqControlPattern : public OpRewritePattern<ConcreteOp> {
+  using OpRewritePattern<ConcreteOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ConcreteOp op,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<unsigned> emptyIndices;
+    for (auto [index, control] : llvm::enumerate(op.getControls()))
+      if (isEmptyVeqType(control))
+        emptyIndices.push_back(index);
+    if (emptyIndices.empty())
+      return failure();
+
+    rewriter.modifyOpInPlace(op, [&] {
+      if (auto negated = op.getNegatedQubitControlsAttr()) {
+        SmallVector<bool> polarity(negated.asArrayRef());
+        for (unsigned index : llvm::reverse(emptyIndices))
+          polarity.erase(polarity.begin() + index);
+        op->setAttr("negated_qubit_controls",
+                    rewriter.getDenseBoolArrayAttr(polarity));
+      }
+      for (unsigned index : llvm::reverse(emptyIndices))
+        op.getControlsMutable().erase(index);
+    });
+    return success();
+  }
+};
+
+// quake.apply @callee [%c, %empty] (%args) : (...) -> ()
+// ────────────────────────────────────────────────────────
+// quake.apply @callee [%c] (%args) : (...) -> ()
+//
+// `quake.apply` has no `negated_qubit_controls` attribute to keep in sync, so
+// it gets its own (simpler) pattern rather than instantiating the templated
+// one above.
+struct EraseApplyEmptyVeqControlPattern
+    : public OpRewritePattern<cudaq::quake::ApplyOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ApplyOp op,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<unsigned> emptyIndices;
+    for (auto [index, control] : llvm::enumerate(op.getControls()))
+      if (isEmptyVeqType(control))
+        emptyIndices.push_back(index);
+    if (emptyIndices.empty())
+      return failure();
+
+    rewriter.modifyOpInPlace(op, [&] {
+      for (unsigned index : llvm::reverse(emptyIndices))
+        op.getControlsMutable().erase(index);
+    });
+    return success();
+  }
+};
+
+// quake.apply_noise @chan (%p) %r, %empty : (..., !quake.ref,
+//     !quake.veq<0>) -> ()
+// ─────────────────────────────────────────────────────────────────────
+// quake.apply_noise @chan (%p) %r : (..., !quake.ref) -> ()
+//
+// A noise channel applied to an empty qubit register touches nothing, so the
+// empty operand is dropped just like an empty control operand. `apply_noise`
+// requires at least one qubit operand, so if every qubit is empty the whole
+// op is dead and is erased outright instead of being left with zero operands.
+struct EraseApplyNoiseEmptyVeqQubitPattern
+    : public OpRewritePattern<cudaq::quake::ApplyNoiseOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ApplyNoiseOp op,
+                                PatternRewriter &rewriter) const override {
+    auto qubits = op.getQubits();
+    SmallVector<unsigned> emptyIndices;
+    for (auto [index, qubit] : llvm::enumerate(qubits))
+      if (isEmptyVeqType(qubit))
+        emptyIndices.push_back(index);
+    if (emptyIndices.empty())
+      return failure();
+
+    if (emptyIndices.size() == qubits.size()) {
+      rewriter.eraseOp(op);
+      return success();
+    }
+
+    rewriter.modifyOpInPlace(op, [&] {
+      for (unsigned index : llvm::reverse(emptyIndices))
+        op.getQubitsMutable().erase(index);
+    });
+    return success();
+  }
+};
+
+// quake.evince %r, %empty, %w : (..., !quake.veq<0>, ...) -> (...)
+// ───────────────────────────────────────────────────────────────────
+// quake.evince %r, %w : (..., ...) -> (...)
+//
+// An empty veq has no observable qubit -- there is nothing there to log --
+// so it contributes nothing to what's being observed. A veq is never a
+// linear type, so dropping it never touches `outs`. If nothing observable
+// remains, the whole op is dead and is erased.
+struct DropEmptyVeqEvinceArgsPattern
+    : public OpRewritePattern<cudaq::quake::EvinceOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
+                                PatternRewriter &rewriter) const override {
+    auto args = evin.getArgs();
+    SmallVector<Value> keep;
+    for (Value arg : args)
+      if (!isEmptyVeqType(arg))
+        keep.push_back(arg);
+    if (keep.size() == args.size())
+      return failure();
+
+    if (keep.empty()) {
+      rewriter.eraseOp(evin);
+      return success();
+    }
+
+    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
+        evin, keep, evin.getCompilerGenerated());
+    return success();
+  }
+};
+
+// %3 = quake.extract_ref %v[%i] : (!quake.veq<0>, i64) -> !quake.ref
+// ────────────────────────────────────────────────────────────────────
+// %3 = cc.poison !quake.ref
+//
+// There is no valid index into an empty veq -- extracting from one is
+// already an out-of-bounds access -- so replace it with a poison ref rather
+// than let the invalid access linger in the IR.
+struct ReplaceEmptyVeqExtractRefPattern
+    : public OpRewritePattern<cudaq::quake::ExtractRefOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ExtractRefOp extract,
+                                PatternRewriter &rewriter) const override {
+    if (!isEmptyVeqType(extract.getVeq()))
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(extract,
+                                                     extract.getType());
     return success();
   }
 };
@@ -300,6 +506,31 @@ public:
   }
 };
 
+// %0 = quake.concat %r0, %empty, %r1 : (!quake.ref, !quake.veq<0>,
+//          !quake.ref) -> !quake.veq<2>
+// ──────────────────────────────────────────────────────────────────────
+// %0 = quake.concat %r0, %r1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+//
+// An empty veq contributes zero qubits to the concatenation, so dropping it
+// changes nothing about the result.
+struct DropEmptyVeqConcatOperandsPattern
+    : public OpRewritePattern<cudaq::quake::ConcatOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<Value> keep;
+    for (Value target : concat.getTargets())
+      if (!isEmptyVeqType(target))
+        keep.push_back(target);
+    if (keep.empty() || keep.size() == concat.getTargets().size())
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(concat,
+                                                        concat.getType(), keep);
+    return success();
+  }
+};
+
 // %7 = quake.concat %4 : (!quake.veq<2>) -> !quake.veq<2>
 // ───────────────────────────────────────────
 // removed
@@ -312,20 +543,21 @@ struct ConcatNoOpPattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
     // or
     // concat ref -> ref
     auto qubitsToConcat = concat.getTargets();
-    if (qubitsToConcat.size() > 1)
+    if (qubitsToConcat.size() != 1)
       return failure();
 
     // We only want to handle veq -> veq here.
-    if (isa<cudaq::quake::RefType>(qubitsToConcat.front().getType())) {
+    auto argTy = qubitsToConcat.front().getType();
+    auto *ctx = rewriter.getContext();
+    auto refTy = cudaq::quake::RefType::get(ctx);
+    if (argTy == refTy)
       return failure();
-    }
 
     // Do not handle anything where we don't know the sizes.
+    auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto retTy = concat.getResult().getType();
-    if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(retTy))
-      if (!veqTy.hasSpecifiedSize())
-        // This could be a folded quake.relax_size op.
-        return failure();
+    if (retTy == unsizedVeqTy || argTy != retTy)
+      return failure();
 
     rewriter.replaceOp(concat, qubitsToConcat);
     return success();
@@ -393,6 +625,44 @@ struct ConcatSizePattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
   }
 };
 
+// %i = quake.concat %a, %b     : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// %o = quake.concat %x, %i, %y : (!quake.ref, !quake.veq<2>,
+//                                 !quake.ref) -> !quake.veq<4>
+// ─────────────────────────────────────────────────────────────────────────
+// %o = quake.concat %x, %a, %b, %y : (!quake.ref, !quake.ref, !quake.ref,
+//                                     !quake.ref) -> !quake.veq<4>
+//
+// Flattens one level of concat-of-concat. This enables downstream DCE of the
+// inner concat once it has no remaining uses.
+struct ConcatFlattenPattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    bool anyInner = false;
+    SmallVector<Value> flatArgs;
+    for (Value arg : concat.getTargets()) {
+      auto inner = arg.getDefiningOp<cudaq::quake::ConcatOp>();
+      if (!inner) {
+        flatArgs.push_back(arg);
+        continue;
+      }
+      auto innerTy = dyn_cast<cudaq::quake::VeqType>(inner.getType());
+      if (!innerTy) {
+        flatArgs.push_back(arg);
+        continue;
+      }
+      flatArgs.append(inner.getTargets().begin(), inner.getTargets().end());
+      anyInner = true;
+    }
+    if (!anyInner)
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(
+        concat, concat.getType(), flatArgs);
+    return success();
+  }
+};
+
 // %0 = quake.alloca !quake.veq<2>
 // %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
 // %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
@@ -442,6 +712,27 @@ struct UselessConcatOpPattern
   }
 };
 
+// %3 = quake.get_member %s[0] : (!quake.struq<!quake.veq<0>, ...>) ->
+//                                !quake.veq<0>
+// ──────────────────────────────────────────────────────────────────
+// %3 = cc.poison !quake.veq<0>
+//
+// A struq member that is statically empty carries no qubits, so extracting
+// it is just as meaningless as allocating it. Canonicalize to the same
+// poison placeholder used for a zero-size alloca.
+struct ReplaceEmptyVeqGetMemberPattern
+    : public OpRewritePattern<cudaq::quake::GetMemberOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::GetMemberOp getMem,
+                                PatternRewriter &rewriter) const override {
+    if (!isEmptyVeqType(getMem.getResult()))
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(getMem, getMem.getType());
+    return success();
+  }
+};
+
 // %7 = quake.make_struq %5, %6 : (!quake.veq<A>, !quake.veq<N>) ->
 //                    !quake.struq<!quake.veq<A>, !quake.veq<N>>
 // %8 = quake.get_member %7[1] : (!quake.struq<!quake.veq<A>,
@@ -466,6 +757,31 @@ struct BypassMakeStruq : public OpRewritePattern<cudaq::quake::GetMemberOp> {
                                                              from);
     else
       rewriter.replaceOp(getMem, from);
+    return success();
+  }
+};
+
+// %0 = quake.init_state %targets, %state : (!quake.veq<0>, T) -> !quake.veq<?>
+// ────────────────────────────────────────────────────────────────────────────
+// %0 = quake.relax_size %targets : (!quake.veq<0>) -> !quake.veq<?>
+//
+// An empty state vector has nothing to initialize -- there are no qubits to
+// carry the amplitude -- so the op is a no-op. Erase it and forward its
+// `targets` operand directly to its uses.
+struct ForwardEmptyVeqInitStatePattern
+    : public OpRewritePattern<cudaq::quake::InitializeStateOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::InitializeStateOp initState,
+                                PatternRewriter &rewriter) const override {
+    if (!isEmptyVeqType(initState.getTargets()))
+      return failure();
+    Value targets = initState.getTargets();
+    if (targets.getType() != initState.getType())
+      targets = cudaq::quake::RelaxSizeOp::create(rewriter, initState.getLoc(),
+                                                  initState.getType(), targets)
+                    .getResult();
+    rewriter.replaceOp(initState, targets);
     return success();
   }
 };
@@ -508,6 +824,26 @@ struct ForwardAllocaTypePattern
           }
       }
     return failure();
+  }
+};
+
+// %0 = quake.subveq %v, %lo, %hi : (!quake.veq<0>, i64, i64) -> !quake.veq<?>
+// ────────────────────────────────────────────────────────────────────────────
+// %0 = cc.poison !quake.veq<?>
+//
+// There is no valid subrange of an empty veq -- any requested range is
+// inherently out of bounds -- so replace it with a poison value instead of
+// letting the invalid access linger in the IR.
+struct ReplaceEmptyVeqSubVeqPattern
+    : public OpRewritePattern<cudaq::quake::SubVeqOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::SubVeqOp subveq,
+                                PatternRewriter &rewriter) const override {
+    if (!isEmptyVeqType(subveq.getVeq()))
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(subveq, subveq.getType());
+    return success();
   }
 };
 
@@ -713,6 +1049,201 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
   }
 };
 
+// A wrap_new mints a fresh ref that stands in for a wire's identity. If that
+// wire is itself the direct result of unwrapping some ref (with nothing in
+// between to modify it), the fresh ref is redundant: the unwrapped ref
+// already denotes that same identity. Forward it directly and drop the
+// round trip through wrap_new (and the unwrap too, once it has no other
+// uses).
+struct ForwardUnwrappedRefPattern
+    : public OpRewritePattern<cudaq::quake::WrapNewOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::WrapNewOp wrapNew,
+                                PatternRewriter &rewriter) const override {
+    auto unwrap =
+        wrapNew.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>();
+    if (!unwrap)
+      return failure();
+    rewriter.replaceOp(wrapNew, unwrap.getRefValue());
+    if (unwrap->use_empty())
+      rewriter.eraseOp(unwrap);
+    return success();
+  }
+};
+
+/// Return true when the two phase operations describe the same ordered
+/// control predicate. An omitted polarity attribute is equivalent to an
+/// all-positive control list.
+static bool haveMatchingPhasePolarities(cudaq::quake::PhaseOp first,
+                                        cudaq::quake::PhaseOp second) {
+  auto firstControls = first.getControls();
+  auto secondControls = second.getControls();
+  if (firstControls.size() != secondControls.size())
+    return false;
+
+  auto firstPolarities = cudaq::quake::getControlPolarities(
+      firstControls, first.getNegatedQubitControls());
+  auto secondPolarities = cudaq::quake::getControlPolarities(
+      secondControls, second.getNegatedQubitControls());
+  return llvm::equal(firstPolarities, secondPolarities);
+}
+
+/// Return true if `second` directly threads the quantum dataflow from `first`.
+/// Corresponding controls and targets must either be the same non-wire value
+/// or both be wires. In the latter case, `second` must consume `first`'s wire
+/// results in controls-then-targets order. Those results must have no other
+/// uses, so that the merge can erase `first` safely. Parameters are handled
+/// separately by the merge pattern.
+static bool isDirectlyThreadedPhase(cudaq::quake::PhaseOp first,
+                                    cudaq::quake::PhaseOp second) {
+  auto firstControls = first.getControls();
+  auto secondControls = second.getControls();
+  auto firstTargets = first.getTargets();
+  auto secondTargets = second.getTargets();
+  if (firstControls.size() != secondControls.size() ||
+      firstTargets.size() != secondTargets.size())
+    return false;
+
+  auto haveMatchingOperandKinds = [](Value firstOperand, Value secondOperand) {
+    bool firstIsWire = isa<cudaq::quake::WireType>(firstOperand.getType());
+    bool secondIsWire = isa<cudaq::quake::WireType>(secondOperand.getType());
+    return firstIsWire == secondIsWire &&
+           (firstIsWire || firstOperand == secondOperand);
+  };
+  auto haveMatchingOperands = [&](ValueRange firstOperands,
+                                  ValueRange secondOperands) {
+    return llvm::all_of(
+        llvm::zip(firstOperands, secondOperands), [&](auto operands) {
+          auto [firstOperand, secondOperand] = operands;
+          return haveMatchingOperandKinds(firstOperand, secondOperand);
+        });
+  };
+  if (!haveMatchingOperands(firstControls, secondControls) ||
+      !haveMatchingOperands(firstTargets, secondTargets))
+    return false;
+
+  auto firstFlow = cudaq::quake::detail::getThreadedWireFlow(first);
+  if (!firstFlow)
+    return false;
+  auto secondWires = cudaq::quake::getWireValues(secondControls, secondTargets);
+  return llvm::equal(firstFlow->results, secondWires) &&
+         llvm::all_of(firstFlow->results,
+                      [](Value wire) { return wire.hasOneUse(); });
+}
+
+struct AdjustAdjointPhasePattern
+    : public OpRewritePattern<cudaq::quake::PhaseOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::PhaseOp phase,
+                                PatternRewriter &rewriter) const override {
+    if (!phase.isAdj())
+      return failure();
+
+    auto negatedAngle =
+        arith::NegFOp::create(rewriter, phase.getLoc(), phase.getParameter());
+    auto dict = phase->getDiscardableAttrDictionary();
+    auto newPhase = rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
+        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{negatedAngle},
+        phase.getControls(), phase.getTargets(),
+        phase.getNegatedQubitControlsAttr());
+    newPhase->setDiscardableAttrs(std::move(dict));
+    return success();
+  }
+};
+
+struct EraseZeroPhasePattern : public OpRewritePattern<cudaq::quake::PhaseOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::PhaseOp phase,
+                                PatternRewriter &rewriter) const override {
+    auto constant = phase.getParameter().getDefiningOp<arith::ConstantOp>();
+    if (!constant)
+      return failure();
+    auto angle = dyn_cast<FloatAttr>(constant.getValue());
+    if (!angle)
+      return failure();
+
+    llvm::APFloat remainder = angle.getValue();
+    if (!remainder.isFinite())
+      return failure();
+
+    llvm::APFloat pi(remainder.getSemantics(), llvm::numbers::pis);
+    llvm::APFloat twoPi(pi);
+    twoPi.add(pi, llvm::APFloat::rmNearestTiesToEven);
+
+    // Reducing in the source semantics alone can misclassify enormous values:
+    // a rounded 2*pi approximation multiplied by a large power of two has an
+    // exact zero remainder in that format even when its phase is far from one.
+    // Require a candidate to be at least as close to identity as the source
+    // format's canonical one-cycle representation.
+    double phi = remainder.convertToDouble();
+    double canonicalTwoPi = twoPi.convertToDouble();
+    double tolerance =
+        std::hypot(std::cos(canonicalTwoPi) - 1.0, std::sin(canonicalTwoPi));
+    double phaseDistance = std::hypot(std::cos(phi) - 1.0, std::sin(phi));
+    if (!std::isfinite(phi) || phaseDistance > tolerance)
+      return failure();
+
+    remainder.remainder(twoPi);
+    if (!remainder.isZero())
+      return failure();
+
+    SmallVector<Value> wireInputs;
+    for (Value control : phase.getControls())
+      if (isa<cudaq::quake::WireType>(control.getType()))
+        wireInputs.push_back(control);
+    for (Value target : phase.getTargets())
+      if (isa<cudaq::quake::WireType>(target.getType()))
+        wireInputs.push_back(target);
+    if (wireInputs.size() != phase.getNumResults())
+      return failure();
+
+    rewriter.replaceOp(phase, wireInputs);
+    return success();
+  }
+};
+
+struct MergeAdjacentPhasePattern
+    : public OpRewritePattern<cudaq::quake::PhaseOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::PhaseOp phase,
+                                PatternRewriter &rewriter) const override {
+    Operation *previous = phase->getPrevNode();
+    // Adjoint normalization materializes a negation immediately before the
+    // phase. It has no quantum effect, so it does not break adjacency when it
+    // defines this phase's parameter.
+    auto negateAngleOp = phase.getParameter().getDefiningOp<arith::NegFOp>();
+    if (negateAngleOp && previous == negateAngleOp.getOperation())
+      previous = previous->getPrevNode();
+
+    if (!previous)
+      return failure();
+    auto input = dyn_cast<cudaq::quake::PhaseOp>(previous);
+    if (!input || !haveMatchingPhasePolarities(input, phase) ||
+        !isDirectlyThreadedPhase(input, phase))
+      return failure();
+
+    auto firstAngle = input.getParameter();
+    auto secondAngle = phase.getParameter();
+    if (input.isAdj() || phase.isAdj() ||
+        firstAngle.getType() != secondAngle.getType())
+      return failure();
+
+    auto loc = phase.getLoc();
+    auto mergedAngle =
+        arith::AddFOp::create(rewriter, loc, firstAngle, secondAngle);
+
+    rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
+        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{mergedAngle},
+        input.getControls(), input.getTargets(),
+        input.getNegatedQubitControlsAttr());
+    rewriter.eraseOp(input);
+    return success();
+  }
+};
 template <typename OP>
 struct MergeRotationPattern : public OpRewritePattern<OP> {
   using Base = OpRewritePattern<OP>;
@@ -721,10 +1252,10 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
   LogicalResult matchAndRewrite(OP rotate,
                                 PatternRewriter &rewriter) const override {
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
-    if (rotate.getTarget(0).getType() != wireTy ||
+    if (rotate.getTarget().getType() != wireTy ||
         !rotate.getControls().empty() || rotate.getNegatedQubitControls())
       return failure();
-    auto input = rotate.getTarget(0).template getDefiningOp<OP>();
+    auto input = rotate.getTarget().template getDefiningOp<OP>();
     if (!input || !input.getControls().empty() ||
         input.getNegatedQubitControls())
       return failure();
@@ -735,8 +1266,8 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
     // Replace those ops with
     //   %new    = quake.rotate (%angle1 + %angle2), %wire
     auto loc = rotate.getLoc();
-    auto angle1 = input.getParameter(0);
-    auto angle2 = rotate.getParameter(0);
+    auto angle1 = input.getParameter();
+    auto angle2 = rotate.getParameter();
     if (angle1.getType() != angle2.getType())
       return failure();
     auto adjAttr = rotate.getIsAdjAttr();
@@ -751,7 +1282,7 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
     }();
     rewriter.replaceOpWithNewOp<OP>(rotate, rotate.getResultTypes(), adjAttr,
                                     ValueRange{newAngle}, ValueRange{},
-                                    ValueRange{input.getTarget(0)},
+                                    ValueRange{input.getTarget()},
                                     rotate.getNegatedQubitControlsAttr());
     return success();
   }

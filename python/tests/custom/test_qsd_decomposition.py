@@ -22,7 +22,7 @@ import cudaq
 #        `synth_kernel8` is the exact gate sequence emitted by
 #        `cudaq-opt --unitary-synthesis` on `kernel8` (four inlined KAK children
 #        plus three gray-code uniformly-controlled multiplexors); the matrix
-#        matches the IR test `test/Transforms/UnitarySynthesis/random_unitary-5.qke`
+#        matches the IR test `test/Optimizer/UnitarySynthesis/random_unitary-5.qke`
 #        so the FileCheck and Python tests together cover the full path.
 
 
@@ -61,7 +61,7 @@ def test_random_unitary_3q():
     # KAK children on q[0]/q[1] interleaved with three two-control gray-code
     # multiplexors (Rz, Ry, Rz) targeting q[2]. The 12 multiplexor CNOTs are the
     # optimal gray-code count.
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def synth_kernel8():
         q = cudaq.qvector(3)
 

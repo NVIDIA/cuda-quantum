@@ -71,9 +71,9 @@ cc::PointerType getPointerToPointerType(mlir::OpBuilder &builder);
 bool isDynamicSignature(mlir::FunctionType devFuncTy);
 
 std::pair<mlir::Value, bool>
-unpackAnyStdVectorBool(mlir::Location loc, mlir::OpBuilder &builder,
-                       mlir::ModuleOp module, mlir::Value arg, mlir::Type ty,
-                       mlir::Value heapTracker);
+unpackAnySequenceBool(mlir::Location loc, mlir::OpBuilder &builder,
+                      mlir::ModuleOp module, mlir::Value arg, mlir::Type ty,
+                      mlir::Value heapTracker);
 
 mlir::Value genSizeOfDynamicMessageBuffer(
     mlir::Location loc, mlir::OpBuilder &builder, mlir::ModuleOp module,
@@ -115,17 +115,17 @@ lookupHostEntryPointFunc(mlir::StringRef mangledEntryPointName,
 /// Generate code to initialize the std::vector<T>, \p sret, from an initializer
 /// list with data at \p data and length \p size. Use the library helper
 /// routine. This function takes two !llvm.ptr arguments.
-void genStdvecBoolFromInitList(mlir::Location loc, mlir::OpBuilder &builder,
-                               mlir::Value sret, mlir::Value data,
-                               mlir::Value size);
+void genSequenceBoolFromInitList(mlir::Location loc, mlir::OpBuilder &builder,
+                                 mlir::Value sret, mlir::Value data,
+                                 mlir::Value size);
 
 /// Generate a `std::vector<T>` (where `T != bool`) from an initializer list.
 /// This is done with the assumption that `std::vector` is implemented as a
 /// triple of pointers. The original content of the vector is freed and the new
 /// content, which is already on the stack, is moved into the `std::vector`.
-void genStdvecTFromInitList(mlir::Location loc, mlir::OpBuilder &builder,
-                            mlir::Value sret, mlir::Value data,
-                            mlir::Value tSize, mlir::Value vecSize);
+void genSequenceTFromInitList(mlir::Location loc, mlir::OpBuilder &builder,
+                              mlir::Value sret, mlir::Value data,
+                              mlir::Value tSize, mlir::Value vecSize);
 
 // Alloca a pointer to a pointer and initialize it to nullptr.
 mlir::Value createEmptyHeapTracker(mlir::Location loc,

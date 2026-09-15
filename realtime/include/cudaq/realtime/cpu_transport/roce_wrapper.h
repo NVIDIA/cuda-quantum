@@ -9,7 +9,7 @@
 /// @file roce_wrapper.h
 /// @brief C interface to cudaq::realtime::bridge::CpuRoceTransceiver.
 ///
-/// Parallels hololink_wrapper.h (which wraps GpuRoceTransceiver) so the
+/// Parallels gpu_roce_wrapper.h (which wraps GpuRoceTransceiver) so the
 /// existing bridge-tool patterns can swap in the CPU transport with
 /// minimal changes.  Used by:
 ///   - hsb_bridge_cpu     (Phase 1, FPGA-facing; default tx_mode_send_for_fpga)
@@ -138,7 +138,7 @@ uint32_t cpu_roce_get_rkey(cpu_roce_transceiver_t handle);
 uint64_t cpu_roce_get_buffer_addr(cpu_roce_transceiver_t handle);
 
 //==============================================================================
-// Ring buffer accessors (mirroring hololink_wrapper.h's surface)
+// Ring buffer accessors (mirroring gpu_roce_wrapper.h's surface)
 //==============================================================================
 
 void *cpu_roce_get_rx_ring_data_addr(cpu_roce_transceiver_t handle);

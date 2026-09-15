@@ -8,6 +8,7 @@
 
 import os
 import subprocess
+import sys
 import lit.formats
 import lit.util
 
@@ -41,6 +42,39 @@ llvm_config.feature_config([('--assertion-mode', {'ON': 'asserts'})])
 config.targets = frozenset(config.targets_to_build.split())
 for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')
+
+# CUDA-Q targets that this build actually produced. A target is only present
+# when its backend was enabled at configure time (e.g. CUDAQ_ENABLE_OQC_BACKEND),
+# so tests that pass `--target <name>` must gate on the corresponding feature
+# with `// REQUIRES: cudaq-target-<name>` rather than assuming every target was
+# built.
+# This must be fatal rather than a warning: if enumeration fails no features
+# are registered, and every test gated on one silently becomes "Unsupported"
+# instead of running -- a green run that tested nothing.
+_py_pkg_dir = os.path.join(os.path.dirname(config.cudaq_lib_dir), 'python')
+# The configured interpreter may be gone by test time. scikit-build wheel
+# builds configure in a temporary environment that is later deleted.
+_python = config.python_executable
+if not _python or not os.path.isfile(_python):
+    _python = sys.executable
+try:
+    _targets = subprocess.check_output([
+        _python, '-c',
+        'import cudaq; print(" ".join(t.name for t in cudaq.get_targets()))'
+    ],
+                                       env=dict(os.environ,
+                                                PYTHONPATH=_py_pkg_dir),
+                                       stderr=subprocess.STDOUT,
+                                       text=True).split()
+except Exception as e:
+    lit_config.fatal('Could not enumerate CUDA-Q targets, so cudaq-target-* '
+                     'features cannot be set and gated tests would silently '
+                     'be skipped: %s' % e)
+if not _targets:
+    lit_config.fatal('CUDA-Q reported no available targets; cudaq-target-* '
+                     'gating would silently skip every gated test.')
+for _t in _targets:
+    config.available_features.add('cudaq-target-' + _t)
 
 # excludes: A list of directories to exclude from the testsuite. The 'Inputs'
 # subdirectories contain auxiliary inputs for various tests in their parent

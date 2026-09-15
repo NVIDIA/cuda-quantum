@@ -17,9 +17,13 @@ target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime)
 target_include_directories(${LIBRARY_NAME} SYSTEM PRIVATE nlopt-src/ nlopt-src/src/api)
 target_link_libraries(${LIBRARY_NAME} PRIVATE nlopt)
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-nlopt-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-nlopt-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 install(EXPORT cudaq-nlopt-targets
         FILE CUDAQNloptTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)

@@ -7,3 +7,4 @@
 # ============================================================================ #
 
 add_cudaq_dialect(QEC qec)
+add_cudaq_dialect_doc(QEC qec)

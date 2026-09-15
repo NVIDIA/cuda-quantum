@@ -9,7 +9,8 @@
 #pragma once
 
 /// @file bridge_interface.h
-/// @brief Interface Bindings for transport layer providers (e.g. Hololink).
+/// @brief Interface Bindings for transport layer providers (e.g.
+/// GpuRoceTransceiver).
 ///
 /// Different transport providers can be loaded at runtime via `dlopen`,
 /// allowing for dynamic selection and initialization of the desired transport
@@ -17,8 +18,8 @@
 /// `cudaq_bridge_create_from_library`; loaded libraries are cached per
 /// process keyed by that name, so multiple distinct providers can coexist in
 /// one process.  The enum-based `cudaq_bridge_create` remains as a
-/// convenience wrapper (built-in Hololink name, or the library named by the
-/// CUDAQ_REALTIME_BRIDGE_LIB environment variable).
+/// convenience wrapper (built-in GpuRoceTransceiver name, or the library named
+/// by the CUDAQ_REALTIME_BRIDGE_LIB environment variable).
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
@@ -31,15 +32,19 @@ extern "C" {
 typedef void *cudaq_realtime_bridge_handle_t;
 
 typedef enum {
-  CUDAQ_PROVIDER_HOLOLINK =
-      0, /// Hololink GPU-RoCE transceiver (built-in provider)
+  CUDAQ_PROVIDER_GPU_ROCE = 0, /// GpuRoceTransceiver (built-in provider)
   CUDAQ_PROVIDER_EXTERNAL = 1, /// Externally managed transport
 
 } cudaq_realtime_transport_provider_t;
 
+/// Transport shapes a provider may serve.  A provider answers
+/// `get_transport_context` for the one it is configured for and refuses the
+/// other; see cudaq_bridge_get_transport_context for that contract.
 typedef enum {
-  RING_BUFFER = 0, // Ring buffer context (for Hololink provider)
-  UNIFIED = 1,     /// Unified transport context  for unified dispatch
+  RING_BUFFER = 0, /// Rings the consumer polls, filled by the transport's own
+                   /// RX/TX path (threads or kernels)
+  UNIFIED = 1,     /// One loop does RX, dispatch and TX; the context says whose
+                   /// loop it is
 } cudaq_realtime_transport_context_t;
 
 /// Result of a non-blocking RX poll on the ringbuffer dataplane.
@@ -136,8 +141,8 @@ cudaq_status_t cudaq_bridge_create_from_library(
 
 /// @brief Create and initialize a transport bridge for the specified provider
 /// enum.  A convenience wrapper over `cudaq_bridge_create_from_library`:
-/// CUDAQ_PROVIDER_HOLOLINK resolves to the bundled Hololink library name, and
-/// CUDAQ_PROVIDER_EXTERNAL resolves to the library named by the
+/// CUDAQ_PROVIDER_GPU_ROCE resolves to the bundled GpuRoceTransceiver library
+/// name, and CUDAQ_PROVIDER_EXTERNAL resolves to the library named by the
 /// CUDAQ_REALTIME_BRIDGE_LIB environment variable.  New callers should prefer
 /// `cudaq_bridge_create_from_library` and pass the library name directly.
 cudaq_status_t
@@ -148,8 +153,9 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 /// @brief Destroy the transport bridge and release all associated resources.
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 
-/// @brief Retrieve the transport context for the given bridge.
-/// This could be a ring buffer or unified context.
+/// @brief Retrieve the transport context for the given bridge: a
+/// `cudaq_ringbuffer_t` for RING_BUFFER, a `cudaq_unified_dispatch_ctx_t` for
+/// UNIFIED.
 cudaq_status_t cudaq_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t bridge,
     cudaq_realtime_transport_context_t context_type, void *out_context);
@@ -158,16 +164,16 @@ cudaq_status_t cudaq_bridge_get_transport_context(
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge);
 
 /// @brief Launch the transport bridge's main processing loop (e.g. start
-/// Hololink kernels).
+/// GpuRoceTransceiver kernels).
 cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge);
 
-/// @brief Disconnect the transport bridge (e.g. stop Hololink kernels and
-/// disconnect).
+/// @brief Disconnect the transport bridge (e.g. stop GpuRoceTransceiver kernels
+/// and disconnect).
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 
 /// @brief Retrieve the CPU data-plane for the single-thread unified host
-/// dispatch loop.  Returns CUDAQ_ERR_UNSUPPORTED when the provider predates
-/// interface version 2 or does not implement the unified shape.
+/// dispatch loop.  Returns CUDAQ_ERR_UNSUPPORTED when the provider does not
+/// implement the unified shape.
 cudaq_status_t
 cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
                                cudaq_cpu_dataplane_t *out_dataplane);
@@ -177,29 +183,36 @@ cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
 /// `transport=cpu_roce port=9000 roce_ip=10.0.0.2 qp=0x1a rkey=1234`) into
 /// `buf`.  Valid as soon as create() returns, so a server can publish its
 /// rendezvous endpoint BEFORE connect() blocks waiting for the peer.  Returns
-/// CUDAQ_ERR_UNSUPPORTED when the provider predates interface version 2 or
-/// has nothing to report.
+/// CUDAQ_ERR_UNSUPPORTED when the provider has nothing to report.
 cudaq_status_t
 cudaq_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t bridge, char *buf,
                                size_t buf_len);
 
 /// @brief Retrieve the provider's ring geometry so dispatcher configuration
 /// can be derived from the transport instead of duplicated by the caller.
-/// Returns CUDAQ_ERR_UNSUPPORTED when the provider predates interface
-/// version 2.
+/// Returns CUDAQ_ERR_UNSUPPORTED when the provider does not report geometry.
 cudaq_status_t
 cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
                                uint32_t *out_num_slots,
                                uint32_t *out_slot_size);
 
-/// Version 2 adds the capability queries after `disconnect`:
-/// `get_cpu_dataplane`, `get_endpoint_info`, and `get_ring_geometry`.  The
-/// loader accepts providers reporting any version in [1, CURRENT]; fields
-/// beyond `disconnect` are only read from providers reporting version >= 2
-/// (a v1 provider's struct may simply end at `disconnect`).  A v2 provider
-/// sets entries it does not support to NULL; the corresponding API calls
-/// return CUDAQ_ERR_UNSUPPORTED.
-#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 2
+/// @brief Hand the provider the same function table the dispatcher will run
+/// (the `cudaq_function_table_t` passed to
+/// `cudaq_dispatcher_set_function_table`). Some providers may need the table
+/// for pre-staging. A transport that does not need the table simply leaves
+/// the entry `NULL`, and the call then returns `CUDAQ_OK` instead of
+/// dispatching into the provider.
+cudaq_status_t
+cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
+                                const cudaq_function_table_t *table);
+
+/// A provider must be built against this header: the loader reads the whole
+/// struct and does not adapt to older layouts.  A provider reporting a
+/// different value is rejected at load with a message naming both versions,
+/// so a stale plug-in is identified instead of failing in obscure ways.  A
+/// provider sets entries it does not implement to NULL; the corresponding API
+/// calls then return CUDAQ_ERR_UNSUPPORTED.
+#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 3
 
 /// @brief Interface struct for transport layer providers.  Each provider must
 /// implement this interface and provide a `getter` function
@@ -218,9 +231,8 @@ typedef struct {
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
 
   //--------------------------------------------------------------------------
-  // Version 2 fields.  Read only when `version >= 2`; each may be NULL when
-  // the provider does not support the capability (the API wrappers then
-  // return CUDAQ_ERR_UNSUPPORTED).
+  // Added in version 2.  Each may be NULL when the provider does not support
+  // the capability (the API wrappers then return CUDAQ_ERR_UNSUPPORTED).
   //--------------------------------------------------------------------------
 
   /// Fills *out with the ring data-plane the library's single-thread
@@ -239,6 +251,16 @@ typedef struct {
   cudaq_status_t (*get_ring_geometry)(cudaq_realtime_bridge_handle_t,
                                       uint32_t *out_num_slots,
                                       uint32_t *out_slot_size);
+
+  //--------------------------------------------------------------------------
+  // Added in version 3.  NULL when the provider does not consume the table
+  // (the API wrapper then returns CUDAQ_OK).
+  //--------------------------------------------------------------------------
+
+  /// Registers the dispatcher's function table with the transport; see
+  /// cudaq_bridge_set_function_table.
+  cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
+                                       const cudaq_function_table_t *table);
 
 } cudaq_realtime_bridge_interface_t;
 

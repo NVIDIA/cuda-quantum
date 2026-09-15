@@ -1,0 +1,311 @@
+diff --git a/mlir/include/mlir/IR/Types.h b/mlir/include/mlir/IR/Types.h
+index 4ffdbfa5b122..da5813ff71d1 100644
+--- a/mlir/include/mlir/IR/Types.h
++++ b/mlir/include/mlir/IR/Types.h
+@@ -249,6 +249,16 @@ template <typename ConcreteType, template <typename> class TraitType>
+ using TraitBase = detail::StorageUserTraitBase<ConcreteType, TraitType>;
+ } // namespace TypeTrait
+ 
++namespace TypeTrait {
++/// Types with this trait opt out of redundant block argument simplification
++/// during region simplification. Block arguments of these types are not
++/// eliminated when all predecessors pass the same value. Use this to preserve
++/// SSI (Static Single Information) form where block arguments carry semantic
++/// meaning beyond their SSA def-use structure.
++template <typename ConcreteType>
++struct SSIType : public TraitBase<ConcreteType, SSIType> {};
++} // namespace TypeTrait
++
+ //===----------------------------------------------------------------------===//
+ // TypeInterface
+ //===----------------------------------------------------------------------===//
+diff --git a/mlir/lib/Interfaces/ControlFlowInterfaces.cpp b/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
+index 684d9ec3c0d1..75fedc347146 100644
+--- a/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
++++ b/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
+@@ -709,6 +709,11 @@ struct MakeRegionBranchOpSuccessorInputsDead : public RewritePattern {
+       // Nothing to do for successor inputs that are already dead.
+       if (value.use_empty())
+         continue;
++      // Do not fold SSI-typed successor inputs across control-flow paths.
++      // Each block argument of SSI type is a distinct information point even
++      // when all predecessors forward the same dominating value.
++      if (value.getType().hasTrait<TypeTrait::SSIType>())
++        continue;
+       // Nothing to do for successor inputs that may have multiple reachable
+       // values.
+       llvm::SmallDenseSet<Value> reachableValues =
+@@ -1000,6 +1005,11 @@ struct RemoveDuplicateSuccessorInputUses : public RewritePattern {
+         // Nothing to do if input2 is already dead.
+         if (input2.use_empty())
+           continue;
++        // Do not deduplicate SSI-typed successor inputs. Each represents a
++        // distinct control-flow information point even when all predecessors
++        // forward identical values.
++        if (input2.getType().hasTrait<TypeTrait::SSIType>())
++          continue;
+         // Replace only values that belong to the same block / operation.
+         // This implies that the two values are either both block arguments or
+         // both op results.
+diff --git a/mlir/lib/Transforms/Utils/RegionUtils.cpp b/mlir/lib/Transforms/Utils/RegionUtils.cpp
+index 082a88365300..9e5f6c234994 100644
+--- a/mlir/lib/Transforms/Utils/RegionUtils.cpp
++++ b/mlir/lib/Transforms/Utils/RegionUtils.cpp
+@@ -15,6 +15,7 @@
+ #include "mlir/IR/IRMapping.h"
+ #include "mlir/IR/Operation.h"
+ #include "mlir/IR/PatternMatch.h"
++#include "mlir/IR/Types.h"
+ #include "mlir/IR/Value.h"
+ #include "mlir/Interfaces/ControlFlowInterfaces.h"
+ #include "mlir/Interfaces/SideEffectInterfaces.h"
+@@ -960,6 +961,9 @@ static LogicalResult dropRedundantArguments(RewriterBase &rewriter,
+ 
+   // Go through the arguments of the block.
+   for (auto [argIdx, blockOperand] : llvm::enumerate(block.getArguments())) {
++    // Block arguments with SSIType are excluded from redundant arg elimination.
++    if (blockOperand.getType().hasTrait<TypeTrait::SSIType>())
++      continue;
+     bool sameArg = true;
+     Value commonValue;
+ 
+diff --git a/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir b/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir
+new file mode 100644
+index 000000000000..a8118048f7a5
+--- /dev/null
++++ b/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir
+@@ -0,0 +1,105 @@
++// RUN: mlir-opt -allow-unregistered-dialect %s -split-input-file \
++// RUN:   -pass-pipeline='builtin.module(func.func(canonicalize{region-simplify=aggressive}))' \
++// RUN:   | FileCheck %s
++
++// Verify that a block argument with SSIType is NOT removed by
++// dropRedundantArguments, even when all predecessors pass the same value.
++// Uses "test.br" (not cf.br) so block merging doesn't obscure the result.
++
++// CHECK-LABEL: func @redundant_ssi_arg_preserved
++// CHECK:         "test.br"(%{{.*}})[^bb1] : (!test.ssi_type) -> ()
++// CHECK:       ^bb1(%[[V:.*]]: !test.ssi_type):
++// CHECK-NEXT:    %[[W:.*]] = "test.use"(%[[V]])
++// CHECK-NEXT:    return %[[W]]
++func.func @redundant_ssi_arg_preserved(%arg0: !test.ssi_type) -> !test.ssi_type {
++  "test.br"(%arg0)[^succ] : (!test.ssi_type) -> ()
++^succ(%0: !test.ssi_type):
++  %1 = "test.use"(%0) : (!test.ssi_type) -> !test.ssi_type
++  return %1 : !test.ssi_type
++}
++
++// -----
++
++// Verify that a dead SSI block argument IS removed -- deadness is safe to
++// fold; only collapsing a live arg across control-flow paths is forbidden.
++// Uses "test.br" so block merging doesn't obscure the result.
++
++// CHECK-LABEL: func @dead_ssi_arg_eliminated
++// CHECK:         "test.br"()[^bb1]
++// CHECK:       ^bb1:
++// CHECK-NEXT:    return
++func.func @dead_ssi_arg_eliminated(%arg0: !test.ssi_type) {
++  "test.br"(%arg0)[^succ] : (!test.ssi_type) -> ()
++^succ(%0: !test.ssi_type):
++  return
++}
++
++// -----
++
++// Verify that a normal (non-SSI) redundant block argument IS removed by
++// dropRedundantArguments, confirming the baseline behavior we are opting out
++// of.
++
++// CHECK-LABEL: func @redundant_normal_arg_eliminated
++// CHECK-NEXT:    return
++func.func @redundant_normal_arg_eliminated(%arg0: f32) -> f32 {
++  cf.br ^succ(%arg0 : f32)
++^succ(%0: f32):
++  return %0 : f32
++}
++
++// -----
++
++// Verify that SSI and non-SSI args can coexist: the non-SSI dead arg is
++// eliminated while the SSI arg is preserved.
++
++// CHECK-LABEL: func @mixed_args_selective_preservation
++// CHECK:         "test.br"(%{{.*}})[^bb1]
++// CHECK:       ^bb1(%[[V:.*]]: !test.ssi_type):
++// CHECK-NEXT:    %[[W:.*]] = "test.use"(%[[V]])
++// CHECK-NEXT:    return %[[W]]
++func.func @mixed_args_selective_preservation(%a: !test.ssi_type, %b: f32) -> (!test.ssi_type, f32){
++  "test.br"(%a, %b)[^succ] : (!test.ssi_type, f32) -> ()
++^succ(%0: !test.ssi_type, %1: f32):
++  %2 = "test.use"(%0) : (!test.ssi_type) -> !test.ssi_type
++  return %2, %1 : !test.ssi_type, f32
++}
++
++// -----
++
++// CHECK-LABEL: func @ssi_preserved_block_merged(
++// CHECK-SAME:      %[[V:.*]]: !test.ssi_type)
++// CHECK-NEXT:    %[[W:.*]] = "test.use"(%[[V]])
++// CHECK-NEXT:    return %[[W]]
++func.func @ssi_preserved_block_merged(%arg0: !test.ssi_type) -> !test.ssi_type {
++  cf.br ^succ(%arg0 : !test.ssi_type)
++^succ(%0: !test.ssi_type):
++  %1 = "test.use"(%0) : (!test.ssi_type) -> !test.ssi_type
++  return %1 : !test.ssi_type
++}
++
++// -----
++
++// CHECK-LABEL:   func.func @ssi_preserved_cond_br(
++// CHECK-SAME:      %[[ARG0:.*]]: i1,
++// CHECK-SAME:      %[[ARG1:.*]]: !test.ssi_type)
++// CHECK:           cf.cond_br %[[ARG0]], ^bb1(%[[ARG1]] : !test.ssi_type), ^bb2(%[[ARG1]] : !test.ssi_type)
++// CHECK:         ^bb1(%[[VAL_0:[^:]*]]:
++// CHECK:           %[[VAL_1:.*]] = "test.use1"(%[[VAL_0]])
++// CHECK:           cf.br ^bb3(%[[VAL_1]]
++// CHECK:         ^bb2(%[[VAL_2:[^:]*]]:
++// CHECK:           %[[VAL_3:.*]] = "test.use2"(%[[VAL_2]])
++// CHECK:           cf.br ^bb3(%[[VAL_3]]
++// CHECK:         ^bb3(%[[VAL_4:[^:]*]]:
++// CHECK:           return %[[VAL_4]]
++func.func @ssi_preserved_cond_br(%arg0: i1, %arg1: !test.ssi_type) -> !test.ssi_type {
++  cf.cond_br %arg0, ^succ0(%arg1 : !test.ssi_type), ^succ1(%arg1 : !test.ssi_type)
++^succ0(%0: !test.ssi_type):
++  %1 = "test.use1"(%0) : (!test.ssi_type) -> !test.ssi_type
++  cf.br ^exit(%1 : !test.ssi_type)
++^succ1(%2: !test.ssi_type):
++  %3 = "test.use2"(%2) : (!test.ssi_type) -> !test.ssi_type
++  cf.br ^exit(%3 : !test.ssi_type)
++^exit(%4: !test.ssi_type):
++  return %4 : !test.ssi_type
++}
+diff --git a/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir b/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir
+new file mode 100644
+index 000000000000..fae43caed89e
+--- /dev/null
++++ b/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir
+@@ -0,0 +1,105 @@
++// RUN: mlir-opt -allow-unregistered-dialect %s -split-input-file \
++// RUN:   -pass-pipeline='builtin.module(func.func(canonicalize{region-simplify=aggressive}))' \
++// RUN:   | FileCheck %s
++
++// Tests for SSIType preservation through SCF control-flow canonicalization
++// patterns registered via RegionBranchOpInterface:
++//
++//   - MakeRegionBranchOpSuccessorInputsDead: must NOT fold a live SSI iter_arg
++//     to its unique reachable dominating value across control-flow paths.
++//   - RemoveDuplicateSuccessorInputUses: must NOT replace one SSI iter_arg with
++//     another that has an identical operand signature.
++//   - RemoveDeadRegionBranchOpSuccessorInputs: MAY remove a dead SSI iter_arg
++//     (deadness is safe; only cross-path collapsing is forbidden).
++
++// -----
++
++// Verify that a live SSI iter_arg is NOT folded to its unique reachable value
++// by MakeRegionBranchOpSuccessorInputsDead, even though every predecessor
++// (loop entry and back-edge yield) forwards the same dominating value %x.
++
++// CHECK-LABEL: func @scf_for_live_ssi_not_folded
++// CHECK: %[[R:.*]] = scf.for {{.*}} iter_args(%[[ARG:.*]] = %{{.*}}) -> (!test.ssi_type)
++// CHECK:   "test.use"(%[[ARG]])
++// CHECK: "test.use"(%[[R]])
++func.func @scf_for_live_ssi_not_folded(%x: !test.ssi_type,
++                                        %lb: index, %ub: index, %step: index) {
++  %r = scf.for %i = %lb to %ub step %step iter_args(%arg1 = %x)
++      -> (!test.ssi_type) {
++    "test.use"(%arg1) : (!test.ssi_type) -> ()
++    scf.yield %x : !test.ssi_type
++  }
++  "test.use"(%r) : (!test.ssi_type) -> ()
++  return
++}
++
++// -----
++
++// Verify that two live SSI iter_args with an identical operand signature are
++// NOT deduplicated by RemoveDuplicateSuccessorInputUses. Each represents a
++// distinct SSI definition point even though all predecessors forward %x for
++// both.
++
++// CHECK-LABEL: func @scf_for_duplicate_ssi_args_not_deduped
++// CHECK: scf.for {{.*}} iter_args(%[[A0:.*]] = %{{.*}}, %[[A1:.*]] = %{{.*}})
++// CHECK:   "test.use"(%[[A0]])
++// CHECK:   "test.use"(%[[A1]])
++// CHECK: "test.use"(%{{.*}})
++// CHECK: "test.use"(%{{.*}})
++func.func @scf_for_duplicate_ssi_args_not_deduped(%x: !test.ssi_type,
++                                                    %lb: index, %ub: index,
++                                                    %step: index) {
++  %r0, %r1 = scf.for %i = %lb to %ub step %step
++      iter_args(%arg0 = %x, %arg1 = %x) -> (!test.ssi_type, !test.ssi_type) {
++    "test.use"(%arg0) : (!test.ssi_type) -> ()
++    "test.use"(%arg1) : (!test.ssi_type) -> ()
++    scf.yield %x, %x : !test.ssi_type, !test.ssi_type
++  }
++  "test.use"(%r0) : (!test.ssi_type) -> ()
++  "test.use"(%r1) : (!test.ssi_type) -> ()
++  return
++}
++
++// -----
++
++// Verify that a dead SSI iter_arg IS removed by
++// RemoveDeadRegionBranchOpSuccessorInputs. Deadness is safe to fold; only
++// collapsing a live arg across control-flow paths is forbidden.
++
++// CHECK-LABEL: func @scf_for_dead_ssi_iter_arg_removed
++// CHECK-NOT: iter_args
++func.func @scf_for_dead_ssi_iter_arg_removed(%x: !test.ssi_type,
++                                              %lb: index, %ub: index,
++                                              %step: index) {
++  scf.for %i = %lb to %ub step %step iter_args(%arg1 = %x)
++      -> (!test.ssi_type) {
++    scf.yield %x : !test.ssi_type
++  }
++  return
++}
++
++// -----
++
++// Verify the same live-SSI preservation for scf.while: neither the
++// before-region arg nor the after-region arg should be folded to %x by
++// MakeRegionBranchOpSuccessorInputsDead.
++
++// CHECK-LABEL: func @scf_while_live_ssi_not_folded
++// CHECK: %[[R:.*]] = scf.while (%[[BA:.*]] = %{{.*}}) : (!test.ssi_type) -> !test.ssi_type
++// CHECK:   "test.use"(%[[BA]])
++// CHECK:   scf.condition(%{{.*}}) %[[BA]]
++// CHECK: ^bb0(%[[AA:.*]]: !test.ssi_type):
++// CHECK:   "test.use"(%[[AA]])
++// CHECK: return %[[R]]
++func.func @scf_while_live_ssi_not_folded(%x: !test.ssi_type,
++                                          %cond: i1) -> !test.ssi_type {
++  %res = scf.while (%arg0 = %x) : (!test.ssi_type) -> !test.ssi_type {
++    "test.use"(%arg0) : (!test.ssi_type) -> ()
++    scf.condition(%cond) %arg0 : !test.ssi_type
++  } do {
++  ^bb0(%arg1: !test.ssi_type):
++    "test.use"(%arg1) : (!test.ssi_type) -> ()
++    scf.yield %x : !test.ssi_type
++  }
++  return %res : !test.ssi_type
++}
+diff --git a/mlir/test/lib/Dialect/Test/TestTypeDefs.td b/mlir/test/lib/Dialect/Test/TestTypeDefs.td
+index d840339a0926..0c433bbae5d8 100644
+--- a/mlir/test/lib/Dialect/Test/TestTypeDefs.td
++++ b/mlir/test/lib/Dialect/Test/TestTypeDefs.td
+@@ -178,6 +178,13 @@ def TestTypeTrait : NativeTypeTrait<"TestTypeTrait">;
+ def TestTypeWithTrait : Test_Type<"TestTypeWithTrait", [TestTypeTrait]> {
+   let mnemonic = "test_type_with_trait";
+ }
++def SSITypeTrait : NativeTypeTrait<"SSIType">;
++
++// A type that carries SSIType trait, opting block arguments of this type out
++// of block argument simplification during region simplification.
++def TestSSIType : Test_Type<"TestSSI", [SSITypeTrait]> {
++  let mnemonic = "ssi_type";
++}
+ 
+ // Type with assembly format.
+ def TestTypeWithFormat : Test_Type<"TestTypeWithFormat"> {

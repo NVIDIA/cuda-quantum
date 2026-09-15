@@ -52,12 +52,6 @@ public:
   /// @brief An optional spin operator
   std::optional<cudaq::spin_op> spin;
 
-  /// @brief Measurement counts for a CUDA-Q kernel invocation
-  sample_result result;
-
-  /// @brief A computed expectation value
-  std::optional<double> expectationValue = std::nullopt;
-
   /// @brief An optimization result
   std::optional<cudaq::optimization_result> optResult = std::nullopt;
 
@@ -120,21 +114,6 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
-  /// @brief Probability of occurrence of each error mechanism (column) in
-  /// Measurement Syndrome Matrix (0-1 range).
-  std::optional<std::vector<double>> msm_probabilities;
-
-  /// @brief Error mechanism ID. From a probability perspective, each error
-  /// mechanism ID is independent of all other error mechanism ID. For all
-  /// errors with the *same* ID, only one of them can happen. That is - the
-  /// errors containing the same ID are correlated with each other.
-  std::optional<std::vector<std::size_t>> msm_prob_err_id;
-
-  /// @brief The number of rows and columns of a Measurement Syndrome Matrix.
-  /// Note: Measurement Syndrome Matrix is defined in
-  /// https://arxiv.org/pdf/2407.13826.
-  std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
-
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.
@@ -157,12 +136,11 @@ public:
   std::exception_ptr deferredKernelException;
 
   /// @brief True while a JIT/AOT-compiled kernel frame is executing on this
-  /// thread (set by the launcher around the kernel invocation; see
-  /// QPU::InKernelLaunchScope). The simulator only defers exceptions into
-  /// `deferredKernelException` while this is set. Outside the kernel frame
-  /// (for example, gate application during sample/observe finalization) there
-  /// is no JIT frame for an exception to unwind through, so it is thrown
-  /// directly, preserving the behavior callers see on all platforms.
+  /// thread. The simulator only defers exceptions into
+  /// `deferredKernelException` while this is set. Outside the kernel frame (for
+  /// example, gate application during sample/observe finalization) there is no
+  /// JIT frame for an exception to unwind through, so it is thrown directly,
+  /// preserving the behavior callers see on all platforms.
   bool inKernelLaunch = false;
 };
 
@@ -189,6 +167,11 @@ bool isLastBatch();
 
 /// @brief Get the ID of the current QPU.
 std::size_t getCurrentQpuId();
+
+/// @brief Re-throw an exception the kernel deferred during execution, if any.
+/// Call immediately after invoking a compiled kernel, from the C++ frame above
+/// the JIT/AOT boundary. No-op when nothing was deferred.
+void rethrowDeferredKernelException();
 
 namespace detail {
 /// Set the execution context for the current thread.

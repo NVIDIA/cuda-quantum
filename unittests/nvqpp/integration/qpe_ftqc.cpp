@@ -11,6 +11,9 @@
 
 #include <cmath>
 
+#ifndef CUDAQ_BACKEND_STIM
+
+namespace qpe_ftqc {
 struct iqft {
   void operator()(cudaq::qview<> &q) __qpu__ {
     int N = q.size();
@@ -59,15 +62,16 @@ struct qpe {
     // Apply inverse quantum fourier transform
     iqft{}(counting_qubits);
     // Measure and compute the phase...
-    return cudaq::to_integer(mz(counting_qubits)) / std::pow(2, n_c);
+    return cudaq::to_integer(cudaq::to_bools(mz(counting_qubits))) /
+           std::pow(2, n_c);
   }
 };
+} // namespace qpe_ftqc
 
 // Rotational gates not supported in Stim.
-#ifndef CUDAQ_BACKEND_STIM
 
 CUDAQ_TEST(QPEFTQCTester, checkSimple) {
-  double phase = qpe{}(3, 1);
+  double phase = qpe_ftqc::qpe{}(3, 1);
   EXPECT_NEAR(phase, .125, 1e-4);
   printf("Phase = %lf\n", phase);
 }

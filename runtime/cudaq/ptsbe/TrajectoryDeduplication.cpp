@@ -8,6 +8,7 @@
 
 #include "TrajectoryDeduplication.h"
 #include "KrausSelection.h"
+#include "cudaq/Support/Hash.h"
 #include <cstddef>
 #include <functional>
 #include <unordered_map>
@@ -17,18 +18,13 @@ namespace cudaq::ptsbe {
 
 namespace {
 
-// Referred from `runtime/cudaq/operators/helpers.cpp`
-inline void hashCombine(std::size_t &seed, std::size_t value) {
-  seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
 std::size_t hashKrausSelection(const cudaq::KrausSelection &sel) {
   std::size_t h = std::hash<std::size_t>{}(sel.circuit_location);
   for (std::size_t q : sel.qubits)
-    hashCombine(h, std::hash<std::size_t>{}(q));
-  hashCombine(h, std::hash<std::string>{}(sel.op_name));
-  hashCombine(h, sel.kraus_operator_index);
-  hashCombine(h, std::hash<bool>{}(sel.is_error));
+    detail::hashCombine(h, std::hash<std::size_t>{}(q));
+  detail::hashCombine(h, std::hash<std::string>{}(sel.op_name));
+  detail::hashCombine(h, sel.kraus_operator_index);
+  detail::hashCombine(h, std::hash<bool>{}(sel.is_error));
   return h;
 }
 
@@ -36,7 +32,7 @@ struct ContentHash {
   std::size_t operator()(const cudaq::KrausTrajectory &t) const {
     std::size_t h = 0;
     for (const auto &sel : t.kraus_selections)
-      hashCombine(h, hashKrausSelection(sel));
+      detail::hashCombine(h, hashKrausSelection(sel));
     return h;
   }
 };

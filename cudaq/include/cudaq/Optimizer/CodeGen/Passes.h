@@ -73,31 +73,48 @@ void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
 /// pipeline should be run before conversion to the LLVM-IR dialect.
 void registerToExecutionManagerCCPipeline();
 
+/// Register the pipeline to lower the `IR` through the code generation for
+/// `QIR` steps.
+/// Note: this pipeline \e includes the convert to `QIR API`pipeline.
+void registerCodegenForQIRPipeline();
+
+/// Register the pipeline that prepares supported Quake IR for wire-set
+/// conversion.
+void registerPrepareForWiresetPipeline();
+
 void registerWireSetToProfileQIRPipeline();
 void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
+/// Lower all remaining CC structured control flow to CFG form and immediately
+/// clean up stack-frame and CFG artifacts. Terminal code-generation pipelines
+/// call this only after their final boundary-sensitive quantum optimization.
+void addLowerToCFGAndCleanup(mlir::OpPassManager &pm);
+
 //===----------------------------------------------------------------------===//
 // Final code generation: converting to a transport layer
 //===----------------------------------------------------------------------===//
-
-/// Pipeline builder to convert Quake to QIR at JIT compilation.
-///
-/// \p pm         Pass manager to append passes to.
-/// \p convertTo  QIR triple to specify the QIR profile to convert to.
-///
-/// The QIR triple is a name indicating the selected profile (`qir`, `qir-full`,
-/// `qir-base`, or `qir-adaptive`) followed by an optional `:` and QIR version
-/// followed by an optional `:` and a list of `suboptions`.
-void addJITPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef convertTo);
 
 /// Pipeline builder to convert Quake to QIR at AOT compilation.
 ///
 /// The driver always uses full QIR, but it can support other profiles if
 /// necessary. Letting \p convertTo default means full QIR.
 void addAOTPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef convertTo = {});
+                                mlir::StringRef convertTo = {},
+                                bool useValueSemantics = true);
+
+/// Stage 1 of the C++ `kernel_builder` JIT path. Unlike the AOT driver, the
+/// builder JITs in-process and so must generate its own device code loader and
+/// kernel execution (thunk / `argsCreator`) stubs. Must run to completion
+/// before stage 2: loop unrolling needs `cc.loop`, which kernel execution
+/// generation can reintroduce.
+void addKernelBuilderJITPrepPipeline(mlir::OpPassManager &pm);
+
+/// Stage 2: lower to CFG, then to the QIR API and the LLVM-IR dialect. Pass
+/// false for combineQuantumAllocations to leave quantum allocations in
+/// place, as required when simulating with user-provided state vectors.
+void addKernelBuilderJITLoweringPipeline(mlir::OpPassManager &pm,
+                                         bool combineQuantumAllocations = true);
 
 /// Pipeline builder to convert Quake to Open QASM 2.0
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);

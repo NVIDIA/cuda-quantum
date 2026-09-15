@@ -416,7 +416,7 @@ Type factory::getSRetElementType(FunctionType funcTy) {
 }
 
 Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
-  if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
+  if (auto memrefTy = dyn_cast<cc::SequenceType>(ty))
     return stlHostVectorType(
         convertToHostSideType(memrefTy.getElementType(), mod));
   if (isa<cc::IndirectCallableType>(ty))
@@ -721,7 +721,7 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
   return FunctionType::get(ctx, inputTys, resultTy);
 }
 
-bool factory::isStdVecArg(Type type) {
+bool factory::isSequenceArg(Type type) {
   auto ptrTy = dyn_cast<cc::PointerType>(type);
   if (!ptrTy)
     return false;
@@ -739,7 +739,7 @@ bool factory::isStdVecArg(Type type) {
     if (!dyn_cast<cc::PointerType>(memberTys[i]))
       return false;
 
-  // This is a stdvec type to us.
+  // This is a sequence type to us.
   return true;
 }
 

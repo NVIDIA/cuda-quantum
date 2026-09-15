@@ -28,8 +28,8 @@ Value genStringLength(Location loc, OpBuilder &builder, Value stringArg,
   if constexpr (FromQPU) {
     Type stringTy = stringArg.getType();
     assert(isa<cudaq::cc::CharspanType>(stringTy));
-    return cudaq::cc::StdvecSizeOp::create(builder, loc, builder.getI64Type(),
-                                           stringArg);
+    return cudaq::cc::SequenceSizeOp::create(builder, loc, builder.getI64Type(),
+                                             stringArg);
   } else /*constexpr */ {
     Type stringTy = stringArg.getType();
     assert(isa<cudaq::cc::PointerType>(stringTy) &&
@@ -70,9 +70,9 @@ template <bool FromQPU>
 Value genVectorSize(Location loc, OpBuilder &builder, Value vecArg) {
   if constexpr (FromQPU) {
     Type vecArgTy = vecArg.getType();
-    assert(isa<cudaq::cc::StdvecType>(vecArgTy));
-    return cudaq::cc::StdvecSizeOp::create(builder, loc, builder.getI64Type(),
-                                           vecArg);
+    assert(isa<cudaq::cc::SequenceType>(vecArgTy));
+    return cudaq::cc::SequenceSizeOp::create(builder, loc, builder.getI64Type(),
+                                             vecArg);
   } else /* constexpr */ {
     auto vecTy = cast<cudaq::cc::PointerType>(vecArg.getType());
     auto vecStructTy = cast<cudaq::cc::StructType>(vecTy.getElementType());
@@ -157,7 +157,7 @@ genByteSizeAndElementCount(Location loc, OpBuilder &builder, ModuleOp module,
                            Type eleTy, Value size, Value arg, Type t) {
   // If this is a vector<vector<...>>, convert the bytes of vector to bytes of
   // length (i64).
-  if (auto sty = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
+  if (auto sty = dyn_cast<cudaq::cc::SequenceType>(eleTy)) {
     auto eTy = cast<cudaq::cc::PointerType>(arg.getType()).getElementType();
     auto fTy = cast<cudaq::cc::StructType>(eTy).getMember(0);
     auto tTy = cast<cudaq::cc::PointerType>(fTy).getElementType();
@@ -199,21 +199,21 @@ genByteSizeAndElementCount(Location loc, OpBuilder &builder, ModuleOp module,
   return {};
 }
 
-static bool isStdVectorBool(Type ty) {
-  auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(ty);
-  return stdvecTy &&
-         (stdvecTy.getElementType() == IntegerType::get(ty.getContext(), 1));
+static bool isSequenceBool(Type ty) {
+  auto sequenceTy = dyn_cast<cudaq::cc::SequenceType>(ty);
+  return sequenceTy &&
+         (sequenceTy.getElementType() == IntegerType::get(ty.getContext(), 1));
 }
 
 /// Recursively check if \p ty contains a `std::vector<bool>`.
-static bool hasStdVectorBool(Type ty) {
-  if (isStdVectorBool(ty))
+static bool hasSequenceBool(Type ty) {
+  if (isSequenceBool(ty))
     return true;
-  if (auto sty = dyn_cast<cudaq::cc::StdvecType>(ty))
-    return hasStdVectorBool(sty.getElementType());
+  if (auto sty = dyn_cast<cudaq::cc::SequenceType>(ty))
+    return hasSequenceBool(sty.getElementType());
   if (auto sty = dyn_cast<cudaq::cc::StructType>(ty))
     for (auto mem : sty.getMembers())
-      if (hasStdVectorBool(mem))
+      if (hasSequenceBool(mem))
         return true;
   return false;
 }
@@ -223,11 +223,11 @@ static bool hasStdVectorBool(Type ty) {
 // of 40 bytes on libstdc++ (Linux) or 24 bytes on libc++ (macOS). The latter
 // is identical to `std::vector<char>` (which has a size of 24 bytes).
 static Type convertToTransientType(Type ty, ModuleOp mod) {
-  if (isStdVectorBool(ty)) {
+  if (isSequenceBool(ty)) {
     auto *ctx = ty.getContext();
     return cudaq::opt::factory::stlVectorType(IntegerType::get(ctx, 1));
   }
-  if (auto sty = dyn_cast<cudaq::cc::StdvecType>(ty))
+  if (auto sty = dyn_cast<cudaq::cc::SequenceType>(ty))
     return cudaq::opt::factory::stlVectorType(
         convertToTransientType(sty.getElementType(), mod));
   if (auto sty = dyn_cast<cudaq::cc::StructType>(ty)) {
@@ -245,28 +245,28 @@ static Type convertToTransientType(Type ty, ModuleOp mod) {
 // into a std::vector<char>. This conversion allows us to use all the same code
 // as every other std::vector<T> to marshal the argument.
 static std::pair<Value, bool>
-convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
-                        Value arg, Type ty, Value heapTracker,
-                        std::optional<Value> preallocated = {}) {
+convertAllSequenceBool(Location loc, OpBuilder &builder, ModuleOp module,
+                       Value arg, Type ty, Value heapTracker,
+                       std::optional<Value> preallocated = {}) {
   // If we are here, `ty` must be a `std::vector<bool>` or recursively contain a
   // `std::vector<bool>`.
 
   // Handle `std::vector<bool>`.
-  if (isStdVectorBool(ty)) {
-    auto stdvecTy = cast<cudaq::cc::StdvecType>(ty);
-    Type stdvecHostTy =
-        cudaq::opt::factory::stlVectorType(stdvecTy.getElementType());
+  if (isSequenceBool(ty)) {
+    auto sequenceTy = cast<cudaq::cc::SequenceType>(ty);
+    Type sequenceHostTy =
+        cudaq::opt::factory::stlVectorType(sequenceTy.getElementType());
     Value tmp = preallocated.has_value()
                     ? *preallocated
-                    : cudaq::cc::AllocaOp::create(builder, loc, stdvecHostTy);
+                    : cudaq::cc::AllocaOp::create(builder, loc, sequenceHostTy);
     func::CallOp::create(builder, loc, TypeRange{},
-                         cudaq::stdvecBoolUnpackToInitList,
+                         cudaq::sequenceBoolUnpackToInitList,
                          ArrayRef<Value>{tmp, arg, heapTracker});
     return {tmp, true};
   }
 
   // Handle `std::vector<T>` where `T` != `bool`.
-  if (auto sty = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+  if (auto sty = dyn_cast<cudaq::cc::SequenceType>(ty)) {
     // arg is a std::vector<T>.
     // It's type must be ptr<struct<ptr<T>, ptr<T>, ptr<T>>>.
     auto seleTy = sty.getElementType();
@@ -349,8 +349,8 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
           auto currentVector = cudaq::cc::ComputePtrOp::create(
               builder, loc, cudaq::cc::PointerType::get(transientEleTy), buffer,
               ArrayRef<cudaq::cc::ComputePtrArg>{i});
-          convertAllStdVectorBool(loc, builder, module, inp, seleTy,
-                                  heapTracker, currentVector);
+          convertAllSequenceBool(loc, builder, module, inp, seleTy, heapTracker,
+                                 currentVector);
         });
     return {tmp, true};
   }
@@ -381,8 +381,8 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
       Value toPtr = cudaq::cc::ComputePtrOp::create(
           builder, loc, cudaq::cc::PointerType::get(transientTy), buffer,
           ArrayRef<cudaq::cc::ComputePtrArg>{i});
-      convertAllStdVectorBool(loc, builder, module, fromPtr, memTy, heapTracker,
-                              toPtr);
+      convertAllSequenceBool(loc, builder, module, fromPtr, memTy, heapTracker,
+                             toPtr);
     }
     return {buffer, true};
   }
@@ -390,11 +390,11 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
 }
 
 std::pair<Value, bool>
-cudaq::opt::marshal::unpackAnyStdVectorBool(Location loc, OpBuilder &builder,
-                                            ModuleOp module, Value arg, Type ty,
-                                            Value heapTracker) {
-  if (hasStdVectorBool(ty))
-    return convertAllStdVectorBool(loc, builder, module, arg, ty, heapTracker);
+cudaq::opt::marshal::unpackAnySequenceBool(Location loc, OpBuilder &builder,
+                                           ModuleOp module, Value arg, Type ty,
+                                           Value heapTracker) {
+  if (hasSequenceBool(ty))
+    return convertAllSequenceBool(loc, builder, module, arg, ty, heapTracker);
   return {arg, false};
 }
 
@@ -413,7 +413,7 @@ Value descendThroughDynamicType(Location loc, OpBuilder &builder,
             return genStringLength<FromQPU>(loc, builder, arg, module);
           })
           // A std::vector is dynamic and may be recursive dynamic as well.
-          .Case([&](cudaq::cc::StdvecType t) -> Value {
+          .Case([&](cudaq::cc::SequenceType t) -> Value {
             // Compute the byte span of the vector.
             Value size = genVectorSize<FromQPU>(loc, builder, arg);
             auto eleTy = t.getElementType();
@@ -526,7 +526,7 @@ Value populateStringAddendum(Location loc, OpBuilder &builder, Value host,
   auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
   Value dataPtr;
   if constexpr (FromQPU) {
-    dataPtr = cudaq::cc::StdvecDataOp::create(builder, loc, ptrI8Ty, host);
+    dataPtr = cudaq::cc::SequenceDataOp::create(builder, loc, ptrI8Ty, host);
   } else /*constexpr*/ {
     auto fromPtr = cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, host);
     StringRef helperName = module->getAttr(cudaq::runtime::sizeofStringAttrName)
@@ -557,10 +557,11 @@ Value populateVectorAddendum(Location loc, OpBuilder &builder, Value host,
   auto ptrPtrI8 = cudaq::opt::marshal::getPointerToPointerType(builder);
   Value dataPtr = [&]() -> Value {
     if constexpr (FromQPU) {
-      auto eleTy = cast<cudaq::cc::StdvecType>(host.getType()).getElementType();
+      auto eleTy =
+          cast<cudaq::cc::SequenceType>(host.getType()).getElementType();
       auto ptrTy = cudaq::cc::PointerType::get(eleTy);
       auto vecDataPtr =
-          cudaq::cc::StdvecDataOp::create(builder, loc, ptrTy, host);
+          cudaq::cc::SequenceDataOp::create(builder, loc, ptrTy, host);
       return cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, vecDataPtr);
     } else /*constexpr*/ {
       auto fromPtrPtr = cudaq::cc::CastOp::create(builder, loc, ptrPtrI8, host);
@@ -585,7 +586,7 @@ Value populateDynamicAddendum(Location loc, OpBuilder &builder, ModuleOp module,
   if (isa<cudaq::cc::CharspanType>(devArgTy))
     return populateStringAddendum<FromQPU>(loc, builder, host, sizeSlot,
                                            addendum, module);
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(devArgTy)) {
+  if (auto vecTy = dyn_cast<cudaq::cc::SequenceType>(devArgTy)) {
     auto eleTy = vecTy.getElementType();
     if (cudaq::cc::isDynamicType(eleTy)) {
       // Recursive case. Visit each dynamic element, copying it.
@@ -817,21 +818,21 @@ std::pair<bool, func::FuncOp> cudaq::opt::marshal::lookupHostEntryPointFunc(
   return {true, func::FuncOp{}};
 }
 
-void cudaq::opt::marshal::genStdvecBoolFromInitList(Location loc,
-                                                    OpBuilder &builder,
-                                                    Value sret, Value data,
-                                                    Value size) {
+void cudaq::opt::marshal::genSequenceBoolFromInitList(Location loc,
+                                                      OpBuilder &builder,
+                                                      Value sret, Value data,
+                                                      Value size) {
   auto ptrTy = cc::PointerType::get(builder.getContext());
   auto castData = cc::CastOp::create(builder, loc, ptrTy, data);
   auto castSret = cc::CastOp::create(builder, loc, ptrTy, sret);
-  func::CallOp::create(builder, loc, TypeRange{}, stdvecBoolCtorFromInitList,
+  func::CallOp::create(builder, loc, TypeRange{}, sequenceBoolCtorFromInitList,
                        ArrayRef<Value>{castSret, castData, size});
 }
 
-void cudaq::opt::marshal::genStdvecTFromInitList(Location loc,
-                                                 OpBuilder &builder, Value sret,
-                                                 Value data, Value tSize,
-                                                 Value vecSize) {
+void cudaq::opt::marshal::genSequenceTFromInitList(Location loc,
+                                                   OpBuilder &builder,
+                                                   Value sret, Value data,
+                                                   Value tSize, Value vecSize) {
   auto i8Ty = builder.getI8Type();
   auto stlVectorTy = cc::PointerType::get(opt::factory::stlVectorType(i8Ty));
   auto ptrTy = cc::PointerType::get(i8Ty);
@@ -883,7 +884,7 @@ void cudaq::opt::marshal::maybeFreeHeapAllocations(Location loc,
                      OpBuilder::InsertionGuard guard(builder);
                      builder.setInsertionPointToStart(&body);
                      func::CallOp::create(builder, loc, TypeRange{},
-                                          stdvecBoolFreeTemporaryLists,
+                                          sequenceBoolFreeTemporaryLists,
                                           ArrayRef<Value>{head});
                      cc::ContinueOp::create(builder, loc);
                    });
@@ -973,12 +974,12 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
   assert(cudaq::cc::isDynamicType(devTy) && "must be dynamic type");
   if constexpr (FromQPU) {
     if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(devTy)) {
-      // From host, so construct the stdvec span with it.
+      // From host, so construct the sequence span with it.
       auto eleTy = charSpanTy.getElementType();
       auto castTrailingData = cudaq::cc::CastOp::create(
           builder, loc, cudaq::cc::PointerType::get(eleTy), trailingData);
       Value vecLength = cudaq::cc::LoadOp::create(builder, loc, ptr);
-      auto result = cudaq::cc::StdvecInitOp::create(
+      auto result = cudaq::cc::SequenceInitOp::create(
           builder, loc, charSpanTy, castTrailingData, vecLength);
       auto nextTrailingData =
           incrementTrailingDataPointer(loc, builder, trailingData, vecLength);
@@ -1003,7 +1004,7 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
 
     if (cudaq::cc::isDynamicType(eleTy)) {
       // The vector is recursively dynamic.
-      // Create a new block in which to place the stdvec/struct data. The
+      // Create a new block in which to place the sequence/struct data. The
       // trailing data is in device-side format (pointer-free spans).
       Type toTy = [&]() {
         // From QPU, so we want to unpack the data into vectors (of vectors).
@@ -1052,12 +1053,12 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
             cudaq::cc::StoreOp::create(builder, loc, r.second, trailingDataVar);
           });
 
-      // Create the new outer stdvec span as the result.
-      Value stdvecResult = cudaq::cc::StdvecInitOp::create(
+      // Create the new outer sequence span as the result.
+      Value sequenceResult = cudaq::cc::SequenceInitOp::create(
           builder, loc, spanTy, newVecData, vecLength);
       nextTrailingData =
           cudaq::cc::LoadOp::create(builder, loc, trailingDataVar);
-      return {stdvecResult, nextTrailingData};
+      return {sequenceResult, nextTrailingData};
     }
 
     // This vector has constant data, so just use the data in-place.
@@ -1085,11 +1086,11 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
       result = cudaq::cc::InsertValueOp::create(builder, loc, vecTy, vecVar,
                                                 castEnd, 2);
     } else /*constexpr*/ {
-      // From host, so construct the stdvec span with it.
+      // From host, so construct the sequence span with it.
       auto castTrailingData = cudaq::cc::CastOp::create(
           builder, loc, cudaq::cc::PointerType::get(eleTy), trailingData);
-      result = cudaq::cc::StdvecInitOp::create(builder, loc, spanTy,
-                                               castTrailingData, vecLength);
+      result = cudaq::cc::SequenceInitOp::create(builder, loc, spanTy,
+                                                 castTrailingData, vecLength);
     }
     auto nextTrailingData =
         incrementTrailingDataPointer(loc, builder, trailingData, bytes);
@@ -1141,7 +1142,7 @@ processInputValueImpl(Location loc, OpBuilder &builder, Value trailingData,
     if constexpr (FromQPU) {
       auto dynamo = constructDynamicInputValue<FromQPU>(
           loc, builder, inTy, packedPtr, trailingData);
-      if (isa<cudaq::cc::StdvecType>(inTy)) {
+      if (isa<cudaq::cc::SequenceType>(inTy)) {
         Value retVal = dynamo.first;
         Value tmp = cudaq::cc::AllocaOp::create(builder, loc, retVal.getType());
         cudaq::cc::StoreOp::create(builder, loc, retVal, tmp);
@@ -1154,10 +1155,10 @@ processInputValueImpl(Location loc, OpBuilder &builder, Value trailingData,
         Value tmp = cudaq::cc::AllocaOp::create(builder, loc, arrTy);
         auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
         Value castTmp = cudaq::cc::CastOp::create(builder, loc, ptrTy, tmp);
-        Value len = cudaq::cc::StdvecSizeOp::create(
+        Value len = cudaq::cc::SequenceSizeOp::create(
             builder, loc, builder.getI64Type(), dynamo.first);
-        Value data =
-            cudaq::cc::StdvecDataOp::create(builder, loc, ptrTy, dynamo.first);
+        Value data = cudaq::cc::SequenceDataOp::create(builder, loc, ptrTy,
+                                                       dynamo.first);
         func::CallOp::create(builder, loc, TypeRange{},
                              cudaq::runtime::bindingInitializeString,
                              ArrayRef<Value>{castTmp, data, len});

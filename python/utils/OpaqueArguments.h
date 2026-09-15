@@ -169,14 +169,14 @@ void packArgs(OpaqueArguments &argData, nanobind::args args,
 /// `float`, `list`, so must check if `args[i]` is a `list` or `ndarray`.
 inline bool isBroadcastRequest(kernel_builder<> &builder,
                                nanobind::args &args) {
-  // FIXME: The use of isArgStdVec in this function inhibits moving this code
+  // FIXME: The use of isArgSequence in this function inhibits moving this code
   // out of the header file.
   if (args.empty())
     return false;
 
   auto arg = args[0];
   // Just need to check the leading argument
-  if (nanobind::isinstance<nanobind::list>(arg) && !builder.isArgStdVec(0))
+  if (nanobind::isinstance<nanobind::list>(arg) && !builder.isArgSequence(0))
     return true;
 
   if (nanobind::hasattr(arg, "tolist")) {
@@ -184,7 +184,7 @@ inline bool isBroadcastRequest(kernel_builder<> &builder,
       return false;
 
     auto shape = nanobind::cast<nanobind::tuple>(arg.attr("shape"));
-    if (shape.size() == 1 && !builder.isArgStdVec(0))
+    if (shape.size() == 1 && !builder.isArgSequence(0))
       return true;
 
     // // If shape is 2, then we know its a list of list

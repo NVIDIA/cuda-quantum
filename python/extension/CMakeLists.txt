@@ -6,6 +6,29 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# python/'s _quakeDialects extension links against cudaq::cudaqMLIRCAPI,
+# built by cudaq/python/CMakeLists.txt when CUDAQ_ENABLE_PYTHON_BINDINGS is
+# ON. In the normal build that target already exists (cudaq/ is processed
+# before python/ in the same configure). If it doesn't -- e.g. python/ is
+# being configured independently of cudaq/ (CUDAQ_ENABLE_CORE=OFF) -- look
+# for an installed CUDAQ and fail with a clear diagnostic if it doesn't
+# provide the bindings either, rather than a cryptic "target not found"
+# further down.
+if (NOT TARGET cudaq::cudaqMLIRCAPI)
+  find_package(CUDAQ REQUIRED)
+  if (NOT CUDAQ_ENABLE_PYTHON_BINDINGS)
+    message(FATAL_ERROR
+      "python/ requires cudaq/'s own MLIR Python bindings (Quake, CC, QEC "
+      "dialects, built under cudaq/python/ when CUDAQ_ENABLE_PYTHON_BINDINGS "
+      "is ON), but they were not found. Either cudaq/ is not being built as "
+      "part of this configure with them enabled (CUDAQ_ENABLE_CORE=OFF, or "
+      "CUDAQ_ENABLE_PYTHON_BINDINGS was OFF when cudaq/ was configured), or "
+      "the installed CUDAQ found here (${CUDAQ_DIR}) was built without them. "
+      "Rebuild cudaq/ -- in this configure, or as a separate install -- with "
+      "-DCUDAQ_ENABLE_PYTHON_BINDINGS=ON.")
+  endif()
+endif()
+
 include(HandleLLVMOptions)
 include(AddMLIRPython)
 
@@ -28,42 +51,15 @@ add_compile_definitions("CUDAQ_PYTHON_EXTENSION")
 # Sources
 ################################################################################
 
+# The Quake/CC/QEC dialect bindings and the _site_initialize_0 extension are
+# declared in cudaq/python/CMakeLists.txt (part of the cudaq/ subproject, not
+# python/). This module -- the full Python runtime surface (algorithms,
+# operators, platform, qis, ...) -- is genuinely python/-runtime-coupled, so
+# it stays here. It links against the already-built cudaqMLIRCAPI aggregate
+# (built by cudaq/python/) rather than embedding a second copy of the same
+# CAPI libraries: see cudaq/python/CMakeLists.txt for why.
+
 declare_mlir_python_sources(CUDAQuantumPythonSources)
-
-declare_mlir_dialect_python_bindings(
-  ADD_TO_PARENT CUDAQuantumPythonSources
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
-  TD_FILE dialects/QuakeOps.td
-  SOURCES
-    dialects/quake.py
-  DIALECT_NAME quake)
-
-declare_mlir_dialect_python_bindings(
-  ADD_TO_PARENT CUDAQuantumPythonSources
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
-  TD_FILE dialects/CCOps.td
-  SOURCES
-    dialects/cc.py
-  DIALECT_NAME cc)
-
-declare_mlir_dialect_python_bindings(
-  ADD_TO_PARENT CUDAQuantumPythonSources
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
-  TD_FILE dialects/QECOps.td
-  SOURCES
-    dialects/qec.py
-  DIALECT_NAME qec)
-
-# Define the register_dialects hook to populate the default DialectRegistry
-# for every Context.
-declare_mlir_python_extension(CUDAQuantumPythonSources.SiteInitialize
-  MODULE_NAME _site_initialize_0
-  ADD_TO_PARENT CUDAQuantumPythonSources
-  SOURCES
-    SiteInitialize.cpp
-  PRIVATE_LINK_LIBS
-    cudaqMLIR
-)
 
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   MODULE_NAME _quakeDialects
@@ -89,13 +85,13 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_resource_count.cpp
     ../runtime/cudaq/analysis/py_dem.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
-    ../../runtime/cudaq/algorithms/run.cpp      # Common Python and C++ implementation of run
     ../runtime/cudaq/algorithms/py_state.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
     ../runtime/cudaq/platform/CompiledModuleCache.cpp
     ../runtime/cudaq/platform/ProgramFingerprint.cpp
+    ../runtime/cudaq/platform/PyRuntimeEndpoint.cpp
     ../runtime/cudaq/platform/PythonSignalCheck.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
@@ -109,21 +105,12 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/operators/py_matrix_op.cpp
     ../runtime/cudaq/operators/py_super_op.cpp
     ../runtime/cudaq/operators/py_handlers.cpp
+    ../runtime/cudaq/target/py_compile_target.cpp
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/cudaq/trace/py_trace.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../utils/LinkedLibraryHolder.cpp
-    ../../runtime/common/CodeGenConfig.cpp
-    ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
-    ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
-    ../../runtime/cudaq/platform/orca/OrcaRemoteRESTQPU.cpp
-    ../../runtime/cudaq/platform/orca/OrcaServerHelper.cpp
-    ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
-    ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
-    ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
-    ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
-    ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
     PythonMLIRHooks.cpp
 
@@ -149,6 +136,15 @@ target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
     ${CMAKE_SOURCE_DIR}/runtime
     ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
 )
+# The `cudaq.orca` submodule binds cudaq::orca::sample directly, so it can only
+# be built when the ORCA backend is. Link the library rather than recompiling
+# its sources here: a private copy would shadow libcudaq-orca-qpu in-process
+# and would ignore the build configuration entirely.
+if (CUDAQ_ENABLE_ORCA_BACKEND)
+  target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE cudaq-orca-qpu)
+  target_compile_definitions(CUDAQuantumPythonSources.Extension INTERFACE CUDAQ_ORCA_BACKEND_ENABLED)
+endif()
+
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
     cudaq-logger 
@@ -162,69 +158,23 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
 # Instantiation of Python module
 ################################################################################
 
-# This variable is unused in cudaq but if it is not set, we hit a bug in  
+# This variable is unused in cudaq but if it is not set, we hit a bug in
 # add_mlir_python_modules whereby it is defined twice on the compilation line:
 # -DMLIR_BINDINGS_PYTHON_NB_DOMAIN "" -DMLIR_BINDINGS_PYTHON_NB_DOMAIN mlir
-# which results in a compilation error. 
+# which results in a compilation error.
 set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "cudaq")
 
-add_mlir_python_modules(CUDAQuantumPythonModules
+# Only this module's own sources: the Core MLIR / Quake / CC / QEC sources
+# are already assembled (and, for the standalone-python-against-installed-
+# cudaq case, already installed) by cudaq/python/CMakeLists.txt. This module
+# adds its files into the same "cudaq/mlir" install prefix alongside that
+# (already-built-or-installed) tree, the same pattern upstream MLIR uses for
+# a downstream project's own dialect bindings layered onto MLIR's own
+# self-contained python package.
+add_cudaq_python_modules(CUDAQuantumPythonModules
   ROOT_PREFIX "${MLIR_BINARY_DIR}/python/cudaq/mlir"
   INSTALL_PREFIX "cudaq/mlir"
-  DECLARED_SOURCES
-    CUDAQuantumPythonSources
-    MLIRPythonSources.Core
-    MLIRPythonSources.ExecutionEngine
-    MLIRPythonSources.Dialects.arith
-    MLIRPythonSources.Dialects.builtin
-    MLIRPythonSources.Dialects.complex
-    MLIRPythonSources.Dialects.func
-    MLIRPythonSources.Dialects.llvm
-    MLIRPythonSources.Dialects.math
+  DECLARED_SOURCES CUDAQuantumPythonSources
   COMMON_CAPI_LINK_LIBS
-    cudaqMLIRCAPI
+    cudaq::cudaqMLIRCAPI
 )
-
-## The Python bindings live in cudaq/mlir/_mlir_libs but depend on CUDA-Q
-## shared libraries installed under lib/ (including libcudaqMLIR). Upstream
-## MLIR's default RPATH is only $ORIGIN/@loader_path, so we must add a
-## relative path to lib/. macOS uses @loader_path instead of $ORIGIN.
-if(APPLE)
-  set(_origin_prefix "@loader_path")
-else()
-  set(_origin_prefix "$ORIGIN")
-endif()
-
-if (NOT SKBUILD)
-  set(_cudaq_python_install_rpaths
-    "${_origin_prefix}/../../../lib"
-    "${_origin_prefix}/../../../lib/plugins")
-else()
-  set(_cudaq_python_install_rpaths
-    "${_origin_prefix}/../../../lib"
-    "${_origin_prefix}/../../../cuda_quantum.libs")
-endif()
-
-# Capture every MLIR extension instantiated above. They all link MLIR and therefore
-# need an install RPATH and must link against cudaqMLIR BEFORE other dependencies.
-get_property(_cudaq_mlir_python_dsos DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
-list(FILTER _cudaq_mlir_python_dsos INCLUDE
-  REGEX "^CUDAQuantumPythonModules\\.extension\\.")
-foreach(_cudaq_mlir_dso IN LISTS _cudaq_mlir_python_dsos)
-  target_link_libraries(${_cudaq_mlir_dso} PRIVATE cudaqMLIR)
-  target_link_options(${_cudaq_mlir_dso}
-    BEFORE PRIVATE "$<TARGET_FILE:cudaqMLIR>")
-  set_property(TARGET ${_cudaq_mlir_dso} APPEND PROPERTY
-    INSTALL_RPATH ${_cudaq_python_install_rpaths})
-endforeach()
-
-# Suppress warnings-as-errors for upstream MLIR Python extension sources
-# that have minor GCC warnings (address-of-function, parentheses) in LLVM 22.
-foreach(_cudaq_py_ext_target
-  CUDAQuantumPythonModules.extension._mlir.dso
-  CUDAQuantumPythonModules.extension.MLIRPythonSupport-cudaq.so)
-  if(TARGET ${_cudaq_py_ext_target})
-    target_compile_options(${_cudaq_py_ext_target} PRIVATE
-      -Wno-error=address -Wno-error=parentheses)
-  endif()
-endforeach()

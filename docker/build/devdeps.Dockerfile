@@ -48,6 +48,8 @@ ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
+ENV GMP_INSTALL_PREFIX=/usr/local/gmp
+ENV MPFR_INSTALL_PREFIX=/usr/local/mpfr
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 ENV AWS_INSTALL_PREFIX=/usr/local/aws
@@ -86,7 +88,9 @@ RUN cd /cuda-quantum && git init && \
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
     # Pre-built binaries for doxygen are (only) available for x86_64.
-    wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz && \
+    # Downloaded from the GitHub release rather than doxygen.nl, since the
+    # latter only hosts the files for the most recent release.
+    wget https://github.com/doxygen/doxygen/releases/download/Release_1_9_7/doxygen-1.9.7.linux.bin.tar.gz && \
     tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7*; \
     else \
     apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
@@ -154,6 +158,8 @@ ENV FC=/usr/local/toolchain/bin/fortran
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
+ENV GMP_INSTALL_PREFIX=/usr/local/gmp
+ENV MPFR_INSTALL_PREFIX=/usr/local/mpfr
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 ENV AWS_INSTALL_PREFIX=/usr/local/aws
@@ -161,6 +167,8 @@ ENV NANOBIND_INSTALL_PREFIX=/usr/local/nanobind
 COPY --from=prereqs /usr/local/nanobind "$NANOBIND_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/zlib "$ZLIB_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/gmp "$GMP_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/mpfr "$MPFR_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/curl "$CURL_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/aws "$AWS_INSTALL_PREFIX"

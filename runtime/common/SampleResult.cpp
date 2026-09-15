@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "SampleResult.h"
+#include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/spin_op.h"
 #include <algorithm>
 #include <climits>
@@ -187,6 +189,14 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
+sample_result::sample_result(CountsDictionary counts, cudaq_json annots)
+    : annotations(std::move(annots)) {
+  for (auto &[bits, count] : counts)
+    totalShots += count;
+  sampleResults.insert(
+      {GlobalRegisterName, ExecutionResult(std::move(counts))});
+}
+
 sample_result::sample_result(ExecutionResult &&result) {
   auto counts = result.counts;
   sampleResults.insert({result.registerName, std::move(result)});
@@ -249,7 +259,6 @@ bool sample_result::operator==(const sample_result &counts) const {
 }
 
 sample_result &sample_result::operator+=(const sample_result &other) {
-
   for (auto &otherResults : other.sampleResults) {
     auto regName = otherResults.first;
     auto foundIter = sampleResults.find(regName);
@@ -275,6 +284,23 @@ sample_result &sample_result::operator+=(const sample_result &other) {
     if (regName == GlobalRegisterName)
       totalShots += other.totalShots;
   }
+
+  const auto &otherAnnotations = other.annotations.get();
+  if (otherAnnotations.is_object()) {
+    auto &thisAnnotations = annotations.get();
+    if (!thisAnnotations.is_object())
+      thisAnnotations = nlohmann::json::object();
+
+    for (const auto &[key, value] : otherAnnotations.items()) {
+      const auto existing = thisAnnotations.find(key);
+      if (existing != thisAnnotations.end() && *existing != value)
+        CUDAQ_WARN("Conflicting SampleResult annotation '{}'; using the "
+                   "value from the second result.",
+                   key);
+      thisAnnotations[key] = value;
+    }
+  }
+
   return *this;
 }
 
@@ -451,6 +477,7 @@ sample_result::get_marginal(const std::vector<std::size_t> &marginalIndices,
 void sample_result::clear() {
   sampleResults.clear();
   totalShots = 0;
+  annotations = nlohmann::json::object();
 }
 
 /// @brief This is a helper function to sort the keys of an unordered map

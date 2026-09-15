@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CompileOptions.h"
 #include "cudaq/algorithms/dem/options.h"
 #include "cudaq/algorithms/dem/result.h"
 #include <string>
@@ -23,6 +24,8 @@ struct dem_policy {
   dem_options options;
   std::string kernelName;
   const noise_model *noiseModel = nullptr;
+
+  friend CompileOptions get_compile_options_impl(const dem_policy &);
 };
 
 } // namespace cudaq

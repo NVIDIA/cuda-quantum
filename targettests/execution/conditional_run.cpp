@@ -8,7 +8,6 @@
 
 // clang-format off
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: nvq++ %s -o %t && %t
 // clang-format on
 

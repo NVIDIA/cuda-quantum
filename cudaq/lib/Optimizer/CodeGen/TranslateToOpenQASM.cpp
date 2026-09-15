@@ -367,6 +367,10 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, Operation &op) {
           [&](auto op) { return emitOperation(emitter, op); })
       .Case<cudaq::quake::ExtractRefOp>(
           [&](auto op) { return emitOperation(emitter, op); })
+      .Case<cudaq::quake::PhaseOp>([&](auto phase) {
+        return phase.emitOpError(
+            "phase bookkeeping must be lowered before OpenQASM translation");
+      })
       .Case<cudaq::quake::OperatorInterface>(
           [&](auto optor) { return emitOperation(emitter, optor); })
       .Case<cudaq::quake::MzOp>(

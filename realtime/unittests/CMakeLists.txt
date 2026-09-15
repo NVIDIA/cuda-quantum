@@ -54,7 +54,7 @@ if(CMAKE_CUDA_COMPILER)
   
   set_target_properties(test_dispatch_kernel PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
+    CUDA_STANDARD 20
   )
   
   target_include_directories(test_dispatch_kernel PRIVATE
@@ -85,7 +85,7 @@ if(CMAKE_CUDA_COMPILER)
   add_executable(test_host_dispatcher test_host_dispatcher.cu)
   set_target_properties(test_host_dispatcher PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
+    CUDA_STANDARD 20
   )
   target_include_directories(test_host_dispatcher PRIVATE
     ${CUDAToolkit_INCLUDE_DIRS}
@@ -107,16 +107,23 @@ if(CMAKE_CUDA_COMPILER)
 endif()
 
 # ==============================================================================
-# Hololink bridge/emulator/playback tools (optional, not CI)
+# HSB bridge/emulator/playback tools (optional, not CI)
 # ==============================================================================
 
-if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(utils)
-  add_subdirectory(bridge_interface/hololink)
+  add_subdirectory(bridge_interface/gpu_roce)
+endif()
+
+# Transport-agnostic two-process test server.  Links cudaq-realtime, which
+# only exists when CUDA was found, and must be configured BEFORE the transport
+# test directories that exec it.
+if (TARGET cudaq-realtime)
+  add_subdirectory(test_server)
 endif()
 
 # UDP bridge provider tests: self-gated on the always-built udp provider
-# target, so they run in CI without any hololink/RDMA setup.
+# target, so they run in CI without any HSB/RDMA setup.
 add_subdirectory(bridge_interface/udp)
 
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).

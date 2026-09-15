@@ -15,20 +15,22 @@
 #if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET) &&         \
     !defined(CUDAQ_BACKEND_STIM)
 
+#define N_QBITS 4
+#define N_LAYERS 2
+constexpr int n_params = 2 * N_LAYERS;
+
 CUDAQ_TEST(VqeThenSample, checkBug67) {
 
   struct ansatz {
-    const int n_qubits;
-    const int n_layers;
     void operator()(std::vector<double> theta) __qpu__ {
-      cudaq::qvector q(n_qubits);
+      cudaq::qvector q(N_QBITS);
 
       // Prepare the initial state by superposition
       h(q);
 
       int N = q.size();
       // Loop over all the layers
-      for (int i = 0; i < n_layers; ++i) {
+      for (int i = 0; i < N_LAYERS; ++i) {
 
         for (std::size_t j = 0; j < q.size(); ++j) {
 
@@ -39,34 +41,29 @@ CUDAQ_TEST(VqeThenSample, checkBug67) {
 
         for (std::size_t j = 0; j < q.size(); ++j) {
           // Apply the mixer Hamiltonian (rx rotations)
-          rx(2.0 * theta[i + n_layers], q[j]); // this is gamma
+          rx(2.0 * theta[i + N_LAYERS], q[j]); // this is gamma
         }
       }
     }
   };
-
   cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) +
                       0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
                       0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) +
                       0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
 
-  int n_qubits = 4;
-  int n_layers = 2;
-  int n_params = 2 * n_layers;
-
   cudaq::optimizers::lbfgs optimizer;
   optimizer.initial_parameters = std::vector<double>{-.75, 1.15, -1.15, -.75};
   optimizer.max_line_search_trials = 10;
   optimizer.max_eval = 10;
-  cudaq::gradients::central_difference gradient(ansatz{n_qubits, n_layers});
+  cudaq::gradients::central_difference gradient(ansatz{});
 
   auto [opt_val, opt_params] =
-      cudaq::vqe(ansatz{n_qubits, n_layers}, gradient, Hp, optimizer, n_params);
+      cudaq::vqe(ansatz{}, gradient, Hp, optimizer, n_params);
   printf("theta = (%lf, %lf, %lf, %lf) \n", opt_params[0], opt_params[1],
          opt_params[2], opt_params[3]);
 
   // Print out the final measurement after optimization
-  auto counts = cudaq::sample(ansatz{n_qubits, n_layers}, opt_params);
+  auto counts = cudaq::sample(ansatz{}, opt_params);
   counts.dump();
   EXPECT_EQ(counts.size(), 2);
   for (auto &[k, v] : counts) {

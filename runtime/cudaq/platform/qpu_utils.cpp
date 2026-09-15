@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
@@ -22,6 +23,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace cudaq;
@@ -101,14 +103,31 @@ void detail::loadTargetPluginLibraries(
       configDir.filename() == "targets" ? configDir.parent_path() : configDir;
   const auto pluginLibDir = pluginRoot / "lib";
 
+  // A plugin library may be named in the target YAML without a platform
+  // suffix (e.g. "libcudaq-rest-qpu") so that one config file works on every
+  // platform; the suffix for this build is appended here. An explicitly
+  // suffixed name is still honoured, and is tried first.
+  const std::string sharedLibSuffix = PLATFORM_SHARED_LIBRARY_SUFFIX;
+  auto endsWithSuffix = [&sharedLibSuffix](const std::string &name) {
+    return name.size() >= sharedLibSuffix.size() &&
+           name.compare(name.size() - sharedLibSuffix.size(),
+                        sharedLibSuffix.size(), sharedLibSuffix) == 0;
+  };
+
   for (const auto &pluginLibrary : targetConfig.PluginLibraries) {
-    const std::filesystem::path requestedPath(pluginLibrary);
+    std::vector<std::string> names{pluginLibrary};
+    if (!endsWithSuffix(pluginLibrary))
+      names.push_back(pluginLibrary + sharedLibSuffix);
+
     std::vector<std::filesystem::path> candidates;
-    if (requestedPath.is_absolute()) {
-      candidates.push_back(requestedPath);
-    } else {
-      candidates.push_back(cudaqLibDir / requestedPath);
-      candidates.push_back(pluginLibDir / requestedPath);
+    for (const auto &name : names) {
+      const std::filesystem::path requestedPath(name);
+      if (requestedPath.is_absolute()) {
+        candidates.push_back(requestedPath);
+      } else {
+        candidates.push_back(cudaqLibDir / requestedPath);
+        candidates.push_back(pluginLibDir / requestedPath);
+      }
     }
 
     const auto found = std::find_if(candidates.begin(), candidates.end(),
@@ -180,3 +199,47 @@ void detail::initServerHelperAndExecutor(
   runtimeTarget.runtimeConfig = backendConfig;
   serverHelper->setRuntimeTarget(runtimeTarget);
 }
+
+namespace {
+class ExecutionQueueRegistry {
+public:
+  void add(QuantumExecutionQueue &queue) {
+    std::lock_guard lock(mutex);
+    queues.insert(&queue);
+  }
+
+  void remove(QuantumExecutionQueue &queue) {
+    std::lock_guard lock(mutex);
+    queues.erase(&queue);
+  }
+
+  void shutdown() {
+    // Keep the lock across shutdown so registered queues cannot be destroyed
+    // while their raw pointers are in use.
+    std::lock_guard lock(mutex);
+    for (auto *queue : queues)
+      queue->shutdown();
+  }
+
+private:
+  std::mutex mutex;
+  std::unordered_set<QuantumExecutionQueue *> queues;
+};
+
+ExecutionQueueRegistry &executionQueueRegistry() {
+  // Process-lifetime registry: execution queues belong to platforms owned by
+  // thread-local storage and may unregister during static destruction.
+  static auto *const registry = new ExecutionQueueRegistry();
+  return *registry;
+}
+} // namespace
+
+void detail::registerExecutionQueue(QuantumExecutionQueue &queue) {
+  executionQueueRegistry().add(queue);
+}
+
+void detail::unregisterExecutionQueue(QuantumExecutionQueue &queue) {
+  executionQueueRegistry().remove(queue);
+}
+
+void detail::shutdownExecutionQueues() { executionQueueRegistry().shutdown(); }

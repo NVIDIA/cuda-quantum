@@ -190,12 +190,12 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
             random.choice(string.ascii_uppercase + string.digits)
             for _ in range(10)))
 
-    ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.asyncExec = is_async
-    with ctx:
-        cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
-
-    return ctx.asyncResult if is_async else ctx.result
+    if is_async:
+        return cudaq_runtime.launch_analog_kernel_async(funcName,
+                                                        program.to_json(),
+                                                        shots_count)
+    return cudaq_runtime.launch_analog_kernel(funcName, program.to_json(),
+                                              shots_count)
 
 
 # FIXME: move to C++

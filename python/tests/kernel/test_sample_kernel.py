@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import sys, os
+import math
 
 import pytest
 import numpy as np
@@ -212,6 +213,7 @@ def test_conditional_bare_return():
     @cudaq.kernel
     def kernel(skip: bool):
         q = cudaq.qubit()
+
         if skip:
             return
         x(q)
@@ -262,6 +264,7 @@ def test_function_scope_bare_return():
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
+
         return
         x(q)
 

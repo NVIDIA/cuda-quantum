@@ -13,7 +13,7 @@ get_filename_component(PARENT_DIRECTORY ${NVQIR_CMAKE_DIR} DIRECTORY)
 
 find_dependency(CUDAQOperator REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
 find_dependency(CUDAQCommon REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
-find_package(fmt QUIET)
+find_package(fmt QUIET HINTS "${PARENT_DIRECTORY}/fmt")
 if (NOT fmt_FOUND)
   include(FetchContent)
   FetchContent_Declare(

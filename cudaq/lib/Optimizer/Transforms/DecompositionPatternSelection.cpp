@@ -96,6 +96,13 @@ struct BasisTarget : public ConversionTarget {
                     cudaq::cc::CCDialect, func::FuncDialect,
                     math::MathDialect>();
     addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>([&](Operation *op) {
+      // quake.phase is an exact global/predicate-phase correction, not a
+      // physical-basis gate; its target is only an ordering and wire-flow
+      // anchor. Preserve it across phase-producing decompositions. The shared
+      // phase lifecycle lowers it before code generation.
+      if (isa<cudaq::quake::PhaseOp>(op))
+        return true;
+
       if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
         auto name = optor->getName().stripDialect();
         auto numControls = cudaq::getKnownNumControls(optor);

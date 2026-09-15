@@ -35,8 +35,9 @@ during the build and after installation, and walks through the installation step
   either open-sourcing these components or making them available as separate downloads
   in the future. Even without these components, almost all features of CUDA-Q
   will be enabled in a source build, though some pieces may be less performant. 
-  At this time, the :ref:`multi-GPU state vector simulator <nvidia-mgpu-backend>` 
-  backend will not be included if you build CUDA-Q from source.
+  The NVIDIA state-vector simulators, including the
+  :ref:`multi-GPU backend <nvidia-mgpu-backend>`, are built from source when
+  `cuStateVec` 1.14 or newer is available.
 
 
 .. _compatibility-prebuilt-binaries:
@@ -216,7 +217,7 @@ and merely downloading the source code as ZIP archive hence will not work.
 Please follow the instructions in the respective subsection(s) to build the necessary 
 components for using CUDA-Q from C++ and/or Python.
 After the build, check that the GPU-accelerated components have been built by confirming
-that the file `nvidia.config` exists in the `$CUDAQ_INSTALL_PREFIX/targets` folder.
+that the file `nvidia.yml` exists in the `$CUDAQ_INSTALL_PREFIX/targets` folder.
 We also recommend checking the build log printed to the console to confirm that all desired 
 components have been built. 
 

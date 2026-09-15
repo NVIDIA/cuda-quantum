@@ -39,7 +39,6 @@ namespace cudaq::detail {
 std::optional<std::array<std::uint8_t, 32>>
 createProgramFingerprint(const std::string &name, mlir::ModuleOp mod,
                          const std::vector<void *> &rawArgs,
-                         const cudaq::CompileTarget &target,
                          mlir::OwningOpRef<mlir::ModuleOp> &resolvedModule);
 
 } // namespace cudaq::detail

@@ -10,7 +10,8 @@
 #include "cudaq/Optimizer/Dialect/QEC/QECOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/Transforms/RegionUtils.h"
+#include "mlir/Transforms/WalkPatternRewriteDriver.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ERASEQEC
@@ -51,8 +52,9 @@ public:
     patterns.insert<EraseQECOpPattern<cudaq::qec::DetectorOp>,
                     EraseQECOpPattern<cudaq::qec::ObservableOp>,
                     EraseQECOpPattern<cudaq::qec::DetectorsOp>>(ctx);
-    if (failed(applyPatternsGreedily(op, std::move(patterns))))
-      signalPassFailure();
+    PatternRewriter rewriter(ctx);
+    (void)eraseUnreachableBlocks(rewriter, op->getRegions());
+    walkAndApplyPatterns(op, FrozenRewritePatternSet(std::move(patterns)));
     LLVM_DEBUG(llvm::dbgs() << "After QEC erasure:\n" << *op << "\n\n");
   }
 };

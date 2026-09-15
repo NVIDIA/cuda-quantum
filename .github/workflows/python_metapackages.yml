@@ -17,10 +17,33 @@ on:
         required: true
         type: string
         description: A pattern that matches all artifacts that contain wheels that the metapackages depend on.
+      logical_wheel_artifacts:
+        required: false
+        type: string
+        default: 'cudaq_logical-*'
+        description: A pattern that matches cudaq-logical wheel artifacts.
+      cudaq_logical_version:
+        required: false
+        type: string
+        default: ''
+        description:
+          Version of the already-built cudaq-logical wheel. When set, this
+          authoritative value is used instead of recomputing the version
+          independently via setuptools-scm.
       github_commit:
         required: false
         type: string
-        description: Optional argument to set the GitHub commit to use for the build. 
+        description: Optional argument to set the GitHub commit to use for the build.
+      build_deprecated_package:
+        required: false
+        type: boolean
+        default: true
+        description: Also build the deprecated cuda-quantum sdist alongside the cudaq sdist.
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+        description: Run the test_metapackages job after building.
     outputs:
       artifact_name:
         description: "The name of the artifact that contains the built metapackages."
@@ -43,15 +66,24 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: "${{ inputs.github_commit || '' }}"
+          fetch-depth: 0
+
+      - name: Compute package versions
+        id: version
+        uses: ./.github/actions/compute-cudaq-version
 
       - name: Build metapackages
         id: metapackage_build
+        env:
+          CUDAQ_LOGICAL_VERSION:
+            ${{ inputs.cudaq_logical_version || steps.version.outputs.cudaq_logical_version }}
         run: |
             retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
             for file in LICENSE NOTICE CITATION.cff; do
                 cp $file python/metapackages/$file
             done
+            cp -r LICENSES python/metapackages/LICENSES
 
             retry sudo apt-get update
             retry sudo apt-get install -y --no-install-recommends \
@@ -73,21 +105,25 @@ jobs:
             fi
 
             echo "Building cudaq metapackage ..."
-            cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
+            cd python/metapackages
+            echo "${{ inputs.cudaq_version }}" > _version.txt
+            echo "$CUDAQ_LOGICAL_VERSION" > _logical_version.txt
             CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
             mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
             rm -rf dist
 
-            echo "Creating README.md for cuda-quantum package"
-            echo "# Welcome to the CUDA-Q Python API" > README.md
-            echo "This package is deprecated and new versions are published under the name \`cudaq\` instead." >> README.md
-            echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
+            if ${{ inputs.build_deprecated_package }}; then
+              echo "Creating README.md for cuda-quantum package"
+              echo "# Welcome to the CUDA-Q Python API" > README.md
+              echo "This package is deprecated and new versions are published under the name \`cudaq\` instead." >> README.md
+              echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
 
-            echo "Building cuda-quantum metapackage ..."
-            sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
-            echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
-            CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
-            mv dist/cuda_quantum-* /tmp/packages/
+              echo "Building cuda-quantum metapackage ..."
+              sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
+              echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
+              CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
+              mv dist/cuda_quantum-* /tmp/packages/
+            fi
 
             echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
@@ -102,6 +138,7 @@ jobs:
   test_metapackages:
     name: Test Python metapackages
     needs: build_metapackages
+    if: inputs.run_tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -134,13 +171,31 @@ jobs:
           path: /tmp/wheels/
           merge-multiple: true
 
+      - name: Load cudaq-logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.logical_wheel_artifacts }}
+          path: /tmp/logical-wheels/
+          merge-multiple: true
+
       - name: Test installation
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
+
+          python_tag="${{ matrix.python_version }}"
+          python_tag="${python_tag/./}"
+          logical_wheel="$(find /tmp/logical-wheels -name "cudaq_logical-*-cp${python_tag}-*.whl" -print -quit)"
+          if [ -z "$logical_wheel" ]; then
+            echo "::error file=python_metapackages.yml::Missing cudaq-logical wheel for Python ${{ matrix.python_version }}."
+            exit 1
+          fi
+
           mkdir -p /tmp/packages
-          mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
-          rmdir /tmp/wheels /tmp/metapackages
+          mv /tmp/wheels/* /tmp/packages
+          mv /tmp/logical-wheels/* /tmp/packages
+          mv /tmp/metapackages/* /tmp/packages
+          rmdir /tmp/wheels /tmp/logical-wheels /tmp/metapackages
 
           if [ -n "${{ matrix.cuda_version }}" ]; then
             CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos

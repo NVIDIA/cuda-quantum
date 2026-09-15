@@ -39,13 +39,13 @@ public:
   ~ValueHolder() = default;
 
   /// @brief Whenever we encounter an extract on a
-  /// StdVec QuakeValue, we want to record it here. This
+  /// Sequence QuakeValue, we want to record it here. This
   /// allows us to validate later that the number of runtime
   /// std::vector elements are correct.
   void addUniqueExtraction(std::size_t idx) {
-    if (!isa<cc::StdvecType>(value.getType()))
+    if (!isa<cc::SequenceType>(value.getType()))
       throw std::runtime_error(
-          "Tracking unique extraction on non-stdvec type.");
+          "Tracking unique extraction on non-sequence type.");
 
     uniqueExtractions.insert(idx);
   }
@@ -89,20 +89,21 @@ QuakeValue::QuakeValue(mlir::ImplicitLocOpBuilder &builder, double v)
 QuakeValue::QuakeValue(mlir::ImplicitLocOpBuilder &builder, Value v)
     : value(std::make_shared<QuakeValue::ValueHolder>(v)), opBuilder(builder) {}
 
-bool QuakeValue::isStdVec() {
-  return isa<cc::StdvecType>(value->asMLIR().getType());
+bool QuakeValue::isSequence() {
+  return isa<cc::SequenceType>(value->asMLIR().getType());
 }
 
 std::size_t QuakeValue::getRequiredElements() {
-  if (!isStdVec())
-    throw std::runtime_error("Tracking unique extraction on non-stdvec type.");
+  if (!isSequence())
+    throw std::runtime_error(
+        "Tracking unique extraction on non-sequence type.");
   return value->countUniqueExtractions();
 }
 
 QuakeValue QuakeValue::operator[](const std::size_t idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type)) {
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -125,10 +126,10 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
   value->addUniqueExtraction(idx);
 
   Type eleTy =
-      mlir::cast<cc::StdvecType>(vectorValue.getType()).getElementType();
+      mlir::cast<cc::SequenceType>(vectorValue.getType()).getElementType();
 
   auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-  Value vecPtr = cc::StdvecDataOp::create(opBuilder, arrPtrTy, vectorValue);
+  Value vecPtr = cc::SequenceDataOp::create(opBuilder, arrPtrTy, vectorValue);
   std::int32_t idx32 = static_cast<std::int32_t>(idx);
   auto elePtrTy = cc::PointerType::get(eleTy);
   Value eleAddr = cc::ComputePtrOp::create(opBuilder, elePtrTy, vecPtr,
@@ -140,7 +141,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type)) {
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -164,9 +165,9 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   canValidateVectorNumElements = false;
 
   Type eleTy =
-      mlir::cast<cc::StdvecType>(vectorValue.getType()).getElementType();
+      mlir::cast<cc::SequenceType>(vectorValue.getType()).getElementType();
   auto arrEleTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-  Value vecPtr = cc::StdvecDataOp::create(opBuilder, arrEleTy, vectorValue);
+  Value vecPtr = cc::SequenceDataOp::create(opBuilder, arrEleTy, vectorValue);
   auto elePtrTy = cc::PointerType::get(eleTy);
   Value eleAddr = cc::ComputePtrOp::create(
       opBuilder, elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{indexVar});
@@ -177,13 +178,13 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 QuakeValue QuakeValue::size() {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type))
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue does not expose .size().");
 
   Type i64Ty = opBuilder.getI64Type();
   Value ret;
-  if (isa<cc::StdvecType>(type))
-    ret = cc::StdvecSizeOp::create(opBuilder, i64Ty, vectorValue);
+  if (isa<cc::SequenceType>(type))
+    ret = cc::SequenceSizeOp::create(opBuilder, i64Ty, vectorValue);
   else
     ret = cudaq::quake::VeqSizeOp::create(opBuilder, i64Ty, vectorValue);
 
@@ -202,7 +203,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
                              const std::size_t count) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type))
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue is not sliceable.");
 
   if (count == 0)
@@ -226,8 +227,8 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
     return QuakeValue(opBuilder, subVeq);
   }
 
-  // must be a stdvec type
-  auto svecTy = dyn_cast<cc::StdvecType>(vectorValue.getType());
+  // must be a sequence type
+  auto svecTy = dyn_cast<cc::SequenceType>(vectorValue.getType());
   auto eleTy = svecTy.getElementType();
   assert(!isa<cc::ArrayType>(eleTy));
   Value vecPtr;
@@ -237,7 +238,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
     // actually appear in CodeGen when lowering this to the LLVM-IR dialect.
     eleTy = opBuilder.getI8Type();
     auto ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-    vecPtr = cc::StdvecDataOp::create(opBuilder, ptrTy, vectorValue);
+    vecPtr = cc::SequenceDataOp::create(opBuilder, ptrTy, vectorValue);
     auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
     assert(bits > 0);
     auto scale = arith::ConstantIntOp::create(
@@ -245,14 +246,14 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
     offset = arith::MulIOp::create(opBuilder, scale, startIdxValue);
   } else {
     auto ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-    vecPtr = cc::StdvecDataOp::create(opBuilder, ptrTy, vectorValue);
+    vecPtr = cc::SequenceDataOp::create(opBuilder, ptrTy, vectorValue);
     offset = startIdxValue;
   }
   auto ptr =
       cc::ComputePtrOp::create(opBuilder, cudaq::cc::PointerType::get(eleTy),
                                vecPtr, ArrayRef<cc::ComputePtrArg>{offset});
-  Value subVeqInit = cc::StdvecInitOp::create(opBuilder, vectorValue.getType(),
-                                              ptr, countValue);
+  Value subVeqInit = cc::SequenceInitOp::create(
+      opBuilder, vectorValue.getType(), ptr, countValue);
 
   // If this is a slice, then we know we have
   // unique extraction on the elements of the slice,

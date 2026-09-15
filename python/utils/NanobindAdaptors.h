@@ -13,6 +13,8 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#include "JsonNanobindAdaptors.h"
+
 #include "mlir-c/Bindings/Python/Interop.h"
 #include "mlir-c/IR.h"
 

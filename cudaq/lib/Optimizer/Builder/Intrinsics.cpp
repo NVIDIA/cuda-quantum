@@ -101,7 +101,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // Initialize a (preallocated) buffer (the first parameter) with i64 values
     // on the semi-open range `[0..n)` where `n` is the second parameter.
     {cudaq::setCudaqRangeVector, {}, R"#(
-  func.func private @__nvqpp_CudaqRangeInit(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64) -> !cc.stdvec<i64> {
+  func.func private @__nvqpp_CudaqRangeInit(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64) -> !cc.sequence<i64> {
     %0 = arith.constant 0 : i64
     %1 = cc.loop while ((%i = %0) -> i64) {
       %w1 = arith.cmpi ult, %i, %arg1 : i64
@@ -117,8 +117,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
         %s1 = arith.addi %i, %one : i64
         cc.continue %s1 : i64
     } {invariant}
-    %2 = cc.stdvec_init %arg0, %arg1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
-    return %2 : !cc.stdvec<i64>
+    %2 = cc.sequence_init %arg0, %arg1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
+    return %2 : !cc.sequence<i64>
   }
 )#"},
 
@@ -133,7 +133,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // three parameters are assumed to be signed values, which is required to
     // have a decrementing loop.
     {cudaq::setCudaqRangeVectorTriple, {cudaq::getCudaqSizeFromTriple}, R"#(
-  func.func private @__nvqpp_CudaqRangeInitTriple(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64, %arg2: i64, %arg3: i64) -> !cc.stdvec<i64> {
+  func.func private @__nvqpp_CudaqRangeInitTriple(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64, %arg2: i64, %arg3: i64) -> !cc.sequence<i64> {
     %c1_i64 = arith.constant 1 : i64
     %c0_i64 = arith.constant 0 : i64
     %0 = call @__nvqpp_CudaqSizeFromTriple(%arg1, %arg2, %arg3) : (i64, i64, i64) -> i64
@@ -151,8 +151,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
       %4 = arith.addi %arg5, %arg3 : i64
       cc.continue %3, %4 : i64, i64
     } {invariant}
-    %2 = cc.stdvec_init %arg0, %0 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
-    return %2 : !cc.stdvec<i64>
+    %2 = cc.sequence_init %arg0, %0 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
+    return %2 : !cc.sequence<i64>
   }
 )#"},
 
@@ -171,7 +171,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %1 = arith.constant 1 : i64
     %n1 = arith.constant -1 : i64
     %c1 = arith.cmpi eq, %step, %0 : i64
-    cf.cond_br %c1, ^b1, ^exit(%0 : i64)
+    cf.cond_br %c1, ^exit(%0 : i64), ^b1
    ^b1:
     %c2 = arith.cmpi sgt, %step, %0 : i64
     %adjust = arith.select %c2, %1, %n1 : i64
@@ -468,9 +468,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     {cudaq::cudaqConvertToInteger, {}, R"#(
-  func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.stdvec<i1>) -> i64 {
-    %size = cc.stdvec_size %arg : (!cc.stdvec<i1>) -> i64
-    %data = cc.stdvec_data %arg : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+  func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.sequence<i1>) -> i64 {
+    %size = cc.sequence_size %arg : (!cc.sequence<i1>) -> i64
+    %data = cc.sequence_data %arg : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
     %zero = arith.constant 0 : i64
     %one = arith.constant 1 : i64
     %res:2 = cc.loop while ((%i = %zero, %v = %zero) -> (i64, i64)) {
@@ -570,7 +570,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     // __nvqpp_initializer_list_to_vector_bool
-    {cudaq::stdvecBoolCtorFromInitList, {}, R"#(
+    {cudaq::sequenceBoolCtorFromInitList, {}, R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
     // This helper function copies a buffer off the stack to the heap. This is
@@ -598,7 +598,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   })#"},
 
     // __nvqpp_vector_bool_free_temporary_lists
-    {cudaq::stdvecBoolFreeTemporaryLists, {}, R"#(
+    {cudaq::sequenceBoolFreeTemporaryLists, {}, R"#(
   func.func private @__nvqpp_vector_bool_free_temporary_initlists(!cc.ptr<i8>) -> ()
 )#"},
 
@@ -606,7 +606,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // The array size is factory::stdVecBoolPaddingSize to match the host
     // std::vector<bool> layout. The {PADDING_SIZE} placeholder is replaced
     // at load time.
-    {cudaq::stdvecBoolUnpackToInitList, {}, R"#(
+    {cudaq::sequenceBoolUnpackToInitList, {}, R"#(
   func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {PADDING_SIZE}>}>>, !cc.ptr<!cc.ptr<i8>>) -> ()
 )#"},
 
@@ -687,6 +687,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
+    {cudaq::opt::NVQIRGeneralizedInvokeAny, {}, R"#(
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+)#"},
+
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
     //                    resultOffset, vectorArgPtrs)
     {cudaq::runtime::launchKernelHybridFuncName, {}, R"#(
@@ -717,7 +721,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // subtargets (full, base profle, or adaptive profile).
     // These include qubit allocation and management, control variants of the
     // gates, some one offs, and control form invocation helper routines.
-    {"qir_common", {cudaq::opt::QISTrap}, R"#(
+    {"qir_common",
+     {cudaq::opt::QISTrap, cudaq::opt::NVQIRGeneralizedInvokeAny},
+     R"#(
   func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
   func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
@@ -762,7 +768,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__logical_observable(!cc.ptr<!qir_result>, i64, i64)
   func.func private @__quantum__qis__pair_detectors(!cc.ptr<!qir_result>, i64, !cc.ptr<!qir_result>, i64)
 
-  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
   llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
 )#"},
 
@@ -925,9 +930,9 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
       return failure();
   }
   // Now load the requested code.
-  // For stdvecBoolUnpackToInitList, replace the {PADDING_SIZE} placeholder
+  // For sequenceBoolUnpackToInitList, replace the {PADDING_SIZE} placeholder
   // with the actual padding size for the host's std::vector<bool>.
-  if (intrinName == cudaq::stdvecBoolUnpackToInitList) {
+  if (intrinName == cudaq::sequenceBoolUnpackToInitList) {
     std::string code = iter->code.str();
     const std::string placeholder = "{PADDING_SIZE}";
     auto pos = code.find(placeholder);

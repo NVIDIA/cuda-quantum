@@ -1,0 +1,443 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-normalize --cc-loop-induction-fusion \
+// RUN:   --canonicalize %s | FileCheck %s
+
+// ---------------------------------------------------------------------------
+// Test 1: loop with several secondary inductions.
+//
+//   for (i = 1, j = 0, k = 5; i < N; ++i, j += 3, k -= 2)
+//
+// The loop control variable starts at 1 (not normalized) so cc-loop-normalize
+// will rewrite the loop to be normalized.  After normalize+fusion, j and k are
+// eliminated from the carried-value set and rebuilt from the lcv i.
+// ---------------------------------------------------------------------------
+
+func.func private @two_args(i64, i64)
+func.func private @three_args(i64, i64, i64)
+
+func.func @test_several_inductions(%n: i64) -> (i64, i64, i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c2 = arith.constant 2 : i64
+  %c3 = arith.constant 3 : i64
+  %c5 = arith.constant 5 : i64
+  %r:3 = cc.loop while ((%i = %c1, %j = %c0, %k = %c5) -> (i64, i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j, %k : i64, i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64, %k : i64):
+    func.call @three_args(%i, %j, %k) : (i64, i64, i64) -> ()
+    cc.continue %i, %j, %k : i64, i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64, %k : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c3 : i64
+    %k1 = arith.subi %k, %c2 : i64
+    cc.continue %i1, %j1, %k1 : i64, i64, i64
+  }
+  return %r#0, %r#1, %r#2 : i64, i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_several_inductions(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64, i64) {
+// CHECK-DAG:       %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[CONSTANT_2:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 3 : i64
+// CHECK-DAG:       %[[CONSTANT_4:.*]] = arith.constant 5 : i64
+// CHECK:           %[[SUBI_0:.*]] = arith.subi %[[ARG0]], %[[CONSTANT_1]] : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[SUBI_0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_3]] : i64
+// CHECK:             %[[MULI_1:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[SUBI_1:.*]] = arith.subi %[[CONSTANT_4]], %[[MULI_1]] : i64
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             func.call @three_args(%[[ADDI_0]], %[[MULI_0]], %[[SUBI_1]]) : (i64, i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_2:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_3]] : i64
+// CHECK:           %[[MULI_3:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[SUBI_2:.*]] = arith.subi %[[CONSTANT_4]], %[[MULI_3]] : i64
+// CHECK:           %[[ADDI_2:.*]] = arith.addi %[[LOOP_0]], %[[CONSTANT_1]] : i64
+// CHECK:           return %[[ADDI_2]], %[[MULI_2]], %[[SUBI_2]] : i64, i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 2: 3-level nested loops, each with a secondary induction.
+//
+//   for (outer = 1; outer < M; ++outer)
+//     for (mid = 1, midJ = 10; mid < N; ++mid, midJ += 7)
+//       for (inner = 1, innerJ = 0; inner < K; ++inner, innerJ += 2)
+// ---------------------------------------------------------------------------
+
+func.func @test_nested_loops(%m: i64, %n: i64, %k: i64) -> i64 {
+  %c0  = arith.constant 0 : i64
+  %c1  = arith.constant 1 : i64
+  %c2  = arith.constant 2 : i64
+  %c7  = arith.constant 7 : i64
+  %c10 = arith.constant 10 : i64
+  %outer_r = cc.loop while ((%outer = %c1) -> (i64)) {
+    %cond = arith.cmpi ult, %outer, %m : i64
+    cc.condition %cond(%outer : i64)
+  } do {
+  ^bb0(%outer : i64):
+    %mid_r:2 = cc.loop while ((%mid = %c1, %midJ = %c10) -> (i64, i64)) {
+      %cond = arith.cmpi ult, %mid, %n : i64
+      cc.condition %cond(%mid, %midJ : i64, i64)
+    } do {
+    ^bb0(%mid : i64, %midJ : i64):
+      %inner_r:2 = cc.loop while ((%inner = %c1, %innerJ = %c0) -> (i64, i64)) {
+        %cond = arith.cmpi ult, %inner, %k : i64
+        cc.condition %cond(%inner, %innerJ : i64, i64)
+      } do {
+      ^bb0(%inner : i64, %innerJ : i64):
+        func.call @two_args(%inner, %innerJ) : (i64, i64) -> ()
+        cc.continue %inner, %innerJ : i64, i64
+      } step {
+      ^bb0(%inner : i64, %innerJ : i64):
+        %inner1  = arith.addi %inner, %c1 : i64
+        %innerJ1 = arith.addi %innerJ, %c2 : i64
+        cc.continue %inner1, %innerJ1 : i64, i64
+      }
+      cc.continue %inner_r#0, %midJ : i64, i64
+    } step {
+    ^bb0(%mid : i64, %midJ : i64):
+      %mid1  = arith.addi %mid,  %c1 : i64
+      %midJ1 = arith.addi %midJ, %c7 : i64
+      cc.continue %mid1, %midJ1 : i64, i64
+    }
+    cc.continue %mid_r#0 : i64
+  } step {
+  ^bb0(%outer : i64):
+    %outer1 = arith.addi %outer, %c1 : i64
+    cc.continue %outer1 : i64
+  }
+  return %outer_r : i64
+}
+
+// CHECK-LABEL:   func.func @test_nested_loops(
+// CHECK:           = arith.subi %
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while (({{.*}} -> (i64)) {
+// CHECK:             cc.condition %{{.*}} : i64)
+// CHECK:           } do {
+// CHECK:             %[[LOOP_1:.*]] = cc.loop while ((%{{.*}} -> (i64)) {
+// CHECK:               cc.condition %{{.*}} : i64)
+// CHECK:             } do {
+// CHECK:               %[[LOOP_2:.*]] = cc.loop while ((%{{.*}}) -> (i64)) {
+// CHECK:                 cc.condition %{{.*}} : i64)
+// CHECK:               } do {
+// CHECK:               ^bb0(%[[VAL_5:.*]]: i64):
+// CHECK:                 %[[MULI_0:.*]] = arith.muli %[[VAL_5]], %{{.*}} : i64
+// CHECK:                 %[[ADDI_0:.*]] = arith.addi %[[VAL_5]], %{{.*}} : i64
+// CHECK:                 func.call @two_args(%[[ADDI_0]], %[[MULI_0]]) : (i64, i64) -> ()
+// CHECK:                 cc.continue %[[VAL_5]] : i64
+// CHECK:               } step {
+// CHECK:               ^bb0(%[[VAL_6:.*]]: i64):
+// CHECK:                 %[[ADDI_1:.*]] = arith.addi %[[VAL_6]], %{{.*}} : i64
+// CHECK:                 cc.continue %[[ADDI_1]] : i64
+// CHECK:               } {normalized}
+// CHECK:               %[[ADDI_2:.*]] = arith.addi %[[LOOP_2]], %{{.*}} : i64
+// CHECK:               cc.continue %[[ADDI_2]] : i64
+// CHECK:             } step {
+// CHECK:             ^bb0(%[[VAL_7:.*]]: i64):
+// CHECK:               %[[ADDI_3:.*]] = arith.addi %[[VAL_7]], %{{.*}} : i64
+// CHECK:               cc.continue %[[ADDI_3]] : i64
+// CHECK:             } {normalized}
+// CHECK:             %[[ADDI_4:.*]] = arith.addi %[[LOOP_1]], %{{.*}} : i64
+// CHECK:             cc.continue %[[ADDI_4]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i64):
+// CHECK:             %[[ADDI_5:.*]] = arith.addi %[[VAL_8]], %{{.*}} : i64
+// CHECK:             cc.continue %[[ADDI_5]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[ADDI_6:.*]] = arith.addi %[[LOOP_0]], %{{.*}} : i64
+
+// ---------------------------------------------------------------------------
+// Test 3: loop with a cc.if in the body; secondary will still be fused.
+//
+//   for (i = 1, j = 0; i < N; ++i, j += 4)
+//     if (pred) { ... } else { ... j+1 ... }
+// ---------------------------------------------------------------------------
+
+func.func @test_with_if(%n: i64, %pred: i1) -> (i64, i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %r:2 = cc.loop while ((%i = %c1, %j = %c0) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    cc.if (%pred) {
+      cc.continue
+    } else {
+      %j1 = arith.addi %j, %c1 : i64
+      func.call @two_args(%i, %j1) : (i64, i64) -> ()
+      cc.continue
+    }
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c4 : i64
+    cc.continue %i1, %j1 : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_with_if(
+// CHECK-SAME:      %[[ARG0:.*]]: i64,
+// CHECK-SAME:      %[[ARG1:.*]]: i1) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 4 : i64
+// CHECK:           %[[SUBI_0:.*]] = arith.subi %[[ARG0]], %[[CONSTANT_1]] : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[SUBI_0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.if(%[[ARG1]]) {
+// CHECK:             } else {
+// CHECK:               %[[ADDI_1:.*]] = arith.addi %[[MULI_0]], %[[CONSTANT_1]] : i64
+// CHECK:               func.call @two_args(%[[ADDI_0]], %[[ADDI_1]]) : (i64, i64) -> ()
+// CHECK:             }
+// CHECK:             func.call @two_args(%[[ADDI_0]], %[[MULI_0]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_2]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[ADDI_3:.*]] = arith.addi %[[LOOP_0]], %[[CONSTANT_1]] : i64
+// CHECK:           return %[[ADDI_3]], %[[MULI_1]] : i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 4: linear form  j = m*i + c  (positive step, positive initial).
+//
+//   for (i = 0, j = 3; i < N; ++i, j += 5)
+//
+// j(i) = 3 + i*5.  loop control variable starts at 0 so normalize is a NOP.
+// ---------------------------------------------------------------------------
+
+func.func @test_linear_pos_pos(%n: i64) -> (i64, i64) {
+  %c0  = arith.constant 0 : i64
+  %c1  = arith.constant 1 : i64
+  %c3  = arith.constant 3 : i64
+  %c5  = arith.constant 5 : i64
+  %r:2 = cc.loop while ((%i = %c0, %j = %c3) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c5 : i64
+    cc.continue %i1, %j1 : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_linear_pos_pos(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 3 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 5 : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ult, %[[VAL_0]], %[[ARG0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_3]] : i64
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[MULI_0]], %[[CONSTANT_2]] : i64
+// CHECK:             func.call @two_args(%[[VAL_1]], %[[ADDI_0]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_3]] : i64
+// CHECK:           %[[ADDI_2:.*]] = arith.addi %[[MULI_1]], %[[CONSTANT_2]] : i64
+// CHECK:           return %[[LOOP_0]], %[[ADDI_2]] : i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 5: linear form  j = -m*i + c  (negative step, positive initial).
+//
+//   for (i = 0, j = 10; i < N; ++i, j -= 3)
+//
+// j(i) = 10 - i*3.
+// ---------------------------------------------------------------------------
+
+func.func @test_linear_neg_pos(%n: i64) -> (i64, i64) {
+  %c0  = arith.constant 0  : i64
+  %c1  = arith.constant 1  : i64
+  %c3  = arith.constant 3  : i64
+  %c10 = arith.constant 10 : i64
+  %r:2 = cc.loop while ((%i = %c0, %j = %c10) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.subi %j, %c3 : i64
+    cc.continue %i1, %j1 : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_linear_neg_pos(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 3 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 10 : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ult, %[[VAL_0]], %[[ARG0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CONSTANT_3]], %[[MULI_0]] : i64
+// CHECK:             func.call @two_args(%[[VAL_1]], %[[SUBI_0]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_0]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[SUBI_1:.*]] = arith.subi %[[CONSTANT_3]], %[[MULI_1]] : i64
+// CHECK:           return %[[LOOP_0]], %[[SUBI_1]] : i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 6: linear form  j = m*i - c  (positive step, negative initial).
+//
+//   for (i = 0, j = -7; i < N; ++i, j += 4)
+//
+// j(i) = -7 + i*4.
+// ---------------------------------------------------------------------------
+
+func.func @test_linear_pos_neg(%n: i64) -> (i64, i64) {
+  %c0  = arith.constant  0 : i64
+  %c1  = arith.constant  1 : i64
+  %c4  = arith.constant  4 : i64
+  %cm7 = arith.constant -7 : i64
+  %r:2 = cc.loop while ((%i = %c0, %j = %cm7) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.addi %j, %c4 : i64
+    cc.continue %i1, %j1 : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_linear_pos_neg(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 4 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant -7 : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ult, %[[VAL_0]], %[[ARG0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[MULI_0]], %[[CONSTANT_3]] : i64
+// CHECK:             func.call @two_args(%[[VAL_1]], %[[ADDI_0]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[ADDI_2:.*]] = arith.addi %[[MULI_1]], %[[CONSTANT_3]] : i64
+// CHECK:           return %[[LOOP_0]], %[[ADDI_2]] : i64, i64
+
+// ---------------------------------------------------------------------------
+// Test 7: linear form  j = -m*i - c  (negative step, negative initial).
+//
+//   for (i = 0, j = -2; i < N; ++i, j -= 6)
+//
+// j(i) = -2 - i*6.
+// ---------------------------------------------------------------------------
+
+func.func @test_linear_neg_neg(%n: i64) -> (i64, i64) {
+  %c0  = arith.constant  0 : i64
+  %c1  = arith.constant  1 : i64
+  %c6  = arith.constant  6 : i64
+  %cm2 = arith.constant -2 : i64
+  %r:2 = cc.loop while ((%i = %c0, %j = %cm2) -> (i64, i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i : i64, %j : i64):
+    func.call @two_args(%i, %j) : (i64, i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i : i64, %j : i64):
+    %i1 = arith.addi %i, %c1 : i64
+    %j1 = arith.subi %j, %c6 : i64
+    cc.continue %i1, %j1 : i64, i64
+  }
+  return %r#0, %r#1 : i64, i64
+}
+
+// CHECK-LABEL:   func.func @test_linear_neg_neg(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) -> (i64, i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 6 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant -2 : i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi ult, %[[VAL_0]], %[[ARG0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[MULI_0:.*]] = arith.muli %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CONSTANT_3]], %[[MULI_0]] : i64
+// CHECK:             func.call @two_args(%[[VAL_1]], %[[SUBI_0]]) : (i64, i64) -> ()
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_0]] : i64
+// CHECK:           } {normalized}
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[LOOP_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[SUBI_1:.*]] = arith.subi %[[CONSTANT_3]], %[[MULI_1]] : i64
+// CHECK:           return %[[LOOP_0]], %[[SUBI_1]] : i64, i64
+

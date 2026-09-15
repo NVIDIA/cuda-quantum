@@ -51,23 +51,28 @@ target_link_options(${LIBRARY_NAME} BEFORE PRIVATE
   "$<TARGET_FILE:cudaqMLIR>")
 
 install(TARGETS ${LIBRARY_NAME}
-  EXPORT cudaq-platform-default-targets DESTINATION lib)
+        EXPORT cudaq-platform-default-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 install(EXPORT cudaq-platform-default-targets
         FILE CUDAQPlatformDefaultTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)
 endif()
   
 add_target_config(opt-test)
+add_target_config(value-semantics-test)
 add_target_config(compiler-bench-nisq)
 add_target_config(compiler-bench-ftqc-logical)
+add_target_config(compiler-bench-ftqc-clifford-t)
 
 if (cuStateVec_FOUND)
   add_target_config(nvidia)
-  add_target_config(nvidia-legacy)
   add_target_config(nvidia-fp64)
+  add_target_config(nvidia-mgpu)
 endif()

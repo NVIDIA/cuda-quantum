@@ -117,6 +117,8 @@ Common
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
 
+.. doxygenclass:: cudaq::cudaq_json
+
 .. doxygenclass:: cudaq::sample_result
     :members:
 
@@ -171,8 +173,6 @@ vector of handles.
 .. doxygentypedef:: cudaq::TensorStateData
 
 .. doxygentypedef:: cudaq::state_data
-
-.. doxygenclass:: cudaq::CusvState
 
 .. doxygenclass:: nvqir::MPSSimulationState
 
@@ -391,8 +391,6 @@ Platform
 .. doxygenclass:: cudaq::QPU
     :members:
 
-.. doxygenstruct:: cudaq::QPU::InKernelLaunchScope
-
 .. doxygenstruct:: cudaq::other_policies
 
 .. doxygenclass:: cudaq::DefaultQPU
@@ -414,9 +412,6 @@ Platform
 .. doxygenclass:: cudaq::QuEraRemoteRESTQPU
 
 .. doxygenclass:: cudaq::quantum_platform
-    :members:
-
-.. doxygenstruct:: cudaq::RemoteCapabilities
     :members:
 
 .. doxygentypedef:: cudaq::QuantumTask

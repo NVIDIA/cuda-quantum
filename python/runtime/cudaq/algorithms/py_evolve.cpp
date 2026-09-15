@@ -292,6 +292,13 @@ pyEvolveAsync(state initial_state, std::vector<nanobind::object> kernels,
 
 /// @brief Bind the evolve cudaq function for circuit simulator
 void bindPyEvolve(nanobind::module_ &mod) {
+  mod.def("launch_analog_kernel", &detail::launchAnalogKernel,
+          nanobind::arg("kernel_name"), nanobind::arg("program"),
+          nanobind::arg("shots_count"), nanobind::arg("qpu_id") = 0);
+  mod.def("launch_analog_kernel_async", &detail::launchAnalogKernelAsync,
+          nanobind::arg("kernel_name"), nanobind::arg("program"),
+          nanobind::arg("shots_count"), nanobind::arg("qpu_id") = 0);
+
   // Sync evolve overloads
   DEFINE_PARAM_TYPE_OVERLOAD_VEC(long, mod);
   DEFINE_PARAM_TYPE_OVERLOAD_VEC(double, mod);

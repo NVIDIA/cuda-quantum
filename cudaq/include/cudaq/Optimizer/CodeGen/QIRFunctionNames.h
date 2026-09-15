@@ -137,9 +137,9 @@ static constexpr const char QISTrap[] = "__quantum__qis__trap";
 /// `Array` of `Qubit*` must be converted into a `cudaq::qvector`, which is
 /// presently a `std::vector<cudaq::qubit>` but with an extremely restricted
 /// interface.
-static constexpr const char QISConvertArrayToStdvec[] =
+static constexpr const char QISConvertArrayToSequence[] =
     "__quantum__qis__convert_array_to_stdvector";
-static constexpr const char QISFreeConvertedStdvec[] =
+static constexpr const char QISFreeConvertedSequence[] =
     "__quantum__qis__free_converted_stdvector";
 
 } // namespace cudaq::opt

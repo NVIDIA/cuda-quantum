@@ -41,6 +41,11 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+# CUDA-Q installers use a single relocatable library tree. Keep every realtime
+# library and its CMake package under that tree on distributions where
+# GNUInstallDirs would otherwise default to lib64.
+set(CMAKE_INSTALL_LIBDIR lib)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # The following must go after `project(...)` 
@@ -67,9 +72,25 @@ option(CUDAQ_REALTIME_BUILD_TESTS
        ${_cudaq_realtime_build_tests_default})
 option(CUDAQ_REALTIME_BUILD_EXAMPLES
        "Generate build targets for the CUDAQ real-time example programs" ON)
-option(CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS
-       "Build Hololink bridge/emulator/playback tools (requires hololink)."
+option(CUDAQ_REALTIME_ENABLE_HSB_TOOLS
+       "Build HSB bridge/emulator/playback tools (requires the holoscan-sensor-bridge libraries)."
        OFF)
+option(CUDAQ_REALTIME_ENABLE_SANITIZERS
+       "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)."
+       OFF)
+option(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
+       "Link CPU RoCE against Hololink's CpuRoceTransceiver (default: CUDA-Q's legacy ibverbs backend)."
+       OFF)
+
+# Enable sanitizers if requested (must be done early to affect all targets).
+# Integrated CUDA-Q builds inherit whatever the top-level CUDAQ_ENABLE_SANITIZERS
+# applied, so this only covers the standalone realtime build. The realtime tree
+# always ships inside the CUDA-Q repository, so reuse the CUDA-Q module.
+if(CUDAQ_REALTIME_STANDALONE_BUILD AND CUDAQ_REALTIME_ENABLE_SANITIZERS)
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules")
+  include(Sanitizers)
+  cudaq_enable_sanitizers()
+endif()
 
 set(_host_compiler_opts_list "")
 if(CUDAQ_REALTIME_STANDALONE_BUILD)
@@ -114,14 +135,11 @@ if(CUDAQ_REALTIME_STANDALONE_BUILD)
       endif()
     endif()
     CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
-    # Keep realtime CUDA sources on C++17. nvcc's C++20 frontend can hit an
-    # internal compiler error in libstdc++ headers when compiling the standalone
-    # realtime tests, including test_host_dispatcher.cu, on the CI toolchain.
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options ${_host_compiler_opts}")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++20 ${CUDA_gencode_flags} --compiler-options ${_host_compiler_opts}")
 
     enable_language(CUDA)
     set(CUDA_FOUND TRUE)
-    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
     message(STATUS "Cuda language found.")
   endif()
@@ -160,11 +178,13 @@ configure_package_config_file(
 install(EXPORT cudaq-realtime-targets
   FILE cudaq-realtime-targets.cmake
   NAMESPACE cudaq::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 if (CUDAQ_REALTIME_BUILD_EXAMPLES)
   message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")
@@ -176,5 +196,11 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
 endif()
 
 
-# Install the LICENSE and NOTICE files
-install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+# Standalone realtime saves the legal files at its install prefix. Integrated
+# CUDA-Q builds keep them in a dedicated subdirectory so they do not replace
+# the main CUDA-Q files.
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+else()
+  install(FILES LICENSE NOTICE DESTINATION realtime)
+endif()

@@ -133,7 +133,7 @@ inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
 /// \p eleTy (`T`).
 inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   auto *ctx = eleTy.getContext();
-  // Map stdvec<complex<T>> to stdvec<struct<T,T>>
+  // Map sequence<complex<T>> to sequence<struct<T,T>>
   if (auto cTy = mlir::dyn_cast<mlir::ComplexType>(eleTy)) {
     llvm::SmallVector<mlir::Type> types = {cTy.getElementType(),
                                            cTy.getElementType()};
@@ -198,6 +198,16 @@ inline mlir::Value createFloatConstant(mlir::Location loc,
 inline mlir::Value createF64Constant(mlir::Location loc,
                                      mlir::OpBuilder &builder, double value) {
   return createFloatConstant(loc, builder, value, builder.getF64Type());
+}
+
+/// Materialize `multiple * pi` using the common floating-point construction
+/// and rounding convention for the requested result type.
+inline mlir::Value createPiConstant(mlir::Location location,
+                                    mlir::OpBuilder &builder,
+                                    mlir::FloatType type,
+                                    double multiple = 1.0) {
+  return cudaq::opt::factory::createFloatConstant(location, builder,
+                                                  multiple * M_PI, type);
 }
 
 /// Return the integer value if \p v is an integer constant.
@@ -290,7 +300,7 @@ mlir::Type convertToHostSideType(mlir::Type ty, mlir::ModuleOp module);
 // Return `true` if the given type corresponds to a standard vector type
 // according to our convention.
 // The convention is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.
-bool isStdVecArg(mlir::Type type);
+bool isSequenceArg(mlir::Type type);
 
 bool isX86_64(mlir::ModuleOp);
 bool isAArch64(mlir::ModuleOp);

@@ -432,6 +432,54 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
+        # `for` loop targets that are used nowhere outside their loop, keyed on
+        # `id(<ast.For node>)`
+        self.loopLocalTargets = {}
+        self.sinkAllocaNames = set()
+
+    def __analyzeLoopLocalTargets(self, statements, argNames):
+        """Record, for each `for` loop in `statements`, which of its target
+        variables never occur outside that loop.
+
+        Python keeps a loop variable alive after its loop, so by default the
+        storage for one is allocated in the function's entry block. That is
+        needed only when something below the loop can still read it; a variable
+        that no code outside the loop mentions can live in the loop body
+        instead. Keeping it there matters because `memtoreg` promotes an
+        entry-block slot into a value carried by every enclosing loop, whether
+        or not anything reads it, and those dead loop-carried values defeat
+        `cc.loop` reversal in the apply-op-specialization pass.
+        """
+        forNodes = [
+            n for stmt in statements for n in ast.walk(stmt)
+            if isinstance(n, ast.For)
+        ]
+        if not forNodes:
+            return
+        allNames = [
+            n for stmt in statements for n in ast.walk(stmt)
+            if isinstance(n, ast.Name)
+        ]
+        for forNode in forNodes:
+            if forNode.orelse:
+                continue
+            targets = {
+                t.id
+                for t in ast.walk(forNode.target)
+                if isinstance(t, ast.Name)
+            }
+            targets -= set(argNames)
+            if not targets:
+                continue
+            insideLoop = {id(n) for n in ast.walk(forNode)}
+            usedOutside = {
+                n.id
+                for n in allNames
+                if n.id in targets and id(n) not in insideLoop
+            }
+            local = targets - usedOutside
+            if local:
+                self.loopLocalTargets[id(forNode)] = local
 
     def isCudaqName(self, name):
         """Return True if `name` is 'cudaq' or a known alias for the cudaq
@@ -555,9 +603,9 @@ class PyASTBridge(ast.NodeVisitor):
     def containsList(self, ty, innerListsOnly=False):
         """Returns true if the give type is a vector or contains items that are
         vectors."""
-        if cc.StdvecType.isinstance(ty):
+        if cc.SequenceType.isinstance(ty):
             return (not innerListsOnly or
-                    self.containsList(cc.StdvecType.getElementType(ty)))
+                    self.containsList(cc.SequenceType.getElementType(ty)))
         if not cc.StructType.isinstance(ty):
             return False
         eleTys = cc.StructType.getTypes(ty)
@@ -698,11 +746,11 @@ class PyASTBridge(ast.NodeVisitor):
                                    F64Type.isinstance(ty)):
             disc = self.__discriminateIfMeasureHandle(operand, self.currentNode)
             return self.changeOperandToType(ty, disc, allowDemotion)
-        if (cc.StdvecType.isinstance(ty) and
-                cc.StdvecType.getElementType(ty) == i1Type and
-                cc.StdvecType.isinstance(operand.type) and
+        if (cc.SequenceType.isinstance(ty) and
+                cc.SequenceType.getElementType(ty) == i1Type and
+                cc.SequenceType.isinstance(operand.type) and
                 cc.MeasureHandleType.isinstance(
-                    cc.StdvecType.getElementType(operand.type))):
+                    cc.SequenceType.getElementType(operand.type))):
             return self.__discriminateIfMeasureHandle(operand, self.currentNode)
         if cc.CallableType.isinstance(ty):
             fctTy = cc.CallableType.getFunctionType(ty)
@@ -735,9 +783,9 @@ class PyASTBridge(ast.NodeVisitor):
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 return complex.CreateOp(complexType, real, imag).result
 
-        if (cc.StdvecType.isinstance(ty)):
-            if cc.StdvecType.isinstance(operand.type):
-                eleTy = cc.StdvecType.getElementType(ty)
+        if (cc.SequenceType.isinstance(ty)):
+            if cc.SequenceType.isinstance(operand.type):
+                eleTy = cc.SequenceType.getElementType(ty)
                 return self.__copyVectorAndConvertElements(
                     operand,
                     eleTy,
@@ -863,6 +911,23 @@ class PyASTBridge(ast.NodeVisitor):
         then or else block."""
         return self.inIfStmtBlockStack > 0
 
+    def buildScopedBlock(self, stmts):
+        """Emit `stmts` inside a `cc.scope`.
+
+        A qubit allocated in a compound statement must be freed when that
+        statement ends. `cc.scope` marks that point and `add-deallocs` puts the
+        `quake.dealloc` there. Scopes with nothing to free are removed by
+        canonicalization, so this costs nothing when there is no allocation.
+        """
+        scope = cc.ScopeOp([])
+        scopeBlock = Block.create_at_start(scope.initRegion, [])
+        with InsertionPoint(scopeBlock):
+            self.symbolTable.beginBlock()
+            [self.visit(b) for b in stmts]
+            if not self.hasTerminator(scopeBlock):
+                cc.ContinueOp([])
+            self.symbolTable.endBlock()
+
     def hasTerminator(self, block):
         """Return True if the given Block has a Terminator operation."""
         return cudaq_runtime.blockHasTerminator(block)
@@ -877,6 +942,13 @@ class PyASTBridge(ast.NodeVisitor):
         return id in [
             'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'arcsin', 'arccos',
             'arctan', 'sqrt', 'ceil', 'floor', 'exp', 'log'
+        ]
+
+    def __isSupportedMathFunction(self, id):
+        # Python `math` module functions that are supported in the CUDA-Q MLIR translation.
+        return id in [
+            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'ceil',
+            'floor', 'exp', 'log'
         ]
 
     def __isSupportedVectorFunction(self, id):
@@ -956,9 +1028,9 @@ class PyASTBridge(ast.NodeVisitor):
         return sawStore
 
     def __discriminateIfMeasureHandle(self, value, node):
-        """If `value` is a `!cc.measure_handle` (or `stdvec` thereof) at a
+        """If `value` is a `!cc.measure_handle` (or `sequence` thereof) at a
         `bool`-coercion context, insert a `quake.discriminate` and return
-        the `i1`/`stdvec<i1>` result.
+        the `i1`/`sequence<i1>` result.
         """
         if value is None:
             return value
@@ -968,10 +1040,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     'discriminating an unbound measurement handle', node)
             return quake.DiscriminateOp(self.getIntegerType(1), value).result
-        if cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
-                cc.StdvecType.getElementType(ty)):
+        if cc.SequenceType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+                cc.SequenceType.getElementType(ty)):
             return quake.DiscriminateOp(
-                cc.StdvecType.get(self.getIntegerType(1)), value).result
+                cc.SequenceType.get(self.getIntegerType(1)), value).result
         return value
 
     def __isUnitaryGate(self, id):
@@ -982,7 +1054,7 @@ class PyASTBridge(ast.NodeVisitor):
                 id in ['swap', 'u3', 'exp_pauli'] or
                 id in globalRegisteredOperations)
 
-    def __createStdvecWithKnownValues(self, listElementValues):
+    def __createSequenceWithKnownValues(self, listElementValues):
         assert (len(set((v.type for v in listElementValues))) == 1)
         arrSize = self.getConstantInt(len(listElementValues))
         elemTy = listElementValues[0].type
@@ -1004,10 +1076,11 @@ class PyASTBridge(ast.NodeVisitor):
                 v = self.changeOperandToType(self.getIntegerType(8), v)
             cc.StoreOp(v, eleAddr)
 
-        # We still use `i1` as the vector element type for `cc.StdvecInitOp`.
-        vecTy = cc.StdvecType.get(elemTy) if not isBool else cc.StdvecType.get(
-            self.getIntegerType(1))
-        return cc.StdvecInitOp(vecTy, alloca, length=arrSize).result
+        # We still use `i1` as the vector element type for `cc.SequenceInitOp`.
+        vecTy = cc.SequenceType.get(
+            elemTy) if not isBool else cc.SequenceType.get(
+                self.getIntegerType(1))
+        return cc.SequenceInitOp(vecTy, alloca, length=arrSize).result
 
     def __createStructWithKnownValues(self, mlirVals, name=None):
         structTy = mlirTryCreateStructType([item.type for item in mlirVals],
@@ -1107,8 +1180,8 @@ class PyASTBridge(ast.NodeVisitor):
         be used to create a deep copy).
         """
 
-        assert cc.StdvecType.isinstance(source.type)
-        sourceEleType = cc.StdvecType.getElementType(source.type)
+        assert cc.SequenceType.isinstance(source.type)
+        sourceEleType = cc.SequenceType.getElementType(source.type)
         if not targetEleType:
             targetEleType = sourceEleType
         if not alwaysCopy and sourceEleType == targetEleType:
@@ -1121,8 +1194,8 @@ class PyASTBridge(ast.NodeVisitor):
             targetEleType = self.getIntegerType(8)
 
         sourceArrPtrTy = cc.PointerType.get(cc.ArrayType.get(sourceEleType))
-        sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, source).result
-        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), source).result
+        sourceDataPtr = cc.SequenceDataOp(sourceArrPtrTy, source).result
+        sourceSize = cc.SequenceSizeOp(self.getIntegerType(), source).result
         targetPtr = cc.AllocaOp(cc.PointerType.get(
             cc.ArrayType.get(targetEleType)),
                                 TypeAttr.get(targetEleType),
@@ -1146,11 +1219,11 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.createInvariantForLoop(bodyBuilder, sourceSize)
 
-        # We still use `i1` as the vector element type for `cc.StdvecInitOp`.
-        vecTy = cc.StdvecType.get(
-            targetEleType) if not isTargetBool else cc.StdvecType.get(
+        # We still use `i1` as the vector element type for `cc.SequenceInitOp`.
+        vecTy = cc.SequenceType.get(
+            targetEleType) if not isTargetBool else cc.SequenceType.get(
                 self.getIntegerType(1))
-        return cc.StdvecInitOp(vecTy, targetPtr, length=sourceSize).result
+        return cc.SequenceInitOp(vecTy, targetPtr, length=sourceSize).result
 
     def __copyAndValidateContainer(self, value, pyVal, deepCopy, dataType=None):
         """Helper function to implement deep and shallow copies for structs and
@@ -1172,7 +1245,7 @@ class PyASTBridge(ast.NodeVisitor):
         if deepCopy:
 
             def conversion(idx, structItem):
-                if cc.StdvecType.isinstance(structItem.type):
+                if cc.SequenceType.isinstance(structItem.type):
                     structItem = self.__copyVectorAndConvertElements(
                         structItem, alwaysCopy=True, conversion=conversion)
                 elif (cc.StructType.isinstance(structItem.type) and
@@ -1187,7 +1260,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__validate_container_entry(structItem, pyVal)
                 return structItem
 
-        if cc.StdvecType.isinstance(value.type):
+        if cc.SequenceType.isinstance(value.type):
             listVal = self.__copyVectorAndConvertElements(value,
                                                           dataType,
                                                           alwaysCopy=True,
@@ -1212,12 +1285,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         Does an in-place replacement for list elements.
         """
-        if cc.StdvecType.isinstance(value.type):
-            eleTy = cc.StdvecType.getElementType(value.type)
+        if cc.SequenceType.isinstance(value.type):
+            eleTy = cc.SequenceType.getElementType(value.type)
             if self.containsList(eleTy):
-                size = cc.StdvecSizeOp(self.getIntegerType(), value).result
+                size = cc.SequenceSizeOp(self.getIntegerType(), value).result
                 ptrTy = cc.PointerType.get(cc.ArrayType.get(eleTy))
-                iterable = cc.StdvecDataOp(ptrTy, value).result
+                iterable = cc.SequenceDataOp(ptrTy, value).result
 
                 def bodyBuilder(iterVar):
                     eleAddr = cc.ComputePtrOp(
@@ -1332,8 +1405,8 @@ class PyASTBridge(ast.NodeVisitor):
         Returns:
             MLIR Value containing the loaded element
         """
-        if cc.StdvecType.isinstance(vector.type):
-            elem_ty = cc.StdvecType.getElementType(vector.type)
+        if cc.SequenceType.isinstance(vector.type):
+            elem_ty = cc.SequenceType.getElementType(vector.type)
             is_bool = elem_ty == self.getIntegerType(1)
             # std::vector<bool> is a special case in C++ where each element is
             # stored as a single bit, but the underlying array is actually an
@@ -1341,7 +1414,7 @@ class PyASTBridge(ast.NodeVisitor):
             if is_bool:
                 # `i1` elements are stored as `i8` in the underlying array.
                 elem_ty = self.getIntegerType(8)
-            data_ptr = cc.StdvecDataOp(
+            data_ptr = cc.SequenceDataOp(
                 cc.PointerType.get(cc.ArrayType.get(elem_ty)), vector).result
             load_val = cc.LoadOp(
                 cc.ComputePtrOp(cc.PointerType.get(elem_ty), data_ptr, [index],
@@ -1531,13 +1604,13 @@ class PyASTBridge(ast.NodeVisitor):
                 getItem = lambda idx: quake.GetMemberOp(
                     argTypes[idx], value,
                     IntegerAttr.get(self.getIntegerType(32), idx)).result
-            elif cc.StdvecType.isinstance(value.type):
+            elif cc.SequenceType.isinstance(value.type):
                 # We will get a runtime error for out of bounds access
-                eleTy = cc.StdvecType.getElementType(value.type)
+                eleTy = cc.SequenceType.getElementType(value.type)
                 elePtrTy = cc.PointerType.get(eleTy)
                 arrTy = cc.ArrayType.get(eleTy)
                 ptrArrTy = cc.PointerType.get(arrTy)
-                vecPtr = cc.StdvecDataOp(ptrArrTy, value).result
+                vecPtr = cc.SequenceDataOp(ptrArrTy, value).result
                 attr = DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                              context=self.ctx)
                 nrArgs = len(target.elts)
@@ -1614,6 +1687,33 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("non-integer value in range expression",
                                     pyVals[idx if len(pyVals) > 1 else 0])
         return startVal, endVal, stepVal, isDecrementing
+
+    def __processDecorator(self, name, path=None):
+        """Captures `name` as a callable argument if it is a kernel decorator;
+        returns None otherwise."""
+        from .kernel_decorator import isa_kernel_decorator
+
+        if path:
+            name = f"{path}.{name}"
+
+        if name in self.qualifiedDecoratorCache:
+            decorator = self.qualifiedDecoratorCache[name]
+        else:
+            decorator = recover_value_of_or_none(name, self.defFrame)
+            self.qualifiedDecoratorCache[name] = decorator
+        if decorator is None or not isa_kernel_decorator(decorator):
+            return None
+
+        if not name in self.symbolTable:
+            callableTy = decorator.signature.get_callable_type()
+
+            # `callee` will be a new `BlockArgument`
+            callee = cudaq_runtime.appendKernelArgument(self.kernelFuncOp,
+                                                        callableTy)
+            self.signature.add_variable_capture(name, callableTy)
+            self.symbolTable[name] = callee
+
+        return name
 
     def __groupValues(self, pyvals, groups: list[int | tuple[int, int]]):
         """Helper function that visits the given AST nodes (`pyvals`), and
@@ -1773,7 +1873,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(
                 "cudaq.contrib.angular_encode: first argument must be a "
                 "cudaq.qvector or qview", node)
-        if not cc.StdvecType.isinstance(angles.type):
+        if not cc.SequenceType.isinstance(angles.type):
             self.emitFatalError(
                 "cudaq.contrib.angular_encode: angles must be a list[float]",
                 node)
@@ -1788,11 +1888,11 @@ class PyASTBridge(ast.NodeVisitor):
                     "match the number of qubits", node)
 
         float_ty = self.getFloatType()
-        angle_ele_ty = cc.StdvecType.getElementType(angles.type)
+        angle_ele_ty = cc.SequenceType.getElementType(angles.type)
         angle_arr_ty = cc.ArrayType.get(angle_ele_ty)
         angle_ptr_ty = cc.PointerType.get(angle_ele_ty)
         angle_arr_ptr_ty = cc.PointerType.get(angle_arr_ty)
-        angles_ptr = cc.StdvecDataOp(angle_arr_ptr_ty, angles).result
+        angles_ptr = cc.SequenceDataOp(angle_arr_ptr_ty, angles).result
         ptr_attr = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
 
         veq_size = quake.VeqSizeOp(self.getIntegerType(), q).result
@@ -1849,45 +1949,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(
                 "lists, tuples, and dataclasses must not "
                 "contain modifiable values", self.currentNode)
-
-        if cc.StructType.isinstance(mlirVal.type):
-            structName = cc.StructType.getName(mlirVal.type)
-            # We need to give a proper error if we try to assign a mutable
-            # `dataclass` to an item in another container. Allowing this would
-            # lead to incorrect behavior (i.e. inconsistent with Python) unless
-            # we change the representation of structs to be like `StdvecType`
-            # where we have a container that is passed by value wrapping the
-            # actual pointer, thus ensuring that the reference behavior actually
-            # works across function boundaries.
-            if structName != 'tuple' and rootVal:
-                msg = ("only dataclass literals may be used as items in other "
-                       "container values")
-                self.emitFatalError(
-                    f"{msg} - use `.copy(deep)` to create a new {structName}",
-                    self.currentNode)
-
-        if self.signature.return_type and self.containsList(
-                self.signature.return_type) and self.containsList(mlirVal.type):
-            # For lists that were created inside a kernel, we have to copy the
-            # stack allocated array to the heap when we return such a list. In
-            # the case where the list was created by the caller, this copy leads
-            # to incorrect behavior (i.e. not matching Python behavior). We
-            # hence want to make sure that we can know when a host allocated
-            # list is returned. If we allow to assign lists passed as function
-            # arguments to inner items of other lists and `dataclasses`, we
-            # loose the information that this list was allocated by the parent.
-            # We hence forbid this. All of this applies regardless of how the
-            # list was passed (e.g. the list might be an inner item in a tuple
-            # or `dataclass` that was passed) or how it is assigned (e.g. the
-            # assigned value might be a tuple or `dataclass` that contains a
-            # list).
-            if rootVal and self.isFunctionArgument(rootVal):
-                msg = ("lists passed as or contained in function arguments "
-                       "cannot be inner items in other container values when a "
-                       "list is returned")
-                self.emitFatalError(
-                    f"{msg} - use `.copy(deep)` to create a new list",
-                    self.currentNode)
 
     @trace.traced("ast_bridge.visit_module")
     def visit_Module(self, node):
@@ -2042,6 +2103,8 @@ class PyASTBridge(ast.NodeVisitor):
                 # errors on assignments that may lead to unexpected behavior
                 # (i.e. behavior not following expected Python behavior).
                 self.buildingFunctionBody = True
+                self.__analyzeLoopLocalTargets(
+                    node.body, [arg.arg for arg in node.args.args])
                 with trace.span("ast_bridge.visit_function_body",
                                 statement_count=len(node.body)):
                     for n in node.body:
@@ -2140,7 +2203,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         For all assignments, the variable name will be used as a key for the
         symbol table, mapping to the corresponding MLIR Value. Quantum values,
-        measurements results, `cc.callable`, and `cc.stdvec` will be stored as
+        measurements results, `cc.callable`, and `cc.sequence` will be stored as
         values in the symbol table.  For all other values, the variable will be
         allocated with a `cc.alloca` op, and the pointer will be stored in
         the symbol table.
@@ -2150,37 +2213,11 @@ class PyASTBridge(ast.NodeVisitor):
             varTy = val.type
             if cc.PointerType.isinstance(varTy):
                 varTy = cc.PointerType.getElementType(varTy)
-            # If `buildingFunctionBody` is not set we are processing function
-            # arguments. Function arguments are always passed by value,
-            # except states. We can treat non-container function arguments
-            # like any local variable and create a stack slot for them.
-            # For container types, on the the other hand, we need to preserve
-            # them as values in the symbol table to make sure we can detect
-            # any access to reference types that are function arguments, or
-            # function argument items.
-            containerFuncArg = (not self.buildingFunctionBody and
-                                (cc.StructType.isinstance(varTy) or
-                                 cc.StdvecType.isinstance(varTy)))
-            # FIXME: Consider storing vectors and callables as pointers like
-            # other variables.
-            # A local `!cc.stdvec<!cc.measure_handle>` is backed by a stack slot
-            # (like a scalar `!cc.measure_handle`) so it can be reassigned from a
-            # child block. Function-argument handle vectors stay value-backed via
-            # `containerFuncArg`; every other vector stays value-backed so
-            # reassigning a general list across scopes is still rejected.
-            # See https://github.com/NVIDIA/cuda-quantum/issues/4601.
-            # Discriminated measurement results (`i1` / `stdvec<i1>` produced by
-            # `quake.discriminate`) are stored like any other value: the
-            # `!cc.measure_handle` type now carries the "is a measurement"
-            # distinction, so they no longer need a value-storage carve-out to
-            # preserve their discriminate origin.
-            isLocalHandleVec = (cc.StdvecType.isinstance(varTy) and
-                                cc.MeasureHandleType.isinstance(
-                                    cc.StdvecType.getElementType(varTy)))
-            storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
-                          cc.CallableType.isinstance(varTy) or
-                          (cc.StdvecType.isinstance(varTy) and
-                           not isLocalHandleVec))
+            # Quantum types are not stored to classical memory. Callables are
+            # abstract types and passed as values. Every other local gets a
+            # stack slot.
+            storeAsVal = (self.isQuantumType(varTy) or
+                          cc.CallableType.isinstance(varTy))
             # Nothing should ever produce a pointer to a type we store as value
             # in the symbol table.
             assert (not storeAsVal or not cc.PointerType.isinstance(val.type))
@@ -2223,70 +2260,11 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid target for assignment", node)
 
             def update_in_parent_block(destination, value):
-                assert not cc.PointerType.isinstance(value.type)
                 assert self.symbolTable.isFromParentBlock(target_root.id)
-                if cc.StructType.isinstance(
-                        value.type) and cc.StructType.getName(
-                            value.type) != 'tuple':
-
-                    # We can't properly deal with this case if the value we are
-                    # assigning is not an `rvalue`. Consider the case were we
-                    # have `v1` defined in the parent scope, `v2` in a child
-                    # scope, and we are assigning v2 to v1 in the child
-                    # scope. To do this assignment properly, we would need to
-                    # make sure that the pointers for both v1 and v2 points to
-                    # the same memory location such that any changes to v1 after
-                    # the assignment are reflected in v2 and vice versa (v2
-                    # could be changed in the child while v1 is still
-                    # alive). Since we merely store the raw pointer in the
-                    # symbol table for `dataclasses`, we have no way of updating
-                    # that pointer conditionally on the child scope being
-                    # executed.  To determine whether the value we assign is an
-                    # `rvalue`, it is sufficient to check whether its root is a
-                    # value in the symbol table (values returned from calls are
-                    # never `lvalues`).
-
-                    if value_root:
-
-                        # Note that this check also makes sure that function
-                        # arguments are not assigned to local variables, since
-                        # function arguments are in the symbol table.
-
-                        self.emitFatalError(
-                            "only literals can be assigned to variables defined"
-                            " in parent scope - use `.copy(deep)` to create a "
-                            "new value that can be assigned", node)
-                if cc.StdvecType.isinstance(destination.type):
-                    # In this case, we are assigning a list to a variable in a
-                    #  parent scope.
-                    assert isinstance(target, ast.Name)
-                    # If the value we are assigning is an `rvalue` then we can
-                    # do an in-place update of the data in the parent; the
-                    # restrictions for container items in
-                    # `__validate_container_entry` ensure that the value we are
-                    # assigning does not contain any references to `dataclass`
-                    # values, and any lists contained in the value behave like
-                    # proper references since they contain a data pointer
-                    # (i.e. in-place update only does a shallow copy).  TODO:
-                    # The only reason we cannot currently support this is
-                    # because we have no way of updating the size of an existing
-                    # vector...
-                    self.emitFatalError(
-                        "variable defined in parent scope cannot be modified",
-                        node)
-                # Allowing to assign vectors to container items in the parent
-                # scope should be fine regardless of whether the assigned value
-                # is an `rvalue` or not; replacing the item in the container
-                # with the value leads to the correct behavior much like it does
-                # for the case where the target is defined in the same scope.
-                # NOTE: The assignment is subject to the usual restrictions for
-                # container items - these should be validated before calling
-                # update_in_parent_block.
-                if not cc.StdvecType.isinstance(
-                        value.type) and storedAsValue(destination):
-                    # We can't properly deal with this, since there is no way to ensure that
-                    # the target in the symbol table is updated conditionally on the child
-                    # scope executing.
+                # Quantum and callable locals are the only remaining SSA value
+                # (no classical backing store) types. We cannot re-assign SSA
+                # values by definition.
+                if storedAsValue(destination):
                     self.emitFatalError(
                         "variable defined in parent scope cannot be modified",
                         node)
@@ -2300,102 +2278,46 @@ class PyASTBridge(ast.NodeVisitor):
             # Handle assignment `var = expr`
             if isinstance(target, ast.Name):
 
-                # This is so that we properly preserve the references to local
-                # variables. These variables can be of a reference type and
-                # other values in the symbol table may be assigned to the same
-                # reference. It is hence important to keep the reference as is,
-                # since otherwise changes to it would not be reflected in other
-                # values.  NOTE: we don't need to worry about any references in
-                # values that are not `ast.Name` objects, since we don't allow
-                # containers to contain references.
-                value_is_name, value_root = False, None
+                # Every variable is itself a pre-allocated header. For immutable
+                # types, the header is erased. The mutable types, the header may
+                # be two or one words long, depending on whether the extent of
+                # the data buffer is dynamic or not, respectively.
                 if (isinstance(value, ast.Name) and
                         value.id in self.symbolTable):
-                    value_is_name = True
-                    value_root = self.__get_root_value(value)
                     value = self.symbolTable[value.id]
+                    if cc.PointerType.isinstance(value.type):
+                        value = cc.LoadOp(value).result
                 if isinstance(value, ast.AST):
                     # Retain the variable name for potential children (like
                     # `mz(q, registerName=...)`)
                     self.currentAssignVariableName = target.id
                     self.visit(value)
-                    value_root = self.__get_root_value(value)
                     value = self.popValue()
                     self.currentAssignVariableName = None
                 storeAsVal = storedAsValue(value)
 
-                if value_root and self.isFunctionArgument(value_root):
-                    # If we assign a function argument or argument item to a
-                    # local variable, we need to be careful to not loose the
-                    # information about contained lists that have been allocated
-                    # by the caller, if the return value contains any
-                    # lists. This is problematic for reasons commented in
-                    # `__validate_container_entry`.
-                    if (cc.StdvecType.isinstance(value.type) and
-                            self.signature.return_type and
-                            self.containsList(self.signature.return_type)):
-                        # We loose this information if we assign an item of a
-                        # function argument.
-                        if not value_is_name:
-                            self.emitFatalError(
-                                "lists passed as or contained in function "
-                                "arguments cannot be assigned to to a local "
-                                "variable when a list is returned - use "
-                                "`.copy(deep)` to create a new value that can"
-                                " be assigned", node)
-                        # We also loose this information if we assign to a value
-                        # in the parent scope.
-                        elif self.symbolTable.isFromParentBlock(target_root.id):
-                            self.emitFatalError(
-                                "lists passed as or contained in function "
-                                "arguments cannot be assigned to variables in "
-                                "the parent scope when a list is returned - use"
-                                " `.copy(deep)` to create a new value that can "
-                                "be assigned", node)
-                    if cc.StructType.isinstance(value.type):
-                        structName = cc.StructType.getName(value.type)
+                def toHandleIfBareStruct(value):
+                    # Non-tuple `dataclasses` need their field data in a
+                    # separately allocated buffer, exactly like a list. `value`
+                    # here may be a bare struct (from construction, a function
+                    # call, etc.) in which case allocate a fresh buffer and
+                    # store it there; the result is the handle (a pointer to
+                    # that buffer). If `value` is already a handle (the aliasing
+                    # case, from the single-load Name-`RHS` fetch above), it's
+                    # returned as-is and we alias the existing buffer, Python
+                    # semantics, instead of allocating a new one.
+                    if (cc.StructType.isinstance(value.type) and
+                            cc.StructType.getName(value.type) != 'tuple'):
+                        structTy = value.type
+                        buffer = cc.AllocaOp(cc.PointerType.get(structTy),
+                                             TypeAttr.get(structTy)).result
+                        cc.StoreOp(value, buffer)
+                        return buffer
+                    return value
 
-                        # For `dataclasses`, we have to do an additional check
-                        # to ensure that their behavior (for cases that don't
-                        # give an error) is consistent with Python; since we
-                        # pass them by value across functions, we either have to
-                        # force that an explicit copy is made when using them as
-                        # call arguments, or we have to force that an explicit
-                        # copy is made when a `dataclass` argument is assigned
-                        # to a local variable (as long as it is not assigned, it
-                        # will not be possible to make any modification to it
-                        # since the argument itself is represented as an
-                        # immutable value). The latter seems more comprehensive
-                        # and also ensures that there is no unexpected behavior
-                        # with regards to kernels not being able to modify
-                        # `dataclass` values in host code.  NOTE: It is
-                        # sufficient to check the value itself (not its root) is
-                        # a function argument, (only!) since inner items are
-                        # never references to `dataclasses` (enforced in
-                        # `__validate_container_entry`).
-
-                        if value_is_name and structName != 'tuple':
-                            self.emitFatalError(
-                                "cannot assign dataclass passed as function "
-                                "argument to a local variable - use "
-                                "`.copy(deep)` to create a new value that can "
-                                "be assigned", node)
-                        elif (self.signature.return_type and
-                              self.containsList(self.signature.return_type) and
-                              self.containsList(value.type)):
-                            self.emitFatalError(
-                                "cannot assign tuple or dataclass passed as "
-                                "function argument to a local variable if it "
-                                "contains a list when a list is returned - use"
-                                " `.copy(deep)` to create a new value that can"
-                                " be assigned", node)
+                value = toHandleIfBareStruct(value)
 
                 if self.symbolTable.isFromParentBlock(target_root.id):
-                    if cc.PointerType.isinstance(value.type):
-                        # This is fine since/as long as update_in_parent_block
-                        # validates that `lvalues` of reference types cannot be
-                        # assigned. Note that tuples and states are value types.
-                        value = cc.LoadOp(value).result
                     destination = self.symbolTable[target.id]
                     update_in_parent_block(destination, value)
                     return target, None
@@ -2404,10 +2326,15 @@ class PyASTBridge(ast.NodeVisitor):
                 # within the current scope; we can simply modify the symbol
                 # table entry.
 
-                if storeAsVal or cc.PointerType.isinstance(value.type):
+                if storeAsVal:
                     return target, value
 
-                with InsertionPoint.at_block_begin(self.symbolTable.scopeRoot):
+                # A variable that outlives the block it is assigned in needs
+                # its storage in the function's entry block.
+                allocaBlock = (InsertionPoint.current.block
+                               if target.id in self.sinkAllocaNames else
+                               self.symbolTable.scopeRoot)
+                with InsertionPoint.at_block_begin(allocaBlock):
                     address = cc.AllocaOp(cc.PointerType.get(value.type),
                                           TypeAttr.get(value.type)).result
                 cc.StoreOp(value, address)
@@ -2484,7 +2411,20 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.value,
                       ast.Name) and not node.value.id in self.symbolTable:
 
-            if node.value.id in ['np', 'numpy', 'math']:
+            if node.value.id == 'math':
+                if node.attr == 'pi':
+                    self.pushValue(self.getConstantFloat(np.pi))
+                elif node.attr == 'e':
+                    self.pushValue(self.getConstantFloat(np.e))
+                elif self.__isSupportedMathFunction(node.attr):
+                    return
+                else:
+                    self.emitFatalError(
+                        "{}.{} is not supported".format(node.value.id,
+                                                        node.attr), node)
+                return
+
+            if node.value.id in ['np', 'numpy']:
                 if node.attr == 'complex64':
                     self.pushValue(self.getComplexType(width=32))
                 elif node.attr == 'complex128':
@@ -2554,6 +2494,20 @@ class PyASTBridge(ast.NodeVisitor):
             self.visit(node.value)
             value = self.popValue()
 
+        # A dataclass local's own slot holds a pointer-to-handle (double
+        # indirection: variable slot -> handle -> separately allocated
+        # buffer). When `pushPointerValue` requested the raw, unloaded
+        # slot value above, `dereference` once to reach the handle - a
+        # single-indirection pointer to the struct - before the existing
+        # single-indirection logic below applies.
+        if cc.PointerType.isinstance(value.type):
+            handleTy = cc.PointerType.getElementType(value.type)
+            if cc.PointerType.isinstance(handleTy):
+                structTy = cc.PointerType.getElementType(handleTy)
+                if (cc.StructType.isinstance(structTy) and
+                        cc.StructType.getName(structTy) != 'tuple'):
+                    value = cc.LoadOp(value).result
+
         valType = value.type
         if cc.PointerType.isinstance(valType):
             valType = cc.PointerType.getElementType(valType)
@@ -2599,7 +2553,7 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if (quake.VeqType.isinstance(valType) or
-                cc.StdvecType.isinstance(valType)):
+                cc.SequenceType.isinstance(valType)):
             if self.__isSupportedVectorFunction(node.attr):
                 if self.pushPointerValue:
                     self.emitFatalError(
@@ -2628,9 +2582,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(
                     quake.VeqSizeOp(self.getIntegerType(), value).result)
                 return
-            if cc.StdvecType.isinstance(value.type):
+            if cc.SequenceType.isinstance(value.type):
                 self.pushValue(
-                    cc.StdvecSizeOp(self.getIntegerType(), value).result)
+                    cc.SequenceSizeOp(self.getIntegerType(), value).result)
                 return
 
         self.emitFatalError("unrecognized attribute {}".format(node.attr), node)
@@ -2741,15 +2695,15 @@ class PyASTBridge(ast.NodeVisitor):
         def copy_list_to_stack(value):
             symName = '__nvqpp_vectorCopyToStack'
             load_intrinsic(self.module, symName)
-            elemTy = cc.StdvecType.getElementType(value.type)
+            elemTy = cc.SequenceType.getElementType(value.type)
             if elemTy == self.getIntegerType(1):
                 elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
             ptrArrTy = cc.PointerType.get(cc.ArrayType.get(elemTy))
-            resBuf = cc.StdvecDataOp(ptrArrTy, value).result
+            resBuf = cc.SequenceDataOp(ptrArrTy, value).result
             eleSize = cc.SizeOfOp(self.getIntegerType(),
                                   TypeAttr.get(elemTy)).result
-            dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+            dynSize = cc.SequenceSizeOp(self.getIntegerType(), value).result
             resBuf = cc.CastOp(cc.PointerType.get(elemTy), resBuf)
             stackCopy = cc.AllocaOp(cc.PointerType.get(
                 cc.ArrayType.get(elemTy)),
@@ -2760,7 +2714,8 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.CastOp(ptrTy, resBuf).result,
                 arith.MulIOp(dynSize, eleSize).result
             ])
-            return cc.StdvecInitOp(value.type, stackCopy, length=dynSize).result
+            return cc.SequenceInitOp(value.type, stackCopy,
+                                     length=dynSize).result
 
         def convertArguments(expectedArgTypes, values):
             assert len(expectedArgTypes) == len(values)
@@ -2869,8 +2824,14 @@ class PyASTBridge(ast.NodeVisitor):
                 processQuantumOperation(opName, controls, targets, [], params,
                                         **kwargs)
 
-        def processDecorator(name, path=None):
-            from .kernel_decorator import isa_kernel_decorator
+        processDecorator = self.__processDecorator
+
+        def lookupExternKernel(name, path=None):
+            """Return the `extern` kernel declared for a name, or None.
+
+            An `extern` kernel is resolved in the frame that defines it.
+            """
+            from .kernel_decorator import isa_extern_kernel_decorator
 
             if path:
                 name = f"{path}.{name}"
@@ -2880,19 +2841,50 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 decorator = recover_value_of_or_none(name, self.defFrame)
                 self.qualifiedDecoratorCache[name] = decorator
-            if decorator is None or not isa_kernel_decorator(decorator):
-                return None
+            if decorator is not None and isa_extern_kernel_decorator(decorator):
+                return decorator
 
-            if not name in self.symbolTable:
-                callableTy = decorator.signature.get_callable_type()
+            return None
 
-                # `callee` will be a new `BlockArgument`
-                callee = cudaq_runtime.appendKernelArgument(
-                    self.kernelFuncOp, callableTy)
-                self.signature.add_variable_capture(name, callableTy)
-                self.symbolTable[name] = callee
+        def processExternKernel(name, path=None):
+            """Emit a direct call to a function declared with
+            `cudaq.kernel(external=True)`. The declaration stays in reference
+            form and `cable-rough-in` rewrites the call into wire form later.
+            """
+            externKernel = lookupExternKernel(name, path=path)
+            if externKernel is None:
+                return False
 
-            return name
+            argTys = externKernel.arg_types()
+            if len(node.args) != len(argTys):
+                self.emitFatalError(
+                    f"extern kernel '{externKernel.name}' takes {len(argTys)} "
+                    f"argument(s), but {len(node.args)} were given.", node)
+            values = groupValues(node.args, [(len(argTys), len(argTys))])
+            values = convertArguments(argTys, values)
+
+            returnTy = externKernel.signature.return_type
+            resTys = [returnTy] if returnTy is not None else []
+
+            symbol = externKernel.backendSymbol
+            fnTy = FunctionType.get(argTys, resTys)
+            currentST = SymbolTable(self.module.operation)
+            if symbol in currentST:
+                declaredTy = currentST[symbol].type
+                if declaredTy != fnTy:
+                    self.emitFatalError(
+                        f"extern kernel '{externKernel.name}' declares symbol "
+                        f"'{symbol}' as {fnTy}, but it is already declared as "
+                        f"{declaredTy}.", node)
+            else:
+                with InsertionPoint(self.module.body):
+                    declOp = func.FuncOp(symbol, (argTys, resTys))
+                    declOp.sym_visibility = StringAttr.get("private")
+
+            call = func.CallOp(resTys, symbol, values)
+            if resTys:
+                self.pushValue(call.result)
+            return True
 
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
@@ -3030,6 +3022,10 @@ class PyASTBridge(ast.NodeVisitor):
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
+                # Handle kernels the backend implements
+                if processExternKernel(name, path=devKey):
+                    return
+
                 # Handle debug functions
                 if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
                         node.func):
@@ -3068,6 +3064,9 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
         if isinstance(node.func, ast.Name):
+            if processExternKernel(node.func.id):
+                return
+
             symName = (node.func.id if node.func.id in self.symbolTable else
                        processDecorator(node.func.id))
             if symName:
@@ -3105,9 +3104,10 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.id == 'len':
                 listVal = self.__groupValues(node.args, [1])
 
-                if cc.StdvecType.isinstance(listVal.type):
+                if cc.SequenceType.isinstance(listVal.type):
                     self.pushValue(
-                        cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
+                        cc.SequenceSizeOp(self.getIntegerType(),
+                                          listVal).result)
                     return
                 if quake.VeqType.isinstance(listVal.type):
                     self.pushValue(
@@ -3167,9 +3167,9 @@ class PyASTBridge(ast.NodeVisitor):
                                             endVal=endVal,
                                             isDecrementing=isDecrementing)
 
-                vect = cc.StdvecInitOp(cc.StdvecType.get(iTy),
-                                       iterable,
-                                       length=totalSize).result
+                vect = cc.SequenceInitOp(cc.SequenceType.get(iTy),
+                                         iterable,
+                                         length=totalSize).result
                 self.pushValue(vect)
                 return
 
@@ -3189,16 +3189,16 @@ class PyASTBridge(ast.NodeVisitor):
                                                   iterable,
                                                   -1,
                                                   index=idxVal).result
-                elif cc.StdvecType.isinstance(iterable.type):
-                    iterEleTy = cc.StdvecType.getElementType(iterable.type)
-                    totalSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                                iterable).result
+                elif cc.SequenceType.isinstance(iterable.type):
+                    iterEleTy = cc.SequenceType.getElementType(iterable.type)
+                    totalSize = cc.SequenceSizeOp(self.getIntegerType(),
+                                                  iterable).result
 
                     def extractFunctor(idxVal):
                         arrEleTy = cc.ArrayType.get(iterEleTy)
                         elePtrTy = cc.PointerType.get(iterEleTy)
                         arrPtrTy = cc.PointerType.get(arrEleTy)
-                        vecPtr = cc.StdvecDataOp(arrPtrTy, iterable).result
+                        vecPtr = cc.SequenceDataOp(arrPtrTy, iterable).result
                         eleAddr = cc.ComputePtrOp(
                             elePtrTy, vecPtr, [idxVal],
                             DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -3239,9 +3239,9 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.StoreOp(element, eleAddr)
 
                 self.createInvariantForLoop(bodyBuilder, totalSize)
-                vect = cc.StdvecInitOp(cc.StdvecType.get(structTy),
-                                       enumIterable,
-                                       length=totalSize).result
+                vect = cc.SequenceInitOp(cc.SequenceType.get(structTy),
+                                         enumIterable,
+                                         length=totalSize).result
                 self.pushValue(vect)
                 return
 
@@ -3307,14 +3307,14 @@ class PyASTBridge(ast.NodeVisitor):
                     label = registerName or None
                     # `mx`/`my`/`mz` are the single measurement API: they emit
                     # `quake.{mx,my,mz}` producing `!cc.measure_handle` (scalar)
-                    # or `!cc.stdvec<!cc.measure_handle>` (vector form on a
+                    # or `!cc.sequence<!cc.measure_handle>` (vector form on a
                     # `qvector`/`qview`).
                     handleEleTy = cc.MeasureHandleType.get()
                     if len(qubits) == 1 and quake.RefType.isinstance(
                             qubits[0].type):
                         measTy = handleEleTy
                     else:
-                        measTy = cc.StdvecType.get(handleEleTy)
+                        measTy = cc.SequenceType.get(handleEleTy)
                     handle = processQuantumOperation(node.func.id.title(), [],
                                                      qubits,
                                                      measTy,
@@ -3540,7 +3540,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # Just to be nice and give a dedicated error.
                 if (node.func.attr == 'append' and
                     (quake.VeqType.isinstance(funcVal.type) or
-                     cc.StdvecType.isinstance(funcVal.type))):
+                     cc.SequenceType.isinstance(funcVal.type))):
                     self.emitFatalError(
                         "CUDA-Q does not allow dynamic resizing or lists, "
                         "arrays, or qvectors.", node)
@@ -3623,7 +3623,10 @@ class PyASTBridge(ast.NodeVisitor):
 
             if isinstance(node.func.value, ast.Name):
 
-                if node.func.value.id in ['numpy', 'np']:
+                namespace = node.func.value.id
+                if (namespace in ['numpy', 'np'] or
+                    (namespace == 'math' and
+                     self.__isSupportedMathFunction(node.func.attr))):
 
                     value = self.__groupValues(node.args, [1])
 
@@ -3670,8 +3673,15 @@ class PyASTBridge(ast.NodeVisitor):
 
                     # Promote argument's types for `numpy.func` calls to match
                     # python's semantics
-                    if self.__isSupportedNumpyFunction(node.func.attr):
+                    if self.__isSupportedNumpyFunction(node.func.attr) or (
+                            namespace == 'math' and
+                            self.__isSupportedMathFunction(node.func.attr)):
                         if ComplexType.isinstance(value.type):
+                            # Python `math` doesn't support complex numbers, but `numpy` does.
+                            if namespace == 'math':
+                                self.emitFatalError(
+                                    f"math.{node.func.attr} does not accept "
+                                    "complex arguments.", node)
                             value = self.changeOperandToType(
                                 self.getComplexType(), value)
                         elif IntegerType.isinstance(value.type):
@@ -3770,7 +3780,15 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"numpy call ({node.func.attr}) is not "
                                 f"supported for complex numbers", node)
                             return
-                        self.pushValue(math.CeilOp(value).result)
+                        result = math.CeilOp(value).result
+                        if namespace == 'math':
+                            # Python's `math.ceil` returns an integer, so cast
+                            # the result to an integer type.
+                            result = self.changeOperandToType(
+                                self.getIntegerType(),
+                                result,
+                                allowDemotion=True)
+                        self.pushValue(result)
                         return
                     if node.func.attr == 'floor':
                         if ComplexType.isinstance(value.type):
@@ -3778,11 +3796,23 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"numpy call ({node.func.attr}) is not "
                                 f"supported for complex numbers", node)
                             return
-                        self.pushValue(math.FloorOp(value).result)
+                        result = math.FloorOp(value).result
+                        if namespace == 'math':
+                            # Python's `math.floor` returns an integer, so cast
+                            # the result to an integer type.
+                            result = self.changeOperandToType(
+                                self.getIntegerType(),
+                                result,
+                                allowDemotion=True)
+                        self.pushValue(result)
                         return
 
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
+
+                if namespace == 'math':
+                    self.emitFatalError(
+                        f"unsupported math call ({node.func.attr})", node)
 
                 if self.isCudaqName(node.func.value.id):
                     if node.func.attr == 'complex':
@@ -3796,7 +3826,7 @@ class PyASTBridge(ast.NodeVisitor):
                         valueTy = value.type
                         if cc.PointerType.isinstance(value.type):
                             valueTy = cc.PointerType.getElementType(value.type)
-                        if cc.StdvecType.isinstance(valueTy):
+                        if cc.SequenceType.isinstance(valueTy):
                             self.pushValue(value)
                             return
 
@@ -3820,7 +3850,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 self.pushValue(qubits)
                                 return
 
-                            if cc.StdvecType.isinstance(value.type):
+                            if cc.SequenceType.isinstance(value.type):
 
                                 # handle `cudaq.qvector(initState)`
                                 def check_vector_init():
@@ -3856,12 +3886,13 @@ class PyASTBridge(ast.NodeVisitor):
                                                 node)
 
                                 check_vector_init()
-                                eleTy = cc.StdvecType.getElementType(value.type)
+                                eleTy = cc.SequenceType.getElementType(
+                                    value.type)
                                 arrTy = cc.ArrayType.get(eleTy)
                                 ptrArrTy = cc.PointerType.get(arrTy)
-                                data = cc.StdvecDataOp(ptrArrTy, value).result
+                                data = cc.SequenceDataOp(ptrArrTy, value).result
                                 intTy = self.getIntegerType()
-                                size = cc.StdvecSizeOp(intTy, value).result
+                                size = cc.SequenceSizeOp(intTy, value).result
                                 stateTy = cc.PointerType.get(cc.StateType.get())
                                 state = quake.CreateStateOp(
                                     stateTy, data, size).result
@@ -3933,13 +3964,13 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
                         handle = self.__groupValues(node.args, [1])
                         ty = handle.type
-                        if not (cc.StdvecType.isinstance(ty) and
+                        if not (cc.SequenceType.isinstance(ty) and
                                 cc.MeasureHandleType.isinstance(
-                                    cc.StdvecType.getElementType(ty))):
+                                    cc.SequenceType.getElementType(ty))):
                             self.emitFatalError(
                                 'cudaq.to_bools expects a '
                                 'list[cudaq.measure_handle] argument', node)
-                        resTy = cc.StdvecType.get(self.getIntegerType(1))
+                        resTy = cc.SequenceType.get(self.getIntegerType(1))
                         self.pushValue(
                             quake.DiscriminateOp(resTy, handle).result)
                         return
@@ -4050,7 +4081,10 @@ class PyASTBridge(ast.NodeVisitor):
                                     f'{otherFuncName} that returns a value',
                                     node)
                             invert_controls()
-                            quake.ApplyOp([], indirectCallee, controls, args,
+                            quake.ApplyOp([],
+                                          controls,
+                                          args,
+                                          indirect_callee=indirectCallee[0],
                                           **kwargs)
                             invert_controls()
                         return
@@ -4137,9 +4171,9 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == 'to_integer':
                         # `cudaq.to_integer` consumes a `list[bool]`
                         boolVec = self.__groupValues(node.args, [1])
-                        if (cc.StdvecType.isinstance(boolVec.type) and
+                        if (cc.SequenceType.isinstance(boolVec.type) and
                                 cc.MeasureHandleType.isinstance(
-                                    cc.StdvecType.getElementType(
+                                    cc.SequenceType.getElementType(
                                         boolVec.type))):
                             self.emitFatalError(
                                 '`cudaq.to_integer` does not accept a '
@@ -4147,7 +4181,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 '`cudaq.to_integer(cudaq.to_bools(handles))`',
                                 node)
                         args = convertArguments(
-                            [cc.StdvecType.get(self.getIntegerType(1))],
+                            [cc.SequenceType.get(self.getIntegerType(1))],
                             [boolVec])
                         cudaqConvertToInteger = "__nvqpp_cudaqConvertToInteger"
                         load_intrinsic(self.module, cudaqConvertToInteger)
@@ -4314,23 +4348,63 @@ class PyASTBridge(ast.NodeVisitor):
         if_clauses = node.generators[0].ifs
         hasFilter = len(if_clauses) > 0
 
-        self.visit(node.generators[0].iter)
-        iterable = self.popValue()
-        orig_iterable_type = iterable.type
-        if cc.StdvecType.isinstance(iterable.type):
-            iterableSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                           iterable).result
-            iterTy = cc.StdvecType.getElementType(iterable.type)
-            iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
-            iterable = cc.StdvecDataOp(iterArrPtrTy, iterable).result
-        elif quake.VeqType.isinstance(iterable.type):
-            iterableSize = quake.VeqSizeOp(self.getIntegerType(),
-                                           iterable).result
-            iterTy = quake.RefType.get()
+        i64Ty = self.getIntegerType()
+
+        # `range(...)` never needs to be materialized into a buffer: the loop
+        # induction variable *is* the element, so there is nothing to
+        # allocate or populate.
+        is_range_source = (isinstance(node.generators[0].iter, ast.Call) and
+                           isinstance(node.generators[0].iter.func, ast.Name)
+                           and node.generators[0].iter.func.id == 'range')
+        if is_range_source:
+            startVal, endVal, stepVal, isDecrementing = \
+                self.__processRangeLoopIterationBounds(
+                    node.generators[0].iter.args)
+            zero = self.getConstantInt(0)
+            one = self.getConstantInt(1)
+            totalSize = arith.SubIOp(endVal, startVal).result
+            roundingOffset = (arith.AddIOp(
+                stepVal, one).result if isDecrementing else arith.SubIOp(
+                    stepVal, one).result)
+            totalSize = arith.AddIOp(totalSize, roundingOffset).result
+            iterableSize = arith.MaxSIOp(
+                zero,
+                arith.DivSIOp(totalSize, stepVal).result).result
+            iterTy = i64Ty
+
+            def extractElem(i):
+                # `i` is a 0-based iteration count (needed for buffer
+                # indexing elsewhere), not the range value itself -- map it
+                # back to the real `range(start, end, step)` value.
+                return arith.AddIOp(startVal,
+                                    arith.MulIOp(i, stepVal).result).result
         else:
-            self.emitFatalError(
-                "CUDA-Q only supports list comprehension on ranges and arrays",
-                node)
+            self.visit(node.generators[0].iter)
+            iterable = self.popValue()
+            orig_iterable_type = iterable.type
+            if cc.SequenceType.isinstance(iterable.type):
+                iterableSize = cc.SequenceSizeOp(i64Ty, iterable).result
+                iterTy = cc.SequenceType.getElementType(iterable.type)
+                iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
+                iterable = cc.SequenceDataOp(iterArrPtrTy, iterable).result
+
+                def extractElem(i):
+                    elem_addr = cc.ComputePtrOp(
+                        cc.PointerType.get(iterTy), iterable, [i],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    return cc.LoadOp(elem_addr).result
+            elif quake.VeqType.isinstance(iterable.type):
+                iterableSize = quake.VeqSizeOp(i64Ty, iterable).result
+                iterTy = quake.RefType.get()
+
+                def extractElem(i):
+                    return quake.ExtractRefOp(iterTy, iterable, -1,
+                                              index=i).result
+            else:
+                self.emitFatalError(
+                    "CUDA-Q only supports list comprehension on ranges and "
+                    "arrays", node)
 
         def process_void_list():
             # NOTE: This does not actually create a valid value, and will fail
@@ -4416,8 +4490,8 @@ class PyASTBridge(ast.NodeVisitor):
                 parentType = get_item_type(pyval.value)
                 if cc.PointerType.isinstance(parentType):
                     parentType = cc.PointerType.getElementType(parentType)
-                if cc.StdvecType.isinstance(parentType):
-                    return cc.StdvecType.getElementType(parentType)
+                if cc.SequenceType.isinstance(parentType):
+                    return cc.SequenceType.getElementType(parentType)
                 elif quake.VeqType.isinstance(parentType):
                     return quake.RefType.get()
                 self.emitFatalError(
@@ -4439,7 +4513,7 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 f"non-homogenous list not allowed - must all be "
                                 f"same type: {elts}", node)
-                return cc.StdvecType.get(base_elTy)
+                return cc.SequenceType.get(base_elTy)
             elif isinstance(pyval, ast.Call):
                 if isinstance(pyval.func, ast.Name):
                     from .kernel_decorator import isa_kernel_decorator
@@ -4562,85 +4636,119 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if quake.RefType.isinstance(listElemTy):
-            if quake.VeqType.isinstance(orig_iterable_type) and not hasFilter:
+            if (not is_range_source and
+                    quake.VeqType.isinstance(orig_iterable_type) and
+                    not hasFilter):
                 self.pushValue(iterable)
                 return
-            if (cc.StdvecType.isinstance(orig_iterable_type) or
+            if (is_range_source or
+                    cc.SequenceType.isinstance(orig_iterable_type) or
                     quake.VeqType.isinstance(orig_iterable_type)):
-                i64Ty = self.getIntegerType()
                 veqTy = self.getVeqType()
                 c0 = self.getConstantInt(0)
                 c1 = self.getConstantInt(1)
-
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
-                init_veq = quake.RelaxSizeOp(
-                    veqTy,
-                    quake.AllocaOp(empty_veq_ty).result).result
+                veq1_ty = quake.VeqType.get(1, context=self.ctx)
 
-                def bodyBuilder(args):
-                    i, curr_veq = args[0], args[1]
-                    if quake.VeqType.isinstance(iterable.type):
-                        idx_val = quake.ExtractRefOp(iterTy,
-                                                     iterable,
-                                                     -1,
-                                                     index=i).result
-                    else:
-                        elem_addr = cc.ComputePtrOp(
-                            cc.PointerType.get(iterTy), iterable, [i],
-                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                  context=self.ctx))
-                        idx_val = cc.LoadOp(elem_addr).result
+                # Build and record the set of indices described by the list
+                # comprehension itself.
+                idxBufTy = cc.PointerType.get(cc.ArrayType.get(i64Ty))
+                idxBuf = cc.AllocaOp(idxBufTy,
+                                     TypeAttr.get(i64Ty),
+                                     seqSize=iterableSize).result
+
+                def idxBufAddr(k):
+                    return cc.ComputePtrOp(
+                        cc.PointerType.get(i64Ty), idxBuf, [k],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+
+                def collectBody(args):
+                    i, count = args[0], args[1]
+                    idx_val = extractElem(i)
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    if hasFilter:
-                        cond = evalFilter()
-                        ifOp = cc.IfOp([veqTy], cond, [])
-                        thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-                        with InsertionPoint(thenBlock):
-                            self.visit(node.elt)
-                            ref = self.popValue()
-                            appended = quake.ConcatOp(veqTy,
-                                                      [curr_veq, ref]).result
-                            cc.ContinueOp([appended])
-                        elseBlock = Block.create_at_start(ifOp.elseRegion, [])
-                        with InsertionPoint(elseBlock):
-                            cc.ContinueOp([curr_veq])
-                        new_veq = ifOp.result
-                    else:
-                        self.visit(node.elt)
-                        ref = self.popValue()
-                        new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
+                    cond = evalFilter() if hasFilter else None
                     self.symbolTable.endBlock()
-                    cc.ContinueOp([i, new_veq])
+                    if cond is None:
+                        cc.StoreOp(i, idxBufAddr(count))
+                        cc.ContinueOp([i, arith.AddIOp(count, c1).result])
+                        return
+                    ifOp = cc.IfOp([i64Ty], cond, [])
+                    thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                    with InsertionPoint(thenBlock):
+                        cc.StoreOp(i, idxBufAddr(count))
+                        cc.ContinueOp([arith.AddIOp(count, c1).result])
+                    elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                    with InsertionPoint(elseBlock):
+                        cc.ContinueOp([count])
+                    cc.ContinueOp([i, ifOp.result])
 
-                loop = self.createForLoop(
-                    [i64Ty, veqTy], bodyBuilder, [c0, init_veq],
+                collect = self.createForLoop(
+                    [i64Ty, i64Ty], collectBody, [c0, c0],
                     lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
                         0], iterableSize).result,
                     lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
-                self.pushValue(loop.results[1])
+                matchCount = collect.results[1]
+
+                # Construct the `veq` from the list comprehension set. If the
+                # set is empty then the `veq` is poison. This is a bug in the
+                # user's code that neither the bridge nor the compiler will
+                # paper over. Otherwise the set is used to drive a
+                # `quake.concat` chain seeded from the first match.
+                hasMatch = arith.CmpIOp(IntegerAttr.get(i64Ty, 4), matchCount,
+                                        c0).result
+                ifMatchOp = cc.IfOp([veqTy], hasMatch, [])
+                matchThen = Block.create_at_start(ifMatchOp.thenRegion, [])
+                with InsertionPoint(matchThen):
+                    idx0 = cc.LoadOp(idxBufAddr(c0)).result
+                    self.symbolTable.beginBlock()
+                    self.__deconstructAssignment(node.generators[0].target,
+                                                 extractElem(idx0))
+                    self.visit(node.elt)
+                    ref0 = self.popValue()
+                    veq1 = quake.ConcatOp(veq1_ty, [ref0]).result
+                    init_seed = quake.RelaxSizeOp(veqTy, veq1).result
+                    self.symbolTable.endBlock()
+
+                    def buildBody(args):
+                        k, curr_veq = args[0], args[1]
+                        idxK = cc.LoadOp(idxBufAddr(k)).result
+                        self.symbolTable.beginBlock()
+                        self.__deconstructAssignment(node.generators[0].target,
+                                                     extractElem(idxK))
+                        self.visit(node.elt)
+                        ref = self.popValue()
+                        self.symbolTable.endBlock()
+                        grown = quake.ConcatOp(veqTy, [curr_veq, ref]).result
+                        cc.ContinueOp([k, grown])
+
+                    build = self.createForLoop(
+                        [i64Ty, veqTy], buildBody, [c1, init_seed],
+                        lambda args: arith.CmpIOp(IntegerAttr.get(
+                            i64Ty, 2), args[0], matchCount).result, lambda args:
+                        [arith.AddIOp(args[0], c1).result, args[1]])
+                    cc.ContinueOp([build.results[1]])
+                matchElse = Block.create_at_start(ifMatchOp.elseRegion, [])
+                with InsertionPoint(matchElse):
+                    poison = cc.PoisonOp(empty_veq_ty)
+                    cc.ContinueOp(
+                        [quake.RelaxSizeOp(veqTy, poison.result).result])
+
+                self.pushValue(ifMatchOp.result)
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",
                 node)
 
-        resultVecTy = cc.StdvecType.get(listElemTy)
+        resultVecTy = cc.SequenceType.get(listElemTy)
         if listElemTy == self.getIntegerType(1):
             listElemTy = self.getIntegerType(8)
         listTy = cc.ArrayType.get(listElemTy)
         listValue = cc.AllocaOp(cc.PointerType.get(listTy),
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
-
-        def extractIterVal(iterVar):
-            if quake.VeqType.isinstance(iterable.type):
-                return quake.ExtractRefOp(iterTy, iterable, -1,
-                                          index=iterVar).result
-            eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(iterTy), iterable, [iterVar],
-                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-            return cc.LoadOp(eleAddr).result
 
         def storeElementAt(storeIdx):
             self.visit(node.elt)
@@ -4659,14 +4767,14 @@ class PyASTBridge(ast.NodeVisitor):
 
             def bodyBuilder(iterVar):
                 self.symbolTable.beginBlock()
-                iterVal = extractIterVal(iterVar)
+                iterVal = extractElem(iterVar)
                 self.__deconstructAssignment(node.generators[0].target, iterVal)
                 storeElementAt(iterVar)
                 self.symbolTable.endBlock()
 
             self.createInvariantForLoop(bodyBuilder, iterableSize)
-            res = cc.StdvecInitOp(resultVecTy, listValue,
-                                  length=iterableSize).result
+            res = cc.SequenceInitOp(resultVecTy, listValue,
+                                    length=iterableSize).result
             self.pushValue(res)
             return
 
@@ -4677,7 +4785,7 @@ class PyASTBridge(ast.NodeVisitor):
         def filteredBodyBuilder(args):
             i, count = args[0], args[1]
             self.symbolTable.beginBlock()
-            iterVal = extractIterVal(i)
+            iterVal = extractElem(i)
             self.__deconstructAssignment(node.generators[0].target, iterVal)
             cond = evalFilter()
             ifOp = cc.IfOp([i64Ty], cond, [])
@@ -4698,7 +4806,8 @@ class PyASTBridge(ast.NodeVisitor):
                 IntegerAttr.get(i64Ty, 2), args[0], iterableSize).result,
             lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
         finalCount = loop.results[1]
-        res = cc.StdvecInitOp(resultVecTy, listValue, length=finalCount).result
+        res = cc.SequenceInitOp(resultVecTy, listValue,
+                                length=finalCount).result
         self.pushValue(res)
         return
 
@@ -4774,8 +4883,8 @@ class PyASTBridge(ast.NodeVisitor):
                 for v in listElementValues
             ]
 
-        # Turn this List into a StdVec<T>
-        self.pushValue(self.__createStdvecWithKnownValues(listElementValues))
+        # Turn this List into a Sequence<T>
+        self.pushValue(self.__createSequenceWithKnownValues(listElementValues))
 
     def visit_Constant(self, node):
         """Convert constant values in the code to constant values in the
@@ -4821,14 +4930,14 @@ class PyASTBridge(ast.NodeVisitor):
         `q[1:3]`) to corresponding extraction or slice code in the MLIR.
 
         This method
-        handles extraction for `veq` types and `stdvec` types.
+        handles extraction for `veq` types and `sequence` types.
         """
 
         def get_size(val):
             if quake.VeqType.isinstance(val.type):
                 return quake.VeqSizeOp(self.getIntegerType(), val).result
-            elif cc.StdvecType.isinstance(val.type):
-                return cc.StdvecSizeOp(self.getIntegerType(), val).result
+            elif cc.SequenceType.isinstance(val.type):
+                return cc.SequenceSizeOp(self.getIntegerType(), val).result
             return None
 
         def fix_negative_idx(idx, get_size):
@@ -4867,7 +4976,7 @@ class PyASTBridge(ast.NodeVisitor):
                 upperVal = fix_negative_idx(self.popValue(), lambda: vectorSize)
             else:
                 if not quake.VeqType.isinstance(
-                        var.type) and not cc.StdvecType.isinstance(var.type):
+                        var.type) and not cc.SequenceType.isinstance(var.type):
                     self.emitFatalError(
                         f"unhandled upper slice == None, can't handle "
                         f"type {var.type}", node)
@@ -4899,8 +5008,8 @@ class PyASTBridge(ast.NodeVisitor):
                     subv = cc.UndefOp(self.getVeqType())
                     cc.ContinueOp([subv.result])
                 self.pushValue(ifOp.result)
-            elif cc.StdvecType.isinstance(var.type):
-                eleTy = cc.StdvecType.getElementType(var.type)
+            elif cc.SequenceType.isinstance(var.type):
+                eleTy = cc.SequenceType.getElementType(var.type)
                 # Use `i8` for boolean elements
                 if eleTy == self.getIntegerType(1):
                     eleTy = self.getIntegerType(8)
@@ -4910,16 +5019,17 @@ class PyASTBridge(ast.NodeVisitor):
                 nElementsVal = arith.SubIOp(upperVal, lowerVal).result
 
                 # need to compute the distance between `upperVal` and `lowerVal`
-                # then slice is `stdvecdataOp + computeptr[lower] +`
-                # `stdvecinit[ptr,distance]`
+                # then slice is `sequenceDataOp + computeptr[lower] +`
+                # `sequence_init[ptr,distance]`
 
-                vecPtr = cc.StdvecDataOp(ptrArrTy, var).result
+                vecPtr = cc.SequenceDataOp(ptrArrTy, var).result
                 ptr = cc.ComputePtrOp(
                     ptrTy, vecPtr, [lowerVal],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(
-                    cc.StdvecInitOp(var.type, ptr, length=nElementsVal).result)
+                    cc.SequenceInitOp(var.type, ptr,
+                                      length=nElementsVal).result)
             else:
                 self.emitFatalError(
                     f"unhandled slice operation, cannot handle type {var.type}",
@@ -5007,7 +5117,7 @@ class PyASTBridge(ast.NodeVisitor):
             # We should only ever get a pointer if we explicitly asked for it.
             assert self.pushPointerValue
             varType = cc.PointerType.getElementType(var.type)
-            if cc.StdvecType.isinstance(varType):
+            if cc.SequenceType.isinstance(varType):
                 # We can get a pointer to a vector (only) if we are updating a
                 # struct item that is a pointer.
                 if self.pushPointerValue:
@@ -5040,16 +5150,16 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(eleAddr)
                     return
 
-        if cc.StdvecType.isinstance(var.type):
+        if cc.SequenceType.isinstance(var.type):
             idx = fix_negative_idx(idx, lambda: get_size(var))
-            eleTy = cc.StdvecType.getElementType(var.type)
+            eleTy = cc.SequenceType.getElementType(var.type)
             isBool = eleTy == self.getIntegerType(1)
             if isBool:
                 eleTy = self.getIntegerType(8)
             elePtrTy = cc.PointerType.get(eleTy)
             arrTy = cc.ArrayType.get(eleTy)
             ptrArrTy = cc.PointerType.get(arrTy)
-            vecPtr = cc.StdvecDataOp(ptrArrTy, var).result
+            vecPtr = cc.SequenceDataOp(ptrArrTy, var).result
             eleAddr = cc.ComputePtrOp(
                 elePtrTy, vecPtr, [idx],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -5126,7 +5236,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         This node represents the typical Python for
         statement, `for VAR in ITERABLE`. Currently supported ITERABLEs are the
-        `veq` type, the `stdvec` type, and the result of range() and
+        `veq` type, the `sequence` type, and the result of range() and
         enumerate().
         """
 
@@ -5152,9 +5262,30 @@ class PyASTBridge(ast.NodeVisitor):
                         "invalid number of arguments to enumerate "
                         "- expecting 1 argument", node)
 
-                self.visit(node.iter.args[0])
-                iterable = self.popValue()
-                getValues = lambda iterVar, v: (iterVar, v)
+                innerIterNode = node.iter.args[0]
+                if (isinstance(innerIterNode, ast.Call) and
+                        isinstance(innerIterNode.func, ast.Name) and
+                        innerIterNode.func.id == 'range'):
+                    # `enumerate(range(...))` never needs a buffer either:
+                    # drive the loop directly off the range bounds (as
+                    # above) and derive `enumerate's` 0-based index from the
+                    # loop variable arithmetically, since `step` is always a
+                    # compile-time constant. FIXME: handle `start` argument.
+                    iterable = None
+                    startVal, endVal, stepVal, isDecrementing = \
+                        self.__processRangeLoopIterationBounds(
+                            innerIterNode.args)
+                    rangeStart, rangeStep = startVal, stepVal
+
+                    def getValues(iterVar):
+                        idx = arith.DivSIOp(
+                            arith.SubIOp(iterVar, rangeStart).result,
+                            rangeStep).result
+                        return (idx, iterVar)
+                else:
+                    self.visit(innerIterNode)
+                    iterable = self.popValue()
+                    getValues = lambda iterVar, v: (iterVar, v)
 
         if not getValues:
             self.visit(node.iter)
@@ -5167,7 +5298,7 @@ class PyASTBridge(ast.NodeVisitor):
             stepVal = self.getConstantInt(1)
             relevantVals = getValues or (lambda iterVar, v: v)
 
-            # we currently handle `veq` and `stdvec` types
+            # we currently handle `veq` and `sequence` types
             if quake.VeqType.isinstance(iterable.type):
                 size = quake.VeqType.getSize(iterable.type)
                 if quake.VeqType.hasSpecifiedSize(iterable.type):
@@ -5185,18 +5316,19 @@ class PyASTBridge(ast.NodeVisitor):
 
                 getValues = loadElement
 
-            elif cc.StdvecType.isinstance(iterable.type):
-                iterEleTy = cc.StdvecType.getElementType(iterable.type)
+            elif cc.SequenceType.isinstance(iterable.type):
+                iterEleTy = cc.SequenceType.getElementType(iterable.type)
                 isBool = iterEleTy == self.getIntegerType(1)
                 if isBool:
                     iterEleTy = self.getIntegerType(8)
-                endVal = cc.StdvecSizeOp(self.getIntegerType(), iterable).result
+                endVal = cc.SequenceSizeOp(self.getIntegerType(),
+                                           iterable).result
 
                 def loadElement(iterVar):
                     elePtrTy = cc.PointerType.get(iterEleTy)
                     arrTy = cc.ArrayType.get(iterEleTy)
                     ptrArrTy = cc.PointerType.get(arrTy)
-                    vecPtr = cc.StdvecDataOp(ptrArrTy, iterable).result
+                    vecPtr = cc.SequenceDataOp(ptrArrTy, iterable).result
                     eleAddr = cc.ComputePtrOp(
                         elePtrTy, vecPtr, [iterVar],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -5212,6 +5344,8 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 self.emitFatalError('{} iterable type not supported.', node)
 
+        loopLocal = self.loopLocalTargets.get(id(node), set())
+
         def blockBuilder(iterVar, stmts):
             self.symbolTable.beginBlock()
             values = getValues(iterVar)
@@ -5219,8 +5353,15 @@ class PyASTBridge(ast.NodeVisitor):
             # iteration variable(s) to have consistent behavior.
             assignNode = ast.Assign(targets=[node.target], value=values)
             assignNode.lineno = node.lineno
-            self.visit(assignNode)
-            [self.visit(b) for b in stmts]
+            outerSink = self.sinkAllocaNames
+            self.sinkAllocaNames = {
+                name for name in loopLocal if name not in self.symbolTable
+            }
+            try:
+                self.visit(assignNode)
+            finally:
+                self.sinkAllocaNames = outerSink
+            self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
         self.createMonotonicForLoop(
@@ -5249,12 +5390,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         def blockBuilder(iterVar):
             self.symbolTable.beginBlock()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             self.symbolTable.endBlock()
 
         self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
                            None if not node.orelse else
-                           lambda _: [self.visit(stmt) for stmt in node.orelse])
+                           lambda _: self.buildScopedBlock(node.orelse))
 
     def visit_BoolOp(self, node):
         """Convert boolean operations into equivalent MLIR operations using the
@@ -5437,10 +5578,10 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(op, (ast.In, ast.NotIn)):
 
             # Type validation and vector initialization
-            if not cc.StdvecType.isinstance(right.type):
+            if not cc.SequenceType.isinstance(right.type):
                 self.emitFatalError(
                     "Right operand must be a list/vector for 'in' comparison")
-            vectSize = cc.StdvecSizeOp(self.getIntegerType(), right).result
+            vectSize = cc.SequenceSizeOp(self.getIntegerType(), right).result
 
             # Loop setup
             i1_type = self.getIntegerType(1)
@@ -5514,24 +5655,20 @@ class PyASTBridge(ast.NodeVisitor):
         ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
         with InsertionPoint(thenBlock):
-            self.symbolTable.beginBlock()
             self.pushIfStmtBlockStack()
-            [self.visit(b) for b in node.body]
+            self.buildScopedBlock(node.body)
             if not self.hasTerminator(thenBlock):
                 cc.ContinueOp([])
             self.popIfStmtBlockStack()
-            self.symbolTable.endBlock()
 
         if len(node.orelse) > 0:
             elseBlock = Block.create_at_start(ifOp.elseRegion, [])
             with InsertionPoint(elseBlock):
-                self.symbolTable.beginBlock()
                 self.pushIfStmtBlockStack()
-                [self.visit(b) for b in node.orelse]
+                self.buildScopedBlock(node.orelse)
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp([])
                 self.popIfStmtBlockStack()
-                self.symbolTable.endBlock()
 
     def visit_Return(self, node):
 
@@ -5593,58 +5730,33 @@ class PyASTBridge(ast.NodeVisitor):
         def copy_list_to_heap(value):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
-            elemTy = cc.StdvecType.getElementType(value.type)
+            elemTy = cc.SequenceType.getElementType(value.type)
             if elemTy == self.getIntegerType(1):
                 elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
             arrTy = cc.ArrayType.get(self.getIntegerType(8))
             ptrArrTy = cc.PointerType.get(arrTy)
-            resBuf = cc.StdvecDataOp(ptrArrTy, value).result
+            resBuf = cc.SequenceDataOp(ptrArrTy, value).result
             eleSize = cc.SizeOfOp(self.getIntegerType(),
                                   TypeAttr.get(elemTy)).result
-            dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+            dynSize = cc.SequenceSizeOp(self.getIntegerType(), value).result
             resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
                                    [resBuf, dynSize, eleSize]).result
-            return cc.StdvecInitOp(value.type, heapCopy, length=dynSize).result
+            return cc.SequenceInitOp(value.type, heapCopy,
+                                     length=dynSize).result
 
-        rootVal = self.__get_root_value(node.value)
-        if rootVal and self.isFunctionArgument(rootVal):
-            # If we allow assigning a value that contains a list to an item of a
-            # function argument (which we do with the exceptions commented
-            # below), then we necessarily need to make a copy when we return
-            # function arguments, or function argument elements, that contain
-            # lists, since we have to assume that their data may be allocated on
-            # the stack. However, this leads to incorrect behavior if a returned
-            # list was indeed caller-side allocated (and should correspondingly
-            # have been returned by reference).  Rather than preventing that
-            # lists in function arguments can be updated, we instead ensure that
-            # lists contained in function arguments stay recognizable as such,
-            # and prevent that function arguments that contain list are
-            # returned.  NOTE: Why is seems straightforward in principle to fail
-            # only for when we return *inner* lists of function arguments, this
-            # is still not a good option for two reasons: 1) Even if we return
-            # the reference to the outer list correctly, any caller-side
-            # assignment of the return value would no longer be recognizable as
-            # being the same reference given as argument, which is a problem if
-            # the list was an argument to the caller.  I.e. while this works for
-            # one function indirection, it does not work for two (see assignment
-            # tests).  2) To ensure that we don't have any memory leaks, we copy
-            # any lists returned from function calls to the stack. This copy (as
-            # of the time of writing this) results in a segfault when the list
-            # is not on the heap. As it is, we hence indeed have to copy every
-            # returned list to the heap, followed by a copy to the stack in the
-            # caller. Subsequent optimization passes should largely eliminate
-            # unnecessary copies.
-            if self.containsList(result.type):
-                self.emitFatalError(
-                    "return value must not contain a list that is a function "
-                    "argument or an item in a function argument - for device "
-                    "kernels, lists passed as arguments will be modified in "
-                    "place; remove the return value or use .copy(deep) to "
-                    "create a copy", node)
-        else:
-            result = self.__migrateLists(result, copy_list_to_heap)
+        # A returned list is unconditionally promoted to storage that
+        # survives this frame's `teardown`, regardless of whether its data
+        # traces back to a function argument, a locally allocated list, or
+        # an alias of either: an argument-derived list is an ordinary local
+        # like any other (its data pointer just happens to point at a
+        # caller-owned stack slot), so it needs exactly the same lifetime
+        # promotion any other local list does when it crosses this return
+        # boundary. Subsequent optimization passes eliminate the copy
+        # wherever they can prove it is unnecessary (e.g. when the caller
+        # already has live storage for the value).
+        result = self.__migrateLists(result, copy_list_to_heap)
 
         if self.symbolTable.scopeDepth > 1:
             # We are in an inner block, release all MLIR scopes before returning.
@@ -5820,6 +5932,19 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.FloorDivSIOp(left, right).result)
                 return
+            elif (F64Type.isinstance(left.type) or
+                  F32Type.isinstance(left.type)):
+                # Python float floor division is not equivalent to applying
+                # floor to the quotient: 1.0 // 0.1 is 9.0, while
+                # math.floor(1.0 / 0.1) is 10. Matching Python therefore
+                # requires a remainder-based correction, leading to complex IR
+                # for these edge cases. Instead, direct users to
+                # `math.floor(...)` or `numpy.floor(...)`.
+                self.emitFatalError(
+                    "floor division with floating-point operands is not "
+                    "supported; use integer operands or math.floor(...), "
+                    "numpy.floor(...), or np.floor(...) instead",
+                    self.currentNode)
             else:
                 self.emitFatalError("unhandled BinOp.FloorDiv types",
                                     self.currentNode)
@@ -5999,21 +6124,27 @@ class PyASTBridge(ast.NodeVisitor):
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
 
-            if (self.pushPointerValue or
-                    not cc.PointerType.isinstance(value.type)):
+            if self.pushPointerValue:
                 self.pushValue(value)
                 return
 
-            eleTy = cc.PointerType.getElementType(value.type)
+            # Fully `dereference`, one level at a time: a scalar/tuple/list
+            # local's own slot only ever needs one load to reach its
+            # fully-realized value, but a dataclass local's slot holds a
+            # pointer to a handle (itself a pointer to a separately
+            # allocated buffer), needing two. Iterating generalizes to any
+            # depth without special-casing by type.
+            while cc.PointerType.isinstance(value.type):
+                eleTy = cc.PointerType.getElementType(value.type)
 
-            # Retain state types as pointers
-            # (function arguments of `StateType` are passed as pointers)
-            if cc.StateType.isinstance(eleTy):
-                self.pushValue(value)
-                return
+                # Retain state types as pointers
+                # (function arguments of `StateType` are passed as pointers)
+                if cc.StateType.isinstance(eleTy):
+                    break
 
-            loaded = cc.LoadOp(value).result
-            self.pushValue(loaded)
+                value = cc.LoadOp(value).result
+
+            self.pushValue(value)
             return
 
         # Check if a non-local symbol, and process it.
@@ -6021,9 +6152,13 @@ class PyASTBridge(ast.NodeVisitor):
         if is_recovered_value_ok(value):
             from .kernel_decorator import isa_kernel_decorator
             from .kernel_builder import isa_dynamic_kernel
-            if isa_kernel_decorator(value) or isa_dynamic_kernel(value):
-                # Not a data variable. Symbol bound to kernel object. This case
-                # is handled elsewhere.
+            if isa_kernel_decorator(value):
+                symName = self.__processDecorator(node.id)
+                self.pushValue(self.symbolTable[symName])
+                return
+            if isa_dynamic_kernel(value):
+                # Not a data variable. Symbol bound to kernel object. This
+                # case is handled elsewhere.
                 return
 
             # If `node.id` is already captured, it should be in the symbol table
@@ -6090,14 +6225,16 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     """
 
     verbose = 'verbose' in kwargs and kwargs['verbose']
-    # `location` may be absent, explicitly None (e.g. a kernel reconstructed via
-    # `from_json` whose serialized location was null), or empty; in every such
-    # case fall back to the default offset so diagnostics never subscript a
+    # `location` may be absent, explicitly None, or empty; in every such case
+    # fall back to the default offset so diagnostics never subscript a
     # non-`(filename, lineno)` value.
     lineNumberOffset = kwargs.get('location') or ('', 0)
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
     cudaqAliases = kwargs.get('cudaqAliases', None)
+    disable_quantum_optimization = kwargs.get('disable_quantum_optimization',
+                                              False)
+    atomic_quantum_region = kwargs.get('atomic_quantum_region', False)
 
     # Build the AOT Quake Module for this kernel. Wrapped in a single span so
     # the tracer can separate Python-AST-to-MLIR construction from the AOT
@@ -6118,10 +6255,13 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         with trace.span("ast_bridge.validate_return_statements"):
             ValidateReturnStatements(bridge).visit(astModule)
         bridge.visit(astModule)
+        if atomic_quantum_region:
+            bridge.kernelFuncOp.attributes.__setitem__(
+                'atomic_quantum_region', UnitAttr.get(context=bridge.ctx))
 
     # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
     # so `TracePassInstrumentation` is installed (matching the JIT-side
-    # install at `runtime/internal/compiler/RuntimePyMLIR.cpp`). Without this,
+    # install at `runtime/internal/compiler/RuntimeMLIR.cpp`). Without this,
     # AOT passes execute through upstream MLIR's `pm.run()` without a tracer
     # attached and per-pass wall-time cannot be attributed.
     #
@@ -6133,12 +6273,16 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     try:
         with trace.span("cudaq.pipeline.aot"):
             cudaq_runtime.runPassManager(pm, bridge.module)
-    except:
-        raise RuntimeError(f"could not compile code for '{bridge.name}'.")
+    except Exception as e:
+        raise RuntimeError(
+            f"could not compile code for '{bridge.name}'.\n{e}") from e
 
     bridge.module.operation.attributes.__setitem__(
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
+    if disable_quantum_optimization:
+        bridge.module.operation.attributes.__setitem__(
+            'quake.noOptimization', UnitAttr.get(context=bridge.ctx))
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with

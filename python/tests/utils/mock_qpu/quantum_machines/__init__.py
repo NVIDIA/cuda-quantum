@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import PlainTextResponse
 from typing import Union
 import uuid
 from pydantic import BaseModel
@@ -42,7 +43,7 @@ numQubitsRequired = 0
 
 server_exec_response = {
     "id": "12345678-1234-1234-1234-0123456789ab",
-    "samples": {
+    "results": {
         "000": 19,
         "001": 2,
         "010": 27,
@@ -54,6 +55,16 @@ server_exec_response = {
     },
     "status": "Done"
 }
+
+
+@app.get("/v1/config/qubits", response_class=PlainTextResponse)
+async def get_qubit_config():
+    return ("Number of nodes: 5\n"
+            "0 --> {1, 2, 3, 4}\n"
+            "1 --> {0, 2, 3, 4}\n"
+            "2 --> {0, 1, 3, 4}\n"
+            "3 --> {0, 1, 2, 4}\n"
+            "4 --> {0, 1, 2, 3}\n")
 
 
 @app.post("/v1/execute")

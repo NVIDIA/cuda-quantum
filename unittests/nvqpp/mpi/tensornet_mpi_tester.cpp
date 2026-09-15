@@ -14,11 +14,12 @@ TEST(TensornetMPITester, checkInit) {
 }
 
 TEST(TensornetMPITester, checkSimple) {
-  constexpr std::size_t numQubits = 50;
+  // Host locals cannot be captured into __qpu__ lambdas.
+#define NUM_QUBITS 50
   auto kernel = []() __qpu__ {
-    cudaq::qvector q(numQubits);
+    cudaq::qvector q(NUM_QUBITS);
     h(q[0]);
-    for (int i = 0; i < numQubits - 1; i++)
+    for (int i = 0; i < NUM_QUBITS - 1; i++)
       x<cudaq::ctrl>(q[i], q[i + 1]);
     mz(q);
   };
@@ -30,9 +31,10 @@ TEST(TensornetMPITester, checkSimple) {
 
     for (auto &[bits, count] : counts) {
       printf("Observed: %s, %lu\n", bits.data(), count);
-      EXPECT_EQ(numQubits, bits.size());
+      EXPECT_EQ(NUM_QUBITS, bits.size());
     }
   }
+#undef NUM_QUBITS
 }
 
 int main(int argc, char **argv) {

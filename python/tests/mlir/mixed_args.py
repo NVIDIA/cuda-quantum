@@ -29,7 +29,7 @@ def test_make_kernel_mixed_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK-SAME:     (%[[VAL_0:.*]]: !cc.stdvec<f64>,
+# CHECK-SAME:     (%[[VAL_0:.*]]: !cc.sequence<f64>,
 # CHECK-SAME:    %[[VAL_1:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           return
 # CHECK:         }

@@ -6,12 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_dialect_library(OptimBuilder
+add_cudaq_library(OptimBuilder
   Factory.cpp
   Intrinsics.cpp
   Marshal.cpp
-
-  ENABLE_AGGREGATION
 
   DEPENDS
     CCDialect
@@ -24,4 +22,4 @@ add_mlir_dialect_library(OptimBuilder
     QuakeDialect
 )
 
-register_cudaq_mlir_lib(OptimBuilder)
+check_registered_mlir_lib(OptimBuilder)

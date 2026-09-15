@@ -1,7 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2025 IQM Quantum Computers                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -186,6 +185,10 @@ static LogicalResult emitOperation(nlohmann::json &json,
           [&](auto op) { return emitOperation(json, emitter, op); })
       .Case<cudaq::quake::ExtractRefOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<cudaq::quake::PhaseOp>([&](auto phase) {
+        return phase.emitOpError(
+            "phase bookkeeping must be lowered before IQM JSON translation");
+      })
       .Case<cudaq::quake::OperatorInterface>(
           [&](auto op) { return emitOperation(json, emitter, op); })
       .Case<cudaq::quake::MzOp>(

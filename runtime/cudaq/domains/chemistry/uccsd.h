@@ -112,6 +112,11 @@ auto uccsd_num_parameters(std::size_t numElectrons, std::size_t numQubits) {
          doublesAlpha.size() + doublesBeta.size();
 }
 
+// The __qpu__ UCCSD helpers below use cudaq::excitations with structured
+// bindings. nvq++ cannot lower that type yet ("unhandled type, excitations"),
+// so keep these entry points for CUDAQ_LIBRARY_MODE only. nvq++ callers should
+// use the kernel_builder overloads instead.
+#ifdef CUDAQ_LIBRARY_MODE
 __qpu__ void singleExcitation(cudaq::qview<> qubits, std::size_t pOcc,
                               std::size_t qVirt, double theta) {
   // Y_p X_q
@@ -144,6 +149,7 @@ __qpu__ void singleExcitation(cudaq::qview<> qubits, std::size_t pOcc,
   rx(-M_PI_2, qubits[qVirt]);
   h(qubits[pOcc]);
 }
+#endif
 
 template <typename Kernel>
 void singleExcitation(Kernel &kernel, QuakeValue &qubits, std::size_t pOcc,
@@ -370,6 +376,7 @@ void doubleExcitation(Kernel &kernel, QuakeValue &qubits, std::size_t pOcc,
   kernel.rx(-M_PI_2, qubits[iOcc]);
 }
 
+#ifdef CUDAQ_LIBRARY_MODE
 __qpu__ void doubleExcitation(cudaq::qview<> qubits, std::size_t pOcc,
                               std::size_t qOcc, std::size_t rVirt,
                               std::size_t sVirt, double theta) {
@@ -594,6 +601,7 @@ __qpu__ void uccsd(cudaq::qview<> qubits, const std::vector<double> &thetas,
                      doublesBeta[i][2], doublesBeta[i][3],
                      thetas[thetaCounter++]);
 }
+#endif
 
 template <typename Kernel>
 void uccsd(Kernel &kernel, QuakeValue &qubits, QuakeValue &thetas,

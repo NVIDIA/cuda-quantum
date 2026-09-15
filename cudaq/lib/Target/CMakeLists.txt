@@ -9,13 +9,15 @@
 # LLVM-free library: config data structures and helpers.
 add_library(CUDAQTargetConfig
   TargetConfig.cpp
-  CompileTarget.cpp
 )
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/cudaq/include>
   $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(CUDAQTargetConfig PRIVATE cudaq-logger)
-install(TARGETS CUDAQTargetConfig EXPORT cudaq-common-targets DESTINATION lib)
+install(TARGETS CUDAQTargetConfig
+        EXPORT cudaq-common-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 add_subdirectory(Yaml)

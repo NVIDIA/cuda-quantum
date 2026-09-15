@@ -18,7 +18,7 @@ CUDAQ_TEST(DrawTester, checkEmpty) {
   EXPECT_EQ(expected_str, produced_str);
 }
 
-namespace {
+namespace draw_tester {
 __qpu__ void bar(cudaq::qvector<> &q) {
   double pi_d = M_PI;
   float pi_f = M_PI;
@@ -55,7 +55,9 @@ auto kernel = []() __qpu__ {
   cudaq::control(zaz, q[1], q[0]);
   cudaq::adjoint(bar, q);
 };
-} // namespace
+} // namespace draw_tester
+
+using namespace draw_tester;
 
 CUDAQ_TEST(DrawTester, checkOps) {
   // clang-format off

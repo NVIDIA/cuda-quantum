@@ -15,6 +15,39 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy
 
+# ============================================================================ #
+# Enable logging to match the CUDAQ_LOG_LEVEL environment variable.
+# ============================================================================ #
+if os.environ.get("CUDAQ_LOG_LEVEL", ""):
+    import logging
+    logger = logging.getLogger("cudaq")
+
+    level = os.environ["CUDAQ_LOG_LEVEL"].upper()
+    if level == "DEBUG":
+        logger.setLevel(logging.DEBUG)
+    elif level == "INFO":
+        logger.setLevel(logging.INFO)
+    elif level == "WARNING":
+        logger.setLevel(logging.WARNING)
+    elif level == "ERROR":
+        logger.setLevel(logging.ERROR)
+    else:
+        print(f"Unrecognized CUDAQ_LOG_LEVEL={level}, defaulting to INFO")
+        logger.setLevel(logging.INFO)
+
+    # Attach a console handler so CUDA-Q log messages are visible when run.
+    if not any(
+            isinstance(handler, logging.StreamHandler)
+            for handler in logger.handlers):
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(
+            logging.Formatter(
+                fmt=
+                "[%(asctime)s] [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            ))
+        logger.addHandler(console_handler)
+
 from ._metadata import cuda_major
 from ._packages import get_library_path
 
@@ -205,6 +238,7 @@ from .runtime.translate import translate
 from .runtime.state import (get_state, get_state_async, to_cupy)
 from .runtime.draw import draw
 from .runtime.unitary import get_unitary
+from .runtime.resource_count import estimate
 from .runtime.resource_count import estimate_resources
 from .runtime.dem import dem_from_kernel
 from .runtime.vqe import vqe  # Removed! Use VQE from CUDA-QX
@@ -219,6 +253,25 @@ except ImportError:
 else:
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
+
+# If cudaq-logical is installed, check that it can be imported. Catches cases where cudaq
+# and cudaq-logical are installed in different directories, which is currently not supported.
+try:
+    from . import logical  # noqa: F401
+except ImportError:
+    from importlib.metadata import PackageNotFoundError as _PkgNotFound, distribution as _dist
+    try:
+        _dist("cudaq-logical")
+    except _PkgNotFound:
+        pass
+    else:
+        import warnings as _warnings
+        _warnings.warn(
+            "cudaq-logical is installed but cudaq.logical could not be imported. "
+            "cudaq.logical must live inside the same directory tree as cudaq "
+            "(both wheels installed into the same site-packages, non-editable).",
+            RuntimeWarning,
+            stacklevel=2)
 
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
@@ -235,6 +288,7 @@ pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
 Resources = cudaq_runtime.Resources
+EstimateResult = cudaq_runtime.EstimateResult
 
 # to be deprecated
 qreg = qvector
@@ -260,7 +314,45 @@ OptimizationResult = cudaq_runtime.OptimizationResult
 # Runtime Functions
 __version__ = cudaq_runtime.__version__
 initialize_cudaq = cudaq_runtime.initialize_cudaq
-set_target = cudaq_runtime.set_target
+
+
+def set_target(target, **extra_config):
+    """Set the backend used for CUDA-Q kernel execution.
+
+    Can provide optional, target-specific configuration data via Python `kwargs`.
+
+    Args:
+      target: The CUDA-Q target, specified as a recognized target name (``str``)
+        or a :class:`cudaq.Target` instance. Support for
+        instances of ``cudaq._experimental.CustomTarget`` is experimental.
+      **extra_config: Target-specific configuration for the named-target
+        overload.
+
+    Raises:
+      TypeError: For unsupported target types or keyword arguments.
+    """
+    if isinstance(target, Target) or isinstance(target, str):
+        # The overwhelmingly common case: a named target. Resolve it without
+        # ever importing cudaq._experimental, so that module being
+        # unavailable (e.g. not staged into an incremental build) can't
+        # break ordinary target selection.
+        return cudaq_runtime.set_target(target, **extra_config)
+
+    from cudaq._experimental import CustomTarget
+    from cudaq._experimental import set_compile_target, set_runtime_endpoint
+
+    if isinstance(target, CustomTarget):
+        if extra_config:
+            raise TypeError(
+                "cudaq.set_target() does not accept keyword arguments when "
+                "target is a cudaq._experimental.CustomTarget.")
+        set_compile_target(target.compile_target)
+        set_runtime_endpoint(target.runtime_endpoint)
+        return target
+
+    raise TypeError(f"Unsupported target type: {type(target)}")
+
+
 reset_target = cudaq_runtime.reset_target
 has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
@@ -271,8 +363,24 @@ del _discover_external_backends
 set_random_seed = cudaq_runtime.set_random_seed
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
-set_noise = cudaq_runtime.set_noise
-unset_noise = cudaq_runtime.unset_noise
+
+
+def set_noise(model):
+    warnings.warn(
+        "set_noise is deprecated; please use launch arguments or launch options.",
+        DeprecationWarning,
+        stacklevel=2)
+    return cudaq_runtime.set_noise(model)
+
+
+def unset_noise():
+    warnings.warn(
+        "unset_noise is deprecated; please use launch arguments or launch options.",
+        DeprecationWarning,
+        stacklevel=2)
+    return cudaq_runtime.unset_noise()
+
+
 register_set_target_callback = cudaq_runtime.register_set_target_callback
 unregister_set_target_callback = cudaq_runtime.unregister_set_target_callback
 
@@ -308,8 +416,11 @@ ComplexMatrix = cudaq_runtime.ComplexMatrix
 
 testing = cudaq_runtime.testing
 
-# target-specific
-orca = cudaq_runtime.orca
+# target-specific. The ORCA bindings are only compiled into the extension when
+# the ORCA target was built (CUDAQ_ENABLE_ORCA_BACKEND), so this must not be
+# assumed present: importing cudaq at all would otherwise fail on a build that
+# legitimately disabled it.
+orca = getattr(cudaq_runtime, "orca", None)
 
 # ============================================================================ #
 # Utility Functions
@@ -348,7 +459,7 @@ def to_bools(handles):
     ``list[bool]``. Device-only: this Python symbol exists so kernel
     code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
     the call and lowers it to a vector form ``quake.discriminate`` on
-    ``!cc.stdvec<!cc.measure_handle>``. Host-side invocation raises a
+    ``!cc.sequence<!cc.measure_handle>``. Host-side invocation raises a
     ``RuntimeError``.
     """
     raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))
@@ -399,6 +510,7 @@ def __clearKernelRegistries():
 # `_DEFERRED_STAR_MODULES` so new exports are picked up automatically.
 
 _LAZY_ATTRS = {
+    'DEMResult': '.runtime.dem',
     'Schedule': '.dynamics.schedule',
     'evolve': '.dynamics.evolution',
     'evolve_async': '.dynamics.evolution',
@@ -518,3 +630,11 @@ elif any(
     parse_args()
 else:
     cudaq_runtime.initialize_cudaq()
+
+warnings.warn(
+    "The CUDA-Q `sample` and `observe` algorithmic primitives will change in "
+    "a future release. Existing code may require updates. See "
+    "https://nvidia.github.io/cuda-quantum/latest/using/migration/"
+    "upcoming_changes.html for details.",
+    FutureWarning,
+    stacklevel=2)

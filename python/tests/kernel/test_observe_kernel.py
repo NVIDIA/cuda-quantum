@@ -217,7 +217,7 @@ def test_observe_list():
         .21829 * spin.z(0), -6.125 * spin.z(1)
     ]
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def circuit(theta: float):
         q = cudaq.qvector(2)
         x(q[0])

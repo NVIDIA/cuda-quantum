@@ -83,6 +83,8 @@ while getopts ":c:f:Fi:p:qv:" opt; do
 done
 OPTIND=$__optind__
 
+license_compliance_script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate_license_compliance.sh"
+
 # Sanitize environment: unset variables that could leak build-tree or
 # system-installed CUDA-Q libraries into the validation environment.
 # Without this, DYLD_LIBRARY_PATH from a prior build step can cause the
@@ -188,7 +190,7 @@ requires_unavailable_gpu_target() {
     targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
     for t in $targets; do
         case "$t" in
-            nvidia|nvidia-legacy|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
                 echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
@@ -324,11 +326,25 @@ test_workdir=$(mktemp -d)
 echo "Running tests from isolated directory: $test_workdir"
 cd "$test_workdir"
 
+# GMP and MPFR are redistributed with the wheel under the LGPL v3; verify
+# the license texts ship with the wheel, all linking to them is dynamic,
+# and the libraries can be replaced.
+if [ -f "$license_compliance_script" ]; then
+    bash "$license_compliance_script" --wheel
+    if [ $? -ne 0 ]; then
+        echo -e "\e[01;31mLicense compliance validation failed.\e[0m" >&2
+        status_sum=$((status_sum + 1))
+    fi
+else
+    echo -e "\e[01;31mError: validate_license_compliance.sh not found next to this script.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
+
 # Verify that the necessary GPU targets are installed and usable (Linux only)
 if $is_macos; then
     echo "Skipping GPU target verification on macOS (CPU-only)"
 else
-    for tgt in nvidia nvidia-legacy nvidia-fp64 nvidia-mgpu tensornet; do
+    for tgt in nvidia nvidia-fp64 nvidia-mgpu tensornet; do
         python3 -c "import cudaq; cudaq.set_target('${tgt}')"
         if [ $? -ne 0 ]; then
             echo -e "\e[01;31mPython trivial test for target ${tgt} failed.\e[0m" >&2
@@ -502,9 +518,6 @@ if [ -d "$root_folder/targets" ]; then
                 skip_example=true
             elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target fermioniq in $ex; skipping validation due to missing API key.\e[0m" >&2
-                skip_example=true
-            elif [ "$t" == "qci" ] && [ -z "${QCI_AUTH_TOKEN}" ]; then
-                echo -e "\e[01;31mWarning: Explicitly set target qci in $ex; skipping validation due to missing API key.\e[0m" >&2
                 skip_example=true
             elif [ "$t" == "oqc" ] && [ -z "${OQC_URL}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target oqc in $ex; skipping validation due to missing URL.\e[0m" >&2

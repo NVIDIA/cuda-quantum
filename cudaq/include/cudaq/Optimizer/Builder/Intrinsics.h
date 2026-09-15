@@ -44,16 +44,16 @@ static constexpr const char realtimeUnpackBits[] = "__nvqpp_RealtimeUnpackBits";
 
 // Convert a sequence of booleans (as bytes) into a std::vector<bool> (which is
 // typically specialized to be bit packed).
-static constexpr const char stdvecBoolCtorFromInitList[] =
+static constexpr const char sequenceBoolCtorFromInitList[] =
     "__nvqpp_initializer_list_to_vector_bool";
 
 // Convert a (likely packed) std::vector<bool> into a sequence of bytes, each
 // holding a boolean value.
-static constexpr const char stdvecBoolUnpackToInitList[] =
+static constexpr const char sequenceBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
 
 // Free any temporary buffers used to hold std::vector<bool> data.
-static constexpr const char stdvecBoolFreeTemporaryLists[] =
+static constexpr const char sequenceBoolFreeTemporaryLists[] =
     "__nvqpp_vector_bool_free_temporary_initlists";
 
 // The internal data of the cudaq::state object must be `2**n` in length. This

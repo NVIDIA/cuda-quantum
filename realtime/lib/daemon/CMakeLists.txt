@@ -13,7 +13,6 @@
 # and includes the GPU dispatch kernel device code.
 
 if(CUDA_FOUND)
-  set(CMAKE_INSTALL_LIBDIR lib)
   set(CUDAQ_REALTIME_SOURCES
     dispatcher/cudaq_realtime_api.cpp
     bridge/bridge_interface_api.cpp
@@ -23,7 +22,25 @@ if(CUDA_FOUND)
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
   add_library(cudaq::cudaq-realtime ALIAS cudaq-realtime)
-  
+
+  # nvcc compiles the CUDA objects with its GCC host toolchain and libstdc++.
+  # Keep the C++ objects and final shared-library link on that same runtime
+  # when the surrounding CUDA-Q toolchain uses Clang (the release toolchain
+  # otherwise defaults to libc++). The public interface is C-compatible and
+  # does not expose C++ standard-library ABI types.
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
+      COMPILE_OPTIONS -stdlib=libstdc++)
+    target_link_options(cudaq-realtime PRIVATE
+      "$<HOST_LINK:-stdlib=libstdc++>")
+    if(DEFINED ENV{GCC_TOOLCHAIN} AND IS_DIRECTORY "$ENV{GCC_TOOLCHAIN}")
+      set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
+        COMPILE_OPTIONS "--gcc-toolchain=$ENV{GCC_TOOLCHAIN}")
+      target_link_options(cudaq-realtime PRIVATE
+        "$<HOST_LINK:--gcc-toolchain=$ENV{GCC_TOOLCHAIN}>")
+    endif()
+  endif()
+
   target_include_directories(cudaq-realtime
     PUBLIC
       $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
@@ -129,8 +146,8 @@ if(CUDA_FOUND)
     COMPONENT realtime-lib
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
-  if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
-    add_subdirectory(bridge/hololink)
+  if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
+    add_subdirectory(bridge/gpu_roce)
   endif()
   # CPU transport bridge providers (thin provider .so's over the
   # cpu_transport ring transceivers; loaded via CUDAQ_REALTIME_BRIDGE_LIB).

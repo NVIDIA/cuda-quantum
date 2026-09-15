@@ -9,9 +9,9 @@
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
 import uuid, base64, ctypes
+import cudaq
 from pydantic import BaseModel
 from llvmlite import binding as llvm
-from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -101,9 +101,7 @@ async def postJob(job: Job,
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    with PreallocatedQubitsContext(numQubitsRequired, job.count) as context:
-        kernel()
-    results = context.result
+    results = cudaq.testing.sampleKernel(numQubitsRequired, job.count, kernel)
     results.dump()
     createdJobs[newId] = (name, results)
 

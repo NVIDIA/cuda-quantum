@@ -34,4 +34,4 @@ mlir_check_all_link_libraries(cudaq-opt)
 
 export_executable_symbols_for_plugins(cudaq-opt)
 
-install(TARGETS cudaq-opt DESTINATION bin)
+install(TARGETS cudaq-opt DESTINATION bin COMPONENT Nvqpp)

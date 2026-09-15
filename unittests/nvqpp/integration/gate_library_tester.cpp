@@ -30,12 +30,12 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
     auto test_01 = [](double theta) __qpu__ {
       cudaq::qarray<2> q;
       x(q[0]);
-      cudaq::givens_rotation(theta, q[0], q[1]);
+      cudaq_internal::givens_rotation(theta, q[0], q[1]);
     };
     auto test_10 = [](double theta) __qpu__ {
       cudaq::qarray<2> q;
       x(q[1]);
-      cudaq::givens_rotation(theta, q[0], q[1]);
+      cudaq_internal::givens_rotation(theta, q[0], q[1]);
     };
     // Matrix
     //    [[1, 0, 0, 0],
@@ -71,7 +71,7 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
       // Allocate some qubits
       auto q = test_01.qalloc(2);
       test_01.x(q[0]);
-      cudaq::builder::givens_rotation(test_01, theta, q[0], q[1]);
+      cudaq_internal::builder::givens_rotation(test_01, theta, q[0], q[1]);
       auto ss_01 = cudaq::get_state(test_01, angle);
       EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, tol);
       EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, tol);
@@ -81,7 +81,7 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
       // Allocate some qubits
       auto q = test_10.qalloc(2);
       test_10.x(q[1]);
-      cudaq::builder::givens_rotation(test_10, theta, q[0], q[1]);
+      cudaq_internal::builder::givens_rotation(test_10, theta, q[0], q[1]);
       auto ss_10 = cudaq::get_state(test_10, angle);
       EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, tol);
       EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, tol);
@@ -97,13 +97,15 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
       x(q[2]);
       x(q[0]);
       x(q[1]);
-      cudaq::control(cudaq::givens_rotation, {q[0], q[1]}, theta, q[2], q[3]);
+      cudaq::control(cudaq_internal::givens_rotation, {q[0], q[1]}, theta, q[2],
+                     q[3]);
     };
 
     auto test_01_off = [](double theta) __qpu__ {
       cudaq::qarray<4> q;
       x(q[2]);
-      cudaq::control(cudaq::givens_rotation, {q[0], q[1]}, theta, q[2], q[3]);
+      cudaq::control(cudaq_internal::givens_rotation, {q[0], q[1]}, theta, q[2],
+                     q[3]);
       x(q[2]);
     };
 
@@ -122,22 +124,22 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     auto test_00 = [](double theta) __qpu__ {
       cudaq::qarray<2> q;
-      cudaq::fermionic_swap(theta, q[0], q[1]);
+      cudaq_internal::fermionic_swap(theta, q[0], q[1]);
     };
     auto test_01 = [](double theta) __qpu__ {
       cudaq::qarray<2> q;
       x(q[0]);
-      cudaq::fermionic_swap(theta, q[0], q[1]);
+      cudaq_internal::fermionic_swap(theta, q[0], q[1]);
     };
     auto test_10 = [](double theta) __qpu__ {
       cudaq::qarray<2> q;
       x(q[1]);
-      cudaq::fermionic_swap(theta, q[0], q[1]);
+      cudaq_internal::fermionic_swap(theta, q[0], q[1]);
     };
     auto test_11 = [](double theta) __qpu__ {
       cudaq::qarray<2> q;
       x(q);
-      cudaq::fermionic_swap(theta, q[0], q[1]);
+      cudaq_internal::fermionic_swap(theta, q[0], q[1]);
     };
 
     // FermionicSWAP truth table
@@ -185,7 +187,7 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
       auto [test_00, theta] = cudaq::make_kernel<double>();
       // Allocate some qubits
       auto q = test_00.qalloc(2);
-      cudaq::builder::fermionic_swap(test_00, theta, q[0], q[1]);
+      cudaq_internal::builder::fermionic_swap(test_00, theta, q[0], q[1]);
       auto ss_00 = cudaq::get_state(test_00, angle);
       EXPECT_NEAR(std::norm(ss_00[0] - 1.0), 0.0, 1e-6);
     }
@@ -194,7 +196,7 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
       // Allocate some qubits
       auto q = test_01.qalloc(2);
       test_01.x(q[0]);
-      cudaq::builder::fermionic_swap(test_01, theta, q[0], q[1]);
+      cudaq_internal::builder::fermionic_swap(test_01, theta, q[0], q[1]);
       auto ss_01 = cudaq::get_state(test_01, angle);
       EXPECT_NEAR(std::norm(ss_01[1] - (-I * std::exp(I * angle / 2.0) * s)),
                   0.0, 1e-6);
@@ -206,7 +208,7 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
       // Allocate some qubits
       auto q = test_10.qalloc(2);
       test_10.x(q[1]);
-      cudaq::builder::fermionic_swap(test_10, theta, q[0], q[1]);
+      cudaq_internal::builder::fermionic_swap(test_10, theta, q[0], q[1]);
       auto ss_10 = cudaq::get_state(test_10, angle);
       EXPECT_NEAR(std::norm(ss_10[1] - (std::exp(I * angle / 2.0) * c)), 0.0,
                   1e-6);
@@ -218,7 +220,7 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
       // Allocate some qubits
       auto q = test_11.qalloc(2);
       test_11.x(q);
-      cudaq::builder::fermionic_swap(test_11, theta, q[0], q[1]);
+      cudaq_internal::builder::fermionic_swap(test_11, theta, q[0], q[1]);
       auto ss_11 = cudaq::get_state(test_11, angle);
       EXPECT_NEAR(std::norm(ss_11[3] - std::exp(I * angle)), 0.0, 1e-6);
     }

@@ -14,7 +14,7 @@ target_include_directories(cudaq-device-call-runtime-headers INTERFACE
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   target_link_libraries(cudaq-device-call-runtime-headers INTERFACE
-    cudaq::cudaq-realtime)
+    $<BUILD_INTERFACE:cudaq::cudaq-realtime>)
 
   set(CUDAQ_DEVICE_CALL_SOURCES
       DeviceCallDispatch.cpp
@@ -62,7 +62,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       cudaq-device-call-runtime-headers
     PRIVATE
       cudaq-common
-      cudaq::cudaq-realtime
+      "$<BUILD_INTERFACE:$<TARGET_FILE:cudaq::cudaq-realtime>>"
       ${CUDAQ_DEVICE_CALL_CPU_ROCE_LIB}
       ${CUDAQ_DEVICE_CALL_UDP_LIB}
       LLVMSupport
@@ -81,16 +81,20 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     "LINKER:--exclude-libs,libcudaq-realtime-cpu-roce-transport.a")
 
   install(TARGETS cudaq-device-call-runtime-headers
-          EXPORT cudaq-targets)
+          EXPORT cudaq-targets
+          COMPONENT Development)
 
   install(TARGETS cudaq-device-call-runtime
           EXPORT cudaq-targets
-          DESTINATION lib)
+          DESTINATION lib
+          COMPONENT Runtime)
 
   install(FILES
           ${CMAKE_SOURCE_DIR}/runtime/cudaq/realtime/device_call_service.h
-          DESTINATION include/cudaq/realtime)
+          DESTINATION include/cudaq/realtime
+          COMPONENT Development)
 
   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-          DESTINATION include)
+          DESTINATION include
+          COMPONENT Development)
 endif()

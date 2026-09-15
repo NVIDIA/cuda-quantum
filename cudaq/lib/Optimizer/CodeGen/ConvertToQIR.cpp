@@ -82,7 +82,7 @@ public:
     SmallVector<Operation *> cleanUps;
     getOperation().walk([&](cudaq::cc::ConstantArrayOp carr) {
       // If there is a constant array, then we expect that it is involved in
-      // a stdvec initializer expression. So look for the pattern and expand
+      // a sequence initializer expression. So look for the pattern and expand
       // the store into a series of scalar stores.
       //
       //   %100 = cc.const_array [c1, c2, ... cN] : ...

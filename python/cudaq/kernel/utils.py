@@ -32,6 +32,10 @@ qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
 
+# The name of the cudaq module, as written in a kernel's annotations. A kernel
+# may reach it by an alias (`import cudaq as cq`), so this is only the default.
+cudaqModuleName = 'cudaq'
+
 ahkPrefix = '__analog_hamiltonian_kernel__'
 
 # Keep a global registry of all registered custom operations.
@@ -62,8 +66,8 @@ def containsMeasureHandle(ty, _seen=None):
         return containsMeasureHandle(cc.PointerType.getElementType(ty), _seen)
     if cc.ArrayType.isinstance(ty):
         return containsMeasureHandle(cc.ArrayType.getElementType(ty), _seen)
-    if cc.StdvecType.isinstance(ty):
-        return containsMeasureHandle(cc.StdvecType.getElementType(ty), _seen)
+    if cc.SequenceType.isinstance(ty):
+        return containsMeasureHandle(cc.SequenceType.getElementType(ty), _seen)
     if cc.StructType.isinstance(ty):
         return any(
             containsMeasureHandle(t, _seen) for t in cc.StructType.getTypes(ty))
@@ -166,15 +170,20 @@ def resolve_qualified_symbol(y):
                 obj = getattr(obj, attr)
         except AttributeError:
             return None
-        from .kernel_decorator import isa_kernel_decorator
-        if not isa_kernel_decorator(obj):
+        from .kernel_decorator import (isa_extern_kernel_decorator,
+                                       isa_kernel_decorator)
+
+        def isa_kernel_like(obj):
+            return isa_kernel_decorator(obj) or isa_extern_kernel_decorator(obj)
+
+        if not isa_kernel_like(obj):
             # FIXME: Legacy hack to support incorrect Python spellings of kernel
             # names.
             try:
                 obj = getattr(obj, parts[-1])
             except AttributeError:
                 pass
-        return obj if isa_kernel_decorator(obj) else None
+        return obj if isa_kernel_like(obj) else None
     return None
 
 
@@ -395,6 +404,16 @@ def get_function_source_or_raise(function):
     return src, (filename, first_line)
 
 
+def isQuantumReferenceType(ty):
+    """
+    Return True if and only if `ty` is a quantum reference type, matching
+    `isQuantumReferenceType` in `QuakeTypes.h`. The quantum value types (wire,
+    cable, control) are not reference types and are not included.
+    """
+    return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+        ty) or quake.StruqType.isinstance(ty)
+
+
 def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
@@ -405,11 +424,7 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
 
     name = name or "tuple"
 
-    def isQuantumType(ty):
-        return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
-            ty) or quake.StruqType.isinstance(ty)
-
-    numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
+    numQuantumMembers = sum((isQuantumReferenceType(t) for t in mlirEleTypes))
     if numQuantumMembers == 0:
         if any((cc.PointerType.isinstance(t) for t in mlirEleTypes)):
             return None
@@ -429,7 +444,7 @@ def mlirTypeFromAnnotation(annotation,
     type annotation.  Throws an exception if the programmer did not annotate
     function argument types.
     """
-    _cudaq_names = cudaqAliases if cudaqAliases else {'cudaq'}
+    _cudaq_names = cudaqAliases if cudaqAliases else {cudaqModuleName}
 
     localEmitFatalError = emitFatalError
     if raiseError:
@@ -460,7 +475,7 @@ def mlirTypeFromAnnotation(annotation,
 
             if annotation.value.id in ['numpy', 'np']:
                 if annotation.attr in ['array', 'ndarray']:
-                    return cc.StdvecType.get(F64Type.get())
+                    return cc.SequenceType.get(F64Type.get())
                 if annotation.attr == 'complex128':
                     return ComplexType.get(F64Type.get())
                 if annotation.attr == 'complex64':
@@ -527,7 +542,7 @@ def mlirTypeFromAnnotation(annotation,
                                                ctx,
                                                raiseError=raiseError,
                                                cudaqAliases=cudaqAliases)
-            return cc.StdvecType.get(listEleTy)
+            return cc.SequenceType.get(listEleTy)
 
         if isinstance(annotation,
                       ast.Subscript) and (annotation.value.id == 'tuple' or
@@ -636,37 +651,6 @@ def mlirTypeFromAnnotation(annotation,
         f" is not a supported type.")
 
 
-def pyInstanceFromName(name: str):
-    if name == 'bool':
-        return bool(False)
-    if name == 'int':
-        return int(0)
-    if name in ['numpy.int8', 'np.int8']:
-        return np.int8(0)
-    if name in ['numpy.int16', 'np.int16']:
-        return np.int16(0)
-    if name in ['numpy.int32', 'np.int32']:
-        return np.int32(0)
-    if name in ['numpy.int64', 'np.int64']:
-        return np.int64(0)
-    if name == 'int':
-        return int(0)
-    if name == 'float':
-        return float(0.0)
-    if name in ['numpy.float32', 'np.float32']:
-        return np.float32(0.0)
-    if name in ['numpy.float64', 'np.float64']:
-        return np.float64(0.0)
-    if name == 'complex':
-        return 0j
-    if name == 'pauli_word':
-        return pauli_word('')
-    if name in ['numpy.complex128', 'np.complex128']:
-        return np.complex128(0.0)
-    if name in ['numpy.complex64', 'np.complex64']:
-        return np.complex64(0.0)
-
-
 def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType in [int, np.int64]:
         return IntegerType.get_signless(64, ctx)
@@ -697,15 +681,15 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         pyEleTy = get_args(argType)
         if len(pyEleTy) == 1:
             eleTy = mlirTypeFromPyType(pyEleTy[0], ctx)
-            return cc.StdvecType.get(eleTy, ctx)
+            return cc.SequenceType.get(eleTy, ctx)
         argType = list
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
-            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
+            return cc.SequenceType.get(mlirTypeFromPyType(float, ctx), ctx)
         if argType != np.ndarray:
             if kwargs['argInstance'] == None:
-                return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
+                return cc.SequenceType.get(mlirTypeFromPyType(float, ctx), ctx)
 
         argInstance = kwargs['argInstance']
         argTypeToCompareTo = kwargs[
@@ -715,30 +699,30 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             if isinstance(argInstance, np.ndarray):
                 eleTy = mlirTypeFromPyType(argInstance.dtype.type, ctx)
                 for _ in range(argInstance.ndim - 1):
-                    eleTy = cc.StdvecType.get(eleTy, ctx)
-                return cc.StdvecType.get(eleTy, ctx)
+                    eleTy = cc.SequenceType.get(eleTy, ctx)
+                return cc.SequenceType.get(eleTy, ctx)
 
             if argTypeToCompareTo == None:
                 emitFatalError('Cannot infer runtime argument type')
 
-            eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-            return cc.StdvecType.get(eleTy, ctx)
+            eleTy = cc.SequenceType.getElementType(argTypeToCompareTo)
+            return cc.SequenceType.get(eleTy, ctx)
 
         if isinstance(argInstance[0], list):
-            return cc.StdvecType.get(
+            return cc.SequenceType.get(
                 mlirTypeFromPyType(
                     type(argInstance[0]),
                     ctx,
                     argInstance=argInstance[0],
                     argTypeToCompareTo=(
-                        cc.StdvecType.getElementType(argTypeToCompareTo)
+                        cc.SequenceType.getElementType(argTypeToCompareTo)
                         if argTypeToCompareTo is not None else None)), ctx)
 
         if isinstance(argInstance[0], str):
-            return cc.StdvecType.get(cc.CharspanType.get(ctx), ctx)
+            return cc.SequenceType.get(cc.CharspanType.get(ctx), ctx)
 
-        return cc.StdvecType.get(mlirTypeFromPyType(type(argInstance[0]), ctx),
-                                 ctx)
+        return cc.SequenceType.get(
+            mlirTypeFromPyType(type(argInstance[0]), ctx), ctx)
 
     if get_origin(argType) == tuple:
         eleTypes = []
@@ -809,9 +793,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
     if 'argInstance' not in kwargs:
         if argType == list[int]:
-            return cc.StdvecType.get(mlirTypeFromPyType(int, ctx), ctx)
+            return cc.SequenceType.get(mlirTypeFromPyType(int, ctx), ctx)
         if argType == list[float]:
-            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
+            return cc.SequenceType.get(mlirTypeFromPyType(float, ctx), ctx)
 
     emitFatalError(
         f"Cannot handle conversion of python type {argType} to MLIR type.")
@@ -858,8 +842,8 @@ def mlirTypeToPyType(argType):
     if cc.MeasureHandleType.isinstance(argType):
         return measure_handle
 
-    if cc.StdvecType.isinstance(argType):
-        eleTy = cc.StdvecType.getElementType(argType)
+    if cc.SequenceType.isinstance(argType):
+        eleTy = cc.SequenceType.getElementType(argType)
         if cc.CharspanType.isinstance(eleTy):
             return list[pauli_word]
 

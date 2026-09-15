@@ -16,5 +16,7 @@ target_link_libraries(cudaq-serverhelper-anyon
     cudaq-common 
     cudaq-logger
 )
-install(TARGETS cudaq-serverhelper-anyon DESTINATION lib)
+install(TARGETS cudaq-serverhelper-anyon
+        DESTINATION lib
+        COMPONENT Runtime)
 

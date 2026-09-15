@@ -122,18 +122,18 @@ public:
 //
 // Transformation is:
 //
-//  %30 = cc.scope -> (!cc.stdvec<i1>) {
+//  %30 = cc.scope -> (!cc.sequence<i1>) {
 //    ...
 //    %34 = cc.alloca i8[%15 : i64]
 //    ...
 //    %36 = func.call @malloc(%15) : (i64) -> !cc.ptr<i8>
 //    func.call @llvm.memcpy.p0.p0.i64(%36, %34, %35, %false) :
 //      (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> () [dead]
-//    %37 = cc.stdvec_init %36, %15 : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
+//    %37 = cc.sequence_init %36, %15 : (!cc.ptr<i8>, i64) -> !cc.sequence<i1>
 //    cc.continue %37
 //  }
-//  %37 = cc.stdvec_data %30 : (!stdvec<i1>) -> !cc.ptr<i8>
-//  %38 = cc.stdvec_size %30 : (!stdvec<i1>) -> i64
+//  %37 = cc.sequence_data %30 : (!sequence<i1>) -> !cc.ptr<i8>
+//  %38 = cc.sequence_size %30 : (!sequence<i1>) -> i64
 //  %39 = cc.alloca i8[%38 : i64]
 //  %40 = cc.cast %39 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 //  func.call @llvm.memcpy.p0.p0.i64(%40, %37, %38, %false) :
@@ -155,13 +155,13 @@ public:
       return failure();
     auto scope = dyn_cast_if_present<cudaq::cc::ScopeOp>(call->getParentOp());
     if (!(scope && scope.getResults().size() == 1 &&
-          isa<cudaq::cc::StdvecType>(scope->getResult(0).getType()) &&
+          isa<cudaq::cc::SequenceType>(scope->getResult(0).getType()) &&
           std::distance(call->getUsers().begin(), call->getUsers().end()) == 2))
       return failure();
 
     // Check call (malloc) users.
     func::CallOp copyFrom;
-    cudaq::cc::StdvecInitOp initOp;
+    cudaq::cc::SequenceInitOp initOp;
     for (auto *u : call->getUsers()) {
       auto c = dyn_cast<func::CallOp>(u);
       if (c && c.getCallee().starts_with("llvm.memcpy") &&
@@ -169,7 +169,7 @@ public:
         copyFrom = c;
         continue;
       }
-      auto io = dyn_cast<cudaq::cc::StdvecInitOp>(u);
+      auto io = dyn_cast<cudaq::cc::SequenceInitOp>(u);
       if (io && !initOp) {
         initOp = io;
         continue;
@@ -187,15 +187,15 @@ public:
     // Check scope users.
     if (std::distance(scope->getUsers().begin(), scope->getUsers().end()) != 2)
       return failure();
-    cudaq::cc::StdvecDataOp data;
-    cudaq::cc::StdvecSizeOp size;
+    cudaq::cc::SequenceDataOp data;
+    cudaq::cc::SequenceSizeOp size;
     for (auto *u : scope->getUsers()) {
-      auto d = dyn_cast<cudaq::cc::StdvecDataOp>(u);
+      auto d = dyn_cast<cudaq::cc::SequenceDataOp>(u);
       if (d && !data) {
         data = d;
         continue;
       }
-      auto s = dyn_cast<cudaq::cc::StdvecSizeOp>(u);
+      auto s = dyn_cast<cudaq::cc::SequenceSizeOp>(u);
       if (s && !size) {
         size = s;
         continue;

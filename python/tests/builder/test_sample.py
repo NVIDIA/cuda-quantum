@@ -400,9 +400,11 @@ def test_sample_async_params():
 
 def test_sample_marginalize():
     """
-    A more thorough test of the functionality of `SampleResult::get_marginal_counts`.
+    A more thorough test of the functionality of
+    `SampleResult::get_marginal_counts`.
     """
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qubits = kernel.qalloc(4)
     # Place register in `0101` state.
     kernel.x(qubits[1])
@@ -580,6 +582,7 @@ def test_issue_1218():
     def ghz(n):
 
         kernel = cudaq.make_kernel()
+        kernel.disable_quantum_optimization()
         qubits = kernel.qalloc(n)
         kernel.h(qubits[0])
 

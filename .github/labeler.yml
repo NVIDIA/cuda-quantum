@@ -9,7 +9,7 @@ core compiler:
 'driver (nvq++)':
   - changed-files:
     - any-glob-to-any-file:
-      - cudaq/tools/nvqpp/**
+      - cudaq/tools/nvq++/**
 
 c++ bridge:
   - changed-files:
@@ -92,3 +92,10 @@ build:
       - docker/**
       - scripts/**
       - CMakeLists.txt
+
+CI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/**
+      - .pre-commit-config.yaml
+      - .licenserc.yaml

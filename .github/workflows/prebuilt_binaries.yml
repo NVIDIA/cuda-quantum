@@ -24,6 +24,11 @@ on:
       environment:
         type: string
         required: false
+      run_validation:
+        type: boolean
+        required: false
+        default: true
+        description: Run installer validation. Deployments disables this; validation runs in the Validation workflow.
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -346,7 +351,7 @@ jobs:
   validation:
     name: Validate installer
     needs: [build_installer, build_openmpi, create_test_config]
-    if: toJson(fromJSON(needs.create_test_config.outputs.json).operating_systems) != '[]'
+    if: inputs.run_validation && toJson(fromJSON(needs.create_test_config.outputs.json).operating_systems) != '[]'
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -583,7 +588,7 @@ jobs:
 
   staging:
     name: Staging
-    needs: [build_installer, build_openmpi, create_test_config, validation]
+    needs: [build_installer, build_openmpi, create_test_config]
     if: inputs.environment
     runs-on: ubuntu-latest
     permissions:
@@ -598,8 +603,9 @@ jobs:
         run: |
           image_hash=${{ needs.build_installer.outputs.image_hash }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
+          artifact_name=installer_${platform_id}_cu${cuda_major}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -611,7 +617,6 @@ jobs:
           echo "openmpi-build-cache: ${{ needs.build_openmpi.outputs.build_cache }}" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
           echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
-          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v7

@@ -515,7 +515,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
 //   func.func @veq_measurement_break(%vec: !quake.veq<3>, %q: !quake.ref)
 //   attributes {"cudaq-kernel"} {
 //     quake.h %q : (!quake.ref) -> ()
-//     %m = quake.mz %vec : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+//     %m = quake.mz %vec : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 //     quake.x %q : (!quake.ref) -> ()
 //     return
 //   }
@@ -537,7 +537,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   Value vec = func.getArgument(0);
   Value q = func.getArgument(1);
   Type measureVecTy =
-      cudaq::cc::StdvecType::get(cudaq::cc::MeasureHandleType::get(&context));
+      cudaq::cc::SequenceType::get(cudaq::cc::MeasureHandleType::get(&context));
   auto *h = cudaq::quake::HOp::create(builder, loc, q).getOperation();
   auto *mz = cudaq::quake::MzOp::create(builder, loc, TypeRange{measureVecTy},
                                         ValueRange{vec}, StringAttr{})

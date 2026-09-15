@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
@@ -80,9 +81,11 @@ static llvm::cl::opt<bool> emitLLVM(
                    "translation will terminate with the selected dialect."),
     llvm::cl::init(true));
 
-static constexpr const char BOLD[] = "\033[1m";
-static constexpr const char RED[] = "\033[91m";
-static constexpr const char CLEAR[] = "\033[0m";
+static llvm::cl::opt<bool> disableQuantumOptimization(
+    "fdisable-quantum-optimization",
+    llvm::cl::desc("Disable value-semantics quantum optimization passes "
+                   "(quake-simplify, dqe) during QIR code generation."),
+    llvm::cl::init(false));
 
 using namespace mlir;
 
@@ -124,28 +127,29 @@ int main(int argc, char **argv) {
     cudaq::emitFatalError(UnknownLoc::get(&context),
                           "Could not open input file: " + ec.message());
 
-  // Parse the input mlir.
   llvm::SourceMgr sourceMgr;
   sourceMgr.AddNewSourceBuffer(std::move(*fileOrErr), llvm::SMLoc());
-  auto module = parseSourceFile<ModuleOp>(sourceMgr, &context);
 
-  DiagnosticEngine &engine = context.getDiagEngine();
-  engine.registerHandler([&](Diagnostic &diag) -> LogicalResult {
-    llvm::errs() << BOLD << RED
-                 << "[quake-translate] Dumping Module after error.\n"
-                 << CLEAR;
-    for (auto &n : diag.getNotes()) {
-      std::string s;
-      llvm::raw_string_ostream os(s);
-      n.print(os);
-      os.flush();
-      llvm::errs() << BOLD << RED << "[quake-translate] Reported Error: " << s
-                   << "\n"
-                   << CLEAR;
-    }
-    bool should_propagate_diagnostic = true;
-    return failure(should_propagate_diagnostic);
+  // Render diagnostics with the source line they came from.
+  SourceMgrDiagnosticHandler diagHandler(sourceMgr, &context);
+
+  // Returning failure here hands the diagnostic on to `diagHandler`, which
+  // does the printing.
+  unsigned numErrors = 0;
+  context.getDiagEngine().registerHandler([&](Diagnostic &diag) {
+    if (diag.getSeverity() == DiagnosticSeverity::Error)
+      ++numErrors;
+    return failure();
   });
+
+  // The offending Op is not appended to each diagnostic. The IR can be fetched
+  // by passing `-mlir-print-ir-after-failure`.
+  context.printOpOnDiagnostic(false);
+
+  // Parse the input mlir.
+  auto module = parseSourceFile<ModuleOp>(sourceMgr, &context);
+  if (!module)
+    return 1;
 
   PassManager pm(&context);
   // Apply any generic pass manager command line options and run the pipeline.
@@ -179,9 +183,13 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
+               bool useValueSemantics =
+                   !disableQuantumOptimization &&
+                   !modOp->hasAttr(cudaq::runtime::disableQuantumOpts);
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
-               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue);
+               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,
+                                                      useValueSemantics);
              })
       .Case("openqasm2",
             [&]() {
@@ -203,8 +211,8 @@ int main(int argc, char **argv) {
         std::exit(1);
       })();
 
-  if (failed(pm.run(*module)))
-    cudaq::emitFatalError(module->getLoc(), "pipeline failed");
+  if (failed(pm.run(*module)) || numErrors)
+    return 1;
 
   if (!targetUsesLlvm) {
     targetAction();

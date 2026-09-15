@@ -15,6 +15,7 @@
 // Rotational gates not supported in Stim.
 #ifndef CUDAQ_BACKEND_STIM
 
+namespace qpe_nisq {
 struct iqft {
   void operator()(cudaq::qview<> &q) __qpu__ {
     int N = q.size();
@@ -76,14 +77,6 @@ struct qpe {
   }
 };
 
-CUDAQ_TEST(QPENisqTester, checkSimple) {
-  auto counts = cudaq::sample(
-      qpe{}, 3, 1, [](cudaq::qubit &q) __qpu__ { x(q); }, tgate{});
-  counts.dump();
-  EXPECT_EQ(1, counts.size());
-  EXPECT_TRUE(counts.begin()->first == "100");
-}
-
 struct xOp {
   void operator()(cudaq::qubit &q) __qpu__ { x(q); }
 };
@@ -121,6 +114,17 @@ struct qpeWithForwarding {
     return;
   }
 };
+
+} // namespace qpe_nisq
+
+using namespace qpe_nisq;
+CUDAQ_TEST(QPENisqTester, checkSimple) {
+  auto counts = cudaq::sample(
+      qpe{}, 3, 1, [](cudaq::qubit &q) __qpu__ { x(q); }, tgate{});
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+  EXPECT_TRUE(counts.begin()->first == "100");
+}
 
 CUDAQ_TEST(QPENisqTester, checkPerfectForwardingBug) {
   auto counts = cudaq::sample(qpeWithForwarding{}, 3, 1, xOp{}, tgate{});

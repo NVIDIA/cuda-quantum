@@ -81,10 +81,10 @@ inline std::string runDemFromKernel(const std::string &kernelName,
   auto result = launchDem(policy, platform, wrappedKernel, plugin_name);
 
   if (m2d_out)
-    *m2d_out = std::move(result.m2d);
+    *m2d_out = std::move(result).get_m2d();
   if (m2o_out)
-    *m2o_out = std::move(result.m2o);
-  return std::move(result.dem);
+    *m2o_out = std::move(result).get_m2o();
+  return std::move(result).get_dem();
 }
 
 } // namespace cudaq::detail

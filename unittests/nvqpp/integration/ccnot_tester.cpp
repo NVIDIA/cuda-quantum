@@ -9,6 +9,24 @@
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
 
+#ifndef CUDAQ_BACKEND_STIM
+namespace ccnot_tester {
+// Local lambdas passed to cudaq::control / cudaq::adjoint are lifted to
+// separate functions; apply-op-specialization then fails on those calls
+// because inlining runs later in the nvq++ pipeline. Use named noinline
+// __qpu__ helpers instead (same pattern as adjoint_tester / grover_test).
+// See https://github.com/NVIDIA/cuda-quantum/issues/3762.
+__attribute__((noinline)) __qpu__ void apply_x(cudaq::qubit &q) { x(q); }
+
+__attribute__((noinline)) __qpu__ void test_inner_adjoint(cudaq::qubit &q) {
+  cudaq::adjoint(apply_x, q);
+}
+
+__attribute__((noinline)) __qpu__ void ctrl_x(cudaq::qubit &ctrl,
+                                              cudaq::qubit &target) {
+  cudaq::control(apply_x, ctrl, target);
+}
+
 // Demonstrate we can perform multi-controlled operations
 struct ccnot_test {
   void operator()() __qpu__ {
@@ -16,11 +34,6 @@ struct ccnot_test {
 
     x(q);
     x(q[1]);
-
-    auto apply_x = [](cudaq::qubit &q) { x(q); };
-    auto test_inner_adjoint = [&](cudaq::qubit &q) {
-      cudaq::adjoint(apply_x, q);
-    };
 
     auto controls = q.front(2);
     cudaq::control(test_inner_adjoint, controls, q[2]);
@@ -31,8 +44,6 @@ struct ccnot_test {
 
 struct nested_ctrl {
   void operator()() __qpu__ {
-    auto apply_x = [](cudaq::qubit &r) { x(r); };
-
     cudaq::qvector q(3);
     // Create 101
     x(q);
@@ -44,17 +55,15 @@ struct nested_ctrl {
     // 2. Queue Ctrl (q[1]) X (q[2])
     // 3. Queue Ctrl (q[0], q[1]) X(q[2]);
     // 4. Apply
-    cudaq::control(
-        [&](cudaq::qubit &r) {
-          cudaq::control([&](cudaq::qubit &r) { apply_x(r); }, q[1], r);
-        },
-        q[0], q[2]);
+    cudaq::control(ctrl_x, q[0], q[1], q[2]);
 
     mz(q);
   }
 };
+} // namespace ccnot_tester
 
-#ifndef CUDAQ_BACKEND_STIM
+using namespace ccnot_tester;
+
 CUDAQ_TEST(CCNOTTester, checkSimple) {
   auto ccnot = []() {
     cudaq::qvector q(3);

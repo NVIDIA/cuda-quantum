@@ -15,7 +15,6 @@
 // RUN: if %qbraid_avail; then nvq++ --target qbraid          --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: nvq++ --target quantinuum      --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %quantum_machines_avail; then nvq++ --target quantum_machines --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 

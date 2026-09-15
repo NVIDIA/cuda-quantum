@@ -9,7 +9,7 @@
 #pragma once
 #include "cudaq/builder/kernel_builder.h"
 #include <cudaq.h>
-namespace cudaq {
+namespace cudaq_internal {
 /// @brief Apply global phase (e^(i * theta)).
 /// Note: since this is a global phase, the qubit operand can be selected
 /// arbitrarily from the qubit register to which the global phase is applied.
@@ -109,4 +109,4 @@ void fermionic_swap(KernelBuilder &kernel, double phi, cudaq::QuakeValue q0,
   fermionic_swap(kernel, kernel.constantVal(phi), q0, q1);
 }
 } // namespace builder
-} // namespace cudaq
+} // namespace cudaq_internal

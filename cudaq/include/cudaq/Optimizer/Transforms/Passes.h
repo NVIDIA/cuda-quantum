@@ -29,11 +29,17 @@ namespace cudaq::opt {
 void addAggressiveInlining(mlir::OpPassManager &pm, bool fatalCheck = false);
 void registerAggressiveInliningPipeline();
 
-void registerPhaseFoldingPipeline();
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 void registerToCFGPipeline();
+void registerFaultTolerantTargetPipeline();
+
+/// Convert supported Quake IR to explicit linear values. This splits
+/// fixed-size allocations, expands vector controls, and threads reusable
+/// controls through their uses.
+void addConvertToLinearValues(mlir::OpPassManager &pm);
+void registerConvertToLinearValuesPipeline();
 
 /// This pipeline is run on every kernel decorator immediately after its
 /// definition has been processed by the Python bridge. It converts the
@@ -54,6 +60,40 @@ void addDecomposition(mlir::OpPassManager &pm,
                       mlir::ArrayRef<std::string> enabledPats,
                       mlir::ArrayRef<std::string> disabledPats = {});
 
+/// Clifford+T fault-tolerant synthesis sub-pipeline
+/// UnitarySynthesis
+/// ApplyOpSpecialization
+/// constant propagation
+/// `exp-pauli` and U3 decomposition
+/// quantum deallocation insertion and linear-value conversion
+/// `thresholded` exact-angle simplification
+/// register-to-memory conversion
+/// rotation-to-`Rz` decomposition
+/// CliffordTSynthesis
+/// Decomposition to the {H, S, T, X, Z, CNOT} basis
+///
+/// Intent: this is the production entry point for fault-tolerant lowering. It
+/// is the exact sub-pipeline registered as `cudaq-fault-tolerant-target` (see
+/// registerFaultTolerantTargetPipeline), not a test-only helper. The prelude
+/// passes (UnitarySynthesis, ApplyOpSpecialization, constant propagation) are
+/// included on purpose so the sub-pipeline is self-contained and establishes
+/// CliffordTSynthesis's preconditions (materialized controls/`adjoints`, folded
+/// constant angles) regardless of what ran before it. That means these passes
+/// may re-run if an enclosing pipeline already scheduled them; the passes are
+/// idempotent on already-lowered IR, so the duplication is safe.
+///
+/// Opt-in only. This helper is not added to default target pipelines.
+///
+/// `seed` seeds the randomized factoring in CliffordTSynthesis. 0 leaves it
+/// unseeded, so the synthesized circuit may differ from run to run. Targets
+/// set it through their config.
+void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
+                           bool failOnControlledRotation = false,
+                           uint64_t seed = 0);
+/// Append the common pipeline that expands, normalizes, and lowers
+/// `quake.phase` operations before final code generation.
+void addPhaseLifecycle(mlir::OpPassManager &pm);
+
 void registerAOTPipelines();
 void registerJITPipelines();
 
@@ -62,12 +102,15 @@ void registerJITPipelines();
 /// fully expanded to eliminate control flow.
 /// Default values are threshold = 1024, allow break = true, and allow closed
 /// interval = true. If loop unrolling is disabled (`disableLoopUnrolling` =
-/// true), the pipeline keeps cc.loop operations.
+/// true), the pipeline keeps cc.loop operations. The two selective unrolling
+/// options mirror the cc-loop-unroll options of the same name.
 void createClassicalOptimizationPipeline(
     mlir::OpPassManager &pm, std::optional<unsigned> threshold = std::nullopt,
     std::optional<bool> allowBreak = std::nullopt,
     std::optional<bool> allowClosedInterval = std::nullopt,
-    std::optional<bool> disableLoopUnrolling = std::nullopt);
+    std::optional<bool> disableLoopUnrolling = std::nullopt,
+    std::optional<bool> unrollOnlyAliasingQuantumAccessLoops = std::nullopt,
+    std::optional<bool> unrollOnlyIndexUseLoops = std::nullopt);
 
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 void addLowerToCFG(mlir::OpPassManager &pm);

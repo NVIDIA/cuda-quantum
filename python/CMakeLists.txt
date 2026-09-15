@@ -44,9 +44,13 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
 )
 
-# cudaq/mlir is excluded: the MLIR machinery in extension/ stages it, and
-# a second producer for the same outputs races it. No CONFIGURE_DEPENDS:
-# a mid-ctest reconfigure relinks libraries under running tests. Adding a
+# cudaq/mlir is excluded: the dialect bindings under it are staged by
+# cudaq/python/CMakeLists.txt (CUDAQCorePythonModules) and the extension/
+# module here (CUDAQuantumPythonModules); a second producer for the same
+# outputs would race them. In practice this directory no longer exists under
+# python/cudaq/ (the bindings moved to cudaq/python/mlir/), but the filter is
+# kept as a guard against reintroducing the race. No CONFIGURE_DEPENDS: a
+# mid-ctest reconfigure relinks libraries under running tests. Adding a
 # python file requires a reconfigure.
 file(GLOB_RECURSE _cudaq_package_sources
   RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
@@ -78,9 +82,9 @@ add_dependencies(CUDAQuantumPythonModules CUDAQPythonStaging)
 add_subdirectory(runtime/cudaq/domains/plugins)
 
 if (NOT SKBUILD)
-  install(DIRECTORY cudaq DESTINATION .)
+  install(DIRECTORY cudaq DESTINATION . COMPONENT CUDAQuantumPythonModules)
 endif()
-install(FILES "${METADATA_FILE}" DESTINATION cudaq)
+install(FILES "${METADATA_FILE}" DESTINATION cudaq COMPONENT CUDAQuantumPythonModules)
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
@@ -106,3 +110,5 @@ add_subdirectory(runtime/interop)
 if (cuDensityMat_FOUND)
   add_subdirectory(runtime/cudaq/dynamics)
 endif()
+
+add_subdirectory(runtime/synth)

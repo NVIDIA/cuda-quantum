@@ -49,7 +49,7 @@ fi
 nanobind_cmake_dir=$("$Python3_EXECUTABLE" -m nanobind --cmake_dir)
 if [ ! -d "$nanobind_cmake_dir" ]; then
   echo "Could not locate nanobind cmake dir from $Python3_EXECUTABLE."
-  echo "Install with: $Python3_EXECUTABLE -m pip install 'nanobind>=2.9.0'"
+  echo "Install with: $Python3_EXECUTABLE -m pip install 'nanobind>=2.12.0,<3'"
   exit 1
 fi
 

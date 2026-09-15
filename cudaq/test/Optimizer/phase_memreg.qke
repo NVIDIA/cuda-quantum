@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --memtoreg %s | FileCheck %s --check-prefix=MEM
+// RUN: cudaq-opt --memtoreg --regtomem %s | FileCheck %s --check-prefix=ROUND
+
+func.func @phase_memreg(%theta: f64) {
+  %c = quake.alloca !quake.ref
+  %q = quake.alloca !quake.ref
+  quake.phase (%theta) [%c] %q
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.dealloc %q : !quake.ref
+  quake.dealloc %c : !quake.ref
+  return
+}
+
+// MEM-LABEL: func.func @phase_memreg(
+// MEM-SAME: %[[MEM_THETA:[^: ]+]]: f64)
+// MEM: %[[PHASE:[^: ]+]]:2 = quake.phase (%[[MEM_THETA]]) {{\[}}%[[MEM_CONTROL:[a-zA-Z0-9_.$-]+]]{{\]}} %[[MEM_ANCHOR:[a-zA-Z0-9_.$-]+]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// MEM: quake.sink %[[PHASE]]#1 : !quake.wire
+// MEM: quake.sink %[[PHASE]]#0 : !quake.wire
+
+// ROUND-LABEL: func.func @phase_memreg(
+// ROUND-SAME: %[[ROUND_THETA:[^: ]+]]: f64)
+// ROUND: quake.phase (%[[ROUND_THETA]]) {{\[}}%[[ROUND_CONTROL:[a-zA-Z0-9_.$-]+]]{{\]}} %[[ROUND_ANCHOR:[a-zA-Z0-9_.$-]+]] : (f64, !quake.ref, !quake.ref) -> ()
+// ROUND-NOT: !quake.wire

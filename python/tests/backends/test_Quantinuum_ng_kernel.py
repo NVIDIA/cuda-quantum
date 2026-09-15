@@ -263,9 +263,9 @@ def test_quantinuum_dem_from_kernel_target_independent():
         cudaq.logical_observable(m0)
         return m0 ^ m1 ^ m2
 
-    dem_text = cudaq.dem_from_kernel(kernel)
-    assert "detector D0" in dem_text
-    assert "logical_observable L0" in dem_text
+    result = cudaq.dem_from_kernel(kernel)
+    assert "detector D0" in result.dem
+    assert "logical_observable L0" in result.dem
 
     results = cudaq.run(kernel, shots_count=10)
     assert len(results) == 10

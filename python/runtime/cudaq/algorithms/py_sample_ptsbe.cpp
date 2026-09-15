@@ -113,6 +113,7 @@ struct AsyncPTSBESampleResultImpl {
 /// @brief Run PTSBE sampling asynchronously from Python.
 static AsyncPTSBESampleResultImpl
 pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
+                   std::shared_ptr<detail::CompiledModuleCache> cache,
                    std::size_t shots_count, noise_model &noiseModel,
                    std::optional<std::size_t> max_trajectories,
                    std::optional<std::shared_ptr<ptsbe::PTSSamplingStrategy>>
@@ -144,9 +145,10 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   // Release GIL before launching async C++ work
   nanobind::gil_scoped_release release;
   return AsyncPTSBESampleResultImpl(ptsbe::detail::runSamplingAsyncPTSBE(
-      [opaques = std::move(opaques), kernelName, mod = mod.clone()]() mutable {
+      [opaques = std::move(opaques), kernelName, cache,
+       mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, opaques);
+            clean_launch_module(kernelName, mod, opaques, cache);
       },
       platform, kernelName, shots_count, ptsbe_options, /*qpu_id=*/0,
       noiseModel));
@@ -432,8 +434,9 @@ Returns:
   // PTSBE async sample implementation
   ptsbe.def(
       "sample_async_impl", pySampleAsyncPTSBE, nanobind::arg("kernel_name"),
-      nanobind::arg("module"), nanobind::arg("shots_count"),
-      nanobind::arg("noise_model"), nanobind::arg("max_trajectories").none(),
+      nanobind::arg("module"), nanobind::arg("cache"),
+      nanobind::arg("shots_count"), nanobind::arg("noise_model"),
+      nanobind::arg("max_trajectories").none(),
       nanobind::arg("sampling_strategy").none(),
       nanobind::arg("shot_allocation").none(),
       nanobind::arg("return_execution_data"),

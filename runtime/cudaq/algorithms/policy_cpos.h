@@ -9,14 +9,17 @@
 /// @file policy_cpos.h
 /// @brief Customization-point objects (CPOs) for policy-based dispatching.
 ///
-/// Each CPO wraps a named customization point (e.g. @c finalize). To opt in
-/// for a policy @c P, declare a hidden-friend overload of the @c finalize
-/// function inside the policy struct; the CPO discovers it via ADL.
+/// Each CPO wraps a named customization point (e.g. @c finalize,
+/// @c get_compile_options). To opt in for a policy @c P, declare a
+/// hidden-friend overload of the corresponding @c *_impl function inside the
+/// policy struct; the CPO discovers it via ADL.
 ///
 /// When no policy-specific overload is found, the CPO falls back to a
 /// default implementation that bypasses the policy entirely.
 
 #pragma once
+
+#include "common/CompileOptions.h"
 
 namespace nvqir {
 class CircuitSimulator;
@@ -63,6 +66,33 @@ struct finalize_execution_manager_fn {
 /// @brief CPO: finalize an execution context via the ExecutionManager.
 inline constexpr detail::finalize_execution_manager_fn
     finalize_execution_manager{};
+
+namespace detail {
+
+/// @brief Detects whether a policy-specific @c get_compile_options_impl
+///        overload exists for type @p T (found via ADL through hidden friends).
+template <class T>
+concept has_custom_compile_options =
+    requires(const T &policy) { get_compile_options_impl(policy); };
+
+/// @brief CPO function object for per-policy compile options.
+///
+/// Dispatches to a policy-specific @c get_compile_options_impl if one exists,
+/// otherwise returns default-constructed @c CompileOptions.
+struct get_compile_options_fn {
+  template <class Policy>
+  CompileOptions operator()(const Policy &policy) const {
+    if constexpr (has_custom_compile_options<Policy>)
+      return get_compile_options_impl(policy);
+    else
+      return CompileOptions{};
+  }
+};
+
+} // namespace detail
+
+/// @brief CPO: compile options for a policy.
+inline constexpr detail::get_compile_options_fn get_compile_options{};
 
 } // namespace cudaq
 

@@ -16,13 +16,15 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
 using namespace cudaq;
 
 static async_sample_result sample_async_impl(
-    const std::string &shortName, MlirModule module, std::size_t shots_count,
+    const std::string &shortName, MlirModule module,
+    std::shared_ptr<detail::CompiledModuleCache> cache, std::size_t shots_count,
     std::optional<noise_model> noise_model, bool explicit_measurements,
     std::size_t qpu_id, nanobind::args runtimeArgs) {
   mlir::ModuleOp mod = unwrap(module);
@@ -57,11 +59,11 @@ static async_sample_result sample_async_impl(
       // (1) no Python data access is allowed in this lambda body.
       // (2) This lambda might be executed multiple times, e.g, when
       // the kernel contains measurement feedback.
-      detail::make_copyable_function(
-          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
-            [[maybe_unused]] auto result =
-                clean_launch_module(kernelName, *clonedMod, opaques);
-          }),
+      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
+                                      clonedMod, cache]() mutable {
+        [[maybe_unused]] auto result =
+            clean_launch_module(kernelName, *clonedMod, opaques, cache);
+      }),
       platform, kernelName, shots_count, explicit_measurements, qpu_id,
       std::move(noise_model));
 }
@@ -111,7 +113,7 @@ programming pattern.
 
   mod.def("sample_async_impl", sample_async_impl, "FIXME: document",
           nanobind::arg("short_name"), nanobind::arg("module"),
-          nanobind::arg("shots_count"),
+          nanobind::arg("cache"), nanobind::arg("shots_count"),
           nanobind::arg("noise_model").none() = std::nullopt,
           nanobind::arg("explicit_measurements"), nanobind::arg("qpu_id"),
           nanobind::arg("runtime_args"));

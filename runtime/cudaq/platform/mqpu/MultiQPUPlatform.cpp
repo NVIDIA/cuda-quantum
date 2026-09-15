@@ -33,7 +33,7 @@ public:
   ~MultiQPUQuantumPlatform() {
     // Make sure that we clean up the client QPUs first before cleaning up the
     // remote servers.
-    platformQPUs.clear();
+    clearQPUs();
   }
 
   MultiQPUQuantumPlatform() { populateDefaultQPUs(); }
@@ -120,14 +120,14 @@ private:
                         qpuSubType));
       if (qpuSubType == "orca") {
         auto urls = cudaq::split(getOption(description, "url"), ',');
-        platformQPUs.clear();
+        clearQPUs();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
-          platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>("orca"));
-          platformQPUs.back()->setId(qId);
+          auto &qpu = addQPU(cudaq::registry::get<cudaq::QPU>("orca"));
+          qpu.setId(qId);
           const std::string configStr =
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
-          platformQPUs.back()->setTargetBackend(configStr);
+          qpu.setTargetBackend(configStr);
         }
         return;
       } else {
@@ -139,7 +139,7 @@ private:
     } else {
       populateDefaultQPUs();
 
-      if (platformQPUs.empty()) {
+      if (num_qpus() == 0) {
         // No QPU (GPU simulator nor specified platform QPU) was able to be
         // initialized, so we can't run.
         throw std::runtime_error(
@@ -151,7 +151,7 @@ private:
 };
 
 void MultiQPUQuantumPlatform::populateDefaultQPUs() {
-  platformQPUs.clear();
+  clearQPUs();
   int nDevices = cudaq::getCudaDeviceCount();
   // Skipped if CUDA-Q was built with CUDA but no devices present at
   // runtime.
@@ -174,10 +174,8 @@ void MultiQPUQuantumPlatform::populateDefaultQPUs() {
       throw std::runtime_error("No GPUs available to instantiate platform.");
 
     // Add a QPU for each GPU.
-    for (int i = 0; i < nDevices; i++) {
-      platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
-      platformQPUs.back()->setId(i);
-    }
+    for (int i = 0; i < nDevices; i++)
+      addQPU(std::make_unique<cudaq::DefaultQPU>()).setId(i);
   }
 }
 } // namespace

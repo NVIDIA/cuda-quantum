@@ -23,4 +23,4 @@ add_cudaq_dialect_library(QuakeDialect
   MLIRIR
 )
 
-register_cudaq_mlir_lib(QuakeDialect)
+check_registered_mlir_lib(QuakeDialect)

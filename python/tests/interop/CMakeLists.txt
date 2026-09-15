@@ -27,6 +27,7 @@ target_link_libraries(cudaq_test_cpp_algo
     quantum_lib
     cudaq-python-interop
     cudaq-logger
+    cudaq-mlir-runtime
 )
 
 if(APPLE)

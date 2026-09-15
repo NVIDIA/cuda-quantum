@@ -31,7 +31,7 @@ class DefaultQuantumPlatform : public cudaq::quantum_platform {
 public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
-    platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
+    addQPU(std::make_unique<cudaq::DefaultQPU>());
   }
 
 private:
@@ -41,8 +41,8 @@ private:
   /// will change from the DefaultQPU to the QPU subtype specified by that
   /// variable.
   void setTargetBackend(const std::string &backend) override {
-    platformQPUs.clear();
-    platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
+    clearQPUs();
+    addQPU(std::make_unique<cudaq::DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
@@ -73,7 +73,7 @@ private:
       CUDAQ_INFO("Config file path = {}", configFilePath.string());
 
       if (!explicitConfigPath && !std::filesystem::exists(configFilePath)) {
-        platformQPUs.front()->setTargetBackend(backend);
+        getQPU().setTargetBackend(backend);
         return;
       }
 
@@ -91,15 +91,16 @@ private:
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
-      platformQPUs.clear();
-      platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
-      if (platformQPUs.front() == nullptr)
+      auto qpu = cudaq::registry::get<cudaq::QPU>(qpuName);
+      if (qpu == nullptr)
         throw std::runtime_error(
             qpuName + " is not a valid QPU name for the default platform.");
+      clearQPUs();
+      addQPU(std::move(qpu));
     }
 
     // Forward to the QPU.
-    platformQPUs.front()->setTargetBackend(backend);
+    getQPU().setTargetBackend(backend);
   }
 };
 } // namespace

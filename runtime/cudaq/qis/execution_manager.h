@@ -126,6 +126,8 @@ public:
   void configureExecutionContext(const msm_policy &policy);
   void configureExecutionContext(const dem_policy &policy);
   void configureExecutionContext(const ptsbe::sample_policy &policy);
+  void configureExecutionContext(const estimate_policy &policy);
+  void configureExecutionContext(const orca::sample_policy &policy);
   void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
@@ -160,6 +162,14 @@ public:
     throw std::runtime_error(
         "PTSBE sampling is not supported by this execution manager.");
   }
+
+  virtual orca::sample_policy::result_type
+  finalizeExecutionContext(const orca::sample_policy &policy) {
+    throw std::runtime_error(
+        "Orca sampling is not supported by this execution manager.");
+  }
+
+  estimate_result finalizeExecutionContext(const estimate_policy &);
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}

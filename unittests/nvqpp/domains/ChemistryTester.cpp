@@ -10,8 +10,61 @@
 #include <random>
 
 #include "cudaq/algorithm.h"
-#include "cudaq/domains/chemistry.h"
+#include "cudaq/domains/chemistry/molecule.h"
+#include "cudaq/domains/chemistry/uccsd.h"
 #include "cudaq/optimizers.h"
+
+namespace chemistry_tester {
+// nvq++ does not support cudaq::cnot_coupling (see hwe.h), so inline the HWE
+// gate sequence here instead of calling cudaq::hwe from __qpu__ kernels.
+// noinline: nvq++ cannot inline one __qpu__ function into another.
+__attribute__((noinline)) __qpu__ void
+hwe_default(cudaq::qview<> qubits, std::size_t numLayers,
+            const std::vector<double> &parameters) {
+  std::size_t numQubits = qubits.size();
+  std::size_t thetaCounter = 0;
+  for (std::size_t i = 0; i < numQubits; i++) {
+    ry(parameters[thetaCounter], qubits[i]);
+    rz(parameters[thetaCounter + 1], qubits[i]);
+    thetaCounter += 2;
+  }
+
+  for (std::size_t layer = 0; layer < numLayers; layer++) {
+    for (std::size_t q = 0; q + 1 < numQubits; q++)
+      x<cudaq::ctrl>(qubits[q], qubits[q + 1]);
+
+    for (std::size_t q = 0; q < numQubits; q++) {
+      ry(parameters[thetaCounter], qubits[q]);
+      rz(parameters[thetaCounter + 1], qubits[q]);
+      thetaCounter += 2;
+    }
+  }
+}
+
+__attribute__((noinline)) __qpu__ void
+hwe_custom_chain(cudaq::qview<> qubits, std::size_t numLayers,
+                 const std::vector<double> &parameters) {
+  std::size_t numQubits = qubits.size();
+  std::size_t thetaCounter = 0;
+  for (std::size_t i = 0; i < numQubits; i++) {
+    ry(parameters[thetaCounter], qubits[i]);
+    rz(parameters[thetaCounter + 1], qubits[i]);
+    thetaCounter += 2;
+  }
+
+  for (std::size_t layer = 0; layer < numLayers; layer++) {
+    x<cudaq::ctrl>(qubits[0], qubits[1]);
+    x<cudaq::ctrl>(qubits[1], qubits[2]);
+    x<cudaq::ctrl>(qubits[2], qubits[3]);
+
+    for (std::size_t q = 0; q < numQubits; q++) {
+      ry(parameters[thetaCounter], qubits[q]);
+      rz(parameters[thetaCounter + 1], qubits[q]);
+      thetaCounter += 2;
+    }
+  }
+}
+} // namespace chemistry_tester
 
 CUDAQ_TEST(GenerateExcitationsTester, checkSimple) {
   {
@@ -109,21 +162,22 @@ CUDAQ_TEST(H2MoleculeTester, checkExpPauli) {
 }
 
 CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
+  // nvq++ cannot lower cudaq::uccsd's __qpu__ overload (cudaq::excitations is
+  // an unhandled type). Use the kernel_builder overload instead.
   {
     cudaq::molecular_geometry geometry{{"H", {0., 0., 0.}},
                                        {"H", {0., 0., .7474}}};
     auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
-    auto ansatz = [&](std::vector<double> thetas) __qpu__ {
-      cudaq::qvector q(2 * molecule.n_orbitals);
-      x(q[0]);
-      x(q[1]);
-      cudaq::uccsd(q, thetas, molecule.n_electrons);
-    };
+    auto numQubits = 2 * molecule.n_orbitals;
+    auto [ansatz, thetas] = cudaq::make_kernel<std::vector<double>>();
+    auto q = ansatz.qalloc(numQubits);
+    ansatz.x(q[0]);
+    ansatz.x(q[1]);
+    cudaq::uccsd(ansatz, q, thetas, molecule.n_electrons, numQubits);
 
     cudaq::optimizers::cobyla optimizer;
-    auto res = cudaq::vqe(ansatz, molecule.hamiltonian, optimizer,
-                          cudaq::uccsd_num_parameters(molecule.n_electrons,
-                                                      2 * molecule.n_orbitals));
+    auto nParams = cudaq::uccsd_num_parameters(molecule.n_electrons, numQubits);
+    auto res = cudaq::vqe(ansatz, molecule.hamiltonian, optimizer, nParams);
     EXPECT_NEAR(-1.137, std::get<0>(res), 1e-3);
 
     // Get the true ground state eigenvector
@@ -154,18 +208,16 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
 
     cudaq::molecular_geometry geometry(gen_random_h2_geometry());
     auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
-    auto ansatz = [&](const std::vector<double> &thetas) __qpu__ {
-      cudaq::qvector q(2 * molecule.n_orbitals);
-      for (std::size_t qId = 0; qId < molecule.n_orbitals; ++qId) {
-        x(q[qId]);
-      }
-      cudaq::uccsd(q, thetas, molecule.n_electrons);
-    };
+    auto numQubits = 2 * molecule.n_orbitals;
+    auto [ansatz, thetas] = cudaq::make_kernel<std::vector<double>>();
+    auto q = ansatz.qalloc(numQubits);
+    for (std::size_t qId = 0; qId < molecule.n_orbitals; ++qId)
+      ansatz.x(q[qId]);
+    cudaq::uccsd(ansatz, q, thetas, molecule.n_electrons, numQubits);
 
     cudaq::optimizers::cobyla optimizer;
-    auto res = cudaq::vqe(ansatz, molecule.hamiltonian, optimizer,
-                          cudaq::uccsd_num_parameters(molecule.n_electrons,
-                                                      2 * molecule.n_orbitals));
+    auto nParams = cudaq::uccsd_num_parameters(molecule.n_electrons, numQubits);
+    auto res = cudaq::vqe(ansatz, molecule.hamiltonian, optimizer, nParams);
 
     // Get the true ground state eigenvalue
     auto matrix = molecule.hamiltonian.to_matrix();
@@ -182,20 +234,23 @@ CUDAQ_TEST(H2MoleculeTester, checkHWE) {
   auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
 
   auto H = molecule.hamiltonian;
-  std::size_t numQubits = H.num_qubits();
-  std::size_t numLayers = 4;
-  auto numParams = cudaq::num_hwe_parameters(numQubits, numLayers);
+  // Host locals cannot be captured into __qpu__ lambdas; use macros for the
+  // sto-3g H2 sizes referenced inside kernels below.
+#define HWE_NUM_QUBITS 4
+#define HWE_NUM_LAYERS 4
+  EXPECT_EQ(HWE_NUM_QUBITS, H.num_qubits());
+  auto numParams = 2 * HWE_NUM_QUBITS * (1 + HWE_NUM_LAYERS);
   EXPECT_EQ(40, numParams);
   cudaq::optimizers::cobyla optimizer;
   optimizer.max_eval = 1000;
 
   std::vector<double> optParams;
   {
-    auto ansatz = [&](std::vector<double> thetas) __qpu__ {
-      cudaq::qvector q(numQubits);
+    auto ansatz = [](std::vector<double> thetas) __qpu__ {
+      cudaq::qvector q(HWE_NUM_QUBITS);
       x(q[0]);
       x(q[1]);
-      cudaq::hwe(q, numLayers, thetas);
+      chemistry_tester::hwe_default(q, HWE_NUM_LAYERS, thetas);
     };
 
     std::vector<double> params =
@@ -213,14 +268,16 @@ CUDAQ_TEST(H2MoleculeTester, checkHWE) {
   }
 
   {
-    auto ansatz = [&](std::vector<double> thetas) __qpu__ {
-      cudaq::qvector q(numQubits);
+    auto ansatz = [](std::vector<double> thetas) __qpu__ {
+      cudaq::qvector q(HWE_NUM_QUBITS);
       x(q[0]);
       x(q[1]);
-      cudaq::hwe(q, numLayers, thetas, {{0, 1}, {1, 2}, {2, 3}});
+      chemistry_tester::hwe_custom_chain(q, HWE_NUM_LAYERS, thetas);
     };
 
     double res = cudaq::observe(ansatz, H, optParams);
     EXPECT_NEAR(-1.137, res, 1e-3);
   }
+#undef HWE_NUM_QUBITS
+#undef HWE_NUM_LAYERS
 }
