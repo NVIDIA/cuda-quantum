@@ -46,10 +46,6 @@ class TargetSetter;
 class with_platform_in_library_mode;
 } // namespace detail
 
-/// Typedefs for defining the connectivity structure of a QPU
-using QubitEdge = std::pair<std::size_t, std::size_t>;
-using QubitConnectivity = std::vector<QubitEdge>;
-
 /// A sampling tasks takes no input arguments and returns
 /// a sample_result instance.
 using KernelExecutionTask = std::function<sample_result()>;
@@ -60,8 +56,7 @@ using ObserveTask = std::function<observe_result()>;
 
 /// The quantum_platform corresponds to a specific quantum architecture.
 /// The quantum_platform exposes a public API for programmers to
-/// query specific information about the targeted QPU(s) (e.g. number
-/// of qubits, qubit connectivity, etc.). This type is meant to
+/// query specific information about the targeted QPU(s). This type is meant to
 /// be subclassed for concrete realizations of quantum platforms, which
 /// are intended to populate the QPUs of this base class via `addQPU` and
 /// `clearQPUs`.
@@ -69,12 +64,6 @@ class quantum_platform {
 public:
   quantum_platform() = default;
   virtual ~quantum_platform() = default;
-
-  /// Fetch the connectivity info
-  std::optional<QubitConnectivity> connectivity();
-
-  /// Get the number of qubits for the QPU with ID qpu_id.
-  std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.

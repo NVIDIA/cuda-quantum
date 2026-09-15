@@ -10,7 +10,6 @@
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/operators.h"
 #include <map>
-#include <optional>
 #include <string>
 
 namespace cudaq {
