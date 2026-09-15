@@ -1346,11 +1346,13 @@ jobs:
               dir=$(basename $fulldir)
               mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
             done
-            if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then
-              echo "::error::No cudaq-logical wheel found for platform ${p} in logical-wheels/."
-              exit 1
+            if [[ ${p} != "darwin" ]]; then
+              if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then
+                echo "::error::No cudaq-logical wheel found for platform ${p} in logical-wheels/."
+                exit 1
+              fi
+              mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
             fi
-            mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
             if [[ ${p} != "darwin" ]] && ! compgen -G "devel-wheels/cudaq_devel-*_${p}.whl" > /dev/null; then
               echo "::error::No cudaq-devel wheel found for platform ${p} in devel-wheels/."
               exit 1
