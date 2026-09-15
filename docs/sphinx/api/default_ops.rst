@@ -9,6 +9,7 @@ decomposes the default operations into the appropriate set of intrinsic operatio
 for that target.
 
 The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list the default set of quantum operations on qubits.
+The section `Composite Operations`_ lists the operations that CUDA-Q provides as a library on top of that default set.
 
 Operations that implement unitary transformations of the quantum state are templated.
 The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on `Adjoint and Controlled Operations`_.
@@ -661,6 +662,110 @@ operations, each operating on 2 qubits.
   When a custom operation is used on hardware backends, it is synthesized to a
   set of native quantum operations. Currently, only up to 5-qubit custom
   operations are supported on hardware backends.
+
+
+Composite Operations
+====================
+
+In addition to the default operations listed above, CUDA-Q ships a small library
+of composite operations that are defined in terms of those default operations.
+Unlike the default operations, they are not available implicitly within a kernel;
+each operation has to be imported in Python, and the corresponding header has to
+be included in C++.
+
+In the matrices below, the first qubit argument corresponds to the most
+significant bit of the row and column index, which is the same convention that
+`User-Defined Custom Operations`_ above uses for the unitary matrix.
+
+These operations are also available as methods on the kernel builder object
+returned by :code:`cudaq.make_kernel()` in Python, and in the
+:code:`cudaq_internal::builder` namespace in C++.
+
+:code:`givens_rotation`
+-----------------------------
+
+This operation applies a Givens rotation by an angle :math:`\theta` to a pair of
+qubits. It rotates within the two-dimensional subspace spanned by the
+:code:`|01>` and :code:`|10>` basis states and leaves the :code:`|00>` and
+:code:`|11>` basis states unchanged, which makes it a common building block for
+particle-number-conserving circuits in quantum chemistry. It is equivalent to the
+transformation :math:`\exp(-i \theta (Y \otimes X - X \otimes Y) / 2)`.
+The operation is named :code:`givens` in the Python library and
+:code:`givens_rotation` in C++ and on the kernel builder object.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        from cudaq.lib import givens
+
+        qubit_1, qubit_2 = cudaq.qubit(), cudaq.qubit()
+
+        # Apply the unitary transformation
+        # Givens(θ) = | 1     0        0      0 |
+        #             | 0  cos(θ)  -sin(θ)    0 |
+        #             | 0  sin(θ)   cos(θ)    0 |
+        #             | 0     0        0      1 |
+        givens(math.pi / 2, qubit_1, qubit_2)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        #include "cudaq/kernels/givens_rotation.h"
+
+        cudaq::qubit qubit_1, qubit_2;
+
+        // Apply the unitary transformation
+        // Givens(θ) = | 1     0        0      0 |
+        //             | 0  cos(θ)  -sin(θ)    0 |
+        //             | 0  sin(θ)   cos(θ)    0 |
+        //             | 0     0        0      1 |
+        cudaq_internal::givens_rotation(std::numbers::pi / 2, qubit_1, qubit_2);
+
+:code:`fermionic_swap`
+-----------------------------
+
+This operation applies a rotation by an angle :math:`\phi` on two adjacent
+fermionic modes under the Jordan-Wigner transformation. It exchanges the two
+modes while accounting for the phase that the antisymmetry of fermionic states
+requires. For :math:`\phi = \pi` it reduces to the fermionic SWAP gate, which
+exchanges the :code:`|01>` and :code:`|10>` basis states and maps :code:`|11>`
+to :code:`-|11>`.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        from cudaq.lib import fermionic_swap
+
+        qubit_1, qubit_2 = cudaq.qubit(), cudaq.qubit()
+
+        # Apply the unitary transformation
+        # FermionicSwap(φ) = | 1   0    0    0 |
+        #                    | 0   a    b    0 |
+        #                    | 0   b    a    0 |
+        #                    | 0   0    0    d |
+        # where a = exp(iφ/2) * cos(φ/2), b = -i * exp(iφ/2) * sin(φ/2),
+        # and d = exp(iφ)
+        fermionic_swap(math.pi, qubit_1, qubit_2)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        #include "cudaq/kernels/fermionic_swap.h"
+
+        cudaq::qubit qubit_1, qubit_2;
+
+        // Apply the unitary transformation
+        // FermionicSwap(φ) = | 1   0    0    0 |
+        //                    | 0   a    b    0 |
+        //                    | 0   b    a    0 |
+        //                    | 0   0    0    d |
+        // where a = exp(iφ/2) * cos(φ/2), b = -i * exp(iφ/2) * sin(φ/2),
+        // and d = exp(iφ)
+        cudaq_internal::fermionic_swap(std::numbers::pi, qubit_1, qubit_2);
 
 
 Photonic Operations on Qudits
