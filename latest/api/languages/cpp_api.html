@@ -1088,6 +1088,10 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Preview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+</ul>
 
         </div>
       </div>
@@ -8393,12 +8397,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">
-<span class="target" id="classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the remote capabilities for this platform. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU8setShotsEi">
 <span class="target" id="classcudaq_1_1QPU_1a0a2adbf1c6212a49b36ed30f06626982"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setShots</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nShots</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU8setShotsEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Base class handling of shots is do-nothing, subclasses can handle as they wish </p>
@@ -8621,12 +8619,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesENSt6size_tE">
-<span class="target" id="classcudaq_1_1quantum__platform_1ab4edf1b6d496e6ca7f883627f208288c"></span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_remote_capabilities</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the remote capabilities (only applicable for remote platforms) </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform18get_codegen_configEv">
 <span class="target" id="classcudaq_1_1quantum__platform_1aa40fb381af70556167aa88d6b01e506d"></span><a class="reference internal" href="#_CPPv4N5cudaq13CodeGenConfigE" title="cudaq::CodeGenConfig"><span class="n"><span class="pre">CodeGenConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_codegen_config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get code generation configuration values. </p>
@@ -8687,12 +8679,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tENSt6size_tE">
-<span class="target" id="classcudaq_1_1quantum__platform_1a4e553d4087f2a1a7d520e3482e32de67"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">launchVQE</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">kernelName</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">kernelArgs</span></span>, <a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq8gradientE" title="cudaq::gradient"><span class="n"><span class="pre">gradient</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gradient</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7spin_opE" title="cudaq::spin_op"><span class="n"><span class="pre">spin_op</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">H</span></span>, <a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq9optimizerE" title="cudaq::optimizer"><span class="n"><span class="pre">optimizer</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">optimizer</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">n_params</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shots</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Launch a VQE operation on the platform. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE">
 <span class="target" id="classcudaq_1_1quantum__platform_1af1694e06135ecdfab51f20ecc87f7ee8"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onRandomSeedSet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Called by the runtime to notify that a new random seed value is set. </p>
@@ -8705,36 +8691,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform14list_platformsEv">
 <span class="target" id="classcudaq_1_1quantum__platform_1a75f4168edb243d52ca8df2e78ad905f9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list_platforms</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform14list_platformsEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>List all available platforms. </p>
-</dd></dl>
-
-</div>
-</dd></dl>
-
-<dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilitiesE">
-<span class="target" id="structcudaq_1_1RemoteCapabilities"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteCapabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>A structure of boolean fields to indicate whether a given remote server has specific capabilities. </p>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb">
-<span class="target" id="structcudaq_1_1RemoteCapabilities_1a436f02286cef89972c62bc8e3cc98122"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">initValue</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Constructor that broadcasts <code class="docutils literal notranslate"><span class="pre">initValue</span></code> to all fields. </p>
-</dd></dl>
-
-</div>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE">
-<span class="target" id="structcudaq_1_1RemoteCapabilities_1a534e4bef1df86badcf37620ec8e41aec"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stateOverlap</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>True if the remote can perform state overlap operations. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities3vqeE">
-<span class="target" id="structcudaq_1_1RemoteCapabilities_1a9747aef4cba0c08f8a8c762848663c64"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vqe</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities3vqeE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>True if the remote can perform an entire VQE operation without and back-and-forth client/server communications. </p>
 </dd></dl>
 
 </div>
@@ -9129,7 +9085,7 @@ Overload for a fixed list of angles known at kernel-build time. When <code class
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15set_random_seedENSt6size_tE">
 <span class="target" id="BaseRemoteRESTQPU_8h_1a0635ad8b98868ed14865bab138e23ff0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">set_random_seed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15set_random_seedENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Set a seed for any random number generators used in backend simulations. </p>
+<dd><p>Set a seed for any random number generators used in backend simulations, and for randomized compiler passes such as Clifford+T synthesis. A seed of 0 leaves both unseeded. </p>
 </dd></dl>
 
 <dl class="cpp function">

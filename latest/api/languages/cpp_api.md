@@ -1943,6 +1943,11 @@ latest
                 .notranslate}]{.pre}](../default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
+
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 
@@ -13018,14 +13023,6 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[[RemoteCapabilities]{.pre}]{.n}](#_CPPv4N5cudaq18RemoteCapabilitiesE "cudaq::RemoteCapabilities"){.reference .internal}[ ]{.w}[[[getRemoteCapabilities]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv "Permalink to this definition"){.headerlink}\
-
-    :   Return the remote capabilities for this platform.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1a0a2adbf1c6212a49b36ed30f06626982 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[setShots]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[int]{.pre}]{.kt}[ ]{.w}[[\_nShots]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU8setShotsEi "Permalink to this definition"){.headerlink}\
 
     :   Base class handling of shots is do-nothing, subclasses can
@@ -13405,15 +13402,6 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1ab4edf1b6d496e6ca7f883627f208288c .target}[[[RemoteCapabilities]{.pre}]{.n}](#_CPPv4N5cudaq18RemoteCapabilitiesE "cudaq::RemoteCapabilities"){.reference .internal}[ ]{.w}[[[get_remote_capabilities]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesENSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Get the remote capabilities (only applicable for remote
-        platforms)
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1quantum__platform_1aa40fb381af70556167aa88d6b01e506d .target}[[[CodeGenConfig]{.pre}]{.n}](#_CPPv4N5cudaq13CodeGenConfigE "cudaq::CodeGenConfig"){.reference .internal}[ ]{.w}[[[get_codegen_config]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv "Permalink to this definition"){.headerlink}\
 
     :   Get code generation configuration values.
@@ -13497,14 +13485,6 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a4e553d4087f2a1a7d520e3482e32de67 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[launchVQE]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[kernelName]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[kernelArgs]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[gradient]{.pre}]{.n}](#_CPPv4N5cudaq8gradientE "cudaq::gradient"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[gradient]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[optimizer]{.pre}]{.n}](#_CPPv4N5cudaq9optimizerE "cudaq::optimizer"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[optimizer]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[int]{.pre}]{.kt}[ ]{.w}[[n_params]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tENSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Launch a VQE operation on the platform.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1quantum__platform_1af1694e06135ecdfab51f20ecc87f7ee8 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Called by the runtime to notify that a new random seed value is
@@ -13517,41 +13497,6 @@ them they are erased before execution.
     []{#classcudaq_1_1quantum__platform_1a75f4168edb243d52ca8df2e78ad905f9 .target}[[static]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[list_platforms]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14list_platformsEv "Permalink to this definition"){.headerlink}\
 
     :   List all available platforms.
-    :::
-
-```{=html}
-<!-- -->
-```
-
-[]{#structcudaq_1_1RemoteCapabilities .target}[[struct]{.pre}]{.k}[ ]{.w}[[[RemoteCapabilities]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq18RemoteCapabilitiesE "Permalink to this definition"){.headerlink}\
-
-:   A structure of boolean fields to indicate whether a given remote
-    server has specific capabilities.
-
-    ::: {.breathe-sectiondef .docutils .container}
-    Public Functions
-
-    []{#structcudaq_1_1RemoteCapabilities_1a436f02286cef89972c62bc8e3cc98122 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[RemoteCapabilities]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[bool]{.pre}]{.kt}[ ]{.w}[[initValue]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb "Permalink to this definition"){.headerlink}\
-
-    :   Constructor that broadcasts [`initValue`{.docutils .literal
-        .notranslate}]{.pre} to all fields.
-    :::
-
-    ::: {.breathe-sectiondef .docutils .container}
-    Public Members
-
-    []{#structcudaq_1_1RemoteCapabilities_1a534e4bef1df86badcf37620ec8e41aec .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[stateOverlap]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE "Permalink to this definition"){.headerlink}\
-
-    :   True if the remote can perform state overlap operations.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#structcudaq_1_1RemoteCapabilities_1a9747aef4cba0c08f8a8c762848663c64 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[vqe]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq18RemoteCapabilities3vqeE "Permalink to this definition"){.headerlink}\
-
-    :   True if the remote can perform an entire VQE operation without
-        and back-and-forth client/server communications.
     :::
 
 ```{=html}
@@ -14288,7 +14233,8 @@ them they are erased before execution.
 []{#BaseRemoteRESTQPU_8h_1a0635ad8b98868ed14865bab138e23ff0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[set_random_seed]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq15set_random_seedENSt6size_tE "Permalink to this definition"){.headerlink}\
 
 :   Set a seed for any random number generators used in backend
-    simulations.
+    simulations, and for randomized compiler passes such as Clifford+T
+    synthesis. A seed of 0 leaves both unseeded.
 
 ```{=html}
 <!-- -->

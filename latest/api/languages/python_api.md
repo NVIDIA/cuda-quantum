@@ -1919,6 +1919,11 @@ latest
                 .notranslate}]{.pre}](../default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
+
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 
@@ -3507,7 +3512,9 @@ discriminated bits into an integer.)
 
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_random_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_random_seed "Permalink to this definition"){.headerlink}
 
-:   Provide the seed for backend quantum kernel simulation.
+:   Provide the seed for backend quantum kernel simulation, and for
+    randomized compiler passes such as Clifford+T synthesis. A seed of 0
+    leaves both unseeded.
 :::
 
 ::: {#dynamics .section}
@@ -6037,7 +6044,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x4408eb0\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 

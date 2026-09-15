@@ -1947,6 +1947,11 @@ latest
                 .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
+
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 
@@ -2030,7 +2035,6 @@ The [`cudaq::quantum_platform`{.code .docutils .literal
         bool is_remote(std::size_t qpu_id = 0) const;
         bool is_emulated(std::size_t qpu_id = 0) const;
         bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
-        RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
         std::string name() const;
 
       };

@@ -1088,6 +1088,10 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Preview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+</ul>
 
         </div>
       </div>
@@ -2113,7 +2117,7 @@ depolarization channel, which has <code class="code docutils literal notranslate
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.set_random_seed">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_random_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.set_random_seed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Provide the seed for backend quantum kernel simulation.</p>
+<dd><p>Provide the seed for backend quantum kernel simulation, and for randomized compiler passes such as Clifford+T synthesis. A seed of 0 leaves both unseeded.</p>
 </dd></dl>
 
 </section>
@@ -3706,7 +3710,7 @@ on multiple degrees of freedom.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.State.from_data">
-<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0x4408eb0&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">

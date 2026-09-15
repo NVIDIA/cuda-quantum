@@ -1945,6 +1945,11 @@ latest
                 .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
+
+[Preview]{.caption-text}
+
+-   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
+    .external}
 :::
 :::
 
@@ -2531,7 +2536,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![4c7e6c0d1536420aaf0c0205c5196031](../../_images/speedup.png){.no-scaled-link
+![b6c3a7df6cdf4954884fd2bab50c3753](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2545,9 +2550,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![bfec733b0ca7480fb542fd80024f4625](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![ede16be676ae49979f18799605f5dccf](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![5c7d32c64ed041dfb2569d6b611f6e1b](../../_images/efficiency.jpeg){.no-scaled-link
+![67f0cd18c02448e6b2398e2f3a88d848](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 
