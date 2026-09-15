@@ -780,7 +780,7 @@ TEST(GridsynthDeepEpsilonTest, SynthesizesOddMultiplesOfPiOverFour) {
 }
 
 // ============================================================
-// Unit orbit selection
+// Choosing among the eight equivalent solutions omega^j * w
 // ============================================================
 
 // pi/8 at 1e-3 used to come back as 78 or 88 gates (same z, same T-count)
