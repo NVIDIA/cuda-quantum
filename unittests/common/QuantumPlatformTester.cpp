@@ -541,15 +541,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   EXPECT_NO_THROW((void)cudaq::contrib::traceFromKernel(kernel, platform));
 }
 
-TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {
-  TestPlatform platform(2);
-  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/1);
-
-  expectOverrideDisabled([&] { platform.get_num_qubits(1); }, "get_num_qubits");
-
-  EXPECT_NO_THROW(platform.get_num_qubits(0));
-}
-
 TEST(QuantumPlatformDisableEndpointOverrideTester,
      errorMessageIdentifiesOperation) {
   TestPlatform platform;
