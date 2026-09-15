@@ -42,7 +42,7 @@ private:
   /// variable.
   void setTargetBackend(const std::string &backend) override {
     clearQPUs();
-    addQPU(std::make_unique<cudaq::DefaultQPU>());
+    auto *newQPU = &addQPU(std::make_unique<cudaq::DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
@@ -73,7 +73,7 @@ private:
       CUDAQ_INFO("Config file path = {}", configFilePath.string());
 
       if (!explicitConfigPath && !std::filesystem::exists(configFilePath)) {
-        getQPU().setTargetBackend(backend);
+        newQPU->setTargetBackend(backend);
         return;
       }
 
@@ -96,11 +96,11 @@ private:
         throw std::runtime_error(
             qpuName + " is not a valid QPU name for the default platform.");
       clearQPUs();
-      addQPU(std::move(qpu));
+      newQPU = &addQPU(std::move(qpu));
     }
 
     // Forward to the QPU.
-    getQPU().setTargetBackend(backend);
+    newQPU->setTargetBackend(backend);
   }
 };
 } // namespace
