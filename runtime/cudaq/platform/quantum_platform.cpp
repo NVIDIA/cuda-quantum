@@ -240,10 +240,6 @@ void quantum_platform::finalizeExecutionContext(ExecutionContext &ctx) const {
   platformQPU->finalizeExecutionContext(ctx);
 }
 
-std::optional<QubitConnectivity> quantum_platform::connectivity() {
-  return platformQPUs.front()->getConnectivity();
-}
-
 bool quantum_platform::is_simulator(std::size_t qpu_id) const {
   validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
   if (hasRuntimeEndpointOverride(qpu_id)) {
@@ -279,17 +275,18 @@ bool quantum_platform::supports_jit(std::size_t qpu_id) const {
   return true;
 }
 
-std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "get_num_qubits");
-  return platformQPUs[qpu_id]->getNumQubits();
+cudaq::CompileTarget
+quantum_platform::getCompileTarget(std::size_t qpu_id) const {
+  validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
+  if (compileTarget.has_value()) {
+    return compileTarget.value();
+  }
+  return platformQPUs[qpu_id]->getCompileTarget();
 }
 
 bool quantum_platform::supports_explicit_measurements(
     std::size_t qpu_id) const {
-  auto ct = getCompileTarget(other_policies{}, qpu_id,
-                             /*skipPipelineSubstitutions=*/true);
-  return ct.supportExplicitMeasurements;
+  return getCompileTarget(qpu_id).supportExplicitMeasurements;
 }
 
 KernelThunkResultType
