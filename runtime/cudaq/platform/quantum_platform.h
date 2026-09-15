@@ -21,7 +21,6 @@
 #include "nvqpp_interface.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
@@ -179,9 +178,6 @@ public:
   /// @brief Return the noise model for @p qpu_id on this platform.
   const noise_model *get_noise(std::size_t qpu_id = 0);
 
-  /// @brief Get the remote capabilities (only applicable for remote platforms)
-  RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
-
   /// Get code generation configuration values
   CodeGenConfig get_codegen_config();
 
@@ -216,12 +212,6 @@ public:
 
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
-
-  /// @brief Launch a VQE operation on the platform.
-  void launchVQE(const std::string kernelName, const void *kernelArgs,
-                 cudaq::gradient *gradient, const cudaq::spin_op &H,
-                 cudaq::optimizer &optimizer, const int n_params,
-                 const std::size_t shots, std::size_t qpu_id = 0);
 
   [[nodiscard]] KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args,
