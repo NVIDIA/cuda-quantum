@@ -21,6 +21,8 @@ runge_kutta::runge_kutta(int order, const std::optional<double> &max_step_size)
   if (m_order != 1 && m_order != 2 && m_order != 4)
     throw std::invalid_argument(
         "runge_kutta integrator only supports integration order 1, 2, or 4.");
+  if (m_dt.has_value() && !(*m_dt > 0.0))
+    throw std::invalid_argument("max_step_size must be positive.");
 }
 
 std::shared_ptr<base_integrator> runge_kutta::clone() {

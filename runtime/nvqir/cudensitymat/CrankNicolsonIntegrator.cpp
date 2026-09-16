@@ -26,6 +26,8 @@ crank_nicolson::crank_nicolson(int num_corrector_steps,
   if (m_num_corrector_steps < 1)
     throw std::invalid_argument(
         "crank_nicolson integrator requires at least 1 corrector step.");
+  if (m_dt.has_value() && !(*m_dt > 0.0))
+    throw std::invalid_argument("max_step_size must be positive.");
 }
 
 std::shared_ptr<base_integrator> crank_nicolson::clone() {

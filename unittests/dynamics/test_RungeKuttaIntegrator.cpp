@@ -62,6 +62,9 @@ protected:
 // Test Initialization
 TEST_F(RungeKuttaIntegratorTest, Initialization) {
   ASSERT_NE(integrator_, nullptr);
+  EXPECT_THROW(cudaq::integrators::runge_kutta(4, 0.0), std::invalid_argument);
+  EXPECT_THROW(cudaq::integrators::runge_kutta(4, -0.01),
+               std::invalid_argument);
 }
 
 namespace {
@@ -131,7 +134,7 @@ SubStepTrace walkSchedule(const std::vector<double> &points,
 // Separately, most of these intervals measure under an ulp wider than one whole
 // step, which a bare ceil() would cover with two sub-steps each. The rounding
 // allowance in subStepCount() keeps them at one.
-TEST_F(RungeKuttaIntegratorTest, NominallyEqualStepsReachTargetExactly) {
+TEST(CuDensityMatIntegratorHelperTest, NominallyEqualStepsReachTargetExactly) {
   constexpr std::size_t numIntervals = 99;
   const double maxStepSize = 1.0 / numIntervals;
   std::vector<double> points;
@@ -149,7 +152,7 @@ TEST_F(RungeKuttaIntegratorTest, NominallyEqualStepsReachTargetExactly) {
 
 // Sub-step boundaries are interpolated, never accumulated, so the schedule is
 // hit exactly regardless of the absolute time origin or the time scale.
-TEST_F(RungeKuttaIntegratorTest, LandsExactlyAcrossTimeScalesAndOrigins) {
+TEST(CuDensityMatIntegratorHelperTest, LandsExactlyAcrossTimeScalesAndOrigins) {
   const std::vector<std::pair<double, double>> spans = {
       {0.0, 1.0},  {1.0, 2.0},   {100.0, 101.0},
       {-1.0, 1.0}, {0.0, 1e-14}, {1e6, 1e6 + 1.0}};
@@ -181,7 +184,7 @@ TEST_F(RungeKuttaIntegratorTest, LandsExactlyAcrossTimeScalesAndOrigins) {
 // for. Sizes here are in ulps of the start time, so the max step size is only a
 // handful of ulps -- the regime where the rounding allowance is largest
 // relative to the step, and so the easiest place to get this wrong.
-TEST_F(RungeKuttaIntegratorTest, PartialStepIsNotAbsorbedIntoTheTarget) {
+TEST(CuDensityMatIntegratorHelperTest, PartialStepIsNotAbsorbedIntoTheTarget) {
   const double startTime = 1.0;
   const double ulp = std::nextafter(startTime, 2.0) - startTime;
   const double maxStepSize = 64.0 * ulp;
@@ -195,6 +198,42 @@ TEST_F(RungeKuttaIntegratorTest, PartialStepIsNotAbsorbedIntoTheTarget) {
     EXPECT_LE(trace.maxStep,
               largestAllowedSubStep({startTime, targetTime}, maxStepSize))
         << "span " << spanInUlps << " ulps";
+  }
+}
+
+TEST_F(RungeKuttaIntegratorTest, IntegrateLandsExactlyOnSchedulePoints) {
+  constexpr std::size_t numIntervals = 99;
+  const double maxStepSize = 1.0 / numIntervals;
+  integrator_ = std::make_unique<cudaq::integrators::runge_kutta>(
+      /*order=*/1, maxStepSize);
+
+  const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
+                                                             {0.0, 0.0}};
+  const std::vector<int64_t> dims = {2};
+  cudaq::sum_op<cudaq::matrix_handler> ham(cudaq::spin_op::x(0));
+  SystemDynamics system(dims, ham);
+
+  auto initialState = cudaq::state::from_data(initialStateVec);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&initialState));
+  ASSERT_NE(castSimState, nullptr);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
+  integrator_->setState(initialState, 0.0);
+
+  std::vector<std::complex<double>> steps;
+  for (std::size_t i = 0; i <= numIntervals; ++i)
+    steps.emplace_back(static_cast<double>(i) / numIntervals, 0.0);
+  cudaq::schedule schedule(
+      steps, {"t"}, [](const std::string &, const std::complex<double> &value) {
+        return value;
+      });
+  cudaq::integrator_helper::init_system_dynamics(*integrator_, system,
+                                                 schedule);
+
+  for (std::size_t i = 1; i < steps.size(); ++i) {
+    const double targetTime = steps[i].real();
+    integrator_->integrate(targetTime);
+    EXPECT_EQ(integrator_->getState().first, targetTime);
   }
 }
 

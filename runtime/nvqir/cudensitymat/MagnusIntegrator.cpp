@@ -25,6 +25,8 @@ magnus_expansion::magnus_expansion(int num_taylor_terms,
   if (m_num_taylor_terms < 1)
     throw std::invalid_argument(
         "magnus_expansion integrator requires at least 1 Taylor term.");
+  if (m_dt.has_value() && !(*m_dt > 0.0))
+    throw std::invalid_argument("max_step_size must be positive.");
 }
 
 std::shared_ptr<base_integrator> magnus_expansion::clone() {

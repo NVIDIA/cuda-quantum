@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 
 namespace cudaq {
@@ -74,10 +75,14 @@ struct CuDensityMatIntegratorHelper {
         std::ceil((remaining - remainingRoundingError) / *maxStepSize);
     // Refuse rather than let the conversion below overflow, which would yield a
     // garbage count and silently ignore `maxStepSize`. Also rejects NaN.
-    if (!(count <=
-          static_cast<double>(std::numeric_limits<std::int64_t>::max())))
-      throw std::invalid_argument(
-          "max_step_size is too small to cover the integration interval.");
+    if (!(count <
+          static_cast<double>(std::numeric_limits<std::int64_t>::max()))) {
+      std::ostringstream message;
+      message << "cannot integrate from " << currentTime << " to " << targetTime
+              << " with max_step_size " << *maxStepSize
+              << ": the interval requires too many sub-steps.";
+      throw std::invalid_argument(message.str());
+    }
     return std::max<std::int64_t>(1, static_cast<std::int64_t>(count));
   }
 
