@@ -342,7 +342,19 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     // if the job failed exit with an exception
     if (jobStatus != "completed") {
       CUDAQ_INFO("getJobResponse: {}", getJobResponse.dump());
-      auto jobMessage = getJobResponse["message"].get<std::string>();
+      std::string jobMessage = "unknown";
+      try {
+        jobMessage = getJobResponse["errors"][0]["message"].get<std::string>();
+      } catch (const std::exception &e) {
+        try {
+          if (!getJobResponse["messages"].empty()) {
+            jobMessage =
+                getJobResponse["messages"][0]["message"].get<std::string>();
+          }
+        } catch (const std::exception &e) {
+          jobMessage = "failed to get reason";
+        }
+      }
       throw std::runtime_error("Job status: " + jobStatus +
                                ", reason: " + jobMessage);
     }
