@@ -101,18 +101,13 @@ void quantum_platform::reset_noise(std::size_t qpu_id) {
 
 std::size_t get_random_seed();
 
-cudaq::CompileTarget
-createDefaultCompileTarget(quantum_platform *platform = nullptr) {
-  if (!platform)
-    platform = getQuantumPlatformInternal();
-
+cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
   const bool enablePythonCodegenDump =
       cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
   if (enablePythonCodegenDump) {
     CUDAQ_WARN("CUDAQ_PYTHON_CODEGEN_DUMP is no longer supported. Use "
                "CUDAQ_MLIR_PRINT_EACH_PASS=argsynth instead.");
   }
-  auto *rt = platform->get_runtime_target();
   cudaq::config::TargetConfig targetConfig;
   std::map<std::string, std::string> runtimeConfig;
   if (rt) {
@@ -123,14 +118,19 @@ createDefaultCompileTarget(quantum_platform *platform = nullptr) {
     runtimeConfig.emplace("seed", std::to_string(seed));
   auto ct = cudaq::CompileTarget::createFromConfig(targetConfig, runtimeConfig);
 
-  bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
-
-  ct.fullySpecialize = !isLocalSimulator;
   ct.supportDeviceCalls = true;
   ct.argumentSynthChangeSemantics = false;
   ct.pipelineConfig.codegenTranslation = "qir:";
   ct.overrideAOTCompilation = false;
   return ct;
+}
+
+cudaq::CompileTarget
+createDefaultCompileTarget(quantum_platform *platform = nullptr) {
+  if (!platform)
+    platform = getQuantumPlatformInternal();
+
+  return createDefaultCompileTarget(platform->get_runtime_target());
 }
 
 std::future<sample_result>
@@ -161,6 +161,7 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
 }
 
 void quantum_platform::validateQpuId(std::size_t qpuId) const {
+  assert(compileTargets.size() == runtimeEndpoints.size());
   if (compileTargets.empty())
     throw std::runtime_error("No QPUs are available for this target.");
   if (qpuId >= compileTargets.size()) {
@@ -276,7 +277,7 @@ QPU &quantum_platform::addQPU(std::unique_ptr<QPU> qpu) {
   if (!qpu)
     throw std::invalid_argument("Cannot add a null QPU to the platform.");
 
-  compileTargets.push_back(qpu->getCompileTarget());
+  compileTargets.push_back(qpu->getCompileTarget(runtimeTarget.get()));
   runtimeEndpoints.push_back(RuntimeEndpoint::fromQPU(std::move(qpu)));
   return *runtimeEndpoints.back().getQPU();
 }

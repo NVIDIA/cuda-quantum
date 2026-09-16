@@ -35,7 +35,7 @@ public:
   /// Number of times `launchKernel(sample_policy)` was called on this QPU.
   std::size_t sampleLaunchCount = 0;
 
-  CompileTarget getCompileTarget() override {
+  CompileTarget getCompileTarget(const RuntimeTarget *) override {
     CompileTarget ct;
     ct.pipelineConfig.highLevelPipeline = "custom_pipeline";
     ct.fullySpecialize = false;

@@ -41,8 +41,6 @@ private:
   /// will change from the DefaultQPU to the QPU subtype specified by that
   /// variable.
   void setTargetBackend(const std::string &backend) override {
-    clearQPUs();
-    auto *newQPU = &addQPU(std::make_unique<cudaq::DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
@@ -70,37 +68,41 @@ private:
       auto configFilePath = explicitConfigPath
                                 ? std::filesystem::path(*explicitConfigPath)
                                 : platformPath / fileName;
-      CUDAQ_INFO("Config file path = {}", configFilePath.string());
 
-      if (!explicitConfigPath && !std::filesystem::exists(configFilePath)) {
-        newQPU->setTargetBackend(backend);
-        return;
+      if (std::filesystem::exists(configFilePath)) {
+        CUDAQ_INFO("Config file path = {}", configFilePath.string());
+        config = cudaq::config::loadTargetConfig(configFilePath);
+        cudaq::detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
+                                                 config);
+        runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
+        runtimeTarget->config = config;
+        runtimeTarget->name = mutableBackend;
+        runtimeTarget->description = config.Description;
+        runtimeTarget->runtimeConfig = configMap;
+      } else {
+        CUDAQ_INFO("No config file found for backend {}. Using default.",
+                   backend);
       }
-
-      config = cudaq::config::loadTargetConfig(configFilePath);
-      cudaq::detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
-                                               config);
-      runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
-      runtimeTarget->config = config;
-      runtimeTarget->name = mutableBackend;
-      runtimeTarget->description = config.Description;
-      runtimeTarget->runtimeConfig = configMap;
     }
 
+    std::unique_ptr<cudaq::QPU> newQPU;
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
-      auto qpu = cudaq::registry::get<cudaq::QPU>(qpuName);
-      if (qpu == nullptr)
+      newQPU = cudaq::registry::get<cudaq::QPU>(qpuName);
+      if (newQPU == nullptr)
         throw std::runtime_error(
             qpuName + " is not a valid QPU name for the default platform.");
       clearQPUs();
-      newQPU = &addQPU(std::move(qpu));
+    } else {
+      newQPU = std::make_unique<cudaq::DefaultQPU>();
     }
 
     // Forward to the QPU.
     newQPU->setTargetBackend(backend);
+    clearQPUs();
+    addQPU(std::move(newQPU));
   }
 };
 } // namespace
