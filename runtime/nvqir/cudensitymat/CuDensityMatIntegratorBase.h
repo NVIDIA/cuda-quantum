@@ -52,7 +52,7 @@ struct CuDensityMatIntegratorHelper {
   /// @brief Number of equal sub-steps covering `[currentTime, targetTime]`.
   /// Zero if the target is already reached.
   ///
-  /// A sub-step may run up to one ulp of the timestamps past `maxStepSize`,
+  /// A sub-step may run up to one `ulp` of the timestamps past `maxStepSize`,
   /// which is the price of not splitting an interval that is only a rounding
   /// error wider than a whole number of steps.
   static std::int64_t subStepCount(double currentTime, double targetTime,
