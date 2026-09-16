@@ -51,9 +51,13 @@ void magnus_expansion::integrate(double targetTime) {
       "magnus_expansion::integrate");
   cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
 
-  while (m_t < targetTime) {
-    const double step_size =
-        cudmIntHelp::computeStepSize(m_t, targetTime, m_dt);
+  const double startTime = m_t;
+  const auto numSubSteps =
+      cudmIntHelp::subStepCount(startTime, targetTime, m_dt);
+  for (std::int64_t subStep = 1; subStep <= numSubSteps; ++subStep) {
+    const double nextTime =
+        cudmIntHelp::subStepTime(startTime, targetTime, subStep, numSubSteps);
+    const double step_size = nextTime - m_t;
     auto &castSimState = *cudmIntHelp::asCudmState(*m_state);
 
     const double t_mid = m_t + step_size / 2.0;
@@ -73,7 +77,7 @@ void magnus_expansion::integrate(double targetTime) {
     }
 
     m_state = std::make_shared<cudaq::state>(result.release());
-    m_t += step_size;
+    m_t = nextTime;
   }
 }
 

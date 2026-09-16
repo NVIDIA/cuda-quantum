@@ -6,6 +6,7 @@
 //  * the terms of the Apache License 2.0 which accompanies this distribution. *
 //  ******************************************************************************/
 
+#include "CuDensityMatIntegratorBase.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
@@ -13,8 +14,11 @@
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cmath>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <limits>
+#include <optional>
 
 using namespace cudaq;
 
@@ -58,6 +62,140 @@ protected:
 // Test Initialization
 TEST_F(RungeKuttaIntegratorTest, Initialization) {
   ASSERT_NE(integrator_, nullptr);
+}
+
+namespace {
+/// Walk one schedule the way the integrators do and report what happened.
+struct SubStepTrace {
+  std::size_t count = 0;
+  double endTime = 0.0;
+  double maxStep = 0.0;
+  double minStep = std::numeric_limits<double>::max();
+  bool landedOnEveryPoint = true;
+};
+
+/// Sub-step boundaries are quantised to the timestamps, so consecutive
+/// sub-steps cannot be exactly equal; a single one may run over by an ulp.
+double largestAllowedSubStep(const std::vector<double> &points,
+                             double maxStepSize) {
+  const double scale =
+      std::max(std::abs(points.front()), std::abs(points.back()));
+  return maxStepSize +
+         (std::nextafter(scale, std::numeric_limits<double>::max()) - scale);
+}
+
+SubStepTrace walkSchedule(const std::vector<double> &points,
+                          const std::optional<double> &maxStepSize) {
+  SubStepTrace trace;
+  double currentTime = points.front();
+  for (std::size_t i = 1; i < points.size(); ++i) {
+    const double targetTime = points[i];
+    const double startTime = currentTime;
+    const auto numSubSteps = CuDensityMatIntegratorHelper::subStepCount(
+        startTime, targetTime, maxStepSize);
+    for (std::int64_t subStep = 1; subStep <= numSubSteps; ++subStep) {
+      const double nextTime = CuDensityMatIntegratorHelper::subStepTime(
+          startTime, targetTime, subStep, numSubSteps);
+      const double stepSize = nextTime - currentTime;
+      trace.maxStep = std::max(trace.maxStep, stepSize);
+      trace.minStep = std::min(trace.minStep, stepSize);
+      currentTime = nextTime;
+      ++trace.count;
+    }
+    if (currentTime != targetTime)
+      trace.landedOnEveryPoint = false;
+  }
+  trace.endTime = currentTime;
+  return trace;
+}
+} // namespace
+
+// A max step size that nominally divides the schedule spacing must not produce
+// a redundant near-zero sub-step.
+//
+// The integrators used to walk an interval by accumulating time:
+//
+//   while (m_t < targetTime) {
+//     step = std::min(maxStepSize, targetTime - m_t);
+//     ...propagate...
+//     m_t += step;
+//   }
+//
+// `std::min` only selects the clamp when it is strictly below the max step, so
+// when the two are within a rounding error of each other it returns the max
+// step instead and `m_t` lands an ulp short of the target. The loop condition
+// still holds, so the next iteration spends a full right-hand-side evaluation
+// on a ~1e-17 step. On the schedule below, 22 of the 99 points did this,
+// costing 121 sub-steps of which 22 were pure waste.
+//
+// Separately, most of these intervals measure under an ulp wider than one whole
+// step, which a bare ceil() would cover with two sub-steps each. The rounding
+// allowance in subStepCount() keeps them at one.
+TEST_F(RungeKuttaIntegratorTest, NominallyEqualStepsReachTargetExactly) {
+  constexpr std::size_t numIntervals = 99;
+  const double maxStepSize = 1.0 / numIntervals;
+  std::vector<double> points;
+  for (std::size_t i = 0; i <= numIntervals; ++i)
+    points.push_back(static_cast<double>(i) / numIntervals);
+
+  const auto trace = walkSchedule(points, maxStepSize);
+
+  EXPECT_TRUE(trace.landedOnEveryPoint);
+  EXPECT_EQ(trace.endTime, 1.0);
+  EXPECT_LE(trace.maxStep, largestAllowedSubStep(points, maxStepSize));
+  EXPECT_EQ(trace.count, numIntervals);
+  EXPECT_GT(trace.minStep, 0.4 * maxStepSize);
+}
+
+// Sub-step boundaries are interpolated, never accumulated, so the schedule is
+// hit exactly regardless of the absolute time origin or the time scale.
+TEST_F(RungeKuttaIntegratorTest, LandsExactlyAcrossTimeScalesAndOrigins) {
+  const std::vector<std::pair<double, double>> spans = {
+      {0.0, 1.0},  {1.0, 2.0},   {100.0, 101.0},
+      {-1.0, 1.0}, {0.0, 1e-14}, {1e6, 1e6 + 1.0}};
+  for (const auto &[from, to] : spans) {
+    for (const std::size_t numIntervals : {7u, 13u, 100u}) {
+      for (const std::size_t subStepsPerInterval : {1u, 3u, 10u}) {
+        std::vector<double> points;
+        for (std::size_t i = 0; i <= numIntervals; ++i)
+          points.push_back(from + (to - from) *
+                                      (static_cast<double>(i) / numIntervals));
+        const double maxStepSize =
+            (points[1] - points[0]) / subStepsPerInterval;
+        const auto trace = walkSchedule(points, maxStepSize);
+
+        EXPECT_TRUE(trace.landedOnEveryPoint)
+            << "span [" << from << ", " << to << "] intervals " << numIntervals;
+        EXPECT_EQ(trace.endTime, points.back());
+        EXPECT_LE(trace.maxStep, largestAllowedSubStep(points, maxStepSize));
+        // No degenerate sub-step: the loop never spends an evaluation on a
+        // step that is orders of magnitude below the requested one.
+        EXPECT_GT(trace.minStep, 0.4 * maxStepSize);
+      }
+    }
+  }
+}
+
+// A remaining interval just above the max step size must be split, not
+// absorbed, which would hand the propagator a step wider than the caller asked
+// for. Sizes here are in ulps of the start time, so the max step size is only a
+// handful of ulps -- the regime where the rounding allowance is largest
+// relative to the step, and so the easiest place to get this wrong.
+TEST_F(RungeKuttaIntegratorTest, PartialStepIsNotAbsorbedIntoTheTarget) {
+  const double startTime = 1.0;
+  const double ulp = std::nextafter(startTime, 2.0) - startTime;
+  const double maxStepSize = 64.0 * ulp;
+
+  for (const double spanInUlps : {65.0, 66.0, 68.0, 128.0, 129.0, 65537.0}) {
+    const double targetTime = startTime + spanInUlps * ulp;
+    const auto trace = walkSchedule({startTime, targetTime}, maxStepSize);
+
+    EXPECT_TRUE(trace.landedOnEveryPoint) << "span " << spanInUlps << " ulps";
+    EXPECT_EQ(trace.endTime, targetTime) << "span " << spanInUlps << " ulps";
+    EXPECT_LE(trace.maxStep,
+              largestAllowedSubStep({startTime, targetTime}, maxStepSize))
+        << "span " << spanInUlps << " ulps";
+  }
 }
 
 TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
