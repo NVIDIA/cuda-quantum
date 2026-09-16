@@ -1999,11 +1999,6 @@ anymore.
 :::
 :::
 
-The folder [`targettests/Target/IQM/`{.docutils .literal
-.notranslate}]{.pre} contains sample QPU architecture files. Find there
-files for the IQM Crystal architecture as well as files from real life
-QPUs which can be found on the IQM Resonance portal.
-
 The QPU quantum architecture of a test with a real life IQM QPU can be
 saved for later use in emulation runs. To do so the environment variable
 [`IQM_SAVE_QPU_QA`{.docutils .literal .notranslate}]{.pre} must be set
@@ -2060,11 +2055,6 @@ is specified no server URL is needed anymore.
 :::
 :::
 
-The folder [`targettests/Target/IQM/`{.docutils .literal
-.notranslate}]{.pre} contains sample QPU architecture files. Find there
-files for the IQM Crystal architecture as well as files from real life
-QPUs which can be found on the IQM Resonance portal.
-
 The QPU architecture of a test with an IQM server can be saved for later
 use in emulation runs. To do so the environment variable
 [`IQM_SAVE_QPU_QA`{.docutils .literal .notranslate}]{.pre} must be set
@@ -2080,6 +2070,21 @@ given to retrieve the current dynamic quantum architecture from.
 :::
 :::
 :::
+
+The folder [`targettests/Target/IQM/`{.docutils .literal
+.notranslate}]{.pre} contains sample QPU architecture files. Find there
+files for the IQM Crystal architecture as well as files from real life
+QPUs which can be found on the IQM Resonance portal.
+
+When no QPU architecture file is specified and the query to the
+configured IQM Server fails (for example due to missing authentication
+or no network access), CUDA-Q logs a warning and leaves the compilation
+pipeline unresolved. Kernel launches that do not require qubit mapping,
+such as [`dem_from_kernel`{.docutils .literal .notranslate}]{.pre}, will
+still run successfully with an unresolved compilation pipeline. On the
+other hand, kernel launches that require full kernel compilation, such
+as [`sample`{.docutils .literal .notranslate}]{.pre} or
+[`observe`{.docutils .literal .notranslate}]{.pre}, will fail at launch.
 
 To see a complete example, take a look at [[IQM examples]{.std
 .std-ref}](../../examples/hardware_providers.html#iqm-examples){.reference

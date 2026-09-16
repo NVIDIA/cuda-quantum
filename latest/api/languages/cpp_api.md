@@ -12917,10 +12917,11 @@ them they are erased before execution.
     executes quantum kernel expressions. The [[QPU]{.std
     .std-ref}](#classcudaq_1_1QPU){.reference .internal} exposes certain
     information about the [[QPU]{.std
-    .std-ref}](#classcudaq_1_1QPU){.reference .internal} being
-    targeting, such as the number of available qubits, the logical ID
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal} being targeted,
+    such as the compile target of the [[QPU]{.std
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal}, the logical ID
     for this [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
-    .internal} in a set of available QPUs, and its qubit connectivity.
+    .internal} in a set of available QPUs and the current noise model.
     The [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference .internal}
     keeps track of an execution queue for enqueuing asynchronous tasks
     that execute quantum kernel expressions. The [[QPU]{.std
@@ -12993,22 +12994,6 @@ them they are erased before execution.
     :   Get id of the thread this [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal}'s queue
         executes on.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1QPU_1aed29436f93c96339d245b906862e0443 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[getNumQubits]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU12getNumQubitsEv "Permalink to this definition"){.headerlink}\
-
-    :   Return the number of qubits.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1QPU_1a783a0450e73f35edad0322e1c07bc702 .target}[[inline]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[getConnectivity]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15getConnectivityEv "Permalink to this definition"){.headerlink}\
-
-    :   Return the qubit connectivity.
 
     ```{=html}
     <!-- -->
@@ -13089,15 +13074,6 @@ them they are erased before execution.
 
         This is called after the execution context has been finalized
         and before the execution context is reset.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1QPU_1a945fb6566ca01562c092cb3e4b3d98ab .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[bool]{.pre}]{.kt}[ ]{.w}[[skipPipelineSubstitutions]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetEb "Permalink to this definition"){.headerlink}\
-
-    :   Get the compile target of the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
 
     ```{=html}
     <!-- -->
@@ -13249,8 +13225,7 @@ them they are erased before execution.
     [[quantum_platform]{.std
     .std-ref}](#classcudaq_1_1quantum__platform){.reference .internal}
     exposes a public API for programmers to query specific information
-    about the targeted QPU(s) (e.g. number of qubits, qubit
-    connectivity, etc.). This type is meant to be subclassed for
+    about the targeted QPU(s). This type is meant to be subclassed for
     concrete realizations of quantum platforms, which are intended to
     populate the QPUs of this base class via [`addQPU`{.docutils
     .literal .notranslate}]{.pre} and [`clearQPUs`{.docutils .literal
@@ -13258,24 +13233,6 @@ them they are erased before execution.
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
-
-    []{#classcudaq_1_1quantum__platform_1aa0162be5a19283a7fe9a933ff93425c2 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QubitConnectivity]{.pre}]{.n}](#_CPPv4N5cudaq17QubitConnectivityE "cudaq::QubitConnectivity"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[connectivity]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12connectivityEv "Permalink to this definition"){.headerlink}\
-
-    :   Fetch the connectivity info.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a9552749bad6b44d31284b5614b3cc841 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[get_num_qubits]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform14get_num_qubitsENSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Get the number of qubits for the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} with ID
-        qpu_id.
-
-    ```{=html}
-    <!-- -->
-    ```
 
     []{#classcudaq_1_1quantum__platform_1aa3371a29fdf210c5a0831f199c2604a7 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_task_distribution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv "Permalink to this definition"){.headerlink}\
 
@@ -13508,23 +13465,6 @@ them they are erased before execution.
 :   The QuantumTask is ultimately what gets added to the execution
     queue. It is meant to wrap any Sampling or Observe task with an
     appropriate std::promise instance being provided and set.
-
-```{=html}
-<!-- -->
-```
-
-[]{#quantum__platform_8h_1a104e794b18a96a94b7b3ee6fbd96698d .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[QubitConnectivity]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QubitEdge]{.pre}]{.n}](#_CPPv4N5cudaq9QubitEdgeE "cudaq::QubitEdge"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq17QubitConnectivityE "Permalink to this definition"){.headerlink}\
-
-:   
-
-```{=html}
-<!-- -->
-```
-
-[]{#quantum__platform_8h_1aa2ee059741b84fd4577879dad8e672ef .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[QubitEdge]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq9QubitEdgeE "Permalink to this definition"){.headerlink}\
-
-:   Typedefs for defining the connectivity structure of a [[QPU]{.std
-    .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
 
 ```{=html}
 <!-- -->

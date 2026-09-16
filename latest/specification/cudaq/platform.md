@@ -1987,7 +1987,7 @@ aria-hidden="true"}](algorithmic_primitives.html "12. Quantum Algorithmic Primit
 **\[1\]** CUDA-Q provides an abstraction describing the underlying
 quantum computing resource(s). The underlying quantum platform can
 contain one or many quantum processing units (QPUs) each with its own
-qubit connectivity and noise configuration.
+compile target and noise configuration.
 
 **\[2\]** CUDA-Q defines a [`cudaq::quantum_platform`{.code .docutils
 .literal .notranslate}]{.pre} in an effort to expose relevant system
@@ -2024,13 +2024,8 @@ The [`cudaq::quantum_platform`{.code .docutils .literal
         quantum_platform();
         ~quantum_platform();
 
-        using QubitEdge = std::pair<std::size_t, std::size_t>;
-        using QubitConnectivity = std::vector<QubitEdge>;
-        std::optional<QubitConnectivity> connectivity();
-
         std::size_t num_qpus() const;
 
-        std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
         bool is_simulator(std::size_t qpu_id = 0) const;
         bool is_remote(std::size_t qpu_id = 0) const;
         bool is_emulated(std::size_t qpu_id = 0) const;

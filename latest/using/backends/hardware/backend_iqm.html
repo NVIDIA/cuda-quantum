@@ -1138,8 +1138,6 @@ If an architecture is specified no server URL is needed anymore.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'iqm'</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mapping_file</span><span class="o">=</span><span class="s2">"&lt;path+filename&gt;"</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
-Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
 <p>The QPU quantum architecture of a test with a real life IQM QPU can be saved for later use in emulation runs.
 To do so the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SAVE_QPU_QA</span></code> must be set to point to a filename in addition to setting the URL of a Resonance server.
 The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.</p>
@@ -1168,8 +1166,6 @@ nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w">
 ./program
 </pre></div>
 </div>
-<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
-Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
 <p>The QPU architecture of a test with an IQM server can be saved for later use in emulation runs.
 To do so the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SAVE_QPU_QA</span></code> must be set to point to a filename in addition to setting the URL of a Resonance server.
 The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.</p>
@@ -1179,6 +1175,12 @@ The test can even run as emulation as long as a server URL is given to retrieve 
 </div>
 </div>
 </div>
+<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
+Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
+<p>When no QPU architecture file is specified and the query to the configured IQM Server fails
+(for example due to missing authentication or no network access), CUDA-Q logs a warning and leaves the compilation pipeline unresolved.
+Kernel launches that do not require qubit mapping, such as <code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code>, will still run successfully with an unresolved compilation pipeline.
+On the other hand, kernel launches that require full kernel compilation, such as <code class="docutils literal notranslate"><span class="pre">sample</span></code> or <code class="docutils literal notranslate"><span class="pre">observe</span></code>, will fail at launch.</p>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#iqm-examples"><span class="std std-ref">IQM examples</span></a>.</p>
 </section>
 <section id="setting-the-number-of-shots">
