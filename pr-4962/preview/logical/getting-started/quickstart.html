@@ -1,0 +1,698 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick start &mdash; CUDA-Q Logical  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="The logical programming stack" href="cudaq-logical-in-practice.html" />
+    <link rel="prev" title="CUDA-Q Logical — Develop and evaluate fault-tolerant quantum applications" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CUDA-Q Logical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-shipped-examples">Running the shipped examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-1-estimate-an-existing-cuda-q-kernel">Step 1 — Estimate an existing CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-2-author-a-portable-p0-program">Step 2 — Author a portable P0 program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-3-choose-a-code-and-a-gadget-p2">Step 3 — Choose a code and a gadget (P2)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-4-lower-to-physical-events-and-schedule-them-p3">Step 4 — Lower to physical events and schedule them (P3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-5-emit-stim-text-from-the-command-line">Step 5 — Emit Stim text from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cudaq-logical-in-practice.html">The logical programming stack</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#write-the-logical-program">1. Write the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#place-the-qubits-on-a-logical-machine">2. Place the qubits on a logical machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#define-a-qec-realization">3. Define a QEC realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#estimate-a-selected-realization">4. Estimate a selected realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#emit-a-verified-gadget-as-stim">5. Emit a verified gadget as Stim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#what-each-stage-owns">What each stage owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Core concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#four-stages-one-direction">1. Four stages, one direction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#facets-not-extra-stages">2. Facets, not extra stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#linear-ownership">3. Linear ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#codes-profiles-encodings-three-different-things">4. Codes, profiles, encodings — three different things</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#objectives-gadgets-protocols-claims-and-proofs">5. Objectives, gadgets, protocols — claims and proofs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#evidence-follows-the-program">6. Evidence follows the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#there-is-no-registry-imports-are-the-linker">7. There is no registry — imports are the linker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#global-phase-is-not-observable">8. Global phase is not observable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#where-the-pieces-live">Where the pieces live</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/examples/index.html">CUDA-Q Logical by Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gidney-ekera.html">Gidney–Ekerå RSA-2048</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Use cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/define-a-code.html">Defining codes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#css-codes-state-the-checks-once">CSS codes: state the checks once</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#distance-is-evidence-not-an-integer">Distance is evidence, not an integer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#the-catalog-and-parameterized-families">The catalog and parameterized families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#what-you-get-for-free">What you get for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/gadgets-and-verification.html">Gadgets and verification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#what-implements-takes">What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#author-the-objective-in-cuda-q-logical">Author the objective in CUDA-Q Logical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#reuse-a-cuda-q-kernel-as-the-claim">Reuse a CUDA-Q kernel as the claim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#what-the-signature-and-body-add">What the signature and body add</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#typed-records-at-the-boundary">Typed records at the boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#preparation-and-destructive-measurement">Preparation and destructive measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#selection-retry-and-postselection-belong-to-the-protocol">Selection: retry and postselection belong to the protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#verification-claims-are-checked-not-trusted">Verification: claims are checked, not trusted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#design-rules-that-keep-the-model-crisp">Design rules that keep the model crisp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/devices-and-placement.html">Devices and placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#machines-devices-architectures">Machines, devices, architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/devices-and-placement.html#stop-at-the-layer-your-study-needs">Stop at the layer your study needs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#automatic-placement-constraints-preferences-witnesses">Automatic placement: constraints, preferences, witnesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#code-agnostic-p1">Code-agnostic P1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#where-the-firewall-pays-off">Where the firewall pays off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html">Magic states and protocols</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#phase-convention">Phase convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#authoring-exact-angles-with-cudaq-logical-algebra-pi">Authoring exact angles with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.pi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#synthesize-a-program">Synthesize a program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#precision">Precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#inspect-and-replay-the-result">Inspect and replay the result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#use-the-pipeline-form">Use the pipeline form</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#pauli-based-computation-still-at-p0">Pauli-based computation, still at P0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#when-not-to-synthesize">When not to synthesize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/estimation.html">Resource estimation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-logical-cost-the-algorithm-before-any-qec-choice"><code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> — cost the algorithm before any QEC choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-static-count-one-selected-p2-realization"><code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code> — count one selected P2 realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-analytical-apply-an-explicit-physical-model"><code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> — apply an explicit physical model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-schedule-cost-the-physical-event-graph"><code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> — cost the physical event graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#the-rules-that-keep-estimates-honest">The rules that keep estimates honest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#direct-spellings">Direct spellings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#sweeps-and-reproducibility">Sweeps and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#paper-specific-projections-live-in-the-open">Paper-specific projections live in the open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#estimating-ordinary-cuda-q-kernels">Estimating ordinary CUDA-Q kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/stim-emission.html">Stim emission</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/stim-emission.html#emit-from-the-command-line">Emit from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/stim-emission.html#fail-closed-boundaries">Fail-closed boundaries</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/capabilities.html">Capabilities and status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-dialect-stack">The dialect stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-semantic-spine-and-its-facets">The semantic spine and its facets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#definitions-versus-builds">Definitions versus builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-artifact-model">The artifact model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#data-ownership">Data ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-compile-pipeline">The compile pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-p2-patch-graph">The P2 patch graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#verification-layers">Verification layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#typed-inspection">Typed inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#package-map">Package map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-1-default-the-cudaq-devel-wheel">Option 1 (default): the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-2-a-cuda-q-installation-built-from-source">Option 2: a CUDA-Q installation built from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#build-options">Build options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#verifying-the-build">Verifying the build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/releases.html">Main CUDA-Q documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CUDA-Q Logical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quick start</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/getting-started/quickstart.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="../index.html" class="btn btn-neutral float-left" title="CUDA-Q Logical — Develop and evaluate fault-tolerant quantum applications" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cudaq-logical-in-practice.html" class="btn btn-neutral float-right" title="The logical programming stack" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="quick-start">
+<h1>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h1>
+<p>This page takes you from a clean Python environment to a verified QEC resource
+estimate and emitted Stim circuit text. Every command assumes <code class="docutils literal notranslate"><span class="pre">cudaq-logical</span></code>
+is installed, and every program shown is one of the shipped, test-executed
+examples under <code class="docutils literal notranslate"><span class="pre">preview/logical/examples/</span></code>.</p>
+<p>You will:</p>
+<ol class="arabic simple">
+<li><p>install CUDA-Q Logical;</p></li>
+<li><p>estimate an existing CUDA-Q kernel against a surface-code target;</p></li>
+<li><p>author a portable P0 logical program and read its logical estimate;</p></li>
+<li><p>define a QEC code and a verified gadget, and count their P2 operations;</p></li>
+<li><p>lower a surface-code workload to physical events and schedule it;</p></li>
+<li><p>emit standards-compatible Stim text from the command line.</p></li>
+</ol>
+<section id="install">
+<h2>Install<a class="headerlink" href="#install" title="Link to this heading"></a></h2>
+<p>The simplest way to install CUDA-Q Logical is with the <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> base package:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cudaq
+</pre></div>
+</div>
+<p>To install CUDA-Q Logical on its own instead, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cudaq-logical<span class="o">[</span>cu13<span class="o">]</span>
+</pre></div>
+</div>
+<p>Replace <code class="docutils literal notranslate"><span class="pre">[cu13]</span></code> with <code class="docutils literal notranslate"><span class="pre">[cu12]</span></code> if you have CUDA 12 installed.</p>
+<div class="admonition-always-include-cu13-or-cu12 admonition">
+<p class="admonition-title">Always include <code class="docutils literal notranslate"><span class="pre">[cu13]</span></code> or <code class="docutils literal notranslate"><span class="pre">[cu12]</span></code></p>
+<p>If you install <code class="docutils literal notranslate"><span class="pre">cudaq-logical</span></code> standalone, always suffix it with <code class="docutils literal notranslate"><span class="pre">[cu13]</span></code> or
+<code class="docutils literal notranslate"><span class="pre">[cu12]</span></code>, defaulting to <code class="docutils literal notranslate"><span class="pre">[cu13]</span></code> if your machine has no CUDA installation. The
+bare package does not include the required dependencies.</p>
+</div>
+<p>To build from source against CUDA-Q, see
+<a class="reference internal" href="../reference/building-against-cudaq.html"><span class="std std-doc">Building against CUDA-Q</span></a>.</p>
+</section>
+<section id="running-the-shipped-examples">
+<h2>Running the shipped examples<a class="headerlink" href="#running-the-shipped-examples" title="Link to this heading"></a></h2>
+<p>From a checkout of this repository, run any example with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>preview/logical/examples/00_logical_resource_estimate.py
+</pre></div>
+</div>
+<p>Every <code class="docutils literal notranslate"><span class="pre">python3</span></code> command below is the same invocation with a different example
+path.</p>
+</section>
+<section id="step-1-estimate-an-existing-cuda-q-kernel">
+<h2>Step 1 — Estimate an existing CUDA-Q kernel<a class="headerlink" href="#step-1-estimate-an-existing-cuda-q-kernel" title="Link to this heading"></a></h2>
+<p>The fastest route to a first number: take an ordinary CUDA-Q kernel, select a
+distance-3 rotated-surface-code target with room for one logical qubit, and
+estimate its resources through the CUDA-Q target integration.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">examples/02_surface_code_resource_estimate.py</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
+<span class="c1"># Copyright (c) 2026 NVIDIA Corporation &amp; Affiliates.                          #</span>
+<span class="c1"># All rights reserved.                                                         #</span>
+<span class="c1">#                                                                              #</span>
+<span class="c1"># This source code and the accompanying materials are made available under     #</span>
+<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
+<span class="c1"># ============================================================================ #</span>
+<span class="sd">"""Explore physical surface-code estimates with a configurable target."""</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Import CUDA-Q and the CUDA-Q Logical target and result APIs.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Author a logical-zero memory kernel whose qubit demand is a parameter.</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">logical_zero_memory</span><span class="p">(</span><span class="n">logical_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">logical_qubits</span><span class="p">)</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Establish a one-qubit, distance-three reference configuration.</span>
+<span class="n">baseline_qubits</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">baseline_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">surface_physical_target</span><span class="p">(</span>
+    <span class="n">logical_capacity</span><span class="o">=</span><span class="n">baseline_qubits</span><span class="p">,</span>
+    <span class="n">distance</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">baseline_target</span><span class="p">)</span>
+<span class="n">baseline_target</span><span class="o">.</span><span class="n">print_stack</span><span class="p">()</span>
+
+<span class="n">baseline_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_zero_memory</span><span class="p">,</span> <span class="n">baseline_qubits</span><span class="p">)</span>
+<span class="n">baseline_analytical</span> <span class="o">=</span> <span class="n">baseline_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"ANALYTICAL"</span><span class="p">]</span>
+<span class="n">baseline_schedule</span> <span class="o">=</span> <span class="n">baseline_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Increase the workload capacity and code distance in a second physical study.</span>
+<span class="n">scaled_qubits</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">scaled_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">surface_physical_target</span><span class="p">(</span>
+    <span class="n">logical_capacity</span><span class="o">=</span><span class="n">scaled_qubits</span><span class="p">,</span>
+    <span class="n">distance</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">scaled_target</span><span class="p">)</span>
+
+<span class="n">scaled_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_zero_memory</span><span class="p">,</span> <span class="n">scaled_qubits</span><span class="p">)</span>
+<span class="n">scaled_static</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">FabricCounts</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span>
+    <span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
+<span class="n">scaled_analytical</span> <span class="o">=</span> <span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"ANALYTICAL"</span><span class="p">]</span>
+<span class="n">scaled_schedule</span> <span class="o">=</span> <span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Hold the layout fixed while changing the physical operating assumptions.</span>
+<span class="n">sensitivity_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">surface_physical_target</span><span class="p">(</span>
+    <span class="n">logical_capacity</span><span class="o">=</span><span class="n">scaled_qubits</span><span class="p">,</span>
+    <span class="n">distance</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">p_phys</span><span class="o">=</span><span class="mf">1.0e-4</span><span class="p">,</span>
+    <span class="n">failure_budget</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">,</span>
+    <span class="n">cycle_time</span><span class="o">=</span><span class="mf">5.0e-9</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">sensitivity_target</span><span class="p">)</span>
+
+<span class="n">sensitivity_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_zero_memory</span><span class="p">,</span> <span class="n">scaled_qubits</span><span class="p">)</span>
+<span class="n">sensitivity_analytical</span> <span class="o">=</span> <span class="n">sensitivity_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"ANALYTICAL"</span><span class="p">]</span>
+<span class="n">sensitivity_schedule</span> <span class="o">=</span> <span class="n">sensitivity_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Verify which metrics change with layout and operating-point parameters.</span>
+<span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span>
+    <span class="s2">"LOGICAL"</span><span class="p">,</span>
+    <span class="s2">"STATIC"</span><span class="p">,</span>
+    <span class="s2">"ANALYTICAL"</span><span class="p">,</span>
+    <span class="s2">"SCHEDULE"</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="k">assert</span> <span class="n">baseline_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span> <span class="o">==</span> <span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Surface</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">size</span>
+<span class="k">assert</span> <span class="n">scaled_static</span><span class="o">.</span><span class="n">logical_qubits_peak</span> <span class="o">==</span> <span class="n">scaled_qubits</span>
+<span class="k">assert</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">baseline_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">baseline_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span> <span class="o">==</span> <span class="n">scaled_schedule</span><span class="p">[</span>
+    <span class="s2">"physical_qubits"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span> <span class="o">==</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s2">"makespan_ns"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"makespan_ns"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s2">"logical_error"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">scaled_analytical</span><span class="p">[</span>
+    <span class="s2">"logical_error"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">scaled_analytical</span><span class="p">[</span><span class="s2">"budget_met"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s2">"budget_met"</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Surface-code layout scaling:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"  baseline (1 logical qubit, distance 3):"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical qubits: </span><span class="si">{</span><span class="n">baseline_schedule</span><span class="p">[</span><span class="s1">'physical_qubits'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled events: </span><span class="si">{</span><span class="n">baseline_schedule</span><span class="p">[</span><span class="s1">'event_count'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    makespan: </span><span class="si">{</span><span class="n">baseline_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"  scaled memory (3 logical qubits, distance 5):"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical qubits: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'physical_qubits'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled events: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'event_count'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    makespan: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Operating-point sensitivity at 3 logical qubits and distance 5:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"  target defaults:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    cycle time: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'cycle_time'</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.0e9</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical error rate: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'p_phys'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    failure budget: "</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'failure_budget'</span><span class="p">][</span><span class="s1">'total'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    logical error: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'logical_error'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    budget met: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'budget_met'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled makespan: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"  changed physical assumptions:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    cycle time: "</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'cycle_time'</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.0e9</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical error rate: </span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'p_phys'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    failure budget: "</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'failure_budget'</span><span class="p">][</span><span class="s1">'total'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    logical error: </span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'logical_error'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    budget met: </span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'budget_met'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled makespan: "</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>preview/logical/examples/02_surface_code_resource_estimate.py
+</pre></div>
+</div>
+<p>The example prints the selected backend stack, then compares physical-qubit,
+event-count, and makespan estimates for distance-3 and distance-5 layouts. It
+also holds the layout fixed while changing the physical error rate, failure
+budget, and cycle time, making the assumptions behind the estimate explicit.</p>
+</section>
+<section id="step-2-author-a-portable-p0-program">
+<h2>Step 2 — Author a portable P0 program<a class="headerlink" href="#step-2-author-a-portable-p0-program" title="Link to this heading"></a></h2>
+<p>You can also author logical programs directly through the <code class="docutils literal notranslate"><span class="pre">cudaq.logical</span></code> facade.
+A P0 program names no code, no device, and no carrier — and you can already estimate
+it.</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">examples/standalone/00_logical_program.py</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
+<span class="c1"># Copyright (c) 2026 NVIDIA Corporation &amp; Affiliates.                          #</span>
+<span class="c1"># All rights reserved.                                                         #</span>
+<span class="c1">#                                                                              #</span>
+<span class="c1"># This source code and the accompanying materials are made available under     #</span>
+<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
+<span class="c1"># ============================================================================ #</span>
+<span class="sd">"""Author a portable logical program without a CUDA-Q kernel."""</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Import the standalone CUDA-Q Logical authoring and compiler API.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Define a Bell program directly with linear logical-qubit values.</span>
+<span class="nd">@cql</span><span class="o">.</span><span class="n">program</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">zero</span><span class="p">)</span>
+    <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">cql</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Compile the program and request its logical resource counts directly.</span>
+<span class="n">build</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">bell</span><span class="p">)</span>
+<span class="n">resources</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">Tier</span><span class="o">.</span><span class="n">LOGICAL</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">build</span><span class="o">.</span><span class="n">stage</span> <span class="o">==</span> <span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">P0</span>
+<span class="k">assert</span> <span class="n">resources</span><span class="o">.</span><span class="n">logical_qubits_peak</span> <span class="o">==</span> <span class="mi">2</span>
+<span class="k">assert</span> <span class="n">resources</span><span class="o">.</span><span class="n">actions</span> <span class="o">==</span> <span class="p">{</span>
+    <span class="s2">"qlx_standard_h"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">"qlx_standard_cx"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Portable Bell program: </span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">logical_qubits_peak</span><span class="si">}</span><span class="s2"> logical qubits"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>preview/logical/examples/standalone/00_logical_program.py
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Portable Bell program: 2 logical qubits
+</pre></div>
+</div>
+<p>Note the linear style: every operation consumes its operand and returns the
+successor, so a stale value is a typed error, not a silent bug. The
+<code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> estimate counts logical qubits and actions with any repetition
+still folded; P2 builds add <code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code>, which reads the realized gadget
+counts directly.</p>
+</section>
+<section id="step-3-choose-a-code-and-a-gadget-p2">
+<h2>Step 3 — Choose a code and a gadget (P2)<a class="headerlink" href="#step-3-choose-a-code-and-a-gadget-p2" title="Link to this heading"></a></h2>
+<p>P2 is where codes and gadgets enter. This example defines the <code class="docutils literal notranslate"><span class="pre">[[7,1,3]]</span></code> Steane
+code as a CSS block, declares a terminal-memory objective, and authors a gadget
+that implements it — one syndrome-extraction pass followed by data-qubit
+readout.</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">examples/standalone/02_code_and_gadget.py</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
+<span class="c1"># Copyright (c) 2026 NVIDIA Corporation &amp; Affiliates.                          #</span>
+<span class="c1"># All rights reserved.                                                         #</span>
+<span class="c1">#                                                                              #</span>
+<span class="c1"># This source code and the accompanying materials are made available under     #</span>
+<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
+<span class="c1"># ============================================================================ #</span>
+<span class="sd">"""Define a Steane code and a concrete syndrome-extraction gadget."""</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Import the standalone CUDA-Q Logical code and gadget APIs.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Define the self-dual Steane CSS code from its check supports.</span>
+<span class="nd">@cql</span><span class="o">.</span><span class="n">code</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Steane</span><span class="p">:</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">CSSBlock</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">sx</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">sz</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">hx</span> <span class="o">=</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+    <span class="n">hz</span> <span class="o">=</span> <span class="n">hx</span>
+    <span class="n">lx</span> <span class="o">=</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)),)</span>
+    <span class="n">lz</span> <span class="o">=</span> <span class="n">lx</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Declare the ideal logical operation implemented by the gadget.</span>
+<span class="nd">@cql</span><span class="o">.</span><span class="n">objective</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">terminal_memory</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">logical_qubit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Implement that operation using encoded syndrome extraction and measurement.</span>
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">terminal_memory</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">steane_memory</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">Steane</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Materialize both definitions and inspect the gadget's static operations.</span>
+<span class="n">code</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">materialize</span><span class="p">(</span><span class="n">Steane</span><span class="p">)</span>
+<span class="n">gadget</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">steane_memory</span><span class="p">)</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">gadget</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="s2">"fabric.code @Steane"</span> <span class="ow">in</span> <span class="n">code</span><span class="o">.</span><span class="n">to_mlir</span><span class="p">()</span>
+<span class="k">assert</span> <span class="s2">"fabric.gadget @steane_memory"</span> <span class="ow">in</span> <span class="n">gadget</span><span class="o">.</span><span class="n">to_mlir</span><span class="p">()</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">Steane</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">Steane</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">Steane</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Steane [[7,1,3]] terminal-memory gadget:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  authored operations: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">operation_counts</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>preview/logical/examples/standalone/02_code_and_gadget.py
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Steane [[7,1,3]] terminal-memory gadget:
+  authored operations: {'reset': 2, 'h': 2, 'cx': 2, 'read_syndrome_ancillas': 1, 'mz': 1, 'dealloc': 1}
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.materialize</span></code> and <code class="docutils literal notranslate"><span class="pre">cudaq.logical.compile</span></code> lower both artifacts
+into the <code class="docutils literal notranslate"><span class="pre">fabric</span></code> dialect, where <code class="docutils literal notranslate"><span class="pre">cudaq.logical.analysis.count</span></code> reports the
+gadget’s authored operations. These verified, named gadgets are the atoms of
+every P2 static estimate — the surface-code counts in Step 1 are sums over
+exactly such calls.</p>
+</section>
+<section id="step-4-lower-to-physical-events-and-schedule-them-p3">
+<h2>Step 4 — Lower to physical events and schedule them (P3)<a class="headerlink" href="#step-4-lower-to-physical-events-and-schedule-them-p3" title="Link to this heading"></a></h2>
+<p>Everything so far stopped at the QEC realization. P3 adds the physical layer:
+carriers, the binding from encoded regions onto them, and an operating point
+that turns dimensionless cycles into time.</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">A device layered across P1, P2, and P3 (examples/standalone/04_physical_schedule.py).</span><a class="headerlink" href="#id4" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">surface_architecture</span> <span class="o">=</span> <span class="n">recipes</span><span class="o">.</span><span class="n">surface_architecture</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">surface_code</span> <span class="o">=</span> <span class="n">surface_architecture</span><span class="o">.</span><span class="n">code</span>
+
+<span class="n">builder</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">DeviceBuilder</span><span class="p">(</span><span class="s2">"StandaloneSurfaceCodeDevice"</span><span class="p">)</span>
+<span class="n">compute</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">add_compute</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">encoded_region</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">qec</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">compute</span><span class="p">,</span> <span class="n">architecture</span><span class="o">=</span><span class="n">surface_architecture</span><span class="p">)</span>
+<span class="n">carriers</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">add_qubits</span><span class="p">(</span>
+    <span class="n">surface_code</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+    <span class="n">native_actions</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_actions</span><span class="o">.</span><span class="n">clifford_set</span><span class="p">(),</span>
+    <span class="n">native_instruments</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_instruments</span><span class="o">.</span><span class="n">MZ</span><span class="p">,</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_instruments</span><span class="o">.</span><span class="n">MPP</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">encoded_region</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="n">carriers</span><span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">set_operating_point</span><span class="p">(</span><span class="n">timing</span><span class="o">=</span><span class="p">{</span><span class="s2">"cycle_ns"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+<span class="c1"># %%</span>
+</pre></div>
+</div>
+</div>
+<p>With those facts present, the compiler lowers the placed program to a physical
+event graph, schedules it, and costs the schedule:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">schedule</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span><span class="n">physical</span><span class="p">)</span>
+<span class="n">resources</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span>
+    <span class="n">schedule</span><span class="p">,</span>
+    <span class="n">tier</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">Tier</span><span class="o">.</span><span class="n">SCHEDULE</span><span class="p">,</span>
+    <span class="n">p_phys</span><span class="o">=</span><span class="mf">1.0e-3</span><span class="p">,</span>
+    <span class="n">failure_budget</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">cycle_time</span><span class="o">=</span><span class="mf">1.0e-9</span><span class="p">,</span>
+<span class="p">)</span>
+
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>preview/logical/examples/standalone/04_physical_schedule.py
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Standalone physical schedule:
+  physical qubits: 17
+  scheduled events: 50
+  makespan: 44.0 ns
+</pre></div>
+</div>
+<p>A distance-3 rotated surface code needs 17 carriers; the three requested
+syndrome rounds become 50 scheduled events with a 44 ns makespan under a 1 ns
+cycle. Change the operating point and the makespan moves; change the code
+distance and the carrier count moves. The logical program is untouched by
+either.</p>
+</section>
+<section id="step-5-emit-stim-text-from-the-command-line">
+<h2>Step 5 — Emit Stim text from the command line<a class="headerlink" href="#step-5-emit-stim-text-from-the-command-line" title="Link to this heading"></a></h2>
+<p>A verified P2 entry gadget can be projected to standards-compatible Stim
+circuit text — CUDA-Q Logical’s secondary interchange path. <code class="docutils literal notranslate"><span class="pre">qlx-translate</span></code>
+ships as a console script with the wheel you installed above. Point it at one
+round of Steane syndrome extraction:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>qlx-translate<span class="w"> </span>preview/logical/examples/mlir/stim_steane_memory.mlir<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fabric-to-stim
+</pre></div>
+</div>
+<div class="highlight-stim notranslate"><div class="highlight"><pre><span></span><span class="k">R</span> <span class="m">7</span> <span class="m">8</span> <span class="m">9</span>
+<span class="k">H</span> <span class="m">7</span> <span class="m">8</span> <span class="m">9</span>
+<span class="k">CX</span> <span class="m">7</span> <span class="m">0</span> <span class="m">7</span> <span class="m">1</span> <span class="m">7</span> <span class="m">2</span> <span class="m">7</span> <span class="m">3</span> <span class="m">8</span> <span class="m">0</span> <span class="m">8</span> <span class="m">1</span> <span class="m">8</span> <span class="m">4</span> <span class="m">8</span> <span class="m">5</span> <span class="m">9</span> <span class="m">0</span> <span class="m">9</span> <span class="m">2</span> <span class="m">9</span> <span class="m">4</span> <span class="m">9</span> <span class="m">6</span>
+<span class="k">H</span> <span class="m">7</span> <span class="m">8</span> <span class="m">9</span>
+<span class="k">R</span> <span class="m">10</span> <span class="m">11</span> <span class="m">12</span>
+<span class="k">CX</span> <span class="m">0</span> <span class="m">10</span> <span class="m">1</span> <span class="m">10</span> <span class="m">2</span> <span class="m">10</span> <span class="m">3</span> <span class="m">10</span> <span class="m">0</span> <span class="m">11</span> <span class="m">1</span> <span class="m">11</span> <span class="m">4</span> <span class="m">11</span> <span class="m">5</span> <span class="m">11</span> <span class="m">0</span> <span class="m">12</span> <span class="m">2</span> <span class="m">12</span> <span class="m">4</span> <span class="m">12</span> <span class="m">6</span> <span class="m">12</span>
+<span class="k">M</span> <span class="m">7</span> <span class="m">8</span> <span class="m">9</span>
+<span class="k">M</span> <span class="m">10</span> <span class="m">11</span> <span class="m">12</span>
+<span class="k">M</span> <span class="m">0</span> <span class="m">1</span> <span class="m">2</span> <span class="m">3</span> <span class="m">4</span> <span class="m">5</span> <span class="m">6</span>
+</pre></div>
+</div>
+<p>Data carriers are 0–6, ancillas 7–12, and every stabilizer coupling is written
+out. The text loads directly with the reference <code class="docutils literal notranslate"><span class="pre">stim</span></code> Python package. See
+<a class="reference internal" href="../use-cases/stim-emission.html"><span class="std std-doc">Stim emission</span></a> for what the projection refuses
+to do.</p>
+</section>
+<section id="where-to-go-next">
+<h2>Where to go next<a class="headerlink" href="#where-to-go-next" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Continue with <a class="reference internal" href="cudaq-logical-in-practice.html"><span class="std std-doc">Build, place, and estimate a logical
+program</span></a> for a step-by-step guide.</p></li>
+<li><p>Use the task-oriented <a class="reference internal" href="../use-cases/define-a-code.html"><span class="std std-doc">code</span></a>,
+<a class="reference internal" href="../use-cases/devices-and-placement.html"><span class="std std-doc">placement</span></a>, and
+<a class="reference internal" href="../use-cases/estimation.html"><span class="std std-doc">estimation</span></a> guides.</p></li>
+<li><p>Browse the remaining runnable studies in
+<a class="reference internal" href="../use-cases/examples/index.html"><span class="std std-doc">Examples</span></a>.</p></li>
+<li><p>Inspect compiler internals in the
+<a class="reference internal" href="../reference/architecture.html"><span class="std std-doc">architecture reference</span></a>.</p></li>
+</ul>
+<p>To run the full conformance suite after building from source, see <a class="reference internal" href="../reference/building-against-cudaq.html#verifying-the-build"><span class="std std-ref">Building
+against CUDA-Q</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="CUDA-Q Logical — Develop and evaluate fault-tolerant quantum applications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cudaq-logical-in-practice.html" class="btn btn-neutral float-right" title="The logical programming stack" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright © 2026, NVIDIA Corporation &amp; affiliates. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
