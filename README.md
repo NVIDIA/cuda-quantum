@@ -43,6 +43,19 @@ instructions](./Building.md).
 [github_packages]:
     https://github.com/orgs/NVIDIA/packages?repo_name=cuda-quantum
 
+## Research Preview: Pulse-Level Programming
+
+CUDA-Q pulse is a new research-preview package for programming at the pulse
+level. It provides a Python kernel DSL, pulse and operator dialects, compiler
+passes, and an experimental GPU execution path. Because it is a research
+preview, its APIs and behavior may change incompatibly or be removed without
+notice, and it is not a product-supported CUDA-Q feature.
+
+See the [CUDA-Q pulse README][pulse_readme] for a quick example, build
+instructions, and the current scope and limitations.
+
+[pulse_readme]: https://github.com/NVIDIA/cuda-quantum/blob/feature/pulse/pulse/README.md
+
 ## Contributing
 
 There are many ways in which you can get involved with CUDA-Q. If you are

@@ -6,9 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
-#include "cudaq/Target/CompileTarget.h"
-#include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/algorithms/msm/policy.h"
@@ -16,6 +15,7 @@
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
@@ -34,8 +34,7 @@ public:
   /// Number of times `launchKernel(sample_policy)` was called on this QPU.
   std::size_t sampleLaunchCount = 0;
 
-  CompileTarget
-  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+  CompileTarget getCompileTarget() override {
     CompileTarget ct;
     ct.pipelineConfig.highLevelPipeline = "custom_pipeline";
     ct.fullySpecialize = false;
@@ -177,9 +176,8 @@ void expectOverrideDisabled(Fn &&fn, const std::string &what) {
 
 TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
   TestPlatform platform;
-  sample_policy policy{.kernelName = "test_kernel"};
 
-  auto ct = platform.getCompileTarget(policy);
+  auto ct = platform.getCompileTarget();
   EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_pipeline");
   EXPECT_FALSE(ct.fullySpecialize);
   EXPECT_TRUE(ct.overrideAOTCompilation);
@@ -188,9 +186,8 @@ TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
 TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
   TestPlatform platform;
   platform.setCompileTarget(makePlatformCompileTarget());
-  sample_policy policy{.kernelName = "test_kernel"};
 
-  auto ct = platform.getCompileTarget(policy);
+  auto ct = platform.getCompileTarget();
   EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
   EXPECT_FALSE(ct.overrideAOTCompilation);
@@ -210,39 +207,35 @@ TEST(QuantumPlatformCompileTargetTester,
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
   TestPlatform platform;
-  other_policies policy;
 
-  auto ct = platform.getCompileTarget(policy);
+  auto ct = platform.getCompileTarget();
   EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_pipeline");
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
   TestPlatform platform;
   platform.setCompileTarget(makePlatformCompileTarget());
-  other_policies policy;
 
-  auto ct = platform.getCompileTarget(policy);
+  auto ct = platform.getCompileTarget();
   EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
 }
 
 TEST(QuantumPlatformCompileTargetTester, rejectsInvalidQpuId) {
   TestPlatform platform;
-  sample_policy policy{.kernelName = "test_kernel"};
 
   expectThrows<std::invalid_argument>(
-      [&] { (void)platform.getCompileTarget(policy, /*qpu_id=*/1); },
+      [&] { (void)platform.getCompileTarget(/*qpu_id=*/1); },
       "invalid_argument");
 }
 
 TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
   TestPlatform platform;
   platform.setCompileTarget(makePlatformCompileTarget());
-  sample_policy policy{.kernelName = "test_kernel"};
 
   platform.setCompileTarget(std::nullopt);
 
-  auto ct = platform.getCompileTarget(policy);
+  auto ct = platform.getCompileTarget();
   EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_pipeline");
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
@@ -353,17 +346,16 @@ TEST(QuantumPlatformRuntimeEndpointTester, recreatingQpusResetsEndpoints) {
 // that caused it and shadow every later target's own compile target.
 TEST(QuantumPlatformRuntimeEndpointTester, recreatingQpusResetsCompileTarget) {
   TestPlatform platform;
-  sample_policy policy{.kernelName = "test_kernel"};
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 42});
   // The installed default describes a local simulator, unlike the test QPU's.
-  ASSERT_NE(platform.getCompileTarget(policy).pipelineConfig.highLevelPipeline,
+  ASSERT_NE(platform.getCompileTarget().pipelineConfig.highLevelPipeline,
             "custom_pipeline");
 
   platform.resetQpus();
 
   // Back to the QPU's own compile target.
-  auto ct = platform.getCompileTarget(policy);
-  ASSERT_EQ(platform.getCompileTarget(policy).pipelineConfig.highLevelPipeline,
+  auto ct = platform.getCompileTarget();
+  ASSERT_EQ(platform.getCompileTarget().pipelineConfig.highLevelPipeline,
             "custom_pipeline");
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
@@ -490,16 +482,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   expectOverrideDisabled([&] { platform.reset_noise(); }, "Using noise models");
 }
 
-TEST(QuantumPlatformDisableEndpointOverrideTester,
-     capabilityQueriesThrowWhenEndpointSet) {
-  TestPlatform platform;
-  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
-
-  expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
-  expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
-                         "get_remote_capabilities");
-}
-
 // The launch preamble queries these on every kernel run, so they must not
 // throw when an endpoint override is set.
 TEST(QuantumPlatformDisableEndpointOverrideTester,
@@ -549,16 +531,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
 
   auto kernel = [] {};
   EXPECT_NO_THROW((void)cudaq::contrib::traceFromKernel(kernel, platform));
-}
-
-TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {
-  TestPlatform platform(2);
-  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/1);
-
-  expectOverrideDisabled([&] { platform.get_remote_capabilities(1); },
-                         "get_remote_capabilities");
-
-  EXPECT_NO_THROW(platform.get_remote_capabilities(0));
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,

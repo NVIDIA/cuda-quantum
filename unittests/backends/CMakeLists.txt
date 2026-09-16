@@ -107,7 +107,8 @@ if (cuStateVec_FOUND)
       gtest_main)
     gtest_discover_tests(${target}
       TEST_PREFIX "CuStateVecEx."
-      PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+      PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+      DISCOVERY_TIMEOUT 120)
   endfunction()
 
   add_custatevec_simulator_test(custatevec_tester custatevec-fp32 FP32)

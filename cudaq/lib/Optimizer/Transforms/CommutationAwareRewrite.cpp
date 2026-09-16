@@ -8,15 +8,12 @@
 
 #include "cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"
 #include "cudaq/Optimizer/Analysis/CommutationAnalysis.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
-#include "mlir/Interfaces/CallInterfaces.h"
-#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cassert>
 #include <utility>
 
@@ -74,70 +71,6 @@ static bool collectFrontierHeads(llvm::ArrayRef<WireCursor> frontier,
     heads.insert(cursor.previous);
   }
   return true;
-}
-
-// Operations without quantum values can be ignored only when their structure
-// and effects cannot hide access to an anchor qubit. Calls, region owners, and
-// effectful operations remain conservative barriers.
-static bool isKnownNonQuantumOperation(Operation *operation) {
-  return !isa<CallOpInterface>(operation) && operation->getNumRegions() == 0 &&
-         operation->getNumSuccessors() == 0 && isMemoryEffectFree(operation) &&
-         llvm::none_of(operation->getOperandTypes(),
-                       cudaq::quake::isQuantumType) &&
-         llvm::none_of(operation->getResultTypes(),
-                       cudaq::quake::isQuantumType);
-}
-
-// Collect scalar wires captured by an ordinary single-block scope. Marked
-// atomic scopes remain barriers even when their captures are disjoint. Every
-// quantum operation inside must expose supported scalar-wire flow or be a local
-// wire source, sink, or scope terminator.
-static bool collectScopeWireCaptures(Operation *operation,
-                                     llvm::SmallVectorImpl<Value> &captures) {
-  auto scope = dyn_cast<cudaq::cc::ScopeOp>(operation);
-  if (!scope || scope.getAtomicQuantumRegionAttr() ||
-      !scope.getInitRegion().hasOneBlock())
-    return false;
-
-  for (Value operand : operation->getOperands()) {
-    if (!cudaq::quake::isQuantumType(operand.getType()))
-      continue;
-    if (!isa<cudaq::quake::WireType>(operand.getType()))
-      return false;
-    captures.push_back(operand);
-  }
-
-  WalkResult result = operation->walk([&](Operation *nested) -> WalkResult {
-    if (nested == operation)
-      return WalkResult::advance();
-    if (isa<CallOpInterface>(nested) || nested->getNumRegions() != 0)
-      return WalkResult::interrupt();
-    if (isKnownNonQuantumOperation(nested))
-      return WalkResult::advance();
-
-    auto isScalarWire = [](Type type) {
-      return !cudaq::quake::isQuantumType(type) ||
-             isa<cudaq::quake::WireType>(type);
-    };
-    if (!llvm::all_of(nested->getOperandTypes(), isScalarWire) ||
-        !llvm::all_of(nested->getResultTypes(), isScalarWire))
-      return WalkResult::interrupt();
-
-    for (Value operand : nested->getOperands()) {
-      if (!cudaq::quake::isQuantumType(operand.getType()))
-        continue;
-      Operation *definition = operand.getDefiningOp();
-      if (!definition || !operation->isAncestor(definition))
-        captures.push_back(operand);
-    }
-
-    if (cudaq::quake::detail::getScalarWireFlow(nested) ||
-        isa<cudaq::quake::NullWireOp, cudaq::quake::SinkOp,
-            cudaq::cc::ContinueOp>(nested))
-      return WalkResult::advance();
-    return WalkResult::interrupt();
-  });
-  return !result.wasInterrupted();
 }
 
 // `QubitIdentityAnalysis` identifies logical qubits, not SSA paths. For
@@ -345,14 +278,20 @@ public:
                                Operation *replacement) override {
     RewriterBase::ForwardingListener::notifyOperationReplaced(operation,
                                                               replacement);
-    updateReplacement(operation, replacement->getResults());
+    updateReplacement(operation, replacement->getResults(), replacement);
   }
 
   void notifyOperationReplaced(Operation *operation,
                                ValueRange replacement) override {
     RewriterBase::ForwardingListener::notifyOperationReplaced(operation,
                                                               replacement);
-    updateReplacement(operation, replacement);
+    Operation *replacementOp = nullptr;
+    if (!replacement.empty()) {
+      Operation *definition = replacement.front().getDefiningOp();
+      if (definition && llvm::equal(definition->getResults(), replacement))
+        replacementOp = definition;
+    }
+    updateReplacement(operation, replacement, replacementOp);
   }
 
   void notifyOperationErased(Operation *operation) override {
@@ -403,7 +342,8 @@ private:
       discardBlock(block);
   }
 
-  void updateReplacement(Operation *operation, ValueRange replacement) {
+  void updateReplacement(Operation *operation, ValueRange replacement,
+                         Operation *replacementOp) {
     // Replacement callbacks and their per-use modification callbacks are
     // synchronous. Starting another replacement or falling back must never
     // leave counts that could suppress a later genuine modification.
@@ -412,11 +352,12 @@ private:
     if (analysis == matcher.impl->analyses.end())
       return;
 
-    // A validated replacement preserves qubit identity state and clears cached
-    // relations. Modification notifications cover every rewired quantum or
-    // classical use. Failure requires block fallback.
-    if (!analysis->second->prepareIdentityPreservingReplacement(operation,
-                                                                replacement)) {
+    // A valid replacement preserves qubit identities, clears cached relations,
+    // and either updates the old index position or discards the index.
+    // Modification notifications cover every rewired quantum or classical use.
+    // Failure requires block fallback.
+    if (!analysis->second->prepareIdentityPreservingReplacement(
+            operation, replacement, replacementOp)) {
       discardBlock(operation->getBlock());
       return;
     }
@@ -487,9 +428,6 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
     return nullptr;
 
   Block *block = anchor->getBlock();
-  // A later anchor aligns the search with the greedy driver's bottom-up
-  // schedule. The physical scan audits the interval while selecting use-def
-  // frontier heads, including the latest head when the frontier is split.
   auto frontier = openFrontier(anchor, *anchorFlow);
 
   cudaq::quake::detail::CommutationAnalysis *analysis = nullptr;
@@ -498,54 +436,47 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
       analysis = &impl->getAnalysis(block);
     return *analysis;
   };
-  auto canCrossRegion = [&](Operation *operation) {
+  auto canCrossScope = [&](Operation *operation) {
     llvm::SmallVector<Value> captures;
-    return collectScopeWireCaptures(operation, captures) &&
+    return cudaq::quake::detail::CommutationAnalysis::collectScopeWireCaptures(
+               operation, captures) &&
            requireAnalysis().hasDisjointQuantumSupport(anchor, captures);
   };
   auto canCrossIdentityBoundary = [&](Operation *operation) {
     if (isa<cudaq::quake::AllocaOp, cudaq::quake::NullWireOp>(operation))
       return true;
 
-    llvm::SmallVector<Value, 1> wires;
-    if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(operation))
-      wires.push_back(unwrap.getResult());
-    else if (auto borrow = dyn_cast<cudaq::quake::BorrowWireOp>(operation))
-      wires.push_back(borrow.getResult());
-    else if (auto wrapNew = dyn_cast<cudaq::quake::WrapNewOp>(operation))
-      wires.push_back(wrapNew.getWireValue());
-    else
+    Value wire =
+        cudaq::quake::detail::CommutationAnalysis::getIdentityBoundaryWire(
+            operation);
+    if (!wire)
       return false;
+    llvm::SmallVector<Value, 1> wires{wire};
     return requireAnalysis().hasDisjointQuantumSupport(anchor, wires);
   };
   llvm::DenseSet<Operation *> frontierHeads;
   if (!collectFrontierHeads(frontier, block, frontierHeads))
     return nullptr;
 
-  // Audit physical block order while selecting use-def frontier heads. This
-  // catches operations on aliases that are absent from the anchor's SSA
-  // chains. The monotone scan visits each intervening operation at most once
-  // per search without consulting MLIR's mutable operation-order cache.
-  for (Operation *candidate = anchor->getPrevNode(); candidate;
-       candidate = candidate->getPrevNode()) {
+  Operation *match = nullptr;
+  auto processCandidate = [&](Operation *candidate) {
     bool isFrontierHead = frontierHeads.contains(candidate);
-    if (!isFrontierHead && isKnownNonQuantumOperation(candidate))
-      continue;
+    if (!isFrontierHead && cudaq::quake::detail::CommutationAnalysis::
+                               isIgnorableNonQuantumOperation(candidate))
+      return true;
     if (!isFrontierHead && candidate->getNumRegions() != 0) {
-      if (canCrossRegion(candidate))
-        continue;
-      return nullptr;
+      return canCrossScope(candidate);
     }
 
     auto candidateFlow = cudaq::quake::detail::getScalarWireFlow(candidate);
     if (!isFrontierHead && !candidateFlow) {
       if (canCrossIdentityBoundary(candidate) ||
           requireAnalysis().canCommute(anchor, candidate))
-        continue;
-      return nullptr;
+        return true;
+      return false;
     }
     if (!candidateFlow)
-      return nullptr;
+      return false;
     auto candidateInterface =
         dyn_cast<cudaq::quake::OperatorInterface>(candidate);
 
@@ -553,11 +484,12 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
     if (isFrontierHead && candidateInterface &&
         (!has_distinct_quantum_operands(anchor) ||
          !has_distinct_quantum_operands(candidate)))
-      return nullptr;
+      return false;
     if (isFrontierHead && candidateInterface && isEndpoint(candidate)) {
       if (!doesCompleteFrontierReach(frontier, candidate))
-        return nullptr;
-      return candidate;
+        return false;
+      match = candidate;
+      return false;
     }
 
     // Every frontier head the consumer declines and every other crossed
@@ -565,15 +497,37 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
     auto &blockAnalysis = requireAnalysis();
     if (!isFrontierHead &&
         blockAnalysis.hasDisjointQuantumSupport(anchor, candidateFlow->inputs))
-      continue;
+      return true;
     if (!blockAnalysis.canCommute(anchor, candidate))
-      return nullptr;
+      return false;
 
     if (isFrontierHead) {
       stepFrontierBackward(frontier, candidate, *candidateFlow);
       if (!collectFrontierHeads(frontier, block, frontierHeads))
-        return nullptr;
+        return false;
     }
+    return true;
+  };
+
+  // Check nearby frontier heads and ignorable operations before building the
+  // index. Once analysis is needed, indexed traversal skips operations on
+  // unrelated known qubits when it is available.
+  bool useBlockOrderScan = false;
+  for (Operation *candidate = anchor->getPrevNode(); candidate;) {
+    if (!processCandidate(candidate))
+      return match;
+
+    Operation *inclusiveUpperBound = candidate->getPrevNode();
+    if (!inclusiveUpperBound)
+      return nullptr;
+    if (analysis && !useBlockOrderScan) {
+      bool searchFinished = analysis->tryWalkPriorOperations(
+          anchor, inclusiveUpperBound, processCandidate);
+      if (searchFinished)
+        return match;
+      useBlockOrderScan = true;
+    }
+    candidate = inclusiveUpperBound;
   }
   return nullptr;
 }

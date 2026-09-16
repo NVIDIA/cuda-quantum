@@ -33,6 +33,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
@@ -52,6 +53,11 @@ extern "C" const char *__lsan_default_suppressions() {
 using namespace llvm;
 
 static constexpr const char toolName[] = "cudaq-quake";
+static constexpr const char apiChangeNotice[] =
+    "The CUDA-Q `sample` and `observe` algorithmic primitives will change in "
+    "a future release. Existing code may require updates. See "
+    "https://nvidia.github.io/cuda-quantum/latest/using/migration/"
+    "upcoming_changes.html for details.";
 
 //===----------------------------------------------------------------------===//
 // Command line options.
@@ -364,7 +370,7 @@ int main(int argc, char **argv) {
   mlir::OwningOpRef<mlir::ModuleOp> module(moduleOp);
   // Register trivial diagnostic handler so that notes, warnings, and
   // remark messages are not elided by default.
-  context.getDiagEngine().registerHandler([](mlir::Diagnostic &diag) {
+  context.getDiagEngine().registerHandler([&context](mlir::Diagnostic &diag) {
     const char *severity = "";
     switch (diag.getSeverity()) {
     case mlir::DiagnosticSeverity::Note:
@@ -380,9 +386,11 @@ int main(int argc, char **argv) {
       severity = "error";
       break;
     }
-    llvm::errs() << diag.getLocation() << ':' << severity << ": " << diag.str()
-                 << '\n';
+    if (diag.getLocation() != mlir::Location(mlir::UnknownLoc::get(&context)))
+      llvm::errs() << diag.getLocation() << ':';
+    llvm::errs() << severity << ": " << diag.str() << '\n';
   });
+  mlir::emitWarning(mlir::UnknownLoc::get(&context), apiChangeNotice);
 
   // Process arguments.
   std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",

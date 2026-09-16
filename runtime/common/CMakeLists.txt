@@ -14,6 +14,7 @@ set(COMMON_RUNTIME_SRC
   AnalogHamiltonian.cpp
   AnalysisScope.cpp
   CodeGenConfig.cpp
+  CompileTarget.cpp
   cudaq_json.cpp
   CustomOp.cpp
   DeviceCodeRegistry.cpp

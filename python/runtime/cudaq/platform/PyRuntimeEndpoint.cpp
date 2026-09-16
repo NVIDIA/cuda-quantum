@@ -316,6 +316,7 @@ static RuntimeEndpoint makeRuntimeEndpoint(nanobind::object obj) {
   endpoint.isSimulator = getAttrOrDefault(obj, "is_simulator", true);
   endpoint.isRemote = getAttrOrDefault(obj, "is_remote", false);
   endpoint.isEmulated = getAttrOrDefault(obj, "is_emulated", false);
+  endpoint.supportsJit = getAttrOrDefault(obj, "supports_jit", true);
   endpoint.impl = makeEndpointHandle(std::move(obj));
   return endpoint;
 }

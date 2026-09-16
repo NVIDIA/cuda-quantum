@@ -91,9 +91,6 @@ Emulation Mode
 
         cudaq.set_target('iqm', emulate=True, mapping_file="<path+filename>")
 
-    The folder ``targettests/Target/IQM/`` contains sample QPU architecture files.
-    Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.
-
     The QPU quantum architecture of a test with a real life IQM QPU can be saved for later use in emulation runs.
     To do so the environment variable ``IQM_SAVE_QPU_QA`` must be set to point to a filename in addition to setting the URL of a Resonance server.
     The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.
@@ -132,9 +129,6 @@ Emulation Mode
         nvq++ --target iqm --emulate --mapping-file <path+filename of QPU architecture file> src.cpp -o program
         ./program
 
-    The folder ``targettests/Target/IQM/`` contains sample QPU architecture files.
-    Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.
-
     The QPU architecture of a test with an IQM server can be saved for later use in emulation runs.
     To do so the environment variable ``IQM_SAVE_QPU_QA`` must be set to point to a filename in addition to setting the URL of the Resonance server.
     The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.
@@ -144,6 +138,14 @@ Emulation Mode
         nvq++ --target iqm --emulate src.cpp -o program
         IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QC="<quantum computer>" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" ./program
 
+
+The folder ``targettests/Target/IQM/`` contains sample QPU architecture files.
+Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.
+
+When no QPU architecture file is specified and the query to the configured IQM Server fails
+(for example due to missing authentication or no network access), CUDA-Q logs a warning and leaves the compilation pipeline unresolved.
+Kernel launches that do not require qubit mapping, such as ``dem_from_kernel``, will still run successfully with an unresolved compilation pipeline.
+On the other hand, kernel launches that require full kernel compilation, such as ``sample`` or ``observe``, will fail at launch.
 
 To see a complete example, take a look at :ref:`IQM examples <iqm-examples>`.
 

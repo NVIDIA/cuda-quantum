@@ -1,1 +1,0 @@
-../../../runtime/test/test_resource_count_wireset.cpp

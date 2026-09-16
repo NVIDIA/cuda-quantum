@@ -32,4 +32,8 @@ static constexpr const char generatorAnnotation[] =
 static constexpr const char disableQuantumOptAnnotation[] =
     "disable_quantum_optimization";
 
+/// Name of the annotation attached to atomic quantum region definitions.
+static constexpr const char atomicQuantumRegionAnnotation[] =
+    "atomic_quantum_region";
+
 } // namespace cudaq

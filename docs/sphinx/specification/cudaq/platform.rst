@@ -4,7 +4,7 @@ Quantum Platform
 
 **[1]** CUDA-Q provides an abstraction describing the underlying quantum computing resource(s). 
 The underlying quantum platform can contain one or many quantum processing units (QPUs) each with 
-its own qubit connectivity and noise configuration.
+its own compile target and noise configuration.
 
 **[2]** CUDA-Q defines a :code:`cudaq::quantum_platform` in an effort to expose relevant system 
 information and enable asynchronous quantum kernel invocations.
@@ -28,19 +28,13 @@ The :code:`cudaq::quantum_platform`  should take the following structure
     public:
       quantum_platform();
       ~quantum_platform();
- 
-      using QubitEdge = std::pair<std::size_t, std::size_t>;
-      using QubitConnectivity = std::vector<QubitEdge>;
-      std::optional<QubitConnectivity> connectivity();
 
       std::size_t num_qpus() const;
 
-      std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
       bool is_simulator(std::size_t qpu_id = 0) const;
       bool is_remote(std::size_t qpu_id = 0) const;
       bool is_emulated(std::size_t qpu_id = 0) const;
       bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
-      RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
       std::string name() const;
 
     };

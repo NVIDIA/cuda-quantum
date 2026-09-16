@@ -169,7 +169,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
   });
 }
 
-cudaq::CompileTarget cudaq::DefaultQPU::getCompileTarget(bool) {
+cudaq::CompileTarget cudaq::DefaultQPU::getCompileTarget() {
   return createDefaultCompileTarget();
 }
 

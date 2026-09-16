@@ -2,6 +2,7 @@ name: Compute CUDA-Q version
 description: |
   Infer cudaq_version from the Git ref (tag, releases/*, or staging/*).
   Unversioned refs use 0.0.0 with the short git SHA appended.
+  Infer cudaq_logical_version from cudaq-logical/v* tags using setuptools-scm.
 inputs:
   ref_name:
     description: Git ref name to extract the version from.
@@ -15,6 +16,9 @@ outputs:
   cudaq_version:
     description: The inferred CUDA-Q version.
     value: ${{ steps.compute.outputs.cudaq_version }}
+  cudaq_logical_version:
+    description: The setuptools-scm-derived CUDA-Q Logical version.
+    value: ${{ steps.compute-logical.outputs.cudaq_logical_version }}
 runs:
   using: composite
   steps:
@@ -38,3 +42,25 @@ runs:
 
         echo "cudaq_version=$cudaq_version" >> "$GITHUB_OUTPUT"
         echo "CUDA-Q version: $cudaq_version"
+
+    - name: Compute CUDA-Q Logical version
+      id: compute-logical
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+          echo "::error::Computing the CUDA-Q Logical version requires a full Git history. Set fetch-depth: 0 on actions/checkout."
+          exit 1
+        fi
+
+        venv="$(mktemp -d)/venv"
+        python3 -m venv "$venv"
+        "$venv/bin/python" -m pip install --quiet "setuptools-scm>=8,<9"
+        cudaq_logical_scmversion="$(
+          "$venv/bin/python" -m setuptools_scm \
+            -c preview/logical/python/pyproject.toml
+        )"
+
+        cudaq_logical_version=$(echo ${cudaq_logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+        echo "cudaq_logical_version=$cudaq_logical_version" >> "$GITHUB_OUTPUT"
+        echo "CUDA-Q Logical version: $cudaq_logical_version"

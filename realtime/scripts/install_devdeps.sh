@@ -35,17 +35,18 @@ fi
 # Fail early if the CUDA toolkit is missing; the exact version is needed below.
 CUDA_FULL_VERSION=$(cudaq_realtime_cuda_version)
 
-apt-get update && apt-get install -y --no-install-recommends \
+retry apt-get update
+retry apt-get install -y --no-install-recommends \
   git ninja-build curl pkg-config
 
 # [DOCA Host]
 # Only the GPUNetIO dev package, not doca-all.
 cudaq_realtime_add_doca_repo
-apt-get -y install --no-install-recommends libdoca-sdk-gpunetio-dev
+retry apt-get -y install --no-install-recommends libdoca-sdk-gpunetio-dev
 
 # hololink_core links CUDA::nvrtc -- must match the exact toolkit version
 CUDA_VER_DASH=$(echo $CUDA_FULL_VERSION | sed 's/\./-/')
-apt-get install -y cuda-nvrtc-dev-$CUDA_VER_DASH 2>/dev/null || true
+retry apt-get install -y cuda-nvrtc-dev-$CUDA_VER_DASH 2>/dev/null || true
 
 # [Holoscan SDK]
 export CUDAQ_REALTIME_HOLOSCAN_FORCE_DEPS=1

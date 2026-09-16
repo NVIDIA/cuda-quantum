@@ -8,12 +8,18 @@
 
 #include "cudaq/Optimizer/Analysis/CommutationAnalysis.h"
 #include "QubitIdentityAnalysis.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/IR/Matchers.h"
+#include "mlir/Interfaces/CallInterfaces.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
+#include <algorithm>
 #include <functional>
 #include <optional>
 #include <utility>
@@ -677,6 +683,412 @@ static CommutationResult evaluate(Operation *lhs, Operation *rhs,
   return dispatchRules(lhsView, rhsView);
 }
 
+bool CommutationAnalysis::isIgnorableNonQuantumOperation(Operation *operation) {
+  return !isa<CallOpInterface>(operation) && operation->getNumRegions() == 0 &&
+         operation->getNumSuccessors() == 0 && isMemoryEffectFree(operation) &&
+         llvm::none_of(operation->getOperandTypes(),
+                       cudaq::quake::isQuantumType) &&
+         llvm::none_of(operation->getResultTypes(),
+                       cudaq::quake::isQuantumType);
+}
+
+Value CommutationAnalysis::getIdentityBoundaryWire(Operation *operation) {
+  if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(operation))
+    return unwrap.getResult();
+  if (auto borrow = dyn_cast<cudaq::quake::BorrowWireOp>(operation))
+    return borrow.getResult();
+  if (auto wrapNew = dyn_cast<cudaq::quake::WrapNewOp>(operation))
+    return wrapNew.getWireValue();
+  return {};
+}
+
+bool CommutationAnalysis::collectScopeWireCaptures(
+    Operation *operation, llvm::SmallVectorImpl<Value> &captures) {
+  auto scope = dyn_cast<cudaq::cc::ScopeOp>(operation);
+  if (!scope || scope.getAtomicQuantumRegionAttr() ||
+      !scope.getInitRegion().hasOneBlock())
+    return false;
+
+  WalkResult result = operation->walk([&](Operation *nested) -> WalkResult {
+    if (nested == operation)
+      return WalkResult::advance();
+    if (isa<CallOpInterface>(nested) || nested->getNumRegions() != 0)
+      return WalkResult::interrupt();
+    if (isIgnorableNonQuantumOperation(nested))
+      return WalkResult::advance();
+
+    auto isScalarWire = [](Type type) {
+      return !cudaq::quake::isQuantumType(type) ||
+             isa<cudaq::quake::WireType>(type);
+    };
+    if (!llvm::all_of(nested->getOperandTypes(), isScalarWire) ||
+        !llvm::all_of(nested->getResultTypes(), isScalarWire))
+      return WalkResult::interrupt();
+
+    for (Value operand : nested->getOperands()) {
+      if (!cudaq::quake::isQuantumType(operand.getType()))
+        continue;
+      Operation *definition = operand.getDefiningOp();
+      if (!definition || !operation->isAncestor(definition))
+        captures.push_back(operand);
+    }
+
+    if (cudaq::quake::detail::getScalarWireFlow(nested) ||
+        isa<cudaq::quake::NullWireOp, cudaq::quake::SinkOp,
+            cudaq::cc::ContinueOp>(nested))
+      return WalkResult::advance();
+    return WalkResult::interrupt();
+  });
+  return !result.wasInterrupted();
+}
+
+static std::optional<llvm::SmallVector<QubitId>>
+resolveQubitSupport(ValueRange values,
+                    const QubitIdentityAnalysis &qubitIdentity) {
+  llvm::SmallVector<QubitId> support;
+  llvm::DenseSet<QubitId> seen;
+  for (Value value : values) {
+    if (!isa<cudaq::quake::WireType>(value.getType()))
+      return std::nullopt;
+    auto qubitId = qubitIdentity.getQubitId(value);
+    if (!qubitId)
+      return std::nullopt;
+    if (seen.insert(*qubitId).second)
+      support.push_back(*qubitId);
+  }
+  return support;
+}
+
+// Index block operations by the known logical qubits they may affect. For
+// example, a search on `q0` reads the ordered operations for `q0` and skips an
+// `X(q1)`. A multi-qubit search merges the ordered operations for its qubits.
+//
+// Calls, unsupported regions, and operations with unknown qubit support divide
+// the index into segments. A segment boundary is an unconditional stop for an
+// indexed search. Query-specific stops, such as a noncommuting operation on
+// `q0`, remain in `q0`'s list and are decided by the visitor.
+//
+// Stable ordinals preserve block order without using MLIR's mutable order
+// cache. Erasures leave gaps. A replacement inherits an ordinal only when it
+// takes the erased operation's position. The rewrite listener removes erased
+// pointers and rebuilds the index after insertions that cannot be placed
+// safely.
+class cudaq::quake::detail::LogicalQubitOperationIndex {
+  // Record an operation's immutable block position and index membership. A
+  // segment boundary belongs to the preceding segment, so a backward search
+  // from the next segment stops before crossing it.
+  struct OperationPosition {
+    unsigned ordinal;
+    unsigned segment;
+    bool isSegmentBoundary;
+    llvm::SmallVector<QubitId> support;
+  };
+
+  // Store an operation in block order under each logical qubit it may affect.
+  // The copied ordinal makes those ordered lists directly searchable.
+  struct IndexedOperation {
+    Operation *operation;
+    unsigned ordinal;
+  };
+
+  // Group the per-qubit operation lists within one searchable block interval.
+  // A multi-qubit operation appears in every list it affects.
+  struct Segment {
+    llvm::DenseMap<QubitId, llvm::SmallVector<IndexedOperation>>
+        operationsByQubit;
+  };
+
+  // Hold the indexed positions that bound one backward walk.
+  struct WalkPositions {
+    const OperationPosition *anchor;
+    const OperationPosition *upper;
+  };
+
+  // Track one per-qubit operation list during a multi-qubit backward merge.
+  struct OperationCursor {
+    llvm::ArrayRef<IndexedOperation> operations;
+    std::ptrdiff_t index;
+
+    const IndexedOperation *current() const {
+      return index < 0 ? nullptr : &operations[index];
+    }
+
+    void advancePast(unsigned ordinal) {
+      if (const IndexedOperation *operation = current();
+          operation && operation->ordinal == ordinal)
+        --index;
+    }
+  };
+
+public:
+  LogicalQubitOperationIndex(Block &block,
+                             const QubitIdentityAnalysis &qubitIdentity) {
+    segments.emplace_back();
+    unsigned ordinal = 0;
+    for (Operation &operation : block) {
+      unsigned segment = segments.size() - 1;
+      auto indexedSupport =
+          classifyOperationForIndex(&operation, qubitIdentity);
+      OperationPosition indexedPosition{ordinal, segment, !indexedSupport, {}};
+      if (indexedSupport)
+        indexedPosition.support = std::move(*indexedSupport);
+      auto [position, didInsert] =
+          positions.try_emplace(&operation, std::move(indexedPosition));
+      assert(didInsert && "block operation already indexed");
+      if (!indexedSupport) {
+        segments.emplace_back();
+      } else {
+        addOperation(&operation, position->second);
+      }
+      ++ordinal;
+    }
+  }
+
+  void noteInsertion(Operation *operation,
+                     const QubitIdentityAnalysis &qubitIdentity) {
+    auto indexedSupport = classifyOperationForIndex(operation, qubitIdentity);
+    // A new segment boundary or indexed operation changes the search order and
+    // requires a rebuild. Ignorable operations and fresh local wires do not.
+    if (!indexedSupport || !indexedSupport->empty())
+      pendingInsertions.insert(operation);
+  }
+
+  bool replaceOrEraseOperation(Operation *operation, Operation *replacement,
+                               const QubitIdentityAnalysis &qubitIdentity) {
+    // Only a newly inserted replacement needs the old operation's position.
+    // An existing or value-only replacement adds no new position, so removing
+    // the old operation is enough.
+    if (!replacement || !pendingInsertions.contains(replacement))
+      return eraseOperation(operation);
+    auto position = positions.find(operation);
+    if (position == positions.end()) {
+      // The rewriter may replace a new operation before the index is rebuilt.
+      // Drop the old pending operation, but keep a relevant replacement so the
+      // next rebuild includes it.
+      pendingInsertions.erase(operation);
+      return true;
+    }
+    pendingInsertions.erase(replacement);
+    auto replacementSupport =
+        classifyOperationForIndex(replacement, qubitIdentity);
+    // The greedy rewriter inserts a replacement beside the operation it will
+    // erase. Only that adjacency proves the old ordinal still describes the
+    // replacement's block position.
+    bool canInheritOrdinal = replacement->getBlock() == operation->getBlock() &&
+                             (replacement->getNextNode() == operation ||
+                              operation->getNextNode() == replacement);
+    if (!canInheritOrdinal || position->second.isSegmentBoundary ||
+        !replacementSupport)
+      return false;
+
+    OperationPosition newPosition{position->second.ordinal,
+                                  position->second.segment, false,
+                                  std::move(*replacementSupport)};
+    removeOperation(operation, position->second);
+    positions.erase(position);
+    auto [replacementPosition, didInsert] =
+        positions.try_emplace(replacement, std::move(newPosition));
+    assert(didInsert && "replacement operation already indexed");
+    addOperation(replacement, replacementPosition->second);
+    return true;
+  }
+
+  bool eraseOperation(Operation *operation) {
+    pendingInsertions.erase(operation);
+    auto position = positions.find(operation);
+    if (position == positions.end())
+      return true;
+    if (position->second.isSegmentBoundary)
+      return false;
+    removeOperation(operation, position->second);
+    positions.erase(position);
+    return true;
+  }
+
+  bool hasPendingInsertions() const { return !pendingInsertions.empty(); }
+
+  bool
+  tryWalkPriorOperations(Operation *anchor, Operation *inclusiveUpperBound,
+                         llvm::function_ref<bool(Operation *)> visitor) const {
+    auto walkPositions = findWalkPositions(anchor, inclusiveUpperBound);
+    if (!walkPositions)
+      return false;
+
+    // Reuse the anchor support stored with its index position instead of
+    // resolving the same identities for every search. This also keeps QubitId
+    // storage private to the index.
+    llvm::ArrayRef<QubitId> anchorSupport = walkPositions->anchor->support;
+    if (walkPositions->anchor->segment != walkPositions->upper->segment)
+      return true;
+
+    const Segment &segment = segments[walkPositions->anchor->segment];
+    unsigned upperOrdinal = walkPositions->upper->ordinal;
+    if (anchorSupport.size() == 1)
+      walkQubitOperations(segment, anchorSupport.front(), upperOrdinal,
+                          visitor);
+    else
+      walkMergedOperations(segment, anchorSupport, upperOrdinal, visitor);
+    return true;
+  }
+
+private:
+  std::optional<WalkPositions>
+  findWalkPositions(Operation *anchor, Operation *inclusiveUpperBound) const {
+    auto anchorPosition = positions.find(anchor);
+    auto upperPosition = positions.find(inclusiveUpperBound);
+    if (anchorPosition == positions.end() || upperPosition == positions.end())
+      return std::nullopt;
+    if (anchorPosition->second.support.empty() ||
+        upperPosition->second.ordinal >= anchorPosition->second.ordinal)
+      return std::nullopt;
+    return WalkPositions{&anchorPosition->second, &upperPosition->second};
+  }
+
+  static std::ptrdiff_t
+  findLastOperationAtOrBefore(llvm::ArrayRef<IndexedOperation> operations,
+                              unsigned upperOrdinal) {
+    auto end = std::upper_bound(
+        operations.begin(), operations.end(), upperOrdinal,
+        [](unsigned ordinal, const IndexedOperation &operation) {
+          return ordinal < operation.ordinal;
+        });
+    return std::distance(operations.begin(), end) - 1;
+  }
+
+  void
+  walkQubitOperations(const Segment &segment, QubitId qubitId,
+                      unsigned upperOrdinal,
+                      llvm::function_ref<bool(Operation *)> visitor) const {
+    auto operations = segment.operationsByQubit.find(qubitId);
+    if (operations == segment.operationsByQubit.end())
+      return;
+    for (std::ptrdiff_t index =
+             findLastOperationAtOrBefore(operations->second, upperOrdinal);
+         index >= 0; --index)
+      if (!visitor(operations->second[index].operation))
+        break;
+  }
+
+  void
+  walkMergedOperations(const Segment &segment,
+                       llvm::ArrayRef<QubitId> anchorSupport,
+                       unsigned upperOrdinal,
+                       llvm::function_ref<bool(Operation *)> visitor) const {
+    auto cursors = makeOperationCursors(segment, anchorSupport, upperOrdinal);
+    while (const IndexedOperation *next = findNextOperation(cursors)) {
+      // Advance every list at this ordinal because a multi-qubit operation
+      // appears in several lists but should be visited only once.
+      for (OperationCursor &cursor : cursors)
+        cursor.advancePast(next->ordinal);
+      if (!visitor(next->operation))
+        return;
+    }
+  }
+
+  llvm::SmallVector<OperationCursor>
+  makeOperationCursors(const Segment &segment,
+                       llvm::ArrayRef<QubitId> anchorSupport,
+                       unsigned upperOrdinal) const {
+    llvm::SmallVector<OperationCursor> cursors;
+    for (QubitId qubitId : anchorSupport) {
+      auto operations = segment.operationsByQubit.find(qubitId);
+      if (operations == segment.operationsByQubit.end())
+        continue;
+      std::ptrdiff_t index =
+          findLastOperationAtOrBefore(operations->second, upperOrdinal);
+      if (index >= 0)
+        cursors.push_back({operations->second, index});
+    }
+    return cursors;
+  }
+
+  static const IndexedOperation *
+  findNextOperation(llvm::ArrayRef<OperationCursor> cursors) {
+    const IndexedOperation *next = nullptr;
+    for (const OperationCursor &cursor : cursors) {
+      const IndexedOperation *current = cursor.current();
+      if (current && (!next || current->ordinal > next->ordinal))
+        next = current;
+    }
+    return next;
+  }
+
+  // Empty support omits an operation that every search can cross without
+  // analysis. Known support adds the operation under every affected qubit.
+  // Unknown support starts a new segment because the matcher cannot prove it
+  // safe to cross for any anchor with known support.
+  static std::optional<llvm::SmallVector<QubitId>>
+  classifyOperationForIndex(Operation *operation,
+                            const QubitIdentityAnalysis &qubitIdentity) {
+    if (CommutationAnalysis::isIgnorableNonQuantumOperation(operation) ||
+        isa<cudaq::quake::AllocaOp, cudaq::quake::NullWireOp>(operation))
+      return llvm::SmallVector<QubitId>{};
+
+    if (operation->getNumRegions() != 0) {
+      llvm::SmallVector<Value> captures;
+      if (!CommutationAnalysis::collectScopeWireCaptures(operation, captures))
+        return std::nullopt;
+      return resolveQubitSupport(captures, qubitIdentity);
+    }
+
+    if (auto flow = cudaq::quake::detail::getScalarWireFlow(operation))
+      return resolveQubitSupport(flow->inputs, qubitIdentity);
+
+    llvm::SmallVector<Value, 1> support;
+    if (Value wire = CommutationAnalysis::getIdentityBoundaryWire(operation))
+      support.push_back(wire);
+    else if (auto sink = dyn_cast<cudaq::quake::SinkOp>(operation))
+      support.push_back(sink.getTarget());
+    else
+      return std::nullopt;
+    return resolveQubitSupport(support, qubitIdentity);
+  }
+
+  void removeOperation(Operation *operation,
+                       const OperationPosition &position) {
+    if (position.support.empty())
+      return;
+    Segment &segment = segments[position.segment];
+    for (QubitId qubitId : position.support) {
+      auto operations = segment.operationsByQubit.find(qubitId);
+      assert(operations != segment.operationsByQubit.end() &&
+             "operation is missing from its logical-qubit index");
+      auto indexedOperation = std::lower_bound(
+          operations->second.begin(), operations->second.end(),
+          position.ordinal,
+          [](const IndexedOperation &candidate, unsigned ordinal) {
+            return candidate.ordinal < ordinal;
+          });
+      assert(indexedOperation != operations->second.end() &&
+             indexedOperation->ordinal == position.ordinal &&
+             indexedOperation->operation == operation &&
+             "operation is missing from its logical-qubit index");
+      operations->second.erase(indexedOperation);
+    }
+  }
+
+  void addOperation(Operation *operation, const OperationPosition &position) {
+    if (position.support.empty())
+      return;
+    Segment &segment = segments[position.segment];
+    for (QubitId qubitId : position.support) {
+      auto &operations = segment.operationsByQubit[qubitId];
+      auto insertion = std::lower_bound(
+          operations.begin(), operations.end(), position.ordinal,
+          [](const IndexedOperation &operation, unsigned ordinal) {
+            return operation.ordinal < ordinal;
+          });
+      operations.insert(insertion, {operation, position.ordinal});
+    }
+  }
+
+  llvm::DenseMap<Operation *, OperationPosition> positions;
+  llvm::SmallVector<Segment> segments;
+  // A relevant insertion has no index position. Remember it so the next walk
+  // rebuilds the index before using the old order.
+  llvm::DenseSet<Operation *> pendingInsertions;
+};
+
 llvm::StringRef
 cudaq::quake::detail::getCommutationReasonId(commutation_reason reason) {
   switch (reason) {
@@ -769,18 +1181,53 @@ bool CommutationAnalysis::haveSameOrderedQuantumOperands(Operation *lhs,
              lhsInterface.getTargets(), rhsInterface.getTargets());
 }
 
+bool CommutationAnalysis::tryWalkPriorOperations(
+    Operation *anchor, Operation *inclusiveUpperBound,
+    llvm::function_ref<bool(Operation *)> visitor) {
+  if (!anchor || !inclusiveUpperBound || anchor->getBlock() != block ||
+      inclusiveUpperBound->getBlock() != block)
+    return false;
+  if (operationIndex && operationIndex->hasPendingInsertions())
+    operationIndex.reset();
+
+  if (!operationIndex) {
+    // Avoid a block-wide build until the anchor has known support that can use
+    // the index.
+    auto flow = cudaq::quake::detail::getScalarWireFlow(anchor);
+    if (!flow)
+      return false;
+    auto support = resolveQubitSupport(flow->inputs, *qubitIdentity);
+    if (!support || support->empty())
+      return false;
+    operationIndex =
+        std::make_unique<LogicalQubitOperationIndex>(*block, *qubitIdentity);
+  }
+  return operationIndex->tryWalkPriorOperations(anchor, inclusiveUpperBound,
+                                                visitor);
+}
+
 bool CommutationAnalysis::registerIdentityPreservingOperation(
     Operation *operation) {
-  return operation && operation->getBlock() == block &&
-         qubitIdentity->registerOperation(*operation);
+  if (!operation || operation->getBlock() != block ||
+      !qubitIdentity->registerOperation(*operation))
+    return false;
+  if (operationIndex)
+    operationIndex->noteInsertion(operation, *qubitIdentity);
+  return true;
 }
 
 bool CommutationAnalysis::prepareIdentityPreservingReplacement(
-    Operation *operation, ValueRange replacement) {
+    Operation *operation, ValueRange replacement, Operation *replacementOp) {
   if (!operation || operation->getBlock() != block ||
       !qubitIdentity->replacementPreservesIdentities(*operation, replacement))
     return false;
-  clearCachedRelations();
+  cache.clear();
+  if (operationIndex) {
+    bool updated = operationIndex->replaceOrEraseOperation(
+        operation, replacementOp, *qubitIdentity);
+    if (!updated)
+      operationIndex.reset();
+  }
   return true;
 }
 
@@ -789,7 +1236,9 @@ void CommutationAnalysis::clearCachedRelations() { cache.clear(); }
 void CommutationAnalysis::eraseOperation(Operation *operation) {
   if (!operation || operation->getBlock() != block)
     return;
-  clearCachedRelations();
+  cache.clear();
+  if (operationIndex && !operationIndex->eraseOperation(operation))
+    operationIndex.reset();
   qubitIdentity->eraseOperation(*operation);
 }
 

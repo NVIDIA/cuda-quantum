@@ -28,6 +28,8 @@
 #define __qpu__ __attribute__((annotate("quantum")))
 #define __disable_quantum_optimization__                                       \
   __attribute__((annotate("disable_quantum_optimization")))
+#define __atomic_quantum_region__                                              \
+  __attribute__((annotate("atomic_quantum_region")))
 
 // This file describes the API for a default qubit logical instruction
 // set for CUDA-Q kernels.

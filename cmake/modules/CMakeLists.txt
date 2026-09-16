@@ -17,6 +17,7 @@ set(CONFIG_FILES
   CUDAQEnsmallenConfig.cmake
   CUDAQPlatformDefaultConfig.cmake
   CUDAQPythonInteropConfig.cmake
+  CUDAQPythonBindingsConfig.cmake
 )
 set(LANG_FILES
   CMakeCUDAQCompiler.cmake.in

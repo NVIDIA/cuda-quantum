@@ -27,6 +27,9 @@
 
 set -euo pipefail
 
+# sort/comm must use byte order; locale-dependent collation breaks comm -23/-12.
+export LC_ALL=C
+
 if [ $# -lt 2 ]; then
     echo "Usage: $0 <consumer-library> <libcudaqMLIR> [extra-provider...]" >&2
     exit 2

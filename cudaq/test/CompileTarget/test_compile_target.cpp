@@ -1,1 +1,0 @@
-../../../runtime/test/test_compile_target.cpp

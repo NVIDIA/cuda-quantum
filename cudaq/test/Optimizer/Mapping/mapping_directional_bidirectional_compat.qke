@@ -1,0 +1,34 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_bidirectional.txt) placement=identity search=none' %s | FileCheck --implicit-check-not=quake.h %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @arbitrary_bidirectional_gates() {
+  %angle = arith.constant 5.000000e-01 : f64
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %rx:2 = quake.rx (%angle) [%q0] %q1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r1:2 = quake.r1 (%angle) [%rx#0] %rx#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %swap:2 = quake.swap %r1#0, %r1#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %swap#0 : !quake.wire
+  quake.return_wire %swap#1 : !quake.wire
+  return
+}
+
+// A topology without Bidirectional metadata retains the established default:
+// arbitrary two-qubit gates remain valid and routing SWAPs remain operations.
+
+// CHECK-LABEL:   func.func @arbitrary_bidirectional_gates
+// CHECK:           %[[RX:.*]]:2 = quake.rx
+// CHECK:           %[[R1:.*]]:2 = quake.r1
+// CHECK:           %[[SWAP:.*]]:2 = quake.swap
+// CHECK-NOT:       quake.rx
+// CHECK-NOT:       quake.r1
+// CHECK-NOT:       quake.swap

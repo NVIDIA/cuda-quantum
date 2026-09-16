@@ -80,15 +80,16 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       cudaq::CompileOptions options;
       if constexpr (requires { policy.inner; }) {
         options = cudaq::get_compile_options(policy.inner);
-        target = platform.getCompileTarget(policy.inner, qpu_id);
       } else {
         options = cudaq::get_compile_options(policy);
-        target = platform.getCompileTarget(policy, qpu_id);
       }
+      target = platform.getCompileTarget(qpu_id);
       const bool isEmulated = platform.is_emulated(qpu_id);
       const bool isRemote = platform.is_remote(qpu_id);
       options.emulate = isEmulated;
       options.emitJit |= !isRemote;
+      if (!platform.supports_jit(qpu_id))
+        options.emitJit = false;
       options.boolVecBitPacked = !isRemote && !isEmulated;
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
@@ -150,7 +151,6 @@ msm_result launch(msm_policy policy, Callable &&f, Args &&...args) {
   ctx.kernelName = policy.kernelName;
   policy.noiseModel = platform.get_noise(qpu_id);
   ctx.noiseModel = policy.noiseModel;
-  ctx.msm_dimensions = policy.dimensions;
   return detail::launch(policy, qpu_id, ctx, platform,
                         std::forward<Callable>(f), std::forward<Args>(args)...);
 }

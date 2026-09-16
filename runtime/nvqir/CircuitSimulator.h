@@ -287,23 +287,24 @@ public:
   virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
 
   /// @brief Process the results stored in the given execution context.
+  ///
+  /// Only valid for policies that deliver no result. Result-bearing policies
+  /// return their result by value from the typed launch path, so a named
+  /// result-bearing context arriving here would silently get nothing back;
+  /// reject it instead. In-tree this is unreachable — the mirrored guard in
+  /// `ExecutionManager::finalizeExecutionContext(ExecutionContext&)` catches it
+  /// first — but this entry point is public and callable directly.
   void finalizeExecutionContext(cudaq::ExecutionContext &ctx) {
     cudaq::policies::withPolicy(ctx.name, [&](auto policy) {
-      cudaq::policies::visitResult(
-          [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
-          [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
-          [&](cudaq::observe_result &&r) {
-            ctx.result = r.raw_data();
-            ctx.expectationValue = r.expectation();
-          },
-          [&](cudaq::run_result &&r) {},
-          [&](cudaq::msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
-          [&](cudaq::msm_result &&r) {
-            ctx.result = std::move(r.samples);
-            ctx.msm_probabilities = std::move(r.probabilities);
-            ctx.msm_prob_err_id = std::move(r.probability_error_ids);
-          },
-          [&](cudaq::policies::void_result &&r) {});
+      if constexpr (std::is_same_v<decltype(policy), cudaq::other_policies>) {
+        finalize_simulation_circuit(*this, policy, ctx);
+      } else {
+        throw std::runtime_error(
+            "Execution context '" + ctx.name +
+            "' names a result-bearing policy, which can no longer be finalized "
+            "through the execution context. Launch it with cudaq::launch or "
+            "cudaq::detail::launch and use the returned result instead.");
+      }
     });
   }
 
@@ -624,6 +625,9 @@ protected:
   /// Never decreases (unless reset to 0) and may be more than getNumQubits().
   std::size_t nQubitsAllocated = 0;
 
+  /// @brief Queued allocations deferred to state change
+  std::size_t m_pendingQubits = 0;
+
   /// @brief The dimension of the multi-qubit state.
   std::size_t stateDimension = 0;
 
@@ -688,6 +692,30 @@ protected:
   /// This is subclass specific.
   virtual void addQubitToState() = 0;
 
+  /// @brief Take an allocation request. Null allocations are enqueued to be
+  /// performed in a batch upon state change.
+  void requestQubits(std::size_t count, const void *state) {
+    if (count == 0)
+      return;
+    if (state == nullptr) {
+      m_pendingQubits += count;
+      return;
+    }
+    // First, handle queued allocations.
+    flushPendingQubits();
+    // Next, materialize new allocations with \p state.
+    addQubitsToState(count, state);
+  }
+
+  /// @brief Materialize deferred allocations. Must precede any state access.
+  void flushPendingQubits() {
+    if (m_pendingQubits == 0)
+      return;
+    const std::size_t count = m_pendingQubits;
+    m_pendingQubits = 0;
+    addQubitsToState(count, nullptr);
+  }
+
   /// @brief Subclass specific part of deallocateState().
   /// It will be invoked by deallocateState()
   virtual void deallocateStateImpl() = 0;
@@ -700,6 +728,7 @@ protected:
     tracker.reset();
     nQubitsAllocated = 0;
     stateDimension = 0;
+    m_pendingQubits = 0;
   }
 
   /// @brief Perform the actual mechanics of measuring a qubit,
@@ -990,6 +1019,7 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
+    flushPendingQubits();
 
     // If an earlier operation in this kernel run already failed, drop any
     // queued gates without applying them. The recorded error is re-thrown by
@@ -1067,7 +1097,7 @@ public:
   std::size_t allocateQubit() override {
     auto qubits = allocateQubitsInternal(1, [this](std::size_t numAllocs) {
       assert(numAllocs == 1);
-      addQubitToState();
+      requestQubits(numAllocs, nullptr);
     });
 
     assert(qubits.size() == 1);
@@ -1096,7 +1126,7 @@ public:
     }
 
     return allocateQubitsInternal(count, [this, state](std::size_t numAllocs) {
-      addQubitsToState(numAllocs, state);
+      requestQubits(numAllocs, state);
     });
   }
 
@@ -1118,6 +1148,7 @@ public:
             "currently not supported. See "
             "https://github.com/NVIDIA/cuda-quantum/issues/3795.");
       }
+      flushPendingQubits();
       addQubitsToState(*state);
     });
   }

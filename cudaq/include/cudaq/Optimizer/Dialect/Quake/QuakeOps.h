@@ -21,6 +21,7 @@
 #include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
+#include <cstddef>
 #include <optional>
 
 //===----------------------------------------------------------------------===//
@@ -36,18 +37,18 @@ void getResetEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    llvm::MutableArrayRef<mlir::OpOperand> targets);
+    mlir::MutableArrayRef<mlir::OpOperand> targets);
 void getMeasurementEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    llvm::MutableArrayRef<mlir::OpOperand> targets);
+    mlir::MutableArrayRef<mlir::OpOperand> targets);
 void getOperatorEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    llvm::MutableArrayRef<mlir::OpOperand> controls,
-    llvm::MutableArrayRef<mlir::OpOperand> targets);
+    mlir::MutableArrayRef<mlir::OpOperand> controls,
+    mlir::MutableArrayRef<mlir::OpOperand> targets);
 
 mlir::ParseResult genericOpParse(mlir::OpAsmParser &parser,
                                  mlir::OperationState &result);
@@ -124,6 +125,63 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
   return std::nullopt;
 }
 
+/// A statically selectable scalar qubit represented by a top-level Quake
+/// target. A vector target records the element that must be extracted; a
+/// scalar reference or wire has no element index.
+struct StaticQubitTarget {
+  mlir::Value source;
+  std::size_t sourceIndex;
+  std::optional<std::size_t> elementIndex;
+};
+
+/// Return whether \p target is a single quantum value rather than an aggregate
+/// vector.
+bool isScalarQubitTarget(mlir::Value target);
+
+/// Plan a statically selectable scalar target without creating IR.
+inline std::optional<StaticQubitTarget>
+planStaticQubitTarget(mlir::Value target, std::size_t sourceIndex) {
+  if (isScalarQubitTarget(target))
+    return StaticQubitTarget{target, sourceIndex, std::nullopt};
+  if (auto size = getVeqSize(target); size && *size != 0)
+    return StaticQubitTarget{target, sourceIndex, *size - 1};
+  return std::nullopt;
+}
+
+/// Plan the last scalar target accepted by \p predicate without creating IR.
+template <typename Predicate>
+inline std::optional<StaticQubitTarget>
+findLastStaticQubitTarget(mlir::ValueRange targets, Predicate predicate) {
+  for (std::size_t i = targets.size(); i != 0; --i) {
+    auto finalTarget = planStaticQubitTarget(targets[i - 1], i - 1);
+    if (!finalTarget)
+      continue;
+    if (!finalTarget->elementIndex) {
+      if (predicate(*finalTarget))
+        return finalTarget;
+      continue;
+    }
+
+    for (std::size_t element = *finalTarget->elementIndex + 1; element != 0;
+         --element) {
+      StaticQubitTarget candidate{finalTarget->source, finalTarget->sourceIndex,
+                                  element - 1};
+      if (predicate(candidate))
+        return candidate;
+    }
+  }
+  return std::nullopt;
+}
+
+/// Plan a deterministic final scalar target without creating IR.
+std::optional<StaticQubitTarget>
+findLastStaticQubitTarget(mlir::ValueRange targets);
+
+/// Materialize a target selected by findLastStaticQubitTarget.
+mlir::Value materializeStaticQubitTarget(mlir::OpBuilder &builder,
+                                         mlir::Location location,
+                                         const StaticQubitTarget &target);
+
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
@@ -183,6 +241,19 @@ constexpr bool isMeasure = std::is_same_v<OP, cudaq::quake::MxOp> ||
                            std::is_same_v<OP, cudaq::quake::MyOp> ||
                            std::is_same_v<OP, cudaq::quake::MzOp>;
 
+/// Return true when \p op is a one-target operator for which a `veq` operand
+/// in the target position means "apply this operator to every element of the
+/// vector". Multi-qubit operators (`swap`, `exp_pauli`, custom unitaries) are
+/// excluded: for those a `veq` target is the operand list of a single N-qubit
+/// gate, not a broadcast.
+inline bool isBroadcastOperator(mlir::Operation *op) {
+  return mlir::isa<cudaq::quake::HOp, cudaq::quake::PhasedRxOp,
+                   cudaq::quake::R1Op, cudaq::quake::RxOp, cudaq::quake::RyOp,
+                   cudaq::quake::RzOp, cudaq::quake::SOp, cudaq::quake::TOp,
+                   cudaq::quake::U2Op, cudaq::quake::U3Op, cudaq::quake::XOp,
+                   cudaq::quake::YOp, cudaq::quake::ZOp>(op);
+}
+
 //===----------------------------------------------------------------------===//
 // Control and wire helpers.
 //===----------------------------------------------------------------------===//
@@ -193,17 +264,17 @@ bool hasUnresolvedControlVeq(mlir::ValueRange controls);
 
 /// Return one polarity per control, where `true` marks a negated control.
 /// Controls without an explicit polarity are positive.
-llvm::SmallVector<bool>
+mlir::SmallVector<bool>
 getControlPolarities(mlir::ValueRange controls,
-                     std::optional<llvm::ArrayRef<bool>> negatedControls = {});
-llvm::SmallVector<bool> getControlPolarities(OperatorInterface op);
+                     std::optional<mlir::ArrayRef<bool>> negatedControls = {});
+mlir::SmallVector<bool> getControlPolarities(OperatorInterface op);
 
 /// The controls and polarities resulting from expanding statically sized
 /// vector controls. Controls with unresolved vector sizes remain intact for
 /// callers that can lower them without making the predicate scalar.
 struct ExpandedControlVeqs {
-  llvm::SmallVector<mlir::Value> controls;
-  llvm::SmallVector<bool> polarities;
+  mlir::SmallVector<mlir::Value> controls;
+  mlir::SmallVector<bool> polarities;
   bool didExpand = false;
 };
 
@@ -213,39 +284,56 @@ struct ExpandedControlVeqs {
 ExpandedControlVeqs
 expandKnownSizedControlVeqs(mlir::OpBuilder &builder, mlir::Location location,
                             mlir::ValueRange controls,
-                            llvm::ArrayRef<bool> polarities);
+                            mlir::ArrayRef<bool> polarities);
 
-/// Return the wire result types for a Quake operator with the given controls
-/// and targets. Quake orders wire results by controls first, then targets.
-llvm::SmallVector<mlir::Type> getWireResultTypes(mlir::OpBuilder &builder,
-                                                 mlir::ValueRange controls,
+/// Return the types of a Quake operator's wire operands in wire-result order:
+/// controls first, then targets.
+mlir::SmallVector<mlir::Type> getWireResultTypes(mlir::ValueRange controls,
                                                  mlir::ValueRange targets);
 
 /// Collect the threaded values of a Quake operator's controls and targets in
 /// its wire-result order.
-llvm::SmallVector<mlir::Value> getWireValues(mlir::ValueRange controls,
+mlir::SmallVector<mlir::Value> getWireValues(mlir::ValueRange controls,
                                              mlir::ValueRange targets);
 
 /// Update controls and targets to the corresponding wire results of the
 /// newly created operator op. The ranges must hold the values op was
 /// created with.
 void threadWireResults(OperatorInterface op,
-                       llvm::MutableArrayRef<mlir::Value> controls,
-                       llvm::MutableArrayRef<mlir::Value> targets);
+                       mlir::MutableArrayRef<mlir::Value> controls,
+                       mlir::MutableArrayRef<mlir::Value> targets);
 
 /// Create a Quake gate and update controls and targets to its latest wire
 /// results. Reference operands are returned unchanged.
 template <typename Op>
 inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
                               mlir::UnitAttr isAdj, mlir::ValueRange parameters,
-                              llvm::MutableArrayRef<mlir::Value> controls,
-                              llvm::MutableArrayRef<mlir::Value> targets,
+                              mlir::MutableArrayRef<mlir::Value> controls,
+                              mlir::MutableArrayRef<mlir::Value> targets,
                               mlir::DenseBoolArrayAttr negatedControls = {}) {
-  auto resultTypes = getWireResultTypes(builder, controls, targets);
+  auto resultTypes = getWireResultTypes(controls, targets);
   auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
                        controls, targets, negatedControls);
   threadWireResults(op, controls, targets);
   return op;
+}
+
+/// used to unwrap `!quake.control` from `quake.from_control`
+inline mlir::Value unwrapFromControlVal(mlir::Value value) {
+  while (auto fromControl = value.getDefiningOp<cudaq::quake::FromControlOp>())
+    value = fromControl.getCtrlbit();
+  return value;
+}
+
+/// take input `veq` and find it's defining op
+inline mlir::Value getKnownAllocaVeq(mlir::Value veq) {
+  if (auto relax = veq.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    veq = relax.getInputVec();
+
+  if (!veq.getDefiningOp<cudaq::quake::AllocaOp>())
+    return {};
+
+  return veq;
 }
 
 } // namespace cudaq::quake

@@ -39,6 +39,12 @@ cudaq::detail::AnalysisScope make_scope(std::function<bool()> choice) {
        .on_exit = [rc](CircuitSimulator &) { rc->setToZeroState(); }}};
 }
 
+bool is_active() noexcept {
+  return resource_counter_simulator &&
+         cudaq::detail::AnalysisScope::active_simulator() ==
+             resource_counter_simulator;
+}
+
 cudaq::Resources get_counts() {
   auto *sim = cudaq::detail::AnalysisScope::active_simulator();
   auto *rc = getResourceCounterSimulator();

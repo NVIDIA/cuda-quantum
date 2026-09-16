@@ -25,6 +25,10 @@ namespace nvqir::resource_counter {
 /// current thread.
 cudaq::detail::AnalysisScope make_scope(std::function<bool()> choice);
 
+/// @brief Return true when the current thread is inside a resource-counter
+/// scope.
+bool is_active() noexcept;
+
 /// @brief Snapshot of the resource counts accumulated so far.
 ///
 /// Must be called while a resource-counter scope is active. The result

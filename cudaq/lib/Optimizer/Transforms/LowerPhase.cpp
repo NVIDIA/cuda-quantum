@@ -27,8 +27,7 @@ static Op createParameterizedGate(IRRewriter &rewriter, Location location,
                                   Value parameter, ValueRange controls,
                                   Value target,
                                   DenseBoolArrayAttr negatedControls = {}) {
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(rewriter, controls, {target});
+  auto resultTypes = cudaq::quake::getWireResultTypes(controls, {target});
   return Op::create(rewriter, location, resultTypes, /*is_adj=*/false,
                     ValueRange{parameter}, controls, ValueRange{target},
                     negatedControls);
@@ -36,8 +35,7 @@ static Op createParameterizedGate(IRRewriter &rewriter, Location location,
 
 static cudaq::quake::XOp createXGate(IRRewriter &rewriter, Location location,
                                      Value target) {
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(rewriter, ValueRange{}, {target});
+  auto resultTypes = cudaq::quake::getWireResultTypes(ValueRange{}, {target});
   return cudaq::quake::XOp::create(rewriter, location, resultTypes,
                                    /*is_adj=*/false, ValueRange{}, ValueRange{},
                                    ValueRange{target}, DenseBoolArrayAttr{});
@@ -68,45 +66,9 @@ static bool isScalarGateTarget(Value value) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(value.getType());
 }
 
-static Value getReferenceAnchor(Value anchor) {
-  if (auto unwrap = anchor.getDefiningOp<cudaq::quake::UnwrapOp>())
-    return unwrap.getRefValue();
-  return anchor;
-}
-
-static bool aggregateContainsReference(Value aggregate, Value reference) {
-  if (aggregate == reference)
-    return true;
-  if (auto relax = aggregate.getDefiningOp<cudaq::quake::RelaxSizeOp>())
-    return aggregateContainsReference(relax.getInputVec(), reference);
-  if (auto concat = aggregate.getDefiningOp<cudaq::quake::ConcatOp>())
-    return llvm::any_of(concat.getTargets(), [&](Value member) {
-      return aggregateContainsReference(member, reference);
-    });
-  if (auto struq = aggregate.getDefiningOp<cudaq::quake::MakeStruqOp>())
-    return llvm::any_of(struq.getVeqs(), [&](Value member) {
-      return aggregateContainsReference(member, reference);
-    });
-  return false;
-}
-
-/// Return true for the direct alias forms that the anchored fallback can
-/// identify locally. The phase producer is otherwise responsible for choosing
-/// an anchor outside the control predicate.
-static bool isKnownAnchorControlAlias(Value anchor, Value control) {
-  Value referenceAnchor = getReferenceAnchor(anchor);
-  if (aggregateContainsReference(control, referenceAnchor))
-    return true;
-  auto extract = referenceAnchor.getDefiningOp<cudaq::quake::ExtractRefOp>();
-  if (extract && aggregateContainsReference(control, extract.getVeq()))
-    return true;
-  auto member = referenceAnchor.getDefiningOp<cudaq::quake::GetMemberOp>();
-  return member && aggregateContainsReference(control, member.getStruq());
-}
-
 static void lowerWithScalarControl(IRRewriter &rewriter,
                                    cudaq::quake::PhaseOp phase, Value angle,
-                                   SmallVector<Value> controls,
+                                   SmallVectorImpl<Value> &controls,
                                    ArrayRef<bool> polarities,
                                    unsigned selectedControl) {
   Value anchor = phase.getTarget();
@@ -150,7 +112,7 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
 
 static void lowerWithAnchorFallback(IRRewriter &rewriter,
                                     cudaq::quake::PhaseOp phase, Value angle,
-                                    SmallVector<Value> controls,
+                                    SmallVectorImpl<Value> &controls,
                                     ArrayRef<bool> polarities) {
   Value anchor = phase.getTarget();
   Location location = phase.getLoc();
@@ -177,7 +139,8 @@ static void lowerWithAnchorFallback(IRRewriter &rewriter,
 }
 
 static LogicalResult lowerPhase(IRRewriter &rewriter,
-                                cudaq::quake::PhaseOp phase) {
+                                cudaq::quake::PhaseOp phase,
+                                const cudaq::opt::PhaseWrapMap &wrapsByRoot) {
   rewriter.setInsertionPoint(phase);
 
   auto predicate = cudaq::quake::expandKnownSizedControlVeqs(
@@ -207,9 +170,8 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   std::optional<unsigned> selected =
       positiveScalar ? positiveScalar : scalarControl;
   if (selected) {
-    lowerWithScalarControl(rewriter, phase, angle,
-                           std::move(predicate.controls), predicate.polarities,
-                           *selected);
+    lowerWithScalarControl(rewriter, phase, angle, predicate.controls,
+                           predicate.polarities, *selected);
     return success();
   }
 
@@ -217,12 +179,13 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   // as R1's scalar target. The anchored identity is exact on the full active
   // control branch and preserves the complete ordered predicate.
   for (Value control : predicate.controls)
-    if (isKnownAnchorControlAlias(phase.getTarget(), control)) {
+    if (cudaq::opt::phaseFallbackAnchorMayAliasControl(
+            phase.getTarget(), control, phase.getOperation(), wrapsByRoot)) {
       phase.emitOpError(
           "cannot lower with an anchor that aliases a control operand");
       return failure();
     }
-  lowerWithAnchorFallback(rewriter, phase, angle, std::move(predicate.controls),
+  lowerWithAnchorFallback(rewriter, phase, angle, predicate.controls,
                           predicate.polarities);
   return success();
 }
@@ -232,13 +195,16 @@ struct LowerPhasePass
   using LowerPhaseBase::LowerPhaseBase;
 
   void runOnOperation() override {
+    auto function = getOperation();
+    auto wrapsByRoot = cudaq::opt::collectNonSelfPhaseWraps(function);
+
     SmallVector<cudaq::quake::PhaseOp> phases;
-    getOperation().walk(
+    function.walk(
         [&](cudaq::quake::PhaseOp phase) { phases.push_back(phase); });
 
     IRRewriter rewriter(&getContext());
     for (cudaq::quake::PhaseOp phase : phases)
-      if (failed(lowerPhase(rewriter, phase))) {
+      if (failed(lowerPhase(rewriter, phase, wrapsByRoot))) {
         signalPassFailure();
         return;
       }

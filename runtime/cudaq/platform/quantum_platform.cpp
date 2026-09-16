@@ -113,6 +113,8 @@ void quantum_platform::reset_noise(std::size_t qpu_id) {
   set_noise(nullptr, qpu_id);
 }
 
+std::size_t get_random_seed();
+
 cudaq::CompileTarget
 createDefaultCompileTarget(quantum_platform *platform = nullptr) {
   if (!platform)
@@ -131,6 +133,8 @@ createDefaultCompileTarget(quantum_platform *platform = nullptr) {
     targetConfig = rt->config;
     runtimeConfig = rt->runtimeConfig;
   }
+  if (auto seed = cudaq::get_random_seed(); seed != 0)
+    runtimeConfig.emplace("seed", std::to_string(seed));
   auto ct = cudaq::CompileTarget::createFromConfig(targetConfig, runtimeConfig);
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
@@ -236,10 +240,6 @@ void quantum_platform::finalizeExecutionContext(ExecutionContext &ctx) const {
   platformQPU->finalizeExecutionContext(ctx);
 }
 
-std::optional<QubitConnectivity> quantum_platform::connectivity() {
-  return platformQPUs.front()->getConnectivity();
-}
-
 bool quantum_platform::is_simulator(std::size_t qpu_id) const {
   validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
   if (hasRuntimeEndpointOverride(qpu_id)) {
@@ -267,36 +267,26 @@ bool quantum_platform::is_emulated(std::size_t qpu_id) const {
   return platformQPUs[qpu_id]->isEmulated();
 }
 
-std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "get_num_qubits");
-  return platformQPUs[qpu_id]->getNumQubits();
+bool quantum_platform::supports_jit(std::size_t qpu_id) const {
+  validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
+  if (hasRuntimeEndpointOverride(qpu_id))
+    return runtimeEndpoints[qpu_id]->supportsJit;
+  // A QPU always consumes the JIT artifact.
+  return true;
+}
+
+cudaq::CompileTarget
+quantum_platform::getCompileTarget(std::size_t qpu_id) const {
+  validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
+  if (compileTarget.has_value()) {
+    return compileTarget.value();
+  }
+  return platformQPUs[qpu_id]->getCompileTarget();
 }
 
 bool quantum_platform::supports_explicit_measurements(
     std::size_t qpu_id) const {
-  auto ct = getCompileTarget(other_policies{}, qpu_id,
-                             /*skipPipelineSubstitutions=*/true);
-  return ct.supportExplicitMeasurements;
-}
-
-void quantum_platform::launchVQE(const std::string kernelName,
-                                 const void *kernelArgs, gradient *gradient,
-                                 const spin_op &H, optimizer &optimizer,
-                                 const int n_params, const std::size_t shots,
-                                 std::size_t qpu_id) {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "Policy VQE");
-  auto &qpu = platformQPUs[qpu_id];
-  qpu->launchVQE(kernelName, kernelArgs, gradient, H, optimizer, n_params,
-                 shots);
-}
-
-RemoteCapabilities
-quantum_platform::get_remote_capabilities(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "get_remote_capabilities");
-  return platformQPUs[qpu_id]->getRemoteCapabilities();
+  return getCompileTarget(qpu_id).supportExplicitMeasurements;
 }
 
 KernelThunkResultType

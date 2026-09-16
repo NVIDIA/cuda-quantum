@@ -20,6 +20,11 @@
 #                                Default: /tmp/holoscan-sensor-bridge
 #   CUDA_NATIVE_ARCH             CUDA architectures to compile HSB for.
 #                                Default: derived from the CUDA toolkit version.
+#   CUDAQ_REALTIME_HSB_REPO      Repository to clone HSB from.
+#                                Default: the public holoscan-sensor-bridge on
+#                                github, see deps_common.sh.
+#   CUDAQ_REALTIME_HSB_REF       Branch or tag to clone.
+#                                Default: the tag pinned in deps_common.sh.
 #   CUDAQ_REALTIME_SKIP_HSB=1    Install the SDKs but skip the HSB build.
 #
 # Containers that already ship Mellanox OFED cannot use this script, because
@@ -28,6 +33,7 @@
 set -e
 
 . "$(dirname "$0")/deps_common.sh"
+retry apt-get update
 
 if [ -x "$(command -v apt-get)" ]; then
   # Fail early if the CUDA toolkit is missing.
@@ -35,15 +41,15 @@ if [ -x "$(command -v apt-get)" ]; then
 
   # [Build tools]
   # Needed to build HSB from source below.
-  apt-get update && apt-get install -y --no-install-recommends git ninja-build pkg-config
+  retry apt-get install -y --no-install-recommends git ninja-build pkg-config
 
   # [libibverbs]
   echo "Installing libibverbs..."
-  apt-get update && apt-get install -y --no-install-recommends libibverbs-dev
+  retry apt-get install -y --no-install-recommends libibverbs-dev
 
   # [DOCA Host]
   cudaq_realtime_add_doca_repo
-  DEBIAN_FRONTEND=noninteractive apt-get -y install doca-all libdoca-sdk-gpunetio-dev
+  DEBIAN_FRONTEND=noninteractive retry apt-get -y install doca-all libdoca-sdk-gpunetio-dev
 
   # [Holoscan SDK]
   cudaq_realtime_install_holoscan
