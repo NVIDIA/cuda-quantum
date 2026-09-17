@@ -181,4 +181,4 @@ A tokens file can be created and the environment variable set like this:
     export IQM_TOKENS_FILE="path/to/resonance-token.json"
 
 When storing the "API Token" in a file please make sure to restrict access to this file to only the account running tests.
-No other user or group on the computer must have any access to this file.
+No other user or group on the computer must have any access to this file
