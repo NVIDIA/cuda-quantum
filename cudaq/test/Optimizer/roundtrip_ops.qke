@@ -1169,12 +1169,12 @@ func.func @operator_control_syntax(%theta: f64, %phi: f64,
 }
 
 // CHECK-LABEL:   func.func @operator_control_syntax(
-// CHECK-SAME:      %[[ARG0:.*]]: f64,
-// CHECK-SAME:      %[[ARG1:.*]]: f64,
-// CHECK-SAME:      %[[ARG2:.*]]: !quake.ref,
-// CHECK-SAME:      %[[ARG3:.*]]: !quake.ref,
-// CHECK-SAME:      %[[ARG4:.*]]: !quake.ref,
-// CHECK-SAME:      %[[ARG5:.*]]: !cc.charspan) {
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG4:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG5:[a-zA-Z0-9_.$-]+]]: !cc.charspan) {
 // CHECK:           quake.u2<adj> (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           quake.phased_rx<adj> (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           quake.exp_pauli<adj> (%[[ARG0]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] to "Y" : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
@@ -1195,10 +1195,10 @@ func.func @exp_pauli_wire_controls(%theta: f64, %open: !quake.wire,
 }
 
 // CHECK-LABEL:   func.func @exp_pauli_wire_controls(
-// CHECK-SAME:      %[[ARG0:.*]]: f64,
-// CHECK-SAME:      %[[ARG1:.*]]: !quake.wire,
-// CHECK-SAME:      %[[ARG2:.*]]: !quake.wire,
-// CHECK-SAME:      %[[ARG3:.*]]: !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {
 // CHECK:           %[[EXP_PAULI_0:.*]]:3 = quake.exp_pauli<adj> (%[[ARG0]]) {{\[}}%[[ARG1]], %[[ARG2]] neg [true, false]] %[[ARG3]] to "Y" : (f64, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
 // CHECK:           return %[[EXP_PAULI_0]]#0, %[[EXP_PAULI_0]]#1, %[[EXP_PAULI_0]]#2 : !quake.wire, !quake.wire, !quake.wire
 // CHECK:         }
