@@ -203,6 +203,10 @@ jobs:
             CUDAQ_REALTIME_HSB_REF
             CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
           run: |
+            # run-in-docker executes this block with a bare `bash`, so without
+            # this a failing dependency install would be ignored and the job
+            # would go green having silently built without DOCA/Holoscan/HSB.
+            set -eo pipefail
             # TODO: use official apt repo once upgraded to Ubuntu 26.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
