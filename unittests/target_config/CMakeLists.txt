@@ -24,8 +24,17 @@ endif()
 target_link_libraries(test_target_config
   PRIVATE
     CUDAQTargetConfigYaml
+    CUDAQTargetDatabase
     gtest_main
 )
+# Fixtures compile YAML into target plugin libraries via cudaq-target-db-gen
+# --plugin, exactly like a real external plugin - see packaging.rst.
+target_compile_definitions(test_target_config
+  PRIVATE
+    "CUDAQ_TARGET_DB_GEN_PATH=\"$<TARGET_FILE:cudaq-target-db-gen>\""
+    "CUDAQ_TEST_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\""
+    "CUDAQ_TEST_INCLUDE_DIR=\"${CMAKE_SOURCE_DIR}/cudaq/include\"")
+add_dependencies(test_target_config cudaq-target-db-gen)
 
 if(CUDAQ_ENABLE_PYTHON)
   target_sources(test_target_config PRIVATE

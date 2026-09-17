@@ -44,23 +44,25 @@ struct RuntimeTarget {
   // falls back to the default CUDA-Q library directory.
   std::string pluginLibDir;
   // Helper to generate the help string for the extra target arguments
-  // (specified in the target config YAML file).
+  // (specified in the target config).
   std::string get_target_args_help_string() const;
   // Return target precision
   simulation_precision get_precision() const;
 
-  /// @brief Reconstruct the path to this target's YAML config relative to
-  /// `pluginLibDir`. For an external plugin package laid out as
+  /// @brief Reconstruct the path to this target's compiled target plugin
+  /// library relative to `pluginLibDir`. For an external plugin package laid
+  /// out as
   ///   `<pkgRoot>/lib/<plugin libs>`
-  ///   `<pkgRoot>/targets/<name>.yml`
-  /// this returns `<pkgRoot>/targets/<name>.yml`. Returns an empty path
-  /// when either `pluginLibDir` or `name` is empty (i.e. this is an
-  /// in-tree target whose YAML lives in the default install location).
-  std::filesystem::path pluginYamlPath() const {
+  ///   `<pkgRoot>/targets/<name>.so`
+  /// this returns `<pkgRoot>/targets/<name>.so` (produced by
+  /// `cudaq-target-db-gen --plugin`, see packaging.rst). Returns an empty
+  /// path when either `pluginLibDir` or `name` is empty (i.e. this is an
+  /// in-tree target resolved from the precompiled target database).
+  std::filesystem::path pluginTargetLibPath() const {
     if (pluginLibDir.empty() || name.empty())
       return {};
     return std::filesystem::path(pluginLibDir).parent_path() / "targets" /
-           (name + ".yml");
+           (name + ".so");
   }
 };
 } // namespace cudaq

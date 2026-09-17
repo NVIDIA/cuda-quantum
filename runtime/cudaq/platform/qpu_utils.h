@@ -42,8 +42,9 @@ std::string decodeBase64(const std::string &encoded);
 std::optional<std::string> getBackendConfigOption(const std::string &backend,
                                                   std::string_view key);
 
-/// @brief Return the explicitly configured target YAML path, or @p fallback
-/// when the backend configuration does not provide `__yml_path`.
+/// Return the explicitly configured target config path (a compiled plugin
+/// target library for external targets), or @p fallback when the backend
+/// configuration does not provide `__target_lib_path`.
 std::filesystem::path
 getTargetConfigPath(const std::string &backend,
                     const std::filesystem::path &fallback);
@@ -55,8 +56,15 @@ void loadTargetPluginLibraries(const std::string &targetName,
                                const std::filesystem::path &configPath,
                                const config::TargetConfig &targetConfig);
 
-/// @brief Returns true if @p kernelName has the analog Hamiltonian kernel
-/// prefix.
+/// If \p targetConfig declares a GPU requirement, verify at least one GPU is
+/// actually present on this host and throw \c std::runtime_error if not. This
+/// check deliberately runs here rather than at compile time: the build host and
+/// the execution host are not necessarily the same machine, and only the
+/// execution host's GPU presence is ever actually relevant.
+void checkGpuRequirement(const std::string &targetName,
+                         const config::TargetConfig &targetConfig);
+
+/// Returns true if @p kernelName has the analog Hamiltonian kernel prefix.
 bool isAnalogHamiltonianKernel(const std::string &kernelName);
 
 /// @brief Look up the @c ServerHelper and @c Executor registered under

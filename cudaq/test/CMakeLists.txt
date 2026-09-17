@@ -58,7 +58,7 @@ set(CUDAQ_TEST_DEPENDS
     CircuitCheck
     cudaq-opt
     cudaq-rest-qpu
-    cudaq-target-conf
+    cudaq-target-resolve
     cudaq-translate
     CustomPassPlugin
     FileCheck

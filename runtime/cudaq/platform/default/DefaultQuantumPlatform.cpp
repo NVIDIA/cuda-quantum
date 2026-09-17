@@ -11,6 +11,8 @@
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -66,18 +68,27 @@ private:
       auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
       std::string fileName = mutableBackend + std::string(".yml");
       const auto explicitConfigPath =
-          cudaq::detail::getBackendConfigOption(backend, "__yml_path");
-      auto configFilePath = explicitConfigPath
-                                ? std::filesystem::path(*explicitConfigPath)
-                                : platformPath / fileName;
-      CUDAQ_INFO("Config file path = {}", configFilePath.string());
-
-      if (!explicitConfigPath && !std::filesystem::exists(configFilePath)) {
+          cudaq::detail::getBackendConfigOption(backend, "__target_lib_path");
+      const cudaq::config::TargetConfig *builtin =
+          explicitConfigPath
+              ? nullptr
+              : cudaq::config::lookupBuiltinTarget(mutableBackend);
+      std::filesystem::path configFilePath = platformPath / fileName;
+      if (builtin) {
+        config = *builtin;
+      } else if (explicitConfigPath) {
+        configFilePath = *explicitConfigPath;
+        auto pluginResult =
+            cudaq::config::loadTargetPluginLibrary(configFilePath);
+        if (!pluginResult.ok)
+          throw std::runtime_error(pluginResult.error);
+        config = pluginResult.config;
+      } else {
         getQPU().setTargetBackend(backend);
         return;
       }
-
-      config = cudaq::config::loadTargetConfig(configFilePath);
+      CUDAQ_INFO("Config file path = {}", configFilePath.string());
+      cudaq::detail::checkGpuRequirement(mutableBackend, config);
       cudaq::detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
                                                config);
       runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();

@@ -39,9 +39,13 @@ static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
                         {"qpp", cudaq::config::flagsQPP}};
 }
 
-/// @brief Convert the backend config entry into nvq++ compatible script.
+/// Convert the backend config entry into nvq++ compatible script.
+/// `pipelineName` is the name `TargetPassPipeline` (if any) was registered
+/// under by `cudaq-opt`. The script emits that *name*, never the pipeline's own
+/// raw text. This eliminates nvq++ carrying raw pass-pipeline text through its
+/// environment.
 static std::string processSimBackendConfig(
-    const std::string &targetName,
+    const std::string &targetName, const std::string &pipelineName,
     const cudaq::config::BackendEndConfigEntry &configValue) {
   std::stringstream output;
   if (configValue.GenTargetBackend.has_value())
@@ -65,8 +69,7 @@ static std::string processSimBackendConfig(
            << "\"\n";
 
   if (!configValue.TargetPassPipeline.empty())
-    output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
-           << "\"\n";
+    output << "TARGET_PASS_PIPELINE_NAME=" << pipelineName << "\n";
 
   if (!configValue.CodegenEmission.empty())
     output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
@@ -169,6 +172,7 @@ std::string cudaq::config::processRuntimeArgs(
   std::stringstream output;
   if (config.BackendConfig.has_value())
     output << processSimBackendConfig(config.Name,
+                                      "target-pass-pipeline-" + config.Name,
                                       config.BackendConfig.value());
 
   unsigned featureFlag = 0;
@@ -250,7 +254,9 @@ std::string cudaq::config::processRuntimeArgs(
                       "is not supported.\n";
       abort();
     }
-    output << processSimBackendConfig(config.Name, iter->Config);
+    output << processSimBackendConfig(
+        config.Name, "target-pass-pipeline-" + config.Name + "-" + iter->Name,
+        iter->Config);
   }
   const auto platformExtraArgsStr = platformExtraArgs.str();
   if (!platformExtraArgsStr.empty())

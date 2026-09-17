@@ -29,24 +29,24 @@ TEST(RuntimeTargetTester, pluginLibDirIsIndependentOfName) {
   EXPECT_EQ(target.pluginLibDir, "/opt/my-backend/lib");
 }
 
-// -- B2: pluginYamlPath() accessor -------------------------------------------
+// -- B2: pluginTargetLibPath() accessor --------------------------------------
 
-TEST(RuntimeTargetTester, pluginYamlPath_emptyWhenLibDirEmpty) {
+TEST(RuntimeTargetTester, pluginTargetLibPath_emptyWhenLibDirEmpty) {
   cudaq::RuntimeTarget target;
   target.name = "my-backend";
-  EXPECT_TRUE(target.pluginYamlPath().empty());
+  EXPECT_TRUE(target.pluginTargetLibPath().empty());
 }
 
-TEST(RuntimeTargetTester, pluginYamlPath_emptyWhenNameEmpty) {
+TEST(RuntimeTargetTester, pluginTargetLibPath_emptyWhenNameEmpty) {
   cudaq::RuntimeTarget target;
   target.pluginLibDir = "/opt/my-backend/lib";
-  EXPECT_TRUE(target.pluginYamlPath().empty());
+  EXPECT_TRUE(target.pluginTargetLibPath().empty());
 }
 
-TEST(RuntimeTargetTester, pluginYamlPath_buildsFromLibDirAndName) {
+TEST(RuntimeTargetTester, pluginTargetLibPath_buildsFromLibDirAndName) {
   cudaq::RuntimeTarget target;
   target.name = "my-backend";
   target.pluginLibDir = "/opt/my-backend/lib";
-  EXPECT_EQ(target.pluginYamlPath(),
-            std::filesystem::path("/opt/my-backend/targets/my-backend.yml"));
+  EXPECT_EQ(target.pluginTargetLibPath(),
+            std::filesystem::path("/opt/my-backend/targets/my-backend.so"));
 }

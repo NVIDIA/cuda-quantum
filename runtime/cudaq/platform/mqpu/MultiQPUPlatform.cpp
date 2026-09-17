@@ -12,6 +12,8 @@
 #include "common/RuntimeTarget.h"
 #include "helpers/MQPUUtils.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -71,16 +73,28 @@ private:
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string targetConfigFileName = targetName + std::string(".yml");
     const auto explicitConfigPath =
-        cudaq::detail::getBackendConfigOption(description, "__yml_path");
-    auto configFilePath = explicitConfigPath
-                              ? std::filesystem::path(*explicitConfigPath)
-                              : platformPath / targetConfigFileName;
+        cudaq::detail::getBackendConfigOption(description, "__target_lib_path");
+    const cudaq::config::TargetConfig *builtin =
+        explicitConfigPath ? nullptr
+                           : cudaq::config::lookupBuiltinTarget(targetName);
+    std::filesystem::path configFilePath = platformPath / targetConfigFileName;
+    cudaq::config::TargetConfig config;
+    if (builtin) {
+      config = *builtin;
+    } else if (explicitConfigPath) {
+      configFilePath = *explicitConfigPath;
+      auto pluginResult =
+          cudaq::config::loadTargetPluginLibrary(configFilePath);
+      if (!pluginResult.ok)
+        return "";
+      config = pluginResult.config;
+    } else {
+      // Don't try to load something that doesn't exist.
+      return "";
+    }
     CUDAQ_INFO("Config file path for target {} = {}", targetName,
                configFilePath.string());
-    // Don't try to load something that doesn't exist.
-    if (!explicitConfigPath && !std::filesystem::exists(configFilePath))
-      return "";
-    auto config = cudaq::config::loadTargetConfig(configFilePath);
+    cudaq::detail::checkGpuRequirement(targetName, config);
     cudaq::detail::loadTargetPluginLibraries(targetName, configFilePath,
                                              config);
 

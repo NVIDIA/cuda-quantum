@@ -29,6 +29,7 @@ target_link_libraries(${LIBRARY_NAME}
     nvqir
     mqpu_util
     CUDAQTargetConfigYaml
+    CUDAQTargetDatabase
     cudaq-qpu-default
     pthread
 )

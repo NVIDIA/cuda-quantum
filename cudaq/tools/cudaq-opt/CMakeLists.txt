@@ -29,6 +29,7 @@ target_link_libraries(cudaq-opt
   OptCodeGen
   OptTransforms
   CUDAQSupport
+  CUDAQBuiltinTargetDb
 )
 mlir_check_all_link_libraries(cudaq-opt)
 

@@ -13,6 +13,8 @@
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -114,6 +116,34 @@ void findAvailableTargets(
     std::unordered_map<std::string, RuntimeTarget> &simulationTargets,
     const std::filesystem::path &libDir) {
 
+  auto addTarget = [&](const std::string &targetName,
+                       const cudaq::config::TargetConfig &config) {
+    if (targets.count(targetName))
+      return;
+    const std::string defaultTargetConfigStr =
+        cudaq::config::processRuntimeArgs(config, {});
+    RuntimeTarget target;
+    target.config = config;
+    target.name = targetName;
+    target.description = config.Description;
+    auto resolvedLibDir =
+        libDir.empty() ? targetPath.parent_path() / "lib" : libDir;
+    if (!libDir.empty())
+      target.pluginLibDir = libDir.string();
+    parseRuntimeTarget(resolvedLibDir, target, defaultTargetConfigStr);
+    CUDAQ_INFO("Found Target: {} -> (sim={}, platform={})", targetName,
+               target.simulatorName, target.platformName);
+    targets.emplace(targetName, target);
+    simulationTargets.emplace(targetName, target);
+  };
+
+  if (libDir.empty())
+    for (const auto &[name, config] : cudaq::config::listBuiltinTargets())
+      addTarget(std::string(name), *config);
+
+  if (!std::filesystem::exists(targetPath))
+    return;
+
   // directory_iterator ordering is unspecified, so sort it to make it
   // repeatable and consistent.
   std::vector<std::filesystem::directory_entry> targetEntries;
@@ -125,42 +155,39 @@ void findAvailableTargets(
               return a.path().filename() < b.path().filename();
             });
 
+  const std::string configFileExt = libDir.empty() ? ".yml" : ".so";
+
   // Loop over all target files
   for (const auto &configFile : targetEntries) {
     auto path = configFile.path();
-    // They must have a .yml suffix
-    const std::string configFileExt = ".yml";
-    if (path.extension().string() == configFileExt) {
-      auto fileName = path.filename().string();
-      auto targetName =
-          std::regex_replace(fileName, std::regex(configFileExt), "");
+    if (path.extension().string() != configFileExt)
+      continue;
+    auto fileName = path.filename().string();
+    auto targetName =
+        std::regex_replace(fileName, std::regex(configFileExt), "");
+    if (targets.count(targetName))
+      continue;
+
+    if (libDir.empty()) {
       // Open the file and look for the platform, simulator, and description
       std::ifstream inFile(path.string());
       const std::string configFileContent(
           (std::istreambuf_iterator<char>(inFile)),
           std::istreambuf_iterator<char>());
-      const auto pluginRoot =
-          libDir.empty() ? targetPath.parent_path() : libDir.parent_path();
-      auto config =
-          cudaq::config::parseTargetConfig(configFileContent, pluginRoot);
+      auto config = cudaq::config::parseTargetConfig(configFileContent,
+                                                      targetPath.parent_path());
       CUDAQ_INFO("Found Target {} with config file {}", targetName, fileName);
-      const std::string defaultTargetConfigStr =
-          cudaq::config::processRuntimeArgs(config, {});
-      RuntimeTarget target;
-      target.config = config;
-      target.name = targetName;
-      target.description = config.Description;
-      auto resolvedLibDir =
-          libDir.empty() ? targetPath.parent_path() / "lib" : libDir;
-      if (!libDir.empty())
-        target.pluginLibDir = libDir.string();
-      parseRuntimeTarget(resolvedLibDir, target, defaultTargetConfigStr);
-      CUDAQ_INFO("Found Target: {} -> (sim={}, platform={})", targetName,
-                 target.simulatorName, target.platformName);
-      // Add the target.
-      targets.emplace(targetName, target);
-
-      simulationTargets.emplace(targetName, target);
+      addTarget(targetName, config);
+    } else {
+      auto pluginResult = cudaq::config::loadTargetPluginLibrary(path);
+      if (!pluginResult.ok) {
+        CUDAQ_INFO("Skipping target plugin library {}: {}", path.string(),
+                   pluginResult.error);
+        continue;
+      }
+      CUDAQ_INFO("Found Target {} with plugin library {}", targetName,
+                 fileName);
+      addTarget(targetName, pluginResult.config);
     }
   }
 }
@@ -486,7 +513,7 @@ void LinkedLibraryHolder::setTarget(
   auto &target = iter->second;
   if (!target.pluginLibDir.empty()) {
     const auto compatibility = cudaq::config::checkExternalTargetVersion(
-        target.config, cudaq::getVersion(), target.pluginYamlPath());
+        target.config, cudaq::getVersion(), target.pluginTargetLibPath());
     if (compatibility.Status ==
         cudaq::config::TargetVersionCompatibility::Error)
       throw std::runtime_error(compatibility.Diagnostic);
@@ -523,7 +550,7 @@ void LinkedLibraryHolder::setTarget(
     }
   }
 
-  auto targetConfigPath = target.pluginYamlPath();
+  auto targetConfigPath = target.pluginTargetLibPath();
   if (targetConfigPath.empty())
     targetConfigPath =
         cudaqLibPath.parent_path() / "targets" / (targetName + ".yml");
@@ -566,8 +593,8 @@ void LinkedLibraryHolder::setTarget(
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 
-  if (auto ymlPath = target.pluginYamlPath(); !ymlPath.empty())
-    backendConfigStr += fmt::format(";__yml_path;{}", ymlPath.string());
+  if (auto libPath = target.pluginTargetLibPath(); !libPath.empty())
+    backendConfigStr += fmt::format(";__target_lib_path;{}", libPath.string());
 
   platform->setTargetBackend(backendConfigStr);
   setQuantumPlatformInternal(platform);

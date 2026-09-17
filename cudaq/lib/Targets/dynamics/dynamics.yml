@@ -10,6 +10,7 @@ name: dynamics
 description: "Dynamics simulation backend"
 gpu-requirements: true
 config:
+  gen-target-backend: true
   nvqir-simulation-backend: dynamics
   platform-library: mqpu
   preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET", "-D CUDAQ_SIMULATION_SCALAR_FP64"]

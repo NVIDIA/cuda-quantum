@@ -16,12 +16,48 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <sstream>
 #include <unordered_map>
 
 // ExternalBackendTester is not inherently Python-specific, but this test group
 // currently uses backend discovery helpers and LinkedLibraryHolder from
 // python/utils, which is only available when the Python project is enabled.
 #ifdef CUDAQ_ENABLE_PYTHON
+namespace {
+// Compiles `yamlContent` into a target plugin library at
+// `targetsDir/<name>.so` via `cudaq-target-db-gen --plugin`, exactly as an
+// external plugin author would (see packaging.rst) - external targets are no
+// longer resolved from raw YAML text. The YAML is staged at its final
+// `targetsDir/<name>.yml` location just long enough to generate/compile
+// (so `%PLUGIN_ROOT%` resolves against the real target root), then removed;
+// only the compiled artifact remains, matching production behavior.
+void compileTargetPluginLibrary(const std::string &name,
+                                const std::string &yamlContent,
+                                const std::filesystem::path &targetsDir) {
+  const auto stagedYml = targetsDir / (name + ".yml");
+  {
+    std::ofstream out(stagedYml);
+    out << yamlContent;
+  }
+  const auto genCpp =
+      std::filesystem::temp_directory_path() / (name + "_target.gen.cpp");
+  const auto soPath = targetsDir / (name + ".so");
+
+  std::string genCmd = std::string(CUDAQ_TARGET_DB_GEN_PATH) + " --plugin -o " +
+                       genCpp.string() + " " + name + "=" + stagedYml.string();
+  ASSERT_EQ(std::system(genCmd.c_str()), 0) << genCmd;
+
+  std::string compileCmd = std::string(CUDAQ_TEST_CXX_COMPILER) +
+                           " -std=c++20 -shared -fPIC -I " +
+                           CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() +
+                           " -o " + soPath.string();
+  ASSERT_EQ(std::system(compileCmd.c_str()), 0) << compileCmd;
+
+  std::filesystem::remove(stagedYml);
+  std::filesystem::remove(genCpp);
+}
+} // namespace
+
 class ExternalBackendTester : public ::testing::Test {
 protected:
   std::filesystem::path tmpRoot;
@@ -46,12 +82,13 @@ protected:
     std::filesystem::create_directories(targetsDir);
     std::filesystem::create_directories(libDir);
 
-    std::ofstream configFile(targetsDir / (name + ".yml"));
-    configFile << "name: " << name << "\ndescription: \"Test backend.\"\n";
+    std::ostringstream yaml;
+    yaml << "name: " << name << "\ndescription: \"Test backend.\"\n";
     if (!version.empty())
-      configFile << "cudaq-version: \"" << version << "\"\n";
-    configFile << "config:\n"
-               << "  platform-qpu: remote_rest\n  library-mode: false\n";
+      yaml << "cudaq-version: \"" << version << "\"\n";
+    yaml << "config:\n"
+        << "  platform-qpu: remote_rest\n  library-mode: false\n";
+    compileTargetPluginLibrary(name, yaml.str(), targetsDir);
 
     if (createSo)
       std::ofstream(libDir / ("libcudaq-serverhelper-" + name + ".so")).close();
@@ -308,7 +345,7 @@ TEST_F(ExternalBackendTester, serverHelperPathResolvesToLibDir) {
   EXPECT_TRUE(std::filesystem::exists(resolvedPath));
 }
 
-TEST_F(ExternalBackendTester, pluginYamlPath_resolvesToTargetsDir) {
+TEST_F(ExternalBackendTester, pluginTargetLibPath_resolvesToTargetsDir) {
   auto root = createBackendPackage("my-backend");
 
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
@@ -319,9 +356,9 @@ TEST_F(ExternalBackendTester, pluginYamlPath_resolvesToTargetsDir) {
   const auto &target = targets.at("my-backend");
   ASSERT_FALSE(target.pluginLibDir.empty());
 
-  auto ymlPath = target.pluginYamlPath();
-  EXPECT_EQ(ymlPath, root / "targets" / "my-backend.yml");
-  EXPECT_TRUE(std::filesystem::exists(ymlPath));
+  auto libPath = target.pluginTargetLibPath();
+  EXPECT_EQ(libPath, root / "targets" / "my-backend.so");
+  EXPECT_TRUE(std::filesystem::exists(libPath));
 }
 
 // -- B1: registerBackendPath -------------------------------------------------
@@ -373,13 +410,14 @@ TEST_F(ExternalBackendTester,
     std::filesystem::create_directories(targetsDir);
     std::filesystem::create_directories(root / "lib");
 
-    std::ofstream configFile(targetsDir / (name + ".yml"));
-    configFile << "name: " << name << "\ndescription: \"Test backend.\"\n";
+    std::ostringstream yaml;
+    yaml << "name: " << name << "\ndescription: \"Test backend.\"\n";
     if (!version.empty())
-      configFile << "cudaq-version: \"" << version << "\"\n";
-    configFile << "config:\n"
-               << "  nvqir-simulation-backend: qpp\n"
-               << "  library-mode: false\n";
+      yaml << "cudaq-version: \"" << version << "\"\n";
+    yaml << "config:\n"
+        << "  nvqir-simulation-backend: qpp\n"
+        << "  library-mode: false\n";
+    compileTargetPluginLibrary(name, yaml.str(), targetsDir);
     return root;
   };
 
@@ -402,8 +440,8 @@ TEST_F(ExternalBackendTester, pluginLibrariesFieldIsParsed) {
   std::filesystem::create_directories(targetsDir);
   std::filesystem::create_directories(libDir);
 
-  // Write a YAML with plugin-libraries
-  std::ofstream(targetsDir / "my-backend.yml") << R"(
+  // Compile a target plugin library with plugin-libraries set.
+  compileTargetPluginLibrary("my-backend", R"(
 name: my-backend
 description: Plugin-libraries test
 target-arguments: []
@@ -413,7 +451,8 @@ config:
   plugin-libraries:
     - libdummy1.so
     - libdummy2.so
-)";
+)",
+                             targetsDir);
 
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
   cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
@@ -444,7 +483,8 @@ TEST_F(ExternalBackendTester, versionWarningAllowsPluginLibraryLoad) {
   std::filesystem::remove(sentinelPath);
   setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
 
-  std::ofstream(targetsDir / "future-backend.yml") << R"(
+  std::ostringstream yaml;
+  yaml << R"(
 name: future-backend
 description: Future-version plugin test
 cudaq-version: 999999.0.0
@@ -453,8 +493,8 @@ config:
   nvqir-simulation-backend: qpp
   library-mode: false
   plugin-libraries:
-    - )" << pluginFileName << R"(
-)";
+    - )" << pluginFileName << "\n";
+  compileTargetPluginLibrary("future-backend", yaml.str(), targetsDir);
 
   cudaq::LinkedLibraryHolder holder;
   holder.registerBackendPath(root);
@@ -477,7 +517,7 @@ TEST_F(ExternalBackendTester,
 
   const auto expectedTopology = (root / "data" / "topology.txt").string();
   std::ofstream(dataDir / "topology.txt") << "topology\n";
-  std::ofstream(targetsDir / "my-backend.yml") << R"(
+  compileTargetPluginLibrary("my-backend", R"(
 name: my-backend
 description: Plugin-root substitution test
 target-arguments: []
@@ -486,7 +526,8 @@ config:
   jit-mid-level-pipeline: "map{device=file(%PLUGIN_ROOT%/data/topology.txt)}"
   preprocessor-defines:
     - "-DTOPOLOGY=%PLUGIN_ROOT%/data/topology.txt"
-)";
+)",
+                             targetsDir);
 
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
   cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
