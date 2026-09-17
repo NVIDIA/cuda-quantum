@@ -252,7 +252,7 @@ TEST(QuantumPlatformRuntimeEndpointTester, fallsBackToQpuWhenUnset) {
   TestPlatform platform;
   auto &endpoint = platform.getRuntimeEndpoint(/*qpuId=*/0);
 
-  auto *qpu = std::any_cast<QPU *>(endpoint.impl);
+  auto *qpu = endpoint.getQPU();
   ASSERT_NE(qpu, nullptr);
   EXPECT_EQ(qpu, platform.getQpu(0));
   EXPECT_NE(endpoint.dispatch.get<sample_policy>(), nullptr);
@@ -325,8 +325,7 @@ TEST(QuantumPlatformRuntimeEndpointTester, recreatingQpusResetsEndpoints) {
   ASSERT_EQ(std::any_cast<int>(platform.getRuntimeEndpoint().impl), 42);
 
   platform.resetQpus();
-  EXPECT_EQ(std::any_cast<QPU *>(platform.getRuntimeEndpoint().impl),
-            platform.getQpu(0));
+  EXPECT_EQ(platform.getRuntimeEndpoint().getQPU(), platform.getQpu(0));
   EXPECT_NE(platform.getRuntimeEndpoint().dispatch.get<sample_policy>(),
             taggedSampleFn);
 }
@@ -341,8 +340,7 @@ TEST(QuantumPlatformRuntimeEndpointTester, addingAQpuPreservesEndpoints) {
   platform.addTestQpu();
 
   EXPECT_EQ(std::any_cast<int>(platform.getRuntimeEndpoint(0).impl), 42);
-  EXPECT_EQ(std::any_cast<QPU *>(platform.getRuntimeEndpoint(1).impl),
-            platform.getQpu(1));
+  EXPECT_EQ(platform.getRuntimeEndpoint(1).getQPU(), platform.getQpu(1));
 }
 
 // After the QPUs are replaced, launches must reach the current QPU.

@@ -25,7 +25,7 @@ class gradient;
 class optimizer;
 class noise_model;
 class ExecutionContext;
-class RuntimeTarget;
+struct RuntimeTarget;
 
 // forward declare the spin_op type
 template <typename T>
