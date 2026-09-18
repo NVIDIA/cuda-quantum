@@ -134,17 +134,17 @@ cudaq_realtime_add_doca_repo() {
     echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
     retry apt-get update
   elif [ -x "$(command -v dnf)" ]; then
-    # dnf fetches the key itself, so nothing has to be installed to set this up.
-    # Taken from the repository directory rather than the root, because this is
-    # where the key that signs these packages lives. Note that DOCA 3.4 renamed
-    # it to doca_keyring.gpg, so raising the pin means revisiting this line.
+    # dnf fetches the keys itself, so nothing has to be installed to set this
+    # up. The RPMs were re-signed in January 2026 with the NVIDIA DOCA Host
+    # key, but the repository directories still serve the superseded Mellanox
+    # key.
     cat > /etc/yum.repos.d/doca.repo <<EOF
 [doca]
 name=NVIDIA DOCA $DOCA_VERSION
 baseurl=$DOCA_URL
 enabled=1
 gpgcheck=1
-gpgkey=${DOCA_URL}GPG-KEY-Mellanox.pub
+gpgkey=https://linux.mellanox.com/public/repo/doca/public_keys/nvidia-doca-rpm-gpg-public-key.asc ${DOCA_URL}GPG-KEY-Mellanox.pub
 EOF
     retry dnf -y makecache
   else

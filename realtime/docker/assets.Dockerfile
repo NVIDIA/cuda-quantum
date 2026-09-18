@@ -78,13 +78,15 @@ RUN . /cuda-quantum/realtime/scripts/deps_common.sh && \
 
 # [DOCA]
 # Registered against the repository doca-host would otherwise deliver offline, by the same
-# code the dev containers use. epel and crb supply dependencies of doca-all.
+# code the dev containers use. epel and crb supply its dependencies. The userspace
+# profile, because doca-all pulls OFED kernel modules that DKMS cannot build in a
+# container, and this image only needs headers and libraries.
 ARG DOCA_VERSION=
 RUN dnf -y install epel-release && \
     crb enable && \
     . /cuda-quantum/realtime/scripts/deps_common.sh && \
     cudaq_realtime_add_doca_repo && \
-    dnf -y install doca-all doca-sdk-gpunetio doca-sdk-gpunetio-devel
+    dnf -y install doca-all-userspace doca-sdk-gpunetio doca-sdk-gpunetio-devel
 
 ## [CUDAQ Realtime Source]
 ADD realtime /cuda-quantum/realtime
