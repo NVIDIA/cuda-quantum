@@ -23,32 +23,38 @@ configuration-matrix:
     option-flags: [fp32]
     default: true
     config:
+      gen-target-backend: true
       nvqir-simulation-backend: custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
   - name: single-gpu-fp64
     option-flags: [fp64]
     config:
+      gen-target-backend: true
       nvqir-simulation-backend: custatevec-fp64
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
   - name: multi-gpu-fp32
     option-flags: [fp32, mgpu]
     config:
+      gen-target-backend: true
       nvqir-simulation-backend: nvidia-mgpu-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
   - name: multi-gpu-fp64
     option-flags: [fp64, mgpu]
     config:
+      gen-target-backend: true
       nvqir-simulation-backend: nvidia-mgpu
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
   - name: multi-qpu-fp32
     option-flags: [fp32, mqpu]
     config:
+      gen-target-backend: true
       nvqir-simulation-backend: custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
       platform-library: mqpu
   - name: multi-qpu-fp64
     option-flags: [fp64, mqpu]
     config:
+      gen-target-backend: true
       platform-library: mqpu
       nvqir-simulation-backend: custatevec-fp64
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]

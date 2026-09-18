@@ -34,7 +34,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-operator cudaq-common cudaq-logger
   PRIVATE
-    cudaq nvqir CUDAQTargetConfigYaml cudaq-qpu-default
+    cudaq nvqir CUDAQTargetConfigYaml CUDAQTargetDatabase cudaq-qpu-default
     # On Linux, we link in the default execution manager and rely on nvq++
     # to shadow it with the active target's execution manager.
     $<$<PLATFORM_ID:Linux>:cudaq-em-default>

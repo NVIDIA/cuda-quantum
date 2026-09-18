@@ -69,13 +69,18 @@ function validate_plugin_root {
 		error_exit "plugin root must contain a targets directory: ${plugin_root}"
 	fi
 
-	for target_yaml in "${plugin_root}"/targets/*.yml; do
-		if [ -f "${target_yaml}" ]; then
+	# Target configs must be compiled target plugin libraries (.so, produced
+	# by `cudaq-target-db-gen --plugin`), and not raw YAML text. This lets
+	# the generator validate and compile-check a plugin's target
+	# configuration instead of trusting whatever text happens to be dropped
+	# into this directory.
+	for target_lib in "${plugin_root}"/targets/*.so; do
+		if [ -f "${target_lib}" ]; then
 			return
 		fi
 	done
 
-	error_exit "plugin root must contain at least one target YAML: ${plugin_root}/targets"
+	error_exit "plugin root must contain at least one compiled target library (built with 'cudaq-target-db-gen --plugin'): ${plugin_root}/targets"
 }
 
 function list_scope {

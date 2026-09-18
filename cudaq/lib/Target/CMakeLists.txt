@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,12 +9,16 @@
 # LLVM-free library: config data structures and helpers.
 add_library(CUDAQTargetConfig
   TargetConfig.cpp
+  TargetPluginLibrary.cpp
 )
+
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/cudaq/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(CUDAQTargetConfig PRIVATE cudaq-logger)
+
+target_link_libraries(CUDAQTargetConfig PRIVATE cudaq-logger ${CMAKE_DL_LIBS})
+
 install(TARGETS CUDAQTargetConfig
         EXPORT cudaq-common-targets
         DESTINATION lib

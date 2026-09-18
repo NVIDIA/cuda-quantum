@@ -10,6 +10,7 @@
 #include "common/Executor.h"
 #include "common/RuntimeTarget.h"
 #include "common/ServerHelper.h"
+#include "cudaq.h"
 #include "nvqpp_config.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Target/TargetConfig.h"
@@ -61,9 +62,20 @@ detail::getBackendConfigOption(const std::string &backend,
 std::filesystem::path
 detail::getTargetConfigPath(const std::string &backend,
                             const std::filesystem::path &fallback) {
-  if (auto path = getBackendConfigOption(backend, "__yml_path"))
+  if (auto path = getBackendConfigOption(backend, "__target_lib_path"))
     return *path;
   return fallback;
+}
+
+void detail::checkGpuRequirement(const std::string &targetName,
+                                 const config::TargetConfig &targetConfig) {
+  if (!targetConfig.GpuRequired)
+    return;
+  if (cudaq::num_available_gpus() > 0)
+    return;
+  throw std::runtime_error(
+      "Target '" + targetName +
+      "' requires an NVIDIA GPU, but none was detected on this host.");
 }
 
 namespace {

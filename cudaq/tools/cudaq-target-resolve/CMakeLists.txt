@@ -6,12 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: nvidia-mqpu-mps
-description: "The NVIDIA MQPU Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuTensorNet MPS. This target enables asynchronous parallel execution of quantum kernel tasks."
-gpu-requirements: true
+set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 
-config:
-  nvqir-simulation-backend: tensornet-mps
-  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
-  platform-library: mqpu
-
+set(EXE_NAME cudaq-target-resolve)
+add_llvm_executable(${EXE_NAME} cudaq-target-resolve.cpp)
+target_link_libraries(${EXE_NAME} PUBLIC
+  CUDAQTargetConfigYaml CUDAQBuiltinTargetDb)
+install(TARGETS ${EXE_NAME} DESTINATION bin COMPONENT Nvqpp)

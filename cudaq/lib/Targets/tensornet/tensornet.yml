@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: tensornet-mps
-description: "cutensornet simulator backend target based on matrix product state representation"
+name: tensornet
+description: "cutensornet simulator backend target based on full tensor network contraction"
 gpu-requirements: true
 
 target-arguments:
@@ -21,10 +21,12 @@ configuration-matrix:
     option-flags: [fp64]
     default: true
     config:
-      nvqir-simulation-backend: tensornet-mps
+      gen-target-backend: true
+      nvqir-simulation-backend: tensornet
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
   - name: single-gpu-fp32
     option-flags: [fp32]
     config:
-      nvqir-simulation-backend: tensornet-mps-fp32
+      gen-target-backend: true
+      nvqir-simulation-backend: tensornet-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
