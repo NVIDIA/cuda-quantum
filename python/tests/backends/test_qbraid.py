@@ -51,8 +51,6 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
     os.environ["QBRAID_API_KEY"] = TEST_API_KEY
 
-    _set_qbraid_target()
-
     p = Process(target=startServer, args=(port,))
     p.start()
 
@@ -60,6 +58,8 @@ def startUpMockServer():
         p.terminate()
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
+
+    _set_qbraid_target()
 
     yield "Server started."
 
