@@ -1063,7 +1063,7 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
 
-if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS AND NOT CUDAQ_DISABLE_TOOLS)
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
   cudaq_finalize_target_database()
 endif()
 
