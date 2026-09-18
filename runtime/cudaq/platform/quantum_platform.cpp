@@ -300,11 +300,15 @@ RuntimeEndpoint &quantum_platform::getRuntimeEndpoint(std::size_t qpuId) {
 
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
-  for (auto &endpoint : runtimeEndpoints) {
-    auto qpu = endpoint.getQPU();
+  for (std::size_t qpuId = 0; qpuId < runtimeEndpoints.size(); ++qpuId) {
+    auto qpu = runtimeEndpoints[qpuId].getQPU();
     if (!qpu)
       continue;
     qpu->onRandomSeedSet(seed);
+    // Some targets use the seed to randomize the compilation pipeline, so
+    // rebuild the compile target
+    // TODO: clean this up
+    compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
   }
 }
 

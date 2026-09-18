@@ -35,9 +35,16 @@ public:
   /// Number of times `launchKernel(sample_policy)` was called on this QPU.
   std::size_t sampleLaunchCount = 0;
 
+  /// The most recent seed this QPU was notified about. Folded into the compile
+  /// target, the way randomized compilation passes consume it.
+  std::size_t seed = 0;
+
+  void onRandomSeedSet(std::size_t newSeed) override { seed = newSeed; }
+
   CompileTarget getCompileTarget(const RuntimeTarget *) override {
     CompileTarget ct;
     ct.pipelineConfig.highLevelPipeline = "custom_pipeline";
+    ct.pipelineConfig.lowLevelPipeline = "seed=" + std::to_string(seed);
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
     ct.supportExplicitMeasurements = true;
@@ -238,6 +245,29 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
   auto ct = platform.getCompileTarget();
   EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
+}
+
+TEST(QuantumPlatformCompileTargetTester, newRandomSeedRefreshesQpuTarget) {
+  TestPlatform platform(/*numQpus=*/2);
+  EXPECT_EQ(platform.getCompileTarget().pipelineConfig.lowLevelPipeline,
+            "seed=0");
+
+  platform.onRandomSeedSet(42);
+
+  for (std::size_t qpuId = 0; qpuId < platform.num_qpus(); ++qpuId)
+    EXPECT_EQ(platform.getCompileTarget(qpuId).pipelineConfig.lowLevelPipeline,
+              "seed=42");
+}
+
+TEST(QuantumPlatformCompileTargetTester, newRandomSeedKeepsEndpointTarget) {
+  TestPlatform platform;
+  platform.setEndpoint(makePlatformCompileTarget(), RuntimeEndpoint{.impl = 0});
+
+  platform.onRandomSeedSet(42);
+
+  auto ct = platform.getCompileTarget();
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
+  EXPECT_TRUE(ct.pipelineConfig.lowLevelPipeline.empty());
 }
 
 TEST(QuantumPlatformCompileTargetTester, rejectsInvalidQpuId) {
