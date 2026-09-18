@@ -80,6 +80,35 @@ cudaq::config::TargetRegistry::TargetRegistry() {
   }
 }
 
+bool cudaq::config::TargetRegistry::addEntry(
+    const std::string &name, TargetOrigin origin,
+    const std::filesystem::path &configPath,
+    const std::filesystem::path &pluginLibDir, TargetConfig config) {
+  if (lookup(name))
+    return false;
+  ownedConfigs.push_back(std::move(config));
+  entries.push_back({.name = name,
+                     .config = &ownedConfigs.back(),
+                     .origin = origin,
+                     .configPath = configPath,
+                     .pluginLibDir = pluginLibDir});
+  return true;
+}
+
+bool cudaq::config::TargetRegistry::addTargetConfigFile(
+    const std::filesystem::path &configPath) {
+  TargetConfig config;
+  try {
+    config = loadTargetConfig(configPath);
+  } catch (const std::exception &ex) {
+    std::cerr << "warning: skipping target YAML " << configPath.string() << ": "
+              << ex.what() << "\n";
+    return false;
+  }
+  return addEntry(configPath.stem().string(), TargetOrigin::YamlFile,
+                  configPath, /*pluginLibDir=*/{}, std::move(config));
+}
+
 std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
     const std::filesystem::path &root) {
   std::vector<std::string> added;
@@ -111,20 +140,15 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
   auto skipOrAdd = [&](const std::string &name, TargetOrigin origin,
                        const std::filesystem::path &configPath,
                        TargetConfig config) {
-    if (lookup(name)) {
+    const auto libDir = std::filesystem::is_directory(pluginLibDir)
+                            ? pluginLibDir
+                            : std::filesystem::path{};
+    if (!addEntry(name, origin, configPath, libDir, std::move(config))) {
       std::cerr << "warning: skipping target '" << name << "' from "
                 << configPath.string()
                 << "; a target with that name is already registered\n";
       return;
     }
-    ownedConfigs.push_back(std::move(config));
-    TargetEntry entry{.name = name,
-                      .config = &ownedConfigs.back(),
-                      .origin = origin,
-                      .configPath = configPath};
-    if (std::filesystem::is_directory(pluginLibDir))
-      entry.pluginLibDir = pluginLibDir;
-    entries.push_back(std::move(entry));
     added.push_back(name);
   };
 

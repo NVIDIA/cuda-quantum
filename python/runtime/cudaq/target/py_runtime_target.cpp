@@ -186,6 +186,17 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "available as a target. Raises `RuntimeError` (with the offending path "
       "in the message) on validation failure.");
   mod.def(
+      "_register_target_config",
+      [&](const std::string &configPath) {
+        return holder.registerTargetConfig(std::filesystem::path(configPath));
+      },
+      "Register the standalone target configuration YAML at @p configPath, "
+      "named after the file stem. Throws a `RuntimeError` if the file does not "
+      "exist. Returns false if a target of that name is already registered.\n\n"
+      "This loads a standalone target configuration YAML file with no "
+      "surrounding plugin layout. It is recommended to use "
+      "`registerBackendPath` instead.");
+  mod.def(
       "set_target",
       [&](const cudaq::RuntimeTarget &target, nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);

@@ -149,6 +149,53 @@ config:
   std::filesystem::remove_all(root);
 }
 
+TEST(TargetRegistryTester, addsStandaloneTargetConfigFile) {
+  auto root = makeTempRoot();
+  // Note: directly under `root`, with no `targets/` or `lib/` layout.
+  const auto configPath = root / "standalone.yml";
+  writeFile(configPath, R"(
+version: 1
+name: standalone
+description: standalone target YAML
+config:
+  library-mode: true
+  preprocessor-defines: ["-DSTANDALONE"]
+)");
+
+  cudaq::config::TargetRegistry registry;
+  ASSERT_TRUE(registry.addTargetConfigFile(configPath));
+  const auto *entry = registry.lookup("standalone");
+  ASSERT_NE(entry, nullptr);
+  EXPECT_EQ(entry->origin, cudaq::config::detail::TargetOrigin::YamlFile);
+  EXPECT_EQ(entry->configPath, configPath);
+  EXPECT_TRUE(entry->pluginLibDir.empty());
+  ASSERT_TRUE(entry->config->BackendConfig.has_value());
+  EXPECT_EQ(entry->config->BackendConfig->PreprocessorDefines.front(),
+            "-DSTANDALONE");
+
+  // Registering the same name twice reports failure rather than shadowing.
+  EXPECT_FALSE(registry.addTargetConfigFile(configPath));
+  std::filesystem::remove_all(root);
+}
+
+TEST(TargetRegistryTester, standaloneTargetConfigCannotShadowBuiltin) {
+  auto root = makeTempRoot();
+  const auto configPath = root / "qpp-cpu.yml";
+  writeFile(configPath, R"(
+version: 1
+name: qpp-cpu
+description: should not shadow
+config:
+  library-mode: true
+)");
+
+  cudaq::config::TargetRegistry registry;
+  EXPECT_FALSE(registry.addTargetConfigFile(configPath));
+  EXPECT_EQ(registry.lookup("qpp-cpu")->origin,
+            cudaq::config::detail::TargetOrigin::Builtin);
+  std::filesystem::remove_all(root);
+}
+
 TEST(TargetRegistryTester, refusesToShadowBuiltin) {
   auto root = makeTempRoot();
   writeFile(root / "targets" / "qpp-cpu.yml", R"(

@@ -86,6 +86,14 @@ public:
   /// added.
   std::vector<std::string> addPluginRoot(const std::filesystem::path &root);
 
+  /// Register the single target configuration YAML at `configPath` under its
+  /// filename stem. Unlike `addPluginRoot` this expects no plugin directory
+  /// layout: the file stands alone, so there is no sibling `lib/` to search
+  /// and the target may only name libraries already on the CUDA-Q library
+  /// path. Returns false if the name is already registered or the YAML could
+  /// not be parsed.
+  bool addTargetConfigFile(const std::filesystem::path &configPath);
+
   const TargetEntry *lookup(std::string_view name) const;
   std::vector<const TargetEntry *> list() const;
 
@@ -97,6 +105,11 @@ public:
 private:
   std::vector<TargetEntry> entries;
   std::deque<TargetConfig> ownedConfigs;
+  /// Take ownership of `config` and register it under `name`. Returns false
+  /// without registering anything if `name` is already taken.
+  bool addEntry(const std::string &name, detail::TargetOrigin origin,
+                const std::filesystem::path &configPath,
+                const std::filesystem::path &pluginLibDir, TargetConfig config);
   ResolvedTarget
   resolveEntry(const TargetEntry &entry, const HostEnvironment &env,
                const std::map<std::string, std::string> &args = {}) const;

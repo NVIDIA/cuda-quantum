@@ -376,6 +376,20 @@ void LinkedLibraryHolder::registerBackendPath(
   reloadTargets();
 }
 
+bool LinkedLibraryHolder::registerTargetConfig(
+    const std::filesystem::path &configPath) {
+  if (!std::filesystem::is_regular_file(configPath))
+    throw std::runtime_error(
+        "_register_target_config: no such target configuration file: " +
+        configPath.string());
+  CUDAQ_INFO("_register_target_config: loading target from '{}'.",
+             configPath.string());
+  if (!targetRegistry.addTargetConfigFile(configPath))
+    return false;
+  reloadTargets();
+  return true;
+}
+
 void LinkedLibraryHolder::resetTarget() {
   defaultTarget = resolveDefaultTarget();
   currentTarget = defaultTarget;

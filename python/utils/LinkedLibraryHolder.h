@@ -125,6 +125,15 @@ public:
   /// a plugin's Python wrapper.
   void registerBackendPath(const std::filesystem::path &pkgRoot);
 
+  /// @brief Register the standalone target configuration YAML at
+  /// @p configPath, named after the file stem. Throws `std::runtime_error`
+  /// (with @p configPath in the message) if the file does not exist. Returns
+  /// false if a target of that name is already registered.
+  ///
+  /// This loads a standalone target configuration YAML file with no surrounding
+  /// plugin layout. It is recommended to use `registerBackendPath` instead.
+  bool registerTargetConfig(const std::filesystem::path &configPath);
+
 private:
   config::HostEnvironment hostEnv() const;
   void addPluginScope(const std::filesystem::path &scope);
