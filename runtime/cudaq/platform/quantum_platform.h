@@ -126,8 +126,10 @@ public:
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return compileTargets.size(); }
 
+  /// \cond
   /// Get the RuntimeEndpoint for the QPU with ID @p qpuId.
   RuntimeEndpoint &getRuntimeEndpoint(std::size_t qpuId = 0);
+  /// \endcond
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
