@@ -43,6 +43,18 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 NEW)
 endif()
 
+# CMP0177: install() DESTINATION paths are normalized.
+# New in CMake 3.31. https://cmake.org/cmake/help/latest/policy/CMP0177.html
+if(POLICY CMP0177)
+  cmake_policy(SET CMP0177 NEW)
+endif()
+
+# CMP0219: Macro invocations preserve backslashes in arguments.
+# New in CMake 4.4. https://cmake.org/cmake/help/latest/policy/CMP0219.html
+if(POLICY CMP0219)
+  cmake_policy(SET CMP0219 NEW)
+endif()
+
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
@@ -815,15 +827,7 @@ endif()
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
-cmake_policy(PUSH)
-# CMP0146: The FindCUDA module is removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0146.html
-if(POLICY CMP0146)
-  cmake_policy(SET CMP0146 OLD)
-endif()
 add_subdirectory(tpls/fmt)
-cmake_policy(POP)
 include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
@@ -875,12 +879,12 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 
   if (CURL_FOUND)
     message(STATUS "Using system curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+    set(CPR_USE_SYSTEM_CURL TRUE)
   elseif (CMAKE_USE_SYSTEM_CURL)
     message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+    set(CPR_USE_SYSTEM_CURL FALSE)
   endif()
 
   # Now, build CPR as needed

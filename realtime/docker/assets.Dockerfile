@@ -59,7 +59,7 @@ RUN dnf -y install nvcomp pkgconfig
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 
 # [CMake]
-ARG CMAKE_VERSION=4.0.7
+ARG CMAKE_VERSION=4.4.3
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).sh -O cmake-install.sh && \
     bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
 
