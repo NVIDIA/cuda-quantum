@@ -10,9 +10,6 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Target/TargetConfigYaml.h"
-#include "cudaq/Target/TargetDatabase.h"
-#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -64,38 +61,21 @@ private:
       config = runtimeTarget->config;
       runtimeTarget->runtimeConfig = configMap;
     } else {
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-      std::string fileName = mutableBackend + std::string(".yml");
-      const auto explicitConfigPath =
-          cudaq::detail::getBackendConfigOption(backend, "__target_lib_path");
-      const cudaq::config::TargetConfig *builtin =
-          explicitConfigPath
-              ? nullptr
-              : cudaq::config::lookupBuiltinTarget(mutableBackend);
-      std::filesystem::path configFilePath = platformPath / fileName;
-      if (builtin) {
-        config = *builtin;
-      } else if (explicitConfigPath) {
-        configFilePath = *explicitConfigPath;
-        auto pluginResult =
-            cudaq::config::loadTargetPluginLibrary(configFilePath);
-        if (!pluginResult.ok)
-          throw std::runtime_error(pluginResult.error);
-        config = pluginResult.config;
-      } else {
-        getQPU().setTargetBackend(backend);
-        return;
-      }
-      CUDAQ_INFO("Config file path = {}", configFilePath.string());
-      cudaq::detail::checkGpuRequirement(mutableBackend, config);
-      cudaq::detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
-                                               config);
+      auto resolved = cudaq::detail::resolveTargetConfig(backend);
+      config = resolved.config;
+      CUDAQ_INFO("Config file path = {}", resolved.configPath.string());
       runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
       runtimeTarget->config = config;
       runtimeTarget->name = mutableBackend;
       runtimeTarget->description = config.Description;
       runtimeTarget->runtimeConfig = configMap;
+      runtimeTarget->configPath = resolved.configPath;
+      runtimeTarget->pluginLibDir = resolved.pluginLibDir.string();
+      runtimeTarget->simulatorName = resolved.simulatorName;
+      runtimeTarget->platformName = resolved.platformName;
+      runtimeTarget->precision = resolved.fp64Simulation
+                                     ? simulation_precision::fp64
+                                     : simulation_precision::fp32;
     }
 
     if (config.BackendConfig.has_value() &&

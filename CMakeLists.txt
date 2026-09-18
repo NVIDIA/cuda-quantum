@@ -1063,20 +1063,8 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
 
-if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS AND "cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS
-   AND NOT CUDAQ_DISABLE_TOOLS)
-  # Every add_target_config() call site is processed at this point. Bake the
-  # resulting set of targets into a linkable table. This lets a downstream build
-  # that assembles its own CUDA-Q distribution bake its own targets in
-  # alongside the in-tree ones, rather than only being able to add them as
-  # separately-loaded runtime plugins.
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
   cudaq_finalize_target_database()
-endif()
-
-if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS AND NOT CUDAQ_DISABLE_TOOLS)
-  # cudaq/'s own precompiled target database is finalized here, so it also picks
-  # up any CUDAQ_EXTERNAL_PROJECTS registration add-ons.
-  cudaq_finalize_builtin_target_database()
 endif()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)

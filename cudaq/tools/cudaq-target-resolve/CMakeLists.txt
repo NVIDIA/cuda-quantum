@@ -11,5 +11,5 @@ set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 set(EXE_NAME cudaq-target-resolve)
 add_llvm_executable(${EXE_NAME} cudaq-target-resolve.cpp)
 target_link_libraries(${EXE_NAME} PUBLIC
-  CUDAQTargetConfigYaml CUDAQBuiltinTargetDb)
+  CUDAQTargetConfigYaml CUDAQTargetDatabase)
 install(TARGETS ${EXE_NAME} DESTINATION bin COMPONENT Nvqpp)

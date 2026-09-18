@@ -18,8 +18,6 @@
 #include "common/ServerHelper.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetDatabase.h"
-#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
@@ -207,23 +205,10 @@ public:
 
     /// Once we know the backend, we should search for the configuration file
     /// from there we can get the URL/PORT and the required MLIR pass pipeline.
-    std::string fileName = mutableBackend + std::string(".yml");
-    auto configFilePath =
-        detail::getTargetConfigPath(backend, platformPath / fileName);
-    backendConfig.erase("__target_lib_path");
-    CUDAQ_INFO("Config file path = {}", configFilePath.string());
-    if (auto *builtin = cudaq::config::lookupBuiltinTarget(mutableBackend)) {
-      targetConfig = *builtin;
-    } else {
-      auto pluginResult =
-          cudaq::config::loadTargetPluginLibrary(configFilePath);
-      if (!pluginResult.ok)
-        throw std::runtime_error(pluginResult.error);
-      targetConfig = pluginResult.config;
-    }
-    detail::checkGpuRequirement(mutableBackend, targetConfig);
-    detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
-                                      targetConfig);
+    backendConfig.erase("__target_config_path");
+    auto resolved = detail::resolveTargetConfig(backend);
+    targetConfig = resolved.config;
+    CUDAQ_INFO("Config file path = {}", resolved.configPath.string());
 
     // Set the qpu name
     qpuName = mutableBackend;

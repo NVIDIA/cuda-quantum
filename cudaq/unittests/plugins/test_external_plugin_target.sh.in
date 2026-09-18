@@ -12,17 +12,19 @@
 # in the plugin's target config, and respects scope precedence (user
 # overrides system).
 #
-# External plugin targets are compiled target plugin libraries (.so,
-# produced by `cudaq-target-db-gen --plugin`). This test stages each fixture's
-# source YAML at its final `targets/<name>.yml` location just long enough to
-# generate and compile the `.so`.
+# External plugin targets are compiled target plugin libraries (produced by
+# `cudaq-target-db-gen --plugin`). This test stages each fixture's source YAML
+# at its final `targets/<name>.yml` location just long enough to generate and
+# compile the library.
 
 set -euo pipefail
 
 NVQ="@CMAKE_BINARY_DIR@/bin/nvq++"
 CUDAQ_TARGET_DB_GEN="@CMAKE_BINARY_DIR@/bin/cudaq-target-db-gen"
 CXX="@CMAKE_CXX_COMPILER@"
+CXXFLAGS="@CUDAQ_TARGET_PLUGIN_CXX_FLAGS@"
 CUDAQ_INCLUDE="@CMAKE_SOURCE_DIR@/cudaq/include"
+SHLIB_EXT="@CMAKE_SHARED_LIBRARY_SUFFIX@"
 TARGET_DIR="@CMAKE_BINARY_DIR@/targets"
 SYSTEM_PLUGINS="${TARGET_DIR}/../plugins"
 
@@ -33,16 +35,17 @@ USER_HOME="${TMPDIR}/user"
 
 # build_target_plugin_lib <name> <targets-dir> <yaml-heredoc-file>
 # Stages <yaml-heredoc-file> at <targets-dir>/<name>.yml, compiles it into
-# <targets-dir>/<name>.so via cudaq-target-db-gen --plugin, then removes the
-# staged YAML.
+# <targets-dir>/<name>${SHLIB_EXT} via cudaq-target-db-gen --plugin, then
+# removes the staged YAML.
 function build_target_plugin_lib {
 	local name="$1" targets_dir="$2" yaml_file="$3"
 	local staged_yml="${targets_dir}/${name}.yml"
 	local gen_cpp="${TMPDIR}/${name}.gen.cpp"
 	cp "${yaml_file}" "${staged_yml}"
 	"${CUDAQ_TARGET_DB_GEN}" --plugin -o "${gen_cpp}" "${name}=${staged_yml}"
-	"${CXX}" -std=c++20 -shared -fPIC -I"${CUDAQ_INCLUDE}" "${gen_cpp}" \
-		-o "${targets_dir}/${name}.so"
+	# shellcheck disable=SC2086 # CXXFLAGS is a flag list, not one argument
+	"${CXX}" ${CXXFLAGS} -I"${CUDAQ_INCLUDE}" "${gen_cpp}" \
+		-o "${targets_dir}/${name}${SHLIB_EXT}"
 	rm -f "${staged_yml}"
 }
 
@@ -124,9 +127,9 @@ user_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-user-on
 echo "$user_output" | grep -- '-DB5_USER_ONLY=' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/data/topology.txt'
 echo "$user_output" | grep -- '-Wl,-rpath,' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
 echo "$user_output" | grep -- '-L' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
-user_lib_path="${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets/nvqpp-b5-user-only.so"
+user_lib_path="${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets/nvqpp-b5-user-only${SHLIB_EXT}"
 encoded_user_lib_path=$(echo -n "$user_lib_path" | base64 --wrap=0)
-LC_ALL=C grep -aFq ";__target_lib_path;base64_${encoded_user_lib_path}" "${TMPDIR}/user.exe"
+LC_ALL=C grep -aFq ";__target_config_path;base64_${encoded_user_lib_path}" "${TMPDIR}/user.exe"
 
 # --- Test: System plugin passes correct flags and lib paths ---
 system_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-system-only \
@@ -143,5 +146,23 @@ if echo "$precedence_output" | grep -q -- '-DB5_FROM_SYSTEM'; then
   echo "FAIL: system scope should not override user scope" >&2
   exit 1
 fi
+
+# --- YAML-only plugin root (no compiled plugin library) ---
+mkdir -p "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/targets" \
+         "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/lib"
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/targets/nvqpp-yaml-only.yml" <<'EOF'
+version: 1
+name: nvqpp-yaml-only
+description: "YAML-only plugin target."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
+config:
+  library-mode: true
+  preprocessor-defines: ["-DB5_YAML_ONLY"]
+EOF
+yaml_list=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" --list-targets)
+echo "$yaml_list" | grep -q 'nvqpp-yaml-only'
+yaml_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-yaml-only \
+              "$TRIVIAL_SRC" -o "${TMPDIR}/yaml.exe" 2>&1)
+echo "$yaml_output" | grep -q -- '-DB5_YAML_ONLY'
 
 echo "PASS: external_plugin_target"

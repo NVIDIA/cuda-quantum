@@ -29,24 +29,14 @@ TEST(RuntimeTargetTester, pluginLibDirIsIndependentOfName) {
   EXPECT_EQ(target.pluginLibDir, "/opt/my-backend/lib");
 }
 
-// -- B2: pluginTargetLibPath() accessor --------------------------------------
-
-TEST(RuntimeTargetTester, pluginTargetLibPath_emptyWhenLibDirEmpty) {
+TEST(RuntimeTargetTester, configPath_emptyByDefault) {
   cudaq::RuntimeTarget target;
-  target.name = "my-backend";
-  EXPECT_TRUE(target.pluginTargetLibPath().empty());
+  EXPECT_TRUE(target.configPath.empty());
 }
 
-TEST(RuntimeTargetTester, pluginTargetLibPath_emptyWhenNameEmpty) {
+TEST(RuntimeTargetTester, configPathCanBeSet) {
   cudaq::RuntimeTarget target;
-  target.pluginLibDir = "/opt/my-backend/lib";
-  EXPECT_TRUE(target.pluginTargetLibPath().empty());
-}
-
-TEST(RuntimeTargetTester, pluginTargetLibPath_buildsFromLibDirAndName) {
-  cudaq::RuntimeTarget target;
-  target.name = "my-backend";
-  target.pluginLibDir = "/opt/my-backend/lib";
-  EXPECT_EQ(target.pluginTargetLibPath(),
+  target.configPath = "/opt/my-backend/targets/my-backend.so";
+  EXPECT_EQ(target.configPath,
             std::filesystem::path("/opt/my-backend/targets/my-backend.so"));
 }

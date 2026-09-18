@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_target_config TargetConfigTester.cpp)
+add_executable(test_target_config TargetConfigTester.cpp TargetRegistryTester.cpp)
 target_compile_definitions(test_target_config
   PRIVATE "CUDAQ_TEST_VERSION=\"${CUDA_QUANTUM_VERSION}\"")
 
@@ -21,6 +21,10 @@ set_target_properties(cudaq-dlopen-sentinel-plugin
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_target_config PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
+target_include_directories(test_target_config PRIVATE
+  ${CMAKE_SOURCE_DIR}/cudaq/lib/Target
+  ${CMAKE_SOURCE_DIR}/cudaq/lib/Target/Yaml
+)
 target_link_libraries(test_target_config
   PRIVATE
     CUDAQTargetConfigYaml
@@ -33,6 +37,7 @@ target_compile_definitions(test_target_config
   PRIVATE
     "CUDAQ_TARGET_DB_GEN_PATH=\"$<TARGET_FILE:cudaq-target-db-gen>\""
     "CUDAQ_TEST_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\""
+    "CUDAQ_TEST_CXX_FLAGS=\"${CUDAQ_TARGET_PLUGIN_CXX_FLAGS}\""
     "CUDAQ_TEST_INCLUDE_DIR=\"${CMAKE_SOURCE_DIR}/cudaq/include\"")
 add_dependencies(test_target_config cudaq-target-db-gen)
 
