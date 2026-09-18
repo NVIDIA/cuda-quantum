@@ -250,11 +250,6 @@ static std::optional<std::pair<Value, std::size_t>> resolveVeqBase(Value veq) {
   }
 }
 
-/// The number of qubits \p veq spans, if statically known.
-static std::optional<std::size_t> veqExtent(Value veq) {
-  return cudaq::quake::getVeqSize(veq);
-}
-
 namespace {
 /// A qubit's abstract location: a storage root plus an element index within
 /// it. Two distinct SSA `!quake.ref` values that resolve to the same location
@@ -385,7 +380,7 @@ public:
   /// True if every element of veq-typed \p root is promotable, so the root
   /// itself can be replaced by per-element wires.
   bool rootFullyPromotable(Value root) const {
-    auto extent = veqExtent(root);
+    auto extent = cudaq::quake::getVeqSize(root);
     if (!extent)
       return false;
     auto it = opaque.find(root);
@@ -451,7 +446,7 @@ private:
       // through memory. It spans this view's extent.
       LLVM_DEBUG({
         llvm::dbgs() << "memtoreg: memory-form access forces ";
-        if (auto n = veqExtent(veq))
+        if (auto n = cudaq::quake::getVeqSize(veq))
           llvm::dbgs() << "[" << offset << ", " << (offset + *n) << ")";
         else
           llvm::dbgs() << "all";
@@ -459,7 +454,7 @@ private:
         root.printAsOperand(llvm::dbgs(), OpPrintingFlags());
         llvm::dbgs() << " into memory form, due to: " << *user << '\n';
       });
-      markOpaque(root, offset, veqExtent(veq));
+      markOpaque(root, offset, cudaq::quake::getVeqSize(veq));
     }
   }
 
