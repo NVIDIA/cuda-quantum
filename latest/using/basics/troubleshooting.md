@@ -2038,13 +2038,26 @@ C++
 ::: {#python-stack-traces .section}
 ## Python Stack-Traces[¶](#python-stack-traces "Permalink to this heading"){.headerlink}
 
-When CUDA-Q parses Python command-line options via
-[[`cudaq.parse_args()`{.xref .py .py-func .docutils .literal
+CUDA-Q does not parse command-line options when it is imported. To use
+CUDA-Q runtime options, call [[`cudaq.parse_args()`{.xref .py .py-func
+.docutils .literal
 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args "cudaq.parse_args"){.reference
-.internal}, Python stack-traces are suppressed by default to keep
-runtime errors concise. To show the full stack-trace for debugging, pass
-[`--cudaq-full-stack-trace`{.code .docutils .literal
-.notranslate}]{.pre} when invoking your script.
+.internal} explicitly before running the rest of the program.
+
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+
+    cudaq.parse_args()
+:::
+:::
+
+When [[`cudaq.parse_args()`{.xref .py .py-func .docutils .literal
+.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args "cudaq.parse_args"){.reference
+.internal} processes Python command-line options, Python stack-traces
+are suppressed by default to keep runtime errors concise. To show the
+full stack-trace for debugging, pass [`--cudaq-full-stack-trace`{.code
+.docutils .literal .notranslate}]{.pre} when invoking your script.
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
@@ -2062,12 +2075,6 @@ as [`--target`{.code .docutils .literal .notranslate}]{.pre},
     python3 program.py --target nvidia --target-option fp64 --cudaq-full-stack-trace
 :::
 :::
-
-If your application parses CUDA-Q command-line arguments explicitly,
-call [[`cudaq.parse_args()`{.xref .py .py-func .docutils .literal
-.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args "cudaq.parse_args"){.reference
-.internal} before running the rest of the program so the flag is
-recognized.
 :::
 :::
 :::

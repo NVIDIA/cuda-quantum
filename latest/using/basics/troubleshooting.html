@@ -1159,9 +1159,17 @@ variable. For any CUDA-Q executable, just prepend as follows:</p>
 </section>
 <section id="python-stack-traces">
 <h2>Python Stack-Traces<a class="headerlink" href="#python-stack-traces" title="Permalink to this heading">¶</a></h2>
-<p>When CUDA-Q parses Python command-line options via <a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a>,
-Python stack-traces are suppressed by default to keep runtime errors concise.
-To show the full stack-trace for debugging, pass
+<p>CUDA-Q does not parse command-line options when it is imported. To use CUDA-Q
+runtime options, call <a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a> explicitly before running the
+rest of the program.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>When <a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a> processes Python command-line options, Python
+stack-traces are suppressed by default to keep runtime errors concise. To show
+the full stack-trace for debugging, pass
 <code class="code docutils literal notranslate"><span class="pre">--cudaq-full-stack-trace</span></code> when invoking your script.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--cudaq-full-stack-trace
 </pre></div>
@@ -1171,9 +1179,6 @@ To show the full stack-trace for debugging, pass
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp64<span class="w"> </span>--cudaq-full-stack-trace
 </pre></div>
 </div>
-<p>If your application parses CUDA-Q command-line arguments explicitly, call
-<a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a> before running the rest of the program so the flag is
-recognized.</p>
 </section>
 </section>
 
