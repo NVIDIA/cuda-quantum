@@ -11,6 +11,7 @@
 /// @file qpu_utils.h
 /// @brief Utility functions for the CUDA-Q platforms to aimed at reducing
 /// header file dependencies.
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/utils/owning_ptr.h"
 #include <filesystem>
 #include <map>
@@ -23,16 +24,7 @@ namespace cudaq {
 class Executor;
 class QuantumExecutionQueue;
 class ServerHelper;
-namespace config {
-class TargetConfig;
-} // namespace config
-
 namespace detail {
-/// @brief Parses @p yamlContent as a target backend YAML configuration and
-/// deserializes the result into @p targetConfig.
-void parseTargetConfigYml(const std::string &yamlContent,
-                          config::TargetConfig &targetConfig);
-
 /// @brief Decodes the base64-encoded string @p encoded and returns the
 /// decoded result.  Throws std::runtime_error on malformed input.
 std::string decodeBase64(const std::string &encoded);
@@ -43,11 +35,31 @@ std::optional<std::string> getBackendConfigOption(const std::string &backend,
                                                   std::string_view key);
 
 /// Return the explicitly configured target config path (a compiled plugin
-/// target library for external targets), or @p fallback when the backend
-/// configuration does not provide `__target_lib_path`.
+/// library or YAML file for external targets), or @p fallback when the backend
+/// configuration does not provide `__target_config_path`.
 std::filesystem::path
 getTargetConfigPath(const std::string &backend,
                     const std::filesystem::path &fallback);
+
+/// Host facts for the current process (GPU count, CUDA-Q version, library
+/// search path).
+config::HostEnvironment currentHostEnvironment();
+
+/// Target configuration resolved through `TargetCatalog` for a backend
+/// string of the form `name[;key;value...]`.
+struct ResolvedTargetConfig {
+  std::string name;
+  config::TargetConfig config;
+  std::filesystem::path configPath;
+  std::filesystem::path pluginLibDir;
+  std::string simulatorName;
+  std::string platformName;
+  bool fp64Simulation;
+};
+
+/// Discover, load, and availability-check the target named by @p backend.
+/// Throws `std::runtime_error` if the name is unknown or not available.
+ResolvedTargetConfig resolveTargetConfig(const std::string &backend);
 
 /// @brief Load runtime libraries owned by a target plugin. This loads every
 /// YAML-declared plugin library and, when present, the conventional
@@ -55,14 +67,6 @@ getTargetConfigPath(const std::string &backend,
 void loadTargetPluginLibraries(const std::string &targetName,
                                const std::filesystem::path &configPath,
                                const config::TargetConfig &targetConfig);
-
-/// If \p targetConfig declares a GPU requirement, verify at least one GPU is
-/// actually present on this host and throw \c std::runtime_error if not. This
-/// check deliberately runs here rather than at compile time: the build host and
-/// the execution host are not necessarily the same machine, and only the
-/// execution host's GPU presence is ever actually relevant.
-void checkGpuRequirement(const std::string &targetName,
-                         const config::TargetConfig &targetConfig);
 
 /// Returns true if @p kernelName has the analog Hamiltonian kernel prefix.
 bool isAnalogHamiltonianKernel(const std::string &kernelName);

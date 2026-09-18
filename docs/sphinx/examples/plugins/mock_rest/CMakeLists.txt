@@ -18,13 +18,14 @@ set(plugin_python_install_name mock-rest)
 
 file(MAKE_DIRECTORY ${plugin_lib_dir} ${plugin_target_dir})
 
-# Target configs are compiled target plugin libraries (.so), not raw YAML
-# text - see docs/sphinx/using/extending/packaging.rst. The source-of-truth
-# YAML still exists (mock_rest.yml.in) but is only ever consumed at plugin
-# *build* time, by cudaq-target-db-gen --plugin, which parses/validates it
-# and generates a small translation unit exporting the compiled
-# cudaq::config::TargetConfig. That's compiled into mock_rest.so below; the
-# raw YAML itself is never installed or read at run/compile time.
+# Target configs are compiled target plugin libraries, not raw YAML text -
+# see docs/sphinx/using/extending/packaging.rst. The source-of-truth YAML
+# still exists (mock_rest.yml.in) but is only ever consumed at plugin *build*
+# time, by cudaq-target-db-gen --plugin, which parses/validates it and
+# generates a small translation unit exporting the compiled
+# cudaq::config::TargetConfig. That's compiled into the plugin library below
+# (mock_rest.so on Linux, mock_rest.dylib on macOS); the raw YAML itself is
+# never installed or read at run/compile time.
 set(plugin_target_yml ${CMAKE_CURRENT_BINARY_DIR}/mock_rest.yml)
 configure_file(targets/mock_rest.yml.in
                ${plugin_target_yml}
@@ -42,6 +43,7 @@ set_target_properties(cudaq-example-target-mock_rest
   PROPERTIES
     OUTPUT_NAME mock_rest
     PREFIX ""
+    SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
     LIBRARY_OUTPUT_DIRECTORY ${plugin_target_dir})
 target_link_libraries(cudaq-example-target-mock_rest PRIVATE CUDAQTargetConfig)
 

@@ -7,17 +7,20 @@
  ******************************************************************************/
 
 #include "cudaq/Target/TargetPluginLibrary.h"
+#include "TargetConfigHelper.h"
 #include <dlfcn.h>
 
 cudaq::config::TargetPluginLoadResult cudaq::config::loadTargetPluginLibrary(
-    const std::filesystem::path &libraryPath) {
+    const std::filesystem::path *libraryPath) {
   TargetPluginLoadResult result;
 
-  void *handle = dlopen(libraryPath.string().c_str(), RTLD_LOCAL | RTLD_NOW);
+  const std::string name =
+      libraryPath ? libraryPath->string() : "<linked-in statically>";
+  void *handle =
+      dlopen(libraryPath ? name.c_str() : nullptr, RTLD_LOCAL | RTLD_NOW);
   if (!handle) {
     const char *dlError = dlerror();
-    result.error = "Unable to load target plugin library '" +
-                   libraryPath.string() +
+    result.error = "Unable to load target plugin library '" + name +
                    "': " + (dlError ? dlError : "unknown error");
     return result;
   }
@@ -26,7 +29,7 @@ cudaq::config::TargetPluginLoadResult cudaq::config::loadTargetPluginLibrary(
   void *symbol = dlsym(handle, kTargetPluginSymbolName);
   if (!symbol) {
     const char *dlError = dlerror();
-    result.error = "Target plugin library '" + libraryPath.string() +
+    result.error = "Target plugin library '" + name +
                    "' does not export the expected symbol '" +
                    kTargetPluginSymbolName +
                    "' - it was likely built against an incompatible CUDA-Q "
@@ -39,7 +42,7 @@ cudaq::config::TargetPluginLoadResult cudaq::config::loadTargetPluginLibrary(
   auto entryPoint = reinterpret_cast<TargetPluginEntryPoint>(symbol);
   const TargetConfig *config = entryPoint();
   if (!config) {
-    result.error = "Target plugin library '" + libraryPath.string() +
+    result.error = "Target plugin library '" + name +
                    "' returned a null target configuration.";
     dlclose(handle);
     return result;

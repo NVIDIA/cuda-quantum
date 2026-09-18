@@ -16,7 +16,9 @@ NVQ="@CMAKE_BINARY_DIR@/bin/nvq++"
 CUDAQ_INSTALL_PLUGIN="@CMAKE_BINARY_DIR@/bin/cudaq-install-plugin"
 CUDAQ_TARGET_DB_GEN="@CMAKE_BINARY_DIR@/bin/cudaq-target-db-gen"
 CXX="@CMAKE_CXX_COMPILER@"
+CXXFLAGS="@CUDAQ_TARGET_PLUGIN_CXX_FLAGS@"
 CUDAQ_INCLUDE="@CMAKE_SOURCE_DIR@/cudaq/include"
+SHLIB_EXT="@CMAKE_SHARED_LIBRARY_SUFFIX@"
 TARGET_DIR="@CMAKE_BINARY_DIR@/targets"
 SYSTEM_PLUGINS="${TARGET_DIR}/../plugins"
 
@@ -27,21 +29,23 @@ INSTALL_DIR="${TMPDIR}/install"
 XDG_DIR="${TMPDIR}/xdg"
 
 # build_target_plugin_lib <name> <targets-dir>
-# External plugin targets are compiled target plugin libraries (.so,
-# produced by `cudaq-target-db-gen --plugin`), not raw YAML text - see
+# External plugin targets are compiled target plugin libraries (produced by
+# `cudaq-target-db-gen --plugin`), not raw YAML text - see
 # docs/sphinx/using/extending/packaging.rst.
 function build_target_plugin_lib {
 	local name="$1" targets_dir="$2"
 	local staged_yml="${targets_dir}/${name}.yml"
 	local gen_cpp="${TMPDIR}/${name}.gen.cpp"
 	cat > "${staged_yml}" <<EOF
+version: 1
 name: ${name}
+description: "Install-plugin test target."
 config:
   library-mode: true
 EOF
 	"${CUDAQ_TARGET_DB_GEN}" --plugin -o "${gen_cpp}" "${name}=${staged_yml}"
-	"${CXX}" -std=c++20 -shared -fPIC -I"${CUDAQ_INCLUDE}" "${gen_cpp}" \
-		-o "${targets_dir}/${name}.so"
+	"${CXX}" ${CXXFLAGS} -I"${CUDAQ_INCLUDE}" "${gen_cpp}" \
+		-o "${targets_dir}/${name}${SHLIB_EXT}"
 	rm -f "${staged_yml}"
 }
 
@@ -70,7 +74,7 @@ echo "$nvqpp_list" | grep -q 'b6-user-target'
 env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --copy "${INSTALL_DIR}/b6-copy-plugin"
 test -d "${XDG_DIR}/cudaq/plugins/b6-copy-plugin"
 ! test -L "${XDG_DIR}/cudaq/plugins/b6-copy-plugin"
-test -f "${XDG_DIR}/cudaq/plugins/b6-copy-plugin/targets/b6-copy-target.so"
+test -f "${XDG_DIR}/cudaq/plugins/b6-copy-plugin/targets/b6-copy-target${SHLIB_EXT}"
 
 # --- Test: --system installs to system scope ---
 env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --system "${INSTALL_DIR}/b6-system-plugin"

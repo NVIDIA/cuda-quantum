@@ -6,6 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Add the phase folding test targets.
-configure_file(phase-folding-bench-mins.yml ${CMAKE_BINARY_DIR}/targets/phase-folding-bench-mins.yml COPYONLY)
-configure_file(phase-folding-bench.yml ${CMAKE_BINARY_DIR}/targets/phase-folding-bench.yml COPYONLY)
+version: 1
+name: value-semantics-test
+description: "Compiler test target that leaves kernels in value semantics"
+
+config:
+  nvqir-simulation-backend: qpp
+  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(canonicalize,dqe)"

@@ -21,14 +21,15 @@ using namespace cudaq;
 
 TEST(QPUUtilsTester, getsRawBackendConfigOption) {
   const std::string backend =
-      "target;__target_lib_path;/tmp/plugin/targets/target.so;emulate;false";
-  EXPECT_EQ(cudaq::detail::getBackendConfigOption(backend, "__target_lib_path"),
-            "/tmp/plugin/targets/target.so");
+      "target;__target_config_path;/tmp/plugin/targets/target.so;emulate;false";
+  EXPECT_EQ(
+      cudaq::detail::getBackendConfigOption(backend, "__target_config_path"),
+      "/tmp/plugin/targets/target.so");
 }
 
 TEST(QPUUtilsTester, getsBase64BackendConfigOptionWithSpaces) {
   // base64("/tmp/plugin path/targets/test.so")
-  const std::string backend = "target;__target_lib_path;base64_"
+  const std::string backend = "target;__target_config_path;base64_"
                               "L3RtcC9wbHVnaW4gcGF0aC90YXJnZXRzL3Rlc3Quc28=";
   EXPECT_EQ(cudaq::detail::getTargetConfigPath(backend, "/fallback.yml"),
             "/tmp/plugin path/targets/test.so");

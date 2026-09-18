@@ -11,9 +11,6 @@
 #include "common/FmtCore.h"
 #include "common/RuntimeTarget.h"
 #include "helpers/MQPUUtils.h"
-#include "cudaq/Target/TargetConfigYaml.h"
-#include "cudaq/Target/TargetDatabase.h"
-#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -66,37 +63,18 @@ private:
   }
 
   static std::string getQpuType(const std::string &description) {
-    // Target name is the first one in the target config string
-    // or the whole string if this is the only config.
     const auto targetName = getTargetName(description);
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    std::string targetConfigFileName = targetName + std::string(".yml");
-    const auto explicitConfigPath =
-        cudaq::detail::getBackendConfigOption(description, "__target_lib_path");
-    const cudaq::config::TargetConfig *builtin =
-        explicitConfigPath ? nullptr
-                           : cudaq::config::lookupBuiltinTarget(targetName);
-    std::filesystem::path configFilePath = platformPath / targetConfigFileName;
     cudaq::config::TargetConfig config;
-    if (builtin) {
-      config = *builtin;
-    } else if (explicitConfigPath) {
-      configFilePath = *explicitConfigPath;
-      auto pluginResult =
-          cudaq::config::loadTargetPluginLibrary(configFilePath);
-      if (!pluginResult.ok)
+    try {
+      auto resolved = cudaq::detail::resolveTargetConfig(description);
+      config = resolved.config;
+      CUDAQ_INFO("Config file path for target {} = {}", targetName,
+                 resolved.configPath.string());
+    } catch (const std::runtime_error &error) {
+      if (std::string(error.what()).find("Invalid Target") != std::string::npos)
         return "";
-      config = pluginResult.config;
-    } else {
-      // Don't try to load something that doesn't exist.
-      return "";
+      throw;
     }
-    CUDAQ_INFO("Config file path for target {} = {}", targetName,
-               configFilePath.string());
-    cudaq::detail::checkGpuRequirement(targetName, config);
-    cudaq::detail::loadTargetPluginLibraries(targetName, configFilePath,
-                                             config);
 
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {

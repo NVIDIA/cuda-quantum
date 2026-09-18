@@ -383,105 +383,62 @@ function(add_cudaq_translation_library name)
   add_cudaq_library(${ARGV} DEPENDS cudaq-headers)
 endfunction()
 
-# CUDAQ_INSTALL_TARGET_YAML controls whether each target's raw `.yml` file is
-# installed. While it is no longer required under the normal flow of the tools,
-# one can still install the .yml files to support legacy dependences.
-option(CUDAQ_INSTALL_TARGET_YAML
-  "Install each target's raw .yml file to <install>/targets/. Not required \
-for in-tree targets to resolve correctly at runtime, in Python, or via \
-nvq++ - only external/plugin targets require an on-disk .yml." ON)
-
-function(_cudaq_resolve_target_yml name out_var)
-  set(_local ${CMAKE_CURRENT_SOURCE_DIR}/${name}.yml)
-  if (EXISTS ${_local})
-    set(${out_var} ${_local} PARENT_SCOPE)
+# Flags for compiling a target plugin translation unit (the output of
+# `cudaq-target-db-gen --plugin`) with CMAKE_CXX_COMPILER directly, outside of
+# CMake's own compile rules. Used by the plugin tests, and mirrored in
+# docs/sphinx/using/extending/packaging.rst for plugin authors. On macOS the
+# SDK sysroot is not implicit for every compiler - notably not for the LLVM
+# toolchain CUDA-Q vendors - so it has to be passed explicitly.
+set(CUDAQ_TARGET_PLUGIN_CXX_FLAGS "-std=c++20 -shared -fPIC")
+if (APPLE)
+  # _CMAKE_OSX_SYSROOT_PATH is the SDK path CMake resolved for its own compile
+  # rules; CMAKE_OSX_SYSROOT is the (possibly empty, possibly an SDK name
+  # rather than a path) user setting it was resolved from.
+  set(_cudaq_plugin_sysroot "${_CMAKE_OSX_SYSROOT_PATH}")
+  if (NOT IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    set(_cudaq_plugin_sysroot "${CMAKE_OSX_SYSROOT}")
+  endif()
+  if (NOT IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    execute_process(COMMAND xcrun --show-sdk-path
+                    OUTPUT_VARIABLE _cudaq_plugin_sysroot
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+  endif()
+  if (IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    string(APPEND CUDAQ_TARGET_PLUGIN_CXX_FLAGS
+           " -isysroot ${_cudaq_plugin_sysroot}")
   else()
-    set(${out_var} ${CMAKE_SOURCE_DIR}/cudaq/lib/Targets/${name}/${name}.yml
-        PARENT_SCOPE)
+    message(WARNING "Could not determine the macOS SDK path. Tests that "
+      "compile a target plugin library out-of-band may fail to find the C++ "
+      "standard library headers.")
   endif()
-endfunction()
+endif()
 
-function(add_target_config name)
-  _cudaq_resolve_target_yml(${name} _yml)
-  if (CUDAQ_INSTALL_TARGET_YAML)
-    install(FILES ${_yml} DESTINATION targets COMPONENT Runtime)
-    configure_file(${_yml} ${CMAKE_BINARY_DIR}/targets/${name}.yml COPYONLY)
+# Register a target configuration YAML file within the target database.
+#
+# Accepts either a bare target name, resolved as
+# `${CMAKE_CURRENT_SOURCE_DIR}/<name>.yml`, or a path to a `.yml`/`.yaml` file.
+# Only required to register YAML files not under `cudaq/lib/Targets/`.
+function(add_target_config name_or_path)
+  get_filename_component(_ext "${name_or_path}" LAST_EXT)
+  if (_ext STREQUAL ".yml" OR _ext STREQUAL ".yaml")
+    get_filename_component(_yml "${name_or_path}" ABSOLUTE
+                           BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    get_filename_component(_name "${_yml}" NAME_WLE)
+  else()
+    set(_name "${name_or_path}")
+    set(_yml "${CMAKE_CURRENT_SOURCE_DIR}/${_name}.yml")
   endif()
-  set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_NAMES ${name})
+  if (NOT EXISTS ${_yml})
+    message(FATAL_ERROR "Target configuration YAML file ${_yml} does not exist")
+  endif()
+  set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_NAMES ${_name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_PATHS ${_yml})
 endfunction()
 
-# Generates the precompiled target database (TargetDatabase.gen.cpp) from every
-# `.yml` registered via add_target_config() so far, and builds it into the
-# CUDAQTargetDatabase library. Must be called once in the build, after every
-# add_target_config() call site has been processed.
+# Generates the precompiled target database from every .yml under
+# cudaq/lib/Targets/ plus any out-of-tree add_target_config() registrations.
 function(cudaq_finalize_target_database)
-  get_property(_names GLOBAL PROPERTY CUDAQ_TARGET_DB_NAMES)
-  get_property(_paths GLOBAL PROPERTY CUDAQ_TARGET_DB_PATHS)
-  list(LENGTH _names _count)
-
-  set(_gen_args)
-  set(_deps)
-  math(EXPR _lastIdx "${_count} - 1")
-  foreach(_idx RANGE ${_lastIdx})
-    list(GET _names ${_idx} _name)
-    list(GET _paths ${_idx} _path)
-    list(APPEND _gen_args "${_name}=${_path}")
-    list(APPEND _deps ${_path})
-  endforeach()
-
-  set(_gen_cpp ${CMAKE_BINARY_DIR}/generated/TargetDatabase.gen.cpp)
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
-  add_custom_command(
-    OUTPUT ${_gen_cpp}
-    COMMAND $<TARGET_FILE:cudaq-target-db-gen> -o ${_gen_cpp} ${_gen_args}
-    DEPENDS cudaq-target-db-gen ${_deps}
-    COMMENT "Generating precompiled CUDA-Q target database (${_count} targets)"
-    VERBATIM)
-
-  add_library(CUDAQTargetDatabase STATIC
-    ${_gen_cpp}
-    ${CMAKE_SOURCE_DIR}/cudaq/lib/Target/TargetDatabase.cpp)
-  target_link_libraries(CUDAQTargetDatabase PUBLIC CUDAQTargetConfig)
-  install(TARGETS CUDAQTargetDatabase
-          EXPORT cudaq-common-targets
-          DESTINATION lib
-          COMPONENT Runtime)
-
-  # nvq++ (configured output) contains a literal
-  # `__CUDAQ_BUILTIN_TARGET_NAMES__` placeholder. Patch it once more, with
-  # exactly this build's enabled target set.
-  set(_nvqpp_script ${CUDAQ_BINARY_DIR}/bin/nvq++)
-  if (EXISTS ${_nvqpp_script})
-    list(TRANSFORM _names REPLACE "(.+)" "\"\\1\"" OUTPUT_VARIABLE _quoted_names)
-    list(JOIN _quoted_names " " _names_bash_array)
-    file(READ ${_nvqpp_script} _nvqpp_contents)
-    string(REPLACE "__CUDAQ_BUILTIN_TARGET_NAMES__" "${_names_bash_array}"
-      _nvqpp_contents "${_nvqpp_contents}")
-    file(WRITE ${_nvqpp_script} "${_nvqpp_contents}")
-  endif()
-endfunction()
-
-# Generates cudaq/'s OWN precompiled target database - a separate artifact
-# from cudaq_finalize_target_database() above (which is runtime/'s, built
-# from its own conditional add_target_config() calls). cudaq/ must never
-# depend on runtime/, but cudaq-opt and cudaq-target-resolve do need target
-# data.
-#
-# The database is sourced from the union of:
-#  (a) every .yml file physically present under cudaq/lib/Targets/; and
-#  (b) any add_target_config() registration whose resolved .yml is NOT
-#      under cudaq/lib/Targets/ including a genuine external registration (a
-#      CUDAQ_EXTERNAL_PROJECTS entry calling add_target_config() from its
-#      own, out-of-tree CMakeLists.txt.
-#
-# Must therefore be called after every add_target_config() call site - the same
-# timing constraint as cudaq_finalize_target_database() - even though the
-# library it defines (CUDAQBuiltinTargetDb) is consumed by cudaq-opt and
-# cudaq-target-resolve, which are built earlier: CMake resolves
-# target_link_libraries() target names at generate time, not in
-# add_subdirectory() order, so this is safe.
-function(cudaq_finalize_builtin_target_database)
   file(GLOB _target_dirs LIST_DIRECTORIES true
     ${CMAKE_SOURCE_DIR}/cudaq/lib/Targets/*)
   set(_gen_args)
@@ -525,7 +482,7 @@ function(cudaq_finalize_builtin_target_database)
     endforeach()
   endif()
 
-  set(_gen_cpp ${CMAKE_BINARY_DIR}/generated/CudaqBuiltinTargetDatabase.gen.cpp)
+  set(_gen_cpp ${CMAKE_BINARY_DIR}/generated/TargetDatabase.gen.cpp)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
   add_custom_command(
     OUTPUT ${_gen_cpp}
@@ -534,10 +491,10 @@ function(cudaq_finalize_builtin_target_database)
     COMMENT "Generating precompiled cudaq/ target database (${_count} targets)"
     VERBATIM)
 
-  add_library(CUDAQBuiltinTargetDb STATIC
-    ${_gen_cpp}
-    ${CMAKE_SOURCE_DIR}/cudaq/lib/Target/TargetDatabase.cpp)
-  target_link_libraries(CUDAQBuiltinTargetDb PUBLIC CUDAQTargetConfig)
+  # Mark dependency on the generated source file.
+  add_custom_target(CUDAQTargetDatabaseGen DEPENDS ${_gen_cpp})
+  add_dependencies(CUDAQTargetDatabase CUDAQTargetDatabaseGen)
+  target_sources(CUDAQTargetDatabase PRIVATE ${_gen_cpp})
 endfunction()
 
 function(add_target_mapping_arch providerName name)
