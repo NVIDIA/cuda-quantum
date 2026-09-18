@@ -408,3 +408,26 @@ def test_observe_list_multi_term_operators():
     results_id = cudaq.observe(simple_kernel, [op_with_id])
     result_id = cudaq.observe(simple_kernel, op_with_id)
     assert np.isclose(results_id[0].expectation(), result_id.expectation())
+
+
+def test_broadcast_fixed_scalar_argument_preserved():
+    """
+    Regression test: in a broadcast `observe`/`sample` call, a plain scalar
+    argument that is not itself a list/array (a value meant to stay fixed
+    across every generated call) must be forwarded unchanged, not silently
+    replaced by the internal placeholder default of `0`.
+    """
+
+    @cudaq.kernel
+    def kernel(theta: float, offset: float):
+        q = cudaq.qvector(1)
+        rx(theta + offset, q[0])
+
+    hamiltonian = spin.z(0)
+    thetas = [0.3, 0.5, 0.7]
+    offset = 0.4
+
+    results = cudaq.observe(kernel, hamiltonian, thetas, offset)
+    expected = [np.cos(theta + offset) for theta in thetas]
+    for result, exp in zip(results, expected):
+        assert np.isclose(result.expectation(), exp)
