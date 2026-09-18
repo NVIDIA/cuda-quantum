@@ -19,7 +19,9 @@ target_include_directories(CUDAQTargetConfigYaml
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
-target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig cudaqMLIR)
+# Link MLIR dynamically (default) or statically (if CUDAQ_MLIR_STATIC is set).
+target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig
+  "$<IF:$<BOOL:$<TARGET_PROPERTY:CUDAQ_MLIR_STATIC>>,cudaq-mlir-static,cudaqMLIR>")
 target_compile_options(CUDAQTargetConfigYaml PRIVATE "-fexceptions" "-frtti")
 
 install(TARGETS CUDAQTargetConfigYaml
