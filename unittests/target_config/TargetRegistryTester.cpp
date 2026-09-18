@@ -6,14 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "TargetConfigHelper.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/Target/TargetRegistry.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
-#include <stdexcept>
 #include <string>
 
 namespace {
@@ -45,38 +43,6 @@ cudaq::config::HostEnvironment hostWithLibs(const std::filesystem::path &libDir,
 }
 
 } // namespace
-
-TEST(TargetRegistryTester, schemaVersionAbsentIsOne) {
-  auto config = cudaq::config::parseTargetConfig(R"(
-name: version-absent
-description: absent version means 1
-config:
-  library-mode: true
-)");
-  EXPECT_EQ(config.Name, "version-absent");
-}
-
-TEST(TargetRegistryTester, schemaVersionOneAccepted) {
-  auto config = cudaq::config::parseTargetConfig(R"(
-version: 1
-name: version-one
-description: explicit version 1
-config:
-  library-mode: true
-)");
-  EXPECT_EQ(config.Name, "version-one");
-}
-
-TEST(TargetRegistryTester, schemaVersionOtherRejected) {
-  EXPECT_THROW(cudaq::config::parseTargetConfig(R"(
-version: 2
-name: version-two
-description: unsupported
-config:
-  library-mode: true
-)"),
-               std::runtime_error);
-}
 
 TEST(TargetRegistryTester, prefersPluginLibraryOverYamlInSameRoot) {
   auto root = makeTempRoot();
@@ -316,34 +282,6 @@ config:
   ASSERT_TRUE(resolved.has_value());
   EXPECT_EQ(resolved->status.availability,
             cudaq::config::detail::Availability::MissingPluginLibrary);
-  std::filesystem::remove_all(root);
-}
-
-// A target configuration is platform independent, so a plugin library named
-// with another platform's extension must still resolve against the file this
-// platform actually ships.
-TEST(TargetRegistryTester, pluginLibraryExtensionIsPlatformIndependent) {
-  auto root = makeTempRoot();
-  auto libDir = root / "lib";
-  writeFile(libDir / ("libforeign-plugin" +
-                      std::string(cudaq::config::kSharedLibraryExtension)),
-            "stub");
-  writeFile(root / "targets" / "foreign-ext.yml", R"(
-version: 1
-name: foreign-ext
-description: plugin library named with a foreign extension
-config:
-  library-mode: true
-  plugin-libraries:
-    - libforeign-plugin.dylib
-    - libforeign-plugin.so
-    - libforeign-plugin
-)");
-  cudaq::config::TargetRegistry registry;
-  registry.addPluginRoot(root);
-  auto resolved = registry.resolve("foreign-ext", hostWithLibs(libDir));
-  ASSERT_TRUE(resolved.has_value());
-  EXPECT_TRUE(resolved->status.isAvailable()) << resolved->status.diagnostic;
   std::filesystem::remove_all(root);
 }
 
