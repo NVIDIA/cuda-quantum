@@ -18,6 +18,7 @@
 
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"

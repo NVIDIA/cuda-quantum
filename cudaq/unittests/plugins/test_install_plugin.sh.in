@@ -35,7 +35,9 @@ function build_target_plugin_lib {
 	local staged_yml="${targets_dir}/${name}.yml"
 	local gen_cpp="${TMPDIR}/${name}.gen.cpp"
 	cat > "${staged_yml}" <<EOF
+version: 1
 name: ${name}
+description: "Install-plugin test target."
 config:
   library-mode: true
 EOF

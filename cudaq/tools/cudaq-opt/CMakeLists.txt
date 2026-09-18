@@ -29,7 +29,8 @@ target_link_libraries(cudaq-opt
   OptCodeGen
   OptTransforms
   CUDAQSupport
-  CUDAQBuiltinTargetDb
+  CUDAQTargetConfigYaml
+  CUDAQTargetDatabase  # The collection of pre-built targets
 )
 mlir_check_all_link_libraries(cudaq-opt)
 

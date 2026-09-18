@@ -126,7 +126,7 @@ echo "$user_output" | grep -- '-Wl,-rpath,' | grep -q '/cudaq/plugins/nvqpp-b5-u
 echo "$user_output" | grep -- '-L' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
 user_lib_path="${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets/nvqpp-b5-user-only.so"
 encoded_user_lib_path=$(echo -n "$user_lib_path" | base64 --wrap=0)
-LC_ALL=C grep -aFq ";__target_lib_path;base64_${encoded_user_lib_path}" "${TMPDIR}/user.exe"
+LC_ALL=C grep -aFq ";__target_config_path;base64_${encoded_user_lib_path}" "${TMPDIR}/user.exe"
 
 # --- Test: System plugin passes correct flags and lib paths ---
 system_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-system-only \
@@ -143,5 +143,23 @@ if echo "$precedence_output" | grep -q -- '-DB5_FROM_SYSTEM'; then
   echo "FAIL: system scope should not override user scope" >&2
   exit 1
 fi
+
+# --- YAML-only plugin root (no compiled .so) ---
+mkdir -p "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/targets" \
+         "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/lib"
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/targets/nvqpp-yaml-only.yml" <<'EOF'
+version: 1
+name: nvqpp-yaml-only
+description: "YAML-only plugin target."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
+config:
+  library-mode: true
+  preprocessor-defines: ["-DB5_YAML_ONLY"]
+EOF
+yaml_list=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" --list-targets)
+echo "$yaml_list" | grep -q 'nvqpp-yaml-only'
+yaml_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-yaml-only \
+              "$TRIVIAL_SRC" -o "${TMPDIR}/yaml.exe" 2>&1)
+echo "$yaml_output" | grep -q -- '-DB5_YAML_ONLY'
 
 echo "PASS: external_plugin_target"

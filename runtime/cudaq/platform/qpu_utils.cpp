@@ -13,8 +13,9 @@
 #include "cudaq.h"
 #include "nvqpp_config.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
+#include "cudaq/Support/Version.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetRegistry.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -28,11 +29,6 @@
 #include <vector>
 
 using namespace cudaq;
-
-void detail::parseTargetConfigYml(const std::string &yamlContent,
-                                  config::TargetConfig &targetConfig) {
-  targetConfig = config::parseTargetConfig(yamlContent);
-}
 
 std::string detail::decodeBase64(const std::string &encoded) {
   std::vector<char> decoded_vec;
@@ -62,20 +58,55 @@ detail::getBackendConfigOption(const std::string &backend,
 std::filesystem::path
 detail::getTargetConfigPath(const std::string &backend,
                             const std::filesystem::path &fallback) {
-  if (auto path = getBackendConfigOption(backend, "__target_lib_path"))
+  if (auto path = getBackendConfigOption(backend, "__target_config_path"))
     return *path;
   return fallback;
 }
 
-void detail::checkGpuRequirement(const std::string &targetName,
-                                 const config::TargetConfig &targetConfig) {
-  if (!targetConfig.GpuRequired)
-    return;
-  if (cudaq::num_available_gpus() > 0)
-    return;
-  throw std::runtime_error(
-      "Target '" + targetName +
-      "' requires an NVIDIA GPU, but none was detected on this host.");
+cudaq::config::HostEnvironment detail::currentHostEnvironment() {
+  cudaq::config::HostEnvironment env;
+  const int gpus = cudaq::num_available_gpus();
+  env.gpuCount = gpus > 0 ? static_cast<unsigned>(gpus) : 0u;
+  env.cudaqVersion = cudaq::getVersion();
+  const std::filesystem::path cudaqLibraryPath{cudaq::getCUDAQLibraryPath()};
+  env.libraryPaths.emplace_back(cudaqLibraryPath.parent_path());
+  return env;
+}
+
+detail::ResolvedTargetConfig
+detail::resolveTargetConfig(const std::string &backend) {
+  auto split = cudaq::split(backend, ';');
+  const std::string targetName = split.empty() ? backend : split.front();
+
+  cudaq::config::TargetRegistry registry;
+  std::filesystem::path explicitPath;
+  if (auto path = getBackendConfigOption(backend, "__target_config_path")) {
+    explicitPath = *path;
+    const auto configDir = explicitPath.parent_path();
+    const auto pluginRoot =
+        configDir.filename() == "targets" ? configDir.parent_path() : configDir;
+    registry.addPluginRoot(pluginRoot);
+  }
+
+  auto resolved = registry.resolve(targetName, currentHostEnvironment());
+  if (!resolved)
+    throw std::runtime_error("Invalid Target: (" + targetName + ")");
+  if (!resolved->status.isAvailable())
+    throw std::runtime_error(resolved->status.diagnostic);
+
+  ResolvedTargetConfig result;
+  result.name = targetName;
+  result.config = *resolved->entry->config;
+  result.configPath = resolved->entry->configPath.empty()
+                          ? explicitPath
+                          : resolved->entry->configPath;
+  result.pluginLibDir = resolved->entry->pluginLibDir;
+  result.simulatorName = resolved->resolved.simulatorName;
+  result.platformName = resolved->resolved.platformName;
+  result.fp64Simulation = resolved->resolved.fp64Simulation;
+
+  loadTargetPluginLibraries(result.name, result.configPath, result.config);
+  return result;
 }
 
 namespace {

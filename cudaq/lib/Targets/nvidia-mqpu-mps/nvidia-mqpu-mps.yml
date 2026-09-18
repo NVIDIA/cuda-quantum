@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+version: 1
 name: nvidia-mqpu-mps
 description: "The NVIDIA MQPU Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuTensorNet MPS. This target enables asynchronous parallel execution of quantum kernel tasks."
 gpu-requirements: true

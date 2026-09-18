@@ -9,8 +9,6 @@
 #pragma once
 
 #include "cudaq/Target/TargetConfig.h"
-#include <filesystem>
-#include <string>
 
 namespace cudaq::config {
 
@@ -26,25 +24,5 @@ inline constexpr const char *kTargetPluginSymbolName = "cudaq_target_config_v1";
 
 /// Signature of the symbol named by `kTargetPluginSymbolName`.
 using TargetPluginEntryPoint = const TargetConfig *(*)();
-
-/// Result of attempting to load a compiled external target plugin library.
-struct TargetPluginLoadResult {
-  /// Non-null on success; always heap-owned by the caller via `config` below
-  /// so the shared library may be safely left loaded/unloaded either way -
-  /// the returned `TargetConfig` is a copy, not a pointer into the library.
-  bool ok = false;
-  TargetConfig config;
-  /// Populated only when `ok` is false: a human-readable diagnostic safe to
-  /// print directly.
-  std::string error;
-};
-
-/// `dlopen()`s `libraryPath`, resolves `kTargetPluginSymbolName`, invokes it,
-/// and copies out the resulting `TargetConfig`. This is the *only* supported
-/// way to load an external/plugin target as of the switch away from raw,
-/// unvalidated `.yml` text files placed under a plugin's `targets/`
-/// directory.
-TargetPluginLoadResult
-loadTargetPluginLibrary(const std::filesystem::path &libraryPath);
 
 } // namespace cudaq::config

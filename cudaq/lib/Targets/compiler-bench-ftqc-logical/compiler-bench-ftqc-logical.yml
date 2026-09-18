@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+version: 1
 name: compiler-bench-ftqc-logical
 description: "Logical FTQC benchmark target lowering to a pre-synthesis Clifford+T and rotation basis for resource counting"
 

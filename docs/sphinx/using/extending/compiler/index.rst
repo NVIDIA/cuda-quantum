@@ -65,9 +65,10 @@ and ``cudaq/lib/Optimizer/CodeGen``. Their shared pipelines are defined in the
 corresponding ``Pipelines.cpp`` files.
 
 ``cudaq-opt`` parses and runs registered MLIR passes. ``cudaq-translate`` owns
-the standalone translation path, while ``cudaq-target-resolve`` resolves target
-configuration (from the precompiled in-tree target database, or an external
-plugin's YAML file) for the C++ driver. Representative lit tests are grouped
+the standalone translation path, while ``cudaq-target-resolve`` looks a target
+up by name in the unified target registry (built-in database, then plugin
+``.so`` / ``.yml``) and emits the ``KEY=value`` assignments ``nvq++`` sources.
+Representative lit tests are grouped
 under
 ``cudaq/test/Frontend``, ``cudaq/test/Optimizer``, and
 ``cudaq/test/CodeGen``. Python MLIR regression tests are under

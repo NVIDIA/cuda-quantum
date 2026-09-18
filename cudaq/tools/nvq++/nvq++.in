@@ -11,8 +11,6 @@
 # This is a skeleton driver script to compile C++ source that contains CUDA-Q
 # code.
 
-CUDAQ_BUILTIN_TARGET_NAMES=(__CUDAQ_BUILTIN_TARGET_NAMES__)
-
 function error_exit {
 	callerName=$(basename "$(caller 0)")
 	message_content="${callerName}:$(echo $(caller 0) | cut -d " " -f1): $1"
@@ -62,94 +60,39 @@ function user_plugin_scope {
 	fi
 }
 
-function print_target_names_in_dir {
-	local target_dir="$1"
-	if [ ! -d "${target_dir}" ]; then
-		return
-	fi
-	for file in "${target_dir}"/*.so; do
-		if [ -f "${file}" ]; then
-			basename "${file}" | sed -e 's/\.so$//'
+function query_gpu_count {
+	if [ -x "$(command -v nvidia-smi)" ]; then
+		# Make sure nvidia-smi works.
+		nvidia-smi -L | grep 'Failed\|Error\|error\|failed' >/dev/null 2>&1
+		if [ $? != 0 ]; then
+			ngpus=$(nvidia-smi -L | wc -l | tr -d '[:space:]')
+			echo "${ngpus}"
+			return
 		fi
-	done
+	fi
+	echo 0
 }
 
-function print_plugin_target_names_in_scope {
-	local plugin_scope="$1"
-	if [ ! -d "${plugin_scope}" ]; then
-		return
+function query_gpu {
+	if [ "$(query_gpu_count)" -gt 0 ]; then
+		echo true
+	else
+		echo false
 	fi
-	for plugin_root in "${plugin_scope}"/*; do
-		if [ -d "${plugin_root}" ]; then
-			print_target_names_in_dir "${plugin_root}/targets"
-		fi
-	done
 }
 
-function target_lib_files_in_dir {
-	local target_dir="$1"
-	if [ ! -d "${target_dir}" ]; then
-		return
-	fi
-	for file in "${target_dir}"/*.so; do
-		if [ -f "${file}" ]; then
-			echo "${file}"
-		fi
-	done
-}
-
-function plugin_target_lib_files_in_scope {
-	local plugin_scope="$1"
-	if [ ! -d "${plugin_scope}" ]; then
-		return
-	fi
-	for plugin_root in "${plugin_scope}"/*; do
-		if [ -d "${plugin_root}" ]; then
-			target_lib_files_in_dir "${plugin_root}/targets"
-		fi
-	done
-}
-
-function is_builtin_target {
-	local target_name="$1" builtin_name
-	for builtin_name in "${CUDAQ_BUILTIN_TARGET_NAMES[@]}"; do
-		if [ "${builtin_name}" = "${target_name}" ]; then
-			return 0
-		fi
-	done
-	return 1
-}
-
-function resolve_target_config_file {
-	local target_name="$1"
-	RESOLVED_TARGET_CONFIG_FILE="${install_dir}/targets/${target_name}.yml"
-	RESOLVED_TARGET_PLUGIN_LIB_DIR=
-	RESOLVED_TARGET_IS_EXTERNAL=false
-	if [ -f "${RESOLVED_TARGET_CONFIG_FILE}" ] || is_builtin_target "${target_name}"; then
-		return 0
-	fi
-
-	local user_scope
-	user_scope="$(user_plugin_scope)"
-	for plugin_scope in "${user_scope}" "${install_dir}/plugins"; do
-		if [ ! -d "${plugin_scope}" ]; then
-			continue
-		fi
-		for plugin_root in "${plugin_scope}"/*; do
-			if [ ! -d "${plugin_root}" ]; then
-				continue
-			fi
-			local plugin_config="${plugin_root}/targets/${target_name}.so"
-			if [ -f "${plugin_config}" ]; then
-				RESOLVED_TARGET_CONFIG_FILE="${plugin_config}"
-				RESOLVED_TARGET_PLUGIN_LIB_DIR="${plugin_root}/lib"
-				RESOLVED_TARGET_IS_EXTERNAL=true
-				return 0
+function target_resolve_common_args {
+	local args=(--install-dir="${install_dir}" --lib-dir="${install_dir}/lib"
+		--gpu-count="$(query_gpu_count)" --cudaq-version="@CUDA_QUANTUM_VERSION@")
+	local plugin_root
+	if [ -d "$(user_plugin_scope)" ]; then
+		for plugin_root in "$(user_plugin_scope)"/*; do
+			if [ -d "${plugin_root}" ]; then
+				args+=(--plugin-root="${plugin_root}")
 			fi
 		done
-	done
-
-	return 1
+	fi
+	printf '%s\n' "${args[@]}"
 }
 
 # Function that groups and handles all of our -f* and -fno-* flags.
@@ -266,35 +209,31 @@ function f_option_handling {
 }
 
 function list_targets {
-	{
-		printf '%s\n' "${CUDAQ_BUILTIN_TARGET_NAMES[@]}"
-		print_target_names_in_dir "${install_dir}/targets"
-		print_plugin_target_names_in_scope "$(user_plugin_scope)"
-		print_plugin_target_names_in_scope "${install_dir}/plugins"
-	} | awk '!seen[$0]++'
+	local extra=()
+	if [ "${LIST_TARGETS_INCLUDE_UNAVAILABLE:-false}" = true ]; then
+		extra+=(--include-unavailable)
+	fi
+	# shellcheck disable=SC2046
+	${TOOLBIN}cudaq-target-resolve --list-targets $(target_resolve_common_args) "${extra[@]}"
 	exit 0
 }
 
 function list_simulators {
-	local name tmp_out
-	for name in "${CUDAQ_BUILTIN_TARGET_NAMES[@]}"; do
-		tmp_out="$(mktemp "${TMPDIR:-/tmp}/nvqppListSim.XXXXXX")"
-		${TOOLBIN}cudaq-target-resolve -o "${tmp_out}" "${install_dir}/targets/${name}.yml" 2>/dev/null
-		if ! grep -q '^PLATFORM_QPU=' "${tmp_out}" && ! grep -q '^LIBRARY_MODE_EXECUTION_MANAGER=' "${tmp_out}"; then
-			echo "${name}"
+	# shellcheck disable=SC2046
+	${TOOLBIN}cudaq-target-resolve --list-simulators $(target_resolve_common_args)
+}
+
+function get_simulation_backend {
+	local tmp_out line
+	tmp_out="$(mktemp "${TMPDIR:-/tmp}/nvqppSimTargetBuildConfig.XXXXXX")"
+	# shellcheck disable=SC2046
+	if ${TOOLBIN}cudaq-target-resolve -o "${tmp_out}" $(target_resolve_common_args) "$1" 2>/dev/null; then
+		line=$(grep "NVQIR_SIMULATION_BACKEND=" "${tmp_out}")
+		if [ $? -eq 0 ]; then
+			echo ${line#*=} | tr -d '"'
 		fi
-		rm -f "${tmp_out}"
-	done
-	for file in \
-		$(plugin_target_lib_files_in_scope "$(user_plugin_scope)") \
-		$(plugin_target_lib_files_in_scope "${install_dir}/plugins"); do
-		tmp_out="$(mktemp "${TMPDIR:-/tmp}/nvqppListSim.XXXXXX")"
-		${TOOLBIN}cudaq-target-resolve -o "${tmp_out}" "${file}" 2>/dev/null
-		if ! grep -q '^PLATFORM_QPU=' "${tmp_out}" && ! grep -q '^LIBRARY_MODE_EXECUTION_MANAGER=' "${tmp_out}"; then
-			echo $(basename "${file}" | cut -d "." -f 1)
-		fi
-		rm -f "${tmp_out}"
-	done
+	fi
+	rm -f "${tmp_out}"
 }
 
 # make_intermediate_file <path> <var>
@@ -319,32 +258,6 @@ function make_intermediate_file {
 	printf -v "${__outvar}" '%s' "${result}"
 }
 
-function get_simulation_backend {
-	if resolve_target_config_file "$1"; then
-		make_intermediate_file nvqppSimTargetBuildConfig.sh OUT_CONFIG_FILENAME
-		run ${TOOLBIN}cudaq-target-resolve -o ${OUT_CONFIG_FILENAME} ${RESOLVED_TARGET_CONFIG_FILE}
-		line=$(grep "NVQIR_SIMULATION_BACKEND=" "${OUT_CONFIG_FILENAME}")
-		if [ $? -eq 0 ]; then
-			echo ${line#*=} | tr -d '"'
-		fi
-	fi
-}
-
-function query_gpu {
-	if [ -x "$(command -v nvidia-smi)" ]; then
-		# Make sure nvidia-smi works.
-		nvidia-smi -L | grep 'Failed\|Error\|error\|failed' >/dev/null 2>&1
-		if [ $? != 0 ]; then
-			ngpus=$(nvidia-smi -L | wc -l)
-			if [ $((ngpus > 0)) != 0 ]; then
-				echo true
-				return
-			fi
-		fi
-	fi
-	echo false
-}
-
 function show_help {
 	cat - <<HELP
 --llvm-version=<vers>
@@ -361,6 +274,9 @@ function show_help {
 
 --list-targets
 	List the available targets NVQ++ can compile to.
+
+--include-unavailable
+	When listing targets, also include targets that are not available on this host.
 
 --emit-qir | -emit-qir
 	Emit the QIR output to <input file>.qir.ll and exit.
@@ -624,6 +540,7 @@ EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 SHOW_HELP=false
 LIST_TARGETS=false
+LIST_TARGETS_INCLUDE_UNAVAILABLE=false
 DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
 CPPSTD=-std=c++20
@@ -760,6 +677,9 @@ while [ $# -ne 0 ]; do
 		;;
 	--list-targets)
 		LIST_TARGETS=true
+		;;
+	--include-unavailable)
+		LIST_TARGETS_INCLUDE_UNAVAILABLE=true
 		;;
 	--platform | -platform)
 		PLATFORM_LIBRARY="$2"
@@ -957,18 +877,17 @@ COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
 # the resultant binary to target that specified backend.
 if [ -n "${TARGET_CONFIG}" ]; then
 	GEN_TARGET_BACKEND=false
-	if resolve_target_config_file "${TARGET_CONFIG}"; then
-		TARGET_CONFIG_FILE="${RESOLVED_TARGET_CONFIG_FILE}"
-		if [ -n "${RESOLVED_TARGET_PLUGIN_LIB_DIR}" ] && [ -d "${RESOLVED_TARGET_PLUGIN_LIB_DIR}" ]; then
-			LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${RESOLVED_TARGET_PLUGIN_LIB_DIR}"
-			LINKDIRS="${LINKDIRS} -L${RESOLVED_TARGET_PLUGIN_LIB_DIR}"
-		fi
-		make_intermediate_file nvqppTargetBuildConfig.sh OUT_CONFIG_FILENAME
-		run ${TOOLBIN}cudaq-target-resolve --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_FILE}
-		# Load the generated config variables
-		. "${OUT_CONFIG_FILENAME}"
-	else
-		error_exit "Invalid Target: ($TARGET_CONFIG)"
+	TARGET_CONFIG_PATH=
+	TARGET_PLUGIN_LIB_DIR=
+	TARGET_IS_EXTERNAL=false
+	make_intermediate_file nvqppTargetBuildConfig.sh OUT_CONFIG_FILENAME
+	# shellcheck disable=SC2046
+	run ${TOOLBIN}cudaq-target-resolve --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} $(target_resolve_common_args) ${TARGET_CONFIG}
+	# Load the generated config variables
+	. "${OUT_CONFIG_FILENAME}"
+	if [ -n "${TARGET_PLUGIN_LIB_DIR}" ] && [ -d "${TARGET_PLUGIN_LIB_DIR}" ]; then
+		LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${TARGET_PLUGIN_LIB_DIR}"
+		LINKDIRS="${LINKDIRS} -L${TARGET_PLUGIN_LIB_DIR}"
 	fi
 	if ${GEN_TARGET_BACKEND} && ${SET_TARGET_BACKEND}; then
 		# Add a function that will run before main and set the target
@@ -979,9 +898,9 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
 		fi
 		TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
-		if ${RESOLVED_TARGET_IS_EXTERNAL}; then
-			TARGET_LIB_PATH="base64_"$(echo -n "${RESOLVED_TARGET_CONFIG_FILE}" | base64 --wrap=0)
-			TARGET_CONFIG="${TARGET_CONFIG};__target_lib_path;${TARGET_LIB_PATH}"
+		if [ "${TARGET_IS_EXTERNAL}" = true ] && [ -n "${TARGET_CONFIG_PATH}" ]; then
+			TARGET_CONFIG_PATH_B64="base64_"$(echo -n "${TARGET_CONFIG_PATH}" | base64 --wrap=0)
+			TARGET_CONFIG="${TARGET_CONFIG};__target_config_path;${TARGET_CONFIG_PATH_B64}"
 		fi
 	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"""   
 	fi

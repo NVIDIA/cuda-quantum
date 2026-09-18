@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Target/TargetPluginLibrary.h"
+#include "TargetConfigHelper.h"
 #include <dlfcn.h>
 
 cudaq::config::TargetPluginLoadResult cudaq::config::loadTargetPluginLibrary(

@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 target_sources(cudaq-rest-qpu PRIVATE OQCServerHelp.cpp)
-add_target_config(oqc)
 
 add_library(cudaq-serverhelper-oqc SHARED OQCServerHelp.cpp )
 target_link_libraries(cudaq-serverhelper-oqc

@@ -16,7 +16,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/Version.h"
-#include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetRegistry.h"
 #include "llvm/Option/Option.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
@@ -77,14 +77,16 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 /// Registers a named pipeline for every in-tree target (and, within it,
 /// every configuration-matrix entry) that configures a `TargetPassPipeline`.
 static void registerAllTargetPassPipelines() {
-  for (const auto &[name, config] : cudaq::config::listBuiltinTargets()) {
-    const std::string targetName(name);
-    if (config->BackendConfig.has_value() &&
-        !config->BackendConfig->TargetPassPipeline.empty())
+  cudaq::config::TargetRegistry registry;
+  for (const auto *entry : registry.list()) {
+    const auto &config = *entry->config;
+    const std::string targetName = entry->name;
+    if (config.BackendConfig.has_value() &&
+        !config.BackendConfig->TargetPassPipeline.empty())
       registerTargetPassPipeline("target-pass-pipeline-" + targetName,
                                  targetName,
-                                 config->BackendConfig->TargetPassPipeline);
-    for (const auto &entry : config->ConfigMap)
+                                 config.BackendConfig->TargetPassPipeline);
+    for (const auto &entry : config.ConfigMap)
       if (!entry.Config.TargetPassPipeline.empty())
         registerTargetPassPipeline("target-pass-pipeline-" + targetName + "-" +
                                        entry.Name,

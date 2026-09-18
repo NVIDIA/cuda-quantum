@@ -105,6 +105,10 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
               "`cudaq.Target` leverages.")
       .def_ro("description", &cudaq::RuntimeTarget::description,
               "A string describing the features for this `cudaq.Target`.")
+      .def_ro("availability_diagnostic",
+              &cudaq::RuntimeTarget::availabilityDiagnostic,
+              "If this target is known but not available on the current host, "
+              "a diagnostic explaining why; empty otherwise.")
       .def(
           "num_qpus",
           [](cudaq::RuntimeTarget &_) { return cudaq::platform_num_qpus(); },
@@ -140,8 +144,12 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
   mod.def(
       "has_target",
-      [&](const std::string &name) { return holder.hasTarget(name); },
-      "Return true if the `cudaq.Target` with the given name exists.");
+      [&](const std::string &name, bool includeUnavailable) {
+        return holder.hasTarget(name, includeUnavailable);
+      },
+      nanobind::arg("name"), nanobind::arg("include_unavailable") = false,
+      "Return true if the `cudaq.Target` with the given name exists. By "
+      "default only targets available on this host are considered.");
   mod.def(
       "reset_target",
       [&]() {
@@ -159,8 +167,14 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "Return the `cudaq.Target` with the given name. Will raise an exception "
       "if the name is not valid.");
   mod.def(
-      "get_targets", [&]() { return holder.getTargets(); },
-      "Return all available `cudaq.Target` instances on the current system.");
+      "get_targets",
+      [&](bool includeUnavailable) {
+        return holder.getTargets(includeUnavailable);
+      },
+      nanobind::arg("include_unavailable") = false,
+      "Return `cudaq.Target` instances. By default only targets available on "
+      "this host are returned; pass `include_unavailable=True` to include "
+      "known-but-unavailable targets (see `Target.availability_diagnostic`).");
   mod.def(
       "register_backend_path",
       [&](const std::string &pkgRoot) {
@@ -168,8 +182,9 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       },
       "Register an external plugin package root with the CUDA-Q runtime. "
       "The directory must exist and contain a `targets/` subdirectory; every "
-      "YAML found there is made available as a target. Raises `RuntimeError` "
-      "(with the offending path in the message) on validation failure.");
+      "compiled target library (`.so`) or YAML file found there is made "
+      "available as a target. Raises `RuntimeError` (with the offending path "
+      "in the message) on validation failure.");
   mod.def(
       "set_target",
       [&](const cudaq::RuntimeTarget &target, nanobind::kwargs extraConfig) {

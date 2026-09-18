@@ -1,0 +1,46 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "cudaq/Target/TargetConfig.h"
+#include <filesystem>
+#include <map>
+#include <string>
+
+namespace cudaq::config {
+
+inline constexpr unsigned kSupportedTargetSchemaVersion = 1;
+
+std::string processRuntimeArgs(const TargetConfig &config,
+                               const std::map<std::string, std::string> &args);
+
+/// Select the backend entry implied by `args` (configuration-matrix /
+/// default `config:`). Returns nullptr when the target has no backend config.
+const BackendEndConfigEntry *
+selectBackend(const TargetConfig &config,
+              const std::map<std::string, std::string> &args);
+
+std::string substitutePluginRoot(std::string yamlContent,
+                                 const std::filesystem::path &pluginRoot);
+
+TargetConfig parseTargetConfig(std::string yamlContent,
+                               const std::filesystem::path &pluginRoot = {});
+
+struct TargetPluginLoadResult {
+  bool ok = false;
+  TargetConfig config;
+  std::string error;
+};
+
+/// `dlopen()`s `libraryPath`, resolves `kTargetPluginSymbolName`, invokes it,
+/// and copies out the resulting `TargetConfig`.
+TargetPluginLoadResult
+loadTargetPluginLibrary(const std::filesystem::path &libraryPath);
+
+} // namespace cudaq::config

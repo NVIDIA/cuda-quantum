@@ -411,77 +411,9 @@ function(add_target_config name)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_PATHS ${_yml})
 endfunction()
 
-# Generates the precompiled target database (TargetDatabase.gen.cpp) from every
-# `.yml` registered via add_target_config() so far, and builds it into the
-# CUDAQTargetDatabase library. Must be called once in the build, after every
-# add_target_config() call site has been processed.
+# Generates the precompiled target database from every .yml under
+# cudaq/lib/Targets/ plus any out-of-tree add_target_config() registrations.
 function(cudaq_finalize_target_database)
-  get_property(_names GLOBAL PROPERTY CUDAQ_TARGET_DB_NAMES)
-  get_property(_paths GLOBAL PROPERTY CUDAQ_TARGET_DB_PATHS)
-  list(LENGTH _names _count)
-
-  set(_gen_args)
-  set(_deps)
-  math(EXPR _lastIdx "${_count} - 1")
-  foreach(_idx RANGE ${_lastIdx})
-    list(GET _names ${_idx} _name)
-    list(GET _paths ${_idx} _path)
-    list(APPEND _gen_args "${_name}=${_path}")
-    list(APPEND _deps ${_path})
-  endforeach()
-
-  set(_gen_cpp ${CMAKE_BINARY_DIR}/generated/TargetDatabase.gen.cpp)
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
-  add_custom_command(
-    OUTPUT ${_gen_cpp}
-    COMMAND $<TARGET_FILE:cudaq-target-db-gen> -o ${_gen_cpp} ${_gen_args}
-    DEPENDS cudaq-target-db-gen ${_deps}
-    COMMENT "Generating precompiled CUDA-Q target database (${_count} targets)"
-    VERBATIM)
-
-  add_library(CUDAQTargetDatabase STATIC
-    ${_gen_cpp}
-    ${CMAKE_SOURCE_DIR}/cudaq/lib/Target/TargetDatabase.cpp)
-  target_link_libraries(CUDAQTargetDatabase PUBLIC CUDAQTargetConfig)
-  install(TARGETS CUDAQTargetDatabase
-          EXPORT cudaq-common-targets
-          DESTINATION lib
-          COMPONENT Runtime)
-
-  # nvq++ (configured output) contains a literal
-  # `__CUDAQ_BUILTIN_TARGET_NAMES__` placeholder. Patch it once more, with
-  # exactly this build's enabled target set.
-  set(_nvqpp_script ${CUDAQ_BINARY_DIR}/bin/nvq++)
-  if (EXISTS ${_nvqpp_script})
-    list(TRANSFORM _names REPLACE "(.+)" "\"\\1\"" OUTPUT_VARIABLE _quoted_names)
-    list(JOIN _quoted_names " " _names_bash_array)
-    file(READ ${_nvqpp_script} _nvqpp_contents)
-    string(REPLACE "__CUDAQ_BUILTIN_TARGET_NAMES__" "${_names_bash_array}"
-      _nvqpp_contents "${_nvqpp_contents}")
-    file(WRITE ${_nvqpp_script} "${_nvqpp_contents}")
-  endif()
-endfunction()
-
-# Generates cudaq/'s OWN precompiled target database - a separate artifact
-# from cudaq_finalize_target_database() above (which is runtime/'s, built
-# from its own conditional add_target_config() calls). cudaq/ must never
-# depend on runtime/, but cudaq-opt and cudaq-target-resolve do need target
-# data.
-#
-# The database is sourced from the union of:
-#  (a) every .yml file physically present under cudaq/lib/Targets/; and
-#  (b) any add_target_config() registration whose resolved .yml is NOT
-#      under cudaq/lib/Targets/ including a genuine external registration (a
-#      CUDAQ_EXTERNAL_PROJECTS entry calling add_target_config() from its
-#      own, out-of-tree CMakeLists.txt.
-#
-# Must therefore be called after every add_target_config() call site - the same
-# timing constraint as cudaq_finalize_target_database() - even though the
-# library it defines (CUDAQBuiltinTargetDb) is consumed by cudaq-opt and
-# cudaq-target-resolve, which are built earlier: CMake resolves
-# target_link_libraries() target names at generate time, not in
-# add_subdirectory() order, so this is safe.
-function(cudaq_finalize_builtin_target_database)
   file(GLOB _target_dirs LIST_DIRECTORIES true
     ${CMAKE_SOURCE_DIR}/cudaq/lib/Targets/*)
   set(_gen_args)
@@ -501,6 +433,10 @@ function(cudaq_finalize_builtin_target_database)
     list(APPEND _deps ${_yml})
     list(APPEND _seen_names ${_name})
     math(EXPR _count "${_count} + 1")
+    if (CUDAQ_INSTALL_TARGET_YAML)
+      install(FILES ${_yml} DESTINATION targets COMPONENT Runtime)
+      configure_file(${_yml} ${CMAKE_BINARY_DIR}/targets/${_name}.yml COPYONLY)
+    endif()
   endforeach()
 
   get_property(_ext_names GLOBAL PROPERTY CUDAQ_TARGET_DB_NAMES)
@@ -525,7 +461,7 @@ function(cudaq_finalize_builtin_target_database)
     endforeach()
   endif()
 
-  set(_gen_cpp ${CMAKE_BINARY_DIR}/generated/CudaqBuiltinTargetDatabase.gen.cpp)
+  set(_gen_cpp ${CMAKE_BINARY_DIR}/generated/TargetDatabase.gen.cpp)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
   add_custom_command(
     OUTPUT ${_gen_cpp}
@@ -534,10 +470,14 @@ function(cudaq_finalize_builtin_target_database)
     COMMENT "Generating precompiled cudaq/ target database (${_count} targets)"
     VERBATIM)
 
-  add_library(CUDAQBuiltinTargetDb STATIC
-    ${_gen_cpp}
-    ${CMAKE_SOURCE_DIR}/cudaq/lib/Target/TargetDatabase.cpp)
-  target_link_libraries(CUDAQBuiltinTargetDb PUBLIC CUDAQTargetConfig)
+  # CUDAQTargetDatabase is created in cudaq/lib/Target, while this custom
+  # command is declared from the top-level directory after external projects
+  # have registered their targets. Make the cross-directory ordering explicit:
+  # otherwise Ninja may schedule compilation of the generated source without
+  # first running this command.
+  add_custom_target(CUDAQTargetDatabaseGen DEPENDS ${_gen_cpp})
+  add_dependencies(CUDAQTargetDatabase CUDAQTargetDatabaseGen)
+  target_sources(CUDAQTargetDatabase PRIVATE ${_gen_cpp})
 endfunction()
 
 function(add_target_mapping_arch providerName name)

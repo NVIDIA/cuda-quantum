@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE InfleqtionServerHelper.cpp)
-add_target_config(infleqtion)
 
 add_library(cudaq-serverhelper-infleqtion SHARED InfleqtionServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-infleqtion

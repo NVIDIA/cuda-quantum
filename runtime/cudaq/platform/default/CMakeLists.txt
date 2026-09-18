@@ -64,15 +64,3 @@ install(EXPORT cudaq-platform-default-targets
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)
 endif()
-  
-add_target_config(opt-test)
-add_target_config(value-semantics-test)
-add_target_config(compiler-bench-nisq)
-add_target_config(compiler-bench-ftqc-logical)
-add_target_config(compiler-bench-ftqc-clifford-t)
-
-if (cuStateVec_FOUND)
-  add_target_config(nvidia)
-  add_target_config(nvidia-fp64)
-  add_target_config(nvidia-mgpu)
-endif()
