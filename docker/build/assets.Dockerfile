@@ -70,7 +70,7 @@ RUN cd /cuda-quantum && git init && \
             git update-index --add --cacheinfo 160000 \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
-    done && git submodule init && git submodule
+    done && git submodule init && git submodule update
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi
