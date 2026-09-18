@@ -1,0 +1,322 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: Pulse research preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      cudaq-wheel-url:
+        required: false
+        type: string
+        description: 'Optional: URL of a cuda-quantum runtime wheel artifact (e.g. .../actions/runs/RUN_ID/artifacts/ARTIFACT_ID). Defaults to the latest CI run on main.'
+  # These trigger-level filters are a coarse pre-gate only. YAML `paths:` cannot
+  # be sourced from a file, so they duplicate the prefixes owned by
+  # .github/research-preview-paths.txt (plus this workflow); the authoritative
+  # check in the `changes` job below reads that registry directly.
+  push:
+    branches:
+      - main
+      - "pull-request/[0-9]+"
+    paths:
+      - pulse/**
+      - .github/workflows/pulse.yml
+      - .github/actions/setup-cudaq-devel-venv/**
+  pull_request:
+    paths:
+      - pulse/**
+      - .github/workflows/pulse.yml
+      - .github/actions/setup-cudaq-devel-venv/**
+  merge_group:
+    types:
+      - checks_requested
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Check for pulse changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      pulse: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Check out changed-path action and path registry
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/actions/check-changed-paths
+            .github/research-preview-paths.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Assemble pulse path filter
+        id: paths
+        shell: bash
+        # research-preview-paths.txt is the single source of truth for the
+        # pulse-owned prefixes; add the workflow files that also affect pulse
+        # but are not preview-owned. Pulse builds standalone against the CUDA-Q
+        # wheels, so the root CMakeLists.txt is deliberately not listed here.
+        run: |
+          {
+            echo 'value<<EOF'
+            grep -vE '^[[:space:]]*(#|$)' .github/research-preview-paths.txt
+            echo '.github/workflows/pulse.yml'
+            echo '.github/actions/setup-cudaq-devel-venv/'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: ${{ steps.paths.outputs.value }}
+
+  quality:
+    name: Check pulse license headers
+    needs: changes
+    if: needs.changes.outputs.pulse == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out CUDA-Q
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Check pulse license headers
+        run: |
+          find pulse -name CMakeLists.txt -exec cp '{}' '{}.tmp' \;
+          trap 'find pulse -name CMakeLists.txt.tmp -delete' EXIT
+          go install github.com/apache/skywalking-eyes/cmd/license-eye@latest
+          "${GOPATH:-$HOME/go}/bin/license-eye" header check pulse
+
+  setup-cudaq-wheels:
+    name: Build CUDA-Q wheels
+    needs: changes
+    # This job builds on NVIDIA's self-hosted runners, which policy forbids for
+    # untrusted `pull_request` events. It runs on the trusted paths instead:
+    # the copy-pr-bot's pull-request/* push, the merge queue, main pushes, and
+    # manual dispatch (same gating as the GPU job below).
+    if: needs.changes.outputs.pulse == 'true' && github.event_name != 'pull_request'
+    runs-on: linux-amd64-cpu8
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+    outputs:
+      python-version: ${{ steps.setup.outputs.python-version }}
+    steps:
+      - name: Check out CUDA-Q
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up cudaq-devel environment
+        id: setup
+        uses: ./.github/actions/setup-cudaq-devel-venv
+        with:
+          cudaq-wheel-url: ${{ inputs.cudaq-wheel-url }}
+
+      - name: Upload CUDA-Q wheels
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-wheels
+          path: ${{ steps.setup.outputs.output-dir }}
+          if-no-files-found: error
+
+  test-and-docs:
+    name: Build, test, and generate docs
+    needs: [changes, setup-cudaq-wheels]
+    # Self-hosted runner: gate off untrusted `pull_request` events, same as the
+    # wheel-build job it depends on.
+    if: needs.changes.outputs.pulse == 'true' && github.event_name != 'pull_request'
+    runs-on: linux-amd64-cpu8
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out CUDA-Q
+        uses: actions/checkout@v6
+
+      # No submodules and no development container: pulse compiles against the
+      # LLVM/MLIR toolchain shipped in the cudaq-devel wheel, so nothing here
+      # needs tpls/llvm, tpls/nanobind, or a prebuilt devcontainer image. The
+      # compiler matches the one the wheels were built with.
+      - name: Set up the build toolchain
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry sudo apt-get update
+          retry sudo apt-get install -y g++-12
+          echo "CC=gcc-12" >> $GITHUB_ENV
+          echo "CXX=g++-12" >> $GITHUB_ENV
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install cmake and ninja
+        run: |
+          uv tool install "cmake==4.0.3"
+          uv tool install "ninja==1.13.0"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Download CUDA-Q wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: cudaq-wheels
+          path: cudaq-wheels
+
+      - name: Create the environment and install the wheels
+        id: cudaq
+        env:
+          PY: ${{ needs.setup-cudaq-wheels.outputs.python-version }}
+          EXTRA_PACKAGES: >-
+            nanobind>=2.12
+            hypothesis
+            lit
+            myst-parser>=3.0
+            nvidia-sphinx-theme==0.0.8
+            numpy
+            pytest==9.0.3
+            sphinx>=8.1,<8.3
+        run: |
+          runtime=$(find cudaq-wheels -name 'cuda_quantum_cu*.whl' | head -1)
+          devel=$(find cudaq-wheels -name 'cudaq_devel*.whl' | head -1)
+          for var in runtime devel; do
+            if [ -z "${!var}" ]; then
+              echo "::error::No $var wheel found under cudaq-wheels/"
+              find cudaq-wheels -type f || true
+              exit 1
+            fi
+          done
+          uv python install "$PY"
+          uv venv --python "$PY" .venv-cudaq
+          uv pip install --python .venv-cudaq/bin/python --no-deps "$runtime" "$devel"
+          if [ -n "$EXTRA_PACKAGES" ]; then
+            mapfile -t packages < <(printf '%s' "$EXTRA_PACKAGES" | tr -s '[:space:]' '\n' | grep -v '^$')
+            uv pip install --python .venv-cudaq/bin/python "${packages[@]}"
+          fi
+          echo "venv_path=$(cd .venv-cudaq && pwd)" >> $GITHUB_OUTPUT
+
+      - name: Configure pulse
+        run: |
+          cmake -S pulse -B build-pulse -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCUDAQ_BUILD_TESTS=ON \
+            -DCUDAQ_PULSE_BUILD_DOCS=ON \
+            -DPython3_EXECUTABLE="${{ steps.cudaq.outputs.venv_path }}/bin/python"
+
+      - name: Build, test, and generate docs
+        run: |
+          cmake --build build-pulse --parallel "$(nproc)" \
+            --target check-pulse pulse-docs
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: cudaq-pulse-docs
+          path: build-pulse/docs/html
+          if-no-files-found: error
+
+  gpu-validation:
+    name: Run pulse numerical validation on GPU
+    needs: [changes, setup-cudaq-wheels]
+    # Pull-request events contain untrusted fork code and cannot use NVIDIA's
+    # self-hosted runners. The copy-pr-bot's trusted pull-request/* push, merge
+    # queue, main push, and manual dispatch paths run this trusted GPU job.
+    if: needs.changes.outputs.pulse == 'true' && github.event_name != 'pull_request'
+    runs-on: linux-amd64-gpu-a100-latest-1
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read  # read the public cuda-quantum-devcontainer image from ghcr.io
+    container:
+      # Unlike the CPU job, this one still needs a container: the CUDA Toolkit
+      # and the cuQuantum SDK that the pulse GPU runtime links against are not
+      # part of the CUDA-Q wheels. LLVM/MLIR still come from the devel wheel.
+      image: ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc12-main
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    # The devcontainer's default shell is dash (/bin/sh); force bash so the
+    # `run` steps below can use bash features (`${!var}`, `mapfile`).
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out CUDA-Q
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Download CUDA-Q wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: cudaq-wheels
+          path: cudaq-wheels
+
+      - name: Create the environment and install the wheels
+        id: cudaq
+        env:
+          PY: ${{ needs.setup-cudaq-wheels.outputs.python-version }}
+          EXTRA_PACKAGES: >-
+            nanobind>=2.12
+            hypothesis
+            lit
+            numpy
+            pytest==9.0.3
+        run: |
+          runtime=$(find cudaq-wheels -name 'cuda_quantum_cu*.whl' | head -1)
+          devel=$(find cudaq-wheels -name 'cudaq_devel*.whl' | head -1)
+          for var in runtime devel; do
+            if [ -z "${!var}" ]; then
+              echo "::error::No $var wheel found under cudaq-wheels/"
+              find cudaq-wheels -type f || true
+              exit 1
+            fi
+          done
+          uv python install "$PY"
+          uv venv --python "$PY" .venv-cudaq
+          uv pip install --python .venv-cudaq/bin/python --no-deps "$runtime" "$devel"
+          if [ -n "$EXTRA_PACKAGES" ]; then
+            mapfile -t packages < <(printf '%s' "$EXTRA_PACKAGES" | tr -s '[:space:]' '\n' | grep -v '^$')
+            uv pip install --python .venv-cudaq/bin/python "${packages[@]}"
+          fi
+          echo "venv_path=$(cd .venv-cudaq && pwd)" >> $GITHUB_OUTPUT
+
+      - name: Locate cuDensityMat
+        run: |
+          echo "CUDENSITYMAT_ROOT=$(python3 -c 'import pathlib, cuquantum; print(pathlib.Path(cuquantum.__file__).parent)')" >> "$GITHUB_ENV"
+
+      - name: Configure pulse GPU validation
+        run: |
+          cmake -S pulse -B build-pulse-gpu -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCUDAQ_BUILD_TESTS=ON \
+            -DCUDENSITYMAT_ROOT="$CUDENSITYMAT_ROOT" \
+            -DPython3_EXECUTABLE="${{ steps.cudaq.outputs.venv_path }}/bin/python"
+
+      - name: Build and run numerical GPU tests
+        run: |
+          cmake --build build-pulse-gpu --parallel "$(nproc)" \
+            --target check-pulse-gpu
