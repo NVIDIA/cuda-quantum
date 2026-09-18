@@ -18,9 +18,9 @@ Every plugin follows the same directory convention:
 
     my-backend/
     ├── targets/
-    │   └── my-backend.yml         # Target config (or my-backend.so if pre-compiled)
+    │   └── my-backend.yml         # Target config (or a pre-compiled my-backend.{so,dylib})
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so  # Backend shared library
+    │   └── libcudaq-serverhelper-my-backend.so  # Backend shared library (.dylib on macOS)
     ├── data/                        # Optional auxiliary files
     │   └── topology.txt
     ├── pyproject.toml               # Python package metadata
@@ -30,19 +30,39 @@ Every plugin follows the same directory convention:
 The ``targets/`` and ``lib/`` directories are required. The ``data/`` directory
 is optional and holds any auxiliary files your backend needs at runtime.
 
+.. note::
+
+   This guide writes shared library filenames with the Linux ``.so``
+   extension. On macOS the corresponding extension is ``.dylib``; substitute
+   it throughout.
+
 .. important::
 
    Author the target as YAML. CUDA-Q loads ``targets/<name>.yml`` at runtime.
    Optionally pre-compile that YAML with ``cudaq-target-db-gen --plugin`` into
-   ``targets/<name>.so``. This is currently only supported on Linux. When both
-   artifacts are found in the same plugin root, CUDA-Q will prefer the compiled
-   library.
+   ``targets/<name>.so`` (or ``targets/<name>.dylib``). When both artifacts are
+   found in the same plugin root, CUDA-Q will prefer the compiled library.
 
    .. code-block:: bash
 
+       # Linux
        cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
        ${CXX} -std=c++20 -shared -fPIC -I "${CUDAQ_INSTALL_DIR}/include" \
          my-backend.gen.cpp -o targets/my-backend.so
+
+   .. code-block:: bash
+
+       # macOS
+       cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
+       ${CXX} -std=c++20 -shared -fPIC -isysroot "$(xcrun --show-sdk-path)" \
+         -I "${CUDAQ_INSTALL_DIR}/include" \
+         my-backend.gen.cpp -o targets/my-backend.dylib
+
+   The generated translation unit is self-contained - it only needs CUDA-Q's
+   headers, not any CUDA-Q library. On macOS, pass ``-isysroot`` explicitly if
+   ``${CXX}`` is the LLVM toolchain that ships with CUDA-Q rather than Apple's
+   own ``clang++``: only the latter infers the SDK location, and without it the
+   C++ standard library headers are not found.
 
    The generated library exports a single, ABI-versioned symbol
    (``cudaq::config::kTargetPluginSymbolName``); CUDA-Q ``dlopen``\ s it and
@@ -140,9 +160,6 @@ Multiple plugins can be built together:
 Baking a target into the pre-compiled database instead of shipping a plugin
 ----------------------------------------------------------------------------
 
-.. important::
-   The following is currently only supported on Linux.
-
 An external project added via ``CUDAQ_EXTERNAL_PROJECTS`` is ``add_subdirectory()``'d
 into the *same* CMake configure as the rest of CUDA-Q, so it shares the same
 global target-registration state as CUDA-Q's own in-tree targets. This means
@@ -162,7 +179,8 @@ exactly like ``qpp-cpu`` or ``nvidia``, rather than being dynamically loaded
 at runtime. This is a genuinely different distribution model from the plugin
 approach described above:
 
-- **Compiled plugin library (``targets/<name>.so``)**: works against an
+- **Compiled plugin library (``targets/<name>.so`` or ``targets/<name>.dylib``)**:
+  works against an
   *already-built, already-installed* CUDA-Q - the whole point of the plugin
   packaging story earlier in this document. Can be distributed independently of
   CUDA-Q's own release cadence.
@@ -223,7 +241,9 @@ its shared library; do not distribute the package as a platform-agnostic wheel.
     "my_backend_cudaq" = "."
 
     [tool.setuptools.package-data]
-    "my_backend_cudaq" = ["targets/*.so", "targets/*.yml", "lib/*"]
+    "my_backend_cudaq" = [
+        "targets/*.so", "targets/*.dylib", "targets/*.yml", "lib/*",
+    ]
 
 The critical piece is the ``[project.entry-points."cudaq.backends"]`` section.
 The key (``my-backend``) is a free-form identifier; the value points to the
@@ -244,8 +264,8 @@ The key (``my-backend``) is a free-form identifier; the value points to the
 When ``import cudaq`` runs, it discovers all ``cudaq.backends`` entry points
 and calls each one. Your ``register()`` function calls
 ``cudaq.register_backend_path()`` with the package root, which scans
-``targets/`` for ``.so`` and ``.yml`` files and makes those
-targets available.
+``targets/`` for compiled plugin libraries (``.so``, ``.dylib``) and ``.yml``
+files and makes those targets available.
 
 If your entry point raises an exception, CUDA-Q logs a warning with the
 entry-point name and traceback and continues — other plugins still load.
@@ -339,10 +359,11 @@ When ``nvq++ --target=my-backend`` is invoked, ``cudaq-target-resolve`` looks
 the name up in the unified target registry:
 
 1. **Built-in**: the pre-compiled ``CUDAQTargetDatabase`` linked into CUDA-Q
-2. **User scope**: ``${CUDAQ_PLUGIN_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/cudaq/plugins}/*/targets/my-backend.{so,yml}``
-3. **System scope**: ``${install_dir}/plugins/*/targets/my-backend.{so,yml}``
+2. **User scope**: ``${CUDAQ_PLUGIN_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/cudaq/plugins}/*/targets/my-backend.{so,dylib,yml}``
+3. **System scope**: ``${install_dir}/plugins/*/targets/my-backend.{so,dylib,yml}``
 
-A compiled ``.so`` in the same plugin root shadows a same-named ``.yml``.
+A compiled plugin library in the same plugin root shadows a same-named
+``.yml``.
 Built-in names cannot be shadowed; an external root that reuses a built-in
 name is skipped with a warning. User-scope plugins take precedence over
 system-scope.
@@ -413,6 +434,7 @@ Quick-Start Checklist
     □ Implement ServerHelper subclass
     □ Author targets/<name>.yml (``version: 1``) and optionally compile it
       with 'cudaq-target-db-gen --plugin' into targets/<name>.so
+      (targets/<name>.dylib on macOS)
     □ Create CMakeLists.txt (build with CUDAQ_EXTERNAL_PROJECTS)
     □ Add pyproject.toml with cudaq.backends entry point
     □ Add __init__.py with register() function

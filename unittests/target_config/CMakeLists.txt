@@ -37,6 +37,7 @@ target_compile_definitions(test_target_config
   PRIVATE
     "CUDAQ_TARGET_DB_GEN_PATH=\"$<TARGET_FILE:cudaq-target-db-gen>\""
     "CUDAQ_TEST_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\""
+    "CUDAQ_TEST_CXX_FLAGS=\"${CUDAQ_TARGET_PLUGIN_CXX_FLAGS}\""
     "CUDAQ_TEST_INCLUDE_DIR=\"${CMAKE_SOURCE_DIR}/cudaq/include\"")
 add_dependencies(test_target_config cudaq-target-db-gen)
 

@@ -80,9 +80,10 @@ public:
   TargetRegistry(TargetRegistry &&) = default;
   TargetRegistry &operator=(TargetRegistry &&) = default;
 
-  /// Scan `<root>/targets/` for `*.so` (preferred) and `*.yml` files.
-  /// Names that already exist (built-in or previously added) are skipped
-  /// with a diagnostic on `stderr`. Returns the names that were added.
+  /// Scan `<root>/targets/` for compiled target plugin libraries (preferred)
+  /// and `*.yml` files. Names that already exist (built-in or previously added)
+  /// are skipped with a diagnostic on `stderr`. Returns the names that were
+  /// added.
   std::vector<std::string> addPluginRoot(const std::filesystem::path &root);
 
   const TargetEntry *lookup(std::string_view name) const;

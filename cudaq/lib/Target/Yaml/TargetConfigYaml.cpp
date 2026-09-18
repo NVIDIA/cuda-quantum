@@ -8,6 +8,7 @@
 
 #include "TargetConfigYaml.h"
 #include "TargetConfigHelper.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/Target/TargetRegistry.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
@@ -128,11 +129,7 @@ static std::string processSimBackendConfig(
 
   if (!configValue.SimulationBackend.values.empty()) {
     // Use platform-appropriate shared library extension
-#ifdef __APPLE__
-    constexpr const char *libExt = ".dylib";
-#else
-    constexpr const char *libExt = ".so";
-#endif
+    const std::string libExt{cudaq::config::kSharedLibraryExtension};
     output << "if [ -f \"${install_dir}/lib/libnvqir-"
            << configValue.SimulationBackend.values.front() << libExt
            << "\" ]; then\n";

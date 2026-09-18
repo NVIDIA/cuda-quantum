@@ -383,6 +383,37 @@ function(add_cudaq_translation_library name)
   add_cudaq_library(${ARGV} DEPENDS cudaq-headers)
 endfunction()
 
+# Flags for compiling a target plugin translation unit (the output of
+# `cudaq-target-db-gen --plugin`) with CMAKE_CXX_COMPILER directly, outside of
+# CMake's own compile rules. Used by the plugin tests, and mirrored in
+# docs/sphinx/using/extending/packaging.rst for plugin authors. On macOS the
+# SDK sysroot is not implicit for every compiler - notably not for the LLVM
+# toolchain CUDA-Q vendors - so it has to be passed explicitly.
+set(CUDAQ_TARGET_PLUGIN_CXX_FLAGS "-std=c++20 -shared -fPIC")
+if (APPLE)
+  # _CMAKE_OSX_SYSROOT_PATH is the SDK path CMake resolved for its own compile
+  # rules; CMAKE_OSX_SYSROOT is the (possibly empty, possibly an SDK name
+  # rather than a path) user setting it was resolved from.
+  set(_cudaq_plugin_sysroot "${_CMAKE_OSX_SYSROOT_PATH}")
+  if (NOT IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    set(_cudaq_plugin_sysroot "${CMAKE_OSX_SYSROOT}")
+  endif()
+  if (NOT IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    execute_process(COMMAND xcrun --show-sdk-path
+                    OUTPUT_VARIABLE _cudaq_plugin_sysroot
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+  endif()
+  if (IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    string(APPEND CUDAQ_TARGET_PLUGIN_CXX_FLAGS
+           " -isysroot ${_cudaq_plugin_sysroot}")
+  else()
+    message(WARNING "Could not determine the macOS SDK path. Tests that "
+      "compile a target plugin library out-of-band may fail to find the C++ "
+      "standard library headers.")
+  endif()
+endif()
+
 # CUDAQ_INSTALL_TARGET_YAML controls whether each target's raw `.yml` file is
 # installed. While it is no longer required under the normal flow of the tools,
 # one can still install the .yml files to support legacy dependences.

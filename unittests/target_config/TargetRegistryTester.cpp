@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "TargetConfigHelper.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/Target/TargetRegistry.h"
 #include <cstdlib>
 #include <filesystem>
@@ -77,7 +78,7 @@ config:
                std::runtime_error);
 }
 
-TEST(TargetRegistryTester, prefersSoOverYamlInSameRoot) {
+TEST(TargetRegistryTester, prefersPluginLibraryOverYamlInSameRoot) {
   auto root = makeTempRoot();
   const auto ymlPath = root / "targets" / "pref.yml";
   writeFile(ymlPath, R"(
@@ -90,13 +91,16 @@ config:
 )");
 
   const auto genCpp = std::filesystem::temp_directory_path() / "pref.gen.cpp";
-  const auto soPath = root / "targets" / "pref.so";
+  const auto libPath =
+      root / "targets" /
+      ("pref" + std::string(cudaq::config::kSharedLibraryExtension));
   std::string genCmd = std::string(CUDAQ_TARGET_DB_GEN_PATH) + " --plugin -o " +
                        genCpp.string() + " pref=" + ymlPath.string();
   ASSERT_EQ(std::system(genCmd.c_str()), 0) << genCmd;
-  std::string compileCmd =
-      std::string(CUDAQ_TEST_CXX_COMPILER) + " -std=c++20 -shared -fPIC -I " +
-      CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() + " -o " + soPath.string();
+  std::string compileCmd = std::string(CUDAQ_TEST_CXX_COMPILER) + " " +
+                           CUDAQ_TEST_CXX_FLAGS + " -I " +
+                           CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() +
+                           " -o " + libPath.string();
   ASSERT_EQ(std::system(compileCmd.c_str()), 0) << compileCmd;
   writeFile(ymlPath, R"(
 version: 1
@@ -113,7 +117,7 @@ config:
   const auto *entry = registry.lookup("pref");
   ASSERT_NE(entry, nullptr);
   EXPECT_EQ(entry->origin, cudaq::config::detail::TargetOrigin::PluginLibrary);
-  EXPECT_EQ(entry->configPath, soPath);
+  EXPECT_EQ(entry->configPath, libPath);
   ASSERT_TRUE(entry->config->BackendConfig.has_value());
   ASSERT_FALSE(entry->config->BackendConfig->PreprocessorDefines.empty());
   EXPECT_EQ(entry->config->BackendConfig->PreprocessorDefines.front(),
@@ -211,12 +215,9 @@ TEST(TargetRegistryTester, multiSimulatorFallback) {
   auto root = makeTempRoot();
   auto libDir = root / "lib";
   std::filesystem::create_directories(libDir);
-#ifdef __APPLE__
-  const char *ext = ".dylib";
-#else
-  const char *ext = ".so";
-#endif
-  writeFile(libDir / (std::string("libnvqir-second") + ext), "stub");
+  writeFile(libDir / ("libnvqir-second" +
+                      std::string(cudaq::config::kSharedLibraryExtension)),
+            "stub");
   writeFile(root / "targets" / "multi-sim.yml", R"(
 version: 1
 name: multi-sim
@@ -268,6 +269,34 @@ config:
   ASSERT_TRUE(resolved.has_value());
   EXPECT_EQ(resolved->status.availability,
             cudaq::config::detail::Availability::MissingPluginLibrary);
+  std::filesystem::remove_all(root);
+}
+
+// A target configuration is platform independent, so a plugin library named
+// with another platform's extension must still resolve against the file this
+// platform actually ships.
+TEST(TargetRegistryTester, pluginLibraryExtensionIsPlatformIndependent) {
+  auto root = makeTempRoot();
+  auto libDir = root / "lib";
+  writeFile(libDir / ("libforeign-plugin" +
+                      std::string(cudaq::config::kSharedLibraryExtension)),
+            "stub");
+  writeFile(root / "targets" / "foreign-ext.yml", R"(
+version: 1
+name: foreign-ext
+description: plugin library named with a foreign extension
+config:
+  library-mode: true
+  plugin-libraries:
+    - libforeign-plugin.dylib
+    - libforeign-plugin.so
+    - libforeign-plugin
+)");
+  cudaq::config::TargetRegistry registry;
+  registry.addPluginRoot(root);
+  auto resolved = registry.resolve("foreign-ext", hostWithLibs(libDir));
+  ASSERT_TRUE(resolved.has_value());
+  EXPECT_TRUE(resolved->status.isAvailable()) << resolved->status.diagnostic;
   std::filesystem::remove_all(root);
 }
 

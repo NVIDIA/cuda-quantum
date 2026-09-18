@@ -9,6 +9,7 @@
 #include "cudaq/Target/TargetRegistry.h"
 #include "TargetConfigHelper.h"
 #include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include <algorithm>
 #include <deque>
 #include <iostream>
@@ -17,11 +18,10 @@
 using namespace cudaq::config;
 using namespace cudaq::config::detail;
 
-#ifdef __APPLE__
-constexpr const char *kSharedLibExt = ".dylib";
-#else
-constexpr const char *kSharedLibExt = ".so";
-#endif
+/// `base` with the host platform's shared library extension appended.
+static std::string withSharedLibExt(std::string_view base) {
+  return std::string(base) + std::string(kSharedLibraryExtension);
+}
 
 static std::string hyphenToUnderscore(std::string name) {
   std::replace(name.begin(), name.end(), '-', '_');
@@ -57,12 +57,7 @@ searchDirs(const TargetEntry &entry, const HostEnvironment &env) {
 
 bool findPluginLibrary(const std::string &name,
                        const std::vector<std::filesystem::path> &dirs) {
-  std::vector<std::string> candidates{name};
-  if (name.size() < 3 || name.compare(name.size() - 3, 3, ".so") != 0) {
-    if (name.find(kSharedLibExt) == std::string::npos)
-      candidates.push_back(name + kSharedLibExt);
-  }
-  for (const auto &candidate : candidates) {
+  for (const auto &candidate : sharedLibraryNameCandidates(name)) {
     const std::filesystem::path requested(candidate);
     if (requested.is_absolute()) {
       if (std::filesystem::exists(requested))
@@ -101,14 +96,14 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
   });
 
   // Prefer compiled plugin libraries over YAML of the same stem.
-  std::map<std::string, std::filesystem::path> soByName;
+  std::map<std::string, std::filesystem::path> libraryByName;
   std::map<std::string, std::filesystem::path> ymlByName;
   for (const auto &file : files) {
     auto path = file.path();
     auto stem = path.stem().string();
     auto ext = path.extension().string();
-    if (ext == ".so" || ext == ".dylib")
-      soByName.emplace(stem, path);
+    if (isSharedLibraryExtension(ext))
+      libraryByName.emplace(stem, path);
     else if (ext == ".yml" || ext == ".yaml")
       ymlByName.emplace(stem, path);
   }
@@ -133,7 +128,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
     added.push_back(name);
   };
 
-  for (const auto &[name, path] : soByName) {
+  for (const auto &[name, path] : libraryByName) {
     auto loaded = loadTargetPluginLibrary(path);
     if (!loaded.ok) {
       std::cerr << "warning: skipping target plugin library " << path.string()
@@ -144,7 +139,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
               std::move(loaded.config));
   }
   for (const auto &[name, path] : ymlByName) {
-    if (soByName.count(name))
+    if (libraryByName.count(name))
       continue;
     try {
       auto config = loadTargetConfig(path, root);
@@ -194,7 +189,7 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
     if (!backend->SimulationBackend.values.empty()) {
       bool found = false;
       for (const auto &sim : backend->SimulationBackend.values) {
-        const auto libName = "libnvqir-" + sim + kSharedLibExt;
+        const auto libName = withSharedLibExt("libnvqir-" + sim);
         if (fileExistsIn(dirs, libName)) {
           result.resolved.simulatorName = hyphenToUnderscore(sim);
           found = true;
@@ -212,9 +207,9 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
 
     if (!backend->PlatformLibrary.empty()) {
       const auto plat = backend->PlatformLibrary;
-      const auto libName = "libcudaq-platform-" + plat + kSharedLibExt;
+      const auto libName = withSharedLibExt("libcudaq-platform-" + plat);
       const auto libNameUs =
-          "libcudaq-platform-" + hyphenToUnderscore(plat) + kSharedLibExt;
+          withSharedLibExt("libcudaq-platform-" + hyphenToUnderscore(plat));
       if (!fileExistsIn(dirs, libName) && !fileExistsIn(dirs, libNameUs)) {
         result.status.availability = Availability::MissingPlatformLibrary;
         result.status.diagnostic = "Target '" + entry.name +

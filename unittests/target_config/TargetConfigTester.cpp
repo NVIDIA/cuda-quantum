@@ -12,6 +12,7 @@
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu_utils.h"
 #endif
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/Target/TargetRegistry.h"
 #include <cstdlib>
 #include <filesystem>
@@ -25,13 +26,19 @@
 // python/utils, which is only available when the Python project is enabled.
 #ifdef CUDAQ_ENABLE_PYTHON
 namespace {
+// Filename a compiled target plugin library gets on this platform.
+std::string pluginLibraryName(const std::string &stem) {
+  return stem + std::string(cudaq::config::kSharedLibraryExtension);
+}
+
 // Compiles `yamlContent` into a target plugin library at
-// `targetsDir/<name>.so` via `cudaq-target-db-gen --plugin`, exactly as an
-// external plugin author would (see packaging.rst) - external targets are no
-// longer resolved from raw YAML text. The YAML is staged at its final
-// `targetsDir/<name>.yml` location just long enough to generate/compile
-// (so `%PLUGIN_ROOT%` resolves against the real target root), then removed;
-// only the compiled artifact remains, matching production behavior.
+// `targetsDir/<name>` (with the platform's shared library extension) via
+// `cudaq-target-db-gen --plugin`, exactly as an external plugin author would
+// (see packaging.rst) - external targets are no longer resolved from raw YAML
+// text. The YAML is staged at its final `targetsDir/<name>.yml` location just
+// long enough to generate/compile (so `%PLUGIN_ROOT%` resolves against the
+// real target root), then removed; only the compiled artifact remains,
+// matching production behavior.
 void compileTargetPluginLibrary(const std::string &name,
                                 const std::string &yamlContent,
                                 const std::filesystem::path &targetsDir) {
@@ -42,15 +49,16 @@ void compileTargetPluginLibrary(const std::string &name,
   }
   const auto genCpp =
       std::filesystem::temp_directory_path() / (name + "_target.gen.cpp");
-  const auto soPath = targetsDir / (name + ".so");
+  const auto libPath = targetsDir / pluginLibraryName(name);
 
   std::string genCmd = std::string(CUDAQ_TARGET_DB_GEN_PATH) + " --plugin -o " +
                        genCpp.string() + " " + name + "=" + stagedYml.string();
   ASSERT_EQ(std::system(genCmd.c_str()), 0) << genCmd;
 
-  std::string compileCmd =
-      std::string(CUDAQ_TEST_CXX_COMPILER) + " -std=c++20 -shared -fPIC -I " +
-      CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() + " -o " + soPath.string();
+  std::string compileCmd = std::string(CUDAQ_TEST_CXX_COMPILER) + " " +
+                           CUDAQ_TEST_CXX_FLAGS + " -I " +
+                           CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() +
+                           " -o " + libPath.string();
   ASSERT_EQ(std::system(compileCmd.c_str()), 0) << compileCmd;
 
   std::filesystem::remove(stagedYml);
@@ -110,7 +118,8 @@ protected:
     compileTargetPluginLibrary(name, yaml.str(), targetsDir);
 
     if (createSo)
-      std::ofstream(libDir / ("libcudaq-serverhelper-" + name + ".so")).close();
+      std::ofstream(libDir / pluginLibraryName("libcudaq-serverhelper-" + name))
+          .close();
 
     return root;
   }
@@ -351,7 +360,7 @@ TEST_F(ExternalBackendTester, serverHelperPathResolvesToLibDir) {
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &target = targets.at("my-backend");
   auto resolvedPath = std::filesystem::path(target.pluginLibDir) /
-                      ("libcudaq-serverhelper-" + target.name + ".so");
+                      pluginLibraryName("libcudaq-serverhelper-" + target.name);
   EXPECT_TRUE(std::filesystem::exists(resolvedPath));
 }
 
@@ -364,7 +373,8 @@ TEST_F(ExternalBackendTester, configPath_resolvesToTargetsDir) {
   const auto &target = targets.at("my-backend");
   ASSERT_FALSE(target.pluginLibDir.empty());
 
-  EXPECT_EQ(target.configPath, root / "targets" / "my-backend.so");
+  EXPECT_EQ(target.configPath,
+            root / "targets" / pluginLibraryName("my-backend"));
   EXPECT_TRUE(std::filesystem::exists(target.configPath));
 }
 

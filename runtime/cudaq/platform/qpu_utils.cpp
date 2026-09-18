@@ -15,6 +15,7 @@
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Target/TargetConfig.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/Target/TargetRegistry.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -146,24 +147,10 @@ void detail::loadTargetPluginLibraries(
       configDir.filename() == "targets" ? configDir.parent_path() : configDir;
   const auto pluginLibDir = pluginRoot / "lib";
 
-  // A plugin library may be named in the target YAML without a platform
-  // suffix (e.g. "libcudaq-rest-qpu") so that one config file works on every
-  // platform; the suffix for this build is appended here. An explicitly
-  // suffixed name is still honoured, and is tried first.
-  const std::string sharedLibSuffix = PLATFORM_SHARED_LIBRARY_SUFFIX;
-  auto endsWithSuffix = [&sharedLibSuffix](const std::string &name) {
-    return name.size() >= sharedLibSuffix.size() &&
-           name.compare(name.size() - sharedLibSuffix.size(),
-                        sharedLibSuffix.size(), sharedLibSuffix) == 0;
-  };
-
   for (const auto &pluginLibrary : targetConfig.PluginLibraries) {
-    std::vector<std::string> names{pluginLibrary};
-    if (!endsWithSuffix(pluginLibrary))
-      names.push_back(pluginLibrary + sharedLibSuffix);
-
     std::vector<std::filesystem::path> candidates;
-    for (const auto &name : names) {
+    for (const auto &name :
+         config::sharedLibraryNameCandidates(pluginLibrary)) {
       const std::filesystem::path requestedPath(name);
       if (requestedPath.is_absolute()) {
         candidates.push_back(requestedPath);
