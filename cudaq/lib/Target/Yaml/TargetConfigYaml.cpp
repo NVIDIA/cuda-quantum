@@ -8,6 +8,7 @@
 
 #include "TargetConfigYaml.h"
 #include "TargetConfigHelper.h"
+#include "cudaq/Target/TargetDatabase.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/Target/TargetRegistry.h"
 #include "llvm/Support/Allocator.h"
@@ -317,11 +318,11 @@ cudaq::config::parseTargetConfig(std::string yamlContent,
   auto substitutedYamlContent =
       cudaq::config::substitutePluginRoot(std::move(yamlContent), pluginRoot);
   cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(substitutedYamlContent.c_str());
-  Input >> config;
-  if (Input.error())
+  llvm::yaml::Input input(substitutedYamlContent.c_str());
+  input >> config;
+  if (input.error())
     throw std::runtime_error("Failed to parse target configuration YAML: " +
-                             std::string(Input.error().message()));
+                             std::string(input.error().message()));
   return config;
 }
 
@@ -443,14 +444,12 @@ void MappingTraits<cudaq::config::BackendFeatureMap>::mapping(
 
 void MappingTraits<cudaq::config::TargetConfig>::mapping(
     IO &io, cudaq::config::TargetConfig &info) {
-  unsigned version = cudaq::config::kSupportedTargetSchemaVersion;
+  unsigned version = CUDAQ_TARGET_DB_ABI_VERSION;
   io.mapOptional("version", version);
-  if (!io.outputting() &&
-      version != cudaq::config::kSupportedTargetSchemaVersion) {
-    io.setError("unsupported target config schema version " +
-                std::to_string(version) + " (supported: " +
-                std::to_string(cudaq::config::kSupportedTargetSchemaVersion) +
-                ")");
+  if (!io.outputting() && version != CUDAQ_TARGET_DB_ABI_VERSION) {
+    io.setError(
+        "unsupported target config schema version " + std::to_string(version) +
+        " (supported: " + std::to_string(CUDAQ_TARGET_DB_ABI_VERSION) + ")");
   }
   io.mapRequired("name", info.Name);
   io.mapRequired("description", info.Description);

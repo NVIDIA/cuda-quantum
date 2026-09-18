@@ -16,7 +16,6 @@
 #include <map>
 
 using namespace cudaq::config;
-using namespace cudaq::config::detail;
 
 /// `base` with the host platform's shared library extension appended.
 static std::string withSharedLibExt(std::string_view base) {
@@ -48,7 +47,7 @@ static bool isFp64(const cudaq::config::BackendEndConfigEntry &backend) {
 }
 
 static std::vector<std::filesystem::path>
-searchDirs(const TargetEntry &entry, const HostEnvironment &env) {
+searchDirs(const detail::TargetEntry &entry, const HostEnvironment &env) {
   std::vector<std::filesystem::path> dirs = env.libraryPaths;
   if (!entry.pluginLibDir.empty())
     dirs.push_back(entry.pluginLibDir);
@@ -75,13 +74,13 @@ cudaq::config::TargetRegistry::TargetRegistry() {
     entries.push_back({
         .name = std::string(name),
         .config = config,
-        .origin = TargetOrigin::Builtin,
+        .origin = detail::TargetOrigin::Builtin,
     });
   }
 }
 
 bool cudaq::config::TargetRegistry::addEntry(
-    const std::string &name, TargetOrigin origin,
+    const std::string &name, detail::TargetOrigin origin,
     const std::filesystem::path &configPath,
     const std::filesystem::path &pluginLibDir, TargetConfig config) {
   if (lookup(name))
@@ -105,7 +104,7 @@ bool cudaq::config::TargetRegistry::addTargetConfigFile(
               << ex.what() << "\n";
     return false;
   }
-  return addEntry(configPath.stem().string(), TargetOrigin::YamlFile,
+  return addEntry(configPath.stem().string(), detail::TargetOrigin::YamlFile,
                   configPath, /*pluginLibDir=*/{}, std::move(config));
 }
 
@@ -137,7 +136,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
       ymlByName.emplace(stem, path);
   }
 
-  auto skipOrAdd = [&](const std::string &name, TargetOrigin origin,
+  auto skipOrAdd = [&](const std::string &name, detail::TargetOrigin origin,
                        const std::filesystem::path &configPath,
                        TargetConfig config) {
     const auto libDir = std::filesystem::is_directory(pluginLibDir)
@@ -159,7 +158,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
                 << ": " << loaded.error << "\n";
       continue;
     }
-    skipOrAdd(name, TargetOrigin::PluginLibrary, path,
+    skipOrAdd(name, detail::TargetOrigin::PluginLibrary, path,
               std::move(loaded.config));
   }
   for (const auto &[name, path] : ymlByName) {
@@ -167,7 +166,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
       continue;
     try {
       auto config = loadTargetConfig(path, root);
-      skipOrAdd(name, TargetOrigin::YamlFile, path, std::move(config));
+      skipOrAdd(name, detail::TargetOrigin::YamlFile, path, std::move(config));
     } catch (const std::exception &ex) {
       std::cerr << "warning: skipping target YAML " << path.string() << ": "
                 << ex.what() << "\n";
@@ -176,7 +175,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
   return added;
 }
 
-const TargetEntry *
+const detail::TargetEntry *
 cudaq::config::TargetRegistry::lookup(std::string_view name) const {
   for (const auto &entry : entries)
     if (entry.name == name)
@@ -184,7 +183,8 @@ cudaq::config::TargetRegistry::lookup(std::string_view name) const {
   return nullptr;
 }
 
-std::vector<const TargetEntry *> cudaq::config::TargetRegistry::list() const {
+std::vector<const detail::TargetEntry *>
+cudaq::config::TargetRegistry::list() const {
   std::vector<const TargetEntry *> result;
   result.reserve(entries.size());
   for (const auto &entry : entries)
@@ -221,7 +221,7 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
         }
       }
       if (!found) {
-        result.status.availability = Availability::MissingSimulator;
+        result.status.availability = detail::Availability::MissingSimulator;
         result.status.diagnostic =
             "Target '" + entry.name +
             "' requires an NVQIR simulator library that was not found.";
@@ -235,7 +235,8 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
       const auto libNameUs =
           withSharedLibExt("libcudaq-platform-" + hyphenToUnderscore(plat));
       if (!fileExistsIn(dirs, libName) && !fileExistsIn(dirs, libNameUs)) {
-        result.status.availability = Availability::MissingPlatformLibrary;
+        result.status.availability =
+            detail::Availability::MissingPlatformLibrary;
         result.status.diagnostic = "Target '" + entry.name +
                                    "' requires platform library '" + plat +
                                    "', which was not found.";
@@ -245,7 +246,7 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
 
     for (const auto &plugin : entry.config->PluginLibraries) {
       if (!findPluginLibrary(plugin, dirs)) {
-        result.status.availability = Availability::MissingPluginLibrary;
+        result.status.availability = detail::Availability::MissingPluginLibrary;
         result.status.diagnostic = "Target '" + entry.name +
                                    "' requires plugin library '" + plugin +
                                    "', which was not found.";
@@ -257,18 +258,18 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
   }
 
   if (entry.config->GpuRequired && env.gpuCount == 0) {
-    result.status.availability = Availability::RequiresGpu;
+    result.status.availability = detail::Availability::RequiresGpu;
     result.status.diagnostic =
         "Target '" + entry.name +
         "' requires an NVIDIA GPU, but none was detected on this host.";
     return result;
   }
 
-  if (entry.origin != TargetOrigin::Builtin) {
+  if (entry.origin != detail::TargetOrigin::Builtin) {
     const auto compatibility = checkExternalTargetVersion(
         *entry.config, env.cudaqVersion, entry.configPath);
     if (compatibility.Status == TargetVersionCompatibility::Error) {
-      result.status.availability = Availability::IncompatibleVersion;
+      result.status.availability = detail::Availability::IncompatibleVersion;
       result.status.diagnostic = compatibility.Diagnostic;
       return result;
     }
@@ -276,7 +277,7 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
       result.status.diagnostic = compatibility.Diagnostic;
   }
 
-  result.status.availability = Availability::Available;
+  result.status.availability = detail::Availability::Available;
   return result;
 }
 
@@ -298,7 +299,7 @@ cudaq::config::TargetRegistry::resolveAll(const HostEnvironment &env) const {
 }
 
 std::string
-cudaq::config::emitNvqppConfig(const TargetEntry &entry,
+cudaq::config::emitNvqppConfig(const detail::TargetEntry &entry,
                                const std::map<std::string, std::string> &args) {
   return processRuntimeArgs(*entry.config, args);
 }

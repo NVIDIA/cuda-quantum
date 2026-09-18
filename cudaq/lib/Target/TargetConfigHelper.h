@@ -15,8 +15,6 @@
 
 namespace cudaq::config {
 
-inline constexpr unsigned kSupportedTargetSchemaVersion = 1;
-
 std::string processRuntimeArgs(const TargetConfig &config,
                                const std::map<std::string, std::string> &args);
 
