@@ -8,13 +8,8 @@
 #include <fstream>
 
 // Define a simple quantum kernel to execute on IQM Server.
-struct crystal_5_ghz {
-  // Maximally entangled state between 5 qubits on Crystal_5 QPU.
-  //       QB1
-  //        |
-  // QB2 - QB3 - QB4
-  //        |
-  //       QB5
+struct ghz {
+  // Maximally entangled state between 5 qubits on a Crystal QPU.
 
   void operator()() __qpu__ {
     cudaq::qvector q(5);
@@ -22,9 +17,9 @@ struct crystal_5_ghz {
 
     // Note that the CUDA-Q compiler will automatically generate the
     // necessary instructions to swap qubits to satisfy the required
-    // connectivity constraints for the Crystal_5 QPU. In this program, that
-    // means that despite QB1 not being physically connected to QB2, the user
-    // can still perform joint operations q[0] and q[1] because the compiler
+    // connectivity constraints for the Crystal QPU. In this program, that
+    // means that despite QB1 not being physically connected to QB3, the user
+    // can still perform joint operations q[0] and q[2] because the compiler
     // will automatically (and transparently) inject the necessary swap
     // instructions to execute the user's program without the user having to
     // worry about the physical constraints.
@@ -38,7 +33,7 @@ struct crystal_5_ghz {
 int main() {
   // Submit to IQM Server asynchronously. E.g, continue executing
   // code in the file until the job has been returned.
-  auto future = cudaq::sample_async(crystal_5_ghz{});
+  auto future = cudaq::sample_async(ghz{});
   // ... classical code to execute in the meantime ...
 
   // Can write the future to file:
@@ -58,6 +53,6 @@ int main() {
 
   // OR: Submit to IQM Server synchronously. E.g, wait for the job
   // result to be returned before proceeding.
-  auto counts = cudaq::sample(crystal_5_ghz{});
+  auto counts = cudaq::sample(ghz{});
   counts.dump();
 }
