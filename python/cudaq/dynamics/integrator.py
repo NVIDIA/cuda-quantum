@@ -30,7 +30,10 @@ class BaseIntegrator(ABC, Generic[TState]):
 
     def __init__(self, **kwargs):
         self.state = None
-        self.integrator_options.update(kwargs)
+        # Use a fresh, per-instance dict rather than mutating the class-level
+        # default in place - otherwise options passed to one integrator leak
+        # into every other integrator instance created in the same process.
+        self.integrator_options = dict(self.integrator_options, **kwargs)
         self.t = None
         self.dimensions = None
         self.schedule = None
