@@ -284,7 +284,7 @@ RUN cd /cuda-quantum && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang" \
-    python3 -m build --wheel && \
+    ${PYTHON} -m build --wheel && \
     echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
     ## [<CUDAQuantumPythonBuild]
 
@@ -298,7 +298,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     CUDAQ_WHEEL="$(find . -name 'cuda_quantum*.whl')" && \
     MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o '[a-z]*linux_[^\.]*' | sed -re 's/^linux_/manylinux_2_28_/')" && \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/cuda-quantum/_skbuild/lib" \
-    python3 -m auditwheel -v repair ${CUDAQ_WHEEL} \
+    ${PYTHON} -m auditwheel -v repair ${CUDAQ_WHEEL} \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \
         --exclude libcublasLt.so.11 \
