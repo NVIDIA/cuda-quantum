@@ -169,8 +169,12 @@ cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
   });
 }
 
-cudaq::CompileTarget cudaq::DefaultQPU::getCompileTarget() {
-  return createDefaultCompileTarget();
+cudaq::CompileTarget
+cudaq::DefaultQPU::getCompileTarget(const RuntimeTarget *rt) {
+  auto ct = createDefaultCompileTarget(rt);
+  // Simulators support un-specialized arguments.
+  ct.fullySpecialize = false;
+  return ct;
 }
 
 void cudaq::DefaultQPU::configureExecutionContext(
