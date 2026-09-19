@@ -414,14 +414,6 @@ if (APPLE)
   endif()
 endif()
 
-# CUDAQ_INSTALL_TARGET_YAML controls whether each target's raw `.yml` file is
-# installed. While it is no longer required under the normal flow of the tools,
-# one can still install the .yml files to support legacy dependences.
-option(CUDAQ_INSTALL_TARGET_YAML
-  "Install each target's raw .yml file to <install>/targets/. Not required \
-for in-tree targets to resolve correctly at runtime, in Python, or via \
-nvq++ - only external/plugin targets require an on-disk .yml." ON)
-
 function(_cudaq_resolve_target_yml name out_var)
   set(_local ${CMAKE_CURRENT_SOURCE_DIR}/${name}.yml)
   if (EXISTS ${_local})
@@ -432,12 +424,12 @@ function(_cudaq_resolve_target_yml name out_var)
   endif()
 endfunction()
 
+# Register a target configuration YAML file within the target database.
+#
+# The target will be bundled as part of `CUDAQTargetDatabase`. The YAML file
+# will not be installed.
 function(add_target_config name)
   _cudaq_resolve_target_yml(${name} _yml)
-  if (CUDAQ_INSTALL_TARGET_YAML)
-    install(FILES ${_yml} DESTINATION targets COMPONENT Runtime)
-    configure_file(${_yml} ${CMAKE_BINARY_DIR}/targets/${name}.yml COPYONLY)
-  endif()
   set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_NAMES ${name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_PATHS ${_yml})
 endfunction()
