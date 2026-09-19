@@ -10,6 +10,7 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/FmtCore.h"
+#include "cudaq/Target/TargetRegistry.h"
 #include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
@@ -233,6 +234,10 @@ std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
+
+YamlTargetConfigDisabler::YamlTargetConfigDisabler() {
+  cudaq::config::disableYAMLTargetConfigParsing();
+}
 
 TargetSetter::TargetSetter(const char *backend) {
   auto &platform = cudaq::get_platform();

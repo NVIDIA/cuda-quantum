@@ -146,23 +146,3 @@ if echo "$precedence_output" | grep -q -- '-DB5_FROM_SYSTEM'; then
   echo "FAIL: system scope should not override user scope" >&2
   exit 1
 fi
-
-# --- YAML-only plugin root (no compiled plugin library) ---
-mkdir -p "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/targets" \
-         "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/lib"
-cat > "${USER_HOME}/cudaq/plugins/nvqpp-yaml-only/targets/nvqpp-yaml-only.yml" <<'EOF'
-version: 1
-name: nvqpp-yaml-only
-description: "YAML-only plugin target."
-cudaq-version: "@CUDA_QUANTUM_VERSION@"
-config:
-  library-mode: true
-  preprocessor-defines: ["-DB5_YAML_ONLY"]
-EOF
-yaml_list=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" --list-targets)
-echo "$yaml_list" | grep -q 'nvqpp-yaml-only'
-yaml_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-yaml-only \
-              "$TRIVIAL_SRC" -o "${TMPDIR}/yaml.exe" 2>&1)
-echo "$yaml_output" | grep -q -- '-DB5_YAML_ONLY'
-
-echo "PASS: external_plugin_target"

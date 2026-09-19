@@ -83,6 +83,11 @@ static cl::opt<std::string>
     cudaqVersion("cudaq-version", cl::desc("Current CUDA-Q version string"),
                  cl::init(""));
 
+static cl::opt<bool>
+    enableYamlParsing("enable-yaml-parsing",
+                      cl::desc("Allow loading target configurations from YAML "
+                               "files in plugin roots (disabled by default)"));
+
 static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
 static constexpr const char CLEAR[] = "\033[0m";
@@ -123,6 +128,21 @@ int main(int argc, char **argv) {
       argc, argv, "CUDA-Q Target Build Configuration Resolver\n");
 
   cudaq::config::TargetRegistry registry;
+
+  // Support loading YAML explicitly passed as argument
+  std::string name = targetName.getValue();
+  if (name != "-" && !name.empty()) {
+    if (const std::filesystem::path path(name);
+        std::filesystem::is_regular_file(path)) {
+      if (!registry.addTargetConfigFile(path))
+        return 1;
+      name = path.stem().string();
+    }
+  }
+  // From here on lock it down: only consider pre-compiled plugin libraries.
+  if (!enableYamlParsing)
+    cudaq::config::disableYAMLTargetConfigParsing();
+
   populateRegistry(registry);
   auto env = makeHostEnv();
 
@@ -154,7 +174,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (targetName == "-" || targetName.empty()) {
+  if (name == "-" || name.empty()) {
     llvm::errs() << "error: a target name is required\n";
     return 1;
   }
@@ -169,15 +189,6 @@ int main(int argc, char **argv) {
       std::string argVal = decodeBase64IfPrefixed(args[idx + 1]);
       argsMap.insert({argKey, argVal});
     }
-  }
-
-  std::string name = targetName.getValue();
-  // If the name refers to a file, add it to the registry.
-  if (const std::filesystem::path path(name);
-      std::filesystem::is_regular_file(path)) {
-    if (!registry.addTargetConfigFile(path))
-      return 1;
-    name = path.stem().string();
   }
 
   auto resolved = registry.resolve(name, env, argsMap);

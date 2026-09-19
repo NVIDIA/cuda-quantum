@@ -116,6 +116,12 @@ bool cudaq::config::TargetRegistry::addTargetConfigFile(
     config = std::move(loaded.config);
     origin = detail::TargetOrigin::PluginLibrary;
   } else {
+    if (isDisabledYAMLParsing()) {
+      std::cerr
+          << "error: loading target configurations from YAML is disabled; "
+          << configPath.string() << "\n";
+      return false;
+    }
     try {
       config = loadTargetConfig(configPath);
     } catch (const std::exception &ex) {
@@ -190,6 +196,8 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
   }
   for (const auto &[name, path] : ymlByName) {
     if (libraryByName.count(name))
+      continue;
+    if (isDisabledYAMLParsing())
       continue;
     try {
       auto config = loadTargetConfig(path, root);

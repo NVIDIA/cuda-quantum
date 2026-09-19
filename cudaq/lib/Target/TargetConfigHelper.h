@@ -30,6 +30,10 @@ std::string substitutePluginRoot(std::string yamlContent,
 TargetConfig parseTargetConfig(std::string yamlContent,
                                const std::filesystem::path &pluginRoot = {});
 
+/// True after `disableYAMLTargetConfigParsing()` has been called in this
+/// process.
+bool isDisabledYAMLParsing();
+
 struct TargetPluginLoadResult {
   bool ok = false;
   TargetConfig config;

@@ -26,6 +26,7 @@
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
+#include <atomic>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -312,6 +313,18 @@ cudaq::config::substitutePluginRoot(std::string yamlContent,
   return yamlContent;
 }
 
+namespace {
+std::atomic<bool> yamlParsingDisabled{false};
+}
+
+void cudaq::config::disableYAMLTargetConfigParsing() {
+  yamlParsingDisabled.store(true, std::memory_order_relaxed);
+}
+
+bool cudaq::config::isDisabledYAMLParsing() {
+  return yamlParsingDisabled.load(std::memory_order_relaxed);
+}
+
 cudaq::config::TargetConfig
 cudaq::config::parseTargetConfig(std::string yamlContent,
                                  const std::filesystem::path &pluginRoot) {
@@ -329,6 +342,10 @@ cudaq::config::parseTargetConfig(std::string yamlContent,
 cudaq::config::TargetConfig
 cudaq::config::loadTargetConfig(const std::filesystem::path &configPath,
                                 const std::filesystem::path &pluginRoot) {
+  if (isDisabledYAMLParsing())
+    throw std::runtime_error(
+        "Loading target configurations from YAML is disabled; only "
+        "pre-compiled target plugin libraries are accepted");
   std::ifstream configFile(configPath.string());
   if (!configFile.is_open())
     throw std::runtime_error("Unable to open target configuration file: " +

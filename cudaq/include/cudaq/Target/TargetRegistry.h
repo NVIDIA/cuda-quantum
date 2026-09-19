@@ -115,9 +115,18 @@ private:
                const std::map<std::string, std::string> &args = {}) const;
 };
 
-/// Read the target configuration YAML at `configPath` and parse it. When
-/// `pluginRoot` is empty, `%PLUGIN_ROOT%` resolves against the grandparent of
-/// `configPath` (i.e. the plugin root containing `targets/`).
+/// Disable loading target configurations from YAML for this process. Used by
+/// `nvq++`-produced executables to reject any unprocessed YAML files at
+/// runtime.
+void disableYAMLTargetConfigParsing();
+
+/// Read the target configuration YAML at `configPath` and parse it.
+///
+/// When `pluginRoot` is empty, `%PLUGIN_ROOT%` resolves against the grandparent
+/// of `configPath` (i.e. the plugin root containing `targets/`).
+///
+/// Throws if YAML parsing has been disabled via
+/// `disableYAMLTargetConfigParsing()`.
 TargetConfig loadTargetConfig(const std::filesystem::path &configPath,
                               const std::filesystem::path &pluginRoot = {});
 
