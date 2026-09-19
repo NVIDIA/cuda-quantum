@@ -1064,6 +1064,9 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
 endforeach()
 
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  # User-facing target (docs/sphinx/using/examples/rotation_synthesis.rst)
+  # whose YAML lives with the Python tests that exercise it.
+  add_target_config(python/tests/targets/compiler-bench-ftqc-clifford-t.yml)
   cudaq_finalize_target_database()
 endif()
 

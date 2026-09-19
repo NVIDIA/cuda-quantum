@@ -40,8 +40,8 @@ std::string decodeBase64IfPrefixed(llvm::StringRef input) {
 //===----------------------------------------------------------------------===//
 
 static cl::opt<std::string> targetName(cl::Positional,
-                                       cl::desc("<target name>"), cl::init("-"),
-                                       cl::value_desc("name"));
+                                       cl::desc("<target name or YAML path>"),
+                                       cl::init("-"), cl::value_desc("name"));
 
 static cl::opt<std::string> outputFilename("o",
                                            cl::desc("Specify output filename"),
@@ -171,9 +171,18 @@ int main(int argc, char **argv) {
     }
   }
 
-  auto resolved = registry.resolve(targetName.getValue(), env, argsMap);
+  std::string name = targetName.getValue();
+  // If the name refers to a file, add it to the registry.
+  if (const std::filesystem::path path(name);
+      std::filesystem::is_regular_file(path)) {
+    if (!registry.addTargetConfigFile(path))
+      return 1;
+    name = path.stem().string();
+  }
+
+  auto resolved = registry.resolve(name, env, argsMap);
   if (!resolved) {
-    llvm::errs() << "Invalid Target: (" << targetName.getValue() << ")\n";
+    llvm::errs() << "Invalid Target: (" << name << ")\n";
     return 1;
   }
   if (!resolved->status.isAvailable()) {

@@ -77,6 +77,13 @@ cudaq::config::TargetRegistry::TargetRegistry() {
         .origin = detail::TargetOrigin::Builtin,
     });
   }
+  // Check for a plugin library linked in statically.
+  auto linked = loadTargetPluginLibrary(nullptr);
+  if (linked.ok && !linked.config.Name.empty()) {
+    const std::string name = linked.config.Name;
+    addEntry(name, detail::TargetOrigin::PluginLibrary, {}, {},
+             std::move(linked.config));
+  }
 }
 
 bool cudaq::config::TargetRegistry::addEntry(
@@ -97,15 +104,35 @@ bool cudaq::config::TargetRegistry::addEntry(
 bool cudaq::config::TargetRegistry::addTargetConfigFile(
     const std::filesystem::path &configPath) {
   TargetConfig config;
-  try {
-    config = loadTargetConfig(configPath);
-  } catch (const std::exception &ex) {
-    std::cerr << "warning: skipping target YAML " << configPath.string() << ": "
-              << ex.what() << "\n";
+  const auto ext = configPath.extension().string();
+  detail::TargetOrigin origin = detail::TargetOrigin::YamlFile;
+  if (isSharedLibraryExtension(ext)) {
+    auto loaded = loadTargetPluginLibrary(&configPath);
+    if (!loaded.ok) {
+      std::cerr << "warning: skipping target plugin library "
+                << configPath.string() << ": " << loaded.error << "\n";
+      return false;
+    }
+    config = std::move(loaded.config);
+    origin = detail::TargetOrigin::PluginLibrary;
+  } else {
+    try {
+      config = loadTargetConfig(configPath);
+    } catch (const std::exception &ex) {
+      std::cerr << "warning: skipping target YAML " << configPath.string()
+                << ": " << ex.what() << "\n";
+      return false;
+    }
+  }
+  const auto stem = configPath.stem().string();
+  if (!config.Name.empty() && config.Name != stem) {
+    std::cerr << "error: target YAML " << configPath.string()
+              << " declares name '" << config.Name << "' but must be named '"
+              << config.Name << ".yml'\n";
     return false;
   }
-  return addEntry(configPath.stem().string(), detail::TargetOrigin::YamlFile,
-                  configPath, /*pluginLibDir=*/{}, std::move(config));
+  return addEntry(stem, origin, configPath, /*pluginLibDir=*/{},
+                  std::move(config));
 }
 
 std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
@@ -152,7 +179,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
   };
 
   for (const auto &[name, path] : libraryByName) {
-    auto loaded = loadTargetPluginLibrary(path);
+    auto loaded = loadTargetPluginLibrary(&path);
     if (!loaded.ok) {
       std::cerr << "warning: skipping target plugin library " << path.string()
                 << ": " << loaded.error << "\n";

@@ -272,6 +272,10 @@ function show_help {
 --target=<target> | -target=<target>
 	Set the Target name to <target>.
 
+--build-target-from-config=<path.yml>
+	Compile the standalone target YAML at <path.yml> into this program.
+	Mutually exclusive with --target. The file must be named <target-name>.yml.
+
 --list-targets
 	List the available targets NVQ++ can compile to.
 
@@ -404,11 +408,13 @@ NVQPP_VERSION_STRING="nvq++ Version @CUDA_QUANTUM_VERSION@ (https://github.com/N
 
 # Ensure that we have cudaq.h and we know where the include path is
 CUDAQ_INCLUDE_PATH="${install_dir}/include"
+TARGET_PLUGIN_INCLUDES=
 if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	# If the header is not there, then we are likely in
 	# the build directory for testing.
 	if [ "@CMAKE_BINARY_DIR@" -ef "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
+		TARGET_PLUGIN_INCLUDES="-I @CMAKE_SOURCE_DIR@/cudaq/include"
 		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 		if ${LIBRARY_MODE}; then
 			INCLUDES="${INCLUDES} -I @CMAKE_BINARY_DIR@/cudaq/include"
@@ -432,6 +438,11 @@ COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
+if ${CUDAQ_IS_APPLE}; then
+	EXPORT_DYNAMIC_FLAG="-Wl,-export_dynamic"
+else
+	EXPORT_DYNAMIC_FLAG="-rdynamic"
+fi
 
 # Set sysroot for finding system headers and libraries. This is critical on
 # macOS where a custom-built clang doesn't know the SDK location (unlike Linux
@@ -536,6 +547,8 @@ ENABLE_QUANTUM_OPTIMIZATION=true
 ENABLE_MLIR_LIB_LINKING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
+TARGET_CONFIG_FILE=
+EXPLICIT_TARGET=false
 EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 SHOW_HELP=false
@@ -595,13 +608,23 @@ for (( i=1; i<=$N; i++ )); do
 	arg=${@:$i:1}
 	if [[ "${arg}" == --target ]] || [[ "${arg}" == -target ]]; then
 		TARGET_CONFIG="${@:$i+1:1}"
-		break
-	fi
-	if [[ "${arg}" == --target=* ]] || [[ "${arg}" == -target=* ]]; then
+		EXPLICIT_TARGET=true
+	elif [[ "${arg}" == --target=* ]] || [[ "${arg}" == -target=* ]]; then
 		TARGET_CONFIG="${arg#*=}"
-		break
+		EXPLICIT_TARGET=true
+	elif [[ "${arg}" == --build-target-from-config ]]; then
+		TARGET_CONFIG_FILE="${@:$i+1:1}"
+	elif [[ "${arg}" == --build-target-from-config=* ]]; then
+		TARGET_CONFIG_FILE="${arg#*=}"
 	fi
 done
+
+if [ -n "${TARGET_CONFIG_FILE}" ]; then
+	${EXPLICIT_TARGET} && error_exit "--build-target-from-config cannot be combined with --target"
+	[ -f "${TARGET_CONFIG_FILE}" ] || error_exit "no such target configuration file: ${TARGET_CONFIG_FILE}"
+	TARGET_CONFIG="${TARGET_CONFIG_FILE##*/}"
+	TARGET_CONFIG="${TARGET_CONFIG%.*}"
+fi
 
 while [ $# -ne 0 ]; do
 	# Filter out any target-specific options.
@@ -652,6 +675,11 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--target=* | -target=*)
+		;;
+	--build-target-from-config)
+		shift
+		;;
+	--build-target-from-config=*)
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR=true
@@ -882,12 +910,15 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_IS_EXTERNAL=false
 	make_intermediate_file nvqppTargetBuildConfig.sh OUT_CONFIG_FILENAME
 	# shellcheck disable=SC2046
-	run ${TOOLBIN}cudaq-target-resolve --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} $(target_resolve_common_args) ${TARGET_CONFIG}
+	run ${TOOLBIN}cudaq-target-resolve --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} $(target_resolve_common_args) "${TARGET_CONFIG_FILE:-${TARGET_CONFIG}}"
 	# Load the generated config variables
 	. "${OUT_CONFIG_FILENAME}"
 	if [ -n "${TARGET_PLUGIN_LIB_DIR}" ] && [ -d "${TARGET_PLUGIN_LIB_DIR}" ]; then
 		LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${TARGET_PLUGIN_LIB_DIR}"
 		LINKDIRS="${LINKDIRS} -L${TARGET_PLUGIN_LIB_DIR}"
+	fi
+	if [ -n "${TARGET_CONFIG_PATH}" ]; then
+		CUDAQ_OPT_ARGS="${CUDAQ_OPT_ARGS} --register-target-pipelines=${TARGET_CONFIG_PATH}"
 	fi
 	if ${GEN_TARGET_BACKEND} && ${SET_TARGET_BACKEND}; then
 		# Add a function that will run before main and set the target
@@ -903,6 +934,14 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};__target_config_path;${TARGET_CONFIG_PATH_B64}"
 		fi
 	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"""   
+	fi
+	if [ -n "${TARGET_CONFIG_FILE}" ] && ${DO_LINK}; then
+		make_intermediate_file "${TARGET_CONFIG%%;*}.target.gen.cpp" GEN_CPP
+		make_intermediate_file "${TARGET_CONFIG%%;*}.target.gen.o" GEN_OBJ
+		run ${TOOLBIN}cudaq-target-db-gen --plugin -o "${GEN_CPP}" "${TARGET_CONFIG%%;*}=${TARGET_CONFIG_FILE}"
+		run ${CXX} ${COMPILER_FLAGS} ${TARGET_PLUGIN_INCLUDES} -fPIC -x c++ -c "${GEN_CPP}" -o "${GEN_OBJ}"
+		OBJS="${OBJS} ${GEN_OBJ}"
+		LINKER_FLAGS="${LINKER_FLAGS} ${EXPORT_DYNAMIC_FLAG}"
 	fi
 fi
 

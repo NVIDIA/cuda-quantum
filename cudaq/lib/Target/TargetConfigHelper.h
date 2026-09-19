@@ -37,8 +37,11 @@ struct TargetPluginLoadResult {
 };
 
 /// `dlopen()`s `libraryPath`, resolves `kTargetPluginSymbolName`, invokes it,
-/// and copies out the resulting `TargetConfig`.
+/// and copies out the resulting `TargetConfig`. When `libraryPath` is
+/// `nullptr`, the symbol is looked up in the running program (used by
+/// `nvq++ --build-target-from-config`, which links the generated plugin
+/// object into the user binary).
 TargetPluginLoadResult
-loadTargetPluginLibrary(const std::filesystem::path &libraryPath);
+loadTargetPluginLibrary(const std::filesystem::path *libraryPath);
 
 } // namespace cudaq::config

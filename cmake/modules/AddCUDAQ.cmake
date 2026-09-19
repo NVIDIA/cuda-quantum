@@ -414,23 +414,25 @@ if (APPLE)
   endif()
 endif()
 
-function(_cudaq_resolve_target_yml name out_var)
-  set(_local ${CMAKE_CURRENT_SOURCE_DIR}/${name}.yml)
-  if (EXISTS ${_local})
-    set(${out_var} ${_local} PARENT_SCOPE)
-  else()
-    set(${out_var} ${CMAKE_SOURCE_DIR}/cudaq/lib/Targets/${name}/${name}.yml
-        PARENT_SCOPE)
-  endif()
-endfunction()
-
 # Register a target configuration YAML file within the target database.
 #
-# The target will be bundled as part of `CUDAQTargetDatabase`. The YAML file
-# will not be installed.
-function(add_target_config name)
-  _cudaq_resolve_target_yml(${name} _yml)
-  set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_NAMES ${name})
+# Accepts either a bare target name, resolved as
+# `${CMAKE_CURRENT_SOURCE_DIR}/<name>.yml`, or a path to a `.yml`/`.yaml` file.
+# Only required to register YAML files not under `cudaq/lib/Targets/`.
+function(add_target_config name_or_path)
+  get_filename_component(_ext "${name_or_path}" LAST_EXT)
+  if (_ext STREQUAL ".yml" OR _ext STREQUAL ".yaml")
+    get_filename_component(_yml "${name_or_path}" ABSOLUTE
+                           BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    get_filename_component(_name "${_yml}" NAME_WLE)
+  else()
+    set(_name "${name_or_path}")
+    set(_yml "${CMAKE_CURRENT_SOURCE_DIR}/${_name}.yml")
+  endif()
+  if (NOT EXISTS ${_yml})
+    message(FATAL_ERROR "Target configuration YAML file ${_yml} does not exist")
+  endif()
+  set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_NAMES ${_name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_PATHS ${_yml})
 endfunction()
 
@@ -456,10 +458,6 @@ function(cudaq_finalize_target_database)
     list(APPEND _deps ${_yml})
     list(APPEND _seen_names ${_name})
     math(EXPR _count "${_count} + 1")
-    if (CUDAQ_INSTALL_TARGET_YAML)
-      install(FILES ${_yml} DESTINATION targets COMPONENT Runtime)
-      configure_file(${_yml} ${CMAKE_BINARY_DIR}/targets/${_name}.yml COPYONLY)
-    endif()
   endforeach()
 
   get_property(_ext_names GLOBAL PROPERTY CUDAQ_TARGET_DB_NAMES)
@@ -493,11 +491,7 @@ function(cudaq_finalize_target_database)
     COMMENT "Generating precompiled cudaq/ target database (${_count} targets)"
     VERBATIM)
 
-  # CUDAQTargetDatabase is created in cudaq/lib/Target, while this custom
-  # command is declared from the top-level directory after external projects
-  # have registered their targets. Make the cross-directory ordering explicit:
-  # otherwise Ninja may schedule compilation of the generated source without
-  # first running this command.
+  # Mark dependency on the generated source file.
   add_custom_target(CUDAQTargetDatabaseGen DEPENDS ${_gen_cpp})
   add_dependencies(CUDAQTargetDatabase CUDAQTargetDatabaseGen)
   target_sources(CUDAQTargetDatabase PRIVATE ${_gen_cpp})

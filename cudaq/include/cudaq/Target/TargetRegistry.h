@@ -86,12 +86,12 @@ public:
   /// added.
   std::vector<std::string> addPluginRoot(const std::filesystem::path &root);
 
-  /// Register the single target configuration YAML at `configPath` under its
-  /// filename stem. Unlike `addPluginRoot` this expects no plugin directory
-  /// layout: the file stands alone, so there is no sibling `lib/` to search
-  /// and the target may only name libraries already on the CUDA-Q library
-  /// path. Returns false if the name is already registered or the YAML could
-  /// not be parsed.
+  /// Register the single target configuration at `configPath` under its
+  /// filename stem. `configPath` may be a YAML file or a compiled target plugin
+  /// library. Unlike `addPluginRoot` this expects no plugin directory layout:
+  /// the file stands alone, so there is no sibling `lib/` to search and the
+  /// target may only name libraries already on the CUDA-Q library path. Returns
+  /// false if the name is already registered or the file could not be loaded.
   bool addTargetConfigFile(const std::filesystem::path &configPath);
 
   const TargetEntry *lookup(std::string_view name) const;

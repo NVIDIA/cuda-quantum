@@ -118,23 +118,6 @@ installed_backends=`\
     do basename $file | cut -d "." -f 1; \
     done`
 
-should_skip_install_validation_target() {
-  local target_config=$1
-  local skipped_target_configs=(
-    "opt-test.yml"
-    "compiler-bench-nisq.yml"
-    "compiler-bench-ftqc-logical.yml"
-    "compiler-bench-ftqc-clifford-t.yml"
-  )
-
-  for skipped_target_config in "${skipped_target_configs[@]}"; do
-    if [[ "${target_config}" == "${skipped_target_config}" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 # remote_rest targets are automatically filtered, 
 # so is execution on the photonics backend and the stim backend
 # This will test all NVIDIA-derivative targets in the legacy mode,
@@ -146,10 +129,6 @@ available_backends=`\
         if grep -q "library-mode-execution-manager: photonics" $file ; then 
           continue
         fi 
-        # Skip optimization test targets
-        if should_skip_install_validation_target "$(basename $file)"; then
-          continue
-        fi
         if grep -q "nvqir-simulation-backend: stim" $file ; then 
           continue
         fi 
