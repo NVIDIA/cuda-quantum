@@ -37,7 +37,7 @@
 // MOCK-YAML: name: mock_rest
 // MOCK-YAML: cudaq-version:
 // MOCK-YAML: platform-qpu: remote_rest
-// MOCK-YAML-NOT: plugin-libraries
+// MOCK-YAML: plugin-libraries: ["libcudaq-rest-qpu"]
 
 // LIST: user{{[[:space:]]+}}mock-rest
 

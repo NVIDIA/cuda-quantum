@@ -15,6 +15,7 @@ config:
   gen-target-backend: true
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   link-libs: ["-lcudaq-rest-qpu"]
+  plugin-libraries: ["libcudaq-rest-qpu"]
   codegen-emission: qir-base
   library-mode: false
 
