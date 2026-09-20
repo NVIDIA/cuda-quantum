@@ -49,10 +49,11 @@ How to pre-compile a target config YAML
 The target config is always authored as a YAML file. To be useable at runtime by
 compiled C++ programs, it must be distributed as a pre-compiled shared library.
 This is achieved in two steps:
- 1. Use the ``cudaq-target-db-gen --plugin`` command that is shipped with the
-    CUDA-Q installation to convert the YAML file into a `.cpp` C++ file.
- 2. Compile the `.cpp` file into a shared library and install it as
-    ``targets/<name>.so`` (or ``targets/<name>.dylib``).
+
+1. Use the ``cudaq-target-db-gen --plugin`` command that is shipped with the
+   CUDA-Q installation to convert the YAML file into a `.cpp` C++ file.
+2. Compile the `.cpp` file into a shared library and install it as
+   ``targets/<name>.so`` (or ``targets/<name>.dylib``).
 
 .. code-block:: bash
 

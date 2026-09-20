@@ -213,20 +213,17 @@ function list_targets {
 	if [ "${LIST_TARGETS_INCLUDE_UNAVAILABLE:-false}" = true ]; then
 		extra+=(--include-unavailable)
 	fi
-	# shellcheck disable=SC2046
 	${TOOLBIN}cudaq-target-resolve --list-targets $(target_resolve_common_args) "${extra[@]}"
 	exit 0
 }
 
 function list_simulators {
-	# shellcheck disable=SC2046
 	${TOOLBIN}cudaq-target-resolve --list-simulators $(target_resolve_common_args)
 }
 
 function get_simulation_backend {
 	local tmp_out line
 	tmp_out="$(mktemp "${TMPDIR:-/tmp}/nvqppSimTargetBuildConfig.XXXXXX")"
-	# shellcheck disable=SC2046
 	if ${TOOLBIN}cudaq-target-resolve -o "${tmp_out}" $(target_resolve_common_args) "$1" 2>/dev/null; then
 		line=$(grep "NVQIR_SIMULATION_BACKEND=" "${tmp_out}")
 		if [ $? -eq 0 ]; then
@@ -909,7 +906,6 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_PLUGIN_LIB_DIR=
 	TARGET_IS_EXTERNAL=false
 	make_intermediate_file nvqppTargetBuildConfig.sh OUT_CONFIG_FILENAME
-	# shellcheck disable=SC2046
 	run ${TOOLBIN}cudaq-target-resolve --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} $(target_resolve_common_args) "${TARGET_CONFIG_FILE:-${TARGET_CONFIG}}"
 	# Load the generated config variables
 	. "${OUT_CONFIG_FILENAME}"

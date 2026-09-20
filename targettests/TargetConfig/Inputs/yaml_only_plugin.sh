@@ -12,6 +12,8 @@ setup_yaml_only_plugin() {
 	test_root=$1
 	lib_ext=${2-}
 	cudaq_src=${3-}
+	plugin_cxx=${4-}
+	plugin_cxx_flags=${5-}
 	plugin_root="${test_root}/xdg/cudaq/plugins/yaml-only-runtime"
 	yml="${plugin_root}/targets/yaml-only-runtime.yml"
 	lib="${plugin_root}/targets/yaml-only-runtime${lib_ext}"
@@ -37,11 +39,6 @@ EOF
 compile_yaml_only_plugin_lib() {
 	cudaq-target-db-gen --plugin -o "${test_root}/gen.cpp" \
 		"yaml-only-runtime=${yml}"
-	cxx_flags="-std=c++20 -shared -fPIC"
-	if [ "$(uname)" = Darwin ]; then
-		cxx_flags="${cxx_flags} -isysroot $(xcrun --show-sdk-path)"
-	fi
-	# shellcheck disable=SC2086
-	c++ ${cxx_flags} -I"${cudaq_src}/cudaq/include" "${test_root}/gen.cpp" \
-		-o "${lib}"
+	"${plugin_cxx}" ${plugin_cxx_flags} -I"${cudaq_src}/cudaq/include" \
+		"${test_root}/gen.cpp" -o "${lib}"
 }

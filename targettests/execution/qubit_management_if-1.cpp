@@ -10,9 +10,9 @@
 
 // TODO: filecheck with statistics
 
-// RUN: nvq++ --build-target-from-config
-// %cudaq_src_dir/targettests/targets/opt-test.yml --target-option
-// dep-analysis,qpp %s -o %t && %t
+// clang-format off
+// RUN: nvq++ --build-target-from-config %cudaq_src_dir/targettests/targets/opt-test.yml --target-option dep-analysis,qpp %s -o %t && %t
+// clang-format on
 
 // Simple test, shouldn't affect anything
 struct run_test {

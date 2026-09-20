@@ -44,7 +44,6 @@ config:
   library-mode: true
 EOF
 	"${CUDAQ_TARGET_DB_GEN}" --plugin -o "${gen_cpp}" "${name}=${staged_yml}"
-	# shellcheck disable=SC2086 # CXXFLAGS is a flag list, not one argument
 	"${CXX}" ${CXXFLAGS} -I"${CUDAQ_INCLUDE}" "${gen_cpp}" \
 		-o "${targets_dir}/${name}${SHLIB_EXT}"
 	rm -f "${staged_yml}"

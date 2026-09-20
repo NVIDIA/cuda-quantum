@@ -7,15 +7,22 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: rm -rf %t.xdg
-// RUN: test -f %cudaq_example_plugins_dir/mock-rest/targets/mock_rest.yml
+// RUN: rm -rf %t.xdg %t.mismatch
+// RUN: test -f %cudaq_example_plugins_dir/mock-rest/targets/mock_rest%cudaq_plugin_ext
 // RUN: test -f %cudaq_example_plugins_dir/mock-rest/lib/libcudaq-serverhelper-mock_rest%cudaq_plugin_ext
-// RUN: FileCheck %s --check-prefix=MOCK-YAML --input-file=%cudaq_example_plugins_dir/mock-rest/targets/mock_rest.yml
+// RUN: FileCheck %s --check-prefix=MOCK-YAML --input-file=%cudaq_example_plugins_dir/mock-rest/mock_rest.yml
 // RUN: env XDG_DATA_HOME=%t.xdg cudaq-install-plugin --copy %cudaq_example_plugins_dir/mock-rest
 // RUN: env XDG_DATA_HOME=%t.xdg cudaq-install-plugin --list | FileCheck %s --check-prefix=LIST
 // RUN: env XDG_DATA_HOME=%t.xdg nvq++ --list-targets | FileCheck %s --check-prefix=TARGETS
-// RUN: sed -i.bak 's/^cudaq-version:.*/cudaq-version: "mismatched-test-version"/' %t.xdg/cudaq/plugins/mock-rest/targets/mock_rest.yml
+
+// Rebuild the plugin library with a mismatched version
+// RUN: mkdir -p %t.mismatch
+// RUN: sed 's/^cudaq-version:.*/cudaq-version: "mismatched-test-version"/' %cudaq_example_plugins_dir/mock-rest/mock_rest.yml > %t.mismatch/mock_rest.yml
+// RUN: cudaq-target-db-gen --plugin -o %t.mismatch/mock_rest.gen.cpp mock_rest=%t.mismatch/mock_rest.yml
+// RUN: %cudaq_plugin_cxx %cudaq_plugin_cxx_flags -I%cudaq_src_dir/cudaq/include %t.mismatch/mock_rest.gen.cpp -o %t.xdg/cudaq/plugins/mock-rest/targets/mock_rest%cudaq_plugin_ext
 // RUN: env XDG_DATA_HOME=%t.xdg nvq++ --target mock_rest %s -o %t.native 2>&1 | FileCheck %s --check-prefix=VERSION-WARNING
+
+// Execute the native executable + test use from Python
 // RUN: test -x %t.native
 // RUN: env XDG_DATA_HOME=%t.xdg %t.native
 // RUN: PYTHONPATH=%cudaq_target_dir/../python python3 -c "import cudaq; cudaq.register_backend_path('%cudaq_example_plugins_dir/mock-rest'); cudaq.set_target('mock_rest'); cudaq.reset_target()"
