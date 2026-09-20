@@ -102,25 +102,34 @@ static void addPluginScope(cudaq::config::TargetRegistry &registry,
   }
 }
 
-static cudaq::config::HostEnvironment makeHostEnv() {
+static std::filesystem::path resolveInstallDir(const char *argv0) {
+  if (!installDir.empty())
+    return std::filesystem::path(installDir.getValue());
+  const auto self = sys::fs::getMainExecutable(argv0, (void *)&addPluginScope);
+  if (self.empty())
+    return {};
+  return std::filesystem::path(self).parent_path().parent_path();
+}
+
+static cudaq::config::HostEnvironment
+makeHostEnv(const std::filesystem::path &prefix) {
   cudaq::config::HostEnvironment env;
   env.gpuCount = gpuCount;
   env.cudaqVersion = cudaqVersion;
   for (const auto &dir : libDirs)
     env.libraryPaths.emplace_back(dir);
-  if (env.libraryPaths.empty() && !installDir.empty())
-    env.libraryPaths.emplace_back(std::filesystem::path(installDir.getValue()) /
-                                  "lib");
+  if (env.libraryPaths.empty() && !prefix.empty())
+    env.libraryPaths.emplace_back(prefix / "lib");
   return env;
 }
 
-static void populateRegistry(cudaq::config::TargetRegistry &registry) {
+static void populateRegistry(cudaq::config::TargetRegistry &registry,
+                             const std::filesystem::path &prefix) {
   // User / extra plugin roots take precedence over system plugins
   for (const auto &root : pluginRoots)
     registry.addPluginRoot(root);
-  if (!installDir.empty())
-    addPluginScope(registry,
-                   std::filesystem::path(installDir.getValue()) / "plugins");
+  if (!prefix.empty())
+    addPluginScope(registry, prefix / "plugins");
 }
 
 int main(int argc, char **argv) {
@@ -143,8 +152,9 @@ int main(int argc, char **argv) {
   if (!enableYamlParsing)
     cudaq::config::disableYAMLTargetConfigParsing();
 
-  populateRegistry(registry);
-  auto env = makeHostEnv();
+  const auto prefix = resolveInstallDir(argv[0]);
+  populateRegistry(registry, prefix);
+  auto env = makeHostEnv(prefix);
 
   if (listTargets) {
     for (const auto &resolved : registry.resolveAll(env)) {

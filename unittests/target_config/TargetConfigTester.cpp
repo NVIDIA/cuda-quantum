@@ -47,8 +47,7 @@ void compileTargetPluginLibrary(const std::string &name,
     std::ofstream out(stagedYml);
     out << yamlContent;
   }
-  const auto genCpp =
-      std::filesystem::temp_directory_path() / (name + "_target.gen.cpp");
+  const auto genCpp = targetsDir / (name + "_target.gen.cpp");
   const auto libPath = targetsDir / pluginLibraryName(name);
 
   std::string genCmd = std::string(CUDAQ_TARGET_DB_GEN_PATH) + " --plugin -o " +

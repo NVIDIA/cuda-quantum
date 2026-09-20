@@ -56,7 +56,7 @@ config:
   preprocessor-defines: ["-DFROM_SO"]
 )");
 
-  const auto genCpp = std::filesystem::temp_directory_path() / "pref.gen.cpp";
+  const auto genCpp = root / "pref.gen.cpp";
   const auto libPath =
       root / "targets" /
       ("pref" + std::string(cudaq::config::kSharedLibraryExtension));

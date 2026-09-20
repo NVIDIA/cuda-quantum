@@ -112,39 +112,21 @@ requested_backends=`\
     do echo "$target"; \
     done`
 
+target_resolve="$CUDA_QUANTUM_PATH/bin/cudaq-target-resolve"
+target_resolve_args=(--install-dir="$CUDA_QUANTUM_PATH" --lib-dir="$CUDA_QUANTUM_PATH/lib")
+if $gpu_available; then
+    target_resolve_args+=(--gpu-count="$(nvidia-smi -L | wc -l | tr -d ' ')")
+fi
+
 installed_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-    do basename $file | cut -d "." -f 1; \
-    done`
+    "$target_resolve" --list-targets --include-unavailable "${target_resolve_args[@]}"`
 
-# remote_rest targets are automatically filtered, 
-# so is execution on the photonics backend and the stim backend
-# This will test all NVIDIA-derivative targets in the legacy mode,
-# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
+# Run the notebooks on all available simulators other than stim and benchmark targets
 available_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-    do
-        if grep -q "library-mode-execution-manager: photonics" $file ; then 
-          continue
-        fi 
-        if grep -q "nvqir-simulation-backend: stim" $file ; then 
-          continue
-        fi 
-        platform=$(cat $file | grep "platform-qpu:")
-        qpu=${platform##* }
-        requirements=$(cat $file | grep "gpu-requirements:")
-        gpus=${requirements##* }
-        # Full pasqal requires QRMI shared libraries and supported cluster.
-        # Generic installation validation skips it unless a dedicated environment is provided.
-        if [ "${qpu}" != "remote_rest" ] \
-        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
-        && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
-        && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
-            basename $file | cut -d "." -f 1; \
-        fi; \
-    done`
+    "$target_resolve" --list-simulators "${target_resolve_args[@]}" \
+        | grep -vxE "stim|compiler-bench-ftqc-clifford-t"`
 
 missing_backend=false
 if [ $# -eq 0 ]
