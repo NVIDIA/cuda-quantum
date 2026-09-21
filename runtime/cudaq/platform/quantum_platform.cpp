@@ -197,6 +197,7 @@ void quantum_platform::reset_exec_ctx() {
 // This delegates to the targeted QPU
 void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {
   std::size_t qid = ctx.qpuId;
+  validateQpuId(qid);
   auto platformQPU = runtimeEndpoints[qid].getQPU();
   if (platformQPU == nullptr)
     throw std::runtime_error(
