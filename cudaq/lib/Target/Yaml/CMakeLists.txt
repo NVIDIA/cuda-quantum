@@ -9,7 +9,7 @@
 # LLVM-dependent library: YAML serialization and runtime argument processing.
 add_library(CUDAQTargetConfigYaml
   TargetConfigYaml.cpp
-  TargetRegistry.cpp
+  TargetCatalog.cpp
 )
 target_include_directories(CUDAQTargetConfigYaml
   PUBLIC

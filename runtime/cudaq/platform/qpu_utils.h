@@ -11,7 +11,7 @@
 /// @file qpu_utils.h
 /// @brief Utility functions for the CUDA-Q platforms to aimed at reducing
 /// header file dependencies.
-#include "cudaq/Target/TargetRegistry.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/utils/owning_ptr.h"
 #include <filesystem>
 #include <map>
@@ -45,7 +45,7 @@ getTargetConfigPath(const std::string &backend,
 /// search path).
 config::HostEnvironment currentHostEnvironment();
 
-/// Target configuration resolved through `TargetRegistry` for a backend
+/// Target configuration resolved through `TargetCatalog` for a backend
 /// string of the form `name[;key;value...]`.
 struct ResolvedTargetConfig {
   std::string name;

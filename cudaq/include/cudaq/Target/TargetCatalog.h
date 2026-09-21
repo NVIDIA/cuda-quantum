@@ -69,16 +69,16 @@ struct HostEnvironment {
   std::vector<std::filesystem::path> libraryPaths;
 };
 
-class TargetRegistry {
+class TargetCatalog {
   using TargetEntry = detail::TargetEntry;
 
 public:
   /// Seeded from the linked-in built-in target database.
-  TargetRegistry();
-  TargetRegistry(const TargetRegistry &) = delete;
-  TargetRegistry &operator=(const TargetRegistry &) = delete;
-  TargetRegistry(TargetRegistry &&) = default;
-  TargetRegistry &operator=(TargetRegistry &&) = default;
+  TargetCatalog();
+  TargetCatalog(const TargetCatalog &) = delete;
+  TargetCatalog &operator=(const TargetCatalog &) = delete;
+  TargetCatalog(TargetCatalog &&) = default;
+  TargetCatalog &operator=(TargetCatalog &&) = default;
 
   /// Scan `<root>/targets/` for compiled target plugin libraries (preferred)
   /// and `*.yml` files. Names that already exist (built-in or previously added)

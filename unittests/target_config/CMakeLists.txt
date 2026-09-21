@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_target_config TargetConfigTester.cpp TargetRegistryTester.cpp)
+add_executable(test_target_config TargetConfigTester.cpp TargetCatalogTester.cpp)
 target_compile_definitions(test_target_config
   PRIVATE "CUDAQ_TEST_VERSION=\"${CUDA_QUANTUM_VERSION}\"")
 

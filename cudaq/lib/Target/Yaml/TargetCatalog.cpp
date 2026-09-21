@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/TargetRegistry.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "TargetConfigHelper.h"
 #include "cudaq/Target/TargetDatabase.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
@@ -69,7 +69,7 @@ bool findPluginLibrary(const std::string &name,
   return false;
 }
 
-cudaq::config::TargetRegistry::TargetRegistry() {
+cudaq::config::TargetCatalog::TargetCatalog() {
   for (const auto &[name, config] : listBuiltinTargets()) {
     entries.push_back({
         .name = std::string(name),
@@ -86,7 +86,7 @@ cudaq::config::TargetRegistry::TargetRegistry() {
   }
 }
 
-bool cudaq::config::TargetRegistry::addEntry(
+bool cudaq::config::TargetCatalog::addEntry(
     const std::string &name, detail::TargetOrigin origin,
     const std::filesystem::path &configPath,
     const std::filesystem::path &pluginLibDir, TargetConfig config) {
@@ -101,7 +101,7 @@ bool cudaq::config::TargetRegistry::addEntry(
   return true;
 }
 
-bool cudaq::config::TargetRegistry::addTargetConfigFile(
+bool cudaq::config::TargetCatalog::addTargetConfigFile(
     const std::filesystem::path &configPath) {
   TargetConfig config;
   const auto ext = configPath.extension().string();
@@ -141,8 +141,8 @@ bool cudaq::config::TargetRegistry::addTargetConfigFile(
                   std::move(config));
 }
 
-std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
-    const std::filesystem::path &root) {
+std::vector<std::string>
+cudaq::config::TargetCatalog::addPluginRoot(const std::filesystem::path &root) {
   std::vector<std::string> added;
   const auto targetsDir = root / "targets";
   if (!std::filesystem::is_directory(targetsDir))
@@ -211,7 +211,7 @@ std::vector<std::string> cudaq::config::TargetRegistry::addPluginRoot(
 }
 
 const detail::TargetEntry *
-cudaq::config::TargetRegistry::lookup(std::string_view name) const {
+cudaq::config::TargetCatalog::lookup(std::string_view name) const {
   for (const auto &entry : entries)
     if (entry.name == name)
       return &entry;
@@ -219,7 +219,7 @@ cudaq::config::TargetRegistry::lookup(std::string_view name) const {
 }
 
 std::vector<const detail::TargetEntry *>
-cudaq::config::TargetRegistry::list() const {
+cudaq::config::TargetCatalog::list() const {
   std::vector<const TargetEntry *> result;
   result.reserve(entries.size());
   for (const auto &entry : entries)
@@ -231,7 +231,7 @@ cudaq::config::TargetRegistry::list() const {
   return result;
 }
 
-cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
+cudaq::config::ResolvedTarget cudaq::config::TargetCatalog::resolveEntry(
     const TargetEntry &entry, const HostEnvironment &env,
     const std::map<std::string, std::string> &args) const {
   ResolvedTarget result;
@@ -316,7 +316,7 @@ cudaq::config::ResolvedTarget cudaq::config::TargetRegistry::resolveEntry(
   return result;
 }
 
-std::optional<ResolvedTarget> cudaq::config::TargetRegistry::resolve(
+std::optional<ResolvedTarget> cudaq::config::TargetCatalog::resolve(
     std::string_view name, const HostEnvironment &env,
     const std::map<std::string, std::string> &args) const {
   const auto *entry = lookup(name);
@@ -326,7 +326,7 @@ std::optional<ResolvedTarget> cudaq::config::TargetRegistry::resolve(
 }
 
 std::vector<ResolvedTarget>
-cudaq::config::TargetRegistry::resolveAll(const HostEnvironment &env) const {
+cudaq::config::TargetCatalog::resolveAll(const HostEnvironment &env) const {
   std::vector<ResolvedTarget> result;
   for (const auto *entry : list())
     result.push_back(resolveEntry(*entry, env));

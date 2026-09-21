@@ -11,7 +11,7 @@
 #include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
 #include "cudaq/Support/Plugin.h"
-#include "cudaq/Target/TargetRegistry.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -62,7 +62,7 @@ static bool isSimulationConfig(const cudaq::config::TargetConfig &config) {
          backend->LibraryModeExecutionManager.empty();
 }
 
-static void addPluginScopeToRegistry(cudaq::config::TargetRegistry &registry,
+static void addPluginScopeToRegistry(cudaq::config::TargetCatalog &registry,
                                      const std::filesystem::path &scope) {
   if (!std::filesystem::is_directory(scope))
     return;

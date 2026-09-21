@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Resolves a target by name via TargetRegistry plus CLI target arguments into
+// Resolves a target by name via TargetCatalog plus CLI target arguments into
 // a flat file of nvq++-compatible bash KEY=value assignments.
 
-#include "cudaq/Target/TargetRegistry.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
@@ -92,7 +92,7 @@ static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
 static constexpr const char CLEAR[] = "\033[0m";
 
-static void addPluginScope(cudaq::config::TargetRegistry &registry,
+static void addPluginScope(cudaq::config::TargetCatalog &registry,
                            const std::filesystem::path &scope) {
   if (!std::filesystem::is_directory(scope))
     return;
@@ -123,7 +123,7 @@ makeHostEnv(const std::filesystem::path &prefix) {
   return env;
 }
 
-static void populateRegistry(cudaq::config::TargetRegistry &registry,
+static void populateRegistry(cudaq::config::TargetCatalog &registry,
                              const std::filesystem::path &prefix) {
   // User / extra plugin roots take precedence over system plugins
   for (const auto &root : pluginRoots)
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(
       argc, argv, "CUDA-Q Target Build Configuration Resolver\n");
 
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
 
   // Support loading YAML explicitly passed as argument
   std::string name = targetName.getValue();

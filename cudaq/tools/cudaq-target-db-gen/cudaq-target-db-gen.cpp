@@ -16,9 +16,9 @@
 // Usage:
 //   cudaq-target-db-gen -o <output.cpp> <name>=<path/to/name.yml> ...
 
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetDatabase.h"
-#include "cudaq/Target/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"

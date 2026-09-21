@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
-#include "cudaq/Target/TargetRegistry.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -44,7 +44,7 @@ cudaq::config::HostEnvironment hostWithLibs(const std::filesystem::path &libDir,
 
 } // namespace
 
-TEST(TargetRegistryTester, prefersPluginLibraryOverYamlInSameRoot) {
+TEST(TargetCatalogTester, prefersPluginLibraryOverYamlInSameRoot) {
   auto root = makeTempRoot();
   const auto ymlPath = root / "targets" / "pref.yml";
   writeFile(ymlPath, R"(
@@ -77,7 +77,7 @@ config:
   preprocessor-defines: ["-DFROM_YAML"]
 )");
 
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   auto added = registry.addPluginRoot(root);
   ASSERT_EQ(added.size(), 1u);
   const auto *entry = registry.lookup("pref");
@@ -92,7 +92,7 @@ config:
   std::filesystem::remove(genCpp);
 }
 
-TEST(TargetRegistryTester, yamlOnlyPluginRootIsLoaded) {
+TEST(TargetCatalogTester, yamlOnlyPluginRootIsLoaded) {
   auto root = makeTempRoot();
   writeFile(root / "targets" / "yamlonly.yml", R"(
 version: 1
@@ -103,7 +103,7 @@ config:
   preprocessor-defines: ["-DYAML_ONLY"]
 )");
 
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   auto added = registry.addPluginRoot(root);
   ASSERT_EQ(added.size(), 1u);
   const auto *entry = registry.lookup("yamlonly");
@@ -115,7 +115,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, addsStandaloneTargetConfigFile) {
+TEST(TargetCatalogTester, addsStandaloneTargetConfigFile) {
   auto root = makeTempRoot();
   // Note: directly under `root`, with no `targets/` or `lib/` layout.
   const auto configPath = root / "standalone.yml";
@@ -128,7 +128,7 @@ config:
   preprocessor-defines: ["-DSTANDALONE"]
 )");
 
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   ASSERT_TRUE(registry.addTargetConfigFile(configPath));
   const auto *entry = registry.lookup("standalone");
   ASSERT_NE(entry, nullptr);
@@ -144,7 +144,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, standaloneTargetConfigCannotShadowBuiltin) {
+TEST(TargetCatalogTester, standaloneTargetConfigCannotShadowBuiltin) {
   auto root = makeTempRoot();
   const auto configPath = root / "qpp-cpu.yml";
   writeFile(configPath, R"(
@@ -155,14 +155,14 @@ config:
   library-mode: true
 )");
 
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   EXPECT_FALSE(registry.addTargetConfigFile(configPath));
   EXPECT_EQ(registry.lookup("qpp-cpu")->origin,
             cudaq::config::detail::TargetOrigin::Builtin);
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, refusesToShadowBuiltin) {
+TEST(TargetCatalogTester, refusesToShadowBuiltin) {
   auto root = makeTempRoot();
   writeFile(root / "targets" / "qpp-cpu.yml", R"(
 version: 1
@@ -171,7 +171,7 @@ description: should not shadow
 config:
   library-mode: true
 )");
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   auto added = registry.addPluginRoot(root);
   EXPECT_TRUE(added.empty());
   const auto *entry = registry.lookup("qpp-cpu");
@@ -180,7 +180,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, requiresGpuAvailability) {
+TEST(TargetCatalogTester, requiresGpuAvailability) {
   auto root = makeTempRoot();
   writeFile(root / "targets" / "needs-gpu.yml", R"(
 version: 1
@@ -190,7 +190,7 @@ gpu-requirements: true
 config:
   library-mode: true
 )");
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   registry.addPluginRoot(root);
   auto env = hostWithLibs(root / "lib", /*gpuCount=*/0);
   auto resolved = registry.resolve("needs-gpu", env);
@@ -206,7 +206,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, missingSimulatorAvailability) {
+TEST(TargetCatalogTester, missingSimulatorAvailability) {
   auto root = makeTempRoot();
   writeFile(root / "targets" / "needs-sim.yml", R"(
 version: 1
@@ -215,7 +215,7 @@ description: missing simulator
 config:
   nvqir-simulation-backend: does-not-exist
 )");
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   registry.addPluginRoot(root);
   auto resolved = registry.resolve("needs-sim", hostWithLibs(root / "lib"));
   ASSERT_TRUE(resolved.has_value());
@@ -224,7 +224,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, multiSimulatorFallback) {
+TEST(TargetCatalogTester, multiSimulatorFallback) {
   auto root = makeTempRoot();
   auto libDir = root / "lib";
   std::filesystem::create_directories(libDir);
@@ -238,7 +238,7 @@ description: fallback simulators
 config:
   nvqir-simulation-backend: first, second
 )");
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   registry.addPluginRoot(root);
   auto resolved = registry.resolve("multi-sim", hostWithLibs(libDir));
   ASSERT_TRUE(resolved.has_value());
@@ -247,7 +247,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, missingPlatformLibraryAvailability) {
+TEST(TargetCatalogTester, missingPlatformLibraryAvailability) {
   auto root = makeTempRoot();
   writeFile(root / "targets" / "needs-plat.yml", R"(
 version: 1
@@ -256,7 +256,7 @@ description: missing platform
 config:
   platform-library: does-not-exist
 )");
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   registry.addPluginRoot(root);
   auto resolved = registry.resolve("needs-plat", hostWithLibs(root / "lib"));
   ASSERT_TRUE(resolved.has_value());
@@ -265,7 +265,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, missingPluginLibraryAvailability) {
+TEST(TargetCatalogTester, missingPluginLibraryAvailability) {
   auto root = makeTempRoot();
   writeFile(root / "targets" / "needs-plugin.yml", R"(
 version: 1
@@ -276,7 +276,7 @@ config:
   plugin-libraries:
     - libmissing-plugin.so
 )");
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   registry.addPluginRoot(root);
   auto resolved = registry.resolve("needs-plugin", hostWithLibs(root / "lib"));
   ASSERT_TRUE(resolved.has_value());
@@ -285,7 +285,7 @@ config:
   std::filesystem::remove_all(root);
 }
 
-TEST(TargetRegistryTester, userScopeBeforeSystemScope) {
+TEST(TargetCatalogTester, userScopeBeforeSystemScope) {
   auto user = makeTempRoot() / "user";
   auto system = makeTempRoot() / "system";
   writeFile(user / "targets" / "shared.yml", R"(
@@ -304,7 +304,7 @@ config:
   library-mode: true
   preprocessor-defines: ["-DFROM_SYSTEM"]
 )");
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   registry.addPluginRoot(user);
   registry.addPluginRoot(system);
   const auto *entry = registry.lookup("shared");

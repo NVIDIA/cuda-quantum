@@ -16,7 +16,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/Version.h"
-#include "cudaq/Target/TargetRegistry.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Option/Option.h"
@@ -89,7 +89,7 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 /// that configures a `TargetPassPipeline`.
 static void
 registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   for (const auto &path : configPaths)
     registry.addTargetConfigFile(path);
   for (const auto *entry : registry.list()) {

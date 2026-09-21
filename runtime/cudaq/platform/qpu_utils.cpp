@@ -14,9 +14,9 @@
 #include "nvqpp_config.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
-#include "cudaq/Target/TargetRegistry.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -79,7 +79,7 @@ detail::resolveTargetConfig(const std::string &backend) {
   auto split = cudaq::split(backend, ';');
   const std::string targetName = split.empty() ? backend : split.front();
 
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   std::filesystem::path explicitPath;
   if (auto path = getBackendConfigOption(backend, "__target_config_path")) {
     explicitPath = *path;

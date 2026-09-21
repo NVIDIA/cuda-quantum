@@ -8,9 +8,9 @@
 
 #include "TargetConfigYaml.h"
 #include "TargetConfigHelper.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetDatabase.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
-#include "cudaq/Target/TargetRegistry.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"

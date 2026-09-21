@@ -12,8 +12,8 @@
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu_utils.h"
 #endif
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
-#include "cudaq/Target/TargetRegistry.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -66,7 +66,7 @@ void compileTargetPluginLibrary(const std::string &name,
 
 std::unordered_map<std::string, cudaq::RuntimeTarget>
 loadFromPluginRoot(const std::filesystem::path &pkgRoot) {
-  cudaq::config::TargetRegistry registry;
+  cudaq::config::TargetCatalog registry;
   registry.addPluginRoot(pkgRoot);
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets;
   for (const auto *entry : registry.list()) {

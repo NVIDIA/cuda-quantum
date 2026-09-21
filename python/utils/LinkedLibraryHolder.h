@@ -9,8 +9,7 @@
 #pragma once
 
 #include "common/RuntimeTarget.h"
-#include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetRegistry.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
 #include <map>
@@ -59,7 +58,7 @@ protected:
   std::unordered_map<std::string, RuntimeTarget> simulationTargets;
 
   /// @brief Sole owner of target discovery for this Python session.
-  config::TargetRegistry targetRegistry;
+  config::TargetCatalog targetRegistry;
 
   /// @brief Store the name of the default target
   std::string defaultTarget;
