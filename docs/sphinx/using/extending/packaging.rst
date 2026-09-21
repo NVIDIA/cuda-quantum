@@ -32,7 +32,7 @@ The ``targets/`` and ``lib/`` directories are required. The ``data/`` directory
 is optional and holds any auxiliary files your backend needs at runtime.
 The plugin can choose to ship either a pre-compiled target config library
 (`my-backend.so`) or a raw YAML target config (`my-backend.yml`). The
-pre-compiled format is recommended and required for the plugin to be useable in
+pre-compiled format is recommended and required for the plugin to be used in
 CUDA-Q C++ programs, whereas the YAML config is for use in Python programs only.
 When both artifacts are found in the same plugin root, CUDA-Q will prefer the
 compiled library.
@@ -46,7 +46,7 @@ compiled library.
 How to pre-compile a target config YAML
 =======================================
 
-The target config is always authored as a YAML file. To be useable at runtime by
+The target config is always authored as a YAML file. To be used at runtime by
 compiled C++ programs, it must be distributed as a pre-compiled shared library.
 This is achieved in two steps:
 
@@ -55,20 +55,20 @@ This is achieved in two steps:
 2. Compile the `.cpp` file into a shared library and install it as
    ``targets/<name>.so`` (or ``targets/<name>.dylib``).
 
-.. code-block:: bash
+```bash
+ # Linux
+ cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
+ ${CXX} -std=c++20 -shared -fPIC -I "${CUDAQ_INSTALL_DIR}/include" \
+   my-backend.gen.cpp -o targets/my-backend.so
+```
 
-   # Linux
-   cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
-   ${CXX} -std=c++20 -shared -fPIC -I "${CUDAQ_INSTALL_DIR}/include" \
-     my-backend.gen.cpp -o targets/my-backend.so
-
-.. code-block:: bash
-
+```bash
    # macOS
-   cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
-   ${CXX} -std=c++20 -shared -fPIC -isysroot "$(xcrun --show-sdk-path)" \
-     -I "${CUDAQ_INSTALL_DIR}/include" \
-     my-backend.gen.cpp -o targets/my-backend.dylib
+ cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
+ ${CXX} -std=c++20 -shared -fPIC -isysroot "$(xcrun --show-sdk-path)" \
+   -I "${CUDAQ_INSTALL_DIR}/include" \
+   my-backend.gen.cpp -o targets/my-backend.dylib
+```
 
 The generated translation unit is self-contained - it only needs CUDA-Q's
 headers, not any CUDA-Q library. On macOS, pass ``-isysroot`` explicitly if
@@ -365,10 +365,10 @@ the name up in the unified target registry:
 3. **System scope**: ``${install_dir}/plugins/*/targets/my-backend.{so,dylib}``
 
 A compiled plugin library in the same plugin root shadows a same-named
-``.yml``. C++ programs do not suppot parsing YAML target configs at runtime
-and expect to find a pre-compiled target config library. Built-in names cannot
-be shadowed; an external root that reuses a built-in name is skipped with a
-warning. User-scope plugins take precedence over system-scope.
+``.yml``. C++ programs do not support parsing YAML target configuration files
+at runtime and expect to find a pre-compiled target config library. Built-in
+names cannot be shadowed; an external root that reuses a built-in name is
+skipped with a warning. User-scope plugins take precedence over system-scope.
 
 ``nvq++ --list-targets`` (and ``cudaq.get_targets()`` / ``has_target()``)
 show targets that are *available on this host*. Pass ``--include-unavailable``
