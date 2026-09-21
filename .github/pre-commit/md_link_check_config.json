@@ -48,6 +48,10 @@
         "pattern": "^https://vscode.dev/"
       },
       {
+        "_comment": "Requires an NGC login. Returns 401 to unauthenticated clients even though the page is live.",
+        "pattern": "^https://ngc\\.nvidia\\.com/setup/api-key"
+      },
+      {
         "pattern": "microsoft.com/"
       },
       {
