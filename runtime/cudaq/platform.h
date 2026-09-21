@@ -59,7 +59,7 @@ inline cudaq::CompileTarget get_compile_target(std::size_t qpu_id = 0) {
 /// AOT-compiled modules as-is if they exist, and otherwise JIT-compile the
 /// module as appropriate for a Python kernel.
 cudaq::CompileTarget
-createDefaultCompileTarget(quantum_platform *platform = nullptr);
+createDefaultCompileTarget(const quantum_platform *platform);
 cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt);
 
 // Declare this function, implemented elsewhere

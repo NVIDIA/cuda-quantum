@@ -126,7 +126,7 @@ cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
 }
 
 cudaq::CompileTarget
-createDefaultCompileTarget(quantum_platform *platform = nullptr) {
+createDefaultCompileTarget(const quantum_platform *platform) {
   if (!platform)
     platform = getQuantumPlatformInternal();
 
