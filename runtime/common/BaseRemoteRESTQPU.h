@@ -221,7 +221,7 @@ public:
                                         serverHelper, executor);
   }
 
-  CompileTarget getCompileTarget() override {
+  CompileTarget getCompileTarget(const RuntimeTarget * = nullptr) override {
     auto pipelineSubstitutions =
         serverHelper->getPipelineSubstitutions(platformPath);
     auto target = CompileTarget::createFromConfig(targetConfig, backendConfig,
