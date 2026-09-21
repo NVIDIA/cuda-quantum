@@ -49,12 +49,6 @@ if(POLICY CMP0177)
   cmake_policy(SET CMP0177 NEW)
 endif()
 
-# CMP0219: Macro invocations preserve backslashes in arguments.
-# New in CMake 4.4. https://cmake.org/cmake/help/latest/policy/CMP0219.html
-if(POLICY CMP0219)
-  cmake_policy(SET CMP0219 NEW)
-endif()
-
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
