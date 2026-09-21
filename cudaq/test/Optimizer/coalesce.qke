@@ -161,38 +161,17 @@ func.func @f2() {
   return
 }
 
-// Variables local to a loop body keep their allocas in the body. Raising them
-// to the entry block would turn them into loop-carried values that nothing
-// reads, which blocks `cc.loop` reversal in apply-op-specialization.
+// Variable coalesce should do what it is specified to do, not be hobbled to
+// work around other transformations. Not coalescing variables correctly should
+// be considered a BUG.
 
 // CHECK-LABEL:   func.func @f2() {
-// CHECK-DAG:       %[[VAL_11:.*]] = cc.alloca f64
-// CHECK-DAG:       %[[VAL_12:.*]] = cc.alloca i32
-// CHECK-DAG:       %[[VAL_13:.*]] = cc.alloca f64
-// CHECK-DAG:       %[[VAL_14:.*]] = cc.alloca i32
-// CHECK-DAG:       %[[VAL_15:.*]] = cc.alloca i32
-// CHECK-DAG:       %[[VAL_16:.*]] = cc.alloca f64
+// CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca f64
+// CHECK-DAG:       %[[ALLOCA_1:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[ALLOCA_2:.*]] = cc.alloca f64
+// CHECK-DAG:       %[[ALLOCA_3:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[ALLOCA_4:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[ALLOCA_5:.*]] = cc.alloca f64
+// CHECK:           call @test({{.*}}) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
 // CHECK-NOT:       cc.alloca
-// CHECK:           cc.scope {
-// CHECK:             cc.loop while {
-// CHECK:             } do {
-// CHECK:               cc.scope {
-// CHECK:                 %[[VAL_17:.*]] = cc.alloca i32
-// CHECK:                 %[[VAL_18:.*]] = cc.alloca f64
-// CHECK:                 func.call @test(%[[VAL_17]], %[[VAL_18]])
-// CHECK:               }
-// CHECK:               cc.scope {
-// CHECK:                 %[[VAL_19:.*]] = cc.alloca i32
-// CHECK:                 %[[VAL_20:.*]] = cc.alloca f64
-// CHECK:                 func.call @test(%[[VAL_19]], %[[VAL_20]])
-// CHECK:               }
-// CHECK:               cc.continue
-// CHECK:             } step {
-// CHECK:             }
-// CHECK:             cc.scope {
-// CHECK-NOT:           cc.alloca
-// CHECK:               func.call @test(%[[VAL_12]], %[[VAL_11]])
-// CHECK:             }
-// CHECK:           }
 // CHECK:           return
-// CHECK:         }

@@ -6,6 +6,31 @@ on:
         type: string
         description: 'The name of the branch to use as cache base.'
         default: main
+      doca_version:
+        required: false
+        type: string
+        default: ''
+        description: 'DOCA version to install. Blank uses the deps_common.sh default.'
+      holoscan_version:
+        required: false
+        type: string
+        default: ''
+        description: 'Holoscan SDK version to install. Blank uses the deps_common.sh default.'
+      hsb_repo:
+        required: false
+        type: string
+        default: ''
+        description: 'Holoscan Sensor Bridge repository to clone. Blank uses the deps_common.sh default. Must be clonable without credentials.'
+      hsb_ref:
+        required: false
+        type: string
+        default: ''
+        description: 'Holoscan Sensor Bridge branch or tag. Blank uses the deps_common.sh default.'
+      cpu_roce_use_hololink:
+        required: false
+        type: boolean
+        default: false
+        description: 'Link CPU RoCE against Hololink. Needs an HSB ref that exports HololinkRoce 2.7.'
   # No `paths:` filter: copy-pr-bot rebases make push diffs unreliable, and
   # merge_group does not support them. The `changes` job gates instead.
   push:
@@ -61,6 +86,12 @@ jobs:
     with:
       platform: ${{ matrix.platform }}
       cuda_version: ${{ matrix.cuda_version }}
+      # Only a workflow_dispatch carries these; every other event leaves them
+      # empty, which the dependency scripts read as "use the default".
+      doca_version: ${{ inputs.doca_version || '' }}
+      holoscan_version: ${{ inputs.holoscan_version || '' }}
+      hsb_repo: ${{ inputs.hsb_repo || '' }}
+      hsb_ref: ${{ inputs.hsb_ref || '' }}
 
   test_installer:
     name: Test Installer  
@@ -152,12 +183,30 @@ jobs:
 
       - name: Build CUDA Quantum Realtime
         uses: ./.github/actions/run-in-docker
+        # Only a workflow_dispatch carries these; every other event leaves them
+        # empty, which is what the dependency scripts read as "use the default".
+        env:
+          DOCA_VERSION: ${{ inputs.doca_version || '' }}
+          HOLOSCAN_SDK_VERSION: ${{ inputs.holoscan_version || '' }}
+          CUDAQ_REALTIME_HSB_REPO: ${{ inputs.hsb_repo || '' }}
+          CUDAQ_REALTIME_HSB_REF: ${{ inputs.hsb_ref || '' }}
+          CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK: ${{ (inputs.cpu_roce_use_hololink && 'ON') || 'OFF' }}
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
           image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
           volume: ${{ github.workspace }}:/workspace
           shell: bash
+          env: |
+            DOCA_VERSION
+            HOLOSCAN_SDK_VERSION
+            CUDAQ_REALTIME_HSB_REPO
+            CUDAQ_REALTIME_HSB_REF
+            CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
           run: |
+            # run-in-docker executes this block with a bare `bash`, so without
+            # this a failing dependency install would be ignored and the job
+            # would go green having silently built without DOCA/Holoscan/HSB.
+            set -eo pipefail
             # TODO: use official apt repo once upgraded to Ubuntu 26.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
@@ -168,6 +217,8 @@ jobs:
             cd /workspace/realtime
             # Installs DOCA/Holoscan and builds HSB into $HSB_ROOT/build.
             export HSB_ROOT=/workspace/holoscan-sensor-bridge
+            # deps_common.sh logs the ref it builds but not the repository.
+            echo "HSB source: ${CUDAQ_REALTIME_HSB_REPO:-(deps_common.sh default)} @ ${CUDAQ_REALTIME_HSB_REF:-(deps_common.sh default)}, hololink CPU RoCE ${CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK:-OFF}"
             bash scripts/install_dev_prerequisites.sh
             # Build CUDA-Q Realtime
             cd /workspace/realtime

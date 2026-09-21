@@ -305,6 +305,7 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   // NB: This pipeline should be kept in synch with the pipeline in nvq++.
   pm.addPass(cudaq::opt::createVerifyAtomicQuantumRegions());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createShrinkWrap());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());

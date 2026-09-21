@@ -1338,27 +1338,6 @@ jobs:
           for installer in `find installers/ -type f -not -name '*.whl'`; do
             mv -v "$installer" "$(basename -- "$installer")"
           done
-          # A single wheelhouse.zip file is too big. Split it up by platform.
-          platforms=$(ls wheelhouse | cut -d- -f1 | sort | uniq)
-          for p in $platforms; do
-            mkdir wheelhouse-${p}
-            for fulldir in wheelhouse/${p}-*; do
-              dir=$(basename $fulldir)
-              mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
-            done
-            if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then
-              echo "::error::No cudaq-logical wheel found for platform ${p} in logical-wheels/."
-              exit 1
-            fi
-            mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
-            if [[ ${p} != "darwin" ]] && ! compgen -G "devel-wheels/cudaq_devel-*_${p}.whl" > /dev/null; then
-              echo "::error::No cudaq-devel wheel found for platform ${p} in devel-wheels/."
-              exit 1
-            fi
-            mv -v devel-wheels/cudaq_devel-*_${p}.whl wheelhouse-${p}/
-            zip -r wheelhouse-${p}.zip wheelhouse-${p}
-          done
-          zip -r metapackages.zip metapackages
 
           release_id=${{ github.run_id }}
           release_title="${{ needs.metadata.outputs.release_title }}"
@@ -1402,9 +1381,47 @@ jobs:
           gh release create $release_id --title $release_id -R ${{ github.repository }} \
             --target $github_commit --draft $prerelease \
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
+
+          # Installers are the biggest thing on disk (~10 GB): upload and
+          # free them before staging wheelhouses, or the runner runs out of
+          # space partway through zipping.
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum* --clobber
-          gh release upload $release_id -R ${{ github.repository }} wheelhouse-*.zip --clobber
+          rm -f install_cuda_quantum*
+
+          # A single wheelhouse.zip file is too big. Split it up by platform,
+          # and upload + delete each one immediately -- zip leaves the
+          # uncompressed wheelhouse-${p}/ dir behind, so keeping all three
+          # around (plus their zips) at once is another ~5 GB we don't need.
+          platforms=$(ls wheelhouse | cut -d- -f1 | sort | uniq)
+          for p in $platforms; do
+            mkdir wheelhouse-${p}
+            for fulldir in wheelhouse/${p}-*; do
+              dir=$(basename $fulldir)
+              mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
+            done
+            if [[ ${p} != "darwin" ]]; then
+              if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then
+                echo "::error::No cudaq-logical wheel found for platform ${p} in logical-wheels/."
+                exit 1
+              fi
+              mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
+            fi
+            if [[ ${p} != "darwin" ]]; then
+              if ! compgen -G "devel-wheels/cudaq_devel-*_${p}.whl" > /dev/null; then
+                echo "::error::No cudaq-devel wheel found for platform ${p} in devel-wheels/."
+                exit 1
+              fi
+              mv -v devel-wheels/cudaq_devel-*_${p}.whl wheelhouse-${p}/
+            fi
+            zip -r wheelhouse-${p}.zip wheelhouse-${p}
+            gh release upload $release_id -R ${{ github.repository }} wheelhouse-${p}.zip --clobber
+            rm -rf wheelhouse-${p} wheelhouse-${p}.zip
+          done
+
+          zip -r metapackages.zip metapackages
           gh release upload $release_id -R ${{ github.repository }} metapackages.zip --clobber
+          rm -rf metapackages metapackages.zip
+
           # The release is left as a draft (the --draft=false toggle stays off).
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
