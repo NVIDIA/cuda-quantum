@@ -21,6 +21,8 @@ runge_kutta::runge_kutta(int order, const std::optional<double> &max_step_size)
   if (m_order != 1 && m_order != 2 && m_order != 4)
     throw std::invalid_argument(
         "runge_kutta integrator only supports integration order 1, 2, or 4.");
+  if (m_dt.has_value() && !(*m_dt > 0.0))
+    throw std::invalid_argument("max_step_size must be positive.");
 }
 
 std::shared_ptr<base_integrator> runge_kutta::clone() {
@@ -47,16 +49,19 @@ void runge_kutta::integrate(double targetTime) {
   cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
   auto &castSimState = *cudmIntHelp::asCudmState(*m_state);
 
-  while (m_t < targetTime) {
-    const double step_size =
-        cudmIntHelp::computeStepSize(m_t, targetTime, m_dt);
+  const double startTime = m_t;
+  const auto numSubSteps =
+      cudmIntHelp::subStepCount(startTime, targetTime, m_dt);
+  for (std::int64_t subStep = 1; subStep <= numSubSteps; ++subStep) {
+    const double nextTime =
+        cudmIntHelp::subStepTime(startTime, targetTime, subStep, numSubSteps);
+    const double step_size = nextTime - m_t;
     if (m_order == 1) {
       // Euler method (1st order)
       auto params = cudmIntHelp::scheduleParamsAt(m_schedule, m_t);
       auto k1State = m_stepper->compute(*m_state, m_t, params);
       auto &k1 = *cudmIntHelp::asCudmState(k1State);
-      k1 *= step_size;
-      castSimState += k1;
+      castSimState.accumulate_inplace(k1, step_size);
     } else if (m_order == 2) {
       // Midpoint method (2nd order)
       // Standard formula: y_{n+1} = y_n + h * k2
@@ -111,7 +116,7 @@ void runge_kutta::integrate(double targetTime) {
       throw std::runtime_error("Invalid integrator order");
     }
 
-    m_t += step_size;
+    m_t = nextTime;
   }
 }
 } // namespace integrators

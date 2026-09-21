@@ -20,6 +20,11 @@
 #                                Default: /tmp/holoscan-sensor-bridge
 #   CUDA_NATIVE_ARCH             CUDA architectures to compile HSB for.
 #                                Default: derived from the CUDA toolkit version.
+#   CUDAQ_REALTIME_HSB_REPO      Repository to clone HSB from.
+#                                Default: the public holoscan-sensor-bridge on
+#                                github, see deps_common.sh.
+#   CUDAQ_REALTIME_HSB_REF       Branch or tag to clone.
+#                                Default: the tag pinned in deps_common.sh.
 #   CUDAQ_REALTIME_SKIP_HSB=1    Install the SDKs but skip the HSB build.
 #
 # Containers that already ship Mellanox OFED cannot use this script, because
