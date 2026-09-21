@@ -690,7 +690,7 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     } // for all implementations
 
   } catch (const std::exception &e) {
-    throw std::runtime_error("Unable to get quantum architecture of \"" +
+    throw std::runtime_error("Unable to get quantum architecture for \"" +
                              iqmQC + "\" from \"" + iqmServerUrl +
                              "\": " + std::string(e.what()));
   }
