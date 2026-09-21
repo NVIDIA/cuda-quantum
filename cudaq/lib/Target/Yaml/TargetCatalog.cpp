@@ -194,10 +194,10 @@ cudaq::config::TargetCatalog::addPluginRoot(const std::filesystem::path &root) {
     skipOrAdd(name, detail::TargetOrigin::PluginLibrary, path,
               std::move(loaded.config));
   }
+  if (isDisabledYAMLParsing())
+    return added;
   for (const auto &[name, path] : ymlByName) {
     if (libraryByName.count(name))
-      continue;
-    if (isDisabledYAMLParsing())
       continue;
     try {
       auto config = loadTargetConfig(path, root);

@@ -55,20 +55,20 @@ This is achieved in two steps:
 2. Compile the `.cpp` file into a shared library and install it as
    ``targets/<name>.so`` (or ``targets/<name>.dylib``).
 
-```bash
- # Linux
- cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
- ${CXX} -std=c++20 -shared -fPIC -I "${CUDAQ_INSTALL_DIR}/include" \
-   my-backend.gen.cpp -o targets/my-backend.so
-```
+.. code-block:: bash
 
-```bash
-   # macOS
- cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
- ${CXX} -std=c++20 -shared -fPIC -isysroot "$(xcrun --show-sdk-path)" \
-   -I "${CUDAQ_INSTALL_DIR}/include" \
-   my-backend.gen.cpp -o targets/my-backend.dylib
-```
+    # Linux
+    cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
+    ${CXX} -std=c++20 -shared -fPIC -I "${CUDAQ_INSTALL_DIR}/include" \
+        my-backend.gen.cpp -o targets/my-backend.so
+
+.. code-block:: bash
+
+    # macOS
+    cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
+    ${CXX} -std=c++20 -shared -fPIC -isysroot "$(xcrun --show-sdk-path)" \
+        -I "${CUDAQ_INSTALL_DIR}/include" \
+        my-backend.gen.cpp -o targets/my-backend.dylib
 
 The generated translation unit is self-contained - it only needs CUDA-Q's
 headers, not any CUDA-Q library. On macOS, pass ``-isysroot`` explicitly if
