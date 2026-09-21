@@ -575,12 +575,6 @@ if (CUDAQ_STATIC_DEPS)
   message(STATUS "Static external dependencies enabled.")
 endif()
 
-# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
-# good to have e.g. for the linker, since some binaries will use zlib
-# compression to store symbols.
-find_package(ZLIB REQUIRED)
-include(ExternalProject)
-
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
@@ -652,7 +646,10 @@ if(NOT LLVM_DIR)
   if(LLVM_CONFIG_RESULT)
     message(FATAL_ERROR
       "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
-      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
+      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm, \
+      \nor build LLVM/MLIR/Clang from the tpls/llvm submodule by running \
+      \nbash scripts/build_llvm.sh (see that script for options, e.g. \
+      \nLLVM_INSTALL_PREFIX) and then set -DLLVM_DIR=$LLVM_INSTALL_PREFIX/lib/cmake/llvm.")
   else()
     find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
@@ -678,6 +675,12 @@ endif()
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+
+# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
+# good to have e.g. for the linker, since some binaries will use zlib
+# compression to store symbols.
+find_package(ZLIB REQUIRED)
+include(ExternalProject)
 
 # Detect C++ standard library headers for cudaq-quake
 # cudaq-quake needs to find C++ stdlib headers for parsing user code.
