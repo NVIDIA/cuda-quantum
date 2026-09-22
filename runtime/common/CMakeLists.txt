@@ -73,8 +73,8 @@ if (CMAKE_COMPILER_IS_GNUCXX
   target_compile_options(${LIBRARY_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
 endif()
 
-# We can only build the RestClient support if we have OpenSSL
-if(OPENSSL_FOUND)
+# We can only build the RestClient support if we have OpenSSL and REST is on.
+if(OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
