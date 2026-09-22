@@ -40,6 +40,7 @@ add_cudaq_library(OptTransforms
   ExpandBroadcasts.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
+  ExpandEvinceVeqs.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
