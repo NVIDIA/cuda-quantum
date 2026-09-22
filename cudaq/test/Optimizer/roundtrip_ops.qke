@@ -1143,3 +1143,62 @@ func.func @apply_cable(%c : !quake.cable<2>, %ctrl : !quake.ref) -> !quake.cable
 // CHECK:         %[[C4:.*]] = quake.apply<adj> @cable_kernel [%[[CTRL]]] (%[[C3]]) : (!quake.ref, !quake.cable<2>) -> !quake.cable<2>
 // CHECK:         return %[[C4]] : !quake.cable<2>
 // CHECK:       }
+
+func.func private @custom_generator(!cc.sequence<f64>) -> !cc.sequence<complex<f64>>
+cc.global constant private @custom_matrix (dense<[(0.0, 0.0), (1.0, 0.0), (1.0, 0.0), (0.0, 0.0)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+
+func.func @operator_control_syntax(%theta: f64, %phi: f64,
+                                   %open: !quake.ref, %closed: !quake.ref,
+                                   %target: !quake.ref,
+                                   %pauli: !cc.charspan) {
+  quake.u2<adj> (%theta, %phi) [%open, %closed neg [true, false]] %target
+      : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.phased_rx<adj> (%theta, %phi) [%open, %closed neg [true, false]] %target
+      : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.exp_pauli<adj> (%theta) [%open, %closed neg [true, false]] %target to "Y"
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.exp_pauli<adj> (%theta) [%open, %closed neg [true, false]] %target to %pauli
+      : (f64, !quake.ref, !quake.ref, !quake.ref, !cc.charspan) -> ()
+  quake.exp_pauli [%open, %closed neg [true, false]] %target to "Y"
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.custom_unitary_call @custom_generator<adj> (%theta) [%open, %closed neg [true, false]] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.custom_unitary_constant @custom_matrix<adj> [%open, %closed neg [true, false]] %target
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @operator_control_syntax(
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG4:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG5:[a-zA-Z0-9_.$-]+]]: !cc.charspan) {
+// CHECK:           quake.u2<adj> (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.phased_rx<adj> (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.exp_pauli<adj> (%[[ARG0]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] to "Y" : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.exp_pauli<adj> (%[[ARG0]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] to %[[ARG5]] : (f64, !quake.ref, !quake.ref, !quake.ref, !cc.charspan) -> ()
+// CHECK:           quake.exp_pauli {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] to "Y" : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_unitary_call @custom_generator<adj> (%[[ARG0]]) {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_unitary_constant @custom_matrix<adj> {{\[}}%[[ARG2]], %[[ARG3]] neg [true, false]] %[[ARG4]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @exp_pauli_wire_controls(%theta: f64, %open: !quake.wire,
+                                   %closed: !quake.wire, %target: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %o, %c, %t = quake.exp_pauli<adj> (%theta) [%open, %closed neg [true, false]] %target to "Y"
+      : (f64, !quake.wire, !quake.wire, !quake.wire)
+          -> (!quake.wire, !quake.wire, !quake.wire)
+  return %o, %c, %t : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL:   func.func @exp_pauli_wire_controls(
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK:           %[[EXP_PAULI_0:.*]]:3 = quake.exp_pauli<adj> (%[[ARG0]]) {{\[}}%[[ARG1]], %[[ARG2]] neg [true, false]] %[[ARG3]] to "Y" : (f64, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:           return %[[EXP_PAULI_0]]#0, %[[EXP_PAULI_0]]#1, %[[EXP_PAULI_0]]#2 : !quake.wire, !quake.wire, !quake.wire
+// CHECK:         }

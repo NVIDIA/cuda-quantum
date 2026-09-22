@@ -9,26 +9,30 @@
 
 A runtime endpoint is the *launch* half of a backend: it receives an already
 compiled kernel and executes it. It says nothing about how the kernel was
-compiled -- that is specified by the active target.
+compiled -- that is specified by the compile target half of a
+:class:`CustomTarget`.
 
 An endpoint is any Python object implementing one or more of the
-protocols below. Register it with :func:`set_runtime_endpoint`:
-    
-.. code-block:: python
+protocols below. Install it together with a compile target via
+``cudaq.set_target``:
 
-    import cudaq
-    from cudaq import SampleResult
-    from cudaq._experimental import RuntimeEndpoint, set_runtime_endpoint
+```python
+import cudaq
+from cudaq import SampleResult
+from cudaq._experimental import CompileTarget, CustomTarget, RuntimeEndpoint
 
-    class MyEndpoint(RuntimeEndpoint):
+class MyEndpoint(RuntimeEndpoint):
 
-        def sample(self, module, arguments, *, shots_count, **options):
-            submit_somewhere(module, list(arguments))
-            return SampleResult({"00": shots_count})
+    def sample(self, module, arguments, *, shots_count, **options):
+        submit_somewhere(module, list(arguments))
+        return SampleResult({"00": shots_count})
 
-    endpoint = MyEndpoint()
-    set_runtime_endpoint(endpoint)
-    cudaq.sample(my_kernel)      # dispatched to endpoint.sample
+cudaq.set_target(CustomTarget(
+    compile_target=CompileTarget(),
+    runtime_endpoint=MyEndpoint(),
+))
+cudaq.sample(my_kernel)      # dispatched to endpoint.sample
+```
 
 Calling ``cudaq.set_target(...)`` or ``cudaq.reset_target()`` replaces the
 platform's QPUs and thereby removes the endpoint again; there is no separate
@@ -37,11 +41,8 @@ uninstall call.
 .. warning::
 
    This API is experimental. There is currently no way for the runtime to check
-   that the active target's compilation settings produce IR the endpoint
-   understands. Mismatches between the target's compilation settings and the endpoint's
-   requirements will result in hard to diagnose errors. Currently,
-   the default local-simulator compile target is used whenever a custom
-   runtime endpoint is registered.
+   that the compile target and runtime endpoint are compatible. Mismatches
+   between the two will result in hard to diagnose errors.
 """
 
 from typing import Protocol, runtime_checkable
@@ -55,9 +56,7 @@ from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     ObserveResult,
     SampleResult,
     SpinOperator,
-    set_runtime_endpoint,
 )
-import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime as _cudaq_runtime
 
 __all__ = [
     "CompiledModule",
@@ -72,7 +71,6 @@ __all__ = [
     "SupportsEstimate",
     "SupportsObserve",
     "SupportsSample",
-    "set_runtime_endpoint",
 ]
 
 
