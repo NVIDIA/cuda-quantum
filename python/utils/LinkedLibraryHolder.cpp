@@ -597,6 +597,20 @@ void LinkedLibraryHolder::setTarget(
   setQuantumPlatformInitCallback(nullptr);
 }
 
+void LinkedLibraryHolder::setTarget(const CompileTarget &compileTarget,
+                                    const RuntimeEndpoint &runtimeEndpoint) {
+  if (!cudaq::detail::canModifyTarget())
+    return;
+
+  // Build on the default (local simulator) target: it loads the simulator and
+  // execution manager that local compilation and emulation rely on.
+  resetTarget();
+
+  auto *platform = getPlatform(targets.at(currentTarget).platformName);
+  platform->clearQPUs();
+  platform->addQPU(compileTarget, runtimeEndpoint);
+}
+
 std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   std::vector<RuntimeTarget> ret;
   for (auto &[name, target] : targets)
