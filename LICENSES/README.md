@@ -21,7 +21,7 @@ compatible versions by substituting the shared library files; see the "Dynamic
 linking to GMP and MPFR" section of the installation documentation for details.
 
 reflect-cpp and yaml-cpp are fetched from immutable pinned commits and built
-from source at configure time (FetchContent, see
+from source at configure time (`FetchContent`, see
 `cudaq/lib/Target/cmake/Dependencies.cmake`), and are statically linked into the
 CUDAQ target catalog library as private dependencies. reflect-cpp bundles the
 header-only `CTRE` and `enchantum` libraries under `include/rfl/thirdparty`;
