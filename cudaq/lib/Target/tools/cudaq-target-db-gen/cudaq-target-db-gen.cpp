@@ -20,11 +20,15 @@
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetDatabase.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/ToolOutputFile.h"
-#include "llvm/Support/raw_ostream.h"
+#include <cctype>
+#include <cerrno>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <sstream>
+#include <string>
+#include <string_view>
+#include <vector>
 
 // Freezes this tool's own CUDAQ_TARGET_DB_ABI_SYMBOL_NAME (from whichever
 // TargetDatabase.h this tool itself was built against) into a literal
@@ -34,23 +38,70 @@
 #define CUDAQ_STRINGIFY_IMPL(x) #x
 #define CUDAQ_STRINGIFY(x) CUDAQ_STRINGIFY_IMPL(x)
 
-using namespace llvm;
-
-static cl::list<std::string> inputs(cl::Positional,
-                                    cl::desc("<name>=<path/to/name.yml> ..."));
-
-static cl::opt<std::string> outputFilename("o",
-                                           cl::desc("Specify output filename"),
-                                           cl::value_desc("filename"));
-
-static cl::opt<bool> pluginMode(
-    "plugin",
-    cl::desc("Emit a single-target plugin translation unit (compiled into a "
-             "shared library exporting cudaq::config::kTargetPluginSymbolName) "
-             "instead of the in-tree, multi-target database table. Exactly one "
-             "<name>=<path> input is required."));
-
 namespace {
+
+void printHelp() {
+  std::cout << "CUDA-Q Target Database Generator\n"
+               "\n"
+               "Usage: cudaq-target-db-gen [options] "
+               "<name>=<path/to/name.yml> ...\n"
+               "\n"
+               "Options:\n"
+               "  -o <filename>  Specify output filename ('-', or omitting "
+               "-o, writes to stdout)\n"
+               "  --plugin       Emit a single-target plugin translation unit "
+               "(compiled into a\n"
+               "                 shared library exporting "
+               "cudaq::config::kTargetPluginSymbolName)\n"
+               "                 instead of the in-tree, multi-target "
+               "database table.\n"
+               "                 Exactly one <name>=<path> input is "
+               "required.\n"
+               "  -h, --help     Show this help and exit\n";
+}
+
+// Write `content` to `outputFilename`, or to stdout when `outputFilename` is
+// "-" or empty. Mapping an omitted -o (empty) to stdout is a deliberate new
+// superset: llvm::ToolOutputFile recognized only the literal "-" and failed
+// an empty filename with ENOENT. Any failure removes a partially written
+// file so it cannot be mistaken for a successful run.
+int writeOutputChecked(const std::string &outputFilename,
+                       const std::string &content) {
+  if (outputFilename.empty() || outputFilename == "-") {
+    std::cout << content;
+    std::cout.flush();
+    if (!std::cout) {
+      std::cerr << "Failed to write output to stdout\n";
+      return 1;
+    }
+    return 0;
+  }
+
+  errno = 0;
+  std::ofstream file(outputFilename,
+                     std::ios::out | std::ios::binary | std::ios::trunc);
+  if (!file) {
+    const int openError = errno;
+    std::cerr << "Failed to open output file '" << outputFilename << "'\n";
+    return openError != 0 ? openError : 1;
+  }
+  file << content;
+  file.flush();
+  file.close();
+  if (file.fail()) {
+    std::cerr << "Failed to write output file '" << outputFilename << "'\n";
+    // Best-effort cleanup of the partial file: non-throwing overload, since a
+    // removal failure (e.g. unwritable directory) must not escape as an
+    // uncaught exception on top of the write failure.
+    std::error_code removeError;
+    std::filesystem::remove(outputFilename, removeError);
+    if (removeError)
+      std::cerr << "Also failed to remove the partial output file: "
+                << removeError.message() << "\n";
+    return 1;
+  }
+  return 0;
+}
 
 std::string cxxStringLiteral(std::string_view s) {
   std::string out = "\"";
@@ -81,28 +132,23 @@ std::string cxxStringVector(const std::vector<std::string> &values) {
   return out;
 }
 
-std::string cxxOptionalBool(const std::optional<bool> &value) {
-  if (!value.has_value())
-    return "std::nullopt";
-  return value.value() ? "std::optional<bool>(true)"
-                       : "std::optional<bool>(false)";
-}
+std::string cxxBool(bool value) { return value ? "true" : "false"; }
 
 std::string cxxArgumentType(cudaq::config::ArgumentType type) {
   using cudaq::config::ArgumentType;
   switch (type) {
-  case ArgumentType::String:
-    return "cudaq::config::ArgumentType::String";
-  case ArgumentType::Int:
-    return "cudaq::config::ArgumentType::Int";
-  case ArgumentType::UUID:
-    return "cudaq::config::ArgumentType::UUID";
-  case ArgumentType::FeatureFlag:
-    return "cudaq::config::ArgumentType::FeatureFlag";
-  case ArgumentType::MachineConfig:
-    return "cudaq::config::ArgumentType::MachineConfig";
+  case ArgumentType::string:
+    return "cudaq::config::ArgumentType::string";
+  case ArgumentType::integer:
+    return "cudaq::config::ArgumentType::integer";
+  case ArgumentType::uuid:
+    return "cudaq::config::ArgumentType::uuid";
+  case ArgumentType::option_flags:
+    return "cudaq::config::ArgumentType::option_flags";
+  case ArgumentType::machine_config:
+    return "cudaq::config::ArgumentType::machine_config";
   }
-  return "cudaq::config::ArgumentType::String";
+  return "cudaq::config::ArgumentType::string";
 }
 
 std::string
@@ -170,10 +216,9 @@ std::string
 cxxBackendConfigEntry(const cudaq::config::BackendEndConfigEntry &c) {
   std::ostringstream os;
   os << "cudaq::config::BackendEndConfigEntry{"
-     << ".GenTargetBackend = " << cxxOptionalBool(c.GenTargetBackend) << ", "
-     << ".LibraryMode = " << cxxOptionalBool(c.LibraryMode) << ", "
-     << ".SupportResourceCounts = " << cxxOptionalBool(c.SupportResourceCounts)
-     << ", "
+     << ".GenTargetBackend = " << cxxBool(c.GenTargetBackend) << ", "
+     << ".LibraryMode = " << cxxBool(c.LibraryMode) << ", "
+     << ".SupportResourceCounts = " << cxxBool(c.SupportResourceCounts) << ", "
      << ".JITHighLevelPipeline = " << cxxStringLiteral(c.JITHighLevelPipeline)
      << ", "
      << ".JITMidLevelPipeline = " << cxxStringLiteral(c.JITMidLevelPipeline)
@@ -218,7 +263,7 @@ cxxConfigMap(const std::vector<cudaq::config::BackendFeatureMap> &map) {
        << ".Name = " << cxxStringLiteral(m.Name) << ", "
        << ".Flags = static_cast<cudaq::config::TargetFeatureFlag>("
        << static_cast<unsigned>(m.Flags) << "u), "
-       << ".Default = " << cxxOptionalBool(m.Default) << ", "
+       << ".Default = " << cxxBool(m.Default) << ", "
        << ".Config = " << cxxBackendConfigEntry(m.Config) << "}, ";
   }
   os << "}";
@@ -252,7 +297,38 @@ std::string sanitizeIdentifier(std::string_view name) {
 } // namespace
 
 int main(int argc, char **argv) {
-  cl::ParseCommandLineOptions(argc, argv, "CUDA-Q Target Database Generator\n");
+  std::vector<std::string> inputs;
+  std::string outputFilename;
+  bool pluginMode = false;
+  for (int i = 1; i < argc; ++i) {
+    const std::string_view arg = argv[i];
+    if (arg == "-h" || arg == "--help") {
+      printHelp();
+      return 0;
+    }
+    if (arg == "--plugin") {
+      pluginMode = true;
+      continue;
+    }
+    if (arg == "-o") {
+      if (++i >= argc) {
+        std::cerr << "Option '-o' requires a value\n";
+        return 1;
+      }
+      outputFilename = argv[i];
+      continue;
+    }
+    if (arg.starts_with("-o=")) {
+      outputFilename = arg.substr(3);
+      continue;
+    }
+    if (!arg.empty() && arg.front() == '-') {
+      std::cerr << "Unknown command line argument '" << arg
+                << "'; run with --help for usage\n";
+      return 1;
+    }
+    inputs.emplace_back(arg);
+  }
 
   struct Entry {
     std::string name;
@@ -262,7 +338,8 @@ int main(int argc, char **argv) {
   for (const auto &input : inputs) {
     auto eq = input.find('=');
     if (eq == std::string::npos) {
-      errs() << "Malformed input '" << input << "', expected <name>=<path>\n";
+      std::cerr << "Malformed input '" << input
+                << "', expected <name>=<path>\n";
       return 1;
     }
     std::string name = input.substr(0, eq);
@@ -271,33 +348,34 @@ int main(int argc, char **argv) {
   }
 
   if (pluginMode && entries.size() != 1) {
-    errs() << "--plugin requires exactly one <name>=<path> input, got "
-           << entries.size() << "\n";
+    std::cerr << "--plugin requires exactly one <name>=<path> input, got "
+              << entries.size() << "\n";
     return 1;
   }
 
-  std::error_code ec;
-  ToolOutputFile out(outputFilename, ec, sys::fs::OF_None);
-  if (ec) {
-    errs() << "Failed to open output file '" << outputFilename << "'\n";
-    return ec.value();
-  }
-
-  raw_ostream &os = out.os();
+  // Build the whole translation unit in memory first: it cannot fail, and
+  // it lets writeOutputChecked report output errors without leaving a
+  // partial file behind.
+  std::ostringstream os;
   if (pluginMode) {
     const auto &entry = entries.front();
     os << "// Generated by cudaq-target-db-gen --plugin. Do not edit.\n"
        << "#include \"cudaq/Target/TargetPluginLibrary.h\"\n\n"
        << "// Symbol name must match cudaq::config::kTargetPluginSymbolName.\n"
        << "extern \"C\" const cudaq::config::TargetConfig *"
+<<<<<<< HEAD:cudaq/tools/cudaq-target-db-gen/cudaq-target-db-gen.cpp
        << CUDAQ_TARGET_PLUGIN_SYMBOL_NAME_STR << "() {\n"
+=======
+       // Frozen at generation time to whatever kTargetPluginSymbolName *this*
+       // binary was built against, like the database ABI marker below.
+       << cudaq::config::kTargetPluginSymbolName << "() {\n"
+>>>>>>> 059a8c3da3 (Migrate YAML parsing from LLVM to reflect-cpp):cudaq/lib/Target/tools/cudaq-target-db-gen/cudaq-target-db-gen.cpp
        << "  static const cudaq::config::TargetConfig kPluginTarget_"
        << sanitizeIdentifier(entry.name) << " = "
        << cxxTargetConfig(entry.config) << ";\n"
        << "  return &kPluginTarget_" << sanitizeIdentifier(entry.name) << ";\n"
        << "}\n";
-    out.keep();
-    return 0;
+    return writeOutputChecked(outputFilename, os.str());
   }
 
   os << "// Generated by cudaq-target-db-gen. Do not edit.\n"
@@ -330,6 +408,5 @@ int main(int argc, char **argv) {
      << "} // namespace detail\n"
      << "} // namespace cudaq::config\n";
 
-  out.keep();
-  return 0;
+  return writeOutputChecked(outputFilename, os.str());
 }

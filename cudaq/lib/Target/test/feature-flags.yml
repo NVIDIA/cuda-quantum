@@ -76,5 +76,5 @@ configuration-matrix:
 # MGPU: NVQIR_SIMULATION_BACKEND="sim-mgpu"
 # AUGMENT: NVQIR_SIMULATION_BACKEND="sim-fp32-qpp"
 # COMBINED: NVQIR_SIMULATION_BACKEND="sim-fp32-mgpu"
-# EXACT: TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-lit-flags-fp64-config
+# EXACT: TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-lit-flags.fp64-config
 # EXACT: NVQIR_SIMULATION_BACKEND="sim-fp64"
