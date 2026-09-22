@@ -19,7 +19,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace {
 // CLI spellings of the `option-flags` feature bits. Keep in sync with the
 // legacy YAML traits table in Yaml/TargetConfigYaml.cpp.
 static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
@@ -32,7 +31,7 @@ static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
         {"qpp", cudaq::config::TargetFeatureFlag::qpp}};
 
 /// Split `value` on commas, discarding empty segments.
-std::vector<std::string> splitFeatureFlags(const std::string &value) {
+static std::vector<std::string> splitFeatureFlags(const std::string &value) {
   std::vector<std::string> flags;
   std::size_t pos = 0;
   while (pos <= value.size()) {
@@ -46,7 +45,6 @@ std::vector<std::string> splitFeatureFlags(const std::string &value) {
   }
   return flags;
 }
-} // namespace
 
 /// Convert the backend config entry into nvq++ compatible script.
 /// `pipelineName` is the name `TargetPassPipeline` (if any) was registered

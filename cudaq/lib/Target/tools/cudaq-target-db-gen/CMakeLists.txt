@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(EXE_NAME cudaq-target-db-gen)
-
 add_executable(${EXE_NAME} cudaq-target-db-gen.cpp)
 # Same build-tree directory as the other tools. Callers use that path
 # directly (lit, plugin tests, nvq++); the install rule below matches it.
@@ -16,7 +15,8 @@ set_target_properties(${EXE_NAME} PROPERTIES
 
 target_link_libraries(${EXE_NAME} PRIVATE
   CUDAQTargetConfigObjects reflectcpp ${CMAKE_DL_LIBS})
-# If not CUDAQ_DISABLE_TOOLS, installl it so external plugin authors can compile
+
+# If not CUDAQ_DISABLE_TOOLS, install it so external plugin authors can compileAdd a comment on  line R19Add diff commentMarkdown input:  edit mode selected.WritePreviewAdd a suggestionHeadingBold(command b) command⌘ bBItalic(command i) command⌘ iIQuote(command shift right angle bracket) command⌘ shift⇧ right angle bracket>Code(command e) command⌘ eELink(command k) command⌘ kKUnordered list(command 8) command⌘ 88Numbered list(command shift ampersand) command⌘ shift⇧ ampersand&Task list(command shift l) command⌘ shift⇧ lLMentionReferenceSlash commandsMore itemsSaved repliesAdd FilesPaste, drop, or click to add filesCancelCommentStart a review
 # their own targets through cudaq-target-db-gen --plugin. See
 # `docs/sphinx/using/extending/packaging.rst`.
 if (NOT CUDAQ_DISABLE_TOOLS)
