@@ -1,0 +1,17 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Package config for the CUDAQ target-catalog component. Self-contained:
+# reflect-cpp/yaml-cpp are statically embedded and no LLVM/MLIR or other
+# CUDA-Q component packages are required.
+
+@PACKAGE_INIT@
+
+if(NOT TARGET cudaq::CUDAQTargetCatalog)
+  include("${CMAKE_CURRENT_LIST_DIR}/CUDAQTargetCatalogTargets.cmake")
+endif()
