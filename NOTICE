@@ -258,3 +258,53 @@ Copyright (c) 2025 IBM and its contributors.
 License at <https://github.com/qiskit-community/qrmi/blob/main/LICENSE.txt>
 
 ----------------------------------------------------------------
+
+reflect-cpp - MIT License
+<https://github.com/getml/reflect-cpp>
+
+Copyright (c) 2023-2025 Code17 GmbH.
+reflect-cpp is fetched from an immutable pinned commit and built from source
+at configure time (see cudaq/lib/Target/cmake/Dependencies.cmake); it is
+statically linked into the CUDAQ target catalog library.
+License at <https://github.com/getml/reflect-cpp/blob/main/LICENSE>
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.reflect-cpp, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+yaml-cpp - MIT License
+<https://github.com/jbeder/yaml-cpp>
+
+Copyright (c) 2008-2015 Jesse Beder.
+yaml-cpp is fetched from an immutable pinned commit and built from source at
+configure time (see cudaq/lib/Target/cmake/Dependencies.cmake); it is
+statically linked into the CUDAQ target catalog library.
+License at <https://github.com/jbeder/yaml-cpp/blob/master/LICENSE>
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.yaml-cpp, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+CTRE (Compile Time Regular Expressions) - Apache License 2.0 with LLVM Exceptions
+<https://github.com/hanickadot/compile-time-regular-expressions>
+
+Copyright Hana Dusíková and CTRE contributors.
+Header-only dependency bundled by reflect-cpp
+(include/rfl/thirdparty/ctre.hpp); the bundled header embeds the full Apache
+License 2.0 text with LLVM Exceptions.
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.ctre, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+enchantum - MIT License
+<https://github.com/ZXShady/enchantum>
+
+Copyright (c) 2025 ZXShady.
+Header-only dependency bundled by reflect-cpp
+(include/rfl/thirdparty/enchantum).
+License at <https://github.com/ZXShady/enchantum/blob/main/LICENSE>
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.enchantum, located alongside this NOTICE.
+
+----------------------------------------------------------------
