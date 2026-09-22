@@ -1,0 +1,80 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization --verify-diagnostics --split-input-file %s
+// RUN: cudaq-opt --apply-op-specialization=legacy-classical=1 --verify-diagnostics --split-input-file %s
+
+// Reject a directly controlled kernel containing a measurement.
+
+// expected-error@+1 {{auto-generation of controlled kernel direct_measured failed. direct_measured contains measurements; construct the controlled operation explicitly instead}}
+func.func private @direct_measured(%q: !quake.ref) {
+  %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+
+func.func @direct_caller(%control: !quake.ref, %q: !quake.ref) {
+  quake.apply @direct_measured[%control] (%q) : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// Control requirements propagate through ordinary calls introduced while the
+// outer control variant is generated. Reject a measured nested callee too.
+
+// expected-error@+1 {{auto-generation of controlled kernel nested_measured failed. nested_measured contains measurements; construct the controlled operation explicitly instead}}
+func.func private @nested_measured(%q: !quake.ref) {
+  %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+
+func.func private @nested_outer(%q: !quake.ref) {
+  call @nested_measured(%q) : (!quake.ref) -> ()
+  return
+}
+
+func.func @nested_caller(%control: !quake.ref, %q: !quake.ref) {
+  quake.apply @nested_outer[%control] (%q) : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// Combined adjoint-control generation has the same unitary requirement.
+
+// expected-error@+1 {{auto-generation of controlled kernel adjoint_control_measured failed. adjoint_control_measured contains measurements; construct the controlled operation explicitly instead}}
+func.func private @adjoint_control_measured(%q: !quake.ref) {
+  %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+
+func.func @adjoint_control_caller(%control: !quake.ref, %q: !quake.ref) {
+  quake.apply<adj> @adjoint_control_measured[%control] (%q) : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// A supplied control implementation does not require automatic generation and
+// remains valid even when the unspecialized source function measures.
+
+func.func private @explicit_measured(%q: !quake.ref) {
+  %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+
+func.func private @explicit_measured.ctrl(%controls: !quake.veq<?>,
+                                          %q: !quake.ref) {
+  quake.x %q : (!quake.ref) -> ()
+  return
+}
+
+func.func @explicit_caller(%control: !quake.ref, %q: !quake.ref) {
+  quake.apply @explicit_measured[%control] (%q) : (!quake.ref, !quake.ref) -> ()
+  return
+}

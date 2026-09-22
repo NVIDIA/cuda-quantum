@@ -1192,6 +1192,23 @@ public:
     return success();
   }
 
+  static LogicalResult validateControlVariant(func::FuncOp func,
+                                              ModuleOp module) {
+    auto ctrlName = getCtrlVariantFunctionName(func.getName().str());
+    if (auto ctrlFunc = module.lookupSymbol<func::FuncOp>(ctrlName))
+      if (!ctrlFunc.getBody().empty())
+        return success();
+
+    if (!cudaq::opt::hasMeasureOp(func))
+      return success();
+
+    auto fnName = func.getName().str();
+    return func.emitOpError("auto-generation of controlled kernel " + fnName +
+                            " failed. " + fnName +
+                            " contains measurements; construct the controlled "
+                            "operation explicitly instead.");
+  }
+
   void runOnOperation() override {
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
@@ -1251,6 +1268,10 @@ public:
       // which a lingering apply is unambiguously unlowerable.
       if (func.getBody().empty())
         continue;
+
+      if ((variant.needsControlVariant || variant.needsAdjointControlVariant) &&
+          failed(validateControlVariant(func, module)))
+        return failure();
 
       if (variant.needsControlVariant) {
         if (failed(sanityCheck(func)))
