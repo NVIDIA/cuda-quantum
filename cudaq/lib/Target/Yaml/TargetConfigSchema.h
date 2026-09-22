@@ -25,8 +25,8 @@ TargetConfig createTargetConfigFromSchema(const TargetConfigSchema &schema);
 
 /// Parse target configuration YAML from text.
 ///
-/// If a single argument is passed, the text must have already been preprocessed
-/// by `substitutePluginRoot`.
+/// If a single argument is passed, the text must have already been
+/// pre-processed by `substitutePluginRoot`.
 ///
 /// Throws std::runtime_error on malformed YAML, schema violations, or
 /// validation failures.
