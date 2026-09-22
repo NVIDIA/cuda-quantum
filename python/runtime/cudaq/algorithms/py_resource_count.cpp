@@ -8,9 +8,8 @@
 
 #include "py_resource_count.h"
 #include "common/Resources.h"
-#include "common/cudaq_json.h"
+#include "runtime/common/py_EstimateResult.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/JsonNanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
 #include "cudaq/algorithms/estimate/policy.h"
 #include "cudaq/algorithms/launch.h"
@@ -66,54 +65,7 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {
-  nanobind::class_<estimate_result>(
-      mod, "EstimateResult",
-      "A data-type containing the results of a call to :func:`cudaq.estimate`.")
-      .def(
-          "__init__",
-          [](estimate_result *self, const Resources &resources,
-             const nlohmann::json &annotations) {
-            new (self) estimate_result(resources, cudaq_json(annotations));
-          },
-          nanobind::arg("resources") = Resources{},
-          nanobind::arg("annotations") = nlohmann::json::object(),
-          R"#(Construct an EstimateResult.
-
-Args:
-  resources (:class:`Resources`, optional): The gate counts. Defaults to an
-    empty `Resources`.
-  annotations (dict, optional): Metadata dict for anything the fixed
-    `Resources` fields cannot express.)#")
-      .def_prop_ro(
-          "resources",
-          [](estimate_result &self) -> const Resources & {
-            return self.get_resources();
-          },
-          nanobind::rv_policy::reference_internal,
-          "The :class:`Resources` gate counts for the estimated kernel.")
-      .def_prop_ro(
-          "annotations",
-          [](estimate_result &self) -> const nlohmann::json & {
-            return self.get_annotations().get();
-          },
-          nanobind::rv_policy::reference_internal,
-          "Additional metadata dict set by backends.")
-      .def(
-          "__repr__",
-          [](estimate_result &self) {
-            const auto resourcesRepr = nanobind::cast<std::string>(
-                nanobind::repr(nanobind::cast(self.get_resources())));
-
-            const auto &annotations = self.get_annotations().get();
-            if (annotations.empty())
-              return "EstimateResult(" + resourcesRepr + ")";
-
-            const auto annotationsRepr = nanobind::cast<std::string>(
-                nanobind::repr(nanobind::cast(annotations)));
-            return "EstimateResult(" + resourcesRepr +
-                   ", annotations=" + annotationsRepr + ")";
-          },
-          "A Pythonic representation of EstimateResult.");
+  bindEstimateResult(mod);
 
   mod.def("estimate_impl", estimate_impl, nanobind::arg("kernel_name"),
           nanobind::arg("kernel_mod"), nanobind::arg("choice").none(),
