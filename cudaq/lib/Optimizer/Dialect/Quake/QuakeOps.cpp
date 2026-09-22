@@ -1286,6 +1286,10 @@ static LogicalResult getParameterAsDouble(Value parameter, double &result) {
   return failure();
 }
 
+void cudaq::quake::ExpPauliOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.clear();
+}
+
 void cudaq::quake::HOp::getOperatorMatrix(Matrix &matrix) {
   using namespace llvm::numbers;
   matrix.assign({inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2});
