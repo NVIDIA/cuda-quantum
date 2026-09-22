@@ -83,10 +83,16 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
                HINTS ${_qrmi_library_hints})
 
   if(NOT QRMI_INCLUDE_DIR OR NOT QRMI_LIBRARY)
-    message(WARNING
-      "Pasqal QRMI connector requested but qrmi.h/libqrmi was not found. "
-      "Install QRMI and set QRMI_INSTALL_PREFIX=<prefix> if needed; "
-      "building pasqal target without QRMI mode support.")
+    if(CUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT)
+      message(FATAL_ERROR
+        "CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON was requested but qrmi.h/libqrmi "
+        "was not found. Install QRMI and set QRMI_INSTALL_PREFIX=<prefix>, or "
+        "pass -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF to build the pasqal "
+        "target without QRMI mode support.")
+    else()
+      message(STATUS
+        "QRMI not found; building pasqal target without QRMI mode support.")
+    endif()
   else()
     include(CheckCXXSourceCompiles)
     set(CMAKE_REQUIRED_INCLUDES "${QRMI_INCLUDE_DIR}")

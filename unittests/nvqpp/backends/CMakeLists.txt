@@ -83,7 +83,8 @@ function(add_backend_unittest_executable target)
 endfunction()
 
 find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST AND CUDAQ_ENABLE_PYTHON AND
+    CUDAQ_TEST_MOCK_SERVERS)
   if (CUDAQ_ENABLE_ANYON_BACKEND)
     add_subdirectory(anyon)
   endif()
