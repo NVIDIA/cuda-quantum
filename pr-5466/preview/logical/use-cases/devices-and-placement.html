@@ -1,0 +1,524 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devices and placement &mdash; CUDA-Q Logical  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Magic states and protocols" href="magic-states-and-protocols.html" />
+    <link rel="prev" title="Gadgets and verification" href="gadgets-and-verification.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CUDA-Q Logical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#running-the-shipped-examples">Running the shipped examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-1-estimate-an-existing-cuda-q-kernel">Step 1 — Estimate an existing CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-2-author-a-portable-p0-program">Step 2 — Author a portable P0 program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-3-choose-a-code-and-a-gadget-p2">Step 3 — Choose a code and a gadget (P2)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-4-lower-to-physical-events-and-schedule-them-p3">Step 4 — Lower to physical events and schedule them (P3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-5-emit-stim-text-from-the-command-line">Step 5 — Emit Stim text from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#write-the-logical-program">1. Write the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-the-qubits-on-a-logical-machine">2. Place the qubits on a logical machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#define-a-qec-realization">3. Define a QEC realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#estimate-a-selected-realization">4. Estimate a selected realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#emit-a-verified-gadget-as-stim">5. Emit a verified gadget as Stim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#what-each-stage-owns">What each stage owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/concepts.html">Core concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#four-stages-one-direction">1. Four stages, one direction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#facets-not-extra-stages">2. Facets, not extra stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#linear-ownership">3. Linear ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#codes-profiles-encodings-three-different-things">4. Codes, profiles, encodings — three different things</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#objectives-gadgets-protocols-claims-and-proofs">5. Objectives, gadgets, protocols — claims and proofs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#evidence-follows-the-program">6. Evidence follows the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#there-is-no-registry-imports-are-the-linker">7. There is no registry — imports are the linker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#global-phase-is-not-observable">8. Global phase is not observable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#where-the-pieces-live">Where the pieces live</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">CUDA-Q Logical by Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/gidney-ekera.html">Gidney–Ekerå RSA-2048</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/distillation.html">T-State Distillation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Use cases</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="define-a-code.html">Defining codes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#css-codes-state-the-checks-once">CSS codes: state the checks once</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#distance-is-evidence-not-an-integer">Distance is evidence, not an integer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#the-catalog-and-parameterized-families">The catalog and parameterized families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#what-you-get-for-free">What you get for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gadgets-and-verification.html">Gadgets and verification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#what-implements-takes">What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gadgets-and-verification.html#author-the-objective-in-cuda-q-logical">Author the objective in CUDA-Q Logical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gadgets-and-verification.html#reuse-a-cuda-q-kernel-as-the-claim">Reuse a CUDA-Q kernel as the claim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gadgets-and-verification.html#what-the-signature-and-body-add">What the signature and body add</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#typed-records-at-the-boundary">Typed records at the boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#preparation-and-destructive-measurement">Preparation and destructive measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#selection-retry-and-postselection-belong-to-the-protocol">Selection: retry and postselection belong to the protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#verification-claims-are-checked-not-trusted">Verification: claims are checked, not trusted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#design-rules-that-keep-the-model-crisp">Design rules that keep the model crisp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Devices and placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#machines-devices-architectures">Machines, devices, architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#stop-at-the-layer-your-study-needs">Stop at the layer your study needs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#automatic-placement-constraints-preferences-witnesses">Automatic placement: constraints, preferences, witnesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#code-agnostic-p1">Code-agnostic P1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-the-firewall-pays-off">Where the firewall pays off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="magic-states-and-protocols.html">Magic states and protocols</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#phase-convention">Phase convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="magic-states-and-protocols.html#authoring-exact-angles-with-cudaq-logical-algebra-pi">Authoring exact angles with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.pi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#synthesize-a-program">Synthesize a program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#precision">Precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#inspect-and-replay-the-result">Inspect and replay the result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#use-the-pipeline-form">Use the pipeline form</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#pauli-based-computation-still-at-p0">Pauli-based computation, still at P0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#when-not-to-synthesize">When not to synthesize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="estimation.html">Resource estimation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-logical-cost-the-algorithm-before-any-qec-choice"><code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> — cost the algorithm before any QEC choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-static-count-one-selected-p2-realization"><code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code> — count one selected P2 realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-analytical-apply-an-explicit-physical-model"><code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> — apply an explicit physical model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-schedule-cost-the-physical-event-graph"><code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> — cost the physical event graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#the-rules-that-keep-estimates-honest">The rules that keep estimates honest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#direct-spellings">Direct spellings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#sweeps-and-reproducibility">Sweeps and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#paper-specific-projections-live-in-the-open">Paper-specific projections live in the open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#estimating-ordinary-cuda-q-kernels">Estimating ordinary CUDA-Q kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stim-emission.html">Stim emission</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stim-emission.html#emit-from-the-command-line">Emit from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stim-emission.html#fail-closed-boundaries">Fail-closed boundaries</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/capabilities.html">Capabilities and status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-dialect-stack">The dialect stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-semantic-spine-and-its-facets">The semantic spine and its facets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#definitions-versus-builds">Definitions versus builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-artifact-model">The artifact model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#data-ownership">Data ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-compile-pipeline">The compile pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-p2-patch-graph">The P2 patch graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#verification-layers">Verification layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#typed-inspection">Typed inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#package-map">Package map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-1-default-the-cudaq-devel-wheel">Option 1 (default): the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-2-a-cuda-q-installation-built-from-source">Option 2: a CUDA-Q installation built from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#build-options">Build options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#verifying-the-build">Verifying the build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/releases.html">Main CUDA-Q documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CUDA-Q Logical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Devices and placement</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/use-cases/devices-and-placement.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="gadgets-and-verification.html" class="btn btn-neutral float-left" title="Gadgets and verification" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="magic-states-and-protocols.html" class="btn btn-neutral float-right" title="Magic states and protocols" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="devices-and-placement">
+<h1>Devices and placement<a class="headerlink" href="#devices-and-placement" title="Link to this heading"></a></h1>
+<p>CUDA-Q Logical separates the machines that most stacks blur into one “backend”
+object. The separation is a firewall: each stage sees only its own structure,
+and a program can never branch on a later-stage cost fact it should not know.</p>
+<section id="machines-devices-architectures">
+<h2>Machines, devices, architectures<a class="headerlink" href="#machines-devices-architectures" title="Link to this heading"></a></h2>
+<ul>
+<li><p>A <strong>logical machine</strong> (<code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.machine</span></code>) is the P1 structure
+contract: regions, resource streams, capabilities, and plain integer
+capacities. No codes, no error rates:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">A logical machine with one capable region (examples/standalone/01_logical_placement.py).</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cql</span><span class="o">.</span><span class="n">machine</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TwoSlotMachine</span><span class="p">:</span>
+    <span class="n">compute</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">region</span><span class="p">(</span>
+        <span class="n">capabilities</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">capability</span><span class="o">.</span><span class="n">logical_compute</span><span class="p">,</span>
+            <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">capability</span><span class="o">.</span><span class="n">logical_measurement</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">capacity</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+</pre></div>
+</div>
+</div>
+<p>Capabilities are typed keys in an open <code class="docutils literal notranslate"><span class="pre">cudaq.logical.machine</span></code> vocabulary; the
+compiler itself interprets <code class="docutils literal notranslate"><span class="pre">logical_compute</span></code>, <code class="docutils literal notranslate"><span class="pre">logical_measurement</span></code>,
+<code class="docutils literal notranslate"><span class="pre">logical_factory</span></code>, and <code class="docutils literal notranslate"><span class="pre">resource_transfer</span></code>.</p>
+</li>
+<li><p>A <strong>QEC machine</strong> carries the P2 refinement: encoded block pools, one selected
+encoding per region, and block capacities.</p></li>
+<li><p>A <strong>physical machine</strong> carries the P3 refinement: physical resources, native
+operations and instruments, bindings, routing, and timing assumptions.</p></li>
+<li><p>An immutable <strong>device</strong> binds adjacent machines explicitly. A device with only
+a logical machine is complete for placement work; binding an encoding per
+region grows it into a QEC device, and physical bindings complete a P3 device.</p></li>
+</ul>
+<p>For homogeneous cases you never write the normalized containers explicitly. The
+device builder separates logical region facts from the vertical encoding
+binding:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+
+<span class="n">builder</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">DeviceBuilder</span><span class="p">(</span><span class="s2">"SteaneMemory"</span><span class="p">)</span>
+<span class="n">memory</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">add_memory</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">qec</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">memory</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">)</span>
+<span class="n">SteaneMemory</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+<span class="k">assert</span> <span class="n">SteaneMemory</span><span class="o">.</span><span class="n">layers</span> <span class="o">==</span> <span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">P1</span><span class="p">,</span> <span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">P2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">builder.qec.bind(...)</span></code> sets the QEC refinement of a logical region; the
+singular name is deliberate — each region has one selected encoding.</p>
+<section id="stop-at-the-layer-your-study-needs">
+<h3>Stop at the layer your study needs<a class="headerlink" href="#stop-at-the-layer-your-study-needs" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.devices.DeviceBuilder</span></code> is progressively complete. <code class="docutils literal notranslate"><span class="pre">build()</span></code> does
+not demand code facts that the requested compiler stage cannot use:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Declared layers</p></th>
+<th class="head"><p>Builder boundary</p></th>
+<th class="head"><p>Suitable work</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>P1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">logical.add_compute(...)</span></code>, <code class="docutils literal notranslate"><span class="pre">logical.add_memory(...)</span></code>, <code class="docutils literal notranslate"><span class="pre">logical.add_factory(...)</span></code>, or <code class="docutils literal notranslate"><span class="pre">logical.add_region(...)</span></code></p></td>
+<td><p>logical placement, capacities, resource supply</p></td>
+</tr>
+<tr class="row-odd"><td><p>P1 + P2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">qec.bind(...)</span></code></p></td>
+<td><p>code selection, gadgets, static/analytical estimates</p></td>
+</tr>
+<tr class="row-even"><td><p>P1 + P2 + P3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">physical.add_qubits(...)</span></code> or <code class="docutils literal notranslate"><span class="pre">physical.add_resources(...)</span></code>, <code class="docutils literal notranslate"><span class="pre">physical.bind(...)</span></code>, <code class="docutils literal notranslate"><span class="pre">physical.set_operating_point(...)</span></code></p></td>
+<td><p>physical lowering, scheduling, schedule estimates</p></td>
+</tr>
+</tbody>
+</table>
+<p>Adding the physical layer is the same shape as adding the QEC layer. Declare
+the carriers and what they can natively do, bind the encoded region onto them,
+and state an operating point:</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Binding an encoded region onto carriers (examples/standalone/04_physical_schedule.py).</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">carriers</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">add_qubits</span><span class="p">(</span>
+    <span class="n">surface_code</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+    <span class="n">native_actions</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_actions</span><span class="o">.</span><span class="n">clifford_set</span><span class="p">(),</span>
+    <span class="n">native_instruments</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_instruments</span><span class="o">.</span><span class="n">MZ</span><span class="p">,</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_instruments</span><span class="o">.</span><span class="n">MPP</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">encoded_region</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="n">carriers</span><span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">set_operating_point</span><span class="p">(</span><span class="n">timing</span><span class="o">=</span><span class="p">{</span><span class="s2">"cycle_ns"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">physical.bind(encoded,</span> <span class="pre">to=carriers)</span></code> is the vertical ownership boundary: the
+QEC region stays a P2 fact and the carrier allocation stays a P3 fact.
+<code class="docutils literal notranslate"><span class="pre">set_operating_point</span></code> turns dimensionless cycle counts into time. The compiler
+derives the event graph and the schedule from there; you do not hand-write
+either.</p>
+<p>A placement-only device is therefore complete as written:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">DeviceBuilder</span><span class="p">(</span><span class="s2">"LogicalPlacement"</span><span class="p">)</span>
+<span class="n">logical</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">add_compute</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+<span class="n">LogicalPlacement</span> <span class="o">=</span> <span class="n">logical</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+<span class="k">assert</span> <span class="n">LogicalPlacement</span><span class="o">.</span><span class="n">layers</span> <span class="o">==</span> <span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">P1</span><span class="p">,)</span>
+</pre></div>
+</div>
+<p>The stack views contain only the layers actually declared, so a P1-only device
+cannot accidentally display P2 block pools. The builder infers common member
+labels: <code class="docutils literal notranslate"><span class="pre">add_compute</span></code>, <code class="docutils literal notranslate"><span class="pre">add_memory</span></code>, and <code class="docutils literal notranslate"><span class="pre">add_factory</span></code> attach typed
+capabilities and generate region and resource-stream labels with suffixes as
+needed. <code class="docutils literal notranslate"><span class="pre">DeviceBuilder</span></code> itself always has an explicit stable name.</p>
+<p>Ready-made complete device stacks also ship as compilation targets — the
+<code class="docutils literal notranslate"><span class="pre">surface_physical_target(distance=3,</span> <span class="pre">logical_capacity=1)</span></code> stack in
+<code class="docutils literal notranslate"><span class="pre">examples/02_surface_code_resource_estimate.py</span></code> binds a rotated-surface-code
+QEC machine and a physical machine under a logical machine without any
+hand-written builder code.</p>
+</section>
+</section>
+<section id="automatic-placement-constraints-preferences-witnesses">
+<h2>Automatic placement: constraints, preferences, witnesses<a class="headerlink" href="#automatic-placement-constraints-preferences-witnesses" title="Link to this heading"></a></h2>
+<p>Placement solves hard constraints and soft preferences over the machine, and the
+solution is inspectable evidence, not solver state:</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Placing the Bell program and inspecting the witness (examples/standalone/01_logical_placement.py).</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cql</span><span class="o">.</span><span class="n">program</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">zero</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"data"</span><span class="p">)</span>
+    <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">cql</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Compile and place the logical owners into the machine's compute region.</span>
+<span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">bell</span><span class="p">)</span>
+<span class="n">placed</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">place</span><span class="p">(</span>
+    <span class="n">logical</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="n">TwoSlotMachine</span><span class="p">,</span>
+    <span class="n">placement</span><span class="o">=</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">colocate</span><span class="p">(</span><span class="n">logical</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">data</span><span class="p">),),</span>
+<span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">placed</span><span class="o">.</span><span class="n">stage</span> <span class="o">==</span> <span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">P1</span>
+<span class="k">assert</span> <span class="p">{</span><span class="n">binding</span><span class="o">.</span><span class="n">space</span> <span class="k">for</span> <span class="n">binding</span> <span class="ow">in</span> <span class="n">placed</span><span class="o">.</span><span class="n">placement</span><span class="o">.</span><span class="n">bindings</span><span class="p">}</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"compute"</span><span class="p">}</span>
+<span class="k">assert</span> <span class="p">{</span><span class="n">binding</span><span class="o">.</span><span class="n">slot</span> <span class="k">for</span> <span class="n">binding</span> <span class="ow">in</span> <span class="n">placed</span><span class="o">.</span><span class="n">placement</span><span class="o">.</span><span class="n">bindings</span><span class="p">}</span> <span class="o">==</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">}</span>
+<span class="k">assert</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">Build</span><span class="o">.</span><span class="n">replay</span><span class="p">(</span>
+    <span class="n">placed</span><span class="o">.</span><span class="n">serialize</span><span class="p">())</span><span class="o">.</span><span class="n">placement</span> <span class="o">==</span> <span class="n">placed</span><span class="o">.</span><span class="n">placement</span>
+</pre></div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">place</span></code> materializes P0 before invoking the selector. Address values through
+its typed view — <code class="docutils literal notranslate"><span class="pre">p0.values.data</span></code> for a named allocation group, <code class="docutils literal notranslate"><span class="pre">p0.values[0]</span></code>
+for structural ordinals — and they resolve immediately to <code class="docutils literal notranslate"><span class="pre">LogicalValueRef</span></code>s;
+Python variable names are diagnostics, never placement identity. Pass an
+existing P0 <code class="docutils literal notranslate"><span class="pre">Build</span></code> only when you intentionally inspected or reused it.</p>
+<p>The witness records every binding, the machine, the objective, any <em>soft</em>
+preference the solver had to give up, and the deterministic tie-break:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">p1.placement.bindings</span></code> — one <code class="docutils literal notranslate"><span class="pre">PlacementBinding</span></code> per logical owner, naming its
+region and slot;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">p1.placement.objective</span></code> and <code class="docutils literal notranslate"><span class="pre">p1.placement.relaxed_preferences</span></code> — what was
+optimized and what was surrendered;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.Build.replay(p1.serialize()).placement</span> <span class="pre">==</span> <span class="pre">p1.placement</span></code> — the witness is part of the immutable, replayable build.</p></li>
+</ul>
+<p>Hard constraints are hard. Requiring a capability that no region provides fails
+closed:</p>
+<!--
+% invisible-code-block: python
+%
+% p0, TwoSlotMachine = load_ql_example(
+% "preview/logical/examples/standalone/01_logical_placement.py", "logical",
+% "TwoSlotMachine")
+-->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="c1"># ValueError: no machine space satisfies the placement constraints</span>
+    <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">place</span><span class="p">(</span>
+        <span class="n">p0</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">TwoSlotMachine</span><span class="p">,</span>
+        <span class="n">placement</span><span class="o">=</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">require_capability</span><span class="p">(</span>
+            <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">capability</span><span class="o">.</span><span class="n">logical_factory</span><span class="p">),),</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="s2">"no machine space satisfies the placement constraints"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Placement never silently relaxes a hard requirement. Soft preferences, by
+contrast, may be surrendered — and the surrender is reported:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">p1</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">place</span><span class="p">(</span>
+    <span class="n">p0</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="n">TwoSlotMachine</span><span class="p">,</span>
+    <span class="n">placement</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">colocate</span><span class="p">(</span><span class="n">p0</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">prefer</span><span class="p">(</span>
+            <span class="n">space</span><span class="o">=</span><span class="n">TwoSlotMachine</span><span class="o">.</span><span class="n">compute</span><span class="p">,</span>
+            <span class="n">for_</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">ACTIVE</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">objective</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">expected_spacetime_volume</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">p1</span><span class="o">.</span><span class="n">placement</span><span class="o">.</span><span class="n">relaxed_preferences</span> <span class="o">==</span> <span class="p">()</span>
+</pre></div>
+</div>
+<p>The constraint vocabulary is <code class="docutils literal notranslate"><span class="pre">cudaq.logical.architecture</span></code>: <code class="docutils literal notranslate"><span class="pre">colocate</span></code>,
+<code class="docutils literal notranslate"><span class="pre">allow_spaces</span></code>, <code class="docutils literal notranslate"><span class="pre">require_capability</span></code>, <code class="docutils literal notranslate"><span class="pre">prefer</span></code>, and <code class="docutils literal notranslate"><span class="pre">local</span></code> for exact-slot
+pinning. Exact slots are singleton constraints, not a verification bypass —
+hand-authored placements produce the same verified witness as solved ones.</p>
+</section>
+<section id="code-agnostic-p1">
+<h2>Code-agnostic P1<a class="headerlink" href="#code-agnostic-p1" title="Link to this heading"></a></h2>
+<p>P1 placement never selects an encoding.
+<code class="docutils literal notranslate"><span class="pre">cudaq.logical.architecture.colocate(p0.values.data)</span></code> keeps several logical
+owners in one logical region, but each owner consumes a distinct P1 slot, and a
+<code class="docutils literal notranslate"><span class="pre">PlacementBinding</span></code> carries no <code class="docutils literal notranslate"><span class="pre">encoding</span></code> field. Encodings enter at P2 — bound
+per region through <code class="docutils literal notranslate"><span class="pre">DeviceBuilder.qec.bind(...)</span></code> or carried by a compilation
+target — and the P2 witness is separate from <code class="docutils literal notranslate"><span class="pre">p1.placement</span></code>: changing the
+encoding does not rewrite the verified P1 artifact.</p>
+</section>
+<section id="where-the-firewall-pays-off">
+<h2>Where the firewall pays off<a class="headerlink" href="#where-the-firewall-pays-off" title="Link to this heading"></a></h2>
+<p>Placement constraints speak machine vocabulary — regions, slots, capabilities —
+so a portable program re-places when you swap <code class="docutils literal notranslate"><span class="pre">device=</span></code>, and you can reuse one
+machine across many programs. Capacities and capabilities live on the machine;
+encodings live on the device binding. So when a study moves from one machine to
+another, neither the program nor the estimate code changes.</p>
+</section>
+<section id="continue-from-here">
+<h2>Continue from here<a class="headerlink" href="#continue-from-here" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="magic-states-and-protocols.html"><span class="std std-doc">Magic states and protocols</span></a> — typed resource
+supply and a concrete 15-to-1 factory.</p></li>
+<li><p><a class="reference internal" href="logical-synthesis.html"><span class="std std-doc">Logical Clifford+T synthesis</span></a> — legalizing logical
+rotations before placement.</p></li>
+<li><p><a class="reference internal" href="examples/index.html"><span class="std std-doc">Examples</span></a> — the placement example in the context of the
+full shipped set.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gadgets-and-verification.html" class="btn btn-neutral float-left" title="Gadgets and verification" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="magic-states-and-protocols.html" class="btn btn-neutral float-right" title="Magic states and protocols" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright © 2026, NVIDIA Corporation &amp; affiliates. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
