@@ -45,6 +45,10 @@ class DummyQPU : public cudaq::QPU {
 public:
   DummyQPU() = default;
 
+  cudaq::CompileTarget getCompileTarget(const cudaq::RuntimeTarget *) override {
+    return {};
+  }
+
   void enqueue(cudaq::QuantumTask &task) override {}
 
   cudaq::KernelThunkResultType

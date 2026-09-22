@@ -40,8 +40,6 @@ private:
   /// will change from the DefaultQPU to the QPU subtype specified by that
   /// variable.
   void setTargetBackend(const std::string &backend) override {
-    clearQPUs();
-    addQPU(std::make_unique<cudaq::DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
@@ -78,20 +76,24 @@ private:
                                      : simulation_precision::fp32;
     }
 
+    std::unique_ptr<cudaq::QPU> newQPU;
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
-      auto qpu = cudaq::registry::get<cudaq::QPU>(qpuName);
-      if (qpu == nullptr)
+      newQPU = cudaq::registry::get<cudaq::QPU>(qpuName);
+      if (newQPU == nullptr)
         throw std::runtime_error(
             qpuName + " is not a valid QPU name for the default platform.");
       clearQPUs();
-      addQPU(std::move(qpu));
+    } else {
+      newQPU = std::make_unique<cudaq::DefaultQPU>();
     }
 
     // Forward to the QPU.
-    getQPU().setTargetBackend(backend);
+    newQPU->setTargetBackend(backend);
+    clearQPUs();
+    addQPU(std::move(newQPU));
   }
 };
 } // namespace

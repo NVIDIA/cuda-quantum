@@ -339,15 +339,13 @@ def set_target(target, **extra_config):
         return cudaq_runtime.set_target(target, **extra_config)
 
     from cudaq._experimental import CustomTarget
-    from cudaq._experimental import set_compile_target, set_runtime_endpoint
 
     if isinstance(target, CustomTarget):
         if extra_config:
             raise TypeError(
                 "cudaq.set_target() does not accept keyword arguments when "
                 "target is a cudaq._experimental.CustomTarget.")
-        set_compile_target(target.compile_target)
-        set_runtime_endpoint(target.runtime_endpoint)
+        cudaq_runtime.set_target(target.compile_target, target.runtime_endpoint)
         return target
 
     raise TypeError(f"Unsupported target type: {type(target)}")
