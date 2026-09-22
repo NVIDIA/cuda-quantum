@@ -24,11 +24,9 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
-#include <deque>
 #include <functional>
 #include <future>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -43,6 +41,7 @@ class LinkedLibraryHolder;
 
 namespace detail {
 class TargetSetter;
+class PlatformTestAccess;
 class with_platform_in_library_mode;
 } // namespace detail
 
@@ -125,21 +124,11 @@ public:
   }
 
   ///  Get the number of QPUs available with this platform.
-  std::size_t num_qpus() const { return platformQPUs.size(); }
+  std::size_t num_qpus() const { return compileTargets.size(); }
 
   /// \cond
   /// Get the RuntimeEndpoint for the QPU with ID @p qpuId.
   RuntimeEndpoint &getRuntimeEndpoint(std::size_t qpuId = 0);
-
-  /// Set the runtime endpoint for the QPU with ID @p qpuId.
-  void setRuntimeEndpoint(RuntimeEndpoint endpoint, std::size_t qpuId = 0);
-
-  /// Set the compile target for the platform.
-  ///
-  /// Takes precedence over the compile target the QPUs would provide. It is
-  /// dropped again whenever the platform's QPUs are replaced, i.e. on the next
-  /// target change.
-  void setCompileTarget(std::optional<CompileTarget> target);
   /// \endcond
 
   /// Return whether this platform is a simulator.
@@ -225,30 +214,29 @@ public:
 protected:
   friend class cudaq::LinkedLibraryHolder;
   friend class cudaq::detail::TargetSetter;
+  friend class cudaq::detail::PlatformTestAccess;
   /// @brief Set the target backend, by default do nothing, let subclasses
   /// override
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
 
   /// Append @p qpu to the platform's QPUs.
+  ///
+  /// Note that any reference to `QPU`s, `CompileTarget`s or `RuntimeEndpoint`s
+  /// may get invalidated by this operation (`std::vector` reallocation).
   QPU &addQPU(std::unique_ptr<QPU> qpu);
+
+  /// Append a new QPU to the platform, as defined by @p target and @p endpoint.
+  void addQPU(const CompileTarget &target, const RuntimeEndpoint &endpoint);
 
   /// Destroy all of the platform's QPUs and runtime endpoints.
   void clearQPUs();
-
-  /// Access the QPU with ID @p qpuId.
-  QPU &getQPU(std::size_t qpuId = 0);
 
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
   /// Code generation configuration
   std::optional<CodeGenConfig> codeGenConfig;
-
-  /// The compile target for the platform.
-  ///
-  /// If not set, defaults to querying the compile target from the QPUs.
-  std::optional<CompileTarget> compileTarget;
 
   /// Name of the platform.
   std::string platformName;
@@ -257,39 +245,12 @@ private:
   friend class detail::with_platform_in_library_mode;
 
   // Helper to validate QPU Id
-  void validateQpuId(std::size_t qpuId,
-                     bool acceptRuntimeEndpoints = false) const;
+  void validateQpuId(std::size_t qpuId) const;
 
-  // Ensure a runtime endpoint exists for the given QPU ID, or create it. If
-  // @p allowNullopt is true, a slot will be created in `runtimeEndpoints` but
-  // it will be null.
-  void ensureRuntimeEndpointExists(std::size_t qpuId,
-                                   bool allowNullopt = false);
-
-  // Helper to check no runtime endpoint was set manually for the given QPU ID
-  // (else throw an error)
-  void disableRuntimeEndpointOverride(std::size_t qpuId,
-                                      std::string what) const;
-
-  // Return true if a runtime endpoint has been manually set for @p qpuId,
-  // meaning the backing QPU has been discarded and QPU-level queries cannot be
-  // forwarded.
-  bool hasRuntimeEndpointOverride(std::size_t qpuId) const;
-
-  // Drop every runtime endpoint. Called whenever the QPUs change, since the
-  // endpoints wrapping them would otherwise refer to destroyed QPUs.
-  void resetRuntimeEndpoints();
-
-  /// The Platform QPUs, populated by concrete subtypes via `addQPU`.
-  std::vector<std::unique_ptr<QPU>> platformQPUs;
-
-  /// The runtime endpoints for launching kernels on the platform.
-  ///
-  /// If not set, defaults to creating a RuntimeEndpoint from the respective
-  /// QPU. Using a `deque` to keep references to existing elements valid.
-  std::deque<std::optional<RuntimeEndpoint>> runtimeEndpoints;
-
-  std::mutex runtimeEndpointsMutex;
+  /// The compilation targets for each QPU on the platform.
+  std::vector<CompileTarget> compileTargets;
+  /// The runtime endpoints to launch kernels for each QPU on the platform.
+  std::vector<RuntimeEndpoint> runtimeEndpoints;
 
   int libraryModeOverride = 0;
 };

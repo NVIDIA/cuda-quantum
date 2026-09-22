@@ -123,11 +123,12 @@ private:
         clearQPUs();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
-          auto &qpu = addQPU(cudaq::registry::get<cudaq::QPU>("orca"));
-          qpu.setId(qId);
+          auto qpu = cudaq::registry::get<cudaq::QPU>("orca");
           const std::string configStr =
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
-          qpu.setTargetBackend(configStr);
+          qpu->setId(qId);
+          qpu->setTargetBackend(configStr);
+          addQPU(std::move(qpu));
         }
         return;
       } else {
@@ -174,8 +175,11 @@ void MultiQPUQuantumPlatform::populateDefaultQPUs() {
       throw std::runtime_error("No GPUs available to instantiate platform.");
 
     // Add a QPU for each GPU.
-    for (int i = 0; i < nDevices; i++)
-      addQPU(std::make_unique<cudaq::DefaultQPU>()).setId(i);
+    for (int i = 0; i < nDevices; i++) {
+      auto qpu = std::make_unique<cudaq::DefaultQPU>();
+      qpu->setId(i);
+      addQPU(std::move(qpu));
+    }
   }
 }
 } // namespace
