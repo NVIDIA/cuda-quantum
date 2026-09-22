@@ -54,7 +54,7 @@ quick example, build instructions, and the current scope and limitations.
    :caption: Preview
    :maxdepth: 1
 
-   CUDA-Q Logical <./preview/logical/index.html#http://>
+   CUDA-Q Logical </preview/logical/index.html#http://>
 
 .. |---|   unicode:: U+2014 .. EM DASH
    :trim:
