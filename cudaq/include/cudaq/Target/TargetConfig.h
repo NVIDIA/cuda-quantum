@@ -11,27 +11,35 @@
 #include <filesystem>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace cudaq::config {
 /// Flag to enable feature(s) of the unified NVIDIA target.
-// Use bitset so that we can combine different options, e.g., multi-gpu with
+// Bit values, so that different options can be combined, e.g., multi-gpu with
 // fp32/64.
-// Use raw enum since we need to use it as a bit set.
-enum TargetFeatureFlag : unsigned {
-  flagsFP32 = 0x0001,
-  flagsFP64 = 0x0002,
-  flagsMgpu = 0x0004,
-  flagsMqpu = 0x0008,
-  flagsDepAnalysis = 0x0010,
-  flagsQPP = 0x0020,
+enum class TargetFeatureFlag : unsigned {
+  fp32 = 0x0001,
+  fp64 = 0x0002,
+  mgpu = 0x0004,
+  mqpu = 0x0008,
+  dep_analysis = 0x0010,
+  qpp = 0x0020,
 };
+
+/// OR the underlying values of `flags` into a single feature mask.
+inline unsigned combineFeatureFlags(std::span<const TargetFeatureFlag> flags) {
+  unsigned mask = 0;
+  for (const auto flag : flags)
+    mask |= static_cast<unsigned>(flag);
+  return mask;
+}
 
 /// @brief Configuration argument type annotation
 // e.g., to support type validation.
-enum class ArgumentType { String, Int, UUID, FeatureFlag, MachineConfig };
+enum class ArgumentType { string, integer, uuid, option_flags, machine_config };
 
 /// @brief Architecture-specific compilation settings
 // Different device architectures of a target may require customization.
@@ -70,7 +78,7 @@ struct TargetArgument {
   /// Help string for this argument.
   std::string HelpString;
   /// Type of the expected input value.
-  ArgumentType Type = ArgumentType::String;
+  ArgumentType Type = ArgumentType::string;
   /// Machine configuration (optional, valid if this argument is for a machine
   /// configuration specification)
   std::vector<MachineArchitectureConfig> MachineConfigs;
@@ -94,13 +102,13 @@ struct ConditionalBuildConfig {
 
 /// Top-level backend target configuration.
 struct BackendEndConfigEntry {
-  /// Set the `GEN_TARGET_BACKEND` var if provided.
-  std::optional<bool> GenTargetBackend;
-  /// Enable/disable the library mode if provide.
-  std::optional<bool> LibraryMode;
+  /// Set the `GEN_TARGET_BACKEND` var.
+  bool GenTargetBackend = false;
+  /// Enable/disable the library mode.
+  bool LibraryMode = false;
   /// Whether the target supports pre-computing resource counts for faster
   /// resource estimation.
-  std::optional<bool> SupportResourceCounts;
+  bool SupportResourceCounts = true;
   /// IR lowering configuration (hardware REST QPU)
   std::string JITHighLevelPipeline;
   std::string JITMidLevelPipeline;
@@ -149,10 +157,10 @@ struct BackendEndConfigEntry {
 struct BackendFeatureMap {
   /// Readable name for this configuration.
   std::string Name;
-  /// The feature flag which trigger this configuration.
+  /// The feature flags (combined mask) which trigger this configuration.
   TargetFeatureFlag Flags;
   /// Is it the default one when no option is present?
-  std::optional<bool> Default;
+  bool Default = false;
   /// The full configuration for this option.
   BackendEndConfigEntry Config;
 };
