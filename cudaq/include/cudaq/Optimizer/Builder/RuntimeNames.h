@@ -46,6 +46,10 @@ static constexpr const char CudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
 static constexpr const char CudaqRegisterCallbackName[] =
     "cudaqRegisterCallbackName";
+// Same-process dispatch hook used by the generalized (distributed-memory
+// reference) `device_call` lowering. See DistributedDeviceCall.cpp.
+static constexpr const char callDeviceCallback[] =
+    "__nvqpp__device_callback_run";
 
 /// Prefix for an analog kernel entry functions.
 static constexpr const char cudaqAHKPrefixName[] =

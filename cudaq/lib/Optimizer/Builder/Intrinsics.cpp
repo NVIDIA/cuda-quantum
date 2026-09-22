@@ -431,6 +431,13 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
+    // This is a dummy dispatch hook for the generalized `device_call` reference
+    // lowering. The arguments are: device id, callback name, unmarshal func
+    // ptr, argument buffer, buffer size, return offset, num blocks, num threads
+    // per block. This returns the (possibly dynamic) result span.
+    {cudaq::runtime::callDeviceCallback, {}, R"#(
+  func.func private @__nvqpp__device_callback_run(i64, !cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+)#"},
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},

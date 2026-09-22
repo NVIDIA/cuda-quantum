@@ -153,4 +153,13 @@ processCallbackInputValue(mlir::Location loc, mlir::OpBuilder &builder,
                           mlir::Type inTy, std::int32_t off,
                           cc::StructType packedStructTy);
 
+/// Given a pointer to a real host side value, build the real device-side SSA
+/// value (recursively, for nested dynamic types) it corresponds to. Used to
+/// reduce a callback's real host return value into a device-side value suitable
+/// for storing into a returning host-to-QPU communication buffer.
+mlir::Value reduceHostToDeviceValue(mlir::Location loc,
+                                    mlir::OpBuilder &builder,
+                                    mlir::ModuleOp module, mlir::Type devTy,
+                                    mlir::Value hostPtr);
+
 } // namespace cudaq::opt::marshal

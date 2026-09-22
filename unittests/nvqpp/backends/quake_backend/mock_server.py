@@ -31,7 +31,7 @@ createdJobs = {}
 
 SERVER_EXECUTION_PIPELINE = (
     "builtin.module("
-    "canonicalize,distributed-device-call,cse,return-to-output-log,"
+    "canonicalize,qir-device-call,cse,return-to-output-log,"
     "func.func("
     "memtoreg,canonicalize,cc-loop-normalize,"
     "cc-loop-unroll{maximum-iterations=1024 "
@@ -316,7 +316,7 @@ async def postJob(request: Request):
     verifyValueSemanticsPayload(recovered_mod)
 
     pm = PassManager.parse(
-        "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
+        "builtin.module(canonicalize,qir-device-call,cse)", context=ctx)
     try:
         pm.run(recovered_mod.operation)
     except Exception as e:

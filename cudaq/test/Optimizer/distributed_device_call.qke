@@ -1,0 +1,440 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -canonicalize -distributed-device-call -cse -split-input-file %s | FileCheck %s
+
+// Regression coverage for the generalized, distributed-memory reference
+// `device_call` lowering: marshal/unmarshal generation for a variety of
+// argument and result types passed through the pointer-free communication
+// buffer. `i32`/`i64` stand in for `int`/`long`/`long long` (which all share
+// the same bit width on this target); `i8`/`i16` stand in for `char`/`short`.
+// Each case is its own module (-split-input-file) so the generated
+// marshal/unmarshal functions for one case can't be confused with another's;
+// the greedy pattern rewriter does not otherwise guarantee output order
+// matches source declaration order.
+//
+// Note: std::vector<std::vector<T>> (recursively dynamic) and a struct
+// containing a vector are both covered, as arguments (call_vecvec_arg,
+// call_structvec_arg) and as return types (call_vecvec_ret,
+// call_structvec_ret) -- return types recurse arbitrarily deep, which
+// call_vecvecvec_ret (below) confirms one level further with a triple-nested
+// vector.
+
+// clang-format off
+
+func.func @__nvqpp__mlirgen__call_bool(%arg0 : i1) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbBool on %dev (%arg0) : (i64, i1) -> i1
+  return
+}
+func.func private @cbBool(i1) -> i1 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbBool(
+// CHECK-SAME:      %{{.*}}: i1) -> i1 {
+// CHECK:           %{{.*}} = call @__nvqpp__device_callback_run
+// CHECK:           %{{.*}} = cc.compute_ptr %{{.*}}[1]
+// CHECK:           %[[LD:.*]] = cc.load %{{.*}} : !cc.ptr<i1>
+// CHECK:           return %[[LD]] : i1
+// CHECK-LABEL:   func.func @unmarshal.cbBool(
+// CHECK:           %[[CALL:.*]] = call @cbBool(%{{.*}}) : (i1) -> i1
+// CHECK:           cc.store %[[CALL]], %{{.*}} : !cc.ptr<i1>
+
+// -----
+
+func.func @__nvqpp__mlirgen__call_char(%arg0 : i8) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbChar on %dev (%arg0) : (i64, i8) -> i8
+  return
+}
+func.func private @cbChar(i8) -> i8 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbChar(
+// CHECK-SAME:      %{{.*}}: i8) -> i8 {
+// CHECK-LABEL:   func.func @unmarshal.cbChar(
+// CHECK:           %{{.*}} = call @cbChar(%{{.*}}) : (i8) -> i8
+
+// -----
+
+func.func @__nvqpp__mlirgen__call_short(%arg0 : i16) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbShort on %dev (%arg0) : (i64, i16) -> i16
+  return
+}
+func.func private @cbShort(i16) -> i16 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbShort(
+// CHECK-SAME:      %{{.*}}: i16) -> i16 {
+// CHECK-LABEL:   func.func @unmarshal.cbShort(
+// CHECK:           %{{.*}} = call @cbShort(%{{.*}}) : (i16) -> i16
+
+// -----
+
+func.func @__nvqpp__mlirgen__call_int(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbInt on %dev (%arg0) : (i64, i32) -> i32
+  return
+}
+func.func private @cbInt(i32) -> i32 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbInt(
+// CHECK-SAME:      %{{.*}}: i32) -> i32 {
+// CHECK-LABEL:   func.func @unmarshal.cbInt(
+// CHECK:           %{{.*}} = call @cbInt(%{{.*}}) : (i32) -> i32
+
+// -----
+
+func.func @__nvqpp__mlirgen__call_long(%arg0 : i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbLong on %dev (%arg0) : (i64, i64) -> i64
+  return
+}
+func.func private @cbLong(i64) -> i64 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbLong(
+// CHECK-SAME:      %{{.*}}: i64) -> i64 {
+// CHECK-LABEL:   func.func @unmarshal.cbLong(
+// CHECK:           %{{.*}} = call @cbLong(%{{.*}}) : (i64) -> i64
+
+// -----
+
+func.func @__nvqpp__mlirgen__call_float(%arg0 : f32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbFloat on %dev (%arg0) : (i64, f32) -> f32
+  return
+}
+func.func private @cbFloat(f32) -> f32 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbFloat(
+// CHECK-SAME:      %{{.*}}: f32) -> f32 {
+// CHECK-LABEL:   func.func @unmarshal.cbFloat(
+// CHECK:           %{{.*}} = call @cbFloat(%{{.*}}) : (f32) -> f32
+
+// -----
+
+func.func @__nvqpp__mlirgen__call_double(%arg0 : f64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbDouble on %dev (%arg0) : (i64, f64) -> f64
+  return
+}
+func.func private @cbDouble(f64) -> f64 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbDouble(
+// CHECK-SAME:      %{{.*}}: f64) -> f64 {
+// CHECK-LABEL:   func.func @unmarshal.cbDouble(
+// CHECK:           %{{.*}} = call @cbDouble(%{{.*}}) : (f64) -> f64
+
+// -----
+
+// A struct with a couple of numeric members.
+func.func @__nvqpp__mlirgen__call_struct(%arg0 : !cc.struct<{i32, f64}>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbStruct on %dev (%arg0) : (i64, !cc.struct<{i32, f64}>) -> !cc.struct<{i32, f64}>
+  return
+}
+func.func private @cbStruct(!cc.struct<{i32, f64}>) -> !cc.struct<{i32, f64}> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbStruct(
+// CHECK-SAME:      %{{.*}}: !cc.struct<{i32, f64}>) -> !cc.struct<{i32, f64}> {
+// CHECK:           %{{.*}} = call @__nvqpp__device_callback_run
+// CHECK-LABEL:   func.func @unmarshal.cbStruct(
+// CHECK:           %[[CALL:.*]] = call @cbStruct(%{{.*}}) : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.struct<{i32, f64}>
+// CHECK:           cc.store %[[CALL]], %{{.*}} : !cc.ptr<!cc.struct<{i32, f64}>>
+
+// -----
+
+// std::vector<int>: dynamic argument and return.
+func.func @__nvqpp__mlirgen__call_vecint(%arg0 : !cc.sequence<i32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecInt on %dev (%arg0) : (i64, !cc.sequence<i32>) -> !cc.sequence<i32>
+  return
+}
+func.func private @cbVecInt(!cc.sequence<i32>) -> !cc.sequence<i32> attributes {"cudaq-devicecall"}
+
+// The marshal (kernel/caller) side packs the argument span into the buffer,
+// dispatches, then reads the {ptr, count} result slot directly back out of
+// the buffer (same-process reference model) to build the returned span.
+// CHECK-LABEL:   func.func @marshal.cbVecInt(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.sequence<i32>) -> !cc.sequence<i32> {
+// CHECK:           %{{.*}} = cc.sequence_size %[[ARG0]] : (!cc.sequence<i32>) -> i64
+// CHECK:           %{{.*}} = cc.sequence_data %[[ARG0]] : (!cc.sequence<i32>) -> !cc.ptr<i32>
+// CHECK:           %{{.*}} = call @__nvqpp__device_callback_run
+// CHECK:           %[[SLOT:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>
+// CHECK:           %[[DATA:.*]] = cc.extract_value %[[SLOT]][0] : (!cc.struct<{!cc.ptr<i32>, i64}>) -> !cc.ptr<i32>
+// CHECK:           %[[LEN:.*]] = cc.extract_value %[[SLOT]][1] : (!cc.struct<{!cc.ptr<i32>, i64}>) -> i64
+// CHECK:           %[[RES:.*]] = cc.sequence_init %[[DATA]], %[[LEN]] : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
+// CHECK:           return %[[RES]] : !cc.sequence<i32>
+
+// The unmarshal (callback) side builds a real host std::vector<int> triple
+// (sret), calls the callback through it, then reduces the triple back to a
+// {ptr, count} pair by pointer subtraction for the buffer's dynamic result
+// slot.
+// CHECK-LABEL:   func.func @unmarshal.cbVecInt(
+// CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>
+// CHECK:           call @cbVecInt(%[[SRET]], %{{.*}})
+// CHECK:           %{{.*}} = arith.subi
+// CHECK:           %{{.*}} = arith.divsi
+
+// -----
+
+// std::vector<double>: dynamic argument and return.
+func.func @__nvqpp__mlirgen__call_vecdouble(%arg0 : !cc.sequence<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecDouble on %dev (%arg0) : (i64, !cc.sequence<f64>) -> !cc.sequence<f64>
+  return
+}
+func.func private @cbVecDouble(!cc.sequence<f64>) -> !cc.sequence<f64> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbVecDouble(
+// CHECK-SAME:      %{{.*}}: !cc.sequence<f64>) -> !cc.sequence<f64> {
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<f64>, i64) -> !cc.sequence<f64>
+// CHECK-LABEL:   func.func @unmarshal.cbVecDouble(
+// CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f64>}>
+// CHECK:           call @cbVecDouble(%[[SRET]], %{{.*}})
+
+// -----
+
+// std::vector<bool> is the interesting case: on the host it is a bit-packed
+// specialization, but on the device side it is represented as a plain
+// unpacked byte-per-bool span (same layout as std::vector<char>). Both
+// argument and return directions must go through the runtime helpers that
+// know how to construct/deconstruct the real bit-packed object
+// (__nvqpp_initializer_list_to_vector_bool /
+// __nvqpp_vector_bool_to_initializer_list) rather than hand-rolled bit
+// manipulation.
+func.func @__nvqpp__mlirgen__call_vecbool(%arg0 : !cc.sequence<i1>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecBool on %dev (%arg0) : (i64, !cc.sequence<i1>) -> !cc.sequence<i1>
+  return
+}
+func.func private @cbVecBool(!cc.sequence<i1>) -> !cc.sequence<i1> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbVecBool(
+// CHECK-SAME:      %{{.*}}: !cc.sequence<i1>) -> !cc.sequence<i1> {
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i1>, i64) -> !cc.sequence<i1>
+
+// The argument side must copy the buffer's unpacked span data to the heap
+// (the runtime helper frees its input) before constructing a real
+// std::vector<bool> via the runtime helper.
+// CHECK-LABEL:   func.func @unmarshal.cbVecBool(
+// CHECK:           %{{.*}} = call @__nvqpp_vectorCopyCtor(%{{.*}}, %{{.*}}, %{{.*}})
+// CHECK:           call @__nvqpp_initializer_list_to_vector_bool(%{{.*}}, %{{.*}}, %{{.*}})
+// CHECK:           call @cbVecBool(%{{.*}}, %{{.*}})
+// The return side unpacks the real std::vector<bool> back into a
+// std::vector<char>-shaped (unpacked) triple, then reduces it the same way
+// as any other std::vector<T>.
+// CHECK:           call @__nvqpp_vector_bool_to_initializer_list(%{{.*}}, %{{.*}}, %{{.*}})
+// CHECK:           %{{.*}} = arith.subi
+// CHECK:           %{{.*}} = arith.divsi
+
+// -----
+
+// std::vector<struct>: dynamic argument and return.
+func.func @__nvqpp__mlirgen__call_vecstruct(%arg0 : !cc.sequence<!cc.struct<{i32, f64}>>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecStruct on %dev (%arg0) : (i64, !cc.sequence<!cc.struct<{i32, f64}>>) -> !cc.sequence<!cc.struct<{i32, f64}>>
+  return
+}
+func.func private @cbVecStruct(!cc.sequence<!cc.struct<{i32, f64}>>) -> !cc.sequence<!cc.struct<{i32, f64}>> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbVecStruct(
+// CHECK-SAME:      %{{.*}}: !cc.sequence<!cc.struct<{i32, f64}>>) -> !cc.sequence<!cc.struct<{i32, f64}>> {
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.struct<{i32, f64}>>, i64) -> !cc.sequence<!cc.struct<{i32, f64}>>
+// CHECK-LABEL:   func.func @unmarshal.cbVecStruct(
+// CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{!cc.ptr<!cc.struct<{i32, f64}>>, !cc.ptr<!cc.struct<{i32, f64}>>, !cc.ptr<!cc.struct<{i32, f64}>>}>
+// CHECK:           call @cbVecStruct(%[[SRET]], %{{.*}})
+
+// -----
+
+// std::vector<std::vector<i32>> (recursively dynamic) as an argument. The
+// return type here is a plain i32 to isolate testing of argument marshaling
+// (dynamic return types are covered separately above/below).
+func.func @__nvqpp__mlirgen__call_vecvec_arg(%arg0 : !cc.sequence<!cc.sequence<i32>>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecVecArg on %dev (%arg0) : (i64, !cc.sequence<!cc.sequence<i32>>) -> i32
+  return
+}
+func.func private @cbVecVecArg(!cc.sequence<!cc.sequence<i32>>) -> i32 attributes {"cudaq-devicecall"}
+
+// The marshal side walks the outer span (cc.sequence_data / cc.sequence_size)
+// to compute the nested addendum size, not a host triple-pointer.
+// CHECK-LABEL:   func.func @marshal.cbVecVecArg(
+// CHECK-SAME:      %{{.*}}: !cc.sequence<!cc.sequence<i32>>) -> i32 {
+// CHECK:           %{{.*}} = cc.sequence_size %{{.*}} : (!cc.sequence<!cc.sequence<i32>>) -> i64
+// CHECK:           %{{.*}} = cc.sequence_data %{{.*}} : (!cc.sequence<!cc.sequence<i32>>) -> !cc.ptr<!cc.array<!cc.sequence<i32> x ?>>
+
+// The unmarshal side reconstructs each inner vector as a real host
+// std::vector<i32> triple in an array, then packages the whole outer vector
+// as a real host std::vector<std::vector<i32>> triple over that array (the
+// same "build a host vector triple" logic used for a single-level vector).
+// CHECK-LABEL:   func.func @unmarshal.cbVecVecArg(
+// CHECK:           %[[ARR:.*]] = cc.alloca !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>[%{{.*}} : i64]
+// CHECK:           cc.insert_value
+// CHECK:           cc.store %{{.*}}, %{{.*}} : !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>
+// CHECK:           %{{.*}} = cc.insert_value %{{.*}}[0], %{{.*}} : (!cc.struct<{!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>}>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>) -> !cc.struct<{!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>}>
+// CHECK:           call @cbVecVecArg(%{{.*}})
+
+// -----
+
+// A struct containing a dynamic member (std::vector), passed as a
+// device_call argument (not nested in a vector). The device-side member
+// type (!cc.sequence<i32>) and the real host member type (a triple-pointer
+// struct) diverge, so the callee's real sret-style pointer argument must use
+// the *host* struct layout throughout, not the device one.
+func.func @__nvqpp__mlirgen__call_structvec_arg(%arg0 : !cc.struct<{i32, !cc.sequence<i32>}>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbStructVecArg on %dev (%arg0) : (i64, !cc.struct<{i32, !cc.sequence<i32>}>) -> i32
+  return
+}
+func.func private @cbStructVecArg(!cc.struct<{i32, !cc.sequence<i32>}>) -> i32 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @unmarshal.cbStructVecArg(
+// CHECK:           %[[ALLOC:.*]] = cc.alloca !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>}>
+// CHECK:           cc.store %{{.*}}, %[[ALLOC]] : !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>}>>
+// CHECK:           call @cbStructVecArg(%[[ALLOC]])
+
+// -----
+
+// std::vector<std::vector<i32>> (recursively dynamic) as a *return* type.
+// The callee's real return value (a real host std::vector<std::vector<i32>>,
+// via a hidden sret triple-of-triples argument) must be reduced into a
+// freshly allocated array of real device-side cc.sequence<i32> values (one
+// per row), not a raw copy of the host's triple-of-triples memory, since
+// the host and device per-row layouts differ.
+func.func @__nvqpp__mlirgen__call_vecvec_ret(%arg0 : i32) -> !cc.sequence<!cc.sequence<i32>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecVecRet on %dev (%arg0) : (i64, i32) -> !cc.sequence<!cc.sequence<i32>>
+  return %1 : !cc.sequence<!cc.sequence<i32>>
+}
+func.func private @cbVecVecRet(i32) -> !cc.sequence<!cc.sequence<i32>> attributes {"cudaq-devicecall"}
+
+// The marshal side does not need to recurse: the buffer's {ptr, count}
+// output slot already points to the fully-realized cc.sequence<i32> row
+// array built on the unmarshal side, so cc.sequence_init directly gives the
+// correctly-typed outer result.
+// CHECK-LABEL:   func.func @marshal.cbVecVecRet(
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<i32>>, i64) -> !cc.sequence<!cc.sequence<i32>>
+
+// CHECK-LABEL:   func.func @unmarshal.cbVecVecRet(
+// CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>}>
+// CHECK:           call @cbVecVecRet(%[[SRET]], %{{.*}})
+// CHECK:           %[[ROWS:.*]] = cc.alloca !cc.sequence<i32>[%{{.*}} : i64]
+// CHECK:           cc.loop
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<i32>>, i64) -> !cc.sequence<!cc.sequence<i32>>
+// CHECK:           %{{.*}} = cc.sequence_data
+// CHECK:           %{{.*}} = cc.sequence_size
+
+// -----
+
+// A triple-nested vector return confirms the marshal/unmarshal recursion
+// isn't hardcoded to two levels: the unmarshal side generates a nested
+// cc.loop (one level of recursion per vector level) before finally reaching
+// the innermost, non-dynamic i32 row.
+
+func.func @__nvqpp__mlirgen__call_vecvecvec_ret(%arg0 : i32) -> !cc.sequence<!cc.sequence<!cc.sequence<i32>>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecVecVecRet on %dev (%arg0) : (i64, i32) -> !cc.sequence<!cc.sequence<!cc.sequence<i32>>>
+  return %1 : !cc.sequence<!cc.sequence<!cc.sequence<i32>>>
+}
+func.func private @cbVecVecVecRet(i32) -> !cc.sequence<!cc.sequence<!cc.sequence<i32>>> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbVecVecVecRet(
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<!cc.sequence<i32>>>, i64) -> !cc.sequence<!cc.sequence<!cc.sequence<i32>>>
+
+// CHECK-LABEL:   func.func @unmarshal.cbVecVecVecRet(
+// CHECK:           call @cbVecVecVecRet(%{{.*}}, %{{.*}})
+// CHECK:           cc.loop
+// CHECK:           cc.loop
+// CHECK-NOT:       cc.loop
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<i32>>, i64) -> !cc.sequence<!cc.sequence<i32>>
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<!cc.sequence<i32>>>, i64) -> !cc.sequence<!cc.sequence<!cc.sequence<i32>>>
+
+// -----
+
+// A struct containing a dynamic member (std::vector), as a *return* type
+// (not nested in a vector).
+func.func @__nvqpp__mlirgen__call_structvec_ret(%arg0 : i32) -> !cc.struct<{i32, !cc.sequence<i32>}> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbStructVecRet on %dev (%arg0) : (i64, i32) -> !cc.struct<{i32, !cc.sequence<i32>}>
+  return %1 : !cc.struct<{i32, !cc.sequence<i32>}>
+}
+func.func private @cbStructVecRet(i32) -> !cc.struct<{i32, !cc.sequence<i32>}> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @marshal.cbStructVecRet(
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
+
+// CHECK-LABEL:   func.func @unmarshal.cbStructVecRet(
+// CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>}>
+// CHECK:           call @cbStructVecRet(%[[SRET]], %{{.*}})
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
+
+// -----
+
+// Two device_call ops to the *same* callback, from two different kernels,
+// share one marshal/unmarshal function pair (the "already added" path in
+// DistributedDeviceCallPat::matchAndRewrite) rather than generating a
+// duplicate. Both call sites still get rewritten correctly even on the
+// second (already-added) visit.
+
+func.func @__nvqpp__mlirgen__call_shared_a(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %dev = arith.constant 0 : i64
+  cc.device_call @cbShared on %dev (%arg0) : (i64, i32) -> ()
+  return
+}
+func.func @__nvqpp__mlirgen__call_shared_b(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %dev = arith.constant 0 : i64
+  cc.device_call @cbShared on %dev (%arg0) : (i64, i32) -> ()
+  return
+}
+func.func private @cbShared(i32) attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__call_shared_a(
+// CHECK:           call @marshal.cbShared(%{{.*}}) : (i32) -> ()
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__call_shared_b(
+// CHECK:           call @marshal.cbShared(%{{.*}}) : (i32) -> ()
+
+// CHECK-LABEL:   func.func @marshal.cbShared(
+// CHECK-NOT:     func.func @marshal.cbShared(
+
+// clang-format on

@@ -78,7 +78,7 @@ inline mlir::Type getPointerType(mlir::MLIRContext *ctx) {
 cudaq::cc::StructType getDynamicBufferType(mlir::MLIRContext *ctx);
 
 /// Extract the element type of a `sret` return result.
-mlir::Type getSRetElementType(mlir::FunctionType funcTy);
+mlir::Type getSRetElementType(mlir::FunctionType funcTy, mlir::ModuleOp module);
 
 /// Do not use this yet. Opaque pointers are all or nothing.
 inline mlir::Type getOpaquePointerType(mlir::MLIRContext *ctx) {

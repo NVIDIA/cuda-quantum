@@ -10,6 +10,7 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/FmtCore.h"
+#include "common/ThunkInterface.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
@@ -373,6 +374,24 @@ void __nvqpp_customop_size_error(std::int64_t expected, std::int64_t actual) {
       fmt::format("custom operation requires {} qubit target(s), but {} were "
                   "provided",
                   expected, actual));
+}
+
+/// Dispatch hook for the generalized, distributed-memory reference
+/// `device_call` lowering. This reference implementation assumes the "device"
+/// and host share the same process and address space: the compiler-generated
+/// marshal code already passes the unmarshal function pointer directly (no
+/// registry lookup by name is needed here), so dispatch is just an indirect
+/// call through it with the shared communication buffer. \p deviceId, \p name,
+/// \p numBlocks, and \p numThreads are unused by this same-process
+/// reference implementation; a distributed target's runtime would replace this
+/// hook to route the call to the appropriate remote device instead.
+cudaq::KernelThunkResultType
+__nvqpp__device_callback_run(std::int64_t deviceId, const char *name,
+                             void *unmarshalFunc, void *buffer,
+                             std::int64_t bufferSize, std::int64_t returnOffset,
+                             std::int64_t numBlocks, std::int64_t numThreads) {
+  auto thunk = reinterpret_cast<cudaq::KernelThunkType>(unmarshalFunc);
+  return thunk(buffer, /*isRemote=*/false);
 }
 }
 } // namespace cudaq::support
