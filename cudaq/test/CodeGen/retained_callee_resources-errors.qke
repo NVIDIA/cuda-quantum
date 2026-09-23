@@ -1,0 +1,279 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Diagnose allocating and measuring callees that survive to profile codegen.
+// RUN: cudaq-opt %s --split-input-file --verify-diagnostics \
+// RUN:   --quake-to-qir-api-prep=api=base-profile -o /dev/null
+// RUN: cudaq-opt %s --split-input-file --verify-diagnostics \
+// RUN:   --quake-to-qir-api-prep=api=adaptive-profile -o /dev/null
+// RUN: not cudaq-opt %s --split-input-file \
+// RUN:   --quake-to-qir-api-prep=api=base-profile -o /dev/null
+// RUN: not cudaq-opt %s --split-input-file \
+// RUN:   --quake-to-qir-api-prep=api=adaptive-profile -o /dev/null
+
+// Reduced IR for leaf() { qubit r; x(r); } called with a live caller qubit.
+// Other cases vary the call form, caller allocation, or allocation semantics.
+// direct: retained reference to a locally allocating helper.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @caller() attributes {"cudaq-kernel", "cudaq-entrypoint"} {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    // expected-note@+1 {{callee referenced here}}
+    func.call @leaf() : () -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+}
+
+// -----
+
+// noinline: retained reference to a locally allocating helper.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @caller() attributes {"cudaq-kernel", "cudaq-entrypoint"} {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    // expected-note@+1 {{callee referenced here}}
+    cc.noinline_call @leaf() : () -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+}
+
+// -----
+
+// apply: retained reference to a locally allocating helper.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @caller() attributes {"cudaq-kernel", "cudaq-entrypoint"} {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    // expected-note@+1 {{callee referenced here}}
+    quake.apply @leaf () : () -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+}
+
+// -----
+
+// address_taken: retained reference to a locally allocating helper.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @caller() attributes {"cudaq-kernel", "cudaq-entrypoint"} {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    // expected-note@+1 {{callee referenced here}}
+    %f = func.constant @leaf : () -> ()
+    func.call_indirect %f() : () -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+}
+
+// -----
+
+// A caller need not allocate: repeated calls still reuse the static ID.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @caller() {
+    // expected-note@+1 {{callee referenced here}}
+    func.call @leaf() : () -> ()
+    // expected-note@+1 {{callee referenced here}}
+    func.call @leaf() : () -> ()
+    return
+  }
+}
+
+// -----
+
+// A non-allocating intermediate caller does not hide the allocating leaf.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @middle() {
+    // expected-note@+1 {{callee referenced here}}
+    func.call @leaf() : () -> ()
+    return
+  }
+  func.func @caller() {
+    func.call @middle() : () -> ()
+    return
+  }
+}
+
+// -----
+
+// Value-semantics scalar allocation.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.null_wire
+    %r = quake.x %q : (!quake.wire) -> !quake.wire
+    quake.sink %r : !quake.wire
+    return
+  }
+  func.func @caller() {
+    // expected-note@+1 {{callee referenced here}}
+    func.call @leaf() : () -> ()
+    return
+  }
+}
+
+// -----
+
+// Value-semantics register allocation.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {no_inline} {
+    %q = quake.null_cable !quake.cable<2>
+    %w:2 = quake.split_cable %q : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+    %r = quake.x %w#0 : (!quake.wire) -> !quake.wire
+    quake.sink %r : !quake.wire
+    quake.sink %w#1 : !quake.wire
+    return
+  }
+  func.func @caller() {
+    // expected-note@+1 {{callee referenced here}}
+    func.call @leaf() : () -> ()
+    return
+  }
+}
+
+// -----
+
+// A kernel entry point can also be used as a retained callee.
+// Its entry-point attribute does not give it a separate qubit-ID space.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @leaf() attributes {"cudaq-kernel", "cudaq-entrypoint", no_inline} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @caller() attributes {"cudaq-kernel", "cudaq-entrypoint"} {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    // expected-note@+1 {{callee referenced here}}
+    func.call @leaf() : () -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+}
+
+// -----
+
+// A thunk-shaped caller that allocates qubits is not a generated launch thunk.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that allocates qubits; inline the call before code generation}}
+  func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %q = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    quake.dealloc %q : !quake.ref
+    return
+  }
+  func.func @entry.thunk(%args: !cc.ptr<i8>, %remote: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+    %q = quake.alloca !quake.ref
+    quake.h %q : (!quake.ref) -> ()
+    // expected-note@+1 {{callee referenced here}}
+    cc.noinline_call @__nvqpp__mlirgen__entry() : () -> ()
+    quake.dealloc %q : !quake.ref
+    %result = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
+    return %result : !cc.struct<{!cc.ptr<i8>, i64}>
+  }
+}
+
+// -----
+
+// Reduced C++ frontend output for:
+// bool helper(qubit &q) __qpu__ { return mz(q); }
+// bool caller() __qpu__ {
+//   qubit q, r;
+//   x(q);
+//   auto first = mz(q);
+//   bool other = helper(r);
+//   return first && !other;
+// }
+// Helper's measurement overwrites the caller's still-live static result 0.
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that measures qubits; inline the call before code generation}}
+  func.func @helper(%q: !quake.ref) -> i1 {
+    %m = quake.mz %q : (!quake.ref) -> !cc.measure_handle
+    %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+    return %b : i1
+  }
+  func.func @caller() -> i1 attributes {"cudaq-kernel", "cudaq-entrypoint"} {
+    %true = arith.constant true
+    %q = quake.alloca !quake.ref
+    %r = quake.alloca !quake.ref
+    quake.x %q : (!quake.ref) -> ()
+    %first = quake.mz %q : (!quake.ref) -> !cc.measure_handle
+    // expected-note@+1 {{callee referenced here}}
+    %other = func.call @helper(%r) : (!quake.ref) -> i1
+    %bit = quake.discriminate %first : (!cc.measure_handle) -> i1
+    %not_other = arith.xori %other, %true : i1
+    %result = arith.andi %bit, %not_other : i1
+    quake.dealloc %q : !quake.ref
+    quake.dealloc %r : !quake.ref
+    return %result : i1
+  }
+}
+
+// -----
+
+// Wire measurements
+module {
+  // expected-error@+1 {{QIR profile code generation cannot retain a callee that measures qubits; inline the call before code generation}}
+  func.func @helper(%q: !quake.wire) -> (i1, !quake.wire) {
+    %m, %w = quake.mz %q : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %b = quake.discriminate %m : (!quake.measure) -> i1
+    return %b, %w : i1, !quake.wire
+  }
+  func.func @caller(%q: !quake.wire) -> (i1, !quake.wire) {
+    // expected-note@+1 {{callee referenced here}}
+    %bit, %w = quake.apply @helper (%q) : (!quake.wire) -> (i1, !quake.wire)
+    return %bit, %w : i1, !quake.wire
+  }
+}

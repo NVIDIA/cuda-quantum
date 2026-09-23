@@ -11,6 +11,7 @@
 #include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
@@ -20,10 +21,12 @@
 #include "cudaq/Optimizer/Dialect/QEC/QECOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h" // for GlobalizeArrayValues
 #include "llvm/Support/Debug.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
+#include <utility>
 
 #define DEBUG_TYPE "convert-to-qir-api"
 
@@ -2932,6 +2935,63 @@ struct QuakeToQIRAPIPass
   }
 };
 
+// Match the call kind, symbol names, and ABI emitted by `GenKernelExecution`.
+// The entry-point attribute alone does not identify a host launch.
+static bool isGeneratedLaunchThunk(Operation *user, func::FuncOp callee) {
+  if (!isa<cudaq::cc::NoInlineCallOp>(user) ||
+      !callee->hasAttr(cudaq::entryPointAttrName) ||
+      !callee.getName().starts_with(cudaq::runtime::cudaqGenPrefixName))
+    return false;
+  auto caller = user->getParentOfType<func::FuncOp>();
+  if (!caller || caller->hasAttr(cudaq::kernelAttrName) ||
+      caller.getFunctionType() !=
+          cudaq::opt::marshal::getThunkType(callee.getContext()))
+    return false;
+  auto callerName = caller.getName();
+  return callerName.consume_back(".thunk") &&
+         callerName ==
+             callee.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
+}
+
+// For the QIR Base and Adaptive profiles, this pass assigns static qubit and
+// measurement result IDs independently in each function.
+// If a callee remains uninlined, its allocations can overlap live qubits or
+// reuse a released qubit without resetting its state. Its measurements can
+// overwrite a caller's result.
+static LogicalResult rejectAllocatingOrMeasuringCallees(
+    ModuleOp module,
+    ArrayRef<std::pair<func::FuncOp, StringRef>> qubitAllocOrMeasureFunctions) {
+  if (qubitAllocOrMeasureFunctions.empty())
+    return success();
+  DenseSet<Operation *> resourceUsers;
+  for (auto &entry : qubitAllocOrMeasureFunctions)
+    resourceUsers.insert(entry.first);
+  // Include address-taking, which can preserve a callee for indirect calls.
+  SymbolTableCollection symbolTables;
+  SymbolUserMap symbolUsers(symbolTables, module);
+  for (auto [callee, action] : qubitAllocOrMeasureFunctions) {
+    SmallVector<Operation *> retainedUsers;
+    for (Operation *user : symbolUsers.getUsers(callee)) {
+      auto caller = user->getParentOfType<func::FuncOp>();
+      // The generated host thunk may invoke an allocating or measuring entry
+      // point because the thunk has no qubit or result IDs of its own.
+      if (!resourceUsers.contains(caller) &&
+          isGeneratedLaunchThunk(user, callee))
+        continue;
+      retainedUsers.push_back(user);
+    }
+    if (retainedUsers.empty())
+      continue;
+    auto diagnostic = callee.emitOpError(
+        "QIR profile code generation cannot retain a callee that ");
+    diagnostic << action << "; inline the call before code generation";
+    for (auto *user : retainedUsers)
+      diagnostic.attachNote(user->getLoc()) << "callee referenced here";
+    return failure();
+  }
+  return success();
+}
+
 struct QuakeToQIRAPIPrepPass
     : public cudaq::opt::impl::QuakeToQIRAPIPrepBase<QuakeToQIRAPIPrepPass> {
   using QuakeToQIRAPIPrepBase::QuakeToQIRAPIPrepBase;
@@ -3006,6 +3066,8 @@ struct QuakeToQIRAPIPrepPass
       // If the API is one of the profile variants, we must perform allocation
       // and measurement analysis and stick attributes on the Ops as needed.
       OpBuilder builder(module);
+      SmallVector<std::pair<func::FuncOp, StringRef>>
+          qubitAllocOrMeasureFunctions;
       module.walk([&](func::FuncOp func) {
         std::size_t totalQubits = 0;
         std::size_t totalResults = 0;
@@ -3075,6 +3137,13 @@ struct QuakeToQIRAPIPrepPass
           }
         });
 
+        // Either condition requires checking calls to this function. Record it
+        // once, reporting allocation if it both allocates and measures qubits.
+        if (totalQubits)
+          qubitAllocOrMeasureFunctions.emplace_back(func, "allocates qubits");
+        else if (totalResults)
+          qubitAllocOrMeasureFunctions.emplace_back(func, "measures qubits");
+
         // If the API is one of the profile variants, the QIR consumer expects
         // some bonus information by way of attributes. Add most of them here.
         // (See also OUTPUT-NAME-MAP.)
@@ -3106,6 +3175,11 @@ struct QuakeToQIRAPIPrepPass
         if (!funcAttrs.empty())
           func->setAttr("passthrough", builder.getArrayAttr(funcAttrs));
       });
+      if (failed(rejectAllocatingOrMeasuringCallees(
+              module, qubitAllocOrMeasureFunctions))) {
+        signalPassFailure();
+        return;
+      }
     }
 
     auto *ctx = module.getContext();
