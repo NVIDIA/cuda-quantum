@@ -204,23 +204,4 @@ checkExternalTargetVersion(const TargetConfig &config,
                            std::string_view currentVersion,
                            const std::filesystem::path &configPath = {});
 
-/// Process the target configuration into a `nvq++` compatible script according
-/// to the provided compile time (C++)/runtime (Python) target arguments.
-std::string processRuntimeArgs(const TargetConfig &config,
-                               const std::map<std::string, std::string> &args);
-
-/// Replace all `%PLUGIN_ROOT%` tokens in target YAML text with the absolute
-/// plugin root path that owns that YAML.
-std::string substitutePluginRoot(std::string yamlContent,
-                                 const std::filesystem::path &pluginRoot);
-
-/// Parse target YAML text after applying `%PLUGIN_ROOT%` substitution.
-TargetConfig parseTargetConfig(std::string yamlContent,
-                               const std::filesystem::path &pluginRoot = {});
-
-/// Read and parse a target YAML file. If @p pluginRoot is empty, infer it from
-/// the standard `<root>/targets/<name>.yml` layout.
-TargetConfig loadTargetConfig(const std::filesystem::path &configPath,
-                              const std::filesystem::path &pluginRoot = {});
-
 } // namespace cudaq::config

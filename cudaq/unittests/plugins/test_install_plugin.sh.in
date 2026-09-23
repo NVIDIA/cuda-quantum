@@ -14,6 +14,11 @@ set -euo pipefail
 
 NVQ="@CMAKE_BINARY_DIR@/bin/nvq++"
 CUDAQ_INSTALL_PLUGIN="@CMAKE_BINARY_DIR@/bin/cudaq-install-plugin"
+CUDAQ_TARGET_DB_GEN="@CMAKE_BINARY_DIR@/bin/cudaq-target-db-gen"
+CXX="@CMAKE_CXX_COMPILER@"
+CXXFLAGS="@CUDAQ_TARGET_PLUGIN_CXX_FLAGS@"
+CUDAQ_INCLUDE="@CMAKE_SOURCE_DIR@/cudaq/include"
+SHLIB_EXT="@CMAKE_SHARED_LIBRARY_SUFFIX@"
 TARGET_DIR="@CMAKE_BINARY_DIR@/targets"
 SYSTEM_PLUGINS="${TARGET_DIR}/../plugins"
 
@@ -23,26 +28,35 @@ trap 'rm -rf "$TMPDIR" "${SYSTEM_PLUGINS}/b6-system-plugin"' EXIT
 INSTALL_DIR="${TMPDIR}/install"
 XDG_DIR="${TMPDIR}/xdg"
 
+# build_target_plugin_lib <name> <targets-dir>
+# External plugin targets are compiled target plugin libraries (produced by
+# `cudaq-target-db-gen --plugin`), not raw YAML text - see
+# docs/sphinx/using/extending/packaging.rst.
+function build_target_plugin_lib {
+	local name="$1" targets_dir="$2"
+	local staged_yml="${targets_dir}/${name}.yml"
+	local gen_cpp="${TMPDIR}/${name}.gen.cpp"
+	cat > "${staged_yml}" <<EOF
+version: 1
+name: ${name}
+description: "Install-plugin test target."
+config:
+  library-mode: true
+EOF
+	"${CUDAQ_TARGET_DB_GEN}" --plugin -o "${gen_cpp}" "${name}=${staged_yml}"
+	"${CXX}" ${CXXFLAGS} -I"${CUDAQ_INCLUDE}" "${gen_cpp}" \
+		-o "${targets_dir}/${name}${SHLIB_EXT}"
+	rm -f "${staged_yml}"
+}
+
 # --- Create source plugin directories ---
 mkdir -p "${INSTALL_DIR}/b6-user-plugin/targets" "${INSTALL_DIR}/b6-user-plugin/lib"
 mkdir -p "${INSTALL_DIR}/b6-copy-plugin/targets" "${INSTALL_DIR}/b6-copy-plugin/lib"
 mkdir -p "${INSTALL_DIR}/b6-system-plugin/targets" "${INSTALL_DIR}/b6-system-plugin/lib"
 
-cat > "${INSTALL_DIR}/b6-user-plugin/targets/b6-user-target.yml" <<'EOF'
-name: b6-user-target
-config:
-  library-mode: true
-EOF
-cat > "${INSTALL_DIR}/b6-copy-plugin/targets/b6-copy-target.yml" <<'EOF'
-name: b6-copy-target
-config:
-  library-mode: true
-EOF
-cat > "${INSTALL_DIR}/b6-system-plugin/targets/b6-system-target.yml" <<'EOF'
-name: b6-system-target
-config:
-  library-mode: true
-EOF
+build_target_plugin_lib b6-user-target "${INSTALL_DIR}/b6-user-plugin/targets"
+build_target_plugin_lib b6-copy-target "${INSTALL_DIR}/b6-copy-plugin/targets"
+build_target_plugin_lib b6-system-target "${INSTALL_DIR}/b6-system-plugin/targets"
 
 # --- Test: Default install creates a symlink ---
 env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" "${INSTALL_DIR}/b6-user-plugin"
@@ -60,7 +74,7 @@ echo "$nvqpp_list" | grep -q 'b6-user-target'
 env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --copy "${INSTALL_DIR}/b6-copy-plugin"
 test -d "${XDG_DIR}/cudaq/plugins/b6-copy-plugin"
 ! test -L "${XDG_DIR}/cudaq/plugins/b6-copy-plugin"
-test -f "${XDG_DIR}/cudaq/plugins/b6-copy-plugin/targets/b6-copy-target.yml"
+test -f "${XDG_DIR}/cudaq/plugins/b6-copy-plugin/targets/b6-copy-target${SHLIB_EXT}"
 
 # --- Test: --system installs to system scope ---
 env XDG_DATA_HOME="$XDG_DIR" "$CUDAQ_INSTALL_PLUGIN" --system "${INSTALL_DIR}/b6-system-plugin"
