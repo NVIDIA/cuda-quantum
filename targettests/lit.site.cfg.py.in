@@ -118,3 +118,4 @@ lit.llvm.initialize(lit_config, config)
 
 # Let the main config do the real work.
 lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/targettests/lit.cfg.py")
+

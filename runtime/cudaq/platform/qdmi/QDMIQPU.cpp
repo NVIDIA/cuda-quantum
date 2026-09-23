@@ -110,13 +110,13 @@ constexpr std::array programFormats{
 };
 
 constexpr std::string_view iqmPipeline =
-    "func.func(erase-implicit-output),lower-to-cfg,iqm-gate-set-mapping,"
+    "func.func(erase-implicit-output),iqm-gate-set-mapping,"
     "func.func(add-dealloc,"
-    "combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,memtoreg),"
+    "combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,cse,memtoreg),"
     "add-wireset,func.func(assign-wire-indices),qubit-mapping{device="
-    "%qdmi_connectivity%},func.func(delay-measurements,regtomem),"
+    "%qdmi_connectivity%},func.func(delay-measurements),"
     "func.func(cse,normalize-phase-placement,lower-phase,canonicalize),"
-    "iqm-gate-set-mapping";
+    "iqm-gate-set-mapping,lower-to-cfg,func.func(regtomem)";
 
 std::optional<std::string> getValue(const BackendConfig &config,
                                     const std::string_view key) {
@@ -841,8 +841,6 @@ void QDMIQPU::setTargetBackend(const std::string &backend) {
                                               std::move(parameters), *deviceId,
                                               std::move(basis.value));
   writeConnectivity(connectivity, qubitCount, newState->connectivityFile);
-  numQubits = qubitCount;
-  this->connectivity = std::move(connectivity);
 
   backendConfig["qdmi_basis"] = newState->basis;
   backendConfig["qdmi_connectivity"] =
@@ -857,11 +855,14 @@ void QDMIQPU::setTargetBackend(const std::string &backend) {
              state->device.getName(), qubitCount, format.name);
 }
 
-CompileTarget QDMIQPU::makeCompileTarget() const {
+CompileTarget QDMIQPU::getCompileTarget(const RuntimeTarget *) {
   if (!state)
     throw std::runtime_error("QDMI QPU is not configured.");
-  CompileTarget target(targetConfig, backendConfig, /*emulate=*/false);
+  auto target = CompileTarget::createFromConfig(targetConfig, backendConfig);
   target.supportConditionalsOnMeasureResults = false;
+  target.supportExplicitMeasurements = false;
+  target.supportObservableMeasurements = false;
+  target.supportSampleWithoutMeasurements = false;
   target.pipelineConfig.replaceStateWithKernel = true;
   target.overrideAOTCompilation = true;
   if (state->format.qdmi != QDMI_PROGRAM_FORMAT_IQMJSON)
@@ -870,27 +871,9 @@ CompileTarget QDMIQPU::makeCompileTarget() const {
   return target;
 }
 
-CompileTarget QDMIQPU::getCompileTarget(const sample_policy &) {
-  auto target = makeCompileTarget();
-  target.pipelineConfig.addMeasurements = true;
-  return target;
-}
-
-CompileTarget QDMIQPU::getCompileTarget(const observe_policy &policy) {
-  auto target = makeCompileTarget();
-  target.pauliTermSplitObservable = policy.spin;
-  return target;
-}
-
-CompileTarget QDMIQPU::getCompileTarget(const other_policies &,
-                                        ExecutionContext *) {
-  throw std::runtime_error(
-      "QDMI supports cudaq::sample() and cudaq::observe().");
-}
-
 sample_result QDMIQPU::launchKernel(const sample_policy &policy,
                                     const CompiledModule &module, KernelArgs) {
-  const auto codes = runCodegen(module, getCompileTarget(policy));
+  const auto codes = runCodegen(module, getCompileTarget());
   return executeJobs(*state, codes, detail::ExecutionContextType::sample,
                      resolveShots(nShots, policy.options.shots));
 }
@@ -898,7 +881,7 @@ sample_result QDMIQPU::launchKernel(const sample_policy &policy,
 async_sample_result QDMIQPU::launchKernel(const async_sample_policy &policy,
                                           const CompiledModule &module,
                                           KernelArgs) {
-  auto codes = runCodegen(module, getCompileTarget(policy.inner));
+  auto codes = runCodegen(module, getCompileTarget());
   return async_sample_result(submitJobsAsync(
       *this, *state, std::move(codes), detail::ExecutionContextType::sample,
       resolveShots(nShots, policy.inner.options.shots)));
@@ -906,7 +889,7 @@ async_sample_result QDMIQPU::launchKernel(const async_sample_policy &policy,
 
 observe_result QDMIQPU::launchKernel(const observe_policy &policy,
                                      const CompiledModule &module, KernelArgs) {
-  const auto codes = runCodegen(module, getCompileTarget(policy));
+  const auto codes = runCodegen(module, getCompileTarget());
   return makeObserveResult(
       policy, executeJobs(*state, codes, detail::ExecutionContextType::observe,
                           resolveShots(nShots, policy.options.shots)));
@@ -915,7 +898,7 @@ observe_result QDMIQPU::launchKernel(const observe_policy &policy,
 async_observe_result QDMIQPU::launchKernel(const async_observe_policy &policy,
                                            const CompiledModule &module,
                                            KernelArgs) {
-  auto codes = runCodegen(module, getCompileTarget(policy.inner));
+  auto codes = runCodegen(module, getCompileTarget());
   return async_observe_result(
       submitJobsAsync(*this, *state, std::move(codes),
                       detail::ExecutionContextType::observe,

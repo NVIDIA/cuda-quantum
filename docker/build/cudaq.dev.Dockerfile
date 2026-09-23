@@ -103,7 +103,13 @@ ARG run_tests=false
 RUN if [ "$run_tests" = "true" ]; then \
         cd $CUDAQ_REPO_ROOT && \
         python3 -m pip install -r requirements-tests-backend.txt --break-system-packages && \
-        bash scripts/run_tests.sh -v; \
+        bash scripts/run_tests.sh -v && \
+        if [ "$enable_qdmi" = "true" ]; then \
+            python3 -m pip install iqm-qdmi==1.4.0 --break-system-packages && \
+            export PYTHONPATH="build/python:${PYTHONPATH}" && \
+            python3 -c 'import cudaq, iqm.qdmi, iqm.iqm_client; assert cudaq.has_target("qdmi")' && \
+            python3 -m pytest -v python/tests/backends/test_IQM.py; \
+        fi; \
     fi
 
 FROM test AS test-mpi

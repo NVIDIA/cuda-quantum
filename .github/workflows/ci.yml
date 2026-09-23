@@ -86,11 +86,13 @@ jobs:
             runtime/common/Future.cpp
             runtime/common/Future.h
             runtime/internal/compiler/Compiler.cpp
-            cudaq/include/cudaq/Target/CompileTarget.h
-            cudaq/lib/Target/CompileTarget.cpp
+            runtime/common/CompileTarget.h
+            runtime/common/CompileTarget.cpp
             targettests/CMakeLists.txt
             targettests/lit.site.cfg.py.in
             targettests/qdmi/
+            python/tests/backends/test_IQM.py
+            python/tests/utils/mock_qpu/iqm/
             docs/sphinx/using/backends/qdmi.rst
             CMakeLists.txt
             runtime/cudaq/platform/CMakeLists.txt
@@ -351,7 +353,7 @@ jobs:
 
   # Build and test the optional QDMI platform only when related files change.
   qdmi_build_and_test:
-    name: QDMI build and DDSIM tests
+    name: QDMI build, DDSIM and IQM mock tests
     needs: [metadata, config_devdeps]
     if: needs.metadata.outputs.qdmi_changes == 'true'
     uses: ./.github/workflows/test_in_devenv.yml
