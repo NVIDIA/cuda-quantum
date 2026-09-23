@@ -11,6 +11,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <algorithm>
 #include <nlohmann/json.hpp>
 #include <regex>
 #include <thread>
@@ -235,11 +236,19 @@ public:
           auto &measurements =
               resultJson["data"]["resultData"]["measurementCounts"];
 
+          // qBraid reports each bitstring with classical bit 0 as the
+          // rightmost character (little-endian, as Qiskit does), while
+          // CUDA-Q indexes bitstrings with qubit 0 leftmost. The circuit
+          // measures the whole register in order (`measure q -> c`, see
+          // `combine-measurements` in qbraid.yml), so bit i is qubit i and
+          // reversing the key is the complete conversion. Mirrors the
+          // endian swap in the IonQ helper.
           for (const auto &[bitstring, count] : measurements.items()) {
-            counts[bitstring] =
-                count.is_number()
-                    ? static_cast<std::size_t>(count.get<double>())
-                    : static_cast<std::size_t>(count);
+            std::string key = bitstring;
+            std::reverse(key.begin(), key.end());
+            counts[key] = count.is_number()
+                              ? static_cast<std::size_t>(count.get<double>())
+                              : static_cast<std::size_t>(count);
           }
 
           // The returned bitstring spans every measured qubit, including

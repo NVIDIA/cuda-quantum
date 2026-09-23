@@ -15,9 +15,8 @@ from typing import List
 import cudaq
 from cudaq import spin
 
-skipIfNoTensorNet = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('tensornet')),
-    reason="tensornet backend not available")
+skipIfNoTensorNet = pytest.mark.skipif(not cudaq.has_target('tensornet'),
+                                       reason="tensornet backend not available")
 
 
 @pytest.fixture(autouse=True)

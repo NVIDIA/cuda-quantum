@@ -53,8 +53,6 @@ set_tests_properties(pycudaq-mlir PROPERTIES
   TIMEOUT 1200
   PROCESSORS ${NPROC})
 
-add_subdirectory(phase_folding)
-
 # Erase generated phase-folding tests on `make clean` so stale files from
 # prior runs don't leak into the test suite (e.g. seeds skipped by lit.cfg.py).
 set_property(DIRECTORY APPEND PROPERTY

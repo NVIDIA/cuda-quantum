@@ -1,7 +1,7 @@
 # CUDA-Q Logical — Develop and evaluate fault-tolerant quantum applications
 
 These pages cover the `cudaq-logical` preview package only. For everything else,
-see the [main CUDA-Q documentation](https://nvidia.github.io/cuda-quantum/latest/releases.html).
+see the [main CUDA-Q documentation](https://nvidia.github.io/cuda-quantum/latest/).
 
 :::{admonition} Preview release
 
@@ -120,5 +120,5 @@ reference/building-against-cudaq
 :hidden:
 :caption: CUDA-Q
 
-Main CUDA-Q documentation <https://nvidia.github.io/cuda-quantum/latest/releases.html>
+Main CUDA-Q documentation <https://nvidia.github.io/cuda-quantum/latest/>
 ```

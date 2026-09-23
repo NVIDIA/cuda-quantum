@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: if [ command -v split-file ]; then \
+// RUN: if %quantinuum_avail; then if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
 // RUN: nvq++ -target quantinuum -emulate -fno-set-target-backend -c %t/emulib.cpp -o %t/emulibx.o && \
 // RUN: nvq++ -target quantinuum -emulate -c %t/emuuser.cpp -o %t/emuuserx.o && \
 // RUN: nvq++ -target quantinuum -emulate %t/emulibx.o %t/emuuserx.o -o %t/emux.a.out && \
 // RUN: %t/emux.a.out | FileCheck %s ; else \
-// RUN: echo "skipping" ; fi
+// RUN: echo "skipping" ; fi; fi
 // clang-format on
 
 //--- emulib.h
