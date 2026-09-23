@@ -36,7 +36,6 @@
 
 // clang-format off
 // RUN: not cudaq-opt --register-target-pipelines=%t/xyz.bar.yml --register-target-pipelines=%t/xyz.yml 2>&1 | FileCheck %s
-// clang-format on
 
 //--- xyz-bar.yml
 version: 1
