@@ -24,7 +24,7 @@ development.
 - Compile and link to shipped runtime libraries with `nvq++`
 - Must not rely on internal headers/namespaces.
 
-### 2.2 Library developers (e.g., `cudaqx`)
+### 2.2 Library developers (e.g., `cudaq-qec`)
 
 - Same restrictions as users: build on top of the **User API** only.
 - May consume the API via ``nvq++`` or by importing public headers/libraries into
@@ -52,7 +52,7 @@ We define three API layers as illustrated below:
 ┌────────────────────────────────────────────────────────────────────┐
 │ Level 1: User API                                                  │
 ├────────────────────────────────────────────────────────────────────┤
-│ Audience:   Users, external libs (e.g., cudaqx)                    │
+│ Audience:   Users, external libs (e.g., cudaq-qec)                    │
 │ Headers:    "cudaq.h", "cudaq/<subsystem>/<header>.h"              │
 │ Namespace:  cudaq::...                                             │
 │             cudaq::detail  = explicitly NON-public                 │
@@ -97,7 +97,7 @@ Each layer has rules for:
 #### 3.1.1 Definition
 
 The **User API** is `cudaq` supported public interface. It is the only API that
-users and external libraries (e.g., `cudaqx`) are allowed to depend on.
+users and external libraries (e.g., `cudaq-qec`) are allowed to depend on.
 
 #### 3.1.2 Headers and includes
 

@@ -87,7 +87,7 @@ static constexpr uint32_t PLAYER_WIN_NUM = PLAYER_BASE + 0x10;
 // ram_ena | ptp_bram_ena: continuously replay the programmed BRAM payload.
 static constexpr uint32_t PLAYER_ENABLE_LOOP = 0x00000009;
 // LOOP_STATS register map — must match hsb_fpga_syndrome_playback.cpp in the
-// cudaqx repository.
+// cudaq-qec repository.
 static constexpr uint32_t LOOP_STATS_BASE = 0xE0000000;
 static constexpr uint32_t LOOP_STATS_MAGIC = LOOP_STATS_BASE + 0x00;
 static constexpr uint32_t LOOP_STATS_STATE = LOOP_STATS_BASE + 0x04;
