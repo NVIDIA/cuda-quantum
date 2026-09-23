@@ -18,9 +18,8 @@ target-arguments:
 
 config:
   nvqir-simulation-backend: qpp
-  # Target mid-level stage: decompose to a CX routing basis, then expand
-  # compiler-generated output before entering value semantics for local gate
-  # simplification and optional SABRE routing. A second simplification cleans
+  # Target mid-level stage: decompose to a CX routing basis before entering
+  # value semantics for local gate simplification and optional SABRE routing. A second simplification cleans
   # up mapped work before returning to memory semantics. `quake-to-cc-prep`
   # rewrites mx/my to quake gates plus mz before final decomposition so resource
   # counting sees the normalized CZ/rotation basis. With no device argument,
