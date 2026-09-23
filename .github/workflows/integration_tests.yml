@@ -336,6 +336,21 @@ jobs:
               chmod 600 "$IQM_TOKEN_FILE"
               echo "IQM_TOKENS_FILE=$IQM_TOKEN_FILE" >> "$GITHUB_ENV"
               echo "IQM_SERVER_URL=https://cocos.resonance.meetiqm.com/pyrite:test" >> $GITHUB_ENV
+              python3 -m pip install iqm-qdmi==1.4.0 --break-system-packages
+              python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          from iqm.qdmi import IQM_QDMI_LIBRARY_PATH
+          print("MQT_CORE_QDMI_CONFIG_JSON=" + json.dumps({
+              "schema-version": 1,
+              "qdmi": {"devices": [{
+                  "id": "iqm.nightly",
+                  "library": str(IQM_QDMI_LIBRARY_PATH),
+                  "prefix": "IQM"
+              }]}
+          }))
+          PY
+              echo "IQM_BASE_URL=https://resonance.iqm.tech" >> "$GITHUB_ENV"
+              echo "IQM_QC_ALIAS=${{ inputs.target_machine || 'emerald:mock' }}" >> "$GITHUB_ENV"
               ;;
             oqc)
               echo "### Setting up OQC account" >> $GITHUB_STEP_SUMMARY
@@ -578,21 +593,27 @@ jobs:
                 ;;
 
               iqm)
-                nvq++ -DSYNTAX_CHECK --target iqm $filename
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
+                for target in iqm qdmi; do
+                  target_args=(--target "$target")
+                  if [ "$target" = "qdmi" ]; then
+                    target_args+=(--qdmi-device iqm.nightly --qdmi-program-format iqm-json)
+                  fi
+                  nvq++ -DSYNTAX_CHECK "${target_args[@]}" "$filename"
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test ($target): $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute, $target): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
                   else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":x: Test failed (failed to compile, $target): $filename" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
                   fi
-                else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi
+                done
                 ;;
 
               oqc)

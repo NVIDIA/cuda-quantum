@@ -27,7 +27,6 @@ public:
 
   void enqueue(QuantumTask &task) override;
   bool isSimulator() override { return false; }
-  bool supportsExplicitMeasurements() override { return false; }
   void setShots(int shots) override;
   void clearShots() override;
   bool isRemote() override { return true; }
@@ -40,13 +39,9 @@ public:
   void setTargetBackend(const std::string &backend) override;
 
   [[nodiscard]] CompileTarget
-  getCompileTarget(const sample_policy &policy) override;
-  [[nodiscard]] CompileTarget
-  getCompileTarget(const observe_policy &policy) override;
-  [[nodiscard]] CompileTarget
-  getCompileTarget(const other_policies &policy,
-                   ExecutionContext *context) override;
+  getCompileTarget(const RuntimeTarget * = nullptr) override;
 
+  using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;
@@ -61,8 +56,6 @@ public:
                                     KernelArgs args) override;
 
 private:
-  [[nodiscard]] CompileTarget makeCompileTarget() const;
-
   std::optional<int> nShots;
   std::unique_ptr<QDMIState> state;
   std::map<std::string, std::string> backendConfig;
