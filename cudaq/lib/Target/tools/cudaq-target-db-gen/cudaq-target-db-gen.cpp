@@ -363,13 +363,9 @@ int main(int argc, char **argv) {
        << "#include \"cudaq/Target/TargetPluginLibrary.h\"\n\n"
        << "// Symbol name must match cudaq::config::kTargetPluginSymbolName.\n"
        << "extern \"C\" const cudaq::config::TargetConfig *"
-<<<<<<< HEAD:cudaq/tools/cudaq-target-db-gen/cudaq-target-db-gen.cpp
-       << CUDAQ_TARGET_PLUGIN_SYMBOL_NAME_STR << "() {\n"
-=======
        // Frozen at generation time to whatever kTargetPluginSymbolName *this*
        // binary was built against, like the database ABI marker below.
-       << cudaq::config::kTargetPluginSymbolName << "() {\n"
->>>>>>> 059a8c3da3 (Migrate YAML parsing from LLVM to reflect-cpp):cudaq/lib/Target/tools/cudaq-target-db-gen/cudaq-target-db-gen.cpp
+       << CUDAQ_TARGET_PLUGIN_SYMBOL_NAME_STR << "() {\n"
        << "  static const cudaq::config::TargetConfig kPluginTarget_"
        << sanitizeIdentifier(entry.name) << " = "
        << cxxTargetConfig(entry.config) << ";\n"
