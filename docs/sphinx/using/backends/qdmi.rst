@@ -99,6 +99,10 @@ The build gets a pinned MQT Core revision with CMake ``FetchContent``. A normal
 build includes the QDMI C++ library and Driver. A test build also includes the
 MQT Core DDSIM and superconducting (SC) QDMI devices.
 
+The pinned MQT Core revision uses LLVM/MLIR 22.1 and QDMI 1.3.3. Build it
+with CUDA-Q's LLVM installation. MLIR support remains enabled for DDSIM's
+QIR execution.
+
 .. tip::
 
     For local development without QPU credentials, add
@@ -212,9 +216,8 @@ Configure the compiler from device metadata
 The QDMI QPU reads a metadata snapshot when CUDA-Q selects the target. CUDA-Q
 uses this snapshot as follows:
 
-* The number of sites sets the QPU capacity.
 * The device operations set the basis for gate conversion.
-* The coupling map controls logical-to-physical qubit mapping.
+* The device sites and coupling map configure logical-to-physical qubit mapping.
 * The supported program formats control program generation and transport.
 
 The QDMI QPU converts this information to a CUDA-Q target configuration. The
@@ -372,5 +375,15 @@ provider credentials. The target tests cover these functions:
 * unsupported program formats
 * unsupported persisted job retrieval
 
-Provider tests are not part of the default CI job. A provider test uses the
-normal provider environment and authentication configuration.
+The regular QDMI CI job runs the existing IQM Python tests through both the
+native IQM target and the IQM QDMI device against CUDA-Q's existing IQM mock
+server without provider credentials.
+
+The nightly IQM integration job runs the existing IQM examples through both
+the native IQM target and QDMI, using the same ``IQM_TOKEN`` secret and token
+file. The QDMI device uses ``https://resonance.iqm.tech`` and defaults to the
+hosted ``emerald:mock`` target. The workflow's ``target_machine`` input can
+select another IQM QDMI device. Unversioned container builds enable QDMI so
+the backend is available in the nightly image.
+
+Both test paths use ``iqm-qdmi==1.4.0`` and ``iqm-json`` transport.
