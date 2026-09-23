@@ -157,7 +157,7 @@ def _partial_trace(N, rho, keep):
         rho = np.trace(rho, axis1=q, axis2=q + N)
         N -= 1  # Adjust N as one qubit is traced out
 
-    return rho
+    return rho.reshape(2**N, 2**N)
 
 
 def _validate_measurements(job: Job, circuit: iqm_client.Circuit) -> bool:
@@ -340,10 +340,51 @@ async def get_quantum_architecture(
         ))
 
 
+@app.get("/api/v1/quantum-computers")
+async def get_quantum_computers(request: Request):
+    """List quantum computers for the QDMI device."""
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    return {
+        "quantum_computers": [{
+            "id": "mock-qpu",
+            "alias": server_qpu_architecture
+        }]
+    }
+
+
+@app.get(
+    "/api/v1/quantum-computers/{qc_alias}/artifacts/static-quantum-architectures"
+)
+async def get_static_quantum_architectures(request: Request):
+    """Expose the existing architecture through the QDMI device's API."""
+    architecture = await get_quantum_architecture(request)
+    return [{
+        "qubits": architecture.quantum_architecture.qubits,
+        "connectivity": architecture.quantum_architecture.qubit_connectivity,
+        "computational_resonators": computational_resonators
+    }]
+
+
+@app.get("/api/v1/calibration-sets/{qc_alias}/{calibration_set}/metrics")
+async def get_calibration_metrics(request: Request):
+    """The mock does not model calibration quality metrics."""
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    return {"observations": []}
+
+
 # Note: in this dynamic quantum architecture 2 qubits are deliberately
 # excluded from the list of calibrated `prx` gates. This simulates a QPU
 # with an imperfect calibration.
 @app.get("/calibration-sets/default/dynamic-quantum-architecture")
+@app.get(
+    "/api/v1/calibration-sets/{qc_alias}/{calibration_set}/dynamic-quantum-architecture"
+)
 async def get_dynamic_quantum_architecture(
         request: Request) -> iqm_client.DynamicQuantumArchitecture:
     """Get the dynamic quantum architecture"""
@@ -412,6 +453,7 @@ async def get_dynamic_quantum_architecture(
 
 
 @app.post("/circuits")
+@app.post("/api/v1/jobs/{qc_alias}/circuit")
 async def post_jobs(job_request: iqm_client.RunRequest,
                     request: Request) -> PostJobsResponse:
     """Register a new job and start execution"""
@@ -449,6 +491,12 @@ async def get_jobs_status(job_id: str, request: Request) -> iqm_client.Status:
         raise HTTPException(404)
 
     return createdJobs[job_id].status
+
+
+@app.get("/api/v1/jobs/{job_id}")
+async def get_job(job_id: str, request: Request):
+    """Expose the existing job status through the QDMI device's API."""
+    return {"status": await get_jobs_status(job_id, request)}
 
 
 @app.get("/circuits/{job_id}/counts")

@@ -53,6 +53,7 @@ WORKDIR "$destination"
 # to create the released cuda-quantum image.
 ARG install=
 ARG cudaq_enable_projects=
+ARG enable_qdmi=false
 ARG git_source_sha=xxxxxxxx
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
@@ -78,6 +79,9 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         if [ -n "$cudaq_enable_projects" ]; then \
             cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
         fi; \
+        if [ "$enable_qdmi" = "true" ]; then \
+            cudaq_cmake_args+=("-DCUDAQ_ENABLE_QDMI_BACKEND=ON"); \
+        fi; \
         bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}"; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \
@@ -99,7 +103,13 @@ ARG run_tests=false
 RUN if [ "$run_tests" = "true" ]; then \
         cd $CUDAQ_REPO_ROOT && \
         python3 -m pip install -r requirements-tests-backend.txt --break-system-packages && \
-        bash scripts/run_tests.sh -v; \
+        bash scripts/run_tests.sh -v && \
+        if [ "$enable_qdmi" = "true" ]; then \
+            python3 -m pip install iqm-qdmi==1.4.0 --break-system-packages && \
+            export PYTHONPATH="build/python:${PYTHONPATH}" && \
+            python3 -c 'import cudaq, iqm.qdmi, iqm.iqm_client; assert cudaq.has_target("qdmi")' && \
+            python3 -m pytest -v python/tests/backends/test_IQM.py; \
+        fi; \
     fi
 
 FROM test AS test-mpi
