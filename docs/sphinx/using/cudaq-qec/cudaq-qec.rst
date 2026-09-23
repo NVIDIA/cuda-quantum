@@ -1,4 +1,4 @@
-.. _cudaqx:
+.. _cudaq-qec:
 
 CUDAQ-QEC
 =======
