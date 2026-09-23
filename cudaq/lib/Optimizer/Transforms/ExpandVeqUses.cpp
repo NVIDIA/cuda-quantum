@@ -36,11 +36,13 @@ public:
     if (op.getTargets().size() != 1 || !op.getControls().empty())
       return failure();
     Value target = op.getTargets()[0];
-    if (!isa<cudaq::quake::VeqType>(target.getType()))
-      return failure();
     auto size = cudaq::quake::getVeqSize(target);
     if (!size)
       return failure();
+
+    // extract_ref requires the sized source of a relaxed vector.
+    if (auto relax = target.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+      target = relax.getInputVec();
 
     auto loc = op.getLoc();
     // The sole target is the last operand (skip angles for rotations)
@@ -71,9 +73,12 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
                                 PatternRewriter &rewriter) const override {
+    if (llvm::none_of(evin.getArgs(),
+                      [](Value v) { return cudaq::quake::getVeqSize(v).has_value(); }))
+      return failure();
+
     auto loc = evin.getLoc();
     SmallVector<Value> newArgs;
-    bool didExpand = false;
     for (Value arg : evin.getArgs()) {
       auto size = cudaq::quake::getVeqSize(arg);
       if (!size) {
@@ -88,10 +93,7 @@ public:
       for (std::size_t i = 0; i < *size; ++i)
         newArgs.push_back(
             cudaq::quake::ExtractRefOp::create(rewriter, loc, vector, i));
-      didExpand = true;
     }
-    if (!didExpand)
-      return failure();
 
     rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
         evin, newArgs, evin.getCompilerGenerated());
