@@ -436,6 +436,58 @@ function(add_target_config name_or_path)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_PATHS ${_yml})
 endfunction()
 
+# Determines whether the target directory `name` under cudaq/lib/Targets/
+# should be included in the precompiled target database, mirroring the same
+# CUDAQ_ENABLE_<X>_BACKEND (and other) conditions that gate whether the
+# target's actual backend code gets built -- see
+# runtime/cudaq/platform/CMakeLists.txt and
+# runtime/cudaq/platform/default/rest/helpers/CMakeLists.txt, which are the
+# source of truth this function must stay in sync with. A target excluded
+# here is never registered in the database at all, so `nvq++ --target
+# <name>` (via cudaq-target-resolve) cleanly reports it as an unknown target
+# up front, rather than only failing much later when its backend code turns
+# out to be missing (or, worse, silently succeeding because the target
+# happens to share a plugin library, e.g. libcudaq-rest-qpu, with other
+# targets that are still enabled).
+function(_cudaq_target_db_is_target_enabled name outvar)
+  set(_enabled TRUE)
+  if (name STREQUAL "anyon")
+    set(_enabled ${CUDAQ_ENABLE_ANYON_BACKEND})
+  elseif (name STREQUAL "braket")
+    set(_enabled FALSE)
+    if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
+      set(_enabled TRUE)
+    endif()
+  elseif (name STREQUAL "ionq")
+    set(_enabled ${CUDAQ_ENABLE_IONQ_BACKEND})
+  elseif (name STREQUAL "iqm")
+    set(_enabled ${CUDAQ_ENABLE_IQM_BACKEND})
+  elseif (name STREQUAL "oqc")
+    set(_enabled ${CUDAQ_ENABLE_OQC_BACKEND})
+  elseif (name STREQUAL "orca")
+    set(_enabled ${CUDAQ_ENABLE_ORCA_BACKEND})
+  elseif (name STREQUAL "pasqal")
+    set(_enabled ${CUDAQ_ENABLE_PASQAL_BACKEND})
+  elseif (name STREQUAL "qbraid")
+    set(_enabled ${CUDAQ_ENABLE_QBRAID_BACKEND})
+  elseif (name STREQUAL "quantum_machines")
+    set(_enabled ${CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND})
+  elseif (name STREQUAL "quera")
+    # `quera` is built via Amazon Braket's infrastructure, so it is gated by
+    # the same condition as `braket` itself, not a standalone
+    # CUDAQ_ENABLE_QUERA_BACKEND flag (which does not exist).
+    set(_enabled FALSE)
+    if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
+      set(_enabled TRUE)
+    endif()
+  elseif (name STREQUAL "scaleway")
+    set(_enabled ${CUDAQ_ENABLE_SCALEWAY_BACKEND})
+  elseif (name STREQUAL "tii")
+    set(_enabled ${CUDAQ_ENABLE_TII_BACKEND})
+  endif()
+  set(${outvar} ${_enabled} PARENT_SCOPE)
+endfunction()
+
 # Generates the precompiled target database from every .yml under
 # cudaq/lib/Targets/ plus any out-of-tree add_target_config() registrations.
 function(cudaq_finalize_target_database)
@@ -452,6 +504,12 @@ function(cudaq_finalize_target_database)
     get_filename_component(_name ${_dir} NAME)
     set(_yml ${_dir}/${_name}.yml)
     if (NOT EXISTS ${_yml})
+      continue()
+    endif()
+    _cudaq_target_db_is_target_enabled(${_name} _target_enabled)
+    if (NOT _target_enabled)
+      message(STATUS "Target '${_name}' is disabled by its CMake "
+        "configuration; excluding it from the target database.")
       continue()
     endif()
     list(APPEND _gen_args "${_name}=${_yml}")
