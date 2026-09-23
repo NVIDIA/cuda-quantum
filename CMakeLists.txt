@@ -161,14 +161,6 @@ if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
 endif()
 
-if (NOT DEFINED CUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT)
-  if (DEFINED CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR)
-    set(CUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT ON CACHE INTERNAL "")
-  else()
-    set(CUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT OFF CACHE INTERNAL "")
-  endif()
-endif()
-
 # Enable Pasqal QRMI connector by default only on Linux builds, and only when
 # the Pasqal backend itself is enabled. Both behaviors can be overridden by
 # explicitly passing -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON/OFF on the cmake
