@@ -6,14 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-#!/bin/bash
+# Verify that importing CUDA-Q does not consume host application arguments.
+# RUN: PYTHONPATH=../../ python3 %s --target host-application-target | FileCheck %s
 
-dqa_filename="dqa_mock_qpu_saved.txt"
-export IQM_SAVE_QPU_QA=$dqa_filename
-./test_iqm_save_load --gtest_filter=IQMTester.dqaSaveFile || exit 1
+import cudaq
 
-unset IQM_SAVE_QPU_QA
-export IQM_QPU_QA=$dqa_filename
-./test_iqm_save_load --gtest_filter=IQMTester.dqaLoadFile || exit 1
+print("CUDA-Q import ignored host arguments")
 
-./test_iqm_save_load --gtest_filter=IQMTester.dqaRemoveFile || exit 1
+# CHECK: CUDA-Q import ignored host arguments

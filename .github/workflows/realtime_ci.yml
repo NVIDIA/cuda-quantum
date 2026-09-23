@@ -6,6 +6,16 @@ on:
         type: string
         description: 'The name of the branch to use as cache base.'
         default: main
+      doca_version:
+        required: false
+        type: string
+        default: ''
+        description: 'DOCA version to install. Blank uses the deps_common.sh default.'
+      holoscan_version:
+        required: false
+        type: string
+        default: ''
+        description: 'Holoscan SDK version to install. Blank uses the deps_common.sh default.'
       hsb_repo:
         required: false
         type: string
@@ -76,6 +86,12 @@ jobs:
     with:
       platform: ${{ matrix.platform }}
       cuda_version: ${{ matrix.cuda_version }}
+      # Only a workflow_dispatch carries these; every other event leaves them
+      # empty, which the dependency scripts read as "use the default".
+      doca_version: ${{ inputs.doca_version || '' }}
+      holoscan_version: ${{ inputs.holoscan_version || '' }}
+      hsb_repo: ${{ inputs.hsb_repo || '' }}
+      hsb_ref: ${{ inputs.hsb_ref || '' }}
 
   test_installer:
     name: Test Installer  
@@ -170,6 +186,8 @@ jobs:
         # Only a workflow_dispatch carries these; every other event leaves them
         # empty, which is what the dependency scripts read as "use the default".
         env:
+          DOCA_VERSION: ${{ inputs.doca_version || '' }}
+          HOLOSCAN_SDK_VERSION: ${{ inputs.holoscan_version || '' }}
           CUDAQ_REALTIME_HSB_REPO: ${{ inputs.hsb_repo || '' }}
           CUDAQ_REALTIME_HSB_REF: ${{ inputs.hsb_ref || '' }}
           CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK: ${{ (inputs.cpu_roce_use_hololink && 'ON') || 'OFF' }}
@@ -179,10 +197,16 @@ jobs:
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           env: |
+            DOCA_VERSION
+            HOLOSCAN_SDK_VERSION
             CUDAQ_REALTIME_HSB_REPO
             CUDAQ_REALTIME_HSB_REF
             CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
           run: |
+            # run-in-docker executes this block with a bare `bash`, so without
+            # this a failing dependency install would be ignored and the job
+            # would go green having silently built without DOCA/Holoscan/HSB.
+            set -eo pipefail
             # TODO: use official apt repo once upgraded to Ubuntu 26.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null

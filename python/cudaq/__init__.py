@@ -339,15 +339,13 @@ def set_target(target, **extra_config):
         return cudaq_runtime.set_target(target, **extra_config)
 
     from cudaq._experimental import CustomTarget
-    from cudaq._experimental import set_compile_target, set_runtime_endpoint
 
     if isinstance(target, CustomTarget):
         if extra_config:
             raise TypeError(
                 "cudaq.set_target() does not accept keyword arguments when "
                 "target is a cudaq._experimental.CustomTarget.")
-        set_compile_target(target.compile_target)
-        set_runtime_endpoint(target.runtime_endpoint)
+        cudaq_runtime.set_target(target.compile_target, target.runtime_endpoint)
         return target
 
     raise TypeError(f"Unsupported target type: {type(target)}")
@@ -592,7 +590,10 @@ def __dir__():
 
 def parse_args(args: Sequence[str] | None = None):
     """
-    Parse command line arguments and initialize the CUDA-Q environment.
+    Parse CUDA-Q command-line arguments and initialize the CUDA-Q environment.
+
+    This function must be called explicitly. Importing ``cudaq`` does not
+    inspect or parse command-line arguments.
     """
     import argparse
 
@@ -617,16 +618,6 @@ def parse_args(args: Sequence[str] | None = None):
 
 
 if __name__ == '__main__':
-    parse_args()
-# TODO: remove this, see https://github.com/NVIDIA/cuda-quantum/issues/3863
-elif any(
-        w in ''.join(sys.argv) for w in
-    ['-target', '--target-option', '--emulate', '--cudaq-full-stack-trace']):
-    import warnings
-    warnings.warn(
-        "Will now parse command line arguments. This will be removed in a future "
-        "release, call cudaq.parse_args() explicitly to parse arguments.",
-        DeprecationWarning)
     parse_args()
 else:
     cudaq_runtime.initialize_cudaq()

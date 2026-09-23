@@ -12,6 +12,8 @@
 
 import cudaq
 
+cudaq.parse_args()
+
 
 @cudaq.kernel
 def foo():

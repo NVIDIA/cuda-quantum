@@ -571,6 +571,12 @@ std::map<std::string, std::string> IQMServerHelper::getPipelineSubstitutions(
                    "--mapping-file to supply it offline.",
                    e.what());
         return {};
+      } catch (...) {
+        CUDAQ_WARN("Leaving %QPU_ARCH% unresolved: Unable to get quantum "
+                   "architecture for \"{}\" from \"{}\". Set IQM_QPU_QA or "
+                   "pass --mapping-file to supply it offline.",
+                   iqmQC, iqmServerUrl);
+        return {};
       }
     }
   }
@@ -691,8 +697,11 @@ void IQMServerHelper::fetchQuantumArchitecture() {
 
   } catch (const std::exception &e) {
     throw std::runtime_error("Unable to get quantum architecture for \"" +
-                             iqmQC + "\" from \"" + iqmServerUrl +
-                             "\": " + std::string(e.what()));
+                             iqmQC + "\" from \"" + iqmServerUrl + "\": " +
+                             std::string(e.what()));
+  } catch (...) {
+    throw std::runtime_error("Unable to get quantum architecture for \"" +
+                             iqmQC + "\" from \"" + iqmServerUrl + "\": ");
   }
 } // IQMServerHelper::fetchQuantumArchitecture()
 

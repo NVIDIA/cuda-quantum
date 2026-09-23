@@ -91,7 +91,9 @@ cmake.args = [
 if.platform-system = "linux"
 if.platform-machine = "x86_64"
 inherit.cmake.args = "append"
-cmake.args = ["-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON"]
+cmake.args = [
+    "-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON",
+]
 
 # Linux: use LLD as the linker
 [[tool.scikit-build.overrides]]
