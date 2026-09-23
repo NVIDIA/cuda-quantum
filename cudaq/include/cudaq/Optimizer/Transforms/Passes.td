@@ -786,26 +786,6 @@ def ExpandControlVeqs: Pass<"expand-control-veqs", "mlir::func::FuncOp"> {
   }];
 }
 
-def ExpandEvinceVeqs : Pass<"expand-evince-veqs", "mlir::func::FuncOp"> {
-  let summary = "Expands veq arguments of quake.evince with a known size "
-                "into individual refs.";
-  let description = [{
-    Given
-    ```mlir
-    quake.evince %veq : (!quake.veq<n>) -> ()
-    ```
-    this pass extracts each ref from `%veq` and evinces them individually:
-    ```mlir
-    %r0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
-    ...
-    %rn = quake.extract_ref %veq[n] : (!quake.veq<n>) -> !quake.ref
-    quake.evince %r0, ..., %rn : (!quake.ref, ..., !quake.ref) -> ()
-    ```
-    Veqs whose size cannot be resolved statically (`!quake.veq<?>` with no
-    `quake.relax_size` chain to a sized veq) are left untouched.
-  }];
-}
-
 def ExpandMeasurements : Pass<"expand-measurements"> {
   let summary = "Expand multi-ref measurements to series on single refs.";
   let description = [{

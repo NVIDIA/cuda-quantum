@@ -55,6 +55,50 @@ public:
   }
 };
 
+// quake.evince %veq, %r : (!quake.veq<n>, !quake.ref) -> ()
+// ───────────────────────────────────────────────────────────────────
+// %0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+// ...
+// %n = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
+// quake.evince %0, ..., %n, %r : (!quake.ref, ..., !quake.ref,
+//     !quake.ref) -> ()
+//
+// A veq is never a linear type (only wires/cables are), so expanding it into
+// its constituent refs never touches `outs` -- the rewrite only grows `args`.
+class ExpandEvincePattern : public OpRewritePattern<cudaq::quake::EvinceOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
+                                PatternRewriter &rewriter) const override {
+    auto loc = evin.getLoc();
+    SmallVector<Value> newArgs;
+    bool didExpand = false;
+    for (Value arg : evin.getArgs()) {
+      auto size = cudaq::quake::getVeqSize(arg);
+      if (!size) {
+        newArgs.push_back(arg);
+        continue;
+      }
+
+      // extract_ref requires the sized source of a relaxed vector.
+      Value vector = arg;
+      if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+        vector = relax.getInputVec();
+      for (std::size_t i = 0; i < *size; ++i)
+        newArgs.push_back(
+            cudaq::quake::ExtractRefOp::create(rewriter, loc, vector, i));
+      didExpand = true;
+    }
+    if (!didExpand)
+      return failure();
+
+    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
+        evin, newArgs, evin.getCompilerGenerated());
+    return success();
+  }
+};
+
 struct ExpandBroadcastsPass
     : public cudaq::opt::impl::ExpandBroadcastsBase<ExpandBroadcastsPass> {
   using ExpandBroadcastsBase::ExpandBroadcastsBase;
@@ -74,7 +118,8 @@ struct ExpandBroadcastsPass
                     ExpandBroadcastPat<cudaq::quake::U3Op>,
                     ExpandBroadcastPat<cudaq::quake::XOp>,
                     ExpandBroadcastPat<cudaq::quake::YOp>,
-                    ExpandBroadcastPat<cudaq::quake::ZOp>>(ctx);
+                    ExpandBroadcastPat<cudaq::quake::ZOp>, ExpandEvincePattern>(
+        ctx);
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }

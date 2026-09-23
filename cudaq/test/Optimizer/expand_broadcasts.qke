@@ -102,3 +102,60 @@ func.func @multi_qubit() {
 // CHECK:           quake.swap %[[VAL_0]], %[[VAL_1]] : (!quake.veq<2>, !quake.veq<2>) -> ()
 // CHECK:           return
 // CHECK:         }
+
+// A quake.evince argument that is a known-size veq expands into one argument
+// per ref.
+func.func @evince_size3() {
+  %q = quake.alloca !quake.veq<3>
+  %p = quake.alloca !quake.ref
+  quake.evince %q, %p : (!quake.veq<3>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_size3() {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:         %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:         %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:         %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:         quake.evince %[[VAL_2]], %[[VAL_3]], %[[VAL_4]], %[[VAL_1]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+
+// Ref-only evince arguments are left alone.
+func.func @evince_noreplace() {
+  %p = quake.alloca !quake.ref
+  %r = quake.alloca !quake.ref
+  quake.evince %p, %r : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_noreplace() {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:         quake.evince %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+
+// A relaxed veq whose size resolves through the relax_size chain still
+// expands.
+func.func @evince_relaxed_size() {
+  %q = quake.alloca !quake.veq<2>
+  %relaxed = quake.relax_size %q : (!quake.veq<2>) -> !quake.veq<?>
+  quake.evince %relaxed : (!quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_relaxed_size() {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:         %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:         quake.evince %[[VAL_2]], %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
+
+// A quake.evince argument of unresolved size cannot be expanded.
+func.func @evince_unresolved_size(%count: i64) {
+  %q = quake.alloca !quake.veq<?>[%count : i64]
+  quake.evince %q : (!quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_unresolved_size(
+// CHECK-SAME:      %[[COUNT:.*]]: i64) {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%[[COUNT]] : i64]
+// CHECK:           quake.evince %[[VAL_0]] : (!quake.veq<?>) -> ()
