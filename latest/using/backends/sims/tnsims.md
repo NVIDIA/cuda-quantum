@@ -1931,8 +1931,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2412,7 +2411,7 @@ when using the single precision setting.
 
 [Fermioniq](https://fermioniq.com/){.reference .external} offers a
 cloud-based tensor-network emulation platform,
-[Ava](https://www.fermioniq.com/ava/){.reference .external}, for the
+[Ava](https://docs.fermioniq.com/){.reference .external}, for the
 approximate simulation of large-scale quantum circuits beyond the memory
 limit of state vector and exact tensor network based methods.
 
@@ -2423,8 +2422,8 @@ referred to the [online
 documentation](https://docs.fermioniq.com/){.reference .external}.
 
 Users of CUDA-Q can access a simplified version of the full Fermioniq
-emulator ([Ava](https://www.fermioniq.com/ava/){.reference .external})
-from either C++ or Python. This version currently supports emulation of
+emulator ([Ava](https://docs.fermioniq.com/){.reference .external}) from
+either C++ or Python. This version currently supports emulation of
 quantum circuits without noise, and can return measurement samples
 and/or compute expectation values of observables.
 

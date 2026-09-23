@@ -1931,8 +1931,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2775,7 +2774,7 @@ present before relying on it: [`/proc/devices`{.code .docutils .literal
 must exist under [`/dev/nvidia-caps-imex-channels/`{.code .docutils
 .literal .notranslate}]{.pre} ([`cuMemCreate`{.code .docutils .literal
 .notranslate}]{.pre}, in [CUDA Driver API -- Virtual Memory
-Management](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html){.reference
+Management](https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__VA.html){.reference
 .external}):
 
 ::: {.highlight-bash .notranslate}

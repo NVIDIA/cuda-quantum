@@ -379,7 +379,7 @@ Fabric Handle needs the `IMEX` channels of the NVIDIA driver. Verify they are pr
 relying on it: `/proc/devices` must list `nvidia-caps-imex-channels`, and an accessible device
 node must exist under `/dev/nvidia-caps-imex-channels/` (`cuMemCreate`, in `CUDA Driver API --
 Virtual Memory Management
-<https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html>`__):
+<https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__VA.html>`__):
 
 .. code:: bash
 
