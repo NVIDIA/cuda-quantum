@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t \
-// RUN:   && %t 2>&1 | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t \
+// RUN:   && %t 2>&1 | FileCheck %s; fi
 
 #include <cudaq.h>
 #include <iostream>

@@ -17,13 +17,13 @@
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
 // RUN: nvq++ -DCASE4 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
-// RUN: nvq++ --target quantinuum --emulate -DCASE1 %s -o %t && \
-// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
-// RUN: nvq++ --target quantinuum --emulate -DCASE2 %s -o %t && \
-// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
-// RUN: nvq++ --target quantinuum --emulate -DCASE4 %s -o %t && \
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DCASE1 %s -o %t && \
+// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DCASE2 %s -o %t && \
+// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DCASE4 %s -o %t && \
 // RUN:   CUDAQ_LOG_LEVEL=info %t | \
-// RUN:   FileCheck %s --check-prefixes=CHECK,EMULATE-ATOMIC
+// RUN:   FileCheck %s --check-prefixes=CHECK,EMULATE-ATOMIC; fi
 
 // We don't run CASE3 with emulation on because compilation takes several
 // minutes

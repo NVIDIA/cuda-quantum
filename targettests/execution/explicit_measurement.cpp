@@ -10,11 +10,11 @@
 // RUN: if %stim_avail; then nvq++ --target stim %s -o %t && CUDAQ_LOG_LEVEL=info %t 2>&1 | grep "Creating new Stim frame simulator" | wc -l | FileCheck %s ; fi
 // RUN: if %anyon_avail; then nvq++ --target anyon --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL; fi
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL ; fi
-// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: if %infleqtion_avail; then nvq++ --target infleqtion --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL; fi
 // RUN: if %ionq_avail; then nvq++ --target ionq --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL; fi
 // RUN: if %iqm_avail; then nvq++ --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck %s -check-prefix=FAIL; fi
 // RUN: if %oqc_avail; then nvq++ --target oqc --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL; fi
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL; fi
 // clang-format on
 
 #include <cudaq.h>

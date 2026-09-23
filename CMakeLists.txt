@@ -198,6 +198,16 @@ if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
   set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
 endif()
 
+# Enable Quantinuum target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QUANTINUUM_BACKEND)
+  set(CUDAQ_ENABLE_QUANTINUUM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantinuum target.")
+endif()
+
+# Enable Infleqtion target by default.
+if (NOT DEFINED CUDAQ_ENABLE_INFLEQTION_BACKEND)
+  set(CUDAQ_ENABLE_INFLEQTION_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Infleqtion target.")
+endif()
+
 # =============================================================================
 # CUDAQ_EXTERNAL_PROJECTS
 # -----------------------------------------------------------------------------
