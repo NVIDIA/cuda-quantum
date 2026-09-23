@@ -101,6 +101,20 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
 
+config.cudaq_backends_quantinuum = "@CUDAQ_ENABLE_QUANTINUUM_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_quantinuum):
+  config.available_features.add('quantinuum')
+  config.substitutions.append(('%quantinuum_avail', 'true'))
+else:
+  config.substitutions.append(('%quantinuum_avail', 'false'))
+
+config.cudaq_backends_infleqtion = "@CUDAQ_ENABLE_INFLEQTION_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_infleqtion):
+  config.available_features.add('infleqtion')
+  config.substitutions.append(('%infleqtion_avail', 'true'))
+else:
+  config.substitutions.append(('%infleqtion_avail', 'false'))
+
 config.cudaq_stim_backend_disabled = "@CUDAQ_ENABLE_ASSERTIONS@"
 if cmake_boolvar_to_bool(config.cudaq_stim_backend_disabled):
   config.substitutions.append(('%stim_avail', 'false'))
