@@ -23,7 +23,7 @@ add_dependencies(nvq++
   cudaq-quake
   cudaq-opt
   cudaq-translate
-  cudaq-target-conf
+  cudaq-target-resolve
   fixup-linkage
 )
 configure_file("nvq++.in"

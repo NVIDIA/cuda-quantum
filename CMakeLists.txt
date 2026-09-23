@@ -1064,6 +1064,10 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
 
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  cudaq_finalize_target_database()
+endif()
+
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   include(CheckCXXCompilerFlag)
   umbrella_lit_testsuite_begin(check-all)

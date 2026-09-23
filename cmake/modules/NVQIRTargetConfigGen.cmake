@@ -7,5 +7,5 @@
 # ============================================================================ #
 
 function(nvqir_write_target_config BackendName GPURequirements FilePath)
-  file (WRITE ${FilePath} "name: ${BackendName}\ndescription: \"NVQIR ${BackendName} backend\"\ngpu-requirements: ${GPURequirements}\nconfig:\n\tnvqir-simulation-backend: ${BackendName}")
+  file (WRITE ${FilePath} "version: 1\nname: ${BackendName}\ndescription: \"NVQIR ${BackendName} backend\"\ngpu-requirements: ${GPURequirements}\nconfig:\n\tnvqir-simulation-backend: ${BackendName}")
 endfunction()
