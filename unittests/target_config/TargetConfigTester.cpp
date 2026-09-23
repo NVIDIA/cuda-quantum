@@ -283,6 +283,44 @@ target-arguments:
             "qir-adaptive:1.0:int_computations,float_computations");
 }
 
+// Regression test: the target-pass-pipeline name registered for a
+// configuration-matrix entry joins the target's name and the entry's name
+// with '.', not '-'. Target and entry names routinely contain '-' (e.g.
+// "nvidia-mqpu-fp64", "single-gpu-fp32"), so joining with '-' could make two
+// distinct (target, entry) pairs collide on the same registered pipeline
+// name -- see cudaq-opt.cpp's registerAllTargetPassPipelines(), which is the
+// consumer of this same convention on the registration side.
+TEST(TargetConfigTester, targetPassPipelineNameJoinsWithDotNotHyphen) {
+  const std::string configYmlContents = R"(
+name: xyz
+description: "CUDA-Q test target."
+target-arguments:
+  - key: option
+    required: false
+    type: option-flags
+    help-string: "Specify the target options."
+configuration-matrix:
+  - name: bar
+    option-flags: [qpp]
+    default: true
+    config:
+      target-pass-pipeline: "canonicalize"
+)";
+
+  auto config = cudaq::config::parseTargetConfig(configYmlContents);
+  std::string output = cudaq::config::processRuntimeArgs(config, {});
+  EXPECT_NE(
+      output.find("TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-xyz.bar"),
+      std::string::npos)
+      << "output was:\n"
+      << output;
+  EXPECT_EQ(
+      output.find("TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-xyz-bar"),
+      std::string::npos)
+      << "must not use the ambiguous '-' join; output was:\n"
+      << output;
+}
+
 TEST(TargetConfigTester, checkRegex) {
   const std::string configYmlContents = R"(
 name: test

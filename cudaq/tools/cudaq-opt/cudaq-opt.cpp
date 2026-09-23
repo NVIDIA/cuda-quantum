@@ -19,6 +19,7 @@
 #include "cudaq/Target/TargetCatalog.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/Option/Option.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
@@ -87,24 +88,45 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 ///  - in-tree target (and, within it, every configuration-matrix entry)
 ///  - extra YAML or compiled plugin-library files passed in @p configPaths
 /// that configures a `TargetPassPipeline`.
+///
+/// A target's name and a configuration-matrix entry's name are joined with
+/// '.' (not '-') to form the registered pipeline name: target and entry
+/// names routinely contain '-' themselves (e.g. "nvidia-mqpu-fp64",
+/// "single-gpu-fp32"), so joining with '-' can make two distinct
+/// (target, entry) pairs collide on the same registered name (e.g. target
+/// "xyz-bar" with no entry vs. target "xyz" with entry "bar"). Nothing
+/// stops a future target/entry name from containing '.' either, so
+/// registration also checks for and rejects any resulting collision
+/// outright rather than relying solely on the separator choice.
 static void
 registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
   cudaq::config::TargetCatalog registry;
   for (const auto &path : configPaths)
     registry.addTargetConfigFile(path);
+  llvm::StringSet<> registeredNames;
+  auto registerUnique = [&](const std::string &pipelineName,
+                            const std::string &targetName,
+                            const std::string &pipelineText) {
+    if (!registeredNames.insert(pipelineName).second) {
+      const std::string message =
+          "duplicate target pass pipeline name '" + pipelineName +
+          "': two different targets or configuration-matrix entries "
+          "produced the same registered pipeline name";
+      llvm::report_fatal_error(llvm::StringRef(message));
+    }
+    registerTargetPassPipeline(pipelineName, targetName, pipelineText);
+  };
   for (const auto *entry : registry.list()) {
     const auto &config = *entry->config;
     const std::string targetName = entry->name;
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->TargetPassPipeline.empty())
-      registerTargetPassPipeline("target-pass-pipeline-" + targetName,
-                                 targetName,
-                                 config.BackendConfig->TargetPassPipeline);
+      registerUnique("target-pass-pipeline-" + targetName, targetName,
+                     config.BackendConfig->TargetPassPipeline);
     for (const auto &entry : config.ConfigMap)
       if (!entry.Config.TargetPassPipeline.empty())
-        registerTargetPassPipeline("target-pass-pipeline-" + targetName + "-" +
-                                       entry.Name,
-                                   targetName, entry.Config.TargetPassPipeline);
+        registerUnique("target-pass-pipeline-" + targetName + "." + entry.Name,
+                       targetName, entry.Config.TargetPassPipeline);
   }
 }
 

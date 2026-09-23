@@ -277,7 +277,7 @@ std::string cudaq::config::processRuntimeArgs(
   if (parsed.backend) {
     std::string pipelineName = "target-pass-pipeline-" + config.Name;
     if (parsed.featureConfig)
-      pipelineName += "-" + parsed.featureConfig->Name;
+      pipelineName += "." + parsed.featureConfig->Name;
     output << processSimBackendConfig(config.Name, pipelineName,
                                       *parsed.backend);
   } else if (!config.ConfigMap.empty()) {
