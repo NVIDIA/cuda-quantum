@@ -13,12 +13,34 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <dlfcn.h>
 #include <new>
 #include <thread>
 
 struct cudaq_dispatch_manager_t {
   int reserved = 0;
 };
+
+// Signature of cudaq_launch_unified_dispatch_device, resolved at runtime.
+using cudaq_builtin_unified_launch_fn_t = void (*)(void *, size_t,
+                                                   cudaq_function_entry_t *,
+                                                   size_t, volatile int *,
+                                                   uint64_t *, cudaStream_t);
+
+// Find the built-in unified kernel launcher, used when a transport sets no
+// unified_launch_fn of its own.
+//
+// It is resolved by name rather than linked, for the same architectural
+// reason described at the launch site below for shared_ring_mode: it lives in
+// libcudaq-realtime-unified-dispatch-core.a, which this .so does not link.
+// That archive's kernel calls __device__ hooks only a transport can define,
+// and CUDA resolves those at device-link time within one module -- so the
+// archive can only be linked into a transport's own shared library, never
+// into this one.  Returns nullptr when no such library is loaded.
+static cudaq_builtin_unified_launch_fn_t builtin_unified_launch() {
+  return reinterpret_cast<cudaq_builtin_unified_launch_fn_t>(
+      dlsym(RTLD_DEFAULT, "cudaq_launch_unified_dispatch_device"));
+}
 
 struct cudaq_dispatcher_t {
   cudaq_dispatcher_config_t config{};
@@ -112,7 +134,12 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
   }
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    if (!dispatcher->unified_launch_fn || !dispatcher->transport_ctx)
+    if (!dispatcher->transport_ctx)
+      return CUDAQ_ERR_INVALID_ARG;
+    // Without a launch function the built-in unified kernel runs instead, and
+    // it needs the slot stride.  A transport supplying its own launch function
+    // carries that value however it likes.
+    if (!dispatcher->unified_launch_fn && dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
   } else {
     if (!dispatcher->launch_fn)
@@ -236,7 +263,9 @@ cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx) {
-  if (!dispatcher || !unified_launch_fn || !transport_ctx)
+  // A NULL fn is legal and means "use the built-in unified kernel"; the
+  // context is not, since the device hooks are driven from it either way.
+  if (!dispatcher || !transport_ctx)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->unified_launch_fn = unified_launch_fn;
   dispatcher->transport_ctx = transport_ctx;
@@ -352,10 +381,29 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // __constant__ indirection) -- nothing needed here.
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    dispatcher->unified_launch_fn(
-        dispatcher->transport_ctx, dispatcher->table.entries,
-        dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
-        dispatcher->stream);
+    if (dispatcher->unified_launch_fn) {
+      dispatcher->unified_launch_fn(
+          dispatcher->transport_ctx, dispatcher->table.entries,
+          dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
+          dispatcher->stream);
+    } else {
+      // No transport override: run the built-in unified kernel over the
+      // transport's device hooks.
+      auto launch = builtin_unified_launch();
+      if (!launch) {
+        fprintf(stderr,
+                "cudaq_dispatcher_start: no unified launch function was set "
+                "and cudaq_launch_unified_dispatch_device is not loaded; link "
+                "a transport library built against "
+                "libcudaq-realtime-unified-dispatch-core.a\n");
+        cudaStreamDestroy(dispatcher->stream);
+        dispatcher->stream = nullptr;
+        return CUDAQ_ERR_UNSUPPORTED;
+      }
+      launch(dispatcher->transport_ctx, dispatcher->config.slot_size,
+             dispatcher->table.entries, dispatcher->table.count,
+             dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
+    }
   } else {
     dispatcher->launch_fn(
         dispatcher->ringbuffer.rx_flags, dispatcher->ringbuffer.tx_flags,

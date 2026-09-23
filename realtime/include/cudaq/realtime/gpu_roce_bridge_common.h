@@ -52,15 +52,32 @@
 // library)
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
 
-// Weak declaration of the GpuRoceTransceiver unified dispatch launch function
-// (defined in libcudaq-realtime-bridge-gpu-roce.so).  Weak so that
-// bridge tools that only use the 3-kernel architecture don't need
-// to link the bridge-gpu_roce library.
+// Weak declarations of the GpuRoceTransceiver unified dispatch entry points
+// (defined in libcudaq-realtime-bridge-gpu-roce.so).  Weak so that bridge
+// tools that only use the 3-kernel architecture don't need to link the
+// bridge-gpu_roce library.
+//
+// There is no launch function among them: this transport implements the
+// device data plane in dispatcher/unified_device_transport.cuh, and the
+// dispatcher runs the built-in unified kernel over it.
+
+// Copy a host-filled context into device memory.  The unified kernel's
+// transport hooks dereference the context on the GPU -- it is no longer
+// unpacked into kernel arguments -- so the pointer handed to
+// cudaq_dispatcher_set_unified_launch must be device-resident.
+//
+// Returns cudaSuccess (0) on success, otherwise the failing cudaError_t as an
+// int, leaving *out_device_ctx untouched.  On success the caller owns
+// *out_device_ctx and releases it with gpu_roce_unified_ctx_free once the
+// dispatcher has stopped.
+extern "C" __attribute__((weak)) int
+gpu_roce_unified_ctx_to_device(const gpu_roce_doca_transport_ctx *host_ctx,
+                               void **out_device_ctx);
+
+// Release a context allocated by gpu_roce_unified_ctx_to_device.  Safe to
+// call with NULL.
 extern "C" __attribute__((weak)) void
-gpu_roce_launch_unified_dispatch(void *transport_ctx,
-                                 cudaq_function_entry_t *function_table,
-                                 size_t func_count, volatile int *shutdown_flag,
-                                 uint64_t *stats, cudaStream_t stream);
+gpu_roce_unified_ctx_free(void *device_ctx);
 
 namespace cudaq::realtime {
 
@@ -364,8 +381,11 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
-  // Transport context for unified mode (must outlive the dispatcher)
+  // Transport context for unified mode.  The kernel's hooks read it on the
+  // GPU, so the dispatcher is handed the device copy; the host struct is only
+  // the staging buffer.  The device copy must outlive the dispatcher.
   gpu_roce_doca_transport_ctx unified_ctx{};
+  void *d_unified_ctx = nullptr;
 
   if (!config.forward) {
     if (!config.unified && !is_host_loop) {
@@ -443,8 +463,8 @@ inline int bridge_run(BridgeConfig &config) {
         dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
         dconfig.num_blocks = 1;
         dconfig.threads_per_block = 1;
-        dconfig.num_slots = 0;
-        dconfig.slot_size = 0;
+        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
       } else {
         dconfig.kernel_type = config.kernel_type;
         dconfig.num_blocks = config.num_blocks;
@@ -508,9 +528,20 @@ inline int bridge_run(BridgeConfig &config) {
       unified_ctx.frame_size = config.frame_size;
       unified_ctx.use_bf = is_igpu ? 0 : 1;
 
-      if (cudaq_dispatcher_set_unified_launch(dispatcher,
-                                              &gpu_roce_launch_unified_dispatch,
-                                              &unified_ctx) != CUDAQ_OK) {
+      const int stage_err =
+          gpu_roce_unified_ctx_to_device(&unified_ctx, &d_unified_ctx);
+      if (stage_err != cudaSuccess) {
+        std::cerr << "ERROR: Failed to stage the unified transport context "
+                     "on the device: "
+                  << cudaGetErrorString(static_cast<cudaError_t>(stage_err))
+                  << std::endl;
+        return 1;
+      }
+
+      // No launch function: the bridge library implements the device data
+      // plane, so the dispatcher runs the built-in unified kernel over it.
+      if (cudaq_dispatcher_set_unified_launch(dispatcher, nullptr,
+                                              d_unified_ctx) != CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set unified launch function"
                   << std::endl;
         return 1;
@@ -665,6 +696,8 @@ inline int bridge_run(BridgeConfig &config) {
     cudaq_dispatcher_destroy(dispatcher);
   if (manager)
     cudaq_dispatch_manager_destroy(manager);
+  if (d_unified_ctx)
+    gpu_roce_unified_ctx_free(d_unified_ctx);
   gpu_roce_destroy_transceiver(transceiver);
 
   if (shutdown_flag)

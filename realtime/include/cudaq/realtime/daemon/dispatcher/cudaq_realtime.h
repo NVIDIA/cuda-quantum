@@ -125,11 +125,23 @@ typedef struct {
 
 // Dispatcher configuration
 typedef struct {
-  int device_id;                       // GPU device ID (>=0)
-  uint32_t num_blocks;                 // grid size
-  uint32_t threads_per_block;          // block size
-  uint32_t num_slots;                  // ring buffer slots
-  uint32_t slot_size;                  // bytes per slot
+  int device_id;              // GPU device ID (>=0)
+  uint32_t num_blocks;        // grid size
+  uint32_t threads_per_block; // block size
+  uint32_t num_slots;         // ring buffer slots
+  // Bytes per slot: the stride, matching cudaq_ringbuffer_t's rx/tx_stride_sz.
+  // Every dispatch shape reads it the same way, CUDAQ_KERNEL_UNIFIED included.
+  //
+  // KNOWN ISSUE: the dispatch kernels also derive a handler's max_result_len
+  // from the stride, as `stride - sizeof(RPCResponse)`.  That bounds the slot
+  // buffer correctly, but a transport whose send descriptor is prepared for a
+  // shorter fixed frame transmits only that prefix, so a handler can be told
+  // it has more room than actually reaches the wire.  Both RoCE transports
+  // are in that position (gpu_roce: frame_size vs page_size; cpu_roce:
+  // frame_size vs slot_size).  Fixing it means plumbing the on-wire size to
+  // both kernels, which reaches the public cudaq_dispatch_launch_fn_t; until
+  // then the ring and unified paths at least behave identically.
+  uint32_t slot_size;
   uint32_t vp_id;                      // virtual port ID
   cudaq_kernel_type_t kernel_type;     // regular/cooperative kernel
   cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
@@ -251,6 +263,37 @@ typedef void (*cudaq_unified_launch_fn_t)(
     void *transport_ctx, cudaq_function_entry_t *function_table,
     size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
     cudaStream_t stream);
+
+// Transport-agnostic unified dispatch kernel launcher (from
+// libcudaq-realtime-unified-dispatch-core.a).  The kernel it launches reaches
+// its transport through the three __device__ hooks in
+// unified_device_transport.cuh, so a transport wires itself up by
+// implementing those rather than by writing a kernel.
+//
+// `tx_stride_sz` means what it does in the launch functions above: the slot
+// stride, from which the kernel derives the handler's max_result_len.  See
+// the KNOWN ISSUE on cudaq_dispatcher_config_t::slot_size for the caveat that
+// bound carries, which this path shares with the ring path.
+//
+// `transport_ctx` must be device-accessible: unlike the launch functions
+// above, which pass ring pointers as kernel arguments, the hooks dereference
+// it on the GPU.
+//
+// Because CUDA resolves __device__ calls at device-link time and never across
+// modules, the transport's hook implementations must be device-linked into the
+// same shared library as this archive.
+//
+// cudaq_dispatcher_start() calls this when no unified_launch_fn was set, so a
+// transport needing no launch-time work of its own can skip the wrapper
+// entirely; see cudaq_dispatcher_set_unified_launch.  It resolves the symbol
+// with dlsym(RTLD_DEFAULT, ...) rather than linking it, since by the rule
+// above the archive can only live in a transport's shared library and not in
+// libcudaq-realtime.so -- hence CUDAQ_REALTIME_DISPATCH_API, so the name
+// survives in the dynamic table.
+CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
+    void *transport_ctx, size_t tx_stride_sz,
+    cudaq_function_entry_t *function_table, size_t func_count,
+    volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
 
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
 // These functions are only available when compiled for sm_90 or higher.
@@ -388,6 +431,11 @@ typedef struct {
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
 // the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
+//
+// `unified_launch_fn` may be NULL, meaning "no launch-time work of my own":
+// start() then runs cudaq_launch_unified_dispatch_device over the transport's
+// __device__ hooks, and config.slot_size must give the slot stride.
+// `transport_ctx` is required either way.
 cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,

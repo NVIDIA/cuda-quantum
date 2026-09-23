@@ -146,6 +146,52 @@ if(CUDA_FOUND)
     COMPONENT realtime-lib
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
+
+  # ============================================================================
+  # Transport-agnostic unified dispatch kernel
+  # ============================================================================
+  # The kernel reaches its transport through the __device__ hooks in
+  # unified_device_transport.cuh; gpu_roce implements them in
+  # bridge/gpu_roce/gpu_roce_unified_transport.cu.  This target's include path
+  # is deliberately limited to the realtime headers: no DOCA, no verbs, no
+  # HSB.  That exclusion is the point of compiling the kernel here rather than
+  # alongside a transport -- if the dependency ever creeps back into the loop,
+  # this stops compiling.
+  #
+  # CUDA_RESOLVE_DEVICE_SYMBOLS is left OFF (the default for STATIC) so the
+  # hook calls stay unresolved here and are device-linked by whichever shared
+  # library supplies the implementations.  A transport library that links this
+  # archive without defining all three hooks fails at its own device link.
+  add_library(cudaq-realtime-unified-dispatch-core STATIC
+    dispatcher/unified_dispatch_kernel.cu
+  )
+  add_library(cudaq::cudaq-realtime-unified-dispatch-core
+    ALIAS cudaq-realtime-unified-dispatch-core)
+
+  target_include_directories(cudaq-realtime-unified-dispatch-core
+    PUBLIC
+      $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:include>
+  )
+
+  target_link_libraries(cudaq-realtime-unified-dispatch-core
+    PUBLIC
+      CUDA::cudart_static
+      ${CUDADEVRT_LIBRARY}
+  )
+
+  set_target_properties(cudaq-realtime-unified-dispatch-core PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+  )
+
+  install(TARGETS cudaq-realtime-unified-dispatch-core
+    EXPORT cudaq-realtime-targets
+    COMPONENT realtime-lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
+
   if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
     add_subdirectory(bridge/gpu_roce)
   endif()
