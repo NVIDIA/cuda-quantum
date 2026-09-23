@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "TargetConfigHelper.h"
 #include "Yaml/TargetConfigSchema.h"
 #ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
