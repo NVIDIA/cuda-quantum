@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --expand-broadcasts %s | FileCheck %s
+// RUN: cudaq-opt --expand-veq-uses %s | FileCheck %s
 
 func.func @broadcast() {
   %0 = quake.alloca !quake.veq<3>

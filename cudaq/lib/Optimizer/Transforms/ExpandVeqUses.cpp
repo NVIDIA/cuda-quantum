@@ -12,11 +12,11 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_EXPANDBROADCASTS
+#define GEN_PASS_DEF_EXPANDVEQUSES
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "expand-broadcasts"
+#define DEBUG_TYPE "expand-veq-uses"
 
 using namespace mlir;
 
@@ -99,9 +99,9 @@ public:
   }
 };
 
-struct ExpandBroadcastsPass
-    : public cudaq::opt::impl::ExpandBroadcastsBase<ExpandBroadcastsPass> {
-  using ExpandBroadcastsBase::ExpandBroadcastsBase;
+struct ExpandVeqUsesPass
+    : public cudaq::opt::impl::ExpandVeqUsesBase<ExpandVeqUsesPass> {
+  using ExpandVeqUsesBase::ExpandVeqUsesBase;
 
   void runOnOperation() override {
     auto *ctx = &getContext();
