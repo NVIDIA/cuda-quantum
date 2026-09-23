@@ -7,6 +7,6 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && echo skipping
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && echo skipping; fi
 // clang-format on
 #include "../execution/conditional_run.cpp"
