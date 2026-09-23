@@ -8,12 +8,10 @@
 
 #include "cudaq/Target/TargetDatabase.h"
 
-namespace {
 // Forces a hard link-time dependency on the ABI marker symbol the linked
 // TargetDatabase.gen.cpp was stamped with.
-[[maybe_unused]] void (*const abiVersionLinkCheck)() =
+[[maybe_unused, gnu::used]] static void (*const abiVersionLinkCheck)() =
     &CUDAQ_TARGET_DB_ABI_SYMBOL_NAME;
-} // namespace
 
 const cudaq::config::TargetConfig *
 cudaq::config::lookupBuiltinTarget(std::string_view name) {

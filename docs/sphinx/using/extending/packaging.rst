@@ -18,7 +18,8 @@ Every plugin follows the same directory convention:
 
     my-backend/
     ├── targets/
-    │   ├── my-backend.so            # Pre-compiled target config (.dylib on macOS), or:
+    │   ├── my-backend.so            # Pre-compiled target config (.dylib on macOS)
+    |   |     # OR (mutually exclusive)
     │   └── my-backend.yml           # Raw YAML target config
     ├── lib/
     │   └── libcudaq-serverhelper-my-backend.so  # Backend shared library (.dylib on macOS)
@@ -34,8 +35,8 @@ The plugin can choose to ship either a pre-compiled target config library
 (`my-backend.so`) or a raw YAML target config (`my-backend.yml`). The
 pre-compiled format is recommended and required for the plugin to be used in
 CUDA-Q C++ programs, whereas the YAML config is for use in Python programs only.
-When both artifacts are found in the same plugin root, CUDA-Q will prefer the
-compiled library.
+Do not ship the two formats together as the compiled library will always shadow
+the YAML config.
 
 .. note::
 
@@ -71,10 +72,12 @@ This is achieved in two steps:
         my-backend.gen.cpp -o targets/my-backend.dylib
 
 The generated translation unit is self-contained - it only needs CUDA-Q's
-headers, not any CUDA-Q library. On macOS, pass ``-isysroot`` explicitly if
-``${CXX}`` is the LLVM toolchain that ships with CUDA-Q rather than Apple's
-own ``clang++``: only the latter infers the SDK location, and without it the
-C++ standard library headers are not found.
+headers, not any CUDA-Q library. The resulting library is platform-specific
+and must be built and distributed separately for each supported platform.
+On macOS, pass ``-isysroot`` explicitly if ``${CXX}`` is the LLVM toolchain
+that ships with CUDA-Q rather than Apple's own ``clang++``: only the latter
+infers the SDK location, and without it the C++ standard library headers
+are not found.
 
 The generated library exports a single, ABI-versioned symbol
 (``cudaq::config::kTargetPluginSymbolName``); CUDA-Q ``dlopen``\ s it and

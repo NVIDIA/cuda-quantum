@@ -88,7 +88,7 @@ cudaq::config::HostEnvironment LinkedLibraryHolder::hostEnv() const {
 }
 
 void LinkedLibraryHolder::addPluginScope(const std::filesystem::path &scope) {
-  addPluginScopeToRegistry(targetRegistry, scope);
+  addPluginScopeToRegistry(targetCatalog, scope);
 }
 
 RuntimeTarget LinkedLibraryHolder::makeRuntimeTarget(
@@ -112,7 +112,7 @@ RuntimeTarget LinkedLibraryHolder::makeRuntimeTarget(
 void LinkedLibraryHolder::reloadTargets() {
   targets.clear();
   simulationTargets.clear();
-  for (const auto &resolved : targetRegistry.resolveAll(hostEnv())) {
+  for (const auto &resolved : targetCatalog.resolveAll(hostEnv())) {
     auto target = makeRuntimeTarget(resolved);
     CUDAQ_INFO("Found Target: {} -> (sim={}, platform={}, available={})",
                target.name, target.simulatorName, target.platformName,
@@ -372,7 +372,7 @@ void LinkedLibraryHolder::registerBackendPath(
         pkgRoot.string());
   CUDAQ_INFO("register_backend_path: loading external backends from '{}'.",
              pkgRoot.string());
-  targetRegistry.addPluginRoot(pkgRoot);
+  targetCatalog.addPluginRoot(pkgRoot);
   reloadTargets();
 }
 
@@ -384,7 +384,7 @@ bool LinkedLibraryHolder::registerTargetConfig(
         configPath.string());
   CUDAQ_INFO("_register_target_config: loading target from '{}'.",
              configPath.string());
-  if (!targetRegistry.addTargetConfigFile(configPath))
+  if (!targetCatalog.addTargetConfigFile(configPath))
     return false;
   reloadTargets();
   return true;
@@ -452,7 +452,7 @@ void LinkedLibraryHolder::setTarget(
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + targetName + ").");
 
-  auto resolved = targetRegistry.resolve(targetName, hostEnv(), extraConfig);
+  auto resolved = targetCatalog.resolve(targetName, hostEnv(), extraConfig);
   if (!resolved)
     throw std::runtime_error("Invalid target name (" + targetName + ").");
   if (!resolved->status.isAvailable())

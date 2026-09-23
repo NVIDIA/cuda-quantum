@@ -39,7 +39,7 @@ cudaq::config::TargetPluginLoadResult cudaq::config::loadTargetPluginLibrary(
     return result;
   }
 
-  auto entryPoint = reinterpret_cast<TargetPluginEntryPoint>(symbol);
+  auto entryPoint = reinterpret_cast<TargetPluginEntryPoint *>(symbol);
   const TargetConfig *config = entryPoint();
   if (!config) {
     result.error = "Target plugin library '" + name +

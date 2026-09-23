@@ -60,7 +60,7 @@ protected:
   std::unordered_map<std::string, RuntimeTarget> simulationTargets;
 
   /// @brief Sole owner of target discovery for this Python session.
-  config::TargetCatalog targetRegistry;
+  config::TargetCatalog targetCatalog;
 
   /// @brief Store the name of the default target
   std::string defaultTarget;

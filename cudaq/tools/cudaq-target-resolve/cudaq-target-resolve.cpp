@@ -6,8 +6,39 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Resolves a target by name via TargetCatalog plus CLI target arguments into
-// a flat file of nvq++-compatible bash KEY=value assignments.
+// cudaq-target-resolve: CUDA-Q target build configuration resolver.
+//
+// Helper used by `nvq++ --target=<name>` to resolve a target name into concrete
+// build settings. The name is looked up in the unified TargetCatalog, which
+// combines the built-in target database with any external plugin packages found
+// under `<install-dir>/plugins` or passed via
+// `--plugin-root`.
+//
+// Unless `--include-unavailable` is passed, only targets that are available on
+// the host are considered (based on GPU presence, installed simulators, etc.).
+// YAML files found in plugin roots are only parsed when
+// `--enable-yaml-parsing` is set; otherwise only pre-compiled plugin libraries
+// are considered.
+//
+// Examples:
+//
+//   Resolve a target and write its nvq++ configuration to a file:
+//     cudaq-target-resolve --install-dir=$CUDA_QUANTUM_PATH \
+//       --lib-dir=$CUDA_QUANTUM_PATH/lib --gpu-count=1 -o config.sh nvidia
+//
+//   Pass target arguments (space-separated key/value pairs, optionally
+//   base64-encoded with a `base64_` prefix, as nvq++ does):
+//     cudaq-target-resolve --arg="--nvidia-option fp64" -o config.sh nvidia
+//     cudaq-target-resolve --arg="base64_$(echo -n "$ARGS" | base64)" \
+//       -o config.sh nvidia
+//
+//   Resolve a target from a standalone YAML description:
+//     cudaq-target-resolve -o config.sh path/to/my-target.yml
+//
+//   List targets available on this host, or only the simulator targets:
+//     cudaq-target-resolve --list-targets --gpu-count=0
+//     cudaq-target-resolve --list-simulators
+//     cudaq-target-resolve --list-simulators --include-unavailable
 
 #include "cudaq/Target/TargetCatalog.h"
 #include "llvm/Support/Base64.h"

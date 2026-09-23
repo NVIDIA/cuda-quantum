@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Target/TargetConfig.h"
+#include "cudaq/Target/TargetDatabase.h"
 #include <array>
 #include <string>
 #include <string_view>
@@ -56,17 +57,33 @@ sharedLibraryNameCandidates(std::string_view name) {
   return candidates;
 }
 
-/// The exported C symbol name a compiled external target plugin library must
+} // namespace cudaq::config
+
+/// The exported C symbol a compiled external target plugin library must
 /// define. Consumers will `dlopen()` the library and `dlsym()` exactly this
 /// name.
 ///
 /// This name is the load-time equivalent of a link-time ABI version check: a
-/// plugin library built against a different `TargetConfig`/generator ABI
+/// plugin library built against a different `CUDAQ_TARGET_DB_ABI_VERSION`
 /// exports (or is looked up under) a different symbol name entirely, so a
 /// mismatch fails immediately and unambiguously at `dlsym` time.
-inline constexpr const char *kTargetPluginSymbolName = "cudaq_target_config_v1";
+#define CUDAQ_TARGET_PLUGIN_SYMBOL_PASTE(v) cudaq_target_config_v##v
+#define CUDAQ_TARGET_PLUGIN_SYMBOL_EXPAND(v) CUDAQ_TARGET_PLUGIN_SYMBOL_PASTE(v)
+#define CUDAQ_TARGET_PLUGIN_SYMBOL_NAME                                        \
+  CUDAQ_TARGET_PLUGIN_SYMBOL_EXPAND(CUDAQ_TARGET_DB_ABI_VERSION)
+
+/// Also define `CUDAQ_TARGET_PLUGIN_SYMBOL_NAME` as a string literal.
+#define CUDAQ_TARGET_PLUGIN_STRINGIFY_IMPL(x) #x
+#define CUDAQ_TARGET_PLUGIN_STRINGIFY(x) CUDAQ_TARGET_PLUGIN_STRINGIFY_IMPL(x)
+#define CUDAQ_TARGET_PLUGIN_SYMBOL_NAME_STR                                    \
+  CUDAQ_TARGET_PLUGIN_STRINGIFY(CUDAQ_TARGET_PLUGIN_SYMBOL_NAME)
+
+namespace cudaq::config {
+
+inline constexpr const char *kTargetPluginSymbolName =
+    CUDAQ_TARGET_PLUGIN_SYMBOL_NAME_STR;
 
 /// Signature of the symbol named by `kTargetPluginSymbolName`.
-using TargetPluginEntryPoint = const TargetConfig *(*)();
+using TargetPluginEntryPoint = const TargetConfig *();
 
 } // namespace cudaq::config
