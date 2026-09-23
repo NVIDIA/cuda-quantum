@@ -393,9 +393,11 @@ void NewUnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
   QuantumOpSegment currSegment;
   currSegment.containingBlock = &block;
 
-  // lambda for helping break off a segment after encountering hard boundary
+  // Finish a segment at either a hard boundary or the end of the block.
   auto finishCurrentSegment = [&]() {
-    // at this point, we have hit a hard boundary
+    if (currSegment.opsInBlockOrder.empty())
+      return;
+
     // 1. build dependency graph
     SegmentDependencyGraph sdg = buildSegmentDependencyGraph(currSegment, qia);
     // 2. canonicalize order
@@ -431,6 +433,10 @@ void NewUnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
         analyzeBlock(block);
     }
   }
+
+  // Some regions permit blocks without terminators, so flush any trailing
+  // segment that was not ended by a hard-boundary operation.
+  finishCurrentSegment();
 }
 
 void NewUnitaryOpGroupingAnalysis::performAnalysis(Operation *op) {

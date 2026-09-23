@@ -81,6 +81,7 @@ struct NewUnitaryOpGroupingAnalysis {
     performAnalysis(op);
   }
 
+  const NewUnitaryOpGroups &getGroups() const { return unitaryOpGroups; }
   std::optional<unsigned> getGroupIndexForOp(mlir::Operation *op) const;
   const mlir::Block *getBlockForGroup(const NewUnitaryOpGroup &group) const;
   const NewUnitaryOpGroup *getGroupContainingOp(mlir::Operation *op) const;
@@ -91,7 +92,7 @@ struct NewUnitaryOpGroupingAnalysis {
 private:
   NewUnitaryOpGroups unitaryOpGroups;
   mlir::DenseMap<mlir::Operation *, unsigned> opToGroupIndex;
-  mlir::DenseMap<mlir::Block *, mlir::SmallVector<unsigned>>
+  mlir::DenseMap<const mlir::Block *, mlir::SmallVector<unsigned>>
       blockToGroupIndices;
 
   void performAnalysis(mlir::Operation *op);
