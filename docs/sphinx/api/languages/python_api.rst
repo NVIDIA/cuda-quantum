@@ -42,6 +42,8 @@ Program Construction
     .. automethod:: swap
     .. automethod:: cswap
     .. automethod:: exp_pauli
+    .. automethod:: givens_rotation
+    .. automethod:: fermionic_swap
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz
