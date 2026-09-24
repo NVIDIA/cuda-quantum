@@ -25,6 +25,8 @@ using namespace mlir;
 using cudaq::quake::detail::UnitaryOpGroup;
 using cudaq::quake::detail::UnitaryOpGroupingAnalysis;
 
+/// Assert that \p actual contains the expected operation pointers in the same
+/// order.
 static void expectOperations(llvm::ArrayRef<Operation *> actual,
                              std::initializer_list<Operation *> expected) {
   ASSERT_EQ(actual.size(), expected.size());
@@ -34,6 +36,7 @@ static void expectOperations(llvm::ArrayRef<Operation *> actual,
     EXPECT_EQ(actual[index++], op);
 }
 
+/// Assert a group's containing block, unitary run, and trailing delimiter run.
 static void
 expectGroup(const UnitaryOpGroup &group, const Block *expectedBlock,
             std::initializer_list<Operation *> expectedUnitaryOps,
@@ -43,11 +46,13 @@ expectGroup(const UnitaryOpGroup &group, const Block *expectedBlock,
   expectOperations(group.trailingDelimiterOps, expectedDelimiters);
 }
 
+/// Assert only the ordered unitary run of a group.
 static void expectGroupOps(const UnitaryOpGroup &group,
                            std::initializer_list<Operation *> expected) {
   expectOperations(group.ops, expected);
 }
 
+/// Assert both the presence and value of an operation-to-group lookup.
 static void expectGroupIndex(const UnitaryOpGroupingAnalysis &analysis,
                              Operation *op, std::optional<unsigned> expected) {
   auto actual = analysis.getGroupIndexForOp(op);
@@ -56,11 +61,14 @@ static void expectGroupIndex(const UnitaryOpGroupingAnalysis &analysis,
     EXPECT_EQ(*actual, *expected);
 }
 
+/// Create a scalar wire root with a fresh, known logical-qubit identity.
 static Value createNullWire(OpBuilder &builder, Location loc) {
   auto wireTy = builder.getType<cudaq::quake::WireType>();
   return cudaq::quake::NullWireOp::create(builder, loc, wireTy);
 }
 
+/// Create a non-adjoint scalar-wire gate that threads one target through its
+/// result.
 template <typename GateOp>
 static GateOp createWireGate(OpBuilder &builder, Location loc, Value target) {
   auto wireTy = builder.getType<cudaq::quake::WireType>();
@@ -69,6 +77,8 @@ static GateOp createWireGate(OpBuilder &builder, Location loc, Value target) {
                         DenseBoolArrayAttr{});
 }
 
+/// Create a non-adjoint scalar-wire gate with one result for every control and
+/// target.
 template <typename GateOp>
 static GateOp createWireGate(OpBuilder &builder, Location loc,
                              ValueRange controls, ValueRange targets) {
@@ -78,6 +88,8 @@ static GateOp createWireGate(OpBuilder &builder, Location loc,
                         ValueRange{}, controls, targets, DenseBoolArrayAttr{});
 }
 
+/// Create a wire-semantics measurement with classical and threaded-wire
+/// results.
 template <typename MeasurementOp>
 static MeasurementOp createWireMeasurement(OpBuilder &builder, Location loc,
                                            Value target) {
@@ -87,6 +99,7 @@ static MeasurementOp createWireMeasurement(OpBuilder &builder, Location loc,
                                ValueRange{target}, StringAttr{});
 }
 
+/// Create a reference-semantics measurement with a classical-handle result.
 template <typename MeasurementOp>
 static MeasurementOp createRefMeasurement(OpBuilder &builder, Location loc,
                                           Value target) {
@@ -95,6 +108,7 @@ static MeasurementOp createRefMeasurement(OpBuilder &builder, Location loc,
                                ValueRange{target}, StringAttr{});
 }
 
+/// Load every dialect used to construct the test IR.
 static void loadTestDialects(MLIRContext &context) {
   context.loadDialect<arith::ArithDialect>();
   context.loadDialect<func::FuncDialect>();
@@ -102,6 +116,8 @@ static void loadTestDialects(MLIRContext &context) {
   context.loadDialect<cudaq::quake::QuakeDialect>();
 }
 
+/// Create a CUDA-Q kernel with one entry block and leave \p builder at the
+/// start of that block.
 static func::FuncOp createKernel(ModuleOp module, OpBuilder &builder,
                                  llvm::StringRef name,
                                  ArrayRef<Type> inputTypes = {}) {
@@ -116,6 +132,7 @@ static func::FuncOp createKernel(ModuleOp module, OpBuilder &builder,
   return func;
 }
 
+/// Fixture providing a fresh module and a module-bound kernel constructor.
 class BuilderUnitaryOpGroupingAnalysisTest : public ::testing::Test {
 protected:
   void SetUp() override {
@@ -123,6 +140,7 @@ protected:
     module = OwningOpRef<ModuleOp>(ModuleOp::create(UnknownLoc::get(&context)));
   }
 
+  /// Create a kernel in the fixture module using its MLIR context.
   func::FuncOp createKernel(llvm::StringRef name,
                             ArrayRef<Type> inputTypes = {}) {
     OpBuilder builder(&context);
@@ -133,7 +151,10 @@ protected:
   OwningOpRef<ModuleOp> module;
 };
 
-// Constructed IR (schematic):
+// Expected MLIR sections are schematic and omit types, sinks, and terminators
+// unless they are material to the behavior under test.
+
+// Expected MLIR:
 //
 //   func.func @simple(%q0: !quake.ref, %q1: !quake.ref, %theta: f64) attributes
 //   {"cudaq-kernel"} {
@@ -146,8 +167,11 @@ protected:
 //     return
 //   }
 //
-// Reference semantics preserve block order. The measurement is recorded as the
-// trailing delimiter of {h, x}; the classical op is a hard boundary.
+// Expected analysis:
+//   group 0: unitaries [h, x], delimiters [mz]
+//   group 1: unitaries [z], delimiters []
+//   group 2: unitaries [rx], delimiters []
+//   arith.constant is an unmapped hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -203,7 +227,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
   EXPECT_TRUE(analysis.getGroupsIn(nullptr).empty());
 }
 
-// Constructed IR (schematic):
+// Expected MLIR:
 //
 //   func.func @nested_if(%q0: !quake.ref, %q1: !quake.ref, %flag: i1)
 //   attributes {"cudaq-kernel"} {
@@ -220,8 +244,11 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
 //     return
 //   }
 //
-// The cc.if is a hard boundary, and its branch blocks are analyzed
-// independently. Each branch-local delimiter remains with its unitary group.
+// Expected analysis:
+//   group 0 (then block): unitaries [h, x], delimiters [mz]
+//   group 1 (else block): unitaries [z], delimiters [reset]
+//   cc.if is an unmapped hard boundary.
+//   The parent block has no groups; each branch contains one local group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsNestedIfRegionsSeparately) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -282,6 +309,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsNestedIfRegionsSeparately) {
   EXPECT_EQ(elseGroups[0], &groups[1]);
 }
 
+// Expected MLIR:
+//
+//   func.func @empty() attributes {"cudaq-kernel"} {
+//     return
+//   }
+//
+// Expected analysis:
+//   The empty function produces no groups. Constructing the analysis with the
+//   module operation instead of a func.func also produces no groups.
+//   The return operation and null operation queries are unmapped.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        EmptyAndNonFunctionInputsProduceNoGroups) {
   OpBuilder builder(&context);
@@ -300,6 +337,23 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_TRUE(moduleAnalysis.getGroups().empty());
 }
 
+// Expected MLIR:
+//
+//   quake.mx %q0
+//   quake.reset %q0
+//   quake.my %q1
+//   quake.h %q0
+//   quake.x %q1
+//   quake.mz %q0
+//   quake.reset %q1
+//   quake.z %q0
+//
+// Expected analysis:
+//   group 0: unitaries [], delimiters [mx, reset0, my]
+//   group 1: unitaries [h, x], delimiters [mz, reset1]
+//   group 2: unitaries [z], delimiters []
+//   Consecutive leading delimiters form one delimiter-only group; consecutive
+//   trailing delimiters remain in the group they terminate.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        CoalescesConsecutiveMeasurementAndResetDelimiters) {
   OpBuilder builder(&context);
@@ -338,6 +392,18 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(reset1, z));
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   arith.constant 0 : i64
+//   arith.constant 1 : i64
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   Both constants are unmapped hard boundaries, and no empty group is
+//   emitted between them.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ConsecutiveHardBoundariesDoNotCreateEmptyGroups) {
   OpBuilder builder(&context);
@@ -365,8 +431,19 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(constant1), nullptr);
 }
 
-// Wire block arguments have no known qubit identity, so preserve textual order:
-// the leading measurement remains ahead of the independent X gate.
+// Expected MLIR:
+//
+//   ^bb0(%q0: !quake.wire, %q1: !quake.wire):
+//   %m, %q0.next = quake.mz %q0
+//   %q1.next = quake.x %q1
+//
+// Expected analysis:
+//   ordering mode: textual
+//   canonical order: [mz, x]
+//   group 0: unitaries [], delimiters [mz]
+//   group 1: unitaries [x], delimiters []
+//   Wire block arguments have unknown logical identities, so the leading
+//   measurement remains before the independent X gate.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        UnknownWireIdentityFallsBackToTextualOrder) {
   OpBuilder builder(&context);
@@ -393,8 +470,23 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
 }
 
-// All four operations are initially ready. Wire-dataflow ordering emits ready
-// unitaries first and preserves original block order within each role.
+// Expected MLIR:
+//
+//   %q0 = quake.null_wire
+//   %q1 = quake.null_wire
+//   %q2 = quake.null_wire
+//   %q3 = quake.null_wire
+//   %m, %q0.next = quake.mz %q0
+//   %q1.next = quake.reset %q1
+//   %q2.next = quake.z %q2
+//   %q3.next = quake.h %q3
+//
+// Expected analysis:
+//   segment order: [mz, reset, z, h]
+//   canonical order: [z, h, mz, reset]
+//   group 0: unitaries [z, h], delimiters [mz, reset]
+//   All four operations are initially ready. Unitaries take priority over
+//   delimiters, while original order breaks ties within each role.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        WireModePrioritizesUnitariesAndUsesOriginalOrderForTies) {
   OpBuilder builder(&context);
@@ -431,8 +523,21 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroupIndex(analysis, resetOp, 0u);
 }
 
-// X consumes the wire returned by Mz. The independent Z may move first, but X
-// must remain after its measurement predecessor.
+// Expected MLIR:
+//
+//   %q0 = quake.null_wire
+//   %q1 = quake.null_wire
+//   %m, %q0.next = quake.mz %q0
+//   %q0.final = quake.x %q0.next
+//   %q1.next = quake.z %q1
+//
+// Expected analysis:
+//   dependency: mz -> x
+//   canonical order: [z, mz, x]
+//   group 0: unitaries [z], delimiters [mz]
+//   group 1: unitaries [x], delimiters []
+//   The independent Z may move first, but X remains after its measurement
+//   predecessor.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        UnitaryWaitsForMeasurementPredecessor) {
   OpBuilder builder(&context);
@@ -462,8 +567,23 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
 }
 
-// The controlled X consumes both measured wires and becomes ready only after
-// both measurement predecessors have been emitted.
+// Expected MLIR:
+//
+//   %q0 = quake.null_wire
+//   %q1 = quake.null_wire
+//   %q2 = quake.null_wire
+//   %m0, %q0.next = quake.mz %q0
+//   %m1, %q1.next = quake.mz %q1
+//   %q0.final, %q1.final = quake.x [%q0.next] %q1.next
+//   %q2.next = quake.z %q2
+//
+// Expected analysis:
+//   dependencies: mz0 -> cx, mz1 -> cx
+//   canonical order: [z, mz0, mz1, cx]
+//   group 0: unitaries [z], delimiters [mz0, mz1]
+//   group 1: unitaries [cx], delimiters []
+//   The controlled X becomes ready only after both measurement predecessors
+//   have been emitted.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        JoinWaitsForAllMeasurementPredecessors) {
   OpBuilder builder(&context);
@@ -499,8 +619,25 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mz1Op, cxOp));
 }
 
-// wireA and wireB are distinct SSA roots for the same allocated qubit. A
-// qubit-identity edge preserves Mz-before-X without a direct SSA def-use edge.
+// Expected MLIR:
+//
+//   %r = quake.alloca !quake.ref
+//   %wireA = quake.unwrap %r
+//   %wireB = quake.unwrap %r
+//   %independent = quake.null_wire
+//   %h = quake.h %wireA
+//   %m, %measured = quake.mz %h
+//   %z = quake.z %independent
+//   %x = quake.x %wireB
+//
+// Expected analysis:
+//   dependencies include h -> mz and mz -> x
+//   canonical order: [h, z, mz, x]
+//   group 0: unitaries [h, z], delimiters [mz]
+//   group 1: unitaries [x], delimiters []
+//   The identity edge mz -> x orders distinct SSA roots for the same logical
+//   qubit. The alloca, unwrap, and null_wire setup operations are unmapped hard
+//   boundaries.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        QubitIdentityOrdersDistinctSsaRoots) {
   OpBuilder builder(&context);
@@ -540,8 +677,18 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
 }
 
-// Both operands identify the same logical qubit. Deduplicating touches within
-// the operation prevents a dependency-graph self-edge.
+// Expected MLIR:
+//
+//   %r = quake.alloca !quake.ref
+//   %wireA = quake.unwrap %r
+//   %wireB = quake.unwrap %r
+//   %control, %target = quake.x [%wireA] %wireB
+//
+// Expected analysis:
+//   canonical order: [controlledX]
+//   group 0: unitaries [controlledX], delimiters []
+//   Both operands have the same logical-qubit identity. Per-operation touch
+//   deduplication prevents a self-edge and dependency-graph cycle.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        RepeatedQubitIdentityWithinOneOpDoesNotCreateSelfEdge) {
   OpBuilder builder(&context);
@@ -570,6 +717,22 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroup(groups[0], &func.front(), {controlledXOp});
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   cc.scope {
+//     quake.x %q
+//     quake.mz %q
+//     // Intentionally no cc.continue.
+//   }
+//   quake.z %q
+//
+// Expected analysis:
+//   group 0 (parent block): unitaries [h], delimiters []
+//   group 1 (scope block): unitaries [x], delimiters [mz]
+//   group 2 (parent block): unitaries [z], delimiters []
+//   cc.scope is an unmapped hard boundary. The nested block's final segment is
+//   flushed at block end even without a terminator.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        FlushesUnterminatedNestedBlockAtEnd) {
   OpBuilder builder(&context);
@@ -611,6 +774,17 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(nestedGroups[0], &groups[1]);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   %vec = quake.alloca !quake.veq<2>
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   quake.alloca is an unmapped hard boundary, so h and x cannot share a
+//   group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, AllocaVeqBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -636,6 +810,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, AllocaVeqBreaksBetweenGroups) {
   EXPECT_FALSE(analysis.inSameGroup(h, x));
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   %extracted = quake.extract_ref %vec[0]
+//   quake.x %extracted
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   quake.extract_ref is an unmapped hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExtractRefBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -661,6 +845,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExtractRefBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(extract.getOperation()), nullptr);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   %extracted = quake.extract_ref %vec[%index]
+//   quake.y %extracted
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [y], delimiters []
+//   Dynamically indexed quake.extract_ref is an unmapped hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        DynamicExtractRefBreaksBetweenGroups) {
   OpBuilder builder(&context);
@@ -689,6 +883,17 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(extract.getOperation()), nullptr);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   %sub = quake.subveq %vec, 1, 2
+//   %extracted = quake.extract_ref %sub[0]
+//   quake.x %extracted
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   quake.subveq and quake.extract_ref are unmapped hard boundaries.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, SubVeqBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -718,6 +923,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, SubVeqBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(extract.getOperation()), nullptr);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   %relaxed = quake.relax_size %vec
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   quake.relax_size is an unmapped hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, RelaxSizeBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -744,6 +959,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, RelaxSizeBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(relax.getOperation()), nullptr);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q0
+//   %merged = quake.concat %q1, %vec
+//   quake.x %q0
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   quake.concat is an unmapped hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ConcatBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -771,6 +996,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ConcatBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(concat.getOperation()), nullptr);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   %size = quake.veq_size %vec
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   quake.veq_size is an unmapped hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -796,8 +1031,18 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(veqSize.getOperation()), nullptr);
 }
 
-// A non-scalar measurement remains a delimiter even though its segment falls
-// back to textual ordering.
+// Expected MLIR:
+//
+//   quake.h %q
+//   %results = quake.mz %vec
+//   quake.x %q
+//
+// Expected analysis:
+//   ordering mode: textual
+//   group 0: unitaries [h], delimiters [mz]
+//   group 1: unitaries [x], delimiters []
+//   The non-scalar measurement remains a delimiter even though its segment
+//   cannot use scalar-wire ordering.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        VectorMeasurementBreaksBetweenGroups) {
   OpBuilder builder(&context);
@@ -827,6 +1072,18 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(mz), &groups[0]);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   quake.mx %q
+//   quake.x %q
+//   quake.my %q
+//   quake.z %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters [mx]
+//   group 1: unitaries [x], delimiters [my]
+//   group 2: unitaries [z], delimiters []
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        MxAndMyMeasurementsBreakBetweenGroups) {
   OpBuilder builder(&context);
@@ -859,6 +1116,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(my), &groups[1]);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q
+//   quake.reset %q
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters [reset]
+//   group 1: unitaries [x], delimiters []
+//   Reset is a group member but is classified as a delimiter, not a unitary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ResetRefIsATrailingDelimiter) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -882,7 +1149,17 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ResetRefIsATrailingDelimiter) {
   EXPECT_EQ(analysis.getGroupContainingOp(reset), &groups[0]);
 }
 
-// Gates with vector controls remain unitary in textual-order mode.
+// Expected MLIR:
+//
+//   quake.x [%ctrl] %target
+//   quake.y [%ctrl] %target
+//   quake.z [%ctrl] %target
+//
+// Expected analysis:
+//   ordering mode: textual
+//   group 0: unitaries [x, y, z], delimiters []
+//   Gates with vector controls remain unitary even though the segment cannot
+//   use scalar-wire ordering.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ControlledGatesWithVeqControlGroupTogether) {
   OpBuilder builder(&context);
@@ -913,6 +1190,21 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_TRUE(analysis.inSameGroup(x, z));
 }
 
+// Expected MLIR:
+//
+//   quake.r1 (%theta) %q0
+//   quake.rx (%theta) %q0
+//   quake.phased_rx (%theta, %phi) %q0
+//   quake.ry (%phi) %q0
+//   quake.rz (%lambda) %q0
+//   quake.u2 (%theta, %phi) %q0
+//   quake.u3 (%theta, %phi, %lambda) %q0
+//   quake.swap %q0, %q1
+//
+// Expected analysis:
+//   group 0: unitaries [r1, rx, phasedRx, ry, rz, u2, u3, swap],
+//            delimiters []
+//   Classical parameters and multiple targets do not split a unitary run.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ParameterizedAndMultiTargetGatesGroupTogether) {
   OpBuilder builder(&context);
@@ -963,7 +1255,15 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroupOps(groups[0], {r1, rx, phasedRx, ry, rz, u2, u3, swap});
 }
 
-// ExpPauli remains unitary when its target is a vector.
+// Expected MLIR:
+//
+//   quake.h %q
+//   quake.exp_pauli (%theta) %vec to "XYZ"
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h, expPauli, x], delimiters []
+//   ExpPauli remains unitary when its target is a vector.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExpPauliWithVeqTargetIsUnitary) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -991,7 +1291,16 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExpPauliWithVeqTargetIsUnitary) {
   expectGroupOps(groups[0], {h, expPauli, x});
 }
 
-// A non-gate Quake operation forms a hard boundary.
+// Expected MLIR:
+//
+//   quake.h %q
+//   quake.compute_action %compute, %action
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   quake.compute_action is an unmapped hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ComputeActionBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -1020,6 +1329,22 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ComputeActionBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(computeAction), nullptr);
 }
 
+// Expected MLIR:
+//
+//   quake.h %q0
+//   cc.scope {
+//     quake.x %q0
+//     quake.y %q1
+//     cc.continue
+//   }
+//   quake.z %q0
+//
+// Expected analysis:
+//   group 0 (parent block): unitaries [h], delimiters []
+//   group 1 (scope block): unitaries [x, y], delimiters []
+//   group 2 (parent block): unitaries [z], delimiters []
+//   cc.scope is an unmapped hard boundary; groups do not cross into or out of
+//   its nested block.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        CCScopeRegionDoesNotMergeWithParentBlock) {
   OpBuilder builder(&context);
@@ -1054,6 +1379,20 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_NE(groups[1].block, groups[2].block);
 }
 
+// Expected MLIR:
+//
+//   %slot = cc.alloca i32
+//   quake.h %q
+//   cc.store %value, %slot
+//   %loaded = cc.load %slot
+//   %extended = cc.cast signed %loaded : (i32) -> i64
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   The cc.alloca, cc.store, cc.load, and cc.cast operations are unmapped hard
+//   boundaries.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, CCMemoryOpsBreakBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -1086,6 +1425,19 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, CCMemoryOpsBreakBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(cast.getOperation()), nullptr);
 }
 
+// Expected MLIR:
+//
+//   %c0 = arith.constant 0 : i64
+//   quake.h %q
+//   %c1 = arith.constant 1 : i64
+//   %sum = arith.addi %c0, %c1 : i64
+//   func.call @callee(%sum) : (i64) -> ()
+//   quake.x %q
+//
+// Expected analysis:
+//   group 0: unitaries [h], delimiters []
+//   group 1: unitaries [x], delimiters []
+//   The arithmetic and call operations are unmapped hard boundaries.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ArithAndFuncCallOpsBreakBetweenGroups) {
   OpBuilder builder(&context);
