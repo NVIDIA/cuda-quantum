@@ -1326,6 +1326,9 @@ latest
         -   [Plugin Package
             Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1338,6 +1341,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../using/extending/packaging.html#python-packaging){.reference
             .internal}
@@ -3306,10 +3313,11 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[has_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.has_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[has_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[include_unavailable]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.has_target "Permalink to this definition"){.headerlink}
 
 :   Return true if the [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} with the given name exists.
+    .notranslate}]{.pre} with the given name exists. By default only
+    targets available on this host are considered.
 
 ```{=html}
 <!-- -->
@@ -3326,10 +3334,14 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.get_targets "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[include_unavailable]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.get_targets "Permalink to this definition"){.headerlink}
 
-:   Return all available [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} instances on the current system.
+:   Return [`cudaq.Target`{.code .docutils .literal .notranslate}]{.pre}
+    instances. By default only targets available on this host are
+    returned; pass [`include_unavailable=True`{.code .docutils .literal
+    .notranslate}]{.pre} to include known-but-unavailable targets (see
+    [`Target.availability_diagnostic`{.code .docutils .literal
+    .notranslate}]{.pre}).
 
 ```{=html}
 <!-- -->
@@ -5882,6 +5894,11 @@ discriminated bits into an integer.)
     quantum_platform required for execution, and a description for the
     target.
 
+    *[property]{.pre}[ ]{.w}*[[availability_diagnostic]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.availability_diagnostic "Permalink to this definition"){.headerlink}
+
+    :   If this target is known but not available on the current host, a
+        diagnostic explaining why; empty otherwise.
+
     *[property]{.pre}[ ]{.w}*[[description]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.description "Permalink to this definition"){.headerlink}
 
     :   A string describing the features for this [`cudaq.Target`{.code
@@ -6048,7 +6065,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x41ee1b0\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 

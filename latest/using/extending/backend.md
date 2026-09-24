@@ -1284,6 +1284,9 @@ latest
         -   [Plugin Package
             Layout](packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1296,6 +1299,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](packaging.html#python-packaging){.reference
             .internal}
@@ -1990,7 +1997,7 @@ Every backend plugin follows this layout:
     ├── targets/
     │   └── my-backend.yml       # Target configuration
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so
+    │   └── libcudaq-serverhelper-my-backend.so   # .dylib on macOS
     └── data/                    # Optional auxiliary files
         └── topology.txt
 :::
@@ -2002,6 +2009,13 @@ contains one or more YAML target configurations. The [`lib/`{.docutils
 that implement the backend. The optional [`data/`{.docutils .literal
 .notranslate}]{.pre} directory holds auxiliary files (device topologies,
 noise models, calibration data, etc.).
+
+Shared library filenames are written with the Linux [`.so`{.docutils
+.literal .notranslate}]{.pre} extension throughout this guide; on macOS
+the extension is [`.dylib`{.docutils .literal .notranslate}]{.pre}. Name
+libraries in [`plugin-libraries:`{.docutils .literal
+.notranslate}]{.pre} without any extension - CUDA-Q appends the one this
+platform uses - so that a single target configuration works everywhere.
 :::
 
 ::: {#rest-style-backends-server-helper .section}

@@ -793,12 +793,16 @@
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -1130,9 +1134,11 @@ For how to <em>implement</em> a backend (<code class="docutils literal notransla
 <p>Every plugin follows the same directory convention:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>my-backend/
 ├── targets/
-│   └── my-backend.yml          # Target YAML configuration
+│   ├── my-backend.so            # Pre-compiled target config (.dylib on macOS)
+|   |     # OR (mutually exclusive)
+│   └── my-backend.yml           # Raw YAML target config
 ├── lib/
-│   └── libcudaq-serverhelper-my-backend.so  # Backend shared library
+│   └── libcudaq-serverhelper-my-backend.so  # Backend shared library (.dylib on macOS)
 ├── data/                        # Optional auxiliary files
 │   └── topology.txt
 ├── pyproject.toml               # Python package metadata
@@ -1141,16 +1147,73 @@ For how to <em>implement</em> a backend (<code class="docutils literal notransla
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">targets/</span></code> and <code class="docutils literal notranslate"><span class="pre">lib/</span></code> directories are required. The <code class="docutils literal notranslate"><span class="pre">data/</span></code> directory
-is optional and holds any auxiliary files your backend needs at runtime.</p>
+is optional and holds any auxiliary files your backend needs at runtime.
+The plugin can choose to ship either a pre-compiled target config library
+(<code class="code docutils literal notranslate"><span class="pre">my-backend.so</span></code>) or a raw YAML target config (<code class="code docutils literal notranslate"><span class="pre">my-backend.yml</span></code>). The
+pre-compiled format is recommended and required for the plugin to be used in
+CUDA-Q C++ programs, whereas the YAML config is for use in Python programs only.
+Do not ship the two formats together as the compiled library will always shadow
+the YAML config.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This guide writes shared library filenames with the Linux <code class="docutils literal notranslate"><span class="pre">.so</span></code>
+extension. On macOS the corresponding extension is <code class="docutils literal notranslate"><span class="pre">.dylib</span></code>; substitute
+it throughout.</p>
+</div>
+</section>
+<section id="how-to-pre-compile-a-target-config-yaml">
+<h2>How to pre-compile a target config YAML<a class="headerlink" href="#how-to-pre-compile-a-target-config-yaml" title="Permalink to this heading">¶</a></h2>
+<p>The target config is always authored as a YAML file. To be used at runtime by
+compiled C++ programs, it must be distributed as a pre-compiled shared library.
+This is achieved in two steps:</p>
+<ol class="arabic simple">
+<li><p>Use the <code class="docutils literal notranslate"><span class="pre">cudaq-target-db-gen</span> <span class="pre">--plugin</span></code> command that is shipped with the
+CUDA-Q installation to convert the YAML file into a <code class="code docutils literal notranslate"><span class="pre">.cpp</span></code> C++ file.</p></li>
+<li><p>Compile the <code class="code docutils literal notranslate"><span class="pre">.cpp</span></code> file into a shared library and install it as
+<code class="docutils literal notranslate"><span class="pre">targets/&lt;name&gt;.so</span></code> (or <code class="docutils literal notranslate"><span class="pre">targets/&lt;name&gt;.dylib</span></code>).</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Linux</span>
+cudaq-target-db-gen<span class="w"> </span>--plugin<span class="w"> </span>-o<span class="w"> </span>my-backend.gen.cpp<span class="w"> </span>my-backend<span class="o">=</span>my-backend.yml
+<span class="si">${</span><span class="nv">CXX</span><span class="si">}</span><span class="w"> </span>-std<span class="o">=</span>c++20<span class="w"> </span>-shared<span class="w"> </span>-fPIC<span class="w"> </span>-I<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_DIR</span><span class="si">}</span><span class="s2">/include"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>my-backend.gen.cpp<span class="w"> </span>-o<span class="w"> </span>targets/my-backend.so
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># macOS</span>
+cudaq-target-db-gen<span class="w"> </span>--plugin<span class="w"> </span>-o<span class="w"> </span>my-backend.gen.cpp<span class="w"> </span>my-backend<span class="o">=</span>my-backend.yml
+<span class="si">${</span><span class="nv">CXX</span><span class="si">}</span><span class="w"> </span>-std<span class="o">=</span>c++20<span class="w"> </span>-shared<span class="w"> </span>-fPIC<span class="w"> </span>-isysroot<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>xcrun<span class="w"> </span>--show-sdk-path<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-I<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_DIR</span><span class="si">}</span><span class="s2">/include"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>my-backend.gen.cpp<span class="w"> </span>-o<span class="w"> </span>targets/my-backend.dylib
+</pre></div>
+</div>
+<p>The generated translation unit is self-contained - it only needs CUDA-Q’s
+headers, not any CUDA-Q library. The resulting library is platform-specific
+and must be built and distributed separately for each supported platform.
+On macOS, pass <code class="docutils literal notranslate"><span class="pre">-isysroot</span></code> explicitly if <code class="docutils literal notranslate"><span class="pre">${CXX}</span></code> is the LLVM toolchain
+that ships with CUDA-Q rather than Apple’s own <code class="docutils literal notranslate"><span class="pre">clang++</span></code>: only the latter
+infers the SDK location, and without it the C++ standard library headers
+are not found.</p>
+<p>The generated library exports a single, ABI-versioned symbol
+(<code class="docutils literal notranslate"><span class="pre">cudaq::config::kTargetPluginSymbolName</span></code>); CUDA-Q <code class="docutils literal notranslate"><span class="pre">dlopen</span></code>s it and
+<code class="docutils literal notranslate"><span class="pre">dlsym</span></code>s exactly that symbol name, so a library built against an
+incompatible CUDA-Q version fails immediately and unambiguously at load
+time rather than being silently misinterpreted.</p>
 </section>
 <section id="target-yaml-reference-plugin-fields">
 <h2>Target YAML Reference (Plugin Fields)<a class="headerlink" href="#target-yaml-reference-plugin-fields" title="Permalink to this heading">¶</a></h2>
-<p>The target YAML uses the same schema as in-tree targets with these
+<p>Every target YAML begins with a schema version:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-backend</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">"My</span><span class="nv"> </span><span class="s">backend."</span>
+</pre></div>
+</div>
+<p>The source YAML uses the same schema as in-tree targets, with these
 plugin-relevant fields:</p>
 <section id="plugin-root">
 <h3><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code><a class="headerlink" href="#plugin-root" title="Permalink to this heading">¶</a></h3>
-<p>A substitution token expanded to the plugin’s root directory at YAML parse
-time:</p>
+<p>A substitution token expanded to the plugin’s root directory when
+<code class="docutils literal notranslate"><span class="pre">cudaq-target-db-gen</span> <span class="pre">--plugin</span></code> compiles your YAML (so it must be staged at
+its final <code class="docutils literal notranslate"><span class="pre">&lt;pkgRoot&gt;/targets/my-backend.yml</span></code> location, even temporarily,
+when you invoke the generator):</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">config</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">jit-mid-level-pipeline</span><span class="p">:</span><span class="w"> </span><span class="s">"qubit-mapping{device=file(%PLUGIN_ROOT%/data/topology.txt)}"</span>
 
@@ -1205,12 +1268,42 @@ ninja<span class="w"> </span>-C<span class="w"> </span>build<span class="w"> </s
 <span class="w">  </span>-DCUDAQ_EXTERNAL_BAR_SOURCE_DIR<span class="o">=</span>/path/to/bar
 </pre></div>
 </div>
+<section id="baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">
+<h3>Baking a target into the pre-compiled database instead of shipping a plugin<a class="headerlink" href="#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin" title="Permalink to this heading">¶</a></h3>
+<p>An external project added via <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code> is <code class="docutils literal notranslate"><span class="pre">add_subdirectory()</span></code>’d
+into the <em>same</em> CMake configure as the rest of CUDA-Q, so it shares the same
+global target-registration state as CUDA-Q’s own in-tree targets. This means
+it can call the internal <code class="docutils literal notranslate"><span class="pre">add_target_config(&lt;name&gt;)</span></code> CMake function (from
+<code class="docutils literal notranslate"><span class="pre">cmake/modules/AddCUDAQ.cmake</span></code>, already <code class="docutils literal notranslate"><span class="pre">include()</span></code>’d before any
+subdirectory is processed) directly from its own <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code>:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="c"># my-backend/CMakeLists.txt</span>
+<span class="nb">add_target_config</span><span class="p">(</span><span class="s">my-backend</span><span class="p">)</span><span class="w">   </span><span class="c"># expects my-backend.yml next to this file</span>
+</pre></div>
+</div>
+<p>Doing this bakes <code class="docutils literal notranslate"><span class="pre">my-backend</span></code> directly into the same pre-compiled
+<code class="docutils literal notranslate"><span class="pre">CUDAQTargetDatabase</span></code> database as every other in-tree target - the target
+is resolved with zero YAML parsing and avoids dynamically loading a library
+at runtime. In summary, there are two different distribution models:</p>
+<ul class="simple">
+<li><p><strong>Compiled plugin library (``targets/&lt;name&gt;.so`` or
+``targets/&lt;name&gt;.dylib``)</strong>: works against an <em>already-built,
+already-installed</em> CUDA-Q. Can be distributed independently of CUDA-Q’s
+own release cadence.</p></li>
+<li><p><strong>``add_target_config`` via ``CUDAQ_EXTERNAL_PROJECTS``</strong>: requires
+rebuilding (this part of) CUDA-Q itself together with your target - there
+is no pre-built CUDA-Q install this can attach to after the fact. This is
+the right choice for an organization assembling and shipping its <em>own</em>
+customized CUDA-Q distribution with extra targets baked in from the start,
+not for distributing a target independently to users of a stock CUDA-Q
+install.</p></li>
+</ul>
+</section>
 </section>
 <section id="python-packaging">
 <h2>Python Packaging<a class="headerlink" href="#python-packaging" title="Permalink to this heading">¶</a></h2>
 <p>A plugin ships as a standard Python package with a <code class="docutils literal notranslate"><span class="pre">cudaq.backends</span></code> entry
 point that makes it discoverable at <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code> time. The package includes
-the target YAML and shared library, allowing the plugin author to build a wheel
+the compiled target plugin library and shared library, allowing the plugin author to build a wheel
 and publish it to a package index or distribute it directly. End users can then
 install that package into their own CUDA-Q environments without building the
 plugin from source.</p>
@@ -1241,7 +1334,9 @@ its shared library; do not distribute the package as a platform-agnostic wheel.<
 <span class="s2">"my_backend_cudaq"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"."</span>
 
 <span class="k">[tool.setuptools.package-data]</span>
-<span class="s2">"my_backend_cudaq"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"targets/*.yml"</span><span class="p">,</span><span class="w"> </span><span class="s2">"lib/*"</span><span class="p">]</span>
+<span class="s2">"my_backend_cudaq"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"targets/*.so"</span><span class="p">,</span><span class="w"> </span><span class="s2">"targets/*.dylib"</span><span class="p">,</span><span class="w"> </span><span class="s2">"targets/*.yml"</span><span class="p">,</span><span class="w"> </span><span class="s2">"lib/*"</span><span class="p">,</span>
+<span class="p">]</span>
 </pre></div>
 </div>
 <p>The critical piece is the <code class="docutils literal notranslate"><span class="pre">[project.entry-points.&quot;cudaq.backends&quot;]</span></code> section.
@@ -1261,7 +1356,8 @@ The key (<code class="docutils literal notranslate"><span class="pre">my-backend
 <p>When <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code> runs, it discovers all <code class="docutils literal notranslate"><span class="pre">cudaq.backends</span></code> entry points
 and calls each one. Your <code class="docutils literal notranslate"><span class="pre">register()</span></code> function calls
 <code class="docutils literal notranslate"><span class="pre">cudaq.register_backend_path()</span></code> with the package root, which scans
-<code class="docutils literal notranslate"><span class="pre">targets/</span></code> and makes your YAML-defined targets available.</p>
+<code class="docutils literal notranslate"><span class="pre">targets/</span></code> for compiled plugin libraries (<code class="docutils literal notranslate"><span class="pre">.so</span></code>, <code class="docutils literal notranslate"><span class="pre">.dylib</span></code>) and <code class="docutils literal notranslate"><span class="pre">.yml</span></code>
+files and makes those targets available.</p>
 <p>If your entry point raises an exception, CUDA-Q logs a warning with the
 entry-point name and traceback and continues — other plugins still load.</p>
 </section>
@@ -1337,14 +1433,23 @@ cudaq-install-plugin<span class="w"> </span>--uninstall<span class="w"> </span>m
 <h2>Discovery Mechanics<a class="headerlink" href="#discovery-mechanics" title="Permalink to this heading">¶</a></h2>
 <section id="nvq-target-resolution">
 <h3><code class="docutils literal notranslate"><span class="pre">nvq++</span></code> target resolution<a class="headerlink" href="#nvq-target-resolution" title="Permalink to this heading">¶</a></h3>
-<p>When <code class="docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">--target=my-backend</span></code> is invoked, the compiler resolves the
-target YAML in this order:</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">--target=my-backend</span></code> is invoked, <code class="docutils literal notranslate"><span class="pre">cudaq-target-resolve</span></code> looks
+the name up in the unified target registry:</p>
 <ol class="arabic simple">
-<li><p><strong>In-tree</strong>: <code class="docutils literal notranslate"><span class="pre">${install_dir}/targets/my-backend.yml</span></code></p></li>
-<li><p><strong>User scope</strong>: <code class="docutils literal notranslate"><span class="pre">${CUDAQ_PLUGIN_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/cudaq/plugins}/*/targets/my-backend.yml</span></code></p></li>
-<li><p><strong>System scope</strong>: <code class="docutils literal notranslate"><span class="pre">${install_dir}/plugins/*/targets/my-backend.yml</span></code></p></li>
+<li><p><strong>Built-in</strong>: the pre-compiled <code class="docutils literal notranslate"><span class="pre">CUDAQTargetDatabase</span></code> linked into CUDA-Q</p></li>
+<li><p><strong>User scope</strong>: <code class="docutils literal notranslate"><span class="pre">${CUDAQ_PLUGIN_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/cudaq/plugins}/*/targets/my-backend.{so,dylib}</span></code></p></li>
+<li><p><strong>System scope</strong>: <code class="docutils literal notranslate"><span class="pre">${install_dir}/plugins/*/targets/my-backend.{so,dylib}</span></code></p></li>
 </ol>
-<p>The first match wins. User-scope plugins take precedence over system-scope.</p>
+<p>A compiled plugin library in the same plugin root shadows a same-named
+<code class="docutils literal notranslate"><span class="pre">.yml</span></code>. C++ programs do not support parsing YAML target configuration files
+at runtime and expect to find a pre-compiled target config library. Built-in
+names cannot be shadowed; an external root that reuses a built-in name is
+skipped with a warning. User-scope plugins take precedence over system-scope.</p>
+<p><code class="docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">--list-targets</span></code> (and <code class="docutils literal notranslate"><span class="pre">cudaq.get_targets()</span></code> / <code class="docutils literal notranslate"><span class="pre">has_target()</span></code>)
+show targets that are <em>available on this host</em>. Pass <code class="docutils literal notranslate"><span class="pre">--include-unavailable</span></code>
+or <code class="docutils literal notranslate"><span class="pre">include_unavailable=True</span></code> to include known-but-unavailable targets;
+each entry exposes an availability diagnostic (missing GPU, simulator,
+platform library, plugin library, or incompatible CUDA-Q version).</p>
 <p>When a plugin target is resolved, <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> automatically adds the plugin’s
 <code class="docutils literal notranslate"><span class="pre">lib/</span></code> directory to the linker search path (<code class="docutils literal notranslate"><span class="pre">-L</span></code>) and runtime path
 (<code class="docutils literal notranslate"><span class="pre">-Wl,-rpath</span></code>).</p>
@@ -1353,9 +1458,9 @@ target YAML in this order:</p>
 <h3>Python target resolution<a class="headerlink" href="#python-target-resolution" title="Permalink to this heading">¶</a></h3>
 <p>At <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>, the runtime:</p>
 <ol class="arabic simple">
-<li><p>Scans <code class="docutils literal notranslate"><span class="pre">${install_dir}/targets/</span></code> (in-tree targets)</p></li>
+<li><p>Loads built-in targets from the pre-compiled database</p></li>
 <li><p>Calls each <code class="docutils literal notranslate"><span class="pre">cudaq.backends</span></code> entry point, which registers additional
-target directories via <code class="docutils literal notranslate"><span class="pre">cudaq.register_backend_path()</span></code></p></li>
+plugin roots via <code class="docutils literal notranslate"><span class="pre">cudaq.register_backend_path()</span></code></p></li>
 </ol>
 <p>After this, <code class="docutils literal notranslate"><span class="pre">cudaq.set_target(&quot;my-backend&quot;)</span></code> works for any registered target.</p>
 </section>
@@ -1405,7 +1510,8 @@ build configuration, Python packaging, lit tests, and documentation.</p>
 <section id="quick-start-checklist">
 <h2>Quick-Start Checklist<a class="headerlink" href="#quick-start-checklist" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>□ Implement ServerHelper subclass
-□ Create targets/&lt;name&gt;.yml with target configuration
+□ Author targets/&lt;name&gt;.yml (``version: 1``) and optionally distribute it
+  as a pre-compiled library
 □ Create CMakeLists.txt (build with CUDAQ_EXTERNAL_PROJECTS)
 □ Add pyproject.toml with cudaq.backends entry point
 □ Add __init__.py with register() function

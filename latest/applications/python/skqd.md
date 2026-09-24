@@ -1300,6 +1300,9 @@ latest
         -   [Plugin Package
             Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1312,6 +1315,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../using/extending/packaging.html#python-packaging){.reference
             .internal}
@@ -2535,7 +2542,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![0832f2331b58424c8d4213db5b8e4ac7](../../_images/speedup.png){.no-scaled-link
+![5249414e2b9e4d888f08911379e86c65](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2549,9 +2556,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![47efcc9d6e3d40d990581f9fc6693d5b](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![7d4420ef1d8a45f2ac2de652fa462e5d](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![2e957779fd4a4feabae57c00b3db64bb](../../_images/efficiency.jpeg){.no-scaled-link
+![06e9562ae8b446fcabff3dbfc0daecc7](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

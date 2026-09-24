@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+version: 1
 name: mock_rest
 description: "Reference REST-style external QPU plugin."
 cudaq-version: "@CUDA_QUANTUM_VERSION@"
@@ -14,6 +15,7 @@ config:
   gen-target-backend: true
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   link-libs: ["-lcudaq-rest-qpu"]
+  plugin-libraries: ["libcudaq-rest-qpu"]
   codegen-emission: qir-base
   library-mode: false
 

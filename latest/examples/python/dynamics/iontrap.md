@@ -1322,6 +1322,9 @@ latest
         -   [Plugin Package
             Layout](../../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1334,6 +1337,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../../using/extending/packaging.html#python-packaging){.reference
             .internal}

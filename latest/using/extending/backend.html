@@ -793,12 +793,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -1138,7 +1142,7 @@ described in <a class="reference internal" href="packaging.html"><span class="do
 ├── targets/
 │   └── my-backend.yml       # Target configuration
 ├── lib/
-│   └── libcudaq-serverhelper-my-backend.so
+│   └── libcudaq-serverhelper-my-backend.so   # .dylib on macOS
 └── data/                    # Optional auxiliary files
     └── topology.txt
 </pre></div>
@@ -1147,6 +1151,10 @@ described in <a class="reference internal" href="packaging.html"><span class="do
 The <code class="docutils literal notranslate"><span class="pre">lib/</span></code> directory contains the shared libraries that implement the backend.
 The optional <code class="docutils literal notranslate"><span class="pre">data/</span></code> directory holds auxiliary files (device topologies, noise
 models, calibration data, etc.).</p>
+<p>Shared library filenames are written with the Linux <code class="docutils literal notranslate"><span class="pre">.so</span></code> extension
+throughout this guide; on macOS the extension is <code class="docutils literal notranslate"><span class="pre">.dylib</span></code>. Name libraries
+in <code class="docutils literal notranslate"><span class="pre">plugin-libraries:</span></code> without any extension - CUDA-Q appends the one this
+platform uses - so that a single target configuration works everywhere.</p>
 </section>
 <section id="rest-style-backends-server-helper">
 <h2>REST-Style Backends (Server Helper)<a class="headerlink" href="#rest-style-backends-server-helper" title="Permalink to this heading">¶</a></h2>

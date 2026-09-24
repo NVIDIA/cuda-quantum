@@ -1299,6 +1299,9 @@ latest
         -   [Plugin Package
             Layout](../packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1311,6 +1314,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../packaging.html#python-packaging){.reference
             .internal}
@@ -2045,15 +2052,17 @@ files.
 [`cudaq-opt`{.docutils .literal .notranslate}]{.pre} parses and runs
 registered MLIR passes. [`cudaq-translate`{.docutils .literal
 .notranslate}]{.pre} owns the standalone translation path, while
-[`cudaq-target-conf`{.docutils .literal .notranslate}]{.pre} reads
-target configuration for the C++ driver. Representative lit tests are
-grouped under [`cudaq/test/Frontend`{.docutils .literal
-.notranslate}]{.pre}, [`cudaq/test/Optimizer`{.docutils .literal
-.notranslate}]{.pre}, and [`cudaq/test/CodeGen`{.docutils .literal
-.notranslate}]{.pre}. Python MLIR regression tests are under
-[`python/tests/mlir`{.docutils .literal .notranslate}]{.pre}, with
-broader frontend behavior tested under [`python/tests/kernel`{.docutils
-.literal .notranslate}]{.pre}.
+[`cudaq-target-resolve`{.docutils .literal .notranslate}]{.pre} looks a
+target up by name in the unified target registry (built-in database plus
+registered plugin) and emits the [`KEY=value`{.docutils .literal
+.notranslate}]{.pre} assignments [`nvq++`{.docutils .literal
+.notranslate}]{.pre} sources. Representative lit tests are grouped under
+[`cudaq/test/Frontend`{.docutils .literal .notranslate}]{.pre},
+[`cudaq/test/Optimizer`{.docutils .literal .notranslate}]{.pre}, and
+[`cudaq/test/CodeGen`{.docutils .literal .notranslate}]{.pre}. Python
+MLIR regression tests are under [`python/tests/mlir`{.docutils .literal
+.notranslate}]{.pre}, with broader frontend behavior tested under
+[`python/tests/kernel`{.docutils .literal .notranslate}]{.pre}.
 :::
 :::
 :::

@@ -1287,6 +1287,9 @@ latest
         .internal}
         -   [Plugin Package Layout](#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1299,6 +1302,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python Packaging](#python-packaging){.reference .internal}
             -   [[`pyproject.toml`{.docutils .literal
                 .notranslate}]{.pre}](#pyproject-toml){.reference
@@ -1977,9 +1984,11 @@ Every plugin follows the same directory convention:
 ::: highlight
     my-backend/
     ├── targets/
-    │   └── my-backend.yml          # Target YAML configuration
+    │   ├── my-backend.so            # Pre-compiled target config (.dylib on macOS)
+    |   |     # OR (mutually exclusive)
+    │   └── my-backend.yml           # Raw YAML target config
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so  # Backend shared library
+    │   └── libcudaq-serverhelper-my-backend.so  # Backend shared library (.dylib on macOS)
     ├── data/                        # Optional auxiliary files
     │   └── topology.txt
     ├── pyproject.toml               # Python package metadata
@@ -1992,19 +2001,109 @@ The [`targets/`{.docutils .literal .notranslate}]{.pre} and
 [`lib/`{.docutils .literal .notranslate}]{.pre} directories are
 required. The [`data/`{.docutils .literal .notranslate}]{.pre} directory
 is optional and holds any auxiliary files your backend needs at runtime.
+The plugin can choose to ship either a pre-compiled target config
+library ([`my-backend.so`{.code .docutils .literal .notranslate}]{.pre})
+or a raw YAML target config ([`my-backend.yml`{.code .docutils .literal
+.notranslate}]{.pre}). The pre-compiled format is recommended and
+required for the plugin to be used in CUDA-Q C++ programs, whereas the
+YAML config is for use in Python programs only. Do not ship the two
+formats together as the compiled library will always shadow the YAML
+config.
+
+::: {.admonition .note}
+Note
+
+This guide writes shared library filenames with the Linux
+[`.so`{.docutils .literal .notranslate}]{.pre} extension. On macOS the
+corresponding extension is [`.dylib`{.docutils .literal
+.notranslate}]{.pre}; substitute it throughout.
+:::
+:::
+
+::: {#how-to-pre-compile-a-target-config-yaml .section}
+## How to pre-compile a target config YAML[¶](#how-to-pre-compile-a-target-config-yaml "Permalink to this heading"){.headerlink}
+
+The target config is always authored as a YAML file. To be used at
+runtime by compiled C++ programs, it must be distributed as a
+pre-compiled shared library. This is achieved in two steps:
+
+1.  Use the [`cudaq-target-db-gen`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`--plugin`{.docutils .literal .notranslate}]{.pre}
+    command that is shipped with the CUDA-Q installation to convert the
+    YAML file into a [`.cpp`{.code .docutils .literal
+    .notranslate}]{.pre} C++ file.
+
+2.  Compile the [`.cpp`{.code .docutils .literal .notranslate}]{.pre}
+    file into a shared library and install it as
+    [`targets/<name>.so`{.docutils .literal .notranslate}]{.pre} (or
+    [`targets/<name>.dylib`{.docutils .literal .notranslate}]{.pre}).
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    # Linux
+    cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
+    ${CXX} -std=c++20 -shared -fPIC -I "${CUDAQ_INSTALL_DIR}/include" \
+        my-backend.gen.cpp -o targets/my-backend.so
+:::
+:::
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    # macOS
+    cudaq-target-db-gen --plugin -o my-backend.gen.cpp my-backend=my-backend.yml
+    ${CXX} -std=c++20 -shared -fPIC -isysroot "$(xcrun --show-sdk-path)" \
+        -I "${CUDAQ_INSTALL_DIR}/include" \
+        my-backend.gen.cpp -o targets/my-backend.dylib
+:::
+:::
+
+The generated translation unit is self-contained - it only needs
+CUDA-Q's headers, not any CUDA-Q library. The resulting library is
+platform-specific and must be built and distributed separately for each
+supported platform. On macOS, pass [`-isysroot`{.docutils .literal
+.notranslate}]{.pre} explicitly if [`${CXX}`{.docutils .literal
+.notranslate}]{.pre} is the LLVM toolchain that ships with CUDA-Q rather
+than Apple's own [`clang++`{.docutils .literal .notranslate}]{.pre}:
+only the latter infers the SDK location, and without it the C++ standard
+library headers are not found.
+
+The generated library exports a single, ABI-versioned symbol
+([`cudaq::config::kTargetPluginSymbolName`{.docutils .literal
+.notranslate}]{.pre}); CUDA-Q [`dlopen`{.docutils .literal
+.notranslate}]{.pre}s it and [`dlsym`{.docutils .literal
+.notranslate}]{.pre}s exactly that symbol name, so a library built
+against an incompatible CUDA-Q version fails immediately and
+unambiguously at load time rather than being silently misinterpreted.
 :::
 
 ::: {#target-yaml-reference-plugin-fields .section}
 ## Target YAML Reference (Plugin Fields)[¶](#target-yaml-reference-plugin-fields "Permalink to this heading"){.headerlink}
 
-The target YAML uses the same schema as in-tree targets with these
+Every target YAML begins with a schema version:
+
+::: {.highlight-yaml .notranslate}
+::: highlight
+    version: 1
+    name: my-backend
+    description: "My backend."
+:::
+:::
+
+The source YAML uses the same schema as in-tree targets, with these
 plugin-relevant fields:
 
 ::: {#plugin-root .section}
 ### [`%PLUGIN_ROOT%`{.docutils .literal .notranslate}]{.pre}[¶](#plugin-root "Permalink to this heading"){.headerlink}
 
-A substitution token expanded to the plugin's root directory at YAML
-parse time:
+A substitution token expanded to the plugin's root directory when
+[`cudaq-target-db-gen`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`--plugin`{.docutils .literal .notranslate}]{.pre}
+compiles your YAML (so it must be staged at its final
+[`<pkgRoot>/targets/my-backend.yml`{.docutils .literal
+.notranslate}]{.pre} location, even temporarily, when you invoke the
+generator):
 
 ::: {.highlight-yaml .notranslate}
 ::: highlight
@@ -2087,6 +2186,48 @@ Multiple plugins can be built together:
       -DCUDAQ_EXTERNAL_BAR_SOURCE_DIR=/path/to/bar
 :::
 :::
+
+::: {#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin .section}
+### Baking a target into the pre-compiled database instead of shipping a plugin[¶](#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin "Permalink to this heading"){.headerlink}
+
+An external project added via [`CUDAQ_EXTERNAL_PROJECTS`{.docutils
+.literal .notranslate}]{.pre} is [`add_subdirectory()`{.docutils
+.literal .notranslate}]{.pre}'d into the *same* CMake configure as the
+rest of CUDA-Q, so it shares the same global target-registration state
+as CUDA-Q's own in-tree targets. This means it can call the internal
+[`add_target_config(<name>)`{.docutils .literal .notranslate}]{.pre}
+CMake function (from [`cmake/modules/AddCUDAQ.cmake`{.docutils .literal
+.notranslate}]{.pre}, already [`include()`{.docutils .literal
+.notranslate}]{.pre}'d before any subdirectory is processed) directly
+from its own [`CMakeLists.txt`{.docutils .literal .notranslate}]{.pre}:
+
+::: {.highlight-cmake .notranslate}
+::: highlight
+    # my-backend/CMakeLists.txt
+    add_target_config(my-backend)   # expects my-backend.yml next to this file
+:::
+:::
+
+Doing this bakes [`my-backend`{.docutils .literal .notranslate}]{.pre}
+directly into the same pre-compiled [`CUDAQTargetDatabase`{.docutils
+.literal .notranslate}]{.pre} database as every other in-tree target -
+the target is resolved with zero YAML parsing and avoids dynamically
+loading a library at runtime. In summary, there are two different
+distribution models:
+
+-   **Compiled plugin library (\`\`targets/\<name\>.so\`\` or
+    \`\`targets/\<name\>.dylib\`\`)**: works against an *already-built,
+    already-installed* CUDA-Q. Can be distributed independently of
+    CUDA-Q's own release cadence.
+
+-   **\`\`add_target_config\`\` via \`\`CUDAQ_EXTERNAL_PROJECTS\`\`**:
+    requires rebuilding (this part of) CUDA-Q itself together with your
+    target - there is no pre-built CUDA-Q install this can attach to
+    after the fact. This is the right choice for an organization
+    assembling and shipping its *own* customized CUDA-Q distribution
+    with extra targets baked in from the start, not for distributing a
+    target independently to users of a stock CUDA-Q install.
+:::
 :::
 
 ::: {#python-packaging .section}
@@ -2097,10 +2238,11 @@ A plugin ships as a standard Python package with a
 that makes it discoverable at [`import`{.docutils .literal
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre} time. The
-package includes the target YAML and shared library, allowing the plugin
-author to build a wheel and publish it to a package index or distribute
-it directly. End users can then install that package into their own
-CUDA-Q environments without building the plugin from source.
+package includes the compiled target plugin library and shared library,
+allowing the plugin author to build a wheel and publish it to a package
+index or distribute it directly. End users can then install that package
+into their own CUDA-Q environments without building the plugin from
+source.
 
 Because the package contains a native shared library, it is
 platform-specific. Plugin authors must build and distribute a separate
@@ -2134,7 +2276,9 @@ distribute the package as a platform-agnostic wheel.
     "my_backend_cudaq" = "."
 
     [tool.setuptools.package-data]
-    "my_backend_cudaq" = ["targets/*.yml", "lib/*"]
+    "my_backend_cudaq" = [
+        "targets/*.so", "targets/*.dylib", "targets/*.yml", "lib/*",
+    ]
 :::
 :::
 
@@ -2167,7 +2311,10 @@ runs, it discovers all [`cudaq.backends`{.docutils .literal
 [`register()`{.docutils .literal .notranslate}]{.pre} function calls
 [`cudaq.register_backend_path()`{.docutils .literal .notranslate}]{.pre}
 with the package root, which scans [`targets/`{.docutils .literal
-.notranslate}]{.pre} and makes your YAML-defined targets available.
+.notranslate}]{.pre} for compiled plugin libraries ([`.so`{.docutils
+.literal .notranslate}]{.pre}, [`.dylib`{.docutils .literal
+.notranslate}]{.pre}) and [`.yml`{.docutils .literal
+.notranslate}]{.pre} files and makes those targets available.
 
 If your entry point raises an exception, CUDA-Q logs a warning with the
 entry-point name and traceback and continues --- other plugins still
@@ -2288,22 +2435,38 @@ distributed as a tarball):
 
 When [`nvq++`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .literal .notranslate}[`--target=my-backend`{.docutils .literal
-.notranslate}]{.pre} is invoked, the compiler resolves the target YAML
-in this order:
+.notranslate}]{.pre} is invoked, [`cudaq-target-resolve`{.docutils
+.literal .notranslate}]{.pre} looks the name up in the unified target
+registry:
 
-1.  **In-tree**: [`${install_dir}/targets/my-backend.yml`{.docutils
-    .literal .notranslate}]{.pre}
+1.  **Built-in**: the pre-compiled [`CUDAQTargetDatabase`{.docutils
+    .literal .notranslate}]{.pre} linked into CUDA-Q
 
 2.  **User scope**:
-    [`${CUDAQ_PLUGIN_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/cudaq/plugins}/*/targets/my-backend.yml`{.docutils
+    [`${CUDAQ_PLUGIN_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/cudaq/plugins}/*/targets/my-backend.{so,dylib}`{.docutils
     .literal .notranslate}]{.pre}
 
 3.  **System scope**:
-    [`${install_dir}/plugins/*/targets/my-backend.yml`{.docutils
+    [`${install_dir}/plugins/*/targets/my-backend.{so,dylib}`{.docutils
     .literal .notranslate}]{.pre}
 
-The first match wins. User-scope plugins take precedence over
-system-scope.
+A compiled plugin library in the same plugin root shadows a same-named
+[`.yml`{.docutils .literal .notranslate}]{.pre}. C++ programs do not
+support parsing YAML target configuration files at runtime and expect to
+find a pre-compiled target config library. Built-in names cannot be
+shadowed; an external root that reuses a built-in name is skipped with a
+warning. User-scope plugins take precedence over system-scope.
+
+[`nvq++`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`--list-targets`{.docutils .literal .notranslate}]{.pre}
+(and [`cudaq.get_targets()`{.docutils .literal .notranslate}]{.pre} /
+[`has_target()`{.docutils .literal .notranslate}]{.pre}) show targets
+that are *available on this host*. Pass
+[`--include-unavailable`{.docutils .literal .notranslate}]{.pre} or
+[`include_unavailable=True`{.docutils .literal .notranslate}]{.pre} to
+include known-but-unavailable targets; each entry exposes an
+availability diagnostic (missing GPU, simulator, platform library,
+plugin library, or incompatible CUDA-Q version).
 
 When a plugin target is resolved, [`nvq++`{.docutils .literal
 .notranslate}]{.pre} automatically adds the plugin's [`lib/`{.docutils
@@ -2319,11 +2482,10 @@ At [`import`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .literal .notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre},
 the runtime:
 
-1.  Scans [`${install_dir}/targets/`{.docutils .literal
-    .notranslate}]{.pre} (in-tree targets)
+1.  Loads built-in targets from the pre-compiled database
 
 2.  Calls each [`cudaq.backends`{.docutils .literal .notranslate}]{.pre}
-    entry point, which registers additional target directories via
+    entry point, which registers additional plugin roots via
     [`cudaq.register_backend_path()`{.docutils .literal
     .notranslate}]{.pre}
 
@@ -2362,7 +2524,8 @@ build configuration, Python packaging, lit tests, and documentation.
 ::: {.highlight-text .notranslate}
 ::: highlight
     □ Implement ServerHelper subclass
-    □ Create targets/<name>.yml with target configuration
+    □ Author targets/<name>.yml (``version: 1``) and optionally distribute it
+      as a pre-compiled library
     □ Create CMakeLists.txt (build with CUDAQ_EXTERNAL_PROJECTS)
     □ Add pyproject.toml with cudaq.backends entry point
     □ Add __init__.py with register() function

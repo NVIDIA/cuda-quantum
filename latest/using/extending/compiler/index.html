@@ -793,12 +793,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -1162,8 +1166,11 @@ and lowering passes are implemented under <code class="docutils literal notransl
 and <code class="docutils literal notranslate"><span class="pre">cudaq/lib/Optimizer/CodeGen</span></code>. Their shared pipelines are defined in the
 corresponding <code class="docutils literal notranslate"><span class="pre">Pipelines.cpp</span></code> files.</p>
 <p><code class="docutils literal notranslate"><span class="pre">cudaq-opt</span></code> parses and runs registered MLIR passes. <code class="docutils literal notranslate"><span class="pre">cudaq-translate</span></code> owns
-the standalone translation path, while <code class="docutils literal notranslate"><span class="pre">cudaq-target-conf</span></code> reads target
-configuration for the C++ driver. Representative lit tests are grouped under
+the standalone translation path, while <code class="docutils literal notranslate"><span class="pre">cudaq-target-resolve</span></code> looks a target
+up by name in the unified target registry (built-in database plus registered plugin)
+and emits the <code class="docutils literal notranslate"><span class="pre">KEY=value</span></code> assignments <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> sources.
+Representative lit tests are grouped
+under
 <code class="docutils literal notranslate"><span class="pre">cudaq/test/Frontend</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq/test/Optimizer</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">cudaq/test/CodeGen</span></code>. Python MLIR regression tests are under
 <code class="docutils literal notranslate"><span class="pre">python/tests/mlir</span></code>, with broader frontend behavior tested under

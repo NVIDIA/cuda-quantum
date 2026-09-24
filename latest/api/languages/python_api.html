@@ -795,12 +795,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -1979,8 +1983,8 @@ inspect or parse command-line arguments.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.has_target">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">has_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#cudaq.has_target" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return true if the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with the given name exists.</p>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">has_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_unavailable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#cudaq.has_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return true if the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with the given name exists. By default only targets available on this host are considered.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -1993,8 +1997,8 @@ inspect or parse command-line arguments.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.get_targets">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.Target" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cudaq.get_targets" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return all available <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> instances on the current system.</p>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_unavailable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.Target" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cudaq.get_targets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> instances. By default only targets available on this host are returned; pass <code class="code docutils literal notranslate"><span class="pre">include_unavailable=True</span></code> to include known-but-unavailable targets (see <code class="code docutils literal notranslate"><span class="pre">Target.availability_diagnostic</span></code>).</p>
 </dd></dl>
 
 <dl class="py function">
@@ -3595,6 +3599,12 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Target</span></span><a class="headerlink" href="#cudaq.Target" title="Permalink to this definition">¶</a></dt>
 <dd><p>The <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> represents the underlying infrastructure that CUDA-Q kernels will execute on. Instances of <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> describe what simulator they may leverage, the quantum_platform required for execution, and a description for the target.</p>
 <dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Target.availability_diagnostic">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">availability_diagnostic</span></span><a class="headerlink" href="#cudaq.Target.availability_diagnostic" title="Permalink to this definition">¶</a></dt>
+<dd><p>If this target is known but not available on the current host, a diagnostic explaining why; empty otherwise.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="cudaq.Target.description">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#cudaq.Target.description" title="Permalink to this definition">¶</a></dt>
 <dd><p>A string describing the features for this <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code>.</p>
@@ -3712,7 +3722,7 @@ on multiple degrees of freedom.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.State.from_data">
-<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0x41ee1b0&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">

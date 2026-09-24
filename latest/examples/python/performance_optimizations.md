@@ -1315,6 +1315,9 @@ latest
         -   [Plugin Package
             Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1327,6 +1330,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../using/extending/packaging.html#python-packaging){.reference
             .internal}
@@ -2022,14 +2029,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![8055c775f3aa45f184022f24d9464049](../../_images/gate-fuse.png)
+![6429dc9140ff4d9a8e9d3896f05f094d](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![f81740e0b1604b379fbbff610cf084c2](../../_images/gatefusion.png)
+![f0f6a66771954c8a889e0d27e7a21e4c](../../_images/gatefusion.png)
 :::
 :::
 :::
