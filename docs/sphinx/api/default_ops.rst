@@ -372,8 +372,8 @@ unchanged.
         # exp(i * theta * X(0) Y(1))
         exp_pauli(theta, qubits, "XY")
 
-        # The targets may also be listed individually, in which case the
-        # Pauli word precedes them.
+        # The targets may also be listed individually. In Python, any order
+        # is fine. In C++, the Pauli word must precede the qubits.
         exp_pauli(theta, "XY", qubits[0], qubits[1])
 
 .. tab:: C++
