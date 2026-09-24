@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
@@ -23,6 +24,76 @@ using namespace mlir;
 
 using cudaq::quake::detail::UnitaryOpGroup;
 using cudaq::quake::detail::UnitaryOpGroupingAnalysis;
+
+static void expectOperations(llvm::ArrayRef<Operation *> actual,
+                             std::initializer_list<Operation *> expected) {
+  ASSERT_EQ(actual.size(), expected.size());
+
+  std::size_t index = 0;
+  for (Operation *op : expected)
+    EXPECT_EQ(actual[index++], op);
+}
+
+static void
+expectGroup(const UnitaryOpGroup &group, const Block *expectedBlock,
+            std::initializer_list<Operation *> expectedUnitaryOps,
+            std::initializer_list<Operation *> expectedDelimiters = {}) {
+  EXPECT_EQ(group.block, expectedBlock);
+  expectOperations(group.ops, expectedUnitaryOps);
+  expectOperations(group.trailingDelimiterOps, expectedDelimiters);
+}
+
+static void expectGroupOps(const UnitaryOpGroup &group,
+                           std::initializer_list<Operation *> expected) {
+  expectOperations(group.ops, expected);
+}
+
+static void expectGroupIndex(const UnitaryOpGroupingAnalysis &analysis,
+                             Operation *op, std::optional<unsigned> expected) {
+  auto actual = analysis.getGroupIndexForOp(op);
+  ASSERT_EQ(actual.has_value(), expected.has_value());
+  if (expected)
+    EXPECT_EQ(*actual, *expected);
+}
+
+static Value createNullWire(OpBuilder &builder, Location loc) {
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  return cudaq::quake::NullWireOp::create(builder, loc, wireTy);
+}
+
+template <typename GateOp>
+static GateOp createWireGate(OpBuilder &builder, Location loc, Value target) {
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  return GateOp::create(builder, loc, TypeRange{wireTy}, /*is_adj=*/false,
+                        ValueRange{}, ValueRange{}, ValueRange{target},
+                        DenseBoolArrayAttr{});
+}
+
+template <typename GateOp>
+static GateOp createWireGate(OpBuilder &builder, Location loc,
+                             ValueRange controls, ValueRange targets) {
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  SmallVector<Type> resultTypes(controls.size() + targets.size(), wireTy);
+  return GateOp::create(builder, loc, resultTypes, /*is_adj=*/false,
+                        ValueRange{}, controls, targets, DenseBoolArrayAttr{});
+}
+
+template <typename MeasurementOp>
+static MeasurementOp createWireMeasurement(OpBuilder &builder, Location loc,
+                                           Value target) {
+  auto measureTy = cudaq::quake::MeasureType::get(builder.getContext());
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  return MeasurementOp::create(builder, loc, TypeRange{measureTy, wireTy},
+                               ValueRange{target}, StringAttr{});
+}
+
+template <typename MeasurementOp>
+static MeasurementOp createRefMeasurement(OpBuilder &builder, Location loc,
+                                          Value target) {
+  auto measureTy = cudaq::cc::MeasureHandleType::get(builder.getContext());
+  return MeasurementOp::create(builder, loc, TypeRange{measureTy},
+                               ValueRange{target}, StringAttr{});
+}
 
 static void loadTestDialects(MLIRContext &context) {
   context.loadDialect<arith::ArithDialect>();
@@ -43,14 +114,6 @@ static func::FuncOp createKernel(ModuleOp module, OpBuilder &builder,
   func.addEntryBlock();
   builder.setInsertionPointToStart(&func.front());
   return func;
-}
-
-static void expectGroupOps(const UnitaryOpGroup &group,
-                           std::initializer_list<Operation *> expected) {
-  ASSERT_EQ(group.ops.size(), expected.size());
-  std::size_t index = 0;
-  for (Operation *op : expected)
-    EXPECT_EQ(group.ops[index++], op);
 }
 
 class BuilderUnitaryOpGroupingAnalysisTest : public ::testing::Test {
@@ -85,13 +148,14 @@ protected:
 //
 // Expected analysis:
 //   groups.size() == 3
-//   group 0: quake.h, quake.x
+//   group 0: quake.h, quake.x; trailing delimiter: quake.mz
 //   group 1: quake.z
 //   group 2: quake.rx
 //   inSameGroup(h, x) == true
+//   inSameGroup(x, mz) == true
 //   inSameGroup(x, z) == false
 //   inSameGroup(z, rx) == false
-//   quake.mz and arith.constant do not belong to a group.
+//   arith.constant does not belong to a group.
 //   getGroupsIn(group 0 block).size() == 3
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
   OpBuilder builder(&context);
@@ -122,15 +186,30 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
   const auto &groups = analysis.getGroups();
 
   ASSERT_EQ(groups.size(), 3u);
+  expectGroup(groups[0], &func.front(), {h, x}, {mz});
+  expectGroup(groups[1], &func.front(), {z});
+  expectGroup(groups[2], &func.front(), {rx});
+
+  expectGroupIndex(analysis, h, 0u);
+  expectGroupIndex(analysis, mz, 0u);
+  expectGroupIndex(analysis, z, 1u);
+  expectGroupIndex(analysis, rx, 2u);
+  expectGroupIndex(analysis, constant, std::nullopt);
+  expectGroupIndex(analysis, nullptr, std::nullopt);
   EXPECT_TRUE(analysis.inSameGroup(h, x));
+  EXPECT_TRUE(analysis.inSameGroup(x, mz));
   EXPECT_FALSE(analysis.inSameGroup(x, z));
   EXPECT_FALSE(analysis.inSameGroup(z, rx));
-  EXPECT_EQ(analysis.getGroupContainingOp(mz), nullptr);
+  EXPECT_EQ(analysis.getGroupContainingOp(mz), &groups[0]);
   EXPECT_EQ(analysis.getGroupContainingOp(constant), nullptr);
-  expectGroupOps(groups[0], {h, x});
-  expectGroupOps(groups[1], {z});
-  expectGroupOps(groups[2], {rx});
-  EXPECT_EQ(analysis.getGroupsIn(groups[0].block).size(), 3u);
+  EXPECT_EQ(analysis.getBlockForGroup(groups[0]), &func.front());
+
+  auto groupsInBlock = analysis.getGroupsIn(&func.front());
+  ASSERT_EQ(groupsInBlock.size(), 3u);
+  EXPECT_EQ(groupsInBlock[0], &groups[0]);
+  EXPECT_EQ(groupsInBlock[1], &groups[1]);
+  EXPECT_EQ(groupsInBlock[2], &groups[2]);
+  EXPECT_TRUE(analysis.getGroupsIn(nullptr).empty());
 }
 
 // Expected MLIR:
@@ -140,16 +219,18 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
 //     cc.if(%flag) {
 //       quake.h %q0 : (!quake.ref) -> ()
 //       quake.x %q1 : (!quake.ref) -> ()
+//       %m = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
 //     } else {
 //       quake.z %q0 : (!quake.ref) -> ()
+//       quake.reset %q0 : (!quake.ref) -> ()
 //     }
 //     return
 //   }
 //
 // Expected analysis:
 //   groups.size() == 2
-//   group 0: quake.h, quake.x in the then block
-//   group 1: quake.z in the else block
+//   group 0: quake.h, quake.x; trailing delimiter: quake.mz in the then block
+//   group 1: quake.z; trailing delimiter: quake.reset in the else block
 //   cc.if does not belong to a group.
 //   inSameGroup(h, x) == true
 //   inSameGroup(h, z) == false
@@ -169,18 +250,24 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsNestedIfRegionsSeparately) {
 
   Operation *h = nullptr;
   Operation *x = nullptr;
+  Operation *mz = nullptr;
   Operation *z = nullptr;
+  Operation *reset = nullptr;
   auto ifOp = cudaq::cc::IfOp::create(
       builder, loc, TypeRange{}, flag,
       [&](OpBuilder &builder, Location loc, Region &region) {
         cudaq::cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{});
         h = cudaq::quake::HOp::create(builder, loc, q0).getOperation();
         x = cudaq::quake::XOp::create(builder, loc, q1).getOperation();
+        mz = createRefMeasurement<cudaq::quake::MzOp>(builder, loc, q0)
+                 .getOperation();
         cudaq::cc::ContinueOp::create(builder, loc);
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
         cudaq::cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{});
         z = cudaq::quake::ZOp::create(builder, loc, q0).getOperation();
+        reset = cudaq::quake::ResetOp::create(builder, loc, TypeRange{}, q0)
+                    .getOperation();
         cudaq::cc::ContinueOp::create(builder, loc);
       });
   builder.setInsertionPointAfter(ifOp);
@@ -190,33 +277,341 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsNestedIfRegionsSeparately) {
   const auto &groups = analysis.getGroups();
 
   ASSERT_EQ(groups.size(), 2u);
-  EXPECT_EQ(analysis.getGroupContainingOp(ifOp.getOperation()), nullptr);
-  EXPECT_TRUE(analysis.inSameGroup(h, x));
-  EXPECT_FALSE(analysis.inSameGroup(h, z));
-  expectGroupOps(groups[0], {h, x});
-  expectGroupOps(groups[1], {z});
+  expectGroup(groups[0], h->getBlock(), {h, x}, {mz});
+  expectGroup(groups[1], z->getBlock(), {z}, {reset});
   EXPECT_NE(groups[0].block, groups[1].block);
-  EXPECT_EQ(analysis.getGroupsIn(groups[0].block).size(), 1u);
-  EXPECT_EQ(analysis.getGroupsIn(groups[1].block).size(), 1u);
+
+  EXPECT_TRUE(analysis.inSameGroup(h, x));
+  EXPECT_TRUE(analysis.inSameGroup(x, mz));
+  EXPECT_TRUE(analysis.inSameGroup(z, reset));
+  EXPECT_FALSE(analysis.inSameGroup(h, z));
+  EXPECT_EQ(analysis.getGroupContainingOp(ifOp.getOperation()), nullptr);
+  EXPECT_TRUE(analysis.getGroupsIn(&func.front()).empty());
+
+  auto thenGroups = analysis.getGroupsIn(h->getBlock());
+  ASSERT_EQ(thenGroups.size(), 1u);
+  EXPECT_EQ(thenGroups[0], &groups[0]);
+
+  auto elseGroups = analysis.getGroupsIn(z->getBlock());
+  ASSERT_EQ(elseGroups.size(), 1u);
+  EXPECT_EQ(elseGroups[0], &groups[1]);
 }
 
-// Expected MLIR:
-//
-//   func.func @empty() attributes {"cudaq-kernel"} {
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.empty() == true
-TEST_F(BuilderUnitaryOpGroupingAnalysisTest, EmptyFunctionHasNoGroups) {
-  auto func = createKernel("empty");
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       EmptyAndNonFunctionInputsProduceNoGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
+  auto func = createKernel("empty");
   builder.setInsertionPointToEnd(&func.front());
+  auto returnOp = func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis functionAnalysis(func);
+  EXPECT_TRUE(functionAnalysis.getGroups().empty());
+  expectGroupIndex(functionAnalysis, returnOp.getOperation(), std::nullopt);
+  EXPECT_EQ(functionAnalysis.getGroupContainingOp(nullptr), nullptr);
+  EXPECT_FALSE(functionAnalysis.inSameGroup(nullptr, nullptr));
+
+  UnitaryOpGroupingAnalysis moduleAnalysis(module->getOperation());
+  EXPECT_TRUE(moduleAnalysis.getGroups().empty());
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       CoalescesConsecutiveMeasurementAndResetDelimiters) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("consecutive_delimiters", {refTy, refTy});
+  builder.setInsertionPointToEnd(&func.front());
+
+  Value q0 = func.getArgument(0);
+  Value q1 = func.getArgument(1);
+  auto *mx =
+      createRefMeasurement<cudaq::quake::MxOp>(builder, loc, q0).getOperation();
+  auto *reset0 = cudaq::quake::ResetOp::create(builder, loc, TypeRange{}, q0)
+                     .getOperation();
+  auto *my =
+      createRefMeasurement<cudaq::quake::MyOp>(builder, loc, q1).getOperation();
+  auto *h = cudaq::quake::HOp::create(builder, loc, q0).getOperation();
+  auto *x = cudaq::quake::XOp::create(builder, loc, q1).getOperation();
+  auto *mz =
+      createRefMeasurement<cudaq::quake::MzOp>(builder, loc, q0).getOperation();
+  auto *reset1 = cudaq::quake::ResetOp::create(builder, loc, TypeRange{}, q1)
+                     .getOperation();
+  auto *z = cudaq::quake::ZOp::create(builder, loc, q0).getOperation();
   func::ReturnOp::create(builder, loc);
 
   UnitaryOpGroupingAnalysis analysis(func);
-  EXPECT_TRUE(analysis.getGroups().empty());
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 3u);
+  expectGroup(groups[0], &func.front(), {}, {mx, reset0, my});
+  expectGroup(groups[1], &func.front(), {h, x}, {mz, reset1});
+  expectGroup(groups[2], &func.front(), {z});
+  EXPECT_TRUE(analysis.inSameGroup(mx, my));
+  EXPECT_FALSE(analysis.inSameGroup(my, h));
+  EXPECT_TRUE(analysis.inSameGroup(h, reset1));
+  EXPECT_FALSE(analysis.inSameGroup(reset1, z));
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       ConsecutiveHardBoundariesDoNotCreateEmptyGroups) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("consecutive_hard_boundaries", {refTy});
+  builder.setInsertionPointToEnd(&func.front());
+
+  Value q = func.getArgument(0);
+  auto *h = cudaq::quake::HOp::create(builder, loc, q).getOperation();
+  auto *constant0 =
+      arith::ConstantIntOp::create(builder, loc, 0, 64).getOperation();
+  auto *constant1 =
+      arith::ConstantIntOp::create(builder, loc, 1, 64).getOperation();
+  auto *x = cudaq::quake::XOp::create(builder, loc, q).getOperation();
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 2u);
+  expectGroup(groups[0], &func.front(), {h});
+  expectGroup(groups[1], &func.front(), {x});
+  EXPECT_EQ(analysis.getGroupContainingOp(constant0), nullptr);
+  EXPECT_EQ(analysis.getGroupContainingOp(constant1), nullptr);
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       UnknownWireIdentityFallsBackToTextualOrder) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  auto func = createKernel("unknown_wire_identity", {wireTy, wireTy});
+  builder.setInsertionPointToEnd(&func.front());
+
+  auto mz = createWireMeasurement<cudaq::quake::MzOp>(builder, loc,
+                                                      func.getArgument(0));
+  auto x = createWireGate<cudaq::quake::XOp>(builder, loc, func.getArgument(1));
+  auto *mzOp = mz.getOperation();
+  auto *xOp = x.getOperation();
+  cudaq::quake::SinkOp::create(builder, loc, mz.getWires().front());
+  cudaq::quake::SinkOp::create(builder, loc, x.getResult(0));
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 2u);
+  expectGroup(groups[0], &func.front(), {}, {mzOp});
+  expectGroup(groups[1], &func.front(), {xOp});
+  EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       WireModePrioritizesUnitariesAndUsesOriginalOrderForTies) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  auto func = createKernel("wire_ready_queues");
+  builder.setInsertionPointToEnd(&func.front());
+
+  Value q0 = createNullWire(builder, loc);
+  Value q1 = createNullWire(builder, loc);
+  Value q2 = createNullWire(builder, loc);
+  Value q3 = createNullWire(builder, loc);
+  auto mz = createWireMeasurement<cudaq::quake::MzOp>(builder, loc, q0);
+  auto reset =
+      cudaq::quake::ResetOp::create(builder, loc, TypeRange{wireTy}, q1);
+  auto z = createWireGate<cudaq::quake::ZOp>(builder, loc, q2);
+  auto h = createWireGate<cudaq::quake::HOp>(builder, loc, q3);
+  auto *mzOp = mz.getOperation();
+  auto *resetOp = reset.getOperation();
+  auto *zOp = z.getOperation();
+  auto *hOp = h.getOperation();
+  cudaq::quake::SinkOp::create(builder, loc, mz.getWires().front());
+  cudaq::quake::SinkOp::create(builder, loc, reset.getResult(0));
+  cudaq::quake::SinkOp::create(builder, loc, z.getResult(0));
+  cudaq::quake::SinkOp::create(builder, loc, h.getResult(0));
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 1u);
+  expectGroup(groups[0], &func.front(), {zOp, hOp}, {mzOp, resetOp});
+  expectGroupIndex(analysis, zOp, 0u);
+  expectGroupIndex(analysis, resetOp, 0u);
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       UnitaryWaitsForMeasurementPredecessor) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto func = createKernel("measurement_predecessor");
+  builder.setInsertionPointToEnd(&func.front());
+
+  Value q0 = createNullWire(builder, loc);
+  Value q1 = createNullWire(builder, loc);
+  auto mz = createWireMeasurement<cudaq::quake::MzOp>(builder, loc, q0);
+  auto x =
+      createWireGate<cudaq::quake::XOp>(builder, loc, mz.getWires().front());
+  auto z = createWireGate<cudaq::quake::ZOp>(builder, loc, q1);
+  auto *mzOp = mz.getOperation();
+  auto *xOp = x.getOperation();
+  auto *zOp = z.getOperation();
+  cudaq::quake::SinkOp::create(builder, loc, x.getResult(0));
+  cudaq::quake::SinkOp::create(builder, loc, z.getResult(0));
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 2u);
+  expectGroup(groups[0], &func.front(), {zOp}, {mzOp});
+  expectGroup(groups[1], &func.front(), {xOp});
+  EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       JoinWaitsForAllMeasurementPredecessors) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto func = createKernel("multiple_predecessors");
+  builder.setInsertionPointToEnd(&func.front());
+
+  Value q0 = createNullWire(builder, loc);
+  Value q1 = createNullWire(builder, loc);
+  Value q2 = createNullWire(builder, loc);
+  auto mz0 = createWireMeasurement<cudaq::quake::MzOp>(builder, loc, q0);
+  auto mz1 = createWireMeasurement<cudaq::quake::MzOp>(builder, loc, q1);
+  auto cx = createWireGate<cudaq::quake::XOp>(
+      builder, loc, ValueRange{mz0.getWires().front()},
+      ValueRange{mz1.getWires().front()});
+  auto z = createWireGate<cudaq::quake::ZOp>(builder, loc, q2);
+  auto *mz0Op = mz0.getOperation();
+  auto *mz1Op = mz1.getOperation();
+  auto *cxOp = cx.getOperation();
+  auto *zOp = z.getOperation();
+  for (Value wire : cx.getWires())
+    cudaq::quake::SinkOp::create(builder, loc, wire);
+  cudaq::quake::SinkOp::create(builder, loc, z.getResult(0));
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 2u);
+  expectGroup(groups[0], &func.front(), {zOp}, {mz0Op, mz1Op});
+  expectGroup(groups[1], &func.front(), {cxOp});
+  EXPECT_TRUE(analysis.inSameGroup(mz0Op, mz1Op));
+  EXPECT_FALSE(analysis.inSameGroup(mz1Op, cxOp));
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       QubitIdentityOrdersDistinctSsaRoots) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  auto func = createKernel("qubit_identity_edges");
+  builder.setInsertionPointToEnd(&func.front());
+
+  auto allocation = cudaq::quake::AllocaOp::create(builder, loc, refTy);
+  Value wireA = cudaq::quake::UnwrapOp::create(builder, loc, wireTy,
+                                               allocation.getRefOrVec());
+  Value wireB = cudaq::quake::UnwrapOp::create(builder, loc, wireTy,
+                                               allocation.getRefOrVec());
+  Value independentWire = createNullWire(builder, loc);
+  auto h = createWireGate<cudaq::quake::HOp>(builder, loc, wireA);
+  auto mz =
+      createWireMeasurement<cudaq::quake::MzOp>(builder, loc, h.getResult(0));
+  auto z = createWireGate<cudaq::quake::ZOp>(builder, loc, independentWire);
+  auto x = createWireGate<cudaq::quake::XOp>(builder, loc, wireB);
+  auto *hOp = h.getOperation();
+  auto *mzOp = mz.getOperation();
+  auto *zOp = z.getOperation();
+  auto *xOp = x.getOperation();
+  cudaq::quake::SinkOp::create(builder, loc, mz.getWires().front());
+  cudaq::quake::SinkOp::create(builder, loc, z.getResult(0));
+  cudaq::quake::SinkOp::create(builder, loc, x.getResult(0));
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 2u);
+  expectGroup(groups[0], &func.front(), {hOp, zOp}, {mzOp});
+  expectGroup(groups[1], &func.front(), {xOp});
+  EXPECT_TRUE(analysis.inSameGroup(hOp, zOp));
+  EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       RepeatedQubitIdentityWithinOneOpDoesNotCreateSelfEdge) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto wireTy = builder.getType<cudaq::quake::WireType>();
+  auto func = createKernel("repeated_qubit_identity");
+  builder.setInsertionPointToEnd(&func.front());
+
+  auto allocation = cudaq::quake::AllocaOp::create(builder, loc, refTy);
+  Value wireA = cudaq::quake::UnwrapOp::create(builder, loc, wireTy,
+                                               allocation.getRefOrVec());
+  Value wireB = cudaq::quake::UnwrapOp::create(builder, loc, wireTy,
+                                               allocation.getRefOrVec());
+  auto controlledX = createWireGate<cudaq::quake::XOp>(
+      builder, loc, ValueRange{wireA}, ValueRange{wireB});
+  auto *controlledXOp = controlledX.getOperation();
+  for (Value wire : controlledX.getWires())
+    cudaq::quake::SinkOp::create(builder, loc, wire);
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 1u);
+  expectGroup(groups[0], &func.front(), {controlledXOp});
+}
+
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
+       FlushesUnterminatedNestedBlockAtEnd) {
+  OpBuilder builder(&context);
+  Location loc = builder.getUnknownLoc();
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("unterminated_nested_block", {refTy});
+  builder.setInsertionPointToEnd(&func.front());
+
+  Value q = func.getArgument(0);
+  auto *h = cudaq::quake::HOp::create(builder, loc, q).getOperation();
+  Operation *x = nullptr;
+  Operation *mz = nullptr;
+  auto scope = cudaq::cc::ScopeOp::create(
+      builder, loc, [&](OpBuilder &builder, Location loc) {
+        x = cudaq::quake::XOp::create(builder, loc, q).getOperation();
+        mz = createRefMeasurement<cudaq::quake::MzOp>(builder, loc, q)
+                 .getOperation();
+        // Intentionally omit cc.continue to exercise the end-of-block flush.
+      });
+  builder.setInsertionPointAfter(scope);
+  auto *z = cudaq::quake::ZOp::create(builder, loc, q).getOperation();
+  func::ReturnOp::create(builder, loc);
+
+  UnitaryOpGroupingAnalysis analysis(func);
+  const auto &groups = analysis.getGroups();
+
+  ASSERT_EQ(groups.size(), 3u);
+  expectGroup(groups[0], &func.front(), {h});
+  expectGroup(groups[1], x->getBlock(), {x}, {mz});
+  expectGroup(groups[2], &func.front(), {z});
+  EXPECT_EQ(analysis.getGroupContainingOp(scope.getOperation()), nullptr);
+
+  auto parentGroups = analysis.getGroupsIn(&func.front());
+  ASSERT_EQ(parentGroups.size(), 2u);
+  EXPECT_EQ(parentGroups[0], &groups[0]);
+  EXPECT_EQ(parentGroups[1], &groups[2]);
+  auto nestedGroups = analysis.getGroupsIn(x->getBlock());
+  ASSERT_EQ(nestedGroups.size(), 1u);
+  EXPECT_EQ(nestedGroups[0], &groups[1]);
 }
 
 // Expected MLIR:
@@ -522,9 +917,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
 //
 // Expected analysis:
 //   groups.size() == 2
-//   group 0: quake.h
+//   group 0: quake.h; trailing delimiter: quake.mz
 //   group 1: quake.x
-//   quake.mz does not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        VectorMeasurementBreaksBetweenGroups) {
   OpBuilder builder(&context);
@@ -549,9 +943,9 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   const auto &groups = analysis.getGroups();
 
   ASSERT_EQ(groups.size(), 2u);
-  expectGroupOps(groups[0], {h});
-  expectGroupOps(groups[1], {x});
-  EXPECT_EQ(analysis.getGroupContainingOp(mz), nullptr);
+  expectGroup(groups[0], &func.front(), {h}, {mz});
+  expectGroup(groups[1], &func.front(), {x});
+  EXPECT_EQ(analysis.getGroupContainingOp(mz), &groups[0]);
 }
 
 // Expected MLIR:
@@ -568,10 +962,9 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
 //
 // Expected analysis:
 //   groups.size() == 3
-//   group 0: quake.h
-//   group 1: quake.x
+//   group 0: quake.h; trailing delimiter: quake.mx
+//   group 1: quake.x; trailing delimiter: quake.my
 //   group 2: quake.z
-//   quake.mx and quake.my do not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        MxAndMyMeasurementsBreakBetweenGroups) {
   OpBuilder builder(&context);
@@ -597,11 +990,11 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   const auto &groups = analysis.getGroups();
 
   ASSERT_EQ(groups.size(), 3u);
-  expectGroupOps(groups[0], {h});
-  expectGroupOps(groups[1], {x});
-  expectGroupOps(groups[2], {z});
-  EXPECT_EQ(analysis.getGroupContainingOp(mx), nullptr);
-  EXPECT_EQ(analysis.getGroupContainingOp(my), nullptr);
+  expectGroup(groups[0], &func.front(), {h}, {mx});
+  expectGroup(groups[1], &func.front(), {x}, {my});
+  expectGroup(groups[2], &func.front(), {z});
+  EXPECT_EQ(analysis.getGroupContainingOp(mx), &groups[0]);
+  EXPECT_EQ(analysis.getGroupContainingOp(my), &groups[1]);
 }
 
 // Expected MLIR:
@@ -615,11 +1008,9 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
 //
 // Expected analysis:
 //   groups.size() == 2
-//   group 0: quake.h
+//   group 0: quake.h; trailing delimiter: quake.reset
 //   group 1: quake.x
-//   quake.reset does not belong to a group.
-TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
-       ResetRefIsExcludedFromUnitaryGroups) {
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ResetRefIsATrailingDelimiter) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
   auto refTy = builder.getType<cudaq::quake::RefType>();
@@ -637,9 +1028,9 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   const auto &groups = analysis.getGroups();
 
   ASSERT_EQ(groups.size(), 2u);
-  expectGroupOps(groups[0], {h});
-  expectGroupOps(groups[1], {x});
-  EXPECT_EQ(analysis.getGroupContainingOp(reset), nullptr);
+  expectGroup(groups[0], &func.front(), {h}, {reset});
+  expectGroup(groups[1], &func.front(), {x});
+  EXPECT_EQ(analysis.getGroupContainingOp(reset), &groups[0]);
 }
 
 // Expected MLIR:
