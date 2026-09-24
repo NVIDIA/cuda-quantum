@@ -8,7 +8,6 @@
 
 add_cudaq_library(OptAnalysis
   CommutationAnalysis.cpp
-  NewUnitaryOpGrouping.cpp
   QubitIdentityAnalysis.cpp
   UnitaryOpGrouping.cpp
 
