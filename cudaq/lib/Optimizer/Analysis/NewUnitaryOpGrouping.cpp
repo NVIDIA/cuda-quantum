@@ -161,16 +161,6 @@ static void addQubitIdentityEdges(SegmentDependencyGraph &sdg,
   }
 }
 
-/// This function is for use with the `Textual` ordering mode
-/// In this case, we simply add edges between consecutive ops to
-/// preserve block order
-/// NOTE: this function is actually unnecessary because
-static void addConsecutiveIREdges(SegmentDependencyGraph &sdg) {
-  SmallVectorImpl<Operation *> &opNodes = sdg.nodesInBlockOrder;
-  for (std::size_t i = 1; i < opNodes.size(); ++i)
-    addEdge(sdg, opNodes[i - 1], opNodes[i]);
-}
-
 /// Create a dependency graph based on the input QuantumOpSegment
 static SegmentDependencyGraph
 buildSegmentDependencyGraph(QuantumOpSegment &segment,
@@ -186,19 +176,10 @@ buildSegmentDependencyGraph(QuantumOpSegment &segment,
   // determine ordering mode
   sdg.mode = determineOrderingMode(segment, qia);
 
-  // depending on graph mode use wireflow or textual IR order for ordering
-  switch (sdg.mode) {
-  case OrderingMode::WireDataflow:
+  // Textual mode preserves nodesInBlockOrder directly and needs no edges.
+  if (sdg.mode == OrderingMode::WireDataflow) {
     addIntraSegmentDefUseEdges(sdg);
     addQubitIdentityEdges(sdg, qia);
-    break;
-  case OrderingMode::Textual:
-    addConsecutiveIREdges(sdg);
-    break;
-  default:
-    // same as textual mode
-    addConsecutiveIREdges(sdg);
-    break;
   }
 
   return sdg;
