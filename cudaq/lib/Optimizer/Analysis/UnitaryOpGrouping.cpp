@@ -48,7 +48,7 @@ static bool containsNode(const SegmentDependencyGraph &sdg, Operation *op) {
   return sdg.originalPositionByOp.contains(op);
 }
 
-/// Add a node to graph if not already present
+/// Add a new graph node. The caller must not add duplicates.
 static void addNode(SegmentDependencyGraph &sdg, Operation *op,
                     unsigned originalPos) {
   // classify role of op in segment
@@ -65,13 +65,11 @@ static void addNode(SegmentDependencyGraph &sdg, Operation *op,
   sdg.predecessorCountByOp.try_emplace(op, 0);
 }
 
-/// Determine the `OrderingMode` for creating dependency sdg adj list
+/// Use wire-dataflow ordering only when every segment operation has scalar wire
+/// flow and every quantum input has a known logical identity; otherwise use
+/// textual order.
 static OrderingMode determineOrderingMode(QuantumOpSegment &segment,
                                           QubitIdentityAnalysis &qia) {
-  // iterate through the entire segment. if get scalar wire flow is null, go to
-  // textual form if wireflow is good, check all inputs from wireflow to make
-  // sure each quantum input has a qubit ID i.e., known identity
-
   for (auto &op : segment.opsInBlockOrder) {
     std::optional<ScalarWireFlow> flow = getScalarWireFlow(op);
     // if not valid wire flow or not scalar, fall back to textual IR ordering
@@ -119,9 +117,8 @@ static void addIntraSegmentDefUseEdges(SegmentDependencyGraph &sdg) {
 }
 
 /// Add edges based on QubitIdentityAnalysis. This additional pass over the
-/// segment ops accounts for any known edges that may come about from
-/// definitions outside of the segment ops but within the containing block.
-/// This function is for use with the `WireDataFlow` ordering mode
+/// segment ops adds edges to preserve order between operations touching the
+/// same logical qubit.
 static void addQubitIdentityEdges(SegmentDependencyGraph &sdg,
                                   QubitIdentityAnalysis &qia) {
 
@@ -146,16 +143,9 @@ static void addQubitIdentityEdges(SegmentDependencyGraph &sdg,
       if (!touchedByThisOp.insert(*qid).second)
         continue;
 
-      // if this op hasn't seen this qubit ID, let's check to see if an op
-      // in the containing block has touched it by consulting
-      // lastTouchByQubitId.
-      // if there's a key-value pair, then add an edge between that
-      // producer and consumer
-      auto producer = lastTouchByQubitId.find(*qid);
-      if (producer != lastTouchByQubitId.end())
-        addEdge(sdg, producer->second, consumer);
-      // regardless of if there was a def'n or not, let's update
-      // `lastTouchByQubitId` with this op that is consuming the operand
+      auto lastOpToTouchQid = lastTouchByQubitId.find(*qid);
+      if (lastOpToTouchQid != lastTouchByQubitId.end())
+        addEdge(sdg, lastOpToTouchQid->second, consumer);
       lastTouchByQubitId[*qid] = consumer;
     }
   }
@@ -246,7 +236,7 @@ CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
       addReady(op);
   }
 
-  // while both queues not empty
+  // while at least one min heap not empty
   while (!readyUnitaries.empty() || !readyDelimiters.empty()) {
     // - determine what the next op should be
     Operation *next = !readyUnitaries.empty()
@@ -268,7 +258,6 @@ CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
     }
   }
 
-  // failsafe:
   // if the number of ops in canonical order != num ops in segment, just take
   // the order from the nodesInBlockOrder and assign that to opsInCanonicalOrder
   if (cso.opsInCanonicalOrder.size() != sdg.nodesInBlockOrder.size()) {
@@ -284,8 +273,8 @@ CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
 /// form unitary group helpers
 
 /// Ingest a CanonicalSegmentOrder and form groups of unitary ops separated by
-/// measurements, resets, or hard boundaries (e.g., op with nested region, block
-/// terminator).
+/// measurements/resets. Measurements/resets are retained within formed unitary
+/// group
 void UnitaryOpGroupingAnalysis::formUnitaryGroups(
     const CanonicalSegmentOrder &cso) {
 
@@ -353,13 +342,11 @@ void UnitaryOpGroupingAnalysis::formUnitaryGroups(
 
 /// end helpers
 
-/// Main driver of the analysis
+/// Main driver of the analysis.
 /// - find segments of ops, where each segment ends by hard boundaries (i.e.,
-/// ops with nested regions or block terminators)
+///   ops with nested regions or block terminators)
 ///   - note that segment ends are different than group ends; segments end
-///   because of hard boundaries. groups end either because of hard boundary or
-///   msmt/reset
-/// -
+///     because of hard boundaries (i.e., non unitary/msmt/reset ops).
 void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
   // perform qubitIdentityAnalysis to elucidate relationships between
   // potentially aliasing wires created by `unwrap`s
