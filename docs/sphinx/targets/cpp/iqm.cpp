@@ -15,14 +15,16 @@ struct ghz {
     cudaq::qvector q(5);
     h(q[0]);
 
-    // Note that the CUDA-Q compiler will automatically generate the
-    // necessary instructions to swap qubits to satisfy the required
-    // connectivity constraints for the Crystal QPU. In this program, that
-    // means that despite QB1 not being physically connected to QB3, the user
-    // can still perform joint operations q[0] and q[2] because the compiler
-    // will automatically (and transparently) inject the necessary swap
-    // instructions to execute the user's program without the user having to
-    // worry about the physical constraints.
+    // Note that as a user you do not have to worry about the physical
+    // constraints of qubit connectivity when writing a circuit. The CUDA-Q
+    // compiler will automatically (and transparently) generate the necessary
+    // instructions to swap qubits as needed to satisfy the connectivity of
+    // the QPU.
+    // When this program is executed the current dynamic quantum architecture
+    // of the addressed QPU is retrieved and the `transpiler` gets a map with
+    // the qubits and their connectivity. It places the algorithm on the qubits
+    // and add swaps when needed by the circuit. With this the same code can
+    // run on different QPU layouts without any changes.
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }

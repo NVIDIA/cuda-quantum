@@ -14,7 +14,6 @@
 
 #include <fcntl.h>
 #include <fstream>
-#include <iostream>
 #include <regex>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +44,7 @@ class IQMServerHelper : public ServerHelper {
   uint statusOutputRateLimit = 0;
 
   /// @brief Number of total qubits on the addressed QPU
-  uint qubitCountStaticArch;
+  uint qubitCountStaticArch = 0;
 
 protected:
   /// @brief The base URL
@@ -293,7 +292,7 @@ std::string IQMServerHelper::extractJobId(ServerMessage &postResponse) {
 }
 
 std::string IQMServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return "api/v1/jobs" + postResponse["id"].get<std::string>();
+  return "api/v1/jobs/" + postResponse["id"].get<std::string>();
 }
 
 std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
@@ -943,7 +942,6 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
  * enclosed in double quotes. It is loaded in order into the map used for
  * translating logical qubit numbers into physical qubit tags.
  *
- * @return String containing the filename of the file to read.
  * @throws std::runtime_error thrown when file cannot be opened for reading.
  */
 void IQMServerHelper::readQuantumArchitectureFile(std::string filepath) {
@@ -954,6 +952,8 @@ void IQMServerHelper::readQuantumArchitectureFile(std::string filepath) {
     throw std::runtime_error("Cannot read QPU architecture file: \"" +
                              filepath + "\" - " + std::string(strerror(errno)));
   }
+
+  qubitNameMap.clear();
 
   while (std::getline(file, line)) {
     if (line.starts_with("# IQM qubit map:")) {
