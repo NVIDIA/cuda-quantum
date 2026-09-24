@@ -22,17 +22,17 @@ using namespace mlir;
 
 namespace cudaq::quake::detail {
 
-/// Helper to mark unitary, measurement, and reset ops
-/// Returns std::nullopt if the op is not one of these three types
+/// Classify an operation for quantum-segment construction.
+/// Return `std::nullopt` when the operation is a hard boundary.
 static std::optional<SegmentOpRole> classifySegmentOpRole(Operation *op) {
-  // ops with nested regions are hard boundaries and should not be grouped
+  // Region-owning operations and terminators are always hard boundaries.
   if (op->getNumRegions() != 0 || op->hasTrait<OpTrait::IsTerminator>())
     return std::nullopt;
 
   if (isa<cudaq::quake::MeasurementInterface>(op))
     return SegmentOpRole::MsmtDelimiter;
 
-  // Reset has `QuantumGate` trait but it is not a unitary op
+  // Reset has the `QuantumGate` trait but is not unitary.
   if (isa<cudaq::quake::ResetOp>(op))
     return SegmentOpRole::ResetDelimiter;
 
@@ -42,8 +42,7 @@ static std::optional<SegmentOpRole> classifySegmentOpRole(Operation *op) {
   return std::nullopt;
 }
 
-/// Returns true if the op is in the segment. Recall that only unitaries, msmts,
-/// and resets will be in the segment
+/// Return whether \p op is a node in \p sdg.
 static bool containsNode(const SegmentDependencyGraph &sdg, Operation *op) {
   return sdg.originalPositionByOp.contains(op);
 }
@@ -51,16 +50,14 @@ static bool containsNode(const SegmentDependencyGraph &sdg, Operation *op) {
 /// Add a new graph node. The caller must not add duplicates.
 static void addNode(SegmentDependencyGraph &sdg, Operation *op,
                     unsigned originalPos) {
-  // classify role of op in segment
   std::optional<SegmentOpRole> role = classifySegmentOpRole(op);
   assert(role && "op must be of `SegmentOpRole` type");
   assert(!containsNode(sdg, op) && "node added more than once");
 
-  // update sdg with new node
   sdg.nodesInBlockOrder.push_back(op);
   sdg.originalPositionByOp.try_emplace(op, originalPos);
 
-  // Initialize slots for successors and predecessor count
+  // Materialize adjacency and in-degree entries for isolated nodes too.
   sdg.successorsByOp.try_emplace(op);
   sdg.predecessorCountByOp.try_emplace(op, 0);
 }
@@ -72,12 +69,9 @@ static OrderingMode determineOrderingMode(QuantumOpSegment &segment,
                                           QubitIdentityAnalysis &qia) {
   for (auto &op : segment.opsInBlockOrder) {
     std::optional<ScalarWireFlow> flow = getScalarWireFlow(op);
-    // if not valid wire flow or not scalar, fall back to textual IR ordering
     if (!flow)
       return OrderingMode::Textual;
 
-    // if any of the wires have unknown identity (i.e., no QubitID),
-    // fall back to textual IR ordering
     for (Value &quantumOperand : flow->inputs)
       if (!qia.getQubitId(quantumOperand))
         return OrderingMode::Textual;
@@ -86,8 +80,8 @@ static OrderingMode determineOrderingMode(QuantumOpSegment &segment,
   return OrderingMode::WireDataflow;
 }
 
-/// If edge doesn't exist, add edge to adjacency list and increment
-/// predCountByOp
+/// Record a unique predecessor-to-successor edge and increment the successor's
+/// in-degree.
 static void addEdge(SegmentDependencyGraph &sdg, Operation *predecessor,
                     Operation *successor) {
   assert(containsNode(sdg, predecessor) && "predecessor node must be in graph");
@@ -95,7 +89,7 @@ static void addEdge(SegmentDependencyGraph &sdg, Operation *predecessor,
 
   auto &successors = sdg.successorsByOp[predecessor];
 
-  // don't duplicate edges!
+  // Def-use and qubit-identity reasoning may discover the same edge.
   if (llvm::is_contained(successors, successor))
     return;
 
@@ -104,8 +98,7 @@ static void addEdge(SegmentDependencyGraph &sdg, Operation *predecessor,
   ++sdg.predecessorCountByOp[successor];
 }
 
-/// Populate `successorsByOp` and update `predecessorCountByOp`
-/// This function is for use with the `WireDataFlow` ordering mode
+/// Add intra-segment SSA producer-to-consumer edges for wire-dataflow mode.
 static void addIntraSegmentDefUseEdges(SegmentDependencyGraph &sdg) {
   for (Operation *consumer : sdg.nodesInBlockOrder) {
     for (Value operand : consumer->getOperands()) {
@@ -116,33 +109,30 @@ static void addIntraSegmentDefUseEdges(SegmentDependencyGraph &sdg) {
   }
 }
 
-/// Add edges based on QubitIdentityAnalysis. This additional pass over the
-/// segment ops adds edges to preserve order between operations touching the
-/// same logical qubit.
+/// Preserve original order between consecutive segment operations that touch
+/// the same known logical qubit, including operations with distinct SSA roots.
 static void addQubitIdentityEdges(SegmentDependencyGraph &sdg,
                                   QubitIdentityAnalysis &qia) {
 
-  // map to tell us what operation last touched the Qubit ID
+  // Most recent segment operation touching each logical qubit.
   mlir::DenseMap<QubitIdentityAnalysis::QubitId, Operation *>
       lastTouchByQubitId;
   for (Operation *consumer : sdg.nodesInBlockOrder) {
     std::optional<ScalarWireFlow> flow = getScalarWireFlow(consumer);
     assert(flow && "requires valid scalar wire data flow");
 
-    // a set of all of the Qubit IDs that have been touched by the current op
-    // this set spans our check of the consumer's inputs
+    // Deduplicate identities within one operation to avoid a self-edge.
     llvm::SmallDenseSet<QubitIdentityAnalysis::QubitId, 4> touchedByThisOp;
 
     for (Value operand : flow->inputs) {
-      // grab the qubit ID for each operand
       std::optional<QubitIdentityAnalysis::QubitId> qid =
           qia.getQubitId(operand);
       assert(qid && "all wires must have QubitID");
 
-      // if this op has already seen this qubit ID, ignore
       if (!touchedByThisOp.insert(*qid).second)
         continue;
 
+      // Preserve order from the previous touch of this logical qubit.
       auto lastOpToTouchQid = lastTouchByQubitId.find(*qid);
       if (lastOpToTouchQid != lastTouchByQubitId.end())
         addEdge(sdg, lastOpToTouchQid->second, consumer);
@@ -151,19 +141,17 @@ static void addQubitIdentityEdges(SegmentDependencyGraph &sdg,
   }
 }
 
-/// Create a dependency graph based on the input QuantumOpSegment
+/// Build the dependency graph for one quantum-operation segment.
 static SegmentDependencyGraph
 buildSegmentDependencyGraph(QuantumOpSegment &segment,
                             QubitIdentityAnalysis &qia) {
   SegmentDependencyGraph sdg;
   sdg.containingBlock = segment.containingBlock;
 
-  // create nodes in the sdg
   for (auto [opIdxInBlock, op] : llvm::enumerate(segment.opsInBlockOrder)) {
     addNode(sdg, op, opIdxInBlock);
   }
 
-  // determine ordering mode
   sdg.mode = determineOrderingMode(segment, qia);
 
   // Textual mode preserves nodesInBlockOrder directly and needs no edges.
@@ -178,24 +166,22 @@ buildSegmentDependencyGraph(QuantumOpSegment &segment,
 // "Ready" means that all predecessors of this op have been added to
 // canonical order.
 struct ReadyEntry {
-  unsigned originalPos; // break ties between two ready ops
+  unsigned originalPos;
   Operation *op;
 };
 
-// returns true if lhs has lower priority
-// in this case, lhs has lower priority if its originalPos > rhs
+// `std::priority_queue` places the highest-priority element at the top.
+// Treating later positions as lower priority makes the earliest original
+// position top.
 struct EarliestOriginalPositionFirst {
   bool operator()(const ReadyEntry &lhs, const ReadyEntry &rhs) const {
     return lhs.originalPos > rhs.originalPos;
   }
 };
 
-// Maintain a min heap to determine which op should go next in
-// canonical ordering
 using ReadyMinHeap = std::priority_queue<ReadyEntry, SmallVector<ReadyEntry>,
                                          EarliestOriginalPositionFirst>;
 
-/// earliest means the op that shows up first in IR block order
 static Operation *popEarliestReadyEntry(ReadyMinHeap &rmh) {
   assert(!rmh.empty() && "ReadyMinHeap must have an entry to pop!");
   Operation *earliestEntry = rmh.top().op;
@@ -209,18 +195,17 @@ CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
   cso.containingBlock = sdg.containingBlock;
   cso.mode = sdg.mode;
 
-  // if mode is textual fallback, just assign
-  // nodesInBlockOrder and assign that to opsInCanonicalOrder
+  // Textual mode intentionally bypasses graph traversal.
   if (cso.mode == OrderingMode::Textual) {
     cso.opsInCanonicalOrder = sdg.nodesInBlockOrder;
     return cso;
   }
 
-  // maintain two min heaps to pick from:
+  // Prefer any ready unitary over a ready delimiter. Within either class,
+  // prefer original segment order.
   ReadyMinHeap readyUnitaries;
   ReadyMinHeap readyDelimiters;
 
-  // lambda to add an op to the appropriate min heap
   auto addReady = [&](Operation *op) {
     unsigned origPos = sdg.originalPositionByOp.lookup(op);
     ReadyEntry re{origPos, op};
@@ -230,36 +215,29 @@ CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
                                    : readyDelimiters.push(re);
   };
 
-  // initially populate min heaps with ready ops
   for (Operation *op : sdg.nodesInBlockOrder) {
     if (sdg.predecessorCountByOp.lookup(op) == 0)
       addReady(op);
   }
 
-  // while at least one min heap not empty
+  // Emit the preferred ready node, then release newly ready successors.
   while (!readyUnitaries.empty() || !readyDelimiters.empty()) {
-    // - determine what the next op should be
     Operation *next = !readyUnitaries.empty()
                           ? popEarliestReadyEntry(readyUnitaries)
                           : popEarliestReadyEntry(readyDelimiters);
-    // - push op to cso.opsInCanonicalOrder
     cso.opsInCanonicalOrder.push_back(next);
-    // - for each successor of the op that just got pushed back
     for (Operation *succ : sdg.successorsByOp.lookup(next)) {
-      //   - decrement the predecessorCountByOp[op];
       auto &predCountByOp = sdg.predecessorCountByOp;
       unsigned &predCount = predCountByOp[succ];
       assert(predCount > 0 &&
              "predecessor count should for this op should have been > 0");
-      //   - if the count is 0 after update, add successor to the appropriate
-      //     minheap
       if (--predCount == 0)
         addReady(succ);
     }
   }
 
-  // if the number of ops in canonical order != num ops in segment, just take
-  // the order from the nodesInBlockOrder and assign that to opsInCanonicalOrder
+  // A complete topological traversal emits every node. Debug builds diagnose a
+  // cycle or bookkeeping error; release builds conservatively use block order.
   if (cso.opsInCanonicalOrder.size() != sdg.nodesInBlockOrder.size()) {
     assert(false && "dependency graph contains a cycle or graph bookkeeping is "
                     "inconsistent");
@@ -270,11 +248,9 @@ CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
   return cso;
 }
 
-/// form unitary group helpers
-
-/// Ingest a CanonicalSegmentOrder and form groups of unitary ops separated by
-/// measurements/resets. Measurements/resets are retained within formed unitary
-/// group
+/// Partition canonical segment order into groups of unitaries followed by
+/// consecutive measurement/reset delimiters. Leading delimiters form a
+/// delimiter-only group.
 void UnitaryOpGroupingAnalysis::formUnitaryGroups(
     const CanonicalSegmentOrder &cso) {
 
@@ -290,25 +266,21 @@ void UnitaryOpGroupingAnalysis::formUnitaryGroups(
   };
 
   auto flushCurrentGroup = [&]() {
-    // if current run is empty, do nothing
+    // Never emit an empty group.
     if (currentUnitaryOps.empty() && currentDelimiterOps.empty())
       return;
 
-    // grab the index for the group we are forming
-    // this will be added to `blockToGroupIndices`
     const unsigned groupIndex = static_cast<unsigned>(unitaryOpGroups.size());
 
-    // Populate the group from the current unitary and delimiter runs.
     UnitaryOpGroup currUnitaryOpGroup;
     currUnitaryOpGroup.block = cso.containingBlock;
     currUnitaryOpGroup.ops.append(currentUnitaryOps);
     currUnitaryOpGroup.trailingDelimiterOps.append(currentDelimiterOps);
 
-    // add unitary group and index to analysis outputs
     unitaryOpGroups.push_back(std::move(currUnitaryOpGroup));
     blockToGroupIndices[cso.containingBlock].push_back(groupIndex);
 
-    // populate analysis' `opToGroupIndex` with all ops
+    // Index both unitary and delimiter operations as group members.
     const auto &unitaryGroup = unitaryOpGroups.back();
     recordGroupMembership(unitaryGroup.ops, groupIndex);
     recordGroupMembership(unitaryGroup.trailingDelimiterOps, groupIndex);
@@ -317,15 +289,15 @@ void UnitaryOpGroupingAnalysis::formUnitaryGroups(
     currentDelimiterOps.clear();
   };
 
-  // iterate over all ops in the cso to create unitary groups
-  // add consecutive measurements/resets to the group that they end
+  // Accumulate consecutive delimiters until the next unitary starts a new
+  // group.
   for (Operation *op : cso.opsInCanonicalOrder) {
 
     auto role = classifySegmentOpRole(op);
     assert(role && "canonical segment cannot contain a hard boundary");
 
     if (*role == SegmentOpRole::Unitary) {
-      // A unitary after a delimiter starts the next group
+      // A unitary after a delimiter starts the next group.
       if (!currentDelimiterOps.empty())
         flushCurrentGroup();
 
@@ -335,23 +307,18 @@ void UnitaryOpGroupingAnalysis::formUnitaryGroups(
     }
   }
 
-  // The end of the vector of ops is also a boundary; make sure to add the last
-  // group
+  // Flush any group remaining at segment end.
   flushCurrentGroup();
 }
 
-/// end helpers
-
-/// Main driver of the analysis.
-/// - find segments of ops, where each segment ends by hard boundaries (i.e.,
-///   ops with nested regions or block terminators)
-///   - note that segment ends are different than group ends; segments end
-///     because of hard boundaries (i.e., non unitary/msmt/reset ops).
+/// Analyze one block by forming maximal segments of classifiable quantum
+/// operations. Every unclassified operation flushes the current segment; its
+/// nested blocks are then analyzed recursively, so groups never cross blocks or
+/// hard boundaries.
 void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
-  // perform qubitIdentityAnalysis to elucidate relationships between
-  // potentially aliasing wires created by `unwrap`s
+  // Compute logical identities once per block so distinct wire SSA roots
+  // produced by `unwrap` can still be ordered.
   QubitIdentityAnalysis qia(block);
-  // container for all of the ops for the current quantum op segment
   QuantumOpSegment currSegment;
   currSegment.containingBlock = &block;
 
@@ -360,14 +327,11 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
     if (currSegment.opsInBlockOrder.empty())
       return;
 
-    // 1. build dependency graph
+    // Canonicalize and group the completed segment.
     SegmentDependencyGraph sdg = buildSegmentDependencyGraph(currSegment, qia);
-    // 2. canonicalize order
     CanonicalSegmentOrder cso = computeCanonicalSegmentOrder(sdg);
-    // 3. form unitary groups
     formUnitaryGroups(cso);
 
-    // at the end, we know we want to flush the segment
     currSegment.opsInBlockOrder.clear();
   };
 
@@ -376,20 +340,15 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
                << "\tFound op: " << op.getName()
                << " and parent op: " << op.getParentOp()->getName() << "\n");
 
-    // classify grouping role: unitary, reset, or msmt
-    // if not null, we add it to the current segment and `continue` this loop
     std::optional<SegmentOpRole> role = classifySegmentOpRole(&op);
     if (role) {
       currSegment.opsInBlockOrder.push_back(&op);
       continue;
     }
 
-    // else if null, the segment is done and we use that segment for creating
-    // dependency graph, canonical order, and getting the unitary groups
     finishCurrentSegment();
 
-    // after the above, it is possible that we hit an op with a nested boundary
-    // this is where we will recursively search blocks within the nested regions
+    // Recurse after flushing so groups cannot cross a region-owning operation.
     for (auto &region : op.getRegions()) {
       for (auto &block : region)
         analyzeBlock(block);
@@ -409,8 +368,6 @@ void UnitaryOpGroupingAnalysis::performAnalysis(Operation *op) {
 
   for (Region &region : funcOp->getRegions()) {
     for (Block &block : region) {
-      // note that this will find nested regions and explore their
-      // corresponding ops recursively
       analyzeBlock(block);
     }
   }
