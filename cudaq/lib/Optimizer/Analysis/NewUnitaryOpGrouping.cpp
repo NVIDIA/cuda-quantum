@@ -24,7 +24,6 @@ namespace cudaq::quake::detail {
 
 /// Helper to mark unitary, measurement, and reset ops
 /// Returns std::nullopt if the op is not one of these three types
-/// - it is instead a segment boundary
 static std::optional<SegmentOpRole> classifySegmentOpRole(Operation *op) {
   // ops with nested regions are hard boundaries and should not be grouped
   if (op->getNumRegions() != 0 || op->hasTrait<OpTrait::IsTerminator>())
@@ -43,12 +42,8 @@ static std::optional<SegmentOpRole> classifySegmentOpRole(Operation *op) {
   return std::nullopt;
 }
 
-/// The following are helpers to construct a dependency graph
-/// Once a candidate segment of ops is identified in the current block,
-/// we construct a segment dependency graph
-
-/// Returns true if the op is in the segment
-/// - remember only unitaries, msmts, and resets will be in the segment
+/// Returns true if the op is in the segment. Recall that only unitaries, msmts,
+/// and resets will be in the segment
 static bool containsNode(const SegmentDependencyGraph &sdg, Operation *op) {
   return sdg.originalPositionByOp.contains(op);
 }
