@@ -9,7 +9,7 @@
 #include <cudaq.h>
 
 // clang-format off
-// RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
+// RUN: nvq++ --build-target-from-config %cudaq_src_dir/targettests/targets/opt-test.yml --target-option dep-analysis,qpp %s -o %t && %t
 // clang-format on
 
 struct run_test {

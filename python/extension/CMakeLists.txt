@@ -118,6 +118,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     cudaqMLIR
     cudaq-mlir-runtime
     CUDAQTargetConfig
+    CUDAQTargetConfigYaml
+    CUDAQTargetDatabase
     cudaq-python-interop
     cudaq-platform-default
 )

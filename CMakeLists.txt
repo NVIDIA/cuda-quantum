@@ -161,14 +161,6 @@ if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
 endif()
 
-if (NOT DEFINED CUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT)
-  if (DEFINED CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR)
-    set(CUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT ON CACHE INTERNAL "")
-  else()
-    set(CUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT OFF CACHE INTERNAL "")
-  endif()
-endif()
-
 # Enable Pasqal QRMI connector by default only on Linux builds, and only when
 # the Pasqal backend itself is enabled. Both behaviors can be overridden by
 # explicitly passing -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON/OFF on the cmake
@@ -204,6 +196,16 @@ endif()
 # Enable qBraid target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
   set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
+endif()
+
+# Enable Quantinuum target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QUANTINUUM_BACKEND)
+  set(CUDAQ_ENABLE_QUANTINUUM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantinuum target.")
+endif()
+
+# Enable Infleqtion target by default.
+if (NOT DEFINED CUDAQ_ENABLE_INFLEQTION_BACKEND)
+  set(CUDAQ_ENABLE_INFLEQTION_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Infleqtion target.")
 endif()
 
 # =============================================================================
@@ -1071,6 +1073,10 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
   add_subdirectory("${_cudaq_ext_src}"
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
+
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  cudaq_finalize_target_database()
+endif()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   include(CheckCXXCompilerFlag)
