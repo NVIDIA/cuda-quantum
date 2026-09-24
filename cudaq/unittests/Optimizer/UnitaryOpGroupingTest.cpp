@@ -133,7 +133,7 @@ protected:
   OwningOpRef<ModuleOp> module;
 };
 
-// Expected MLIR:
+// Constructed IR (schematic):
 //
 //   func.func @simple(%q0: !quake.ref, %q1: !quake.ref, %theta: f64) attributes
 //   {"cudaq-kernel"} {
@@ -146,17 +146,8 @@ protected:
 //     return
 //   }
 //
-// Expected analysis:
-//   groups.size() == 3
-//   group 0: quake.h, quake.x; trailing delimiter: quake.mz
-//   group 1: quake.z
-//   group 2: quake.rx
-//   inSameGroup(h, x) == true
-//   inSameGroup(x, mz) == true
-//   inSameGroup(x, z) == false
-//   inSameGroup(z, rx) == false
-//   arith.constant does not belong to a group.
-//   getGroupsIn(group 0 block).size() == 3
+// Reference semantics preserve block order. The measurement is recorded as the
+// trailing delimiter of {h, x}; the classical op is a hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -212,7 +203,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
   EXPECT_TRUE(analysis.getGroupsIn(nullptr).empty());
 }
 
-// Expected MLIR:
+// Constructed IR (schematic):
 //
 //   func.func @nested_if(%q0: !quake.ref, %q1: !quake.ref, %flag: i1)
 //   attributes {"cudaq-kernel"} {
@@ -220,23 +211,17 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
 //       quake.h %q0 : (!quake.ref) -> ()
 //       quake.x %q1 : (!quake.ref) -> ()
 //       %m = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
+//       cc.continue
 //     } else {
 //       quake.z %q0 : (!quake.ref) -> ()
 //       quake.reset %q0 : (!quake.ref) -> ()
+//       cc.continue
 //     }
 //     return
 //   }
 //
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h, quake.x; trailing delimiter: quake.mz in the then block
-//   group 1: quake.z; trailing delimiter: quake.reset in the else block
-//   cc.if does not belong to a group.
-//   inSameGroup(h, x) == true
-//   inSameGroup(h, z) == false
-//   group 0 and group 1 have different blocks.
-//   getGroupsIn(group 0 block).size() == 1
-//   getGroupsIn(group 1 block).size() == 1
+// The cc.if is a hard boundary, and its branch blocks are analyzed
+// independently. Each branch-local delimiter remains with its unitary group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsNestedIfRegionsSeparately) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -380,6 +365,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(constant1), nullptr);
 }
 
+// Wire block arguments have no known qubit identity, so preserve textual order:
+// the leading measurement remains ahead of the independent X gate.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        UnknownWireIdentityFallsBackToTextualOrder) {
   OpBuilder builder(&context);
@@ -406,6 +393,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
 }
 
+// All four operations are initially ready. Wire-dataflow ordering emits ready
+// unitaries first and preserves original block order within each role.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        WireModePrioritizesUnitariesAndUsesOriginalOrderForTies) {
   OpBuilder builder(&context);
@@ -442,6 +431,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroupIndex(analysis, resetOp, 0u);
 }
 
+// X consumes the wire returned by Mz. The independent Z may move first, but X
+// must remain after its measurement predecessor.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        UnitaryWaitsForMeasurementPredecessor) {
   OpBuilder builder(&context);
@@ -471,6 +462,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
 }
 
+// The controlled X consumes both measured wires and becomes ready only after
+// both measurement predecessors have been emitted.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        JoinWaitsForAllMeasurementPredecessors) {
   OpBuilder builder(&context);
@@ -506,6 +499,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mz1Op, cxOp));
 }
 
+// wireA and wireB are distinct SSA roots for the same allocated qubit. A
+// qubit-identity edge preserves Mz-before-X without a direct SSA def-use edge.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        QubitIdentityOrdersDistinctSsaRoots) {
   OpBuilder builder(&context);
@@ -545,6 +540,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
 }
 
+// Both operands identify the same logical qubit. Deduplicating touches within
+// the operation prevents a dependency-graph self-edge.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        RepeatedQubitIdentityWithinOneOpDoesNotCreateSelfEdge) {
   OpBuilder builder(&context);
@@ -614,21 +611,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(nestedGroups[0], &groups[1]);
 }
 
-// Expected MLIR:
-//
-//   func.func @alloca_veq_break(%q: !quake.ref) attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %v = quake.alloca !quake.veq<2>
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   quake.alloca does not belong to a group.
-//   inSameGroup(h, x) == false
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, AllocaVeqBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -654,21 +636,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, AllocaVeqBreaksBetweenGroups) {
   EXPECT_FALSE(analysis.inSameGroup(h, x));
 }
 
-// Expected MLIR:
-//
-//   func.func @extract_ref_break(%vec: !quake.veq<2>, %q: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %r = quake.extract_ref %vec[0] : (!quake.veq<2>) -> !quake.ref
-//     quake.x %r : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   quake.extract_ref does not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExtractRefBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -694,22 +661,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExtractRefBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(extract.getOperation()), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func @dynamic_extract_ref_break(%vec: !quake.veq<?>, %i: i64,
-//                                        %q: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %r = quake.extract_ref %vec[%i] : (!quake.veq<?>, i64) -> !quake.ref
-//     quake.y %r : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.y
-//   quake.extract_ref does not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        DynamicExtractRefBreaksBetweenGroups) {
   OpBuilder builder(&context);
@@ -738,22 +689,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(extract.getOperation()), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func @subveq_break(%vec: !quake.veq<4>, %q: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %sub = quake.subveq %vec, 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
-//     %r = quake.extract_ref %sub[0] : (!quake.veq<2>) -> !quake.ref
-//     quake.x %r : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   quake.subveq and quake.extract_ref do not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, SubVeqBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -783,21 +718,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, SubVeqBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(extract.getOperation()), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func @relax_size_break(%vec: !quake.veq<3>, %q: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %relaxed = quake.relax_size %vec : (!quake.veq<3>) -> !quake.veq<?>
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   quake.relax_size does not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, RelaxSizeBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -824,20 +744,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, RelaxSizeBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(relax.getOperation()), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func @concat_break(%q0: !quake.ref, %q1: !quake.ref,
-//                           %vec: !quake.veq<2>) attributes {"cudaq-kernel"} {
-//     quake.h %q0 : (!quake.ref) -> ()
-//     %merged = quake.concat %q1, %vec : (!quake.ref, !quake.veq<2>) ->
-//     !quake.veq<3> quake.x %q0 : (!quake.ref) -> () return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   quake.concat does not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ConcatBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -865,21 +771,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ConcatBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(concat.getOperation()), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func @veq_size_break(%vec: !quake.veq<?>, %q: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %size = quake.veq_size %vec : (!quake.veq<?>) -> i64
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   quake.veq_size does not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -905,20 +796,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(veqSize.getOperation()), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func @veq_measurement_break(%vec: !quake.veq<3>, %q: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %m = quake.mz %vec : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h; trailing delimiter: quake.mz
-//   group 1: quake.x
+// A non-scalar measurement remains a delimiter even though its segment falls
+// back to textual ordering.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        VectorMeasurementBreaksBetweenGroups) {
   OpBuilder builder(&context);
@@ -948,23 +827,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(mz), &groups[0]);
 }
 
-// Expected MLIR:
-//
-//   func.func @mx_my_measurement_break(%q: !quake.ref) attributes
-//   {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     %mx = quake.mx %q : (!quake.ref) -> !cc.measure_handle
-//     quake.x %q : (!quake.ref) -> ()
-//     %my = quake.my %q : (!quake.ref) -> !cc.measure_handle
-//     quake.z %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 3
-//   group 0: quake.h; trailing delimiter: quake.mx
-//   group 1: quake.x; trailing delimiter: quake.my
-//   group 2: quake.z
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        MxAndMyMeasurementsBreakBetweenGroups) {
   OpBuilder builder(&context);
@@ -997,19 +859,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_EQ(analysis.getGroupContainingOp(my), &groups[1]);
 }
 
-// Expected MLIR:
-//
-//   func.func @reset_ref_break(%q: !quake.ref) attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     quake.reset %q : (!quake.ref) -> ()
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h; trailing delimiter: quake.reset
-//   group 1: quake.x
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ResetRefIsATrailingDelimiter) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -1033,20 +882,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ResetRefIsATrailingDelimiter) {
   EXPECT_EQ(analysis.getGroupContainingOp(reset), &groups[0]);
 }
 
-// Expected MLIR:
-//
-//   func.func @controlled_veq_group(%ctrl: !quake.veq<2>, %target: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.x [%ctrl] %target : (!quake.veq<2>, !quake.ref) -> ()
-//     quake.y [%ctrl] %target : (!quake.veq<2>, !quake.ref) -> ()
-//     quake.z [%ctrl] %target : (!quake.veq<2>, !quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 1
-//   group 0: quake.x, quake.y, quake.z
-//   inSameGroup(x, z) == true
+// Gates with vector controls remain unitary in textual-order mode.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ControlledGatesWithVeqControlGroupTogether) {
   OpBuilder builder(&context);
@@ -1077,26 +913,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_TRUE(analysis.inSameGroup(x, z));
 }
 
-// Expected MLIR:
-//
-//   func.func @parameterized_gate_group(%theta: f64, %phi: f64, %lambda: f64,
-//                                       %q0: !quake.ref, %q1: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.r1 (%theta) %q0 : (f64, !quake.ref) -> ()
-//     quake.rx (%theta) %q0 : (f64, !quake.ref) -> ()
-//     quake.phased_rx (%theta, %phi) %q0 : (f64, f64, !quake.ref) -> ()
-//     quake.ry (%phi) %q0 : (f64, !quake.ref) -> ()
-//     quake.rz (%lambda) %q0 : (f64, !quake.ref) -> ()
-//     quake.u2 (%theta, %phi) %q0 : (f64, f64, !quake.ref) -> ()
-//     quake.u3 (%theta, %phi, %lambda) %q0 : (f64, f64, f64, !quake.ref) -> ()
-//     quake.swap %q0, %q1 : (!quake.ref, !quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 1
-//   group 0: quake.r1, quake.rx, quake.phased_rx, quake.ry, quake.rz,
-//            quake.u2, quake.u3, quake.swap
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ParameterizedAndMultiTargetGatesGroupTogether) {
   OpBuilder builder(&context);
@@ -1147,19 +963,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroupOps(groups[0], {r1, rx, phasedRx, ry, rz, u2, u3, swap});
 }
 
-// Expected MLIR:
-//
-//   func.func @exp_pauli_group(%theta: f64, %vec: !quake.veq<3>, %q:
-//   !quake.ref) attributes {"cudaq-kernel"} {
-//     quake.h %q : (!quake.ref) -> ()
-//     quake.exp_pauli (%theta) %vec to "XYZ" : (f64, !quake.veq<3>) -> ()
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 1
-//   group 0: quake.h, quake.exp_pauli, quake.x
+// ExpPauli remains unitary when its target is a vector.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExpPauliWithVeqTargetIsUnitary) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -1187,24 +991,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ExpPauliWithVeqTargetIsUnitary) {
   expectGroupOps(groups[0], {h, expPauli, x});
 }
 
-// Expected MLIR:
-//
-//   func.func @compute_action_break(%q: !quake.ref) attributes {"cudaq-kernel"}
-//   {
-//     %compute = cc.undef !cc.callable<() -> ()>
-//     %action = cc.undef !cc.callable<() -> ()>
-//     quake.h %q : (!quake.ref) -> ()
-//     quake.compute_action %compute, %action : !cc.callable<() -> ()>,
-//                                             !cc.callable<() -> ()>
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   quake.compute_action does not belong to a group.
+// A non-gate Quake operation forms a hard boundary.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ComputeActionBreaksBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -1233,28 +1020,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ComputeActionBreaksBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(computeAction), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func @cc_scope_boundary(%q0: !quake.ref, %q1: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     quake.h %q0 : (!quake.ref) -> ()
-//     cc.scope {
-//       quake.x %q0 : (!quake.ref) -> ()
-//       quake.y %q1 : (!quake.ref) -> ()
-//       cc.continue
-//     }
-//     quake.z %q0 : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 3
-//   group 0: quake.h in the parent block
-//   group 1: quake.x, quake.y in the cc.scope block
-//   group 2: quake.z in the parent block
-//   cc.scope does not belong to a group.
-//   group 0 and group 1 have different blocks.
-//   group 1 and group 2 have different blocks.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        CCScopeRegionDoesNotMergeWithParentBlock) {
   OpBuilder builder(&context);
@@ -1289,24 +1054,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   EXPECT_NE(groups[1].block, groups[2].block);
 }
 
-// Expected MLIR:
-//
-//   func.func @cc_memory_break(%value: i32, %q: !quake.ref)
-//   attributes {"cudaq-kernel"} {
-//     %ptr = cc.alloca i32
-//     quake.h %q : (!quake.ref) -> ()
-//     cc.store %value, %ptr : !cc.ptr<i32>
-//     %loaded = cc.load %ptr : !cc.ptr<i32>
-//     %wide = cc.cast signed %loaded : (i32) -> i64
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   cc.store, cc.load, and cc.cast do not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest, CCMemoryOpsBreakBetweenGroups) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
@@ -1339,25 +1086,6 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, CCMemoryOpsBreakBetweenGroups) {
   EXPECT_EQ(analysis.getGroupContainingOp(cast.getOperation()), nullptr);
 }
 
-// Expected MLIR:
-//
-//   func.func private @callee(i64)
-//   func.func @arith_and_call_break(%q: !quake.ref) attributes {"cudaq-kernel"}
-//   {
-//     %c0 = arith.constant 0 : i64
-//     quake.h %q : (!quake.ref) -> ()
-//     %c1 = arith.constant 1 : i64
-//     %sum = arith.addi %c0, %c1 : i64
-//     call @callee(%sum) : (i64) -> ()
-//     quake.x %q : (!quake.ref) -> ()
-//     return
-//   }
-//
-// Expected analysis:
-//   groups.size() == 2
-//   group 0: quake.h
-//   group 1: quake.x
-//   arith.constant, arith.addi, and func.call do not belong to a group.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ArithAndFuncCallOpsBreakBetweenGroups) {
   OpBuilder builder(&context);

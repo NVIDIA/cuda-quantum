@@ -21,7 +21,7 @@ class Block;
 
 namespace cudaq::quake::detail {
 
-/// A group in one block's virtual canonical order.
+/// A group in one op segment's virtual canonical order.
 ///
 /// A group contains zero or more unitary operations followed by zero or more
 /// measurement/reset delimiters. Delimiter-only groups are valid. Hard-boundary
@@ -50,6 +50,9 @@ enum class OrderingMode {
   Textual,
 
   /// Apply dependency ordering for scalar wires with known qubit identities.
+  /// The ordering policy is:
+  /// 1. prefer unitary ops over resets/measurements
+  /// 2. prefer ops that happen earlier in block order
   WireDataflow
 };
 
@@ -106,7 +109,7 @@ struct UnitaryOpGroupingAnalysis {
   /// Return all groups in recursive block-visitation order.
   const UnitaryOpGroups &getGroups() const { return unitaryOpGroups; }
 
-  /// Return the index of the group containing p op, if one exists.
+  /// Return the index of the group containing \p op, if one exists.
   ///
   /// Both unitary and trailing-delimiter operations are group members.
   std::optional<unsigned> getGroupIndexForOp(mlir::Operation *op) const;
@@ -114,7 +117,7 @@ struct UnitaryOpGroupingAnalysis {
   /// Return the block containing p group.
   const mlir::Block *getBlockForGroup(const UnitaryOpGroup &group) const;
 
-  /// Return the group containing p op, or nullptr when it is not grouped.
+  /// Return the group containing \p op, or nullptr when it is not grouped.
   const UnitaryOpGroup *getGroupContainingOp(mlir::Operation *op) const;
 
   /// Return groups contained directly in  block.
