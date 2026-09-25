@@ -19,7 +19,11 @@ Connecting an `APB` `ILA` for Debug" section below.
 
 > **Note:** For this experiment, we recommend using NVIDIA ConnectX-7 NIC
 with dual `QSFP` ports. Prior ConnectX generations may not have all
-the capabilities required.
+the capabilities required. The dual `QSFP112` port model is recommended
+for physical compatibility with the RFSoC board's `QSFP` interface.
+A single-port `OSFP` 400G ConnectX-7 is not a drop-in replacement for
+this setup, as connecting `OSFP` to `QSFP` requires additional
+interconnect hardware due to `PAM4`/`NRZ` signal incompatibilities.
 
 ## Steps to do the experiment
 
