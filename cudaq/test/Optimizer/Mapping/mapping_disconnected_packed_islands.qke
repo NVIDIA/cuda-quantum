@@ -32,16 +32,26 @@ func.func @packed_islands() {
   %d:2 = quake.x [%c#1] %v5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %e:2 = quake.x [%v6] %v7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %f:2 = quake.x [%v8] %v9 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.return_wire %b#0 : !quake.wire
-  quake.return_wire %a#0 : !quake.wire
-  quake.return_wire %b#1 : !quake.wire
-  quake.return_wire %d#0 : !quake.wire
-  quake.return_wire %c#0 : !quake.wire
-  quake.return_wire %d#1 : !quake.wire
-  quake.return_wire %e#0 : !quake.wire
-  quake.return_wire %e#1 : !quake.wire
-  quake.return_wire %f#0 : !quake.wire
-  quake.return_wire %f#1 : !quake.wire
+  %m0, %w0 = quake.mz %a#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %b#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m2, %w2 = quake.mz %b#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %w3 = quake.mz %c#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m4, %w4 = quake.mz %d#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m5, %w5 = quake.mz %d#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m6, %w6 = quake.mz %e#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m7, %w7 = quake.mz %e#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m8, %w8 = quake.mz %f#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m9, %w9 = quake.mz %f#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  quake.return_wire %w2 : !quake.wire
+  quake.return_wire %w3 : !quake.wire
+  quake.return_wire %w4 : !quake.wire
+  quake.return_wire %w5 : !quake.wire
+  quake.return_wire %w6 : !quake.wire
+  quake.return_wire %w7 : !quake.wire
+  quake.return_wire %w8 : !quake.wire
+  quake.return_wire %w9 : !quake.wire
   return
 }
 

@@ -3221,29 +3221,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     auto wireTy = builder.getType<cudaq::quake::WireType>();
     auto unknownLoc = builder.getUnknownLoc();
 
-    // Add implicit measurements if necessary
-    if (userQubitsMeasured.empty()) {
-      builder.setInsertionPoint(block.getTerminator());
-      auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
-      Type resTy = builder.getI1Type();
-      for (unsigned i = 0; i < sources.size(); i++) {
-        if (sources[i] != nullptr) {
-          auto measureOp = cudaq::quake::MzOp::create(
-              builder, finalQubitWire[i].getLoc(), TypeRange{measTy, wireTy},
-              finalQubitWire[i]);
-          cudaq::quake::DiscriminateOp::create(builder,
-                                               finalQubitWire[i].getLoc(),
-                                               resTy, measureOp.getMeasOut());
-
-          wireToVirtualQ.insert(
-              {measureOp.getWires()[0],
-               requireVirtualQ(wireToVirtualQ, finalQubitWire[i])});
-
-          userQubitsMeasured.push_back(i);
-        }
-      }
-    }
-
     // Save the order of the measurements. They are not allowed to change. For
     // `run` this ordering does not matter (results are recorded by index), and
     // the measurements may live inside branch/loop regions where moving them
