@@ -284,6 +284,44 @@ Submitting via Pasqal Cloud (Direct)
 To see a complete example, take a look at :ref:`Pasqal examples <pasqal-examples>`.
 
 
+Local Emulation
+```````````````
+
+The ``pasqal`` target supports local emulation for Rydberg programs through
+CUDA-Q's dynamics simulator stack. This requires a CUDA-capable GPU and the
+dynamics backend library, which is loaded when the target is selected. No cloud
+credentials are needed. Use the same ``evolve`` or ``evolve_async`` call as for
+remote execution; as with other emulated targets, a fixed random seed gives
+the same samples on every call.
+
+This is ideal coherent emulation, not a calibrated hardware noise model.
+Coordinates are in meters, times in seconds, amplitude and detuning in rad/s,
+and phase in radians. Amplitude and detuning are linearly interpolated between
+schedule points; phase is held constant until the next point. The default
+``C6/hbar`` is ``8.6572302e-25`` rad m^6/s, for the FRESNEL_CAN1 level-60
+Rydberg state. The ``emulation_rydberg_c6`` target argument overrides this
+coefficient for local emulation only; pass it as a string, e.g.
+``cudaq.set_target('pasqal', emulate=True, emulation_rydberg_c6='5.42e-24')``.
+Hardware limits are not enforced. Remote and emulated results list atoms in
+register order: the first character is atom 0.
+
+.. tab:: Python
+
+        Set ``emulate=True`` when selecting the target:
+
+        .. code:: python
+
+            cudaq.set_target('pasqal', emulate=True)
+
+.. tab:: C++
+
+        Pass ``--emulate`` to ``nvq++``:
+
+        .. code:: bash
+
+            nvq++ --target pasqal --emulate src.cpp -o program
+
+
 Submitting via QRMI
 ````````````````````
 
@@ -318,11 +356,6 @@ The job submission process is the same as for the ``pasqal`` target.
         .. code:: bash
 
             nvq++ --target pasqal --pasqal-machine qrmi src.cpp
-
-
-.. note:: 
-
-    Local emulation via ``emulate`` flag is not yet supported on the `pasqal` target.
 
 
 QuEra Computing
