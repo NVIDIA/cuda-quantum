@@ -42,7 +42,7 @@ quick example, build instructions, and the current scope and limitations.
       Backends <using/backends/backends.rst>
       Dynamics <using/dynamics.rst>
       Realtime <using/realtime.rst>
-      CUDA-QX <using/cudaqx/cudaqx.rst>
+      CUDA-QX <using/cudaq-qec/cudaq-qec.rst>
       Installation <using/install/install.rst>
       Integration <using/integration/integration.rst>
       Extending <using/extending/extending.rst>

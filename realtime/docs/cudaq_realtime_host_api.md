@@ -276,7 +276,7 @@ decoder handler.
 
 - C host API in `cudaq_realtime.h`
 - RPC messaging protocol (header + payload + response)
-- End-to-end example using the mock decoder in `cudaqx`
+- End-to-end example using the mock decoder in `cudaq-qec`
 - NIC-free testing path
 
 ## Terms and Components
@@ -334,7 +334,7 @@ struct cudaq_handler_schema_t {
   uint8_t  num_args;              // Number of input arguments
   uint8_t  num_results;           // Number of return values
   uint16_t reserved;
-  
+
   cudaq_type_desc_t args[8];      // Argument type descriptors
   cudaq_type_desc_t results[4];   // Result type descriptors
 };
@@ -557,11 +557,11 @@ struct cudaq_function_entry_t {
     cudaGraphExec_t     graph_exec;     // for CUDAQ_DISPATCH_GRAPH_LAUNCH
     cudaq_host_rpc_fn_t host_fn;        // for CUDAQ_DISPATCH_HOST_CALL
   } handler;
-  
+
   uint32_t                function_id;
   uint8_t                 dispatch_mode;   // Per-handler dispatch mode
   uint8_t                 reserved[3];
-  
+
   cudaq_handler_schema_t  schema;          // Handler interface schema
 };
 
@@ -812,7 +812,7 @@ In the NIC-free path, flags and data are allocated with
 ## Step-by-Step: Wiring the Host API (Minimal)
 
 The snippet below is real code from
-`cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`:
+`cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`:
 
 ```cpp
 // Host API wiring
@@ -877,11 +877,11 @@ constexpr std::uint32_t MOCK_DECODE_FUNCTION_ID =
 __global__ void init_function_table(cudaq_function_entry_t* entries) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     // Entry 0: Mock decoder
-    entries[0].handler.device_fn_ptr = 
+    entries[0].handler.device_fn_ptr =
         reinterpret_cast<void*>(&cudaq::qec::realtime::mock_decode_rpc);
     entries[0].function_id = MOCK_DECODE_FUNCTION_ID;
     entries[0].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-    
+
     // Schema: 1 arg (bit-packed detection events), 1 result (correction byte)
     entries[0].schema.num_args = 1;
     entries[0].schema.args[0] = {CUDAQ_TYPE_BIT_PACKED, {0}, 16, 128};  // 128 bits
@@ -897,14 +897,14 @@ __global__ void init_function_table(cudaq_function_entry_t* entries) {
 constexpr std::uint32_t ADVANCED_DECODE_FUNCTION_ID =
     cudaq::realtime::fnv1a_hash("advanced_decode");
 
-__global__ void init_advanced_handler(cudaq_function_entry_t* entries, 
+__global__ void init_advanced_handler(cudaq_function_entry_t* entries,
                                        uint32_t index) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    entries[index].handler.device_fn_ptr = 
+    entries[index].handler.device_fn_ptr =
         reinterpret_cast<void*>(&advanced_decode_rpc);
     entries[index].function_id = ADVANCED_DECODE_FUNCTION_ID;
     entries[index].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-    
+
     // Schema: 2 args (detection events + calibration), 1 result
     entries[index].schema.num_args = 2;
     entries[index].schema.args[0] = {CUDAQ_TYPE_BIT_PACKED, {0}, 16, 128};
@@ -965,7 +965,7 @@ __global__ void init_function_table_graph(cudaq_function_entry_t* entries) {
     entries[0].handler.graph_exec = /* pre-captured cudaGraphExec_t */;
     entries[0].function_id = DECODE_FUNCTION_ID;
     entries[0].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-    
+
     // Schema: same as device call mode
     entries[0].schema.num_args = 1;
     entries[0].schema.args[0] = {TYPE_BIT_PACKED, {0}, 16, 128};
@@ -990,7 +990,7 @@ cudaStreamEndCapture(capture_stream, &graph);
 
 // Instantiate with device launch flag (required for device-side cudaGraphLaunch)
 cudaGraphExec_t graph_exec;
-cudaGraphInstantiateWithFlags(&graph_exec, graph, 
+cudaGraphInstantiateWithFlags(&graph_exec, graph,
                               cudaGraphInstantiateFlagDeviceLaunch);
 
 // Upload graph to device
@@ -1420,7 +1420,7 @@ when populating RX slots in a GpuRoceTransceiver deployment.
 /// @brief Write detection events to RX buffer in RPC format.
 void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurements) {
   uint8_t* slot_data = const_cast<uint8_t*>(rx_data_host_) + slot * slot_size_;
-  
+
   // Write RPCHeader
   cudaq::realtime::RPCHeader* header =
       reinterpret_cast<cudaq::realtime::RPCHeader*>(slot_data);
@@ -1429,7 +1429,7 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
   header->arg_len = static_cast<std::uint32_t>(measurements.size());
   header->request_id = static_cast<std::uint32_t>(slot);
   header->ptp_timestamp = 0;  // Set by FPGA in production; 0 for NIC-free tests
-  
+
   // Write measurement data after header
   memcpy(slot_data + sizeof(cudaq::realtime::RPCHeader),
          measurements.data(), measurements.size());
@@ -1453,7 +1453,7 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
                        std::uint64_t* ptp_timestamp_out = nullptr) {
   __sync_synchronize();
   const uint8_t* slot_data = const_cast<uint8_t*>(tx_data_host_) + slot * slot_size_;
-  
+
   // Read RPCResponse
   const cudaq::realtime::RPCResponse* response =
       reinterpret_cast<const cudaq::realtime::RPCResponse*>(slot_data);
@@ -1470,11 +1470,11 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
     *request_id_out = response->request_id;
   if (ptp_timestamp_out)
     *ptp_timestamp_out = response->ptp_timestamp;
-  
+
   if (response->status != 0) {
     return false;
   }
-  
+
   // Read correction data after response header
   correction = *(slot_data + sizeof(cudaq::realtime::RPCResponse));
   return true;
@@ -1491,9 +1491,9 @@ __device__ void parse_args_from_payload(
     const uint8_t* payload,
     const cudaq_handler_schema_t& schema,
     void** arg_ptrs) {
-  
+
   uint32_t offset = 0;
-  
+
   for (uint8_t i = 0; i < schema.num_args; i++) {
     arg_ptrs[i] = const_cast<uint8_t*>(payload + offset);
     offset += schema.args[i].size_bytes;
@@ -1503,14 +1503,14 @@ __device__ void parse_args_from_payload(
 __device__ void dispatch_with_schema(
     uint8_t* slot_data,
     const cudaq_function_entry_t& entry) {
-  
+
   RPCHeader* hdr = reinterpret_cast<RPCHeader*>(slot_data);
   uint8_t* payload = slot_data + sizeof(RPCHeader);
-  
+
   // Parse arguments using schema
   void* arg_ptrs[8];
   parse_args_from_payload(payload, entry.schema, arg_ptrs);
-  
+
   // Call handler with parsed arguments
   if (entry.dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
     auto handler = reinterpret_cast<HandlerFn>(entry.handler.device_fn_ptr);
@@ -1563,7 +1563,7 @@ there is no kernel launch overhead in the hot path.
 
 Emulate RX/TX with mapped host memory:
 
-- `cudaqx` mock-decoder test:
+- `cudaq-qec` mock-decoder test:
   - `libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
 - `cuda-quantum` host API test:
   - `realtime/unittests/test_dispatch_kernel.cu`
@@ -1578,7 +1578,7 @@ Note: Existing test files may use `SHOT_START` for
 backwards compatibility; this should be interpreted as `ROUND_START`
 in the context of realtime decoding.
 
-## Mock Decoder Example (`cudaqx`)
+## Mock Decoder Example (`cudaq-qec`)
 
 The mock decoder is registered as an RPC handler and invoked by the dispatch
 kernel. The tests show end-to-end wiring with detection events loaded from
@@ -1586,7 +1586,7 @@ the detection event file.
 
 See:
 
-- `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+- `cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
 
 ## Troubleshooting
 
@@ -1598,4 +1598,4 @@ See:
 
 - `cuda-quantum/realtime/unittests/test_dispatch_kernel.cu`
 - `cuda-quantum/realtime/unittests/test_host_dispatcher.cu`
-- `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+- `cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
