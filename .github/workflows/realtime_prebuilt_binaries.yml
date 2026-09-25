@@ -17,6 +17,28 @@ on:
       environment:
         type: string
         required: false
+      # Dependency sources. All blank by default, which assets.Dockerfile passes
+      # through as empty build args, leaving the deps_common.sh pins in effect.
+      doca_version:
+        required: false
+        type: string
+        default: ''
+        description: DOCA version to install. Blank uses the deps_common.sh default.
+      holoscan_version:
+        required: false
+        type: string
+        default: ''
+        description: Holoscan SDK version to install. Blank uses the deps_common.sh default.
+      hsb_repo:
+        required: false
+        type: string
+        default: ''
+        description: Holoscan Sensor Bridge repository to clone. Blank uses the deps_common.sh default. Must be clonable without credentials.
+      hsb_ref:
+        required: false
+        type: string
+        default: ''
+        description: Holoscan Sensor Bridge branch or tag. Blank uses the deps_common.sh default.
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -81,7 +103,10 @@ jobs:
         build-args: |
           base_image=${{ (contains(inputs.platform, 'arm') && 'ghcr.io/nvidia/arm64v8/almalinux:8') || 'ghcr.io/nvidia/amd64/almalinux:8' }}  
           cuda_version=${{ inputs.cuda_version }}
-          cuda_native_arg=${{ (contains(inputs.cuda_version, '12') && '80-real;90') || '80-real;90-real;100f-real;110-real;120-real;100-virtual' }}
+          DOCA_VERSION=${{ inputs.doca_version }}
+          HOLOSCAN_SDK_VERSION=${{ inputs.holoscan_version }}
+          CUDAQ_REALTIME_HSB_REPO=${{ inputs.hsb_repo }}
+          CUDAQ_REALTIME_HSB_REF=${{ inputs.hsb_ref }}
         tags: ghcr.io/nvidia/cuda-quantum-realtime-assets-${{ inputs.platform }}-cu${{ inputs.cuda_version }}
         # labels: ${{ steps.metadata.outputs.labels }}
         platforms: ${{ inputs.platform }}

@@ -27,7 +27,7 @@ func.func @caller(%q: !quake.ref, %condition: i1) {
 // CHECK-LABEL:   func.func @caller(
 // CHECK-SAME:                      %[[ARG0:.*]]: !quake.ref,
 // CHECK-SAME:                      %[[ARG1:.*]]: i1) {
-// CHECK:           cc.scope {
+// CHECK:           cc.scope atomic {
 // CHECK:             cf.cond_br %[[ARG1]], ^bb1, ^bb2
 // CHECK:           ^bb1:
 // CHECK:             quake.h %[[ARG0]] : (!quake.ref) -> ()
@@ -37,10 +37,10 @@ func.func @caller(%q: !quake.ref, %condition: i1) {
 // CHECK:             cf.br ^bb3
 // CHECK:           ^bb3:
 // CHECK:             cc.continue
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK:           quake.y %[[ARG0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
-// COUNT-COUNT-1: atomic_quantum_region
-// COUNT-NOT: atomic_quantum_region
+// COUNT-COUNT-1: cc.scope atomic
+// COUNT-NOT: cc.scope atomic

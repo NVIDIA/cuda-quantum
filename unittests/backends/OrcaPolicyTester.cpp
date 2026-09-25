@@ -7,11 +7,12 @@
  ******************************************************************************/
 
 #include "common/CompiledModule.h"
-#include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/orca.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/orca/OrcaRemoteRESTQPU.h"
+#include "cudaq/platform/platform_test_access.h"
 #include <any>
 #include <future>
 #include <gtest/gtest.h>
@@ -99,7 +100,9 @@ TEST(OrcaPolicyTester, PublicApisReturnEndpointResults) {
             cudaq::detail::future(promise.get_future()));
       });
 
-  cudaq::get_platform().setRuntimeEndpoint(std::move(endpoint));
+  auto &platform = cudaq::get_platform();
+  cudaq::detail::PlatformTestAccess::setTarget(
+      platform, cudaq::createDefaultCompileTarget(&platform), endpoint);
 
   std::vector<std::size_t> inputState{1};
   std::vector<std::size_t> loopLengths{1};

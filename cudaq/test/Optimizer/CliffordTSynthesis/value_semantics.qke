@@ -18,7 +18,7 @@
 
 func.func @rz_wire() {
   %0 = quake.null_wire
-  %a = arith.constant 0.7853981633974483 : f64
+  %a = arith.constant 0.19634954084936207 : f64
   %1 = quake.rz (%a) %0 : (f64, !quake.wire) -> !quake.wire
   quake.sink %1 : !quake.wire
   return

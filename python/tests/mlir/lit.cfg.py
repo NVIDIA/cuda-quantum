@@ -81,7 +81,7 @@ for _t in _targets:
 # directories.
 config.excludes = [
     'Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt', 'lit.cfg.py',
-    'random_gen.py'
+    'random_gen.py', 'conftest.py'
 ]
 
 # test_source_root: The root path where tests are located.

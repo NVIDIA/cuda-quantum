@@ -1367,25 +1367,33 @@ void generalizedInvokeWithRotationsControlsTargets(
   Qubit *controls[totalControls];
   Qubit *targets[numTargetOperands];
   std::size_t i;
+  std::size_t numPackedControls = 0;
   va_list args;
   va_start(args, QISFunction);
   for (i = 0; i < numRotationOperands; ++i)
     parameters[i] = va_arg(args, double);
   for (i = 0; i < numControlArrayOperands; ++i) {
-    arrayAndLength[i] = va_arg(args, std::size_t);
-    controls[i] = va_arg(args, Qubit *);
+    const auto length = va_arg(args, std::size_t);
+    auto *controlArray = va_arg(args, Qubit *);
+    // Zero marks a scalar in the common helper, so omit empty arrays.
+    if (length == 0) {
+      continue;
+    }
+    arrayAndLength[numPackedControls] = length;
+    controls[numPackedControls++] = controlArray;
   }
   for (i = 0; i < numControlQubitOperands; ++i) {
-    arrayAndLength[numControlArrayOperands + i] = 0;
-    controls[numControlArrayOperands + i] = va_arg(args, Qubit *);
+    arrayAndLength[numPackedControls] = 0;
+    controls[numPackedControls++] = va_arg(args, Qubit *);
   }
   for (i = 0; i < numTargetOperands; ++i)
     targets[i] = va_arg(args, Qubit *);
   va_end(args);
 
   commonInvokeWithRotationsControlsTargets(
-      numRotationOperands, parameters, totalControls, arrayAndLength, controls,
-      numTargetOperands, targets, reinterpret_cast<void (*)()>(QISFunction));
+      numRotationOperands, parameters, numPackedControls, arrayAndLength,
+      controls, numTargetOperands, targets,
+      reinterpret_cast<void (*)()>(QISFunction));
 }
 
 /// @brief Utility function used by Quake->QIR to invoke a QIR QIS function

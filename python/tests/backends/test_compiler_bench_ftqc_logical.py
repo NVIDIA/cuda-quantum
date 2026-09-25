@@ -9,8 +9,15 @@
 # Tests for the compiler-bench-ftqc-logical target: preserve structured logical
 # operations while lowering unsupported composites for resource counting.
 
+from pathlib import Path
+
 import cudaq
 import pytest
+
+cudaq._register_target_config(
+    str(
+        Path(__file__).resolve().parents[1] / "targets" /
+        "compiler-bench-ftqc-logical.yml"))
 
 FTQC_LOGICAL_TARGET = 'compiler-bench-ftqc-logical'
 

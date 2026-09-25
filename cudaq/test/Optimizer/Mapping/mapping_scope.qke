@@ -26,7 +26,7 @@ quake.wire_set @wires[2147483647]
 // PATH:       %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
 // PATH:       %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
 // PATH:       %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2]
-// PATH:       %[[OUTER:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// PATH:       %[[OUTER:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) atomic {
 // PATH:         %[[INNER:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
 // PATH:           %[[SWAP:.*]]:2 = quake.swap %[[Q0]], %[[Q1]]
 // PATH:           %[[GATE:.*]]:2 = quake.x [%[[SWAP]]#1] %[[Q2]]
@@ -35,7 +35,7 @@ quake.wire_set @wires[2147483647]
 // PATH:         %[[SLOT:.*]] = cc.alloca i1
 // PATH:         cc.store {{.*}}, %[[SLOT]] : !cc.ptr<i1>
 // PATH:         cc.continue %[[INNER]]#0, %[[INNER]]#1, %[[INNER]]#2
-// PATH:       } {atomic_quantum_region}
+// PATH:       }
 // PATH:       cc.if{{.*}}%[[OUTER]]#2
 // AUTO-LABEL: func.func @atomic_scope_live_lane()
 // AUTO-SAME:  mapping_v2p = [1, 2, 0]
@@ -53,7 +53,7 @@ func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
     %q0 = quake.borrow_wire @wires[0] : !quake.wire
     %q1 = quake.borrow_wire @wires[1] : !quake.wire
     %q2 = quake.borrow_wire @wires[2] : !quake.wire
-    %outer:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %outer:2 = cc.scope -> (!quake.wire, !quake.wire) atomic {
       %inner:2 = cc.scope -> (!quake.wire, !quake.wire) {
         %gate:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
         cc.continue %gate#0, %gate#1 : !quake.wire, !quake.wire
@@ -61,7 +61,7 @@ func.func @atomic_scope_live_lane() attributes {quake.cudaq_run = []} {
       %slot = cc.alloca i1
       cc.store %cond, %slot : !cc.ptr<i1>
       cc.continue %inner#0, %inner#1 : !quake.wire, !quake.wire
-    } {atomic_quantum_region}
+    }
     %if:1 = cc.if (%cond) ((%arg = %q1)) -> (!quake.wire) {
       %then = quake.h %arg : (!quake.wire) -> !quake.wire
       cc.continue %then : !quake.wire

@@ -34,14 +34,14 @@ func.func @negative_wire_phase()
 
 func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %wire = quake.borrow_wire @phys[0] : !quake.wire
-  %forward = cc.scope -> (!quake.wire) {
+  %forward = cc.scope -> (!quake.wire) atomic {
     %next = quake.h %wire : (!quake.wire) -> !quake.wire
     cc.continue %next : !quake.wire
-  } {atomic_quantum_region}
-  %inverse = cc.scope -> (!quake.wire) {
+  }
+  %inverse = cc.scope -> (!quake.wire) atomic {
     %next = quake.h %forward : (!quake.wire) -> !quake.wire
     cc.continue %next : !quake.wire
-  } {atomic_quantum_region}
+  }
   quake.return_wire %inverse : !quake.wire
   return
 }

@@ -73,13 +73,13 @@ func.func @allocation_caller() {
 // -----
 
 func.func @marked_scope(%q: !quake.ref) {
-  cc.scope {
+  cc.scope atomic {
     // expected-error@+1 {{qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments}}
     %local = quake.alloca !quake.ref
     // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
     %m = quake.mz %q : (!quake.ref) -> !quake.measure
     cc.continue
-  } {atomic_quantum_region}
+  }
   return
 }
 

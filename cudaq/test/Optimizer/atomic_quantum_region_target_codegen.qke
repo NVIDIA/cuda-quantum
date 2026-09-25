@@ -10,30 +10,30 @@
 // RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(func.func(erase-implicit-output),oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,cse,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=path(3)},func.func(regtomem),lower-wireset-to-profile-qir{convert-to=qir-base})' %s | FileCheck --check-prefix=QIR %s
 // RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(func.func(erase-implicit-output),anyon-cgate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,cse,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=path(3)},func.func(regtomem),lower-wireset-to-profile-qir{convert-to=qir-adaptive})' %s | FileCheck --check-prefix=QIR %s
 // RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(func.func(erase-implicit-output),iqm-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,cse,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=path(3)},func.func(delay-measurements),func.func(cse,normalize-phase-placement,lower-phase,canonicalize),iqm-gate-set-mapping,lower-to-cfg,func.func(regtomem))' %s | cudaq-translate --convert-to=iqm | FileCheck --check-prefix=IQM %s
-// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/anyon/anyon.yml
-// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/braket/braket.yml
-// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/infleqtion/infleqtion.yml
-// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/oqc/oqc.yml
-// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/qbraid/qbraid.yml
-// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/scaleway/scaleway.yml
-// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/tii/tii.yml
-// RUN: FileCheck --check-prefix=IQM-YAML %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/iqm/iqm.yml
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/anyon/anyon.yml
+// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/braket/braket.yml
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/infleqtion/infleqtion.yml
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/oqc/oqc.yml
+// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/qbraid/qbraid.yml
+// RUN: FileCheck --check-prefix=QASM-YAML %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/scaleway/scaleway.yml
+// RUN: FileCheck --check-prefix=NO-EARLY-CFG %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/tii/tii.yml
+// RUN: FileCheck --check-prefix=IQM-YAML %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/iqm/iqm.yml
 
 func.func @atomic_round_trip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %q = quake.alloca !quake.veq<3>
   %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
   %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
   %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
-  cc.scope {
+  cc.scope atomic {
     quake.h %q0 : (!quake.ref) -> ()
     quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
-  } {atomic_quantum_region}
-  cc.scope {
+  }
+  cc.scope atomic {
     quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
     quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     quake.h %q0 : (!quake.ref) -> ()
-  } {atomic_quantum_region}
+  }
   %m0 = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
   %m1 = quake.mz %q1 : (!quake.ref) -> !cc.measure_handle
   %m2 = quake.mz %q2 : (!quake.ref) -> !cc.measure_handle

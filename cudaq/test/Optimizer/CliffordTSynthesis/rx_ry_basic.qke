@@ -17,16 +17,16 @@
 // 15 is a safety floor robust to gridsynth variance.
 // The actual T-count at epsilon=1e-3 is on the order of dozens.
 
-func.func @rx_pi_over_4() attributes {"cudaq-entrypoint"} {
+func.func @rx_pi_over_16() attributes {"cudaq-entrypoint"} {
   %q = quake.alloca !quake.ref
-  %a = arith.constant 0.7853981633974483 : f64
+  %a = arith.constant 0.19634954084936207 : f64
   quake.rx (%a) %q : (f64, !quake.ref) -> ()
   return
 }
 
-func.func @ry_pi_over_4() attributes {"cudaq-entrypoint"} {
+func.func @ry_pi_over_16() attributes {"cudaq-entrypoint"} {
   %q = quake.alloca !quake.ref
-  %a = arith.constant 0.7853981633974483 : f64
+  %a = arith.constant 0.19634954084936207 : f64
   quake.ry (%a) %q : (f64, !quake.ref) -> ()
   return
 }
@@ -34,12 +34,12 @@ func.func @ry_pi_over_4() attributes {"cudaq-entrypoint"} {
 // CHECK-LABEL: func.func private @__cliffordt_rz_
 // CHECK-COUNT-15: quake.t
 
-// CHECK-LABEL: func.func @rx_pi_over_4
+// CHECK-LABEL: func.func @rx_pi_over_16
 // CHECK:         quake.alloca
 // CHECK:         quake.h
 // CHECK:         call @__cliffordt_rz_
 // CHECK:         quake.h
 
-// CHECK-LABEL: func.func @ry_pi_over_4
+// CHECK-LABEL: func.func @ry_pi_over_16
 // CHECK:         quake.alloca
 // CHECK:         call @__cliffordt_rz_

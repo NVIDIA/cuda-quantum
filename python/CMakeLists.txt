@@ -74,6 +74,10 @@ cudaq_stage_python_sources(CUDAQPythonTestStaging
   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/tests"
   SOURCES ${_cudaq_test_sources})
 
+# Test-time target configuration needs to be installed as it's user facing in
+# `docs/sphinx/using/examples/rotation_synthesis.rst)`
+add_target_config(tests/targets/compiler-bench-ftqc-clifford-t.yml)
+
 add_custom_target(CUDAQPythonStaging ALL DEPENDS "${METADATA_FILE}")
 add_dependencies(CUDAQPythonStaging
   CUDAQPythonPackageStaging CUDAQPythonTestStaging)

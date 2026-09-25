@@ -58,29 +58,29 @@ module attributes {quake.mangled_name_map = {marked = "indirect_marked"}} {
 // CHECK-LABEL:   func.func @caller(
 // CHECK-SAME:                      %[[ARG0:.*]]: !quake.ref,
 // CHECK-SAME:                      %[[ARG1:.*]]: i1) {
-// CHECK:           cc.scope {
+// CHECK:           cc.scope atomic {
 // CHECK:             quake.h %[[ARG0]] : (!quake.ref) -> ()
-// CHECK:           } {atomic_quantum_region}
+// CHECK:           }
 // CHECK-NEXT:      quake.x %[[ARG0]] : (!quake.ref) -> ()
-// CHECK-NEXT:      cc.scope {
-// CHECK-NEXT:        cc.scope {
+// CHECK-NEXT:      cc.scope atomic {
+// CHECK-NEXT:        cc.scope atomic {
 // CHECK-NEXT:          quake.h %[[ARG0]] : (!quake.ref) -> ()
-// CHECK-NEXT:        } {atomic_quantum_region}
+// CHECK-NEXT:        }
 // CHECK-NEXT:        quake.y %[[ARG0]] : (!quake.ref) -> ()
-// CHECK-NEXT:      } {atomic_quantum_region}
-// CHECK-NEXT:      cc.scope {
+// CHECK-NEXT:      }
+// CHECK-NEXT:      cc.scope atomic {
 // CHECK-NEXT:        cc.if(%[[ARG1]]) {
 // CHECK-NEXT:          quake.z %[[ARG0]] : (!quake.ref) -> ()
 // CHECK-NEXT:        }
-// CHECK-NEXT:      } {atomic_quantum_region}
+// CHECK-NEXT:      }
 // CHECK-NEXT:      cc.if(%[[ARG1]]) {
 // CHECK-NEXT:        quake.z %[[ARG0]] : (!quake.ref) -> ()
 // CHECK-NEXT:      }
-// CHECK-NEXT:      cc.scope {
+// CHECK-NEXT:      cc.scope atomic {
 // CHECK-NEXT:        quake.h %[[ARG0]] : (!quake.ref) -> ()
-// CHECK-NEXT:      } {atomic_quantum_region}
+// CHECK-NEXT:      }
 // CHECK-NEXT:      return
 // CHECK-NEXT:    }
 
-// COUNT-COUNT-5: atomic_quantum_region
-// COUNT-NOT: atomic_quantum_region
+// COUNT-COUNT-5: cc.scope{{( -> \([^)]*\))?}} atomic
+// COUNT-NOT: cc.scope{{( -> \([^)]*\))?}} atomic

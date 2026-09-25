@@ -12,7 +12,7 @@
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 // Quantum emulators
-// RUN: nvq++ -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s; fi
 // RUN: if %ionq_avail; then nvq++ --target ionq -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s ; fi
 // RUN: if %oqc_avail; then nvq++ --target oqc -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s ; fi
 // RUN: if %iqm_avail; then nvq++ --target iqm      --emulate -fkernel-exec-kind=2 %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s; fi
