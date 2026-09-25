@@ -22,7 +22,7 @@ The following settings can be configured:
 +=======================+======================+===================================+============================+
 | IQM Server URL        | IQM_SERVER_URL       | ``url``                           | ``--iqm-server-url``       |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
-| IQM Quantum Computer  | IQM_QC               | ``qc``                            | ``--iqm-quantum-computer`` |
+| IQM Quantum Computer  | IQM_QUANTUM_COMPUTER | ``qc``                            | ``--iqm-quantum-computer`` |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
 | API token             | IQM_TOKEN            |                                   |                            |
 +-----------------------+----------------------+-----------------------------------+----------------------------+
@@ -45,13 +45,13 @@ Examples:
 
         .. code:: bash
 
-            IQM_TOKEN="your personal API token" IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QC="garnet" python3 program.py
+            IQM_TOKEN="your personal API token" IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="garnet" python3 program.py
 
         .. code:: bash
 
             export IQM_TOKEN="your personal API token"
             export IQM_SERVER_URL="https://resonance.iqm.tech/"
-            export IQM_QC="garnet"
+            export IQM_QUANTUM_COMPUTER="garnet"
             python3 program.py
 
     .. tab:: Python
@@ -97,7 +97,7 @@ Emulation Mode
 
     .. code:: bash
 
-        IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QC="<quantum computer>" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" python3 program.py
+        IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="<quantum computer>" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" python3 program.py
 
 
     The file will be created with the given name. If the file already exists the execution is aborted with an error.
@@ -111,7 +111,7 @@ Emulation Mode
     .. code:: bash
 
         nvq++ --target iqm --emulate src.cpp -o program
-        IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QC="<quantum computer>" ./program
+        IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="<quantum computer>" ./program
 
     Emulation mode will still contact the configured IQM Server to retrieve the dynamic quantum architecture resulting from the active calibration unless a QPU architecture file is explicitly specified.
     This can be done by specifying a file with the architecture either at compile time or in an variable in the environment executing the binary.
@@ -136,7 +136,7 @@ Emulation Mode
     .. code:: bash
 
         nvq++ --target iqm --emulate src.cpp -o program
-        IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QC="<quantum computer>" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" ./program
+        IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="<quantum computer>" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" ./program
 
 
 The folder ``targettests/Target/IQM/`` contains sample QPU architecture files.

@@ -208,7 +208,11 @@ void IQMServerHelper::initialize(BackendConfig config) {
   }
 
   // Allow overriding the quantum computer selection.
-  auto envIqmQc = getenv("IQM_QC");
+  auto envIqmQc = getenv("IQM_QC"); // short hand for convenience
+  if (envIqmQc) {
+    iqmQC = std::string(envIqmQc);
+  }
+  envIqmQc = getenv("IQM_QUANTUM_COMPUTER"); // highest precedence
   if (envIqmQc) {
     iqmQC = std::string(envIqmQc);
   }

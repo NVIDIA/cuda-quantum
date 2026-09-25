@@ -118,7 +118,7 @@ IQM
 The quantum computers available there will be constantly extended as development progresses.
 Programmers of CUDA-Q may use IQM Resonance with either C++ or Python.
 
-To address an IQM quantum computer on Resonance set the environment variables ``IQM_SERVER_URL`` and ``IQM_QC``.
+To address an IQM quantum computer on Resonance set the environment variables ``IQM_SERVER_URL`` and ``IQM_QUANTUM_COMPUTER``.
 You can find the address information in Resonance by clicking on the name of the quantum computer of your choice and opening the "Get started" section.
 The environment variables are evaluated at runtime of your program.
 As result the python script or the compiled C++ program can be executed on different QPUs without any code changes or recompilation.
@@ -144,7 +144,7 @@ Submitting
 
         cudaq.set_target("iqm")
 
-    Then address the quantum computer by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QC`` and ``IQM_TOKEN`` before running the program.
+    Then address the quantum computer by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QUANTUM_COMPUTER`` and ``IQM_TOKEN`` before running the program.
 
 .. tab:: C++
 
@@ -154,7 +154,7 @@ Submitting
 
         nvq++ --target iqm src.cpp -o program
 
-    Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QC`` and ``IQM_TOKEN`` and running the program.
+    Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QUANTUM_COMPUTER`` and ``IQM_TOKEN`` and running the program.
 
 
 Example
@@ -170,7 +170,7 @@ Example
 
         export IQM_TOKEN="replace with your personal API token"
         export IQM_SERVER_URL="https://resonance.iqm.tech/"
-        export IQM_QC="garnet"
+        export IQM_QUANTUM_COMPUTER="garnet"
         python3 ghz.py
 
 .. tab:: C++
@@ -184,7 +184,7 @@ Example
         nvq++ --target iqm ghz.cpp -o ghz
         export IQM_TOKEN="replace with your personal API token"
         export IQM_SERVER_URL="https://resonance.iqm.tech/"
-        export IQM_QC="garnet"
+        export IQM_QUANTUM_COMPUTER="garnet"
         ./ghz
 
 
