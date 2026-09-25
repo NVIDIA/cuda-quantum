@@ -730,7 +730,7 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
   }];
 }
 
-def ExpandBroadcasts : Pass<"expand-broadcasts", "mlir::func::FuncOp"> {
+def ExpandVeqUses : Pass<"expand-veq-uses", "mlir::func::FuncOp"> {
   let summary = "Expands veqs used as targets into individual qubits.";
   let description = [{
     A one-target operator applied to a `veq` broadcasts that operator over

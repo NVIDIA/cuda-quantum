@@ -12,11 +12,11 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_EXPANDBROADCASTS
+#define GEN_PASS_DEF_EXPANDVEQUSES
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "expand-broadcasts"
+#define DEBUG_TYPE "expand-veq-uses"
 
 using namespace mlir;
 
@@ -36,11 +36,13 @@ public:
     if (op.getTargets().size() != 1 || !op.getControls().empty())
       return failure();
     Value target = op.getTargets()[0];
-    if (!isa<cudaq::quake::VeqType>(target.getType()))
-      return failure();
     auto size = cudaq::quake::getVeqSize(target);
     if (!size)
       return failure();
+
+    // extract_ref requires the sized source of a relaxed vector.
+    if (auto relax = target.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+      target = relax.getInputVec();
 
     auto loc = op.getLoc();
     // The sole target is the last operand (skip angles for rotations)
@@ -55,9 +57,53 @@ public:
   }
 };
 
-struct ExpandBroadcastsPass
-    : public cudaq::opt::impl::ExpandBroadcastsBase<ExpandBroadcastsPass> {
-  using ExpandBroadcastsBase::ExpandBroadcastsBase;
+// quake.evince %veq, %r : (!quake.veq<n>, !quake.ref) -> ()
+// ───────────────────────────────────────────────────────────────────
+// %0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+// ...
+// %n = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
+// quake.evince %0, ..., %n, %r : (!quake.ref, ..., !quake.ref,
+//     !quake.ref) -> ()
+//
+// A veq is never a linear type (only wires/cables are), so expanding it into
+// its constituent refs never touches `outs` -- the rewrite only grows `args`.
+class ExpandEvincePattern : public OpRewritePattern<cudaq::quake::EvinceOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
+                                PatternRewriter &rewriter) const override {
+    if (llvm::none_of(evin.getArgs(),
+                      [](Value v) { return cudaq::quake::getVeqSize(v).has_value(); }))
+      return failure();
+
+    auto loc = evin.getLoc();
+    SmallVector<Value> newArgs;
+    for (Value arg : evin.getArgs()) {
+      auto size = cudaq::quake::getVeqSize(arg);
+      if (!size) {
+        newArgs.push_back(arg);
+        continue;
+      }
+
+      // extract_ref requires the sized source of a relaxed vector.
+      Value vector = arg;
+      if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+        vector = relax.getInputVec();
+      for (std::size_t i = 0; i < *size; ++i)
+        newArgs.push_back(
+            cudaq::quake::ExtractRefOp::create(rewriter, loc, vector, i));
+    }
+
+    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
+        evin, newArgs, evin.getCompilerGenerated());
+    return success();
+  }
+};
+
+struct ExpandVeqUsesPass
+    : public cudaq::opt::impl::ExpandVeqUsesBase<ExpandVeqUsesPass> {
+  using ExpandVeqUsesBase::ExpandVeqUsesBase;
 
   void runOnOperation() override {
     auto *ctx = &getContext();
@@ -74,7 +120,8 @@ struct ExpandBroadcastsPass
                     ExpandBroadcastPat<cudaq::quake::U3Op>,
                     ExpandBroadcastPat<cudaq::quake::XOp>,
                     ExpandBroadcastPat<cudaq::quake::YOp>,
-                    ExpandBroadcastPat<cudaq::quake::ZOp>>(ctx);
+                    ExpandBroadcastPat<cudaq::quake::ZOp>, ExpandEvincePattern>(
+        ctx);
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
