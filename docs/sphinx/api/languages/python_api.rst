@@ -86,6 +86,27 @@ Quantum Embeddings
 .. autofunction:: cudaq.contrib.amplitude_encode
 .. autofunction:: cudaq.contrib.angular_encode
 
+Qiskit and OpenQASM Interoperability
+------------------------------------
+
+.. warning::
+
+   **Deprecated.** ``cudaq.contrib.from_qiskit`` and
+   ``cudaq.contrib.from_qasm`` are deprecated and will be removed in a
+   future release. Calling either one now emits a ``DeprecationWarning``.
+
+   Use the standalone `cudaq-convert <https://github.com/QuantumRaul/cudaq-convert>`__
+   package instead, which supports OpenQASM 3.0 in addition to OpenQASM 2.0
+   and can convert QASM source strings directly:
+
+   .. code:: bash
+
+       pip install cudaq-convert
+
+   .. code:: python
+
+       from cudaq_convert import from_qasm, from_qasm_str, from_qiskit
+
 Quantum Error Correction
 =============================
 
