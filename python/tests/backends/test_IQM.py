@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import os
-import shutil
 import tempfile
 from typing import List
 from multiprocessing import Process
@@ -20,13 +19,15 @@ import pytest
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
 
-from utils.mock_qpu.iqm import startServer
-from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
+try:
+    from utils.mock_qpu.iqm import startServer
+    from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
+    from utils.mock_qpu import get_backend_port
+except Exception as e:
+    pytest.skip(f"Mock qpu not available, skipping IQM tests. {e}",
+                allow_module_level=True)
 
 pytestmark = pytest.mark.xdist_group("iqm_mock")
-
-# Define the port for the mock server
-port = 62443
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
@@ -38,6 +39,9 @@ def startUpMockServer():
     # Write a fake access tokens file
     with tempfile.NamedTemporaryFile(delete=False) as tmp_tokens_file:
         write_a_mock_tokens_file(tmp_tokens_file.name)
+
+    # Import port number of the mock server
+    port = get_backend_port("iqm")
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))

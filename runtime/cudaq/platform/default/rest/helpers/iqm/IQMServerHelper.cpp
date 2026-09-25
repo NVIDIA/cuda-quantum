@@ -40,9 +40,18 @@ class IQMServerHelper : public ServerHelper {
     }
   };
 
+  /// @brief Counter to limit the output of the status during polling
+  uint statusOutputRateLimit = 0;
+
+  /// @brief Number of total qubits on the addressed QPU
+  uint qubitCountStaticArch = 0;
+
 protected:
   /// @brief The base URL
   std::string iqmServerUrl = "http://localhost/";
+
+  /// @brief The "id" or "alias" (name) of the quantum computer
+  std::string iqmQC = "default";
 
   /// @brief Authorization token
   std::optional<std::string> authToken = std::nullopt;
@@ -78,6 +87,9 @@ protected:
     return tokens["access_token"].get<std::string>();
   }
 
+  /// @brief Calibration-set ID from the dynamic quantum architecture
+  std::string calibration_set_id = "";
+
   /// @brief The ID of the last job posted
   /// Cache here as the framework does not pass it to jobIdDone().
   std::string jobId;
@@ -97,24 +109,14 @@ protected:
   /// @brief Fetch the quantum architecture from server
   void fetchQuantumArchitecture();
 
+  /// @brief Reduce the topology to a single network
+  void fixupTopology();
+
   /// @brief Write the dynamic quantum architecture file
   std::string writeQuantumArchitectureFile(void);
 
-  /// @brief Get server quantum architecture name
-  std::string getQuantumArchitectureName() const {
-    RestClient client;
-    auto headers = generateRequestHeader();
-    auto quantumArchitecture =
-        client.get(iqmServerUrl, "quantum-architecture", headers);
-    try {
-      CUDAQ_DBG("quantumArchitecture = {}", quantumArchitecture.dump());
-      return quantumArchitecture["quantum_architecture"]["name"]
-          .get<std::string>();
-    } catch (const std::exception &e) {
-      throw std::runtime_error("Unable to get quantum architecture name: " +
-                               std::string(e.what()));
-    }
-  }
+  /// @brief Read qubit mapping from quantum architecture file
+  void readQuantumArchitectureFile(std::string filepath);
 
 public:
   /// @brief Return the name of this server helper, must be the
@@ -166,14 +168,23 @@ public:
 void IQMServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
 
-  // Set an alternate base URL if provided.
+  /* Configuration of URL and QC starts with default values. These can be
+     overwritten in a first round with settings from the backend string.
+     In a second round the values can be once more overwritten with settings
+     from environment variables. This second round allows changing the target
+     without recompilation or code changes. */
+
+  // First apply values from the backend string if given.
   auto iter = backendConfig.find("url");
   if (iter != backendConfig.end()) {
     iqmServerUrl = iter->second;
   }
+  iter = backendConfig.find("qc");
+  if (iter != backendConfig.end()) {
+    iqmQC = iter->second;
+  }
 
-  // Allow overriding IQM Server URL. This allows sending a program to any
-  // given URL without recompilation.
+  // Allow overriding IQM Server URL.
   auto envIqmServerUrl = getenv("IQM_SERVER_URL");
   if (envIqmServerUrl) {
     iqmServerUrl = std::string(envIqmServerUrl);
@@ -181,7 +192,33 @@ void IQMServerHelper::initialize(BackendConfig config) {
 
   if (!iqmServerUrl.ends_with("/"))
     iqmServerUrl += "/";
+
+  // For backward compatibility rewrite old style URLs.
+  auto pos = iqmServerUrl.find("://cocos.");
+  if (pos != std::string::npos) {
+    iqmServerUrl.erase(pos + 3, 6); // skip the anchor and erase "cocos."
+    pos = iqmServerUrl.find_first_of('/', pos + 3); // start of the path
+    assert(pos != std::string::npos); // guaranteed by adding the slash above
+    auto end = iqmServerUrl.find_first_of('/', pos + 1);
+    if (end != std::string::npos) {
+      // The old URL path starts with the QC alias.
+      iqmQC = iqmServerUrl.substr(pos + 1, end - pos - 1);
+      iqmServerUrl.erase(pos, end - pos);
+    }
+  }
+
+  // Allow overriding the quantum computer selection.
+  auto envIqmQc = getenv("IQM_QC"); // short hand for convenience
+  if (envIqmQc) {
+    iqmQC = std::string(envIqmQc);
+  }
+  envIqmQc = getenv("IQM_QUANTUM_COMPUTER"); // highest precedence
+  if (envIqmQc) {
+    iqmQC = std::string(envIqmQc);
+  }
+
   CUDAQ_DBG("iqmServerUrl = {}", iqmServerUrl);
+  CUDAQ_DBG("iqmQc = {}", iqmQC);
 
   auto token = getenv("IQM_TOKEN");
   if (token) {
@@ -225,16 +262,19 @@ IQMServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // so we cannot use the batch mode
   for (auto &circuitCode : circuitCodes) {
     ServerMessage message = ServerMessage::object();
-    message["qubit_mapping"] = ServerMessage::array();
     message["circuits"] = ServerMessage::array();
     message["shots"] = shots;
 
-    // Apply the mapping derived from the dynamic quantum architecture.
-    for (auto &[key, value] : qubitNameMap) {
-      nlohmann::json singleQubitMapping;
-      singleQubitMapping["logical_name"] = "QB" + std::to_string(value + 1);
-      singleQubitMapping["physical_name"] = key;
-      message["qubit_mapping"].push_back(singleQubitMapping);
+    // Only add mapping if qubits were erased from the quantum architecture.
+    if (qubitNameMap.size() != qubitCountStaticArch) {
+      // Apply the mapping derived from the dynamic quantum architecture.
+      message["qubit_mapping"] = ServerMessage::array();
+      for (auto &[key, value] : qubitNameMap) {
+        nlohmann::json singleQubitMapping;
+        singleQubitMapping["logical_name"] = "QB" + std::to_string(value + 1);
+        singleQubitMapping["physical_name"] = key;
+        message["qubit_mapping"].push_back(singleQubitMapping);
+      }
     }
 
     ServerMessage yac = nlohmann::json::parse(circuitCode.code);
@@ -247,7 +287,8 @@ IQMServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   RestHeaders headers = generateRequestHeader();
 
   // return the payload
-  return std::make_tuple(iqmServerUrl + "circuits", headers, messages);
+  return std::make_tuple(iqmServerUrl + "api/v1/jobs/" + iqmQC + "/circuit",
+                         headers, messages);
 }
 
 std::string IQMServerHelper::extractJobId(ServerMessage &postResponse) {
@@ -255,44 +296,81 @@ std::string IQMServerHelper::extractJobId(ServerMessage &postResponse) {
 }
 
 std::string IQMServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return "circuits" + postResponse["id"].get<std::string>() + "/counts";
+  return "api/v1/jobs/" + postResponse["id"].get<std::string>();
 }
 
 std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
   this->jobId = jobId;
-  return iqmServerUrl + "circuits/" + jobId + "/counts";
+  return iqmServerUrl + "api/v1/jobs/" + jobId;
 }
 
 std::chrono::microseconds
 IQMServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
-  return std::chrono::seconds(1); // jobs never take less than few seconds
+  uint delay = 1; // in seconds
+
+  if (postResponse.contains("queue_position")) {
+    uint pos = postResponse["queue_position"].get<uint>();
+    CUDAQ_INFO("Queue position: {}", pos);
+    while (pos > 3 && delay < 60) {
+      pos--;
+      delay += 5;
+    }
+  }
+
+  if (delay > 30) {
+    CUDAQ_INFO("Polling again in {} sec", delay);
+  }
+  return std::chrono::seconds(delay);
 };
 
 bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  CUDAQ_DBG("getJobResponse: {}", getJobResponse.dump());
+  std::string jobStatus = getJobResponse["status"].get<std::string>();
 
-  auto jobStatus = getJobResponse["status"].get<std::string>();
-  std::unordered_set<std::string> terminalStatuses = {"ready", "failed",
-                                                      "aborted"};
+  if (jobStatus != "waiting") {
+    statusOutputRateLimit = 0;
+    CUDAQ_INFO("Job Status: {}", jobStatus);
+  } else {
+    if (statusOutputRateLimit == 0) {
+      statusOutputRateLimit = 10;
+      CUDAQ_INFO("Job Status: {}", jobStatus);
+    }
+    statusOutputRateLimit--;
+  }
+
+  std::unordered_set<std::string> terminalStatuses = {"completed", "failed",
+                                                      "cancelled"};
   bool done = terminalStatuses.find(jobStatus) != terminalStatuses.end();
 
   if (done) {
     // if the job failed exit with an exception
-    if (jobStatus != "ready") {
+    if (jobStatus != "completed") {
       CUDAQ_INFO("getJobResponse: {}", getJobResponse.dump());
-      auto jobMessage = getJobResponse["message"].get<std::string>();
+      std::string jobMessage = "unknown";
+      try {
+        jobMessage = getJobResponse["errors"][0]["message"].get<std::string>();
+      } catch (const std::exception &e) {
+        try {
+          if (!getJobResponse["messages"].empty()) {
+            jobMessage =
+                getJobResponse["messages"][0]["message"].get<std::string>();
+          }
+        } catch (const std::exception &e) {
+          jobMessage = "failed to get reason";
+        }
+      }
       throw std::runtime_error("Job status: " + jobStatus +
                                ", reason: " + jobMessage);
     }
 
-    // The counts are already part of the status response, so there is no need
-    // to fetch them separately.
+    RestClient client;
+    auto headers = generateRequestHeader();
+
+    // retrieve the counts artifact
     ServerMessage counts_batch;
     try {
-      if (!getJobResponse.contains("counts_batch")) {
-        throw std::runtime_error("counts_batch field missing in results");
-      }
-      counts_batch = getJobResponse["counts_batch"];
+      counts_batch = client.get(
+          iqmServerUrl,
+          "api/v1/jobs/" + jobId + "/artifacts/measurement_counts", headers);
       if (counts_batch.is_null() || counts_batch.empty() ||
           counts_batch.type() != nlohmann::json::value_t::array ||
           counts_batch[0].type() != nlohmann::json::value_t::object) {
@@ -307,9 +385,18 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     // the measurement with a given key is done. This is then appended to the
     // artifacts.
     try {
+      ServerMessage job_payload;
+
+      job_payload = client.get(iqmServerUrl,
+                               "api/v1/jobs/" + jobId + "/payload", headers);
+      CUDAQ_DBG("got payload: {}", job_payload.dump());
+
       nlohmann::json mkey2qubit;
-      auto instructions =
-          getJobResponse["metadata"]["request"]["circuits"][0]["instructions"];
+      auto instructions = job_payload["circuits"][0]["instructions"];
+      if (instructions.is_null()) {
+        throw std::runtime_error("No circuit or instructions found");
+      }
+
       for (auto instruction : instructions) {
         if (instruction["name"] == "measure") {
           mkey2qubit[instruction["args"]["key"]] = instruction["qubits"][0];
@@ -333,8 +420,6 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 cudaq::sample_result
 IQMServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobID) {
-  CUDAQ_INFO("postJobResponse: {}", postJobResponse.dump());
-
   // assume there is only one measurement and everything goes into the
   // GlobalRegisterName of `sample_results`
   std::vector<ExecutionResult> srs;
@@ -468,18 +553,21 @@ std::map<std::string, std::string> IQMServerHelper::getPipelineSubstitutions(
   if (filename) {
     // Use provided string as path+filename
     pathToFile = std::string(filename);
+    readQuantumArchitectureFile(pathToFile);
   } else {
     // Allow setting of quantum architecture file via the backend config
     auto iter = backendConfig.find("mapping_file");
     if (iter != backendConfig.end()) {
       // Use provided string as path+filename
       pathToFile = iter->second;
+      readQuantumArchitectureFile(pathToFile);
     } else {
       // Use the dynamic quantum architecture of the configured IQM server.
       // Fallback to an empty substitution map and let the pipeline report the
       // problem if it is ever actually used.
       try {
         fetchQuantumArchitecture();
+        fixupTopology();
         pathToFile = writeQuantumArchitectureFile();
       } catch (const std::exception &e) {
         CUDAQ_WARN("Leaving %QPU_ARCH% unresolved: {}. Set IQM_QPU_QA or pass "
@@ -488,9 +576,9 @@ std::map<std::string, std::string> IQMServerHelper::getPipelineSubstitutions(
         return {};
       } catch (...) {
         CUDAQ_WARN("Leaving %QPU_ARCH% unresolved: Unable to get quantum "
-                   "architecture from \"{}\". Set IQM_QPU_QA or pass "
-                   "--mapping-file to supply it offline.",
-                   iqmServerUrl);
+                   "architecture for \"{}\" from \"{}\". Set IQM_QPU_QA or "
+                   "pass --mapping-file to supply it offline.",
+                   iqmQC, iqmServerUrl);
         return {};
       }
     }
@@ -522,18 +610,20 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     // From the Dynamic Quantum Architecture we need the list of qubits names,
     // the list of qubit pairs which can form cz-gates, the lists of qubits
     // which can do prx-gates and the list of qubits which support measurement.
-    auto dynamicQuantumArchitecture = client.get(iqmServerUrl,
-                                                 "calibration-sets/default/"
-                                                 "dynamic-quantum-architecture",
-                                                 headers);
-    CUDAQ_DBG("Dynamic QA={}", dynamicQuantumArchitecture.dump());
+    auto dynamicQuantumArchitecture =
+        client.get(iqmServerUrl,
+                   "api/v1/calibration-sets/" + iqmQC +
+                       "/default/dynamic-quantum-architecture",
+                   headers);
+
+    CUDAQ_INFO("Dynamic QA={}", dynamicQuantumArchitecture.dump());
+
+    calibration_set_id = dynamicQuantumArchitecture["calibration_set_id"];
 
     auto &cz = dynamicQuantumArchitecture["gates"]["cz"];
-    auto implementation = cz["default_implementation"];
-    auto &cz_loci = cz["implementations"][implementation]["loci"];
 
     auto &prx = dynamicQuantumArchitecture["gates"]["prx"];
-    implementation = prx["default_implementation"];
+    auto implementation = prx["default_implementation"];
     auto prx_loci = prx["implementations"][implementation]["loci"];
 
     auto &measure = dynamicQuantumArchitecture["gates"]["measure"];
@@ -547,10 +637,14 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     for (auto qubit : dynamicQuantumArchitecture["qubits"]) {
       qubitNameMap[qubit] = 0; // initializing to zero meaning no capability
     }
-    for (auto cz : cz_loci) {
-      // each cz loci has 2 qubits - mark each qubit
-      for (auto qubit : cz) { // cz is an array of strings
-        qubitNameMap[qubit] |= (1 << 0);
+    qubitCountStaticArch = qubitNameMap.size();
+    for (auto &cz_implementation : cz["implementations"]) {
+      auto &cz_loci = cz_implementation["loci"];
+      for (auto cz : cz_loci) {
+        // each cz loci has 2 qubits - mark each qubit
+        for (auto qubit : cz) { // cz is an array of strings
+          qubitNameMap[qubit] |= (1 << 0);
+        }
       }
     }
     for (auto prx : prx_loci) {
@@ -563,9 +657,14 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     uint idx = 0; // enumeration counter
     for (auto qubit = qubitNameMap.begin(); qubit != qubitNameMap.end();) {
       if (qubit->second == ((1 << 0) | (1 << 1) | (1 << 2))) {
+        CUDAQ_DBG("mapping qubit: {} = {}", qubit->first, idx);
         qubit->second = idx++; // replace flags with enumeration value
         qubit++;
       } else {
+        CUDAQ_DBG("SKIPPING qubit {} which lacks {}{}{}", qubit->first,
+                  (qubit->second & (1 << 0) ? "" : "cz "),
+                  (qubit->second & (1 << 1) ? "" : "prx "),
+                  (qubit->second & (1 << 2) ? "" : "mx"));
         qubit = qubitNameMap.erase(qubit);
       }
     }
@@ -575,38 +674,178 @@ void IQMServerHelper::fetchQuantumArchitecture() {
 
     // The number of qubits in this dynamic quantum architecture.
     uint qubitCount = qubitNameMap.size();
-    CUDAQ_INFO("Server {} has {} calibrated qubits", iqmServerUrl, qubitCount);
+    CUDAQ_INFO("Quantum computer \"{}\" at \"{}\" has {} calibrated qubits",
+               iqmQC, iqmServerUrl, qubitCount);
     assert(idx == qubitCount);
 
-#ifdef CUDAQ_DEBUG
-    for (auto &[key, value] : qubitNameMap) {
-      CUDAQ_DBG("qubit mapping: {} = {}", key, value);
-    }
-#endif
-
     // Initialise the adjacency map with an empty set for each qubit
+    qubitAdjacencyMap.clear();
     qubitAdjacencyMap.reserve(qubitCount);
     for (uint i = 0; i < qubitCount; i++) {
       qubitAdjacencyMap.emplace_back();
     }
 
-    // Iterate over all cz loci and add only those to the adjacency map
-    // for which all qubits have passed the above tests.
-    for (auto cz : cz_loci) {
-      if (qubitNameMap.count(cz[0]) && qubitNameMap.count(cz[1])) {
-        CUDAQ_DBG("usable cz_loci {}", cz.dump());
-        qubitAdjacencyMap[qubitNameMap[cz[0]]].insert(qubitNameMap[cz[1]]);
-        qubitAdjacencyMap[qubitNameMap[cz[1]]].insert(qubitNameMap[cz[0]]);
-      }
-    } // for all cz loci
+    // Iterate over all cz loci of all implementations and add only those to
+    // the adjacency map for which all qubits have passed the above tests.
+    for (auto &cz_implementation : cz["implementations"]) {
+      auto &cz_loci = cz_implementation["loci"];
+      for (auto cz : cz_loci) {
+        if (qubitNameMap.count(cz[0]) && qubitNameMap.count(cz[1])) {
+          CUDAQ_DBG("usable cz_loci {}", cz.dump());
+          qubitAdjacencyMap[qubitNameMap[cz[0]]].insert(qubitNameMap[cz[1]]);
+          qubitAdjacencyMap[qubitNameMap[cz[1]]].insert(qubitNameMap[cz[0]]);
+        }
+      } // for all cz loci
+    } // for all implementations
+
   } catch (const std::exception &e) {
-    throw std::runtime_error("Unable to get quantum architecture from \"" +
-                             iqmServerUrl + "\": " + std::string(e.what()));
+    throw std::runtime_error("Unable to get quantum architecture for \"" +
+                             iqmQC + "\" from \"" + iqmServerUrl +
+                             "\": " + std::string(e.what()));
   } catch (...) {
-    throw std::runtime_error("Unable to get quantum architecture from \"" +
-                             iqmServerUrl + "\".");
+    throw std::runtime_error("Unable to get quantum architecture for \"" +
+                             iqmQC + "\" from \"" + iqmServerUrl + "\": ");
   }
 } // IQMServerHelper::fetchQuantumArchitecture()
+
+/**
+ * Check for a split topology and if multiple networks exist remove all but one.
+ *
+ * The network remaining is either the one with the most nodes or if there is
+ * a tie the one containing the qubit with the smallest index number.
+ */
+void IQMServerHelper::fixupTopology() {
+  uint qubitCount = qubitAdjacencyMap.size();
+  std::vector<uint> networkId;
+  uint i, j;
+
+  // Initially each qubit is a separate net and gets an own ID.
+  networkId.reserve(qubitCount);
+  for (i = 0; i < qubitCount; i++) {
+    networkId.push_back(i);
+  }
+
+  // Iterate over the adjacency map and assign the same network ID to qubits
+  // which are direct neighbours.
+  uint touchedMaxQubit = 0;
+  for (i = 0; i < qubitCount; i++) {
+    for (auto j : qubitAdjacencyMap[i]) {
+      // Only one direction of every connection needs to be checked.
+      if (i < j) {
+        // CUDAQ_DBG("qubit {} has nb {}", i, j);
+        if (networkId[i] == networkId[j]) {
+          // qubits already belong to the same network -> nothing to do
+          continue;
+        }
+
+        // The lowest network id of both qubits will be used as id for
+        // the merged network.
+        uint newNetId = std::min(networkId[i], networkId[j]);
+
+        // If the network id of the neighboring qubit is already modified all
+        // touched qubits need to be checked for the network id to be replaced
+        // and this then substituted with the id chosen for the merged network.
+        if (networkId[j] != j) {
+          uint prevNetId = std::max(networkId[i], networkId[j]);
+          for (uint k = 0; k <= touchedMaxQubit; k++) {
+            if (networkId[k] == prevNetId) {
+              networkId[k] = newNetId;
+            }
+          }
+        }
+
+        // Set the same network id to both qubits.
+        networkId[i] = networkId[j] = newNetId;
+
+        if (touchedMaxQubit < j) {
+          touchedMaxQubit = j;
+        }
+      }
+    }
+  }
+
+#ifdef CUDAQ_DEBUG
+  std::string listNetworkId = "";
+  for (i = 0; i < qubitCount; i++) {
+    listNetworkId += std::to_string(networkId[i]) + ", ";
+  }
+  CUDAQ_DBG("Network id's: {}", listNetworkId);
+#endif
+
+  /* Assumption is that there is a single contiguous network or not more than
+     very few networks. This led to choosing a map for counting the qubits in
+     each network. Drawback is that the map cannot be ordered by it's value
+     but since we assume a few entries only iterating over them is fast. */
+
+  // Count the number of qubits belonging to each network.
+  std::map<uint, uint> nodeCnt;
+  for (i = 0; i < qubitCount; i++) {
+    nodeCnt[networkId[i]] += 1;
+  }
+
+  // Find the network with the largest number of qubits.
+  uint maxCnt = 0, netId = 0;
+  for (auto &[key, value] : nodeCnt) {
+    CUDAQ_DBG("Network id {} has {} qubits", key, value);
+    if (maxCnt < value) {
+      maxCnt = value;
+      netId = key;
+    }
+  }
+
+  if (nodeCnt.size() > 1) {
+    CUDAQ_INFO("Split topology detected! {} networks found.", nodeCnt.size());
+    CUDAQ_DBG("Selected network id {} with {} qubits", netId, maxCnt);
+
+    // Keep only the largest Network and drop all the other ones.
+
+    for (i = qubitCount; i > 0; i--) {
+      if (networkId[i - 1] != netId) {
+        qubitAdjacencyMap.erase(qubitAdjacencyMap.begin() + (i - 1));
+      }
+    }
+
+    uint idx = 0; // enumeration counter
+    auto qubit = qubitNameMap.begin();
+    for (i = 0; qubit != qubitNameMap.end(); i++) {
+      if (networkId[i] == netId) {
+        qubit->second = idx++;
+        qubit++;
+      } else {
+        CUDAQ_DBG("dropping {}", qubit->first);
+        qubit = qubitNameMap.erase(qubit);
+      }
+    }
+
+    /* After erasing elements from the vectors with the results the sets with
+       the indexes of the qubit neighbours need to be adjusted.
+       The vector used above for counting the qubits is reused and prepared
+       here as a lookup table for translating the initial qubit enumeration to
+       the actual one. */
+    for (i = j = 0; i < qubitCount; i++) {
+      if (networkId[i] == netId) {
+        // CUDAQ_DBG("qubit id {} -> {}", i, j);
+        networkId[i] = j++;
+      }
+    }
+
+    // After removing elements above get the new size here.
+    qubitCount = qubitAdjacencyMap.size();
+    CUDAQ_INFO("Reduced topology to largest network with {} qubit", qubitCount);
+
+    // Translate the neighbour index numbers
+    std::set<uint> neighbours;
+    for (i = 0; i < qubitCount; i++) {
+      // CUDAQ_DBG("qubit {}", i);
+      neighbours.clear();
+      for (uint nb : qubitAdjacencyMap[i]) {
+        // CUDAQ_DBG(" nb {}", nb);
+        neighbours.insert(networkId[nb]);
+      }
+      qubitAdjacencyMap[i] = neighbours;
+    }
+  }
+}
 
 /**
  * Write the content of the dynamic quantum architecture to file.
@@ -627,7 +866,7 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
 
   // open a file to write the dynamic quantum architecture to
   if (quantumArchitectureFilePath.empty()) {
-    // if no filename is given a temporary unique name is generated
+    // if no filename is given a temporary file with unique name is generated
     quantumArchitectureFilePath =
         std::string(P_tmpdir) + "/qpu-architecture-XXXXXX";
     fd = mkstemp(quantumArchitectureFilePath.data());
@@ -640,6 +879,11 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
                              quantumArchitectureFilePath + "\" - " +
                              std::string(strerror(errno)));
   }
+  if (ftruncate(fd, 0)) {
+    throw std::runtime_error("Failed to truncate QPU architecture file: \"" +
+                             quantumArchitectureFilePath + "\" - " +
+                             std::string(strerror(errno)));
+  }
   // open also as FILE which allows easier formatting with fprintf()
   FILE *file = fdopen(fd, "w");
   if (file == NULL) {
@@ -649,16 +893,20 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
   }
 
   // Header
-  fprintf(file, "# NOTE: automatically generated for IQM server at URL: %s\n\n",
-          iqmServerUrl.c_str());
+  fprintf(file,
+          "# Automatically generated from calibration-set \"%s\" "
+          "for quantum computer \"%s\" at IQM server URL: %s\n\n",
+          calibration_set_id.c_str(), iqmQC.c_str(), iqmServerUrl.c_str());
   fprintf(file, "Number of nodes: %u\n", qubitCount);
   fprintf(file, "Number of edges: ?\n\n");
+
+  std::string outputLine;
 
   // Write one line for each qubit listing the adjacent qubits.
   for (uint i = 0; i < qubitCount; i++) {
     bool first = true;
 
-    std::string outputLine = std::to_string(i) + " --> {";
+    outputLine = std::to_string(i) + " --> {";
     for (uint node : qubitAdjacencyMap[i]) {
       if (first)
         first = false;
@@ -671,11 +919,69 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
     fwrite(outputLine.c_str(), outputLine.length(), 1, file);
   }
 
+  if (qubitNameMap.size() != qubitCountStaticArch) {
+    fprintf(file, "\n# Mapping to physical qubit tags for IQM backend\n");
+
+    outputLine = "# IQM qubit map:";
+    for (auto &[key, value] : qubitNameMap) {
+      outputLine += " \"" + key + "\"";
+    }
+
+    fwrite(outputLine.c_str(), outputLine.length(), 1, file);
+  }
+
   fclose(file);
   close(fd);
 
   return quantumArchitectureFilePath;
 } // IQMServerHelper::writeQuantumArchitectureFile()
+
+/**
+ * Read a qubit mapping list from a dynamic quantum architecture to file.
+ *
+ * Reads a qubit mapping list if such is included in the specified dynamic
+ * quantum architecture file. The qubit mapping list is an IQM specific
+ * extension of the quantum architecture file and located inside a comment.
+ * The qubit mapping list is a sequence of strings in which each string is
+ * enclosed in double quotes. It is loaded in order into the map used for
+ * translating logical qubit numbers into physical qubit tags.
+ *
+ * @throws std::runtime_error thrown when file cannot be opened for reading.
+ */
+void IQMServerHelper::readQuantumArchitectureFile(std::string filepath) {
+  std::fstream file(filepath);
+  std::string line;
+
+  if (!file.is_open()) {
+    throw std::runtime_error("Cannot read QPU architecture file: \"" +
+                             filepath + "\" - " + std::string(strerror(errno)));
+  }
+
+  qubitNameMap.clear();
+
+  while (std::getline(file, line)) {
+    if (line.starts_with("# IQM qubit map:")) {
+      CUDAQ_DBG("Loading qubit mapping from quantum architecture file");
+
+      uint idx = 0; // enumeration counter for logical qubits
+      size_t start = line.find_first_of(':'), end = start;
+
+      // Parse for tags enclosed in a pair of double quotes.
+      while (start != std::string::npos && end != std::string::npos) {
+        start = line.find_first_of('"', end + 1);
+        if (start != std::string::npos) {
+          end = line.find_first_of('"', start + 1);
+          if (end != std::string::npos) {
+            qubitNameMap[line.substr(start + 1, end - start - 1)] = idx++;
+          }
+        }
+      }
+      break; // Process only the first occurrence of a mapping line.
+    }
+  }
+
+  file.close();
+}
 
 } // namespace cudaq
 
