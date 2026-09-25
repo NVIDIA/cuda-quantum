@@ -1915,6 +1915,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -2542,7 +2545,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![5249414e2b9e4d888f08911379e86c65](../../_images/speedup.png){.no-scaled-link
+![7ce965b65ddd451fbc6f086e6fd25950](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2556,9 +2559,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![7d4420ef1d8a45f2ac2de652fa462e5d](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![4c31570339214f3e9d16be53ad2926e8](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![06e9562ae8b446fcabff3dbfc0daecc7](../../_images/efficiency.jpeg){.no-scaled-link
+![01864ef77bc6452a9be2e409220a0889](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

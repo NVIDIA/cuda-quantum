@@ -1891,6 +1891,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}

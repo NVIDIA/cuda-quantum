@@ -1930,6 +1930,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -2029,14 +2032,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![6429dc9140ff4d9a8e9d3896f05f094d](../../_images/gate-fuse.png)
+![17669d087dbf4035bd40dbeb237d475d](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![f0f6a66771954c8a889e0d27e7a21e4c](../../_images/gatefusion.png)
+![48e8409741144a328f7d7202b39f323b](../../_images/gatefusion.png)
 :::
 :::
 :::
