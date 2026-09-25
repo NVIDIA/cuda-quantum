@@ -261,3 +261,10 @@ It is often useful to define parameterized circuit kernels which can be used for
       :language: cpp
       :start-after: [Begin `ParameterizedKernels`]
       :end-before: [End `ParameterizedKernels`]
+
+Visualizing Kernels
+-------------------
+
+Once a kernel is built, it can be visualized as a quantum circuit diagram. See :doc:`../../examples/python/visualization` for a full walkthrough of the kernel visualization tools available in CUDA-Q.
+
+You can also use the `interactive kernel visualization widget <https://nvidia.github.io/cuda-q-academic/quick-start-to-quantum/interactive_widget/cudaq-hello-world.html>`_ to build and visualize small kernel examples in your browser.

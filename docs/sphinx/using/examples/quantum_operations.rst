@@ -200,3 +200,15 @@ where the probability of measuring :math:`x = 00, 01, 10, 11` occurs
 with probability :math:`\lvert \alpha_{x} \rvert ^2` with the
 normalization condition that
 :math:`\sum_{x \in \{ 0,1 \}^2} \lvert \alpha_{x} \rvert ^2 = 1`.
+
+Try the widget below to set an arbitrary quantum state and simulate a set of measurements.
+
+.. raw:: html
+
+   <iframe src="https://nvidia.github.io/cuda-q-academic/quick-start-to-quantum/interactive_widget/borns-rule-widget-sampling.html"
+           width="100%"
+           height="1300px"
+           frameborder="0"
+           scrolling="no"
+           style="border: 1px solid #e1e4e5; border-radius: 4px;">
+   </iframe>i
