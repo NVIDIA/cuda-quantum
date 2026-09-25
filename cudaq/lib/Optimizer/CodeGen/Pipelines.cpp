@@ -147,6 +147,16 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
   }
 }
 
+// StackFramePrealloc must run immediately after addLowerToCFG at every call
+// site, never decoupled from it. Moving addLowerToCFG on its own while
+// leaving StackFramePrealloc invoked separately (e.g. earlier, over
+// structured cc.scope/cc.if/cc.loop control flow instead of the lowered
+// cf-dialect CFG it is designed to analyze) was tried and reproducibly broke
+// dynamic/list-returning kernels (`cudaq.run`, `run_async`) and mid-circuit-
+// measurement kernels: allocations that must get a fresh stack slot on every
+// loop iteration were instead hoisted and shared across iterations,
+// corrupting the accumulated result. Keep the two passes paired through this
+// helper wherever either is invoked.
 void cudaq::opt::addLowerToCFGAndCleanup(OpPassManager &pm) {
   cudaq::opt::addLowerToCFG(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
@@ -349,8 +359,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   LoopUnrollOptions luo;
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  addLowerToCFG(pm);
-  pm.addNestedPass<func::FuncOp>(createStackFramePrealloc());
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
