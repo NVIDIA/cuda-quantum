@@ -57,7 +57,7 @@ get_property(test_cudaq_libraries GLOBAL PROPERTY CUDAQ_RUNTIME_LIBS)
 set(CUDAQ_TEST_DEPENDS
     CircuitCheck
     cudaq-opt
-    cudaq-target-conf
+    cudaq-target-resolve
     cudaq-translate
     CustomPassPlugin
     FileCheck

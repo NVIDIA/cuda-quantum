@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target infleqtion      --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %infleqtion_avail; then nvq++ --target infleqtion      --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %anyon_avail; then nvq++ --target anyon           --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %ionq_avail; then nvq++ --target ionq            --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %iqm_avail; then nvq++ --target iqm             --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
 // RUN: if %oqc_avail; then nvq++ --target oqc             --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %qbraid_avail; then nvq++ --target qbraid          --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: nvq++ --target quantinuum      --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum      --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %quantum_machines_avail; then nvq++ --target quantum_machines --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on

@@ -275,13 +275,12 @@ jobs:
           # build-essential is needed for nbconvert (jupyter/nbconvert#1742).
           retry sudo apt-get update && retry sudo apt-get install -y build-essential python3-dev python3-venv python3-pip
 
-          backends_to_test=`\
-              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-              do
-                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
-                    basename $file | cut -d "." -f 1; \
-                  fi; \
-              done`
+          # GPU targets are those that cudaq-target-resolve reports as available only on hosts with GPUs.
+          resolve="$CUDA_QUANTUM_PATH/bin/cudaq-target-resolve"
+          resolve_args=(--install-dir="$CUDA_QUANTUM_PATH" --lib-dir="$CUDA_QUANTUM_PATH/lib")
+          backends_to_test=$(comm -13 \
+              <("$resolve" --list-simulators "${resolve_args[@]}" --gpu-count=0 | sort) \
+              <("$resolve" --list-simulators "${resolve_args[@]}" --gpu-count=1 | sort))
 
           rm -rf examples applications targets snippets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets && mv github-repo/docs/sphinx/snippets/python snippets
           mv github-repo/docs/notebook_validation.py .

@@ -75,7 +75,7 @@ def test_async_submit_from_thread_outliving_main():
 
 
 @pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia-mqpu")),
+    not cudaq.has_target("nvidia-mqpu"),
     reason="a second platform instance requires the mqpu target")
 def test_async_jobs_outstanding_on_swapped_out_platform():
     """Switching targets leaves the previous platform alive, queues included."""

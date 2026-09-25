@@ -28,6 +28,8 @@ config.cudaq_intrinsic_modules_dir = "@CUDAQ_INTRINSIC_MODULES_DIR@"
 config.cudaq_llvm_tools_dir = "@CMAKE_BINARY_DIR@/bin"
 config.cudaq_lib_dir = "@CMAKE_BINARY_DIR@/lib"
 config.cudaq_plugin_ext = "@LLVM_PLUGIN_EXT@"
+config.cudaq_plugin_cxx = "@CMAKE_CXX_COMPILER@"
+config.cudaq_plugin_cxx_flags = "@CUDAQ_TARGET_PLUGIN_CXX_FLAGS@"
 config.python_executable = "@PYTHON_EXECUTABLE@"
 config.cc = "@CMAKE_C_COMPILER@"
 config.targets_to_build = "@TARGETS_TO_BUILD@"
@@ -98,6 +100,20 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
   config.substitutions.append(('%quantum_machines_avail', 'true'))
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
+
+config.cudaq_backends_quantinuum = "@CUDAQ_ENABLE_QUANTINUUM_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_quantinuum):
+  config.available_features.add('quantinuum')
+  config.substitutions.append(('%quantinuum_avail', 'true'))
+else:
+  config.substitutions.append(('%quantinuum_avail', 'false'))
+
+config.cudaq_backends_infleqtion = "@CUDAQ_ENABLE_INFLEQTION_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_infleqtion):
+  config.available_features.add('infleqtion')
+  config.substitutions.append(('%infleqtion_avail', 'true'))
+else:
+  config.substitutions.append(('%infleqtion_avail', 'false'))
 
 config.cudaq_stim_backend_disabled = "@CUDAQ_ENABLE_ASSERTIONS@"
 if cmake_boolvar_to_bool(config.cudaq_stim_backend_disabled):
