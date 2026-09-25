@@ -359,8 +359,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   LoopUnrollOptions luo;
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  addLowerToCFG(pm);
-  pm.addNestedPass<func::FuncOp>(createStackFramePrealloc());
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
