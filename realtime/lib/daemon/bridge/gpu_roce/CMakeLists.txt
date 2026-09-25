@@ -148,11 +148,12 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     REQUIRED
   )
 
-  # Library implementing the gpu_roce bridge interface (includes unified kernel)
+  # Library implementing the gpu_roce bridge interface (includes the DOCA
+  # device data plane the unified kernel dispatches through)
   add_library(cudaq-realtime-bridge-gpu-roce SHARED
     bridge_impl.cpp
     gpu_roce_wrapper.cpp
-    unified_dispatch_kernel.cu)
+    gpu_roce_unified_transport.cu)
 
   set_target_properties(cudaq-realtime-bridge-gpu-roce PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -175,6 +176,12 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       ${HSB_CORE_LIB}
       ${HSB_COMMON_LIB}
       cudaq-realtime
+      # Supplies the transport-agnostic unified kernel.  Its device code is
+      # device-linked into this .so, which is what resolves the three
+      # __device__ hooks defined in unified_dispatch_kernel.cu -- CUDA cannot
+      # resolve them across module boundaries, so the two must land in one
+      # library.
+      cudaq-realtime-unified-dispatch-core
       CUDA::cudart
       CUDA::cuda_driver
       ${CUDADEVRT_LIBRARY}

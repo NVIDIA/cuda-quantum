@@ -180,14 +180,41 @@ on any specific transport (no `DOCA`, no `GpuRoceTransceiver`).  Unified mode in
     transport context to the dispatcher
 
 Transport-specific details are packed into an opaque struct and passed through
-the `void* transport_ctx` pointer.  The transport provider supplies both the
-context struct and the launch function implementation.  For example, the
-`GpuRoceTransceiver`/`DOCA` transport packs `DOCA` `QP` handles, memory keys,
-and ring buffer addresses into a `doca_transport_ctx` and provides
-`gpu_roce_launch_unified_dispatch` as the launch function (compiled into
-`libcudaq-realtime-bridge-gpu-roce.so`). A different transport would define its
-own context struct and launch function; the dispatcher manages them identically
-without any transport-specific knowledge.
+the `void* transport_ctx` pointer.  For example, the `GpuRoceTransceiver`/`DOCA`
+transport packs `DOCA` `QP` handles, memory keys, and ring buffer addresses
+into a `gpu_roce_doca_transport_ctx`.  A different transport defines its own
+context struct; the dispatcher passes whichever it is given through to the
+transport without any transport-specific knowledge.
+
+`unified_launch_fn` may be `NULL`, and for the in-tree transports it is:
+`gpu_roce` implements the device data plane described below rather than
+supplying a kernel of its own, so the dispatcher runs the built-in unified
+kernel over it.  Pass a non-`NULL` function only when a transport must
+override the whole dispatch loop.
+
+A transport does not have to write a kernel to serve this mode.  The kernel
+itself is transport-agnostic and is shipped in
+`libcudaq-realtime-unified-dispatch-core.a`: it reaches the wire through the
+three `__device__` hooks declared in
+`dispatcher/unified_device_transport.cuh` -- `cudaq_dev_transport_attach`,
+`cudaq_dev_rx_poll` and `cudaq_dev_tx_publish` -- which mirror the host-side
+`cudaq_cpu_rx_poll_fn_t` / `cudaq_cpu_tx_publish_fn_t` pair.  A transport
+implements those three, links the archive, and points its launch function at
+`cudaq_launch_unified_dispatch_device`; `gpu_roce` is the reference
+implementation.
+
+Note that these are `extern __device__` functions resolved by `nvcc -dlink`,
+not function pointers.  A device function pointer is valid only inside the
+module that defines it, so a transport's hook implementations must be
+device-linked into the same shared library as the archive.  Runtime
+(`dlopen`) selection of a device data plane is not expressible in CUDA, which
+is why the device data plane is not part of the `dlopen`-based
+`bridge_interface.h` v-table.
+
+Because the hooks read the context on the GPU rather than receiving it as
+kernel arguments, `transport_ctx` must be **device-accessible**.  This is the
+one place the unified mode differs from the 3-kernel launch functions, which
+take host-supplied pointers and pass them down as kernel arguments.
 
 ### When to Use Which Mode
 
@@ -201,8 +228,8 @@ without any transport-specific knowledge.
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
 
 - Lowest latency for regular (non-cooperative) handlers
-- Transport-agnostic API -- the transport provides a pluggable launch function
-    and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
+- Transport-agnostic API -- the transport provides a device data plane and an
+    opaque context, and may optionally override the launch with one of its own
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
 - Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
@@ -232,33 +259,50 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 - `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
 - `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-- `num_slots` and `slot_size` in the `config` may be zero
+- `slot_size` in the `config` must be the slot stride when the launch function
+    is `NULL`, since the built-in kernel takes its `tx_stride_sz` from it.
+    `num_slots` is unused, but set it from the ring geometry anyway so the
+    config describes the transport the same way the 3-kernel path does
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
 ```cpp
 // Pack DOCA transport handles
-doca_transport_ctx ctx;
+gpu_roce_doca_transport_ctx ctx{};
 ctx.gpu_dev_qp     = gpu_roce_get_gpu_dev_qp(transceiver);
 ctx.rx_ring_data   = gpu_roce_get_rx_ring_data_addr(transceiver);
 ctx.rx_ring_stride_sz  = gpu_roce_get_page_size(transceiver);
 ctx.rx_ring_mkey   = htonl(gpu_roce_get_rkey(transceiver));
 ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
 ctx.frame_size     = frame_size;
+ctx.use_bf         = is_igpu ? 0 : 1;
 
-// Configure dispatcher for unified mode
+// Stage it on the device: the kernel's transport hooks dereference the
+// context on the GPU.  Must outlive the dispatcher; free it after stop.
+void *d_ctx = nullptr;
+gpu_roce_unified_ctx_to_device(&ctx, &d_ctx);
+
+// Configure dispatcher for unified mode.  num_slots / slot_size come from the
+// ring geometry exactly as they would for the 3-kernel path; slot_size becomes
+// the kernel's tx_stride_sz.
 cudaq_dispatcher_config_t config{};
 config.device_id       = gpu_id;
 config.kernel_type     = CUDAQ_KERNEL_UNIFIED;
 config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
+config.num_slots       = num_pages;
+config.slot_size       = page_size;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
-cudaq_dispatcher_set_unified_launch(
-    dispatcher, &gpu_roce_launch_unified_dispatch, &ctx);
+// NULL launch function: gpu_roce implements the device data plane, so the
+// dispatcher runs the built-in unified kernel over it.
+cudaq_dispatcher_set_unified_launch(dispatcher, nullptr, d_ctx);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
+
+// ... after cudaq_dispatcher_stop() / destroy:
+gpu_roce_unified_ctx_free(d_ctx);
 ```
 
 ## What This API Does (In One Paragraph)

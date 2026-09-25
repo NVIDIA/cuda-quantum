@@ -34,6 +34,10 @@ struct GpuRoceBridgeContext {
   gpu_roce_transceiver_t transceiver = nullptr;
   std::unique_ptr<std::thread> gpu_roce_thread;
   bool is_igpu = false;
+  /// Device copy of the unified transport context, which is what the dispatch
+  /// kernel's hooks read.  Staged on the first get_transport_context(UNIFIED)
+  /// and released in destroy.
+  void *device_transport_ctx = nullptr;
   GpuRoceBridgeContext(const cudaq::realtime::BridgeConfig &cfg) : config(cfg) {
     //============================================================================
     // [1] Initialize CUDA
@@ -142,6 +146,7 @@ gpu_roce_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
   if (ctx->transceiver) {
     gpu_roce_destroy_transceiver(ctx->transceiver);
   }
+  gpu_roce_unified_ctx_free(ctx->device_transport_ctx);
   delete ctx;
   return CUDAQ_OK;
 }
@@ -198,18 +203,36 @@ static cudaq_status_t gpu_roce_bridge_get_transport_context(
     cudaq_unified_dispatch_ctx_t *dispatch_ctx =
         reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
 
-    static gpu_roce_doca_transport_ctx doca_ctx{};
-    doca_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
-    doca_ctx.rx_ring_data = reinterpret_cast<uint8_t *>(
-        gpu_roce_get_rx_ring_data_addr(transceiver));
-    doca_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-    doca_ctx.rx_ring_mkey = htonl(gpu_roce_get_rkey(transceiver));
-    doca_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
-    doca_ctx.frame_size = ctx->config.frame_size;
-    doca_ctx.use_bf = ctx->is_igpu ? 0 : 1;
+    // Staged once and retained for the dispatcher's lifetime.  Held per
+    // bridge instance -- a function-local static used to leave every instance
+    // in the process sharing one context.
+    if (!ctx->device_transport_ctx) {
+      gpu_roce_doca_transport_ctx doca_ctx{};
+      doca_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
+      doca_ctx.rx_ring_data = reinterpret_cast<uint8_t *>(
+          gpu_roce_get_rx_ring_data_addr(transceiver));
+      doca_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
+      doca_ctx.rx_ring_mkey = htonl(gpu_roce_get_rkey(transceiver));
+      doca_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
+      doca_ctx.frame_size = ctx->config.frame_size;
+      doca_ctx.use_bf = ctx->is_igpu ? 0 : 1;
 
-    dispatch_ctx->launch_fn = &gpu_roce_launch_unified_dispatch;
-    dispatch_ctx->transport_ctx = &doca_ctx;
+      // The kernel's hooks read the context on the GPU; freed in destroy.
+      const int err =
+          gpu_roce_unified_ctx_to_device(&doca_ctx, &ctx->device_transport_ctx);
+      if (err != cudaSuccess) {
+        std::cerr << "ERROR: Failed to stage the unified transport context on "
+                     "the device: "
+                  << cudaGetErrorString(static_cast<cudaError_t>(err))
+                  << std::endl;
+        return CUDAQ_ERR_INTERNAL;
+      }
+    }
+
+    // No launch override: this transport implements the device data plane, so
+    // the dispatcher runs the built-in unified kernel over it.
+    dispatch_ctx->launch_fn = nullptr;
+    dispatch_ctx->transport_ctx = ctx->device_transport_ctx;
   } else {
     std::cerr << "ERROR: Invalid transport context type" << std::endl;
     return CUDAQ_ERR_INVALID_ARG;
