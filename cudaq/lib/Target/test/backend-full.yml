@@ -1,0 +1,100 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+# RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=EMIT --implicit-check-not=raw-pass-text --implicit-check-not=RESOURCE_COUNT --implicit-check-not={{^GEN_TARGET_BACKEND=}} --implicit-check-not={{^LIBRARY_MODE=}}
+#
+# Explicitly-false gen-target-backend/library-mode emit nothing at all (nvq++
+# already defaults both to false); only `true` is emitted.
+# RUN: %target-catalog-driver codegen %s | FileCheck %s --check-prefix=CODEGEN
+#
+# The simulator emission pins kSharedLibraryExtension output (.so).
+# REQUIRES: system-linux
+
+version: 1
+name: lit-full
+description: "Full backend field and shell-emission coverage"
+config:
+  gen-target-backend: false
+  library-mode: false
+  support-resource-counts: false
+  jit-high-level-pipeline: "high-pipe"
+  jit-mid-level-pipeline: "mid-pipe"
+  jit-low-level-pipeline: "low-pipe"
+  target-pass-pipeline: "raw-pass-text"
+  codegen-emission: qir-full
+  post-codegen-passes: "post-passes"
+  platform-library: "libacme-platform"
+  library-mode-execution-manager: "acme-manager"
+  platform-qpu: acme_qpu
+  preprocessor-defines: ["-D ACME"]
+  compiler-flags: ["-fno-exceptions"]
+  link-libs: ["-lacme"]
+  plugin-libraries: ["libacme-qpu"]
+  linker-flags: ["-Wl,-rpath,/opt/acme"]
+  nvqir-simulation-backend: first, second, third
+  rules:
+    - if: "$ENABLE_A"
+      compiler-flag: "-O1"
+      link-flag: "-la"
+    - if: "$ENABLE_B"
+      link-flag: "-lb"
+
+# PARSE:   gen-target-backend: false
+# PARSE:   library-mode: false
+# PARSE:   support-resource-counts: false
+# PARSE:   jit-high-level-pipeline: high-pipe
+# PARSE:   jit-mid-level-pipeline: mid-pipe
+# PARSE:   jit-low-level-pipeline: low-pipe
+# PARSE:   target-pass-pipeline: raw-pass-text
+# PARSE:   codegen-emission: qir-full
+# PARSE:   post-codegen-passes: post-passes
+# PARSE:   platform-library: libacme-platform
+# PARSE:   library-mode-execution-manager: acme-manager
+# PARSE:   platform-qpu: acme_qpu
+# PARSE:   preprocessor-defines: ["-D ACME"]
+# PARSE:   compiler-flags: ["-fno-exceptions"]
+# PARSE:   link-libs: ["-lacme"]
+# PARSE:   plugin-libraries: ["libacme-qpu"]
+# PARSE:   linker-flags: ["-Wl,-rpath,/opt/acme"]
+# PARSE:   nvqir-simulation-backend: ["first", "second", "third"]
+# PARSE:   rule: if=$ENABLE_A compiler-flag=-O1 link-flag=-la
+# PARSE:   rule: if=$ENABLE_B compiler-flag= link-flag=-lb
+# PARSE: plugin-libraries: ["libacme-qpu"]
+
+# EMIT: JIT_HIGH_LEVEL_PIPELINE="high-pipe"
+# EMIT: JIT_MID_LEVEL_PIPELINE="mid-pipe"
+# EMIT: JIT_LOW_LEVEL_PIPELINE="low-pipe"
+# EMIT: TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-lit-full
+# EMIT: CODEGEN_EMISSION=qir-full
+# EMIT: POST_CODEGEN_PASSES="post-passes"
+# EMIT: PLATFORM_LIBRARY=libacme-platform
+# EMIT: LIBRARY_MODE_EXECUTION_MANAGER=acme-manager
+# EMIT: PLATFORM_QPU=acme_qpu
+# EMIT: PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D ACME"
+# EMIT: COMPILER_FLAGS="${COMPILER_FLAGS} -fno-exceptions"
+# EMIT: LINKLIBS="${LINKLIBS} -lacme"
+# EMIT: LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,/opt/acme"
+# EMIT: if [ -f "${install_dir}/lib/libnvqir-first.so" ]; then
+# EMIT:   NVQIR_SIMULATION_BACKEND="first"
+# EMIT: elif [ -f "${install_dir}/lib/libnvqir-second.so" ]; then
+# EMIT:   NVQIR_SIMULATION_BACKEND="second"
+# EMIT: elif [ -f "${install_dir}/lib/libnvqir-third.so" ]; then
+# EMIT:   NVQIR_SIMULATION_BACKEND="third"
+# EMIT: else
+# EMIT:   error_exit="Unable to find NVQIR simulator lib for target lit-full. Please check your installation."
+# EMIT: fi
+# EMIT-NEXT: {{if \[\[ \$ENABLE_A \]\]; then}}
+# EMIT-NEXT:   COMPILER_FLAGS="${COMPILER_FLAGS} -O1"
+# EMIT-NEXT:   LINKER_FLAGS="${LINKER_FLAGS} -la"
+# EMIT-NEXT: fi
+# EMIT-NEXT: {{if \[\[ \$ENABLE_B \]\]; then}}
+# EMIT-NEXT:   LINKER_FLAGS="${LINKER_FLAGS} -lb"
+# EMIT-NEXT: fi
+
+# CODEGEN: codegen-emission: qir-full

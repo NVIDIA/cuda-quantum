@@ -8,8 +8,6 @@
 
 include(HandleLLVMOptions)
 
-add_subdirectory(cudaq-target-db-gen)
-
 if (NOT CUDAQ_DISABLE_TOOLS)
   add_subdirectory(cudaq-opt)
   add_subdirectory(cudaq-translate)
