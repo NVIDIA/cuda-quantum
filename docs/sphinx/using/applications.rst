@@ -89,6 +89,31 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         </div>
     </div>
 
+    <div class="notebook-entry notebook-moved" data-tags="cpu,fundamental,noiseless,gpu">
+        <span class="notebook-title">The Bernstein-Vazirani Algorithm</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617 and is now hosted in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/qis-examples/bernstein_vazirani.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
+    </div>
+
+    <div class="notebook-entry notebook-moved" data-tags="cpu,fundamental,noiseless,gpu">
+        <span class="notebook-title">Deutsch's Algorithm</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617 and is now hosted in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/qis-examples/deutsch_algorithm.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
+    </div>
+
+    <div class="notebook-entry notebook-moved" data-tags="qforai,noiseless,gpu">
+        <span class="notebook-title">Hybrid Quantum Neural Networks</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617. A teaching module on the
+            same topic is available in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/quantum-machine-learning-and-data-analysis/01_an_introduction_to_hybrid_quantum_neural_networks.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
+    </div>
+
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,mqpu">
         <a href="../applications/python/hadamard_test.html" class="notebook-title">The Hadamard Test</a>
         <div class="notebook-content">
@@ -103,6 +128,22 @@ To run these applications without a local installation, run the `CUDA-Q applicat
             Trotterization is an approximation to enable simulation of a Hamiltonian. Learn how this technique works and simulate the dynamics of the Heisenberg model.
         </div>
         <img src="../_static/app_title_images/trotter_preview.png" alt="Trotter Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry notebook-moved" data-tags="cpu,fundamental,noiseless,gpu">
+        <span class="notebook-title">The Quantum Fourier Transform</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617 and is now hosted in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/qis-examples/quantum_fourier_transform.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
+    </div>
+
+    <div class="notebook-entry notebook-moved" data-tags="cpu,fundamental,noiseless,gpu">
+        <span class="notebook-title">Quantum Teleportation</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617 and is now hosted in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/qis-examples/quantum_teleportation.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noisy,density">
@@ -121,12 +162,30 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <img src="../_static/app_title_images/readout_preview.png" alt="Readout Error Mitigation Preview" class="notebook-image">
     </div>
 
+    <div class="notebook-entry notebook-moved" data-tags="aiforq,noiseless,gpu">
+        <span class="notebook-title">Compiling Unitaries with Diffusion Models</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617. A teaching module on the
+            same topic is available in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/ai-for-quantum/01_compiling_unitaries_diffusion.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
+    </div>
+
     <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
         <a href="../applications/python/afqmc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
         <div class="notebook-content">
             Quantum Enhanced Auxiliary Field Quantum Monte Carlo is an advanced variational technique for simulating molecular energies. Learn how NVIDIA and BASF collaborated to implement this technique.
         </div>
         <img src="../_static/app_title_images/afmqc_preview.png" alt="AFQMC Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry notebook-moved" data-tags="chemistry,noiseless,gpu">
+        <span class="notebook-title">ADAPT VQE</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617. A teaching module on the
+            same topic is available in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/chemistry-simulations/adapt_vqe.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
@@ -145,6 +204,23 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <img src="../_static/app_title_images/electronic-ham.png" alt="Electronic Hamiltonian" class="notebook-image">
     </div>
 
+    <div class="notebook-entry notebook-moved" data-tags="cpu,fundamental,noiseless,gpu">
+        <span class="notebook-title">Grover's Algorithm</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617 and is now hosted in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/qis-examples/grovers.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
+    </div>
+
+    <div class="notebook-entry notebook-moved" data-tags="dynamics,noiseless,gpu">
+        <span class="notebook-title">Quantum Pagerank</span>
+        <div class="notebook-content">
+            This notebook was removed in PR #4617. A teaching module on the same
+            topic is available in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/quantum-machine-learning-and-data-analysis/04_quantum_pagerank.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
+    </div>
+
     <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
         <div class="notebook-content">
@@ -159,6 +235,15 @@ To run these applications without a local installation, run the `CUDA-Q applicat
             Learn how to approximately prepare quantum states via MPS using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry notebook-moved" data-tags="chemistry,noiseless">
+        <span class="notebook-title">QM/MM Simulation: VQE within a Polarizable Embedded Framework</span>
+        <div class="notebook-content">
+            This notebook was removed from the docs in PR #4617. A teaching module on the
+            same topic is available in the
+            <a href="https://github.com/NVIDIA/cuda-q-academic/blob/main/chemistry-simulations/qmmm.ipynb">NVIDIA CUDA-Q Academic repository</a>.
+        </div>
     </div>
 
     <div class="notebook-entry" data-tags="gpu,dynamics,noiseless">
