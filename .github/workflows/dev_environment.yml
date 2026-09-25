@@ -286,6 +286,8 @@ jobs:
           local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
+          # Fallback for PR/merge-queue builds, whose own local_buildcache_key is never warm.
+          base_buildcache_key="${registry_cache_base}-cuda-quantum-${cache_id}-${platform_id}"
 
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
@@ -334,6 +336,7 @@ jobs:
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
           echo "local_buildcache_key_suffix=$local_buildcache_key_suffix" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
+          echo "base_buildcache_key=$base_buildcache_key" >> $GITHUB_OUTPUT
 
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
@@ -353,6 +356,7 @@ jobs:
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
           restore-keys: |
             ${{ steps.cache.outputs.local_buildcache_key }}
+            ${{ steps.cache.outputs.base_buildcache_key }}
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
