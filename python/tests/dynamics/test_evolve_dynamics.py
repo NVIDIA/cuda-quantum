@@ -248,7 +248,7 @@ def test_should_use_mixed_state_batch_no_right_apply():
     hamiltonian = boson.create(0) * boson.annihilate(0)
     pure_left_multiply = SuperOperator.left_multiply(-1j * hamiltonian)
     dissipative = SuperOperator.left_right_multiply(boson.annihilate(0),
-                                                     boson.create(0))
+                                                    boson.create(0))
 
     assert should_use_mixed_state(pure_left_multiply, []) == False
     assert should_use_mixed_state([pure_left_multiply, pure_left_multiply],
