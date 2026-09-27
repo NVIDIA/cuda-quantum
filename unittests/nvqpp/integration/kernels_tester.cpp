@@ -223,6 +223,25 @@ CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
   }
 }
 
+CUDAQ_TEST(KernelsTester, checkFromStateMultiControl) {
+  for (std::size_t numQubits = 3; numQubits <= 5; numQubits++)
+    for (std::complex<double> last :
+         {std::complex<double>(0.8, 0.0), std::complex<double>(0.0, 0.8)}) {
+      std::vector<std::complex<double>> state(1ULL << numQubits, 0.0);
+      state.front() = 0.6;
+      state.back() = last;
+      auto kernel = cudaq::make_kernel();
+      auto qubits = kernel.qalloc(numQubits);
+      cudaq::from_state(kernel, qubits, state);
+      auto ss = cudaq::get_state(kernel);
+      std::complex<double> overlap = 0.0;
+      for (std::size_t i = 0; i < state.size(); i++)
+        overlap += std::conj(state[i]) * ss[i];
+      EXPECT_NEAR(std::norm(overlap), 1.0, 1e-6)
+          << "numQubits = " << numQubits << ", last = " << last;
+    }
+}
+
 CUDAQ_TEST(KernelsTester, checkAngularEncodeRy) {
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc(3);

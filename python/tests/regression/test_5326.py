@@ -11,8 +11,7 @@ import pytest
 import cudaq
 
 skip_if_nvidia_unavailable = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia")),
-    reason="nvidia backend not available")
+    not cudaq.has_target("nvidia"), reason="nvidia backend not available")
 
 
 @cudaq.kernel

@@ -189,7 +189,7 @@ public:
   /// simulator.
   virtual void synchronize() {}
 
-  /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
+  /// @brief Apply exp(i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
                              const std::vector<std::size_t> &controls,

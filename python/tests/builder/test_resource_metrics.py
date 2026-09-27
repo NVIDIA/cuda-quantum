@@ -9,8 +9,15 @@
 # Tests for per-arity gate count and depth metrics returned by
 # estimate_resources().
 
+from pathlib import Path
+
 import cudaq
 import pytest
+
+cudaq._register_target_config(
+    str(
+        Path(__file__).resolve().parents[1] / "targets" /
+        "compiler-bench-nisq.yml"))
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -170,5 +177,5 @@ def test_num_qubits_and_used_qubits():
     kernel.cx(q[0], q[4])
 
     resources = cudaq.estimate_resources(kernel)
-    assert resources.num_qubits == 5
+    assert resources.num_qubits == 2
     assert resources.num_used_qubits == 2

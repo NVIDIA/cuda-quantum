@@ -76,5 +76,3 @@ set_target_properties(${LIBRARY_NAME}
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib
         COMPONENT Runtime)
-
-add_target_config(stim)

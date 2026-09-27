@@ -24,6 +24,10 @@ config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(
     ('%cudaq_example_plugins_dir', config.cudaq_example_plugins_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
+config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
+config.substitutions.append(
+    ('%cudaq_plugin_cxx_flags', config.cudaq_plugin_cxx_flags))
+config.substitutions.append(('%cudaq_plugin_cxx', config.cudaq_plugin_cxx))
 
 llvm_config.use_default_substitutions()
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)

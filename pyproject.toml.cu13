@@ -93,8 +93,6 @@ if.platform-machine = "x86_64"
 inherit.cmake.args = "append"
 cmake.args = [
     "-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON",
-    # Build without QRMI support if QRMI is not installed, instead of failing.
-    "-DCUDAQ_PASQAL_QRMI_CONNECTOR_EXPLICIT=OFF",
 ]
 
 # Linux: use LLD as the linker

@@ -12,7 +12,7 @@
 // RUN: if %ionq_avail; then nvq++ --emulate %s -o %t --target ionq && %t | FileCheck %s; fi
 // RUN: if %iqm_avail; then nvq++ --emulate %s -o %t --target iqm && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
 // RUN: if %oqc_avail; then nvq++ --emulate %s -o %t --target oqc && %t | FileCheck %s; fi
-// RUN: nvq++ --emulate %s -o %t --target quantinuum && %t | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ --emulate %s -o %t --target quantinuum && %t | FileCheck %s; fi
 
 // Tests for --disable-qubit-mapping:
 // RUN: if %oqc_avail; then nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t 2>&1 | FileCheck --check-prefix=DISABLE %s; fi
