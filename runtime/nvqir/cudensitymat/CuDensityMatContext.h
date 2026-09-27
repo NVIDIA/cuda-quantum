@@ -8,6 +8,7 @@
 
 #pragma once
 #include "CuDensityMatOpConverter.h"
+#include "CuDensityMatUtils.h"
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cudensitymat.h>
@@ -41,6 +42,16 @@ public:
   /// @return void* Pointer to the scratch space.
   void *getScratchSpace(std::size_t minSizeBytes);
 
+  /// @brief Get a device buffer for an expectation value result, which
+  /// cuDensityMat reduces over MPI. Pair each call with
+  /// `releaseExpectationResultBuffer`.
+  /// @arg minSizeBytes Minimum size of the buffer in bytes.
+  /// @return void* Pointer to the buffer.
+  void *getExpectationResultBuffer(std::size_t minSizeBytes);
+
+  /// @brief End the use of the expectation value result buffer.
+  void releaseExpectationResultBuffer();
+
   /// @brief Get the recommended workspace limit based on available memory.
   /// @return std::size_t Recommended workspace limit in bytes.
   static std::size_t getRecommendedWorkSpaceLimit();
@@ -62,6 +73,10 @@ public:
   /// @brief Set the MPI communicator for distributed execution.
   bool setMpiCommunicator(void *comm, int commSizeBytes);
 
+  /// @brief Return true if buffers exchanged over MPI should use
+  /// fabric-exportable memory.
+  bool usesFabricMemory() const { return m_useFabricMemory; }
+
 private:
   /// @brief Construct a new Context object for a specific device.
   /// @param deviceId ID of the CUDA device.
@@ -71,7 +86,8 @@ private:
   cublasHandle_t m_cublasHandle;
   std::unique_ptr<CuDensityMatOpConverter> m_opConverter;
   int m_deviceId;
-  void *m_scratchSpace{nullptr};
-  std::size_t m_scratchSpaceSizeBytes{0};
+  MpiBuffer m_scratchSpace;
+  MpiBuffer m_expectationResult;
+  bool m_useFabricMemory{false};
 };
 } // namespace cudaq::dynamics

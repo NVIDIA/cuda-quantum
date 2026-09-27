@@ -13,6 +13,8 @@
 #include <complex>
 #include <concepts>
 #include <iostream>
+#include <optional>
+#include <string>
 #include <vector>
 
 #ifndef NTIMING
@@ -70,6 +72,40 @@ struct DeviceAllocator {
       cudaFree(gpuArray);
     }
   }
+
+  // Creates and releases one fabric-exportable block on the current device.
+  // Returns why fabric memory is unusable, or nothing if it works.
+  static std::optional<std::string> testFabricAllocation();
+};
+
+// A device buffer that cuDensityMat sends or receives over MPI. It only grows:
+// a request no larger than the current size reuses the buffer. When requested,
+// it uses fabric-exportable memory so that MPI/UCX can transfer it over
+// multi-node NVLink. Only one user may hold the buffer at a time.
+class MpiBuffer {
+public:
+  MpiBuffer() = default;
+  MpiBuffer(const MpiBuffer &) = delete;
+  MpiBuffer &operator=(const MpiBuffer &) = delete;
+  ~MpiBuffer() { reset(); }
+
+  // Returns a buffer of at least `sizeBytes`, reallocating only to grow.
+  void *reserve(std::size_t sizeBytes, bool useFabricMemory);
+
+  // Ends the current use. Fabric memory is kept for the next `reserve`, since
+  // creating it is expensive and UCX caches its remote mappings by allocation;
+  // other memory is freed.
+  void release();
+
+  // Frees the buffer.
+  void reset();
+
+  std::size_t sizeBytes() const { return m_sizeBytes; }
+
+private:
+  void *m_data{nullptr};
+  std::size_t m_sizeBytes{0};
+  bool m_isFabricMemory{false};
 };
 
 // Adapted from cuquantum team

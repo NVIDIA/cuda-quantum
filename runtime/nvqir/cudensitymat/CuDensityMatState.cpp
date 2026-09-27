@@ -573,6 +573,7 @@ CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
   state.isDensityMatrix = other.isDensityMatrix;
   state.batchSize = other.batchSize;
   const size_t dataSize = state.dimension * sizeof(std::complex<double>);
+  // Not fabric memory, so MPI transfers of this state over MNNVL are buffered.
   state.devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
   HANDLE_CUDA_ERROR(cudaMemset(state.devicePtr, 0, dataSize));
   const cudensitymatStatePurity_t purity = state.isDensityMatrix
@@ -606,6 +607,7 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
   state->batchSize = other.batchSize;
   state->singleStateDimension = other.singleStateDimension;
   const size_t dataSize = state->dimension * sizeof(std::complex<double>);
+  // Not fabric memory, so MPI transfers of this state over MNNVL are buffered.
   state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
   HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, other.devicePtr, dataSize,
                                cudaMemcpyDefault));
