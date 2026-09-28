@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/TypeID.h"
@@ -47,61 +48,6 @@ struct UnitaryOpGroup {
 };
 
 using UnitaryOpGroups = mlir::SmallVector<UnitaryOpGroup>;
-
-/// Transient classification of an operation retained in a quantum-operation
-/// segment. An operation without a role terminates the segment and is excluded
-/// from its dependency graph.
-enum class SegmentOpRole { Unitary, MsmtDelimiter, ResetDelimiter };
-
-/// Transient strategy used to select one segment's virtual order.
-enum class OrderingMode {
-  /// Preserve the order in which segment operations appear in the block.
-  Textual,
-
-  /// Topologically order scalar-wire operations using intra-segment SSA
-  /// def-use and known-logical-qubit dependencies. Among dependency-ready
-  /// operations, prefer a unitary over a measurement/reset delimiter; within
-  /// either class, prefer original segment order.
-  WireDataflow
-};
-
-/// A transient maximal contiguous run of unitary, measurement, and reset
-/// operations in one block. Any other operation ends the segment and is
-/// excluded from it.
-struct QuantumOpSegment {
-  mlir::Block *containingBlock = nullptr;
-  mlir::SmallVector<mlir::Operation *> opsInBlockOrder;
-};
-
-/// Transient dependency graph for one segment. An edge A -> B means A must
-/// precede B in the virtual canonical order.
-struct SegmentDependencyGraph {
-  mlir::Block *containingBlock = nullptr;
-  OrderingMode mode = OrderingMode::Textual;
-
-  /// All nodes in their original segment order.
-  mlir::SmallVector<mlir::Operation *> nodesInBlockOrder;
-
-  /// Zero-based rank in original segment order and authoritative membership
-  /// map.
-  mlir::DenseMap<mlir::Operation *, unsigned> originalPositionByOp;
-
-  /// Directed predecessor-to-successor adjacency list, including empty entries
-  /// for nodes with no successors.
-  mlir::DenseMap<mlir::Operation *, mlir::SmallVector<mlir::Operation *, 4>>
-      successorsByOp;
-
-  /// In-degree table, including zero entries, consumed by canonical ordering.
-  mlir::DenseMap<mlir::Operation *, unsigned> predecessorCountByOp;
-};
-
-/// Transient deterministic virtual order produced for one segment. Computing
-/// this order does not modify the IR.
-struct CanonicalSegmentOrder {
-  mlir::Block *containingBlock = nullptr;
-  OrderingMode mode = OrderingMode::Textual;
-  mlir::SmallVector<mlir::Operation *> opsInCanonicalOrder;
-};
 
 /// Analyze a function and form block-local groups of unitary operations and
 /// their trailing measurement/reset delimiters.
@@ -171,8 +117,7 @@ private:
 
   void performAnalysis(mlir::Operation *op);
   void analyzeBlock(mlir::Block &block);
-  CanonicalSegmentOrder
-  computeCanonicalSegmentOrder(SegmentDependencyGraph &sdg);
-  void formUnitaryGroups(const CanonicalSegmentOrder &cso);
+  void formUnitaryGroups(mlir::Block *containingBlock,
+                         llvm::ArrayRef<mlir::Operation *> opsInCanonicalOrder);
 };
 } // namespace cudaq::quake::detail

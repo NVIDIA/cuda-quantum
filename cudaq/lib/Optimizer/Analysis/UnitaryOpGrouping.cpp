@@ -21,6 +21,61 @@
 using namespace mlir;
 
 namespace cudaq::quake::detail {
+namespace {
+/// Transient classification of an operation retained in a quantum-operation
+/// segment. An operation without a role terminates the segment and is excluded
+/// from its dependency graph.
+enum class SegmentOpRole { Unitary, MsmtDelimiter, ResetDelimiter };
+
+/// Transient strategy used to select one segment's virtual order.
+enum class OrderingMode {
+  /// Preserve the order in which segment operations appear in the block.
+  Textual,
+
+  /// Topologically order scalar-wire operations using intra-segment SSA
+  /// def-use and known-logical-qubit dependencies. Among dependency-ready
+  /// operations, prefer a unitary over a measurement/reset delimiter; within
+  /// either class, prefer original segment order.
+  WireDataflow
+};
+
+/// A transient maximal contiguous run of unitary, measurement, and reset
+/// operations in one block. Any other operation ends the segment and is
+/// excluded from it.
+struct QuantumOpSegment {
+  mlir::Block *containingBlock = nullptr;
+  mlir::SmallVector<mlir::Operation *> opsInBlockOrder;
+};
+
+/// Transient dependency graph for one segment. An edge A -> B means A must
+/// precede B in the virtual canonical order.
+struct SegmentDependencyGraph {
+  mlir::Block *containingBlock = nullptr;
+  OrderingMode mode = OrderingMode::Textual;
+
+  /// All nodes in their original segment order.
+  mlir::SmallVector<mlir::Operation *> nodesInBlockOrder;
+
+  /// Zero-based rank in original segment order and authoritative membership
+  /// map.
+  mlir::DenseMap<mlir::Operation *, unsigned> originalPositionByOp;
+
+  /// Directed predecessor-to-successor adjacency list, including empty entries
+  /// for nodes with no successors.
+  mlir::DenseMap<mlir::Operation *, mlir::SmallVector<mlir::Operation *, 4>>
+      successorsByOp;
+
+  /// In-degree table, including zero entries, consumed by canonical ordering.
+  mlir::DenseMap<mlir::Operation *, unsigned> predecessorCountByOp;
+};
+
+/// Transient deterministic virtual order produced for one segment. Computing
+/// this order does not modify the IR.
+struct CanonicalSegmentOrder {
+  mlir::Block *containingBlock = nullptr;
+  OrderingMode mode = OrderingMode::Textual;
+  mlir::SmallVector<mlir::Operation *> opsInCanonicalOrder;
+};
 
 /// Classify an operation for quantum-segment construction.
 /// Return `std::nullopt` when the operation is a hard boundary.
@@ -189,8 +244,8 @@ static Operation *popEarliestReadyEntry(ReadyMinHeap &rmh) {
   return earliestEntry;
 }
 
-CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
-    SegmentDependencyGraph &sdg) {
+CanonicalSegmentOrder
+computeCanonicalSegmentOrder(SegmentDependencyGraph &sdg) {
   CanonicalSegmentOrder cso;
   cso.containingBlock = sdg.containingBlock;
   cso.mode = sdg.mode;
@@ -247,69 +302,7 @@ CanonicalSegmentOrder UnitaryOpGroupingAnalysis::computeCanonicalSegmentOrder(
 
   return cso;
 }
-
-/// Partition canonical segment order into groups of unitaries followed by
-/// consecutive measurement/reset delimiters. Leading delimiters form a
-/// delimiter-only group.
-void UnitaryOpGroupingAnalysis::formUnitaryGroups(
-    const CanonicalSegmentOrder &cso) {
-
-  SmallVector<Operation *> currentUnitaryOps;
-  SmallVector<Operation *> currentDelimiterOps;
-
-  auto recordGroupMembership = [&](llvm::ArrayRef<Operation *> ops,
-                                   unsigned groupIndex) {
-    for (Operation *op : ops) {
-      bool inserted = opToGroupIndex.try_emplace(op, groupIndex).second;
-      assert(inserted && "operation added to multiple groups");
-    }
-  };
-
-  auto flushCurrentGroup = [&]() {
-    // Never emit an empty group.
-    if (currentUnitaryOps.empty() && currentDelimiterOps.empty())
-      return;
-
-    const unsigned groupIndex = static_cast<unsigned>(unitaryOpGroups.size());
-
-    UnitaryOpGroup currUnitaryOpGroup;
-    currUnitaryOpGroup.block = cso.containingBlock;
-    currUnitaryOpGroup.ops.append(currentUnitaryOps);
-    currUnitaryOpGroup.trailingDelimiterOps.append(currentDelimiterOps);
-
-    unitaryOpGroups.push_back(std::move(currUnitaryOpGroup));
-    blockToGroupIndices[cso.containingBlock].push_back(groupIndex);
-
-    // Index both unitary and delimiter operations as group members.
-    const auto &unitaryGroup = unitaryOpGroups.back();
-    recordGroupMembership(unitaryGroup.ops, groupIndex);
-    recordGroupMembership(unitaryGroup.trailingDelimiterOps, groupIndex);
-
-    currentUnitaryOps.clear();
-    currentDelimiterOps.clear();
-  };
-
-  // Accumulate consecutive delimiters until the next unitary starts a new
-  // group.
-  for (Operation *op : cso.opsInCanonicalOrder) {
-
-    auto role = classifySegmentOpRole(op);
-    assert(role && "canonical segment cannot contain a hard boundary");
-
-    if (*role == SegmentOpRole::Unitary) {
-      // A unitary after a delimiter starts the next group.
-      if (!currentDelimiterOps.empty())
-        flushCurrentGroup();
-
-      currentUnitaryOps.push_back(op);
-    } else {
-      currentDelimiterOps.push_back(op);
-    }
-  }
-
-  // Flush any group remaining at segment end.
-  flushCurrentGroup();
-}
+} // namespace
 
 /// Analyze one block by forming maximal segments of classifiable quantum
 /// operations. Every unclassified operation flushes the current segment; its
@@ -330,16 +323,12 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
     // Canonicalize and group the completed segment.
     SegmentDependencyGraph sdg = buildSegmentDependencyGraph(currSegment, qia);
     CanonicalSegmentOrder cso = computeCanonicalSegmentOrder(sdg);
-    formUnitaryGroups(cso);
+    formUnitaryGroups(cso.containingBlock, cso.opsInCanonicalOrder);
 
     currSegment.opsInBlockOrder.clear();
   };
 
   for (Operation &op : block) {
-    LLVM_DEBUG(llvm::dbgs()
-               << "\tFound op: " << op.getName()
-               << " and parent op: " << op.getParentOp()->getName() << "\n");
-
     std::optional<SegmentOpRole> role = classifySegmentOpRole(&op);
     if (role) {
       currSegment.opsInBlockOrder.push_back(&op);
@@ -371,6 +360,70 @@ void UnitaryOpGroupingAnalysis::performAnalysis(Operation *op) {
       analyzeBlock(block);
     }
   }
+}
+
+/// Partition canonical segment order into groups of unitaries followed by
+/// consecutive measurement/reset delimiters. Leading delimiters form a
+/// delimiter-only group.
+void UnitaryOpGroupingAnalysis::formUnitaryGroups(
+    mlir::Block *containingBlock,
+    llvm::ArrayRef<Operation *> opsInCanonicalOrder) {
+
+  SmallVector<Operation *> currentUnitaryOps;
+  SmallVector<Operation *> currentDelimiterOps;
+
+  auto recordGroupMembership = [&](llvm::ArrayRef<Operation *> ops,
+                                   unsigned groupIndex) {
+    for (Operation *op : ops) {
+      bool inserted = opToGroupIndex.try_emplace(op, groupIndex).second;
+      assert(inserted && "operation added to multiple groups");
+    }
+  };
+
+  auto flushCurrentGroup = [&]() {
+    // Never emit an empty group.
+    if (currentUnitaryOps.empty() && currentDelimiterOps.empty())
+      return;
+
+    const unsigned groupIndex = static_cast<unsigned>(unitaryOpGroups.size());
+
+    UnitaryOpGroup currUnitaryOpGroup;
+    currUnitaryOpGroup.block = containingBlock;
+    currUnitaryOpGroup.ops.append(currentUnitaryOps);
+    currUnitaryOpGroup.trailingDelimiterOps.append(currentDelimiterOps);
+
+    unitaryOpGroups.push_back(std::move(currUnitaryOpGroup));
+    blockToGroupIndices[containingBlock].push_back(groupIndex);
+
+    // Index both unitary and delimiter operations as group members.
+    const auto &unitaryGroup = unitaryOpGroups.back();
+    recordGroupMembership(unitaryGroup.ops, groupIndex);
+    recordGroupMembership(unitaryGroup.trailingDelimiterOps, groupIndex);
+
+    currentUnitaryOps.clear();
+    currentDelimiterOps.clear();
+  };
+
+  // Accumulate consecutive delimiters until the next unitary starts a new
+  // group.
+  for (Operation *op : opsInCanonicalOrder) {
+
+    auto role = classifySegmentOpRole(op);
+    assert(role && "canonical segment cannot contain a hard boundary");
+
+    if (*role == SegmentOpRole::Unitary) {
+      // A unitary after a delimiter starts the next group.
+      if (!currentDelimiterOps.empty())
+        flushCurrentGroup();
+
+      currentUnitaryOps.push_back(op);
+    } else {
+      currentDelimiterOps.push_back(op);
+    }
+  }
+
+  // Flush any group remaining at segment end.
+  flushCurrentGroup();
 }
 
 std::optional<unsigned>
