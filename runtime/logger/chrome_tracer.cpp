@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstdio>
 #include <fstream>
 #include <unistd.h>
 #include <utility>
@@ -78,6 +79,12 @@ void ChromeTraceBackend::writeFile(std::optional<std::string> path) {
   }
 
   const std::string json = toJson();
+  if (target == "-") {
+    std::fprintf(stderr, "%s\n", json.c_str());
+    std::fflush(stderr);
+    return;
+  }
+
   std::ofstream os(target, std::ios::trunc);
   if (!os.is_open()) {
     CUDAQ_WARN("Chrome trace backend failed to open {} for writing.", target);

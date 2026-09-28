@@ -173,3 +173,26 @@ def test_env_configured_chrome_backend_captures_without_trace_logging(tmp_path):
     doc = json.loads(trace_path.read_text())
     assert any(e["name"] == "from_env" and e["cat"] == "python"
                for e in doc["traceEvents"])
+
+
+def test_env_configured_chrome_backend_writes_to_stderr_for_dash():
+    """CUDAQ_TRACE_PATH=- writes the trace as one JSON line on stderr at
+    process exit, leaving stdout to the program."""
+    script = textwrap.dedent("""
+        from cudaq.util import trace
+        with trace.span("to_stderr"):
+            print("program output")
+    """)
+    env = {k: v for k, v in os.environ.items() if k != "CUDAQ_LOG_LEVEL"}
+    env["CUDAQ_TRACE_FORMAT"] = "chrome"
+    env["CUDAQ_TRACE_PATH"] = "-"
+    proc = subprocess.run([sys.executable, "-c", script],
+                          check=True,
+                          env=env,
+                          capture_output=True,
+                          text=True)
+
+    assert proc.stdout == "program output\n"
+    doc = json.loads(proc.stderr.strip().splitlines()[-1])
+    assert any(e["name"] == "to_stderr" and e["cat"] == "python"
+               for e in doc["traceEvents"])
