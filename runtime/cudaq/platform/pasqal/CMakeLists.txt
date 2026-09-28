@@ -61,7 +61,6 @@ install(TARGETS ${LIBRARY_NAME} DESTINATION lib
 install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib
         COMPONENT Runtime)
 
-add_target_config(pasqal)
 
 if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(_qrmi_include_hints)

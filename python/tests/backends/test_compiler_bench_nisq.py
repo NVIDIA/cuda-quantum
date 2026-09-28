@@ -9,9 +9,16 @@
 # Tests for the compiler-bench-nisq target: CX-basis decomposition with
 # optional SABRE routing on a specified device topology.
 
+from pathlib import Path
+
 import cudaq
 import numpy as np
 import pytest
+
+cudaq._register_target_config(
+    str(
+        Path(__file__).resolve().parents[1] / "targets" /
+        "compiler-bench-nisq.yml"))
 
 NISQ_TARGET = 'compiler-bench-nisq'
 

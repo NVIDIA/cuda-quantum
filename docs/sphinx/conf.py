@@ -190,28 +190,10 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'cudaqDoc'
 
-# Sphinx emits the external CUDA-Q Logical toctree href verbatim on every page.
-# Make it relative to the current page so it works from nested pages.
-_LOGICAL_TOCTREE_HREF = 'href="./preview/logical/index.html#http://"'
-
-
-def _fix_logical_sidebar_link(app, pagename, templatename, context, doctree):
-    toctree = context.get('toctree')
-    if toctree is None:
-        return
-    href = 'href="{}"'.format(context['pathto']('preview/logical/index.html',
-                                                1))
-
-    def fixed_toctree(*args, **kwargs):
-        return toctree(*args, **kwargs).replace(_LOGICAL_TOCTREE_HREF, href)
-
-    context['toctree'] = fixed_toctree
-
 
 def setup(app):
     app.add_lexer('mlir', TextLexer)
     app.add_css_file('cudaq_override.css')
-    app.connect('html-page-context', _fix_logical_sidebar_link)
 
 
 # -- Options for BREATHE -------------------------------------------------

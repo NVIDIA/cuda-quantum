@@ -10,7 +10,6 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -60,29 +59,21 @@ private:
       config = runtimeTarget->config;
       runtimeTarget->runtimeConfig = configMap;
     } else {
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-      std::string fileName = mutableBackend + std::string(".yml");
-      const auto explicitConfigPath =
-          cudaq::detail::getBackendConfigOption(backend, "__yml_path");
-      auto configFilePath = explicitConfigPath
-                                ? std::filesystem::path(*explicitConfigPath)
-                                : platformPath / fileName;
-
-      if (std::filesystem::exists(configFilePath)) {
-        CUDAQ_INFO("Config file path = {}", configFilePath.string());
-        config = cudaq::config::loadTargetConfig(configFilePath);
-        cudaq::detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
-                                                 config);
-        runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
-        runtimeTarget->config = config;
-        runtimeTarget->name = mutableBackend;
-        runtimeTarget->description = config.Description;
-        runtimeTarget->runtimeConfig = configMap;
-      } else {
-        CUDAQ_INFO("No config file found for backend {}. Using default.",
-                   backend);
-      }
+      auto resolved = cudaq::detail::resolveTargetConfig(backend);
+      config = resolved.config;
+      CUDAQ_INFO("Config file path = {}", resolved.configPath.string());
+      runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
+      runtimeTarget->config = config;
+      runtimeTarget->name = mutableBackend;
+      runtimeTarget->description = config.Description;
+      runtimeTarget->runtimeConfig = configMap;
+      runtimeTarget->configPath = resolved.configPath;
+      runtimeTarget->pluginLibDir = resolved.pluginLibDir.string();
+      runtimeTarget->simulatorName = resolved.simulatorName;
+      runtimeTarget->platformName = resolved.platformName;
+      runtimeTarget->precision = resolved.fp64Simulation
+                                     ? simulation_precision::fp64
+                                     : simulation_precision::fp32;
     }
 
     std::unique_ptr<cudaq::QPU> newQPU;

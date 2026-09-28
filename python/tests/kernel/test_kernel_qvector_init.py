@@ -14,11 +14,11 @@ from cudaq.kernel_types import KernelTypeError
 import numpy as np
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    not cudaq.has_target('nvidia-fp64'),
     reason='Could not find nvidia-fp64 in installation')
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    not cudaq.has_target('nvidia'),
     reason='Could not find nvidia in installation')
 
 

@@ -356,6 +356,7 @@ has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
 get_targets = cudaq_runtime.get_targets
 register_backend_path = cudaq_runtime.register_backend_path
+_register_target_config = cudaq_runtime._register_target_config
 _discover_external_backends()
 del _discover_external_backends
 set_random_seed = cudaq_runtime.set_random_seed

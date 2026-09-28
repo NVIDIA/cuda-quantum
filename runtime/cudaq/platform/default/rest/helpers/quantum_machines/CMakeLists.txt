@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE QuantumMachinesServerHelper.cpp)
-add_target_config(quantum_machines)
 
 add_library(cudaq-serverhelper-quantum_machines SHARED QuantumMachinesServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-quantum_machines

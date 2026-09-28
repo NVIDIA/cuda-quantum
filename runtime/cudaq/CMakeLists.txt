@@ -78,6 +78,7 @@ if (CUDA_FOUND)
       fmt::fmt-header-only
       CUDA::cudart_static
       CUDAQTargetConfigYaml
+      CUDAQTargetDatabase
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -104,6 +105,7 @@ else()
       nvqir
       fmt::fmt-header-only
       CUDAQTargetConfigYaml
+      CUDAQTargetDatabase
   )
 endif()
 

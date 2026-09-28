@@ -66,6 +66,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   ADD_TO_PARENT CUDAQuantumPythonSources
   SOURCES
     CUDAQuantumExtension.cpp
+    ../runtime/common/py_EstimateResult.cpp
     ../runtime/common/py_ExecutionContext.cpp
     ../runtime/common/py_NoiseModel.cpp
     ../runtime/common/py_EvolveResult.cpp
@@ -118,6 +119,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     cudaqMLIR
     cudaq-mlir-runtime
     CUDAQTargetConfig
+    CUDAQTargetConfigYaml
+    CUDAQTargetDatabase
     cudaq-python-interop
     cudaq-platform-default
 )

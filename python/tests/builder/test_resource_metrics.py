@@ -9,8 +9,15 @@
 # Tests for per-arity gate count and depth metrics returned by
 # estimate_resources().
 
+from pathlib import Path
+
 import cudaq
 import pytest
+
+cudaq._register_target_config(
+    str(
+        Path(__file__).resolve().parents[1] / "targets" /
+        "compiler-bench-nisq.yml"))
 
 
 @pytest.fixture(scope="function", autouse=True)
