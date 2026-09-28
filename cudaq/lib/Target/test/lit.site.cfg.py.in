@@ -1,0 +1,21 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Site config: points lit at the built driver/generator and the located FileCheck (plain configure_file).
+
+import os
+
+config.target_catalog_driver = os.path.join(
+    r"@CMAKE_CURRENT_BINARY_DIR@", "TargetCatalogTestDriver@CMAKE_EXECUTABLE_SUFFIX@")
+config.target_catalog_db_gen = os.path.join(
+    r"@CMAKE_BINARY_DIR@", "bin", "cudaq-target-db-gen@CMAKE_EXECUTABLE_SUFFIX@")
+config.target_catalog_filecheck = r"@_target_catalog_filecheck@"
+config.test_exec_root = r"@CMAKE_CURRENT_BINARY_DIR@"
+
+lit_config.load_config(
+    config, os.path.join(r"@CMAKE_CURRENT_SOURCE_DIR@", "lit.cfg.py"))

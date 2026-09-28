@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
       const auto &cfg = *resolved.entry->config;
       const auto *backend = cfg.BackendConfig ? &*cfg.BackendConfig : nullptr;
       for (const auto &entry : cfg.ConfigMap)
-        if (entry.Default.has_value() && entry.Default.value())
+        if (entry.Default)
           backend = &entry.Config;
       if (!backend)
         continue;

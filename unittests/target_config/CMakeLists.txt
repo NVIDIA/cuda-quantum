@@ -23,12 +23,13 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
 endif()
 target_include_directories(test_target_config PRIVATE
   ${CMAKE_SOURCE_DIR}/cudaq/lib/Target
-  ${CMAKE_SOURCE_DIR}/cudaq/lib/Target/Yaml
 )
+# We need the private reflectcpp dependency as this test includes
+# non-public headers.
 target_link_libraries(test_target_config
   PRIVATE
-    CUDAQTargetConfigYaml
-    CUDAQTargetDatabase
+    CUDAQTargetCatalog
+    reflectcpp
     gtest_main
 )
 # Fixtures compile YAML into target plugin libraries via cudaq-target-db-gen
@@ -53,7 +54,7 @@ if(CUDAQ_ENABLE_PYTHON)
   # Link the default execution manager to satisfy it; this test does not
   # actually execute any kernels.
   target_link_libraries(test_target_config
-    PRIVATE cudaq cudaq-em-default nvqir cudaq-mlir-runtime)
+    PRIVATE cudaq cudaq-em-default nvqir cudaq-mlir-runtime cudaqMLIR)
   target_compile_definitions(test_target_config PRIVATE CUDAQ_ENABLE_PYTHON)
   target_compile_definitions(test_target_config
     PRIVATE

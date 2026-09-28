@@ -368,7 +368,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     # Exclude lit test suites from ctest. They are run individually above/below.
     # FIXME: Tensor unit tests for runtime errors throw a different exception.
     # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
-    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|pycudaq-mlir|Tensor.*Error" && \
+    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir|Tensor.*Error" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
@@ -407,7 +407,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         filtered=" --filter-out argument_conversion"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/runtime/test \
-        --param cudaq_site_config=build/runtime/test/lit.site.cfg.py ${filtered}
+        --param cudaq_site_config=build/runtime/test/lit.site.cfg.py ${filtered} && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/cudaq/lib/Target/test
 
 # Export ccache data so CI can extract it for persistence.
 # Tar inside the container to export a single file instead of thousands of

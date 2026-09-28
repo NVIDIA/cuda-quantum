@@ -1,0 +1,25 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s
+
+# Minimal target: no `version` field (unversioned files are accepted).
+
+name: lit-defaults
+description: "Minimal target with defaults only"
+config:
+  nvqir-simulation-backend: qpp
+
+# CHECK: name: lit-defaults
+# CHECK: description: Minimal target with defaults only
+# CHECK: gpu-requirements: false
+# CHECK: config:
+# CHECK:   gen-target-backend: false
+# CHECK:   library-mode: false
+# CHECK:   support-resource-counts: true
+# CHECK:   nvqir-simulation-backend: ["qpp"]
