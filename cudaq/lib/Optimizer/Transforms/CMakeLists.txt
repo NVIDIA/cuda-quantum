@@ -88,6 +88,7 @@ add_cudaq_library(OptTransforms
   ShrinkWrap.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
+  StaticQubitTarget.cpp
   UnitarySynthesis.cpp
   UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
