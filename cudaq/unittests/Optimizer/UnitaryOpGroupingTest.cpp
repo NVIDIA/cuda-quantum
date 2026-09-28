@@ -1044,7 +1044,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
 //   The non-scalar measurement remains a delimiter even though its segment
 //   cannot use scalar-wire ordering.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
-       VectorMeasurementBreaksBetweenGroups) {
+       VectorMeasurementIsATrailingDelimiter) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
   auto refTy = builder.getType<cudaq::quake::RefType>();
@@ -1084,8 +1084,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
 //   group 0: unitaries [h], delimiters [mx]
 //   group 1: unitaries [x], delimiters [my]
 //   group 2: unitaries [z], delimiters []
-TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
-       MxAndMyMeasurementsBreakBetweenGroups) {
+TEST_F(BuilderUnitaryOpGroupingAnalysisTest, MxAndMyAreTrailingDelimiters) {
   OpBuilder builder(&context);
   Location loc = builder.getUnknownLoc();
   auto refTy = builder.getType<cudaq::quake::RefType>();
