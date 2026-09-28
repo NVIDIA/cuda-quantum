@@ -251,6 +251,7 @@ void CuDensityMatState::destroyState() {
   if (devicePtr != nullptr) {
     if (!borrowedData)
       cudaq::dynamics::DeviceAllocator::free(devicePtr);
+    mpiStorage.reset();
     devicePtr = nullptr;
     dimension = 0;
     isDensityMatrix = false;
@@ -631,13 +632,79 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
   return std::unique_ptr<CuDensityMatState>(state);
 }
 
+std::unique_ptr<CuDensityMatState>
+CuDensityMatState::mpi_buffer_like(const CuDensityMatState &other) {
+  assert(other.is_initialized());
+  auto state = std::make_unique<CuDensityMatState>();
+  state->cudmHandle = other.cudmHandle;
+  state->hilbertSpaceDims = other.hilbertSpaceDims;
+  state->dimension = other.dimension;
+  state->isDensityMatrix = other.isDensityMatrix;
+  state->batchSize = other.batchSize;
+  state->singleStateDimension = other.singleStateDimension;
+  const size_t dataSize = state->dimension * sizeof(std::complex<double>);
+  state->mpiStorage = std::make_unique<dynamics::MpiBuffer>();
+  state->devicePtr = state->mpiStorage->reserve(
+      dataSize, dynamics::Context::getCurrentContext()->usesFabricMemory());
+  state->borrowedData = true;
+  const cudensitymatStatePurity_t purity = state->isDensityMatrix
+                                               ? CUDENSITYMAT_STATE_PURITY_MIXED
+                                               : CUDENSITYMAT_STATE_PURITY_PURE;
+  HANDLE_CUDM_ERROR(cudensitymatCreateState(
+      state->cudmHandle, purity,
+      static_cast<int32_t>(state->hilbertSpaceDims.size()),
+      state->hilbertSpaceDims.data(), /*batchSize=*/state->batchSize,
+      CUDA_C_64F, &state->cudmState));
+  HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
+      state->cudmHandle, state->cudmState, 1,
+      std::vector<void *>({state->devicePtr}).data(),
+      std::vector<std::size_t>({dataSize}).data()));
+  return state;
+}
+
+void CuDensityMatState::copy_from(const CuDensityMatState &other) {
+  if (dimension != other.dimension)
+    throw std::invalid_argument(
+        fmt::format("State size mismatch for copy_from ({} vs {}).", dimension,
+                    other.dimension));
+  HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, other.devicePtr,
+                               dimension * sizeof(std::complex<double>),
+                               cudaMemcpyDefault));
+}
+
+void CuDensityMatState::set_zero() {
+  HANDLE_CUDA_ERROR(
+      cudaMemset(devicePtr, 0, dimension * sizeof(std::complex<double>)));
+}
+
+void CuDensityMatState::swap(CuDensityMatState &other) noexcept {
+  std::swap(isDensityMatrix, other.isDensityMatrix);
+  std::swap(dimension, other.dimension);
+  std::swap(devicePtr, other.devicePtr);
+  std::swap(cudmState, other.cudmState);
+  std::swap(cudmHandle, other.cudmHandle);
+  std::swap(hilbertSpaceDims, other.hilbertSpaceDims);
+  std::swap(batchSize, other.batchSize);
+  std::swap(singleStateDimension, other.singleStateDimension);
+  std::swap(borrowedData, other.borrowedData);
+  std::swap(mpiStorage, other.mpiStorage);
+}
+
+bool CuDensityMatState::has_same_shape(const CuDensityMatState &other) const {
+  return dimension == other.dimension && batchSize == other.batchSize &&
+         isDensityMatrix == other.isDensityMatrix &&
+         singleStateDimension == other.singleStateDimension &&
+         hilbertSpaceDims == other.hilbertSpaceDims;
+}
+
 CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
     : isDensityMatrix(other.isDensityMatrix), dimension(other.dimension),
       devicePtr(other.devicePtr), cudmState(other.cudmState),
       cudmHandle(other.cudmHandle), hilbertSpaceDims(other.hilbertSpaceDims),
       batchSize(other.batchSize),
       singleStateDimension(other.singleStateDimension),
-      borrowedData(other.borrowedData) {
+      borrowedData(other.borrowedData),
+      mpiStorage(std::move(other.mpiStorage)) {
   other.isDensityMatrix = false;
   other.dimension = 0;
   other.devicePtr = nullptr;
@@ -670,6 +737,7 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     batchSize = other.batchSize;
     singleStateDimension = other.singleStateDimension;
     borrowedData = other.borrowedData;
+    mpiStorage = std::move(other.mpiStorage);
     // Nullify other
     other.isDensityMatrix = false;
     other.dimension = 0;

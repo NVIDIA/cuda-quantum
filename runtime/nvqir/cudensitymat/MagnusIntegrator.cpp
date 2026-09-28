@@ -52,6 +52,7 @@ void magnus_expansion::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "magnus_expansion::integrate");
   cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
+  auto &stepper = cudmIntHelp::asCudmStepper(m_stepper);
 
   const double startTime = m_t;
   const auto numSubSteps =
@@ -65,20 +66,22 @@ void magnus_expansion::integrate(double targetTime) {
     const double t_mid = m_t + step_size / 2.0;
     auto params_mid = cudmIntHelp::scheduleParamsAt(m_schedule, t_mid);
 
-    auto result = CuDensityMatState::clone(castSimState);
-    cudaq::state v(CuDensityMatState::clone(castSimState).release());
+    auto &result = stepper.workspaceState(0, castSimState);
+    auto *v = &stepper.workspaceState(1, castSimState);
+    auto *Lv = &stepper.workspaceState(2, castSimState);
+    result.copy_from(castSimState);
+    v->copy_from(castSimState);
 
     for (int k = 1; k <= m_num_taylor_terms; ++k) {
-      auto Lv = m_stepper->compute(v, t_mid, params_mid);
-      auto &Lv_cudm = *cudmIntHelp::asCudmState(Lv);
+      stepper.computeInto(*v, *Lv, t_mid, params_mid);
 
-      Lv_cudm *= (step_size / static_cast<double>(k));
-      result->accumulate_inplace(Lv_cudm, 1.0);
+      *Lv *= (step_size / static_cast<double>(k));
+      result.accumulate_inplace(*Lv, 1.0);
 
-      v = std::move(Lv);
+      std::swap(v, Lv);
     }
 
-    m_state = std::make_shared<cudaq::state>(result.release());
+    castSimState.swap(result);
     m_t = nextTime;
   }
 }
