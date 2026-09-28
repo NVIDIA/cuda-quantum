@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "py_EstimateResult.h"
+#include "common/EstimateResult.h"
 #include "common/Resources.h"
 #include "common/cudaq_json.h"
 #include "utils/JsonNanobindAdaptors.h"
-#include "cudaq/algorithms/estimate/result.h"
 #include <nanobind/stl/string.h>
 
 using namespace cudaq;
