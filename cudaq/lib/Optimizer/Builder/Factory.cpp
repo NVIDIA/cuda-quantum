@@ -648,14 +648,18 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
               // as documented in the ABI table above, [2 x T].
               resultTy = cc::ArrayType::get(ctx, packedTys[0], 2);
             else
-              // Mixed pair (e.g. {i32, f64}): no homogeneous element type to
-              // repeat as a [2 x T] array. Callers (e.g. the distributed
-              // device_call unmarshal function) store this value directly
-              // into a buffer slot typed via genBufferType, which rebuilds
-              // the original struct's member list unchanged, so match that
-              // shape here instead of introducing a distinct array type that
-              // would fail to type-check against it.
-              resultTy = cc::StructType::get(ctx, packedTys);
+              // Mixed pair (e.g. {i32, f64}): not eligible for AAPCS64's
+              // homogeneous-aggregate (HFA) treatment, so the whole 16-byte
+              // composite is returned as two raw general-purpose-register
+              // words - i.e. [2 x i64], the same "general composite" form
+              // used for e.g. a {i64, i64} pair - not a per-field-typed
+              // struct. (Empirically confirmed: a {i32, f64}-shaped struct
+              // return type here silently drops the f64 field on real
+              // AArch64 hardware, even though it type-checks fine against a
+              // plain, unconverted buffer slot of the same shape; callers
+              // must reinterpret this raw [2 x i64] value via a memory
+              // round-trip rather than assume the shapes coincide.)
+              resultTy = cc::ArrayType::get(ctx, i64Ty, 2);
           }
         }
       }

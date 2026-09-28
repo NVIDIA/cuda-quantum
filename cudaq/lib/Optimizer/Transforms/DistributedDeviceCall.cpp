@@ -110,6 +110,34 @@ static Value bufferSlotToValue(Location loc, PatternRewriter &rewriter,
   return result;
 }
 
+// The `llvm.sret`/`llvm.byval`-style attributes carry a Type payload that
+// LLVM IR requires to be an LLVM-dialect type. func::FuncOp's own conversion
+// to llvm.func type-converts such payloads automatically, but func::CallOp's
+// conversion to llvm.call copies arg_attrs verbatim without doing so -
+// setting a raw CC-dialect type (e.g. !cc.struct<...>) on a call site's
+// arg_attrs crashes translateModuleToLLVMIR later, once it tries to
+// translate that CC type as if it were an LLVM one. This is a small,
+// local, non-recursive-into-CC-specific-types replacement for that missing
+// conversion, sufficient for the plain pointer/integer/float/struct shapes
+// that a host-side sret element type (already run through
+// convertToHostSideType) is built from.
+static Type ccTypeToLLVMType(Type ty) {
+  auto *ctx = ty.getContext();
+  if (isa<cudaq::cc::PointerType>(ty))
+    return LLVM::LLVMPointerType::get(ctx);
+  if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
+    SmallVector<Type> members;
+    for (auto mem : strTy.getMembers())
+      members.push_back(ccTypeToLLVMType(mem));
+    return LLVM::LLVMStructType::getLiteral(ctx, members, strTy.getPacked());
+  }
+  if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty))
+    return LLVM::LLVMArrayType::get(ccTypeToLLVMType(arrTy.getElementType()),
+                                    arrTy.getSize());
+  // Integer/float types are already the same in both type systems.
+  return ty;
+}
+
 // Rewrites the signature of a device function marked with the device-call
 // attribute so it matches the host-side ABI, since the generalized lowering
 // calls it (via the unmarshal function) from host code.
@@ -134,6 +162,27 @@ public:
     rewriter.modifyOpInPlace(func, [&]() {
       func.setFunctionType(newDevFuncTy);
       func->removeAttr(cudaq::deviceCallAttrName);
+      // When this callback returns a dynamic type (e.g. std::vector<T>), the
+      // ABI-converted signature above prepends a hidden sret pointer as
+      // argument 0. That alone is not enough: on AAPCS64, the sret pointer
+      // is passed in a dedicated register (X8), separate from the normal
+      // argument registers - but only if the call/declaration actually
+      // marks that parameter with the `sret` attribute. Without it, LLVM's
+      // AArch64 lowering treats it as an ordinary pointer argument in X0,
+      // silently shifting every other argument (including the real
+      // first argument) into the wrong register. (X86_64 tolerates this
+      // omission because its ABI folds sret into the normal argument
+      // sequence, which is why this was never caught there.) Mirror
+      // ASTBridge.cpp's identical handling for kernel host entry points.
+      if (cudaq::opt::factory::hasHiddenSRet(devFuncTy)) {
+        if (auto ptrTy =
+                dyn_cast<cudaq::cc::PointerType>(newDevFuncTy.getInput(0))) {
+          auto eleTy = ptrTy.getElementType();
+          if (isa<cudaq::cc::StructType>(eleTy))
+            func.setArgAttr(0, LLVM::LLVMDialect::getStructRetAttrName(),
+                            TypeAttr::get(eleTy));
+        }
+      }
     });
     return success();
   }
@@ -504,6 +553,32 @@ public:
 
     auto callDevFunc = func::CallOp::create(
         rewriter, loc, newDevFuncTy.getResults(), devFunc.getName(), args);
+    // func.call's operand attributes are independent of the callee
+    // declaration's arg attributes (LLVM::CallOp has its own separate
+    // arg_attrs, which MLIR's func-to-llvm lowering does not populate from
+    // the callee automatically): setting `llvm.sret` only on devFunc's
+    // declaration above is not sufficient. AArch64's calling-convention
+    // lowering keys off the call instruction's own attribute list to decide
+    // whether the first argument routes through the dedicated indirect-result
+    // register (X8) or an ordinary argument register (X0) - the
+    // declaration's attribute is not consulted for that decision, at least
+    // not reliably. Mirror the same attribute onto the call site.
+    if (cudaq::opt::factory::hasHiddenSRet(devFuncTy)) {
+      if (auto ptrTy =
+              dyn_cast<cudaq::cc::PointerType>(newDevFuncTy.getInput(0))) {
+        auto eleTy = ptrTy.getElementType();
+        if (isa<cudaq::cc::StructType>(eleTy)) {
+          SmallVector<Attribute> argAttrs(
+              args.size(), DictionaryAttr::get(ctx));
+          argAttrs[0] = DictionaryAttr::get(
+              ctx, NamedAttribute(
+                       StringAttr::get(ctx,
+                                       LLVM::LLVMDialect::getStructRetAttrName()),
+                       TypeAttr::get(ccTypeToLLVMType(eleTy))));
+          callDevFunc.setArgAttrsAttr(ArrayAttr::get(ctx, argAttrs));
+        }
+      }
+    }
 
     // Deconstruct any strings.
     for (Value v : stringArgs) {
@@ -531,17 +606,36 @@ public:
             ArrayRef<cudaq::cc::ComputePtrArg>{numInputs});
         cudaq::cc::StoreOp::create(rewriter, loc, slotVal, outputPtr);
       } else {
-        // callDevFunc's result is already typed using the host-side ABI
-        // conversion which does not preserve struct names. So, unlike the read
-        // side in genNewMarshalFunc, no cast is needed here. One can just use
-        // the buffer's own member type.
+        // callDevFunc's result is typed using the host-side ABI conversion,
+        // which for a small, non-empty struct result may be a raw packed
+        // register value (e.g. AArch64's [2 x i64] for a mixed-member
+        // struct) rather than the buffer's plain, unconverted member type.
+        // These are not always interchangeable even when they happen to be
+        // the same size: on real AArch64 hardware, storing/reloading such an
+        // ABI-packed value AS the plain struct type (relying on them being
+        // structurally identical) has been observed to silently corrupt
+        // floating-point members. Always go through an explicit memory
+        // round-trip - store the raw ABI-typed result, then reload it
+        // through a pointer cast to the buffer's member type - so the
+        // reinterpretation is explicit rather than assumed.
+        Value callResult = callDevFunc.getResult(0);
         std::int32_t numInputs = devFuncTy.getNumInputs();
         Type bufMemberTy = bufferTy.getMember(numInputs);
         auto outputPtr = cudaq::cc::ComputePtrOp::create(
             rewriter, loc, cudaq::cc::PointerType::get(bufMemberTy), argsBuffer,
             ArrayRef<cudaq::cc::ComputePtrArg>{numInputs});
-        cudaq::cc::StoreOp::create(rewriter, loc, callDevFunc.getResult(0),
-                                   outputPtr);
+        if (callResult.getType() == bufMemberTy) {
+          cudaq::cc::StoreOp::create(rewriter, loc, callResult, outputPtr);
+        } else {
+          auto scratch =
+              cudaq::cc::AllocaOp::create(rewriter, loc, callResult.getType());
+          cudaq::cc::StoreOp::create(rewriter, loc, callResult, scratch);
+          auto reinterpPtr = cudaq::cc::CastOp::create(
+              rewriter, loc, cudaq::cc::PointerType::get(bufMemberTy), scratch);
+          auto reinterpVal =
+              cudaq::cc::LoadOp::create(rewriter, loc, reinterpPtr);
+          cudaq::cc::StoreOp::create(rewriter, loc, reinterpVal, outputPtr);
+        }
       }
     }
 
