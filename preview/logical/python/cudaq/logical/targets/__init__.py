@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 
 from cudaq._experimental import CompileTarget, CustomTarget
+from cudaq.util import trace
 
 from ..lower import (
     LoweringSpec,
@@ -59,6 +60,9 @@ class UnavailableTargetError(RuntimeError):
 class Backend:
     """One stack layer that compiles a build before delegating downstream."""
 
+    # Names this layer's ``cudaq.pipeline.logical.<tag>`` trace span.
+    _trace_tag = None
+
     def __init__(self, spec: LoweringSpec, *, next_backend=None):
         if not isinstance(spec, LoweringSpec):
             raise TypeError("Backend spec must be a LoweringSpec")
@@ -71,8 +75,14 @@ class Backend:
     def compile(self, build, **_options):
         return build
 
+    def _traced_compile(self, build, **options):
+        if self._trace_tag is None:
+            return self.compile(build, **options)
+        with trace.span(f"cudaq.pipeline.logical.{self._trace_tag}"):
+            return self.compile(build, **options)
+
     def _launch(self, build, operation, **kwargs):
-        prepared = self.compile(build, **kwargs)
+        prepared = self._traced_compile(build, **kwargs)
         if self.next_backend is not None:
             return getattr(self.next_backend, operation)(prepared, **kwargs)
         module, context = lower(self.spec, prepared)
@@ -92,7 +102,7 @@ class Backend:
 
         if tier is None:
             own = _stage_estimate(build, **estimate_options)
-            prepared = self.compile(build, **compile_options)
+            prepared = self._traced_compile(build, **compile_options)
             if self.next_backend is None:
                 return own
             downstream = self.next_backend._estimate(prepared, args,
@@ -107,8 +117,8 @@ class Backend:
             raise ValueError(
                 f"Tier.{tier.name} is unavailable from a backend accepting "
                 f"{getattr(build, 'profile', type(build).__name__)}")
-        return self.next_backend._estimate(self.compile(build,
-                                                        **compile_options),
+        prepared = self._traced_compile(build, **compile_options)
+        return self.next_backend._estimate(prepared,
                                            args,
                                            tier=tier,
                                            **estimate_options)
@@ -189,6 +199,7 @@ class ProgramBackend(Backend):
     # CUDA-Q Logical lowers the MLIR artifact itself, so a local executable JIT
     # artifact would only be built to be thrown away.
     supports_jit = False
+    _trace_tag = "p0"
 
     def __init__(self, *, next_backend, estimate_options=None):
         self.estimate_options = MappingProxyType(dict(estimate_options or {}))
@@ -227,6 +238,8 @@ class ProgramBackend(Backend):
 
 class CliffordTBackend(Backend):
     """Legalize portable P0 programs to the positive H/S/T/CX gate set."""
+
+    _trace_tag = "clifford_t"
 
     def __init__(self, *, precision=1.0e-4, next_backend):
         # Let the gate-set own precision validation so this backend and the
@@ -345,10 +358,13 @@ def _stage_estimate(build, *, tier=None, **estimate_options):
                 ) if name in estimate_options
             },
         }
-        return {
-            estimate.Tier.SCHEDULE.name:
-                estimate(build, tier=estimate.Tier.SCHEDULE, **schedule_options)
-        }
+        with trace.span("cudaq.pipeline.logical.schedule"):
+            return {
+                estimate.Tier.SCHEDULE.name:
+                    estimate(build,
+                             tier=estimate.Tier.SCHEDULE,
+                             **schedule_options)
+            }
     return {}
 
 
@@ -367,6 +383,7 @@ def _cudaq_estimate_result(estimates):
 
 
 class LogicalMachineBackend(Backend):
+    _trace_tag = "p1"
 
     def __init__(self, architecture, *, next_backend):
         super().__init__(LoweringSpec((),
@@ -397,6 +414,7 @@ class LogicalMachineBackend(Backend):
 
 
 class QECMachineBackend(Backend):
+    _trace_tag = "p2"
 
     def __init__(self, machine, *, next_backend):
         super().__init__(LoweringSpec((),
@@ -439,6 +457,7 @@ class QECMachineBackend(Backend):
 
 
 class PhysicalMachineBackend(Backend):
+    _trace_tag = "p3"
 
     def __init__(self, machine, *, next_backend):
         super().__init__(LoweringSpec((),
