@@ -21,6 +21,7 @@ set(COMMON_RUNTIME_SRC
   CustomOp.cpp
   DeviceCodeRegistry.cpp
   Environment.cpp
+  EstimateResult.cpp
   ExecutionContext.cpp
   Executor.cpp
   ExtraPayloadProvider.cpp
