@@ -22,6 +22,16 @@ routes events through the existing log. ``reset_backend()`` clears the
 installed backend and disables capture.
 
 ``traced(name)`` is a decorator form of ``span``.
+
+Setting ``CUDAQ_TRACE_FORMAT=chrome`` and ``CUDAQ_TRACE_PATH`` installs a
+file-backed ``ChromeBackend`` at startup; a path of ``-`` writes the JSON as
+one line to standard error at exit. ``otherData.cudaq_trace_version``
+versions the output. Tooling keys on these span names, which tests pin:
+
+- ``cudaq.pipeline.aot`` / ``cudaq.pipeline.jit``: enclose the
+  ``mlir_pass`` events of each pipeline.
+- ``cudaq.pipeline.logical.<tag>``: one CUDA-Q Logical stage, with tag
+  ``p0``, ``clifford_t``, ``p1``, ``p2``, ``p3`` or ``schedule``.
 """
 
 from functools import wraps
