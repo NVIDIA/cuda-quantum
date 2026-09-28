@@ -17,7 +17,8 @@
 - [Applications](latest/using/applications.md)
 - [Backends](latest/using/backends/backends.md)
 - [Dynamics](latest/using/dynamics.md)
-- [CUDA-QX](latest/using/cudaq-qec/cudaq-qec.md)
+- [CUDA-Q QEC](latest/using/cudaq-qec/cudaq-qec.md)
+- [CUDA-Q Algorithms](latest/using/cudaq-algorithms/cudaq-algorithms.md)
 - [Release Notes](latest/releases.md)
 
 ## Optional

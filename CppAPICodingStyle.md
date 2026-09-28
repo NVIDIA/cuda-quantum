@@ -52,7 +52,7 @@ We define three API layers as illustrated below:
 ┌────────────────────────────────────────────────────────────────────┐
 │ Level 1: User API                                                  │
 ├────────────────────────────────────────────────────────────────────┤
-│ Audience:   Users, external libs (e.g., cudaq-qec)                    │
+│ Audience:   Users, external libs (e.g., cudaq-qec)                 │
 │ Headers:    "cudaq.h", "cudaq/<subsystem>/<header>.h"              │
 │ Namespace:  cudaq::...                                             │
 │             cudaq::detail  = explicitly NON-public                 │
