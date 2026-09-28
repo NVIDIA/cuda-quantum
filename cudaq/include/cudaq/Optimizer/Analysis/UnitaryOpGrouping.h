@@ -135,7 +135,7 @@ struct UnitaryOpGroupingAnalysis {
 
   /// Return `i` such that `getGroups()[i]` contains \p op.
   ///
-  /// Return `std::nullopt` when \p op is null or ungrouped. Both unitary and
+  /// Return `std::nullopt` when \p op is null or not grouped. Both unitary and
   /// trailing-delimiter operations are indexed. Indices are stable only for
   /// this analysis instance.
   std::optional<unsigned> getGroupIndexForOp(mlir::Operation *op) const;
@@ -146,7 +146,7 @@ struct UnitaryOpGroupingAnalysis {
   /// Return a borrowed pointer to the group containing \p op.
   ///
   /// Both unitary and trailing-delimiter operations are group members. Return
-  /// `nullptr` when \p op is null or ungrouped. The returned pointer is valid
+  /// `nullptr` when \p op is null or not grouped. The returned pointer is valid
   /// only for this analysis object's lifetime.
   const UnitaryOpGroup *getGroupContainingOp(mlir::Operation *op) const;
 
@@ -161,7 +161,7 @@ struct UnitaryOpGroupingAnalysis {
   /// Return true when both operations, including trailing delimiters, belong to
   /// the same group.
   ///
-  /// Returns false when either operation is null or ungrouped.
+  /// Returns false when either operation is null or not grouped.
   bool inSameGroup(mlir::Operation *lhs, mlir::Operation *rhs) const;
 
 private:
