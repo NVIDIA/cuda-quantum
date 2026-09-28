@@ -479,6 +479,25 @@ public:
           args.push_back(cudaq::cc::LoadOp::create(rewriter, loc, ptr1));
           continue;
         }
+        // Some small (<= 128-bit), non-empty structs are passed as a single
+        // packed register value (a scalar or a fixed-size array) rather than
+        // by pointer, per toHostSideFuncType's ABI classification (e.g.
+        // AArch64 packs such a struct into one i64 or [2 x T]; X86_64 does
+        // the same when the struct fits a single register, i.e. the
+        // structUsesTwoArguments case above does not apply). `a` above is
+        // always a raw pointer to the struct's bytes in the comm buffer;
+        // when the ABI wants a packed value instead of that pointer here,
+        // reinterpret and load it so the call operand matches the callee's
+        // actual (ABI-converted) argument type instead of silently
+        // desyncing from it.
+        auto i = iter.index() + offset;
+        Type abiTy = newDevFuncTy.getInputs()[i];
+        if (!strTy.isEmpty() && !isa<cudaq::cc::PointerType>(abiTy)) {
+          auto abiPtrTy = cudaq::cc::PointerType::get(abiTy);
+          auto abiPtr = cudaq::cc::CastOp::create(rewriter, loc, abiPtrTy, a);
+          args.push_back(cudaq::cc::LoadOp::create(rewriter, loc, abiPtr));
+          continue;
+        }
       }
       args.push_back(a);
     }
