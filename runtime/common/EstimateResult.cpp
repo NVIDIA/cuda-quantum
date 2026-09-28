@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "result.h"
+#include "EstimateResult.h"
 #include <utility>
 
 struct cudaq::detail::EstimateResultImpl {
