@@ -66,6 +66,7 @@ std::string ChromeTraceBackend::toJson() {
 
   nlohmann::json doc = {
       {"displayTimeUnit", "ms"},
+      {"otherData", {{"cudaq_trace_version", 1}}},
       {"traceEvents", std::move(traceEvents)},
   };
   return doc.dump();
