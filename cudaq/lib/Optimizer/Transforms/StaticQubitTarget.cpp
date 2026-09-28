@@ -10,22 +10,22 @@
 
 using namespace mlir;
 
-std::optional<cudaq::quake::StaticQubitTarget>
-cudaq::quake::planStaticQubitTarget(Value target, std::size_t sourceIndex) {
-  if (isScalarQubitTarget(target))
+std::optional<cudaq::opt::StaticQubitTarget>
+cudaq::opt::planStaticQubitTarget(Value target, std::size_t sourceIndex) {
+  if (cudaq::quake::isScalarQubitTarget(target))
     return StaticQubitTarget{target, sourceIndex, std::nullopt};
-  if (auto size = getVeqSize(target); size && *size != 0)
+  if (auto size = cudaq::quake::getVeqSize(target); size && *size != 0)
     return StaticQubitTarget{target, sourceIndex, *size - 1};
   return std::nullopt;
 }
 
-std::optional<cudaq::quake::StaticQubitTarget>
-cudaq::quake::findLastStaticQubitTarget(ValueRange targets) {
+std::optional<cudaq::opt::StaticQubitTarget>
+cudaq::opt::findLastStaticQubitTarget(ValueRange targets) {
   return findLastStaticQubitTarget(
       targets, [](const StaticQubitTarget &) { return true; });
 }
 
-Value cudaq::quake::materializeStaticQubitTarget(
+Value cudaq::opt::materializeStaticQubitTarget(
     OpBuilder &builder, Location location, const StaticQubitTarget &target) {
   if (!target.elementIndex)
     return target.source;

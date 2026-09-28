@@ -131,14 +131,14 @@ inline bool mayPhaseAnchorAliasControl(mlir::Value anchor,
 /// ExtractRefOp. Different vector indices are not enough to prove distinct
 /// qubits: a vector may repeat a reference.
 inline bool
-mayPhaseAnchorAliasControl(const cudaq::quake::StaticQubitTarget &anchor,
+mayPhaseAnchorAliasControl(const cudaq::opt::StaticQubitTarget &anchor,
                            mlir::Value control) {
   return phaseOperandsMayShareRoot(anchor.source, control);
 }
 
 /// Return whether a planned phase anchor may alias any control.
 inline bool
-mayPhaseAnchorAliasControl(const cudaq::quake::StaticQubitTarget &anchor,
+mayPhaseAnchorAliasControl(const cudaq::opt::StaticQubitTarget &anchor,
                            mlir::ValueRange controls) {
   for (mlir::Value control : controls)
     if (mayPhaseAnchorAliasControl(anchor, control))

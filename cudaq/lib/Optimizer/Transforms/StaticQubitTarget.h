@@ -21,7 +21,7 @@
 #include <cstddef>
 #include <optional>
 
-namespace cudaq::quake {
+namespace cudaq::opt {
 
 /// A statically selectable scalar qubit represented by a top-level Quake
 /// target. A vector target records the element that must be extracted; a
@@ -70,4 +70,4 @@ mlir::Value materializeStaticQubitTarget(mlir::OpBuilder &builder,
                                          mlir::Location location,
                                          const StaticQubitTarget &target);
 
-} // namespace cudaq::quake
+} // namespace cudaq::opt
