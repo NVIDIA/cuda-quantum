@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import json
+import os
 import subprocess
 import sys
 import textwrap
@@ -152,4 +153,23 @@ def test_file_backed_chrome_backend_writes_on_process_exit(tmp_path):
     assert trace_path.exists()
     doc = json.loads(trace_path.read_text())
     assert any(e["name"] == "deferred" and e["cat"] == "python"
+               for e in doc["traceEvents"])
+
+
+def test_env_configured_chrome_backend_captures_without_trace_logging(tmp_path):
+    """CUDAQ_TRACE_FORMAT=chrome alone must record spans. It must not also
+    require CUDAQ_LOG_LEVEL=trace."""
+    trace_path = tmp_path / "env.json"
+    script = textwrap.dedent("""
+        from cudaq.util import trace
+        with trace.span("from_env"):
+            pass
+    """)
+    env = {k: v for k, v in os.environ.items() if k != "CUDAQ_LOG_LEVEL"}
+    env["CUDAQ_TRACE_FORMAT"] = "chrome"
+    env["CUDAQ_TRACE_PATH"] = str(trace_path)
+    subprocess.run([sys.executable, "-c", script], check=True, env=env)
+
+    doc = json.loads(trace_path.read_text())
+    assert any(e["name"] == "from_env" and e["cat"] == "python"
                for e in doc["traceEvents"])
