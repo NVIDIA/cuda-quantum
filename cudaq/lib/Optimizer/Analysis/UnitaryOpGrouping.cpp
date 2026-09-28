@@ -284,8 +284,7 @@ computeCanonicalSegmentOrder(SegmentDependencyGraph &sdg) {
     for (Operation *succ : sdg.successorsByOp.lookup(next)) {
       auto &predCountByOp = sdg.predecessorCountByOp;
       unsigned &predCount = predCountByOp[succ];
-      assert(predCount > 0 &&
-             "predecessor count should for this op should have been > 0");
+      assert(predCount > 0 && "predecessor count must be greater than 0");
       if (--predCount == 0)
         addReady(succ);
     }
@@ -339,8 +338,8 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
 
     // Recurse after flushing so groups cannot cross a region-owning operation.
     for (auto &region : op.getRegions()) {
-      for (auto &block : region)
-        analyzeBlock(block);
+      for (auto &nestedBlock : region)
+        analyzeBlock(nestedBlock);
     }
   }
 
