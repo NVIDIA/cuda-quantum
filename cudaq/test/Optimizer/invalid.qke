@@ -398,7 +398,7 @@ func.func @invalid_exp_pauli_control_polarity_count(%theta: f64,
 
 // -----
 
-// Generic assembly can represent invalid states excluded by the custom parser.
+// Generic assembly can omit the selector required by the custom parser.
 func.func @apply_noise_missing_function_and_key(%qubit: !quake.ref) {
   // expected-error@+1 {{must have a noise function or a key}}
   "quake.apply_noise"(%qubit) {operandSegmentSizes = array<i32: 0, 0, 1>} : (!quake.ref) -> ()
