@@ -236,8 +236,8 @@ int main(int argc, char *argv[]) {
         dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
         dconfig.num_blocks = 1;
         dconfig.threads_per_block = 1;
-        dconfig.num_slots = 0;
-        dconfig.slot_size = 0;
+        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
       } else {
         dconfig.kernel_type = config.kernel_type;
         dconfig.num_blocks = config.num_blocks;
@@ -257,6 +257,8 @@ int main(int argc, char *argv[]) {
         std::cout << "Retrieving the unified dispatch context ..." << std::endl;
         HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
             bridge_handle, UNIFIED, &unified_dispatch));
+        // launch_fn is NULL unless the provider overrides the dispatch loop;
+        // the dispatcher then runs its own unified kernel.
         if (cudaq_dispatcher_set_unified_launch(
                 dispatcher, unified_dispatch.launch_fn,
                 unified_dispatch.transport_ctx) != CUDAQ_OK) {

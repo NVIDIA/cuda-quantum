@@ -66,6 +66,8 @@ if (CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK)
     HINTS "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}/HololinkRoce")
   set(_cudaq_cpu_roce_sources
       roce_wrapper_hololink.cpp)
+  message(STATUS "Building cudaq-realtime-cpu-roce-transport with the following dependencies:")
+  message(STATUS "  HololinkRoce ${HololinkRoce_VERSION}: ${HololinkRoce_CONFIG}")
 else()
   find_library(IBVERBS_LIBRARY NAMES ibverbs)
   if (NOT IBVERBS_LIBRARY)
