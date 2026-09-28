@@ -626,8 +626,8 @@ class CircuitSimulatorBase : public CircuitSimulator {
 public:
   /// @brief A GateApplicationTask consists of a matrix describing the quantum
   /// operation, a set of possible control qubit indices, and a set of target
-  /// indices. Operands are copied because the gate can execute after the
-  /// enqueueing call returns.
+  /// indices. Operands are copied because the gate can execute after the call
+  /// that enqueues the operation returns.
   struct GateApplicationTask {
     const std::string operationName;
     const std::vector<std::complex<ScalarType>> matrix;
