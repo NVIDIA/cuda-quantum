@@ -125,10 +125,16 @@ public:
     auto module = func->getParentOfType<ModuleOp>();
     FunctionType newDevFuncTy = cudaq::opt::factory::toHostSideFuncType(
         devFuncTy, /*addThisPtr=*/false, module);
-    if (func.getFunctionType() == newDevFuncTy)
-      return failure();
-    rewriter.modifyOpInPlace(func,
-                             [&]() { func.setFunctionType(newDevFuncTy); });
+    // toHostSideFuncType is not idempotent: applying it a second time to its
+    // own output can further rewrite already-ABI-converted types. The greedy
+    // pattern driver revisits this op after modifyOpInPlace below, so without
+    // this attribute this pattern would fire again and settle on that second,
+    // over-converted type. Clearing the marker makes the rewrite one-shot
+    // instead.
+    rewriter.modifyOpInPlace(func, [&]() {
+      func.setFunctionType(newDevFuncTy);
+      func->removeAttr(cudaq::deviceCallAttrName);
+    });
     return success();
   }
 };

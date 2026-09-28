@@ -643,8 +643,19 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
           if (shouldExpand(packedTys, strTy, largest) || !packedTys.empty()) {
             if (packedTys.size() == 1)
               resultTy = packedTys[0];
-            else
+            else if (packedTys[0] == packedTys[1])
+              // Homogeneous pair (both i64, both f32, both f64, ...): packed
+              // as documented in the ABI table above, [2 x T].
               resultTy = cc::ArrayType::get(ctx, packedTys[0], 2);
+            else
+              // Mixed pair (e.g. {i32, f64}): no homogeneous element type to
+              // repeat as a [2 x T] array. Callers (e.g. the distributed
+              // device_call unmarshal function) store this value directly
+              // into a buffer slot typed via genBufferType, which rebuilds
+              // the original struct's member list unchanged, so match that
+              // shape here instead of introducing a distinct array type that
+              // would fail to type-check against it.
+              resultTy = cc::StructType::get(ctx, packedTys);
           }
         }
       }
