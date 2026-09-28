@@ -9,7 +9,6 @@
 #pragma once
 
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/STLExtras.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/TypeID.h"
 #include <optional>

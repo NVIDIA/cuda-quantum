@@ -72,7 +72,7 @@ static OrderingMode determineOrderingMode(QuantumOpSegment &segment,
     if (!flow)
       return OrderingMode::Textual;
 
-    for (Value &quantumOperand : flow->inputs)
+    for (Value quantumOperand : flow->inputs)
       if (!qia.getQubitId(quantumOperand))
         return OrderingMode::Textual;
   }
