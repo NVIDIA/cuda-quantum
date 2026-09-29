@@ -196,6 +196,27 @@ struct SidecarGraphVerificationIndex {
 static thread_local SidecarGraphVerificationIndex
     *activeSidecarGraphVerificationIndex = nullptr;
 
+static thread_local SymbolTable *activePlanModuleSymbols = nullptr;
+
+Operation *qlx::phys::lookupModuleSymbol(ModuleOp module, StringRef name) {
+  if (activePlanModuleSymbols && activePlanModuleSymbols->getOp() == module)
+    return activePlanModuleSymbols->lookup(name);
+  return SymbolTable(module).lookup(name);
+}
+
+LogicalResult qlx::phys::verifySpacetimePlanBatch(ArrayRef<Operation *> plans) {
+  if (plans.empty())
+    return success();
+  SymbolTable symbols(plans.front()->getParentOfType<ModuleOp>());
+  SymbolTable *previous = activePlanModuleSymbols;
+  activePlanModuleSymbols = &symbols;
+  llvm::scope_exit restore([&] { activePlanModuleSymbols = previous; });
+  for (Operation *plan : plans)
+    if (failed(mlir::verify(plan, /*verifyRecursively=*/true)))
+      return failure();
+  return success();
+}
+
 #include "qlx/Dialect/Phys/IR/PhysDialect.cpp.inc"
 
 #define GET_TYPEDEF_CLASSES
@@ -440,15 +461,15 @@ LogicalResult SpacetimePlanOp::verify() {
     return emitOpError("body must contain at least one spacetime operation");
 
   auto module = (*this)->getParentOfType<ModuleOp>();
-  mlir::SymbolTable moduleSymbols(module);
-  auto architecture = moduleSymbols.lookup<ArchitectureOp>(getArchitecture());
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(
+      lookupModuleSymbol(module, getArchitecture()));
   if (!architecture)
     return emitOpError("architecture must resolve to phys.machine");
-  auto source = moduleSymbols.lookup(getSourceProtocol());
+  auto source = lookupModuleSymbol(module, getSourceProtocol());
   if (!source || !isa<qlx::fabric::ProtocolOp>(source))
     return emitOpError("source_protocol must resolve to fabric.protocol");
-  auto operatingPoint =
-      moduleSymbols.lookup<OperatingPointOp>(getOperatingPoint());
+  auto operatingPoint = dyn_cast_or_null<OperatingPointOp>(
+      lookupModuleSymbol(module, getOperatingPoint()));
   if (!operatingPoint ||
       operatingPoint.getMachineAttr() != getArchitectureAttr())
     return emitOpError(
@@ -525,9 +546,8 @@ LogicalResult SpacetimePhaseOp::verify() {
     return emitOpError(
         "phase must claim at least one physical resource or factory model");
 
-  auto architecture = dyn_cast_or_null<ArchitectureOp>(
-      mlir::SymbolTable(plan->getParentOfType<ModuleOp>())
-          .lookup(plan.getArchitecture()));
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getArchitecture()));
   if (!architecture)
     return emitOpError("parent plan architecture must resolve to phys.machine");
   llvm::SmallDenseSet<Attribute, 8> resources;
@@ -597,9 +617,8 @@ LogicalResult SpacetimePhaseOp::verify() {
     if (!reference || !models.insert(reference).second)
       return emitOpError(
           "factory_models must contain unique flat symbol references");
-    if (!isa_and_nonnull<FactoryModelOp>(
-            mlir::SymbolTable(plan->getParentOfType<ModuleOp>())
-                .lookup(reference.getValue())))
+    if (!isa_and_nonnull<FactoryModelOp>(lookupModuleSymbol(
+            plan->getParentOfType<ModuleOp>(), reference.getValue())))
       return emitOpError("factory model ")
              << reference << " must resolve to phys.factory_model";
   }
@@ -657,9 +676,8 @@ LogicalResult SpacetimeEventOp::verify() {
         "event must claim a physical resource slice or input factory");
 
   auto module = plan->getParentOfType<ModuleOp>();
-  SymbolTable moduleSymbols(module);
-  auto architecture =
-      moduleSymbols.lookup<ArchitectureOp>(plan.getArchitecture());
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(
+      lookupModuleSymbol(module, plan.getArchitecture()));
   if (!architecture)
     return emitOpError("parent plan architecture must resolve to phys.machine");
   ResourceClassOp resource;
@@ -680,8 +698,8 @@ LogicalResult SpacetimeEventOp::verify() {
           "resource slice must resolve and fit inside its physical class");
   }
   if (hasFactory) {
-    auto model =
-        moduleSymbols.lookup<FactoryModelOp>(getFactoryModelAttr().getValue());
+    auto model = dyn_cast_or_null<FactoryModelOp>(
+        lookupModuleSymbol(module, getFactoryModelAttr().getValue()));
     if (!model || model.getOperatingPointAttr() != plan.getOperatingPointAttr())
       return emitOpError(
           "factory_model must resolve at the recurrence operating point");
