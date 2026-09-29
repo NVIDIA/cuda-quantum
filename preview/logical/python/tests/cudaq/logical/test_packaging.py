@@ -118,7 +118,7 @@ def test_logical_compilation_without_frontend_initialization(tmp_path):
     # Logical compilation and estimation require only the core bindings, not the
     # full CUDA-Q package with its frontend/execution components. Simulate that
     # core-only installation with a namespace root and block frontend imports.
-    # All subpackages and native extensions used below are real, not mocks.
+    # All sub-packages and native extensions used below are real, not mocks.
     code = f"""
 import sys
 from importlib.abc import MetaPathFinder

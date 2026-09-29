@@ -32,7 +32,7 @@ __all__ = [
 
 # This base protocol describes capabilities, not execution methods. Keeping it
 # here lets CustomTarget expose concrete annotations without importing the
-# frontend. Policy-specific protocols (SupportsSample, etc.) stay there.
+# frontend. Policy-specific protocols (`SupportsSample`, etc.) stay there.
 @runtime_checkable
 class RuntimeEndpoint(Protocol):
     """A runtime endpoint is a Python object that can serve kernel launches.
