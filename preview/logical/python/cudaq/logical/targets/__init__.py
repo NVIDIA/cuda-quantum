@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from cudaq._experimental import CompileTarget, CustomTarget
+from cudaq.core.backends import CompileTarget, CustomTarget
 from cudaq.util import trace
 
 from ..lower import (
@@ -380,7 +380,7 @@ def _merge_estimates(own, downstream):
 
 
 def _cudaq_estimate_result(estimates):
-    from cudaq import EstimateResult
+    from cudaq.core.backends import EstimateResult
 
     return EstimateResult(annotations={
         name: value.to_dict() for name, value in estimates.items()

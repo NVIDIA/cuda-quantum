@@ -6,17 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/InitAllPasses.h"
-#include <mutex>
+#include "runtime/common/py_EstimateResult.h"
+#include "runtime/common/py_Resources.h"
+#include "runtime/cudaq/target/py_compile_target.h"
+#include "runtime/cudaq/trace/py_trace.h"
 
-void cudaq::registerAllPasses() {
-  // Compiler bindings and the execution runtime can initialize independently.
-  static std::once_flag registered;
-  std::call_once(registered, [] {
-    // General MLIR passes
-    mlir::registerTransformsPasses();
-
-    // All the CUDA-Q passes and pipelines.
-    registerCudaqPassesAndPipelines();
-  });
+NB_MODULE(_backends, m) {
+  cudaq::bindCompileTarget(m);
+  cudaq::bindResources(m);
+  cudaq::bindEstimateResult(m);
+  // Tracing uses the shared logger, not the execution runtime.
+  cudaq::bindTrace(m);
 }
