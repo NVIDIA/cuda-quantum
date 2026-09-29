@@ -99,12 +99,22 @@ private:
       const std::vector<FusedTerm> &extraTerms,
       std::vector<product_op<cudaq::matrix_handler>> &remaining);
 
-  /// @brief Compute -1/2 L^dagger L as a dense matrix if `collapseOp` is
-  /// fusable.
-  std::optional<FusedTerm> computeFusedAntiCommutatorTerm(
+  /// @brief The matrix of `collapseOp` on its degrees, if it is known at
+  /// conversion time and acts on a fusable subspace.
+  std::optional<FusedTerm> computeFusableCollapseOperator(
       const sum_op<cudaq::matrix_handler> &collapseOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents);
+
+  /// @brief Append L rho L^dagger as a single elementary operator acting on
+  /// the ket and the bra modes of L's degrees, if that operator is fusable.
+  bool appendFusedSandwichTerm(cudensitymatOperator_t cudmOperator,
+                               const FusedTerm &collapseOp,
+                               const std::vector<int64_t> &modeExtents);
+
+  cudensitymatElementaryOperator_t
+  createDenseElementaryOperator(const cudaq::complex_matrix &matrix,
+                                const std::vector<int64_t> &subspaceExtents);
 
   void appendFusedTerm(cudensitymatOperator_t cudmOperator,
                        const FusedTerm &fusedTerm,

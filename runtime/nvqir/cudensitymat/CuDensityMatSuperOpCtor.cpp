@@ -353,15 +353,18 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     // The -1/2 {L^dagger L, rho} part of each dissipator acts like the
     // Hamiltonian from the left and the right, so fold it into those actions
     // when possible.
+    std::vector<std::optional<FusedTerm>> fusableCollapseOps(collapseSize);
     std::vector<FusedTerm> antiCommutatorTerms;
-    std::vector<bool> isAntiCommutatorFused(collapseSize, false);
     if (batchSize == 1 && collapseOperators.size() == 1) {
       for (std::size_t i = 0; i < collapseSize; ++i) {
-        auto fusedTerm = computeFusedAntiCommutatorTerm(
+        fusableCollapseOps[i] = computeFusableCollapseOperator(
             collapseOperators[0][i], parameters, modeExtents);
-        if (fusedTerm) {
-          antiCommutatorTerms.push_back(std::move(*fusedTerm));
-          isAntiCommutatorFused[i] = true;
+        if (fusableCollapseOps[i]) {
+          const auto &lMat = fusableCollapseOps[i]->matrix;
+          const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
+          antiCommutatorTerms.push_back(
+              {fusableCollapseOps[i]->degrees,
+               std::complex<double>(-0.5, 0.0) * (lDagMat * lMat)});
         }
       }
     }
@@ -376,13 +379,19 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     if (collapseSize > 0) {
       // Handle collapsed operators
       for (std::size_t i = 0; i < collapseSize; ++i) {
+        const bool isAntiCommutatorFused = fusableCollapseOps[i].has_value();
+        if (isAntiCommutatorFused &&
+            appendFusedSandwichTerm(liouvillian, *fusableCollapseOps[i],
+                                    modeExtents))
+          continue;
+
         std::vector<sum_op<cudaq::matrix_handler>> batchedCollapseTerms;
         for (const auto &collapseOperator : collapseOperators) {
           batchedCollapseTerms.push_back(collapseOperator[i]);
         }
         for (auto &[coeffs, term] : computeLindbladTerms(
                  batchedCollapseTerms, modeExtents, parameters,
-                 /*includeAntiCommutator=*/!isAntiCommutatorFused[i])) {
+                 /*includeAntiCommutator=*/!isAntiCommutatorFused)) {
           assert(coeffs.size() == batchSize);
           appendBatchedTermToOperator(liouvillian, term, coeffs, keys);
         }
