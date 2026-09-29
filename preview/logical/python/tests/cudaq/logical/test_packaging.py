@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Packaging contract tests: runtime extras, dynamic version, import guards."""
+"""Packaging contracts: runtime extras, versioning, and core-only imports."""
 
 from __future__ import annotations
 
@@ -91,7 +91,7 @@ import cudaq.logical  # cached in sys.modules: must not re-warn
     assert result.stderr.count("cudaq-logical is in preview") == 1
 
 
-def test_missing_cudaq_runtime_raises_helpful_import_error(tmp_path):
+def test_missing_cudaq_core_raises_helpful_import_error(tmp_path):
     code = """
 import importlib.util
 _real_find_spec = importlib.util.find_spec
@@ -106,9 +106,54 @@ importlib.util.find_spec = _without_cudaq
     result = _run_python(tmp_path, code)
     assert result.returncode != 0
     assert "ImportError" in result.stderr
+    assert "requires the CUDA-Q core bindings" in result.stderr
     for hint in ("cudaq-logical[cu13]", "cudaq-logical[cu12]",
                  "pip install cudaq"):
         assert hint in result.stderr
+
+
+def test_logical_compilation_without_frontend_initialization(tmp_path):
+    import cudaq
+
+    # Logical compilation and estimation require only the core bindings, not the
+    # full CUDA-Q package with its frontend/execution components. Simulate that
+    # core-only installation with a namespace root and block frontend imports.
+    # All subpackages and native extensions used below are real, not mocks.
+    code = f"""
+import sys
+from importlib.abc import MetaPathFinder
+from importlib.machinery import ModuleSpec
+
+class CoreOnly(MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "cudaq":
+            spec = ModuleSpec(fullname, loader=None, is_package=True)
+            spec.submodule_search_locations = {list(cudaq.__path__)!r}
+            return spec
+        frontend_modules = ("cudaq.kernel", "cudaq._experimental",
+                            "cudaq.mlir._mlir_libs._quakeDialects")
+        if any(fullname == name or fullname.startswith(name + ".")
+               for name in frontend_modules):
+            raise ImportError("Execution frontend is unavailable: " + fullname)
+
+sys.meta_path.insert(0, CoreOnly())
+""" + _IMPORT_PREAMBLE + """
+import cudaq.logical as logical
+from cudaq.core.backends import EstimateResult
+
+@logical.program
+def readout() -> bool:
+    return logical.measure_z(logical.prepare_zero())
+
+result = logical.targets.TerminalBackend().estimate(
+    logical.compile(readout), tier=logical.estimate.Tier.LOGICAL)
+assert isinstance(result, EstimateResult)
+profile = logical.estimate.LogicalProfile.from_annotations(result.annotations)
+assert profile.total_operations == 2
+assert "cudaq.kernel.kernel_decorator" not in sys.modules
+"""
+    result = _run_python(tmp_path, code)
+    assert result.returncode == 0, result.stderr
 
 
 def test_stamp_script_pins_both_runtime_extras(tmp_path):

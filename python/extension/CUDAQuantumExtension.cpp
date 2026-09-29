@@ -14,7 +14,6 @@
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
-#include "runtime/common/py_Resources.h"
 #include "runtime/common/py_SampleResult.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
 #include "runtime/cudaq/algorithms/py_evolve.h"
@@ -43,12 +42,10 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_pauli_word.h"
-#include "runtime/cudaq/target/py_compile_target.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/cudaq/trace/py_trace.h"
 #include "runtime/interop/PythonCppInteropDecls.h"
-#include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
 #include "cudaq/Support/Version.h"
@@ -75,12 +72,46 @@ namespace cudaq_internal::compiler {
 void installPythonMLIRHooks();
 } // namespace cudaq_internal::compiler
 
+// The shared extensions' public attributes are their export contract. Forward
+// the same objects, including submodule import aliases, without duplicating a
+// list of binding names here. Private helpers must use underscore-prefixed
+// names.
+static void reexportBindings(nanobind::module_ source,
+                             nanobind::module_ destination) {
+  auto bindings = nanobind::cast<nanobind::dict>(source.attr("__dict__"));
+  auto modules = nanobind::cast<nanobind::dict>(
+      nanobind::module_::import_("sys").attr("modules"));
+  auto destinationName =
+      nanobind::cast<std::string>(destination.attr("__name__"));
+  for (auto [key, value] : bindings) {
+    auto name = nanobind::cast<std::string>(key);
+    if (name.empty() || name.front() == '_')
+      continue;
+    auto qualifiedName = destinationName + "." + name;
+    if (nanobind::hasattr(destination, name.c_str()))
+      throw std::runtime_error(
+          "Shared binding conflicts with frontend binding: " + qualifiedName);
+    destination.attr(name.c_str()) = value;
+    if (nanobind::isinstance<nanobind::module_>(value)) {
+      if (modules.contains(qualifiedName.c_str()) &&
+          !modules[qualifiedName.c_str()].is(value))
+        throw std::runtime_error(
+            "Shared binding conflicts with module alias: " + qualifiedName);
+      modules[qualifiedName.c_str()] = value;
+    }
+  }
+}
+
 NB_MODULE(_quakeDialects, m) {
   cudaq_internal::compiler::installPythonMLIRHooks();
+  cudaq_internal::compiler::initializeMLIR();
 
   holder = std::make_unique<LinkedLibraryHolder>();
 
-  bindRegisterDialects(m);
+  // Register shared types before defining frontend bindings that use them.
+  auto dialects =
+      nanobind::module_::import_("cudaq.mlir._mlir_libs._quakeDialectsCore");
+  auto backends = nanobind::module_::import_("cudaq.mlir._mlir_libs._backends");
 
   auto cudaqRuntime = m.def_submodule("cudaq_runtime");
   cudaqRuntime.def(
@@ -114,10 +145,8 @@ NB_MODULE(_quakeDialects, m) {
       nanobind::arg("target") = nanobind::none(),
       "Initialize the CUDA-Q environment.");
 
-  bindCompileTarget(cudaqRuntime);
   bindRuntimeTarget(cudaqRuntime, *holder.get());
   bindMeasureCounts(cudaqRuntime);
-  bindResources(cudaqRuntime);
   bindObserveResult(cudaqRuntime);
   bindComplexMatrix(cudaqRuntime);
   bindScalarWrapper(cudaqRuntime);
@@ -523,4 +552,9 @@ When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)
         opt::factory::mergeModules(toMod, unwrap(from));
       },
       "Merge the `from` module into the `to` module, overwriting `name`.");
+
+  // Publish shared exports last so a conflicting frontend binding is an error,
+  // rather than silently replacing either definition.
+  reexportBindings(dialects, m);
+  reexportBindings(backends, cudaqRuntime);
 }

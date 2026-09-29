@@ -48,6 +48,29 @@ def make_swap_kernel():
     return swap_kernel
 
 
+def test_frontend_reexports_shared_bindings():
+    from importlib import import_module
+    from types import ModuleType
+    from cudaq.core import backends
+    from cudaq.mlir._mlir_libs import _backends, _quakeDialects, _quakeDialectsCore
+
+    assert CompileTarget is backends.CompileTarget
+    assert PipelineConfig is backends.PipelineConfig
+    assert CustomTarget is backends.CustomTarget
+    assert cudaq.Resources is backends.Resources
+    assert cudaq.EstimateResult is backends.EstimateResult
+    # Every public native export must retain object identity through the
+    # frontend, including imports using its original submodule paths.
+    for source, destination in ((_quakeDialectsCore, _quakeDialects),
+                                (_backends, cudaq_runtime)):
+        for name, value in vars(source).items():
+            if name.startswith("_"):
+                continue
+            assert getattr(destination, name) is value
+            if isinstance(value, ModuleType):
+                assert import_module(f"{destination.__name__}.{name}") is value
+
+
 def swap_pipeline_target():
     ct = CompileTarget()
     ct.pipeline_config.override_pass_pipeline = SWAP_TO_CX_PIPELINE
