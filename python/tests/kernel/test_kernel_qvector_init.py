@@ -523,3 +523,36 @@ def test_qubit_init_outside_of_kernel():
     # cannot instantiate a qubit outside a kernel
     with pytest.raises(KernelTypeError):
         cudaq.qubit()
+
+
+@cudaq.kernel
+def ancilla_then_state_init(vec: list[complex]):
+    ancilla = cudaq.qubit()
+    qubits = cudaq.qvector(vec)
+    h(ancilla)
+
+
+def check_ancilla_then_state_init():
+    # A deferred allocation before a state-initialised register used to
+    # double-count qubits, giving a 5-qubit state for a 3-qubit kernel.
+    vec = [1. + 0j, 0j, 0j, 0j]
+    state = np.array(cudaq.get_state(ancilla_then_state_init, vec))
+    assert len(state) == 8
+
+    expectations = [
+        cudaq.observe(ancilla_then_state_init, op(0), vec).expectation()
+        for op in (cudaq.spin.x, cudaq.spin.y, cudaq.spin.z)
+    ]
+    assert np.allclose(expectations, [1., 0., 0.], atol=1e-6)
+
+
+def test_ancilla_then_state_init():
+    check_ancilla_then_state_init()
+
+
+def test_ancilla_then_state_init_density_matrix():
+    cudaq.set_target('density-matrix-cpu')
+    try:
+        check_ancilla_then_state_init()
+    finally:
+        cudaq.reset_target()
