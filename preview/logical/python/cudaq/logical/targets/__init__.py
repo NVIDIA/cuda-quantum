@@ -210,14 +210,14 @@ class ProgramBackend(Backend):
                          next_backend=next_backend)
 
     def estimate(self, build, args=(), *, tier=None, **estimate_options):
+        options = {**self.estimate_options, **estimate_options}
+        # An explicit tier overrides the target's.
+        target_tier = options.pop("tier", None)
         return super().estimate(
             build,
             args,
-            tier=tier,
-            **{
-                **self.estimate_options,
-                **estimate_options,
-            },
+            tier=tier if tier is not None else target_tier,
+            **options,
         )
 
     def compile(self, source, *, arguments=(), **_options):
