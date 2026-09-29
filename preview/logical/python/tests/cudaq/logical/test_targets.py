@@ -188,8 +188,12 @@ def test_cudaq_target_estimation_traces_each_logical_phase():
 
     names = {e["name"] for e in backend.to_dict()["traceEvents"]}
     assert {
-        f"cudaq.pipeline.logical.{tag}" for tag in ("p0", "clifford_t", "p1",
-                                                    "p2", "p3", "schedule")
+        f"cudaq.logical.target.{tag}" for tag in ("p0", "clifford_t", "p1",
+                                                  "p2", "p3")
+    } <= names
+    assert {
+        f"cudaq.estimate.{tier}" for tier in ("LOGICAL", "STATIC", "ANALYTICAL",
+                                              "SCHEDULE")
     } <= names
 
 

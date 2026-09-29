@@ -60,7 +60,7 @@ class UnavailableTargetError(RuntimeError):
 class Backend:
     """One stack layer that compiles a build before delegating downstream."""
 
-    # Names this layer's ``cudaq.pipeline.logical.<tag>`` trace span.
+    # Names this layer's ``cudaq.logical.target.<tag>`` trace span.
     _trace_tag = None
 
     def __init__(self, spec: LoweringSpec, *, next_backend=None):
@@ -78,7 +78,7 @@ class Backend:
     def _traced_compile(self, build, **options):
         if self._trace_tag is None:
             return self.compile(build, **options)
-        with trace.span(f"cudaq.pipeline.logical.{self._trace_tag}"):
+        with trace.span(f"cudaq.logical.target.{self._trace_tag}"):
             return self.compile(build, **options)
 
     def _launch(self, build, operation, **kwargs):
@@ -301,6 +301,13 @@ def _estimate_tier(tier):
     return tier
 
 
+def _traced_estimate(build, tier, **options):
+    from .. import estimate
+
+    with trace.span(f"cudaq.estimate.{tier.name}"):
+        return estimate(build, tier=tier, **options)
+
+
 def _stage_estimate(build, *, tier=None, **estimate_options):
     """Return the estimate tier naturally owned by one accepted build."""
 
@@ -315,7 +322,7 @@ def _stage_estimate(build, *, tier=None, **estimate_options):
             return {}
         return {
             estimate.Tier.LOGICAL.name:
-                estimate(build, tier=estimate.Tier.LOGICAL)
+                _traced_estimate(build, estimate.Tier.LOGICAL)
         }
     physical_requested = (tier in {
         estimate.Tier.ANALYTICAL,
@@ -335,12 +342,12 @@ def _stage_estimate(build, *, tier=None, **estimate_options):
             return {}
         estimates = {}
         if tier in {None, estimate.Tier.STATIC}:
-            estimates[estimate.Tier.STATIC.name] = estimate(
-                build, tier=estimate.Tier.STATIC)
+            estimates[estimate.Tier.STATIC.name] = _traced_estimate(
+                build, estimate.Tier.STATIC)
         if tier is estimate.Tier.ANALYTICAL or (tier is None and
                                                 physical_requested):
-            estimates[estimate.Tier.ANALYTICAL.name] = estimate(
-                build, tier=estimate.Tier.ANALYTICAL, **common_physical)
+            estimates[estimate.Tier.ANALYTICAL.name] = _traced_estimate(
+                build, estimate.Tier.ANALYTICAL, **common_physical)
         return estimates
     if build.profile == "p3":
         if tier is not None and tier is not estimate.Tier.SCHEDULE:
@@ -358,13 +365,11 @@ def _stage_estimate(build, *, tier=None, **estimate_options):
                 ) if name in estimate_options
             },
         }
-        with trace.span("cudaq.pipeline.logical.schedule"):
-            return {
-                estimate.Tier.SCHEDULE.name:
-                    estimate(build,
-                             tier=estimate.Tier.SCHEDULE,
-                             **schedule_options)
-            }
+        return {
+            estimate.Tier.SCHEDULE.name:
+                _traced_estimate(build, estimate.Tier.SCHEDULE,
+                                 **schedule_options)
+        }
     return {}
 
 
