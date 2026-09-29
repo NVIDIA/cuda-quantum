@@ -58,6 +58,7 @@ declare_mlir_python_extension(CUDAQCorePythonSources.Backends
     ../../python/runtime/cudaq/target/py_compile_target.cpp
     ../../python/runtime/common/py_Resources.cpp
     ../../python/runtime/common/py_EstimateResult.cpp
+    ../../python/runtime/cudaq/trace/py_trace.cpp
   PRIVATE_LINK_LIBS cudaq-common cudaq-logger fmt::fmt-header-only)
 foreach(_bindings Dialects Backends)
   target_include_directories(CUDAQCorePythonSources.${_bindings} INTERFACE
@@ -170,6 +171,16 @@ cudaq_stage_python_sources(CUDAQCorePythonPackageStaging
 add_dependencies(CUDAQCorePythonModules CUDAQCorePythonPackageStaging)
 install(FILES core/__init__.py core/backends.py
   DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+
+# Logical compilation uses the shared logger's tracing API without the frontend.
+# Keep its public Python path and source location; core stages and installs it.
+cudaq_stage_python_sources(CUDAQCoreTraceStaging
+  ROOT_DIR "${CMAKE_SOURCE_DIR}/python/cudaq"
+  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/cudaq"
+  SOURCES util/trace.py)
+add_dependencies(CUDAQCorePythonModules CUDAQCoreTraceStaging)
+install(FILES "${CMAKE_SOURCE_DIR}/python/cudaq/util/trace.py"
+  DESTINATION cudaq/util COMPONENT CUDAQCorePythonModules)
 
 # Suppress warnings-as-errors for upstream MLIR Python extension sources
 # that have minor GCC warnings (address-of-function, parentheses) in LLVM 22.

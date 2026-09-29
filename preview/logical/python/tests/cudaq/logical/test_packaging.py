@@ -142,6 +142,7 @@ import cudaq.logical as logical
 from dataclasses import fields
 from typing import get_type_hints
 from cudaq.core.backends import CompileTarget, CustomTarget, EstimateResult, RuntimeEndpoint
+from cudaq.util import trace
 
 expected = {"runtime_endpoint": RuntimeEndpoint, "compile_target": CompileTarget}
 assert get_type_hints(CustomTarget) == expected
@@ -151,9 +152,16 @@ assert {field.name: field.type for field in fields(CustomTarget)} == expected
 def readout() -> bool:
     return logical.measure_z(logical.prepare_zero())
 
-result = logical.targets.TerminalBackend().estimate(
-    logical.compile(readout), tier=logical.estimate.Tier.LOGICAL)
+backend = trace.ChromeBackend()
+trace.set_backend(backend)
+try:
+    result = logical.targets.TerminalBackend().estimate(
+        logical.compile(readout), tier=logical.estimate.Tier.LOGICAL)
+finally:
+    trace.reset_backend()
 assert isinstance(result, EstimateResult)
+assert "cudaq.estimate.LOGICAL" in {
+    event["name"] for event in backend.to_dict()["traceEvents"]}
 profile = logical.estimate.LogicalProfile.from_annotations(result.annotations)
 assert profile.total_operations == 2
 assert "cudaq.kernel.kernel_decorator" not in sys.modules

@@ -44,7 +44,6 @@
 #include "runtime/cudaq/qis/py_pauli_word.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
-#include "runtime/cudaq/trace/py_trace.h"
 #include "runtime/interop/PythonCppInteropDecls.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
@@ -183,7 +182,6 @@ NB_MODULE(_quakeDialects, m) {
   bindRuntimeEndpoint(cudaqRuntime);
   bindTestUtils(cudaqRuntime, *holder.get());
   bindCustomOpRegistry(cudaqRuntime);
-  bindTrace(cudaqRuntime);
 
   cudaqRuntime.def(
       "set_random_seed", &set_random_seed,
