@@ -12,7 +12,7 @@
 /// @brief Device-side data-plane a transport provides to the unified GPU
 /// dispatch kernel.
 ///
-/// The unified kernel (`unified_dispatch_core.cu`) does RDMA RX, RPC dispatch
+/// The unified kernel (`unified_dispatch_kernel.cu`) does RDMA RX, RPC dispatch
 /// and RDMA TX in one persistent single-thread kernel.  Everything
 /// transport-specific reaches it through the three `__device__` hooks below
 /// plus an opaque `void *ctx`, so the loop itself compiles with no transport

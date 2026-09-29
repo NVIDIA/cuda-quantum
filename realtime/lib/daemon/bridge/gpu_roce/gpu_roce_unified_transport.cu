@@ -20,7 +20,6 @@
 ///   iGPU: send (NIC_HANDLER_AUTO -> CPU proxy) -- required because the
 ///         GPU cannot ring the NIC doorbell directly on integrated GPUs.
 ///
-/// Compiled into libcudaq-realtime-bridge-gpu-roce.so (transport-specific).
 
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
