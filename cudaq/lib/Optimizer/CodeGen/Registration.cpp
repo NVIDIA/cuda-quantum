@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,7 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once
+#include "cudaq/Optimizer/InitAllPasses.h"
 
-// Preserve the existing public include path.
-#include "common/EstimateResult.h"
+void cudaq::registerAllPasses() {
+  // General MLIR passes
+  mlir::registerTransformsPasses();
+
+  // All the CUDA-Q passes and pipelines.
+  registerCudaqPassesAndPipelines();
+}

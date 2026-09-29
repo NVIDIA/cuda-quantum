@@ -8,5 +8,9 @@
 
 #pragma once
 
-// Preserve the existing public include path.
-#include "common/EstimateResult.h"
+#include <nanobind/nanobind.h>
+
+namespace cudaq {
+/// @brief Bind `cudaq.EstimateResult` to Python.
+void bindEstimateResult(nanobind::module_ &mod);
+} // namespace cudaq
