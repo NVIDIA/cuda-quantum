@@ -25,6 +25,10 @@
         "pattern": "^https://gcc.gnu.org/"
       },
       {
+        "_comment": "Connections from CI runners time out (ETIMEDOUT) although the site is live.",
+        "pattern": "^https://gmplib\\.org/"
+      },
+      {
         "_comment": "Cloudflare blocks programmatic clients (TLS fingerprint, not UA); no header workaround possible. Verified with curl + lychee + markdown-link-check across multiple UAs.",
         "pattern": "^https://en\\.cppreference\\.com/"
       },
