@@ -134,6 +134,10 @@ struct GeneralRewrite : OpConversionPattern<OP> {
       instName += "dg";
 
     auto loc = qop.getLoc();
+    SmallVector<Value> operands(adaptor.getOperands());
+    if constexpr (std::is_same_v<OP, cudaq::quake::PhasedRxOp>)
+      if (qop.getIsAdj())
+        operands[0] = arith::NegFOp::create(rewriter, loc, operands[0]);
     std::string funcName = [&]() {
       if (qop.getControls().empty())
         return toQisBodyName(std::move(instName));
@@ -183,8 +187,9 @@ struct GeneralRewrite : OpConversionPattern<OP> {
               arith::ConstantIntOp::create(rewriter, loc, 0, 64),
               arith::ConstantIntOp::create(rewriter, loc, 1, 64),
               arith::ConstantIntOp::create(rewriter, loc, 1, 64), fPtrVal};
-          callParamVals.append(adaptor.getParameters().begin(),
-                               adaptor.getParameters().end());
+          auto parameters =
+              ValueRange(operands).take_front(adaptor.getParameters().size());
+          callParamVals.append(parameters.begin(), parameters.end());
           callParamVals.push_back(cudaq::cc::CastOp::create(
               rewriter, loc, ptrTy, *adaptor.getControls().begin()));
           callParamVals.push_back(cudaq::cc::CastOp::create(
@@ -202,7 +207,7 @@ struct GeneralRewrite : OpConversionPattern<OP> {
                                 adaptor.getControls().end());
       qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
       func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
-                           adaptor.getOperands());
+                           operands);
       rewriter.replaceOp(qop, qubits);
       return success();
     }
