@@ -379,7 +379,7 @@ cudaq::dynamics::CuDensityMatOpConverter::fuseProductTerms(
 }
 
 std::optional<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
-cudaq::dynamics::CuDensityMatOpConverter::computeFusedAntiCommutatorTerm(
+cudaq::dynamics::CuDensityMatOpConverter::computeFusableCollapseOperator(
     const sum_op<cudaq::matrix_handler> &collapseOp,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
@@ -396,17 +396,58 @@ cudaq::dynamics::CuDensityMatOpConverter::computeFusedAntiCommutatorTerm(
         return std::nullopt;
   }
 
-  auto lMat = collapseOp.to_matrix(dimensions, parameters);
-  const auto lDagMat = lMat.adjoint();
-  return FusedTerm{degrees, std::complex<double>(-0.5, 0.0) * (lDagMat * lMat)};
+  return FusedTerm{degrees, collapseOp.to_matrix(dimensions, parameters)};
 }
 
-void cudaq::dynamics::CuDensityMatOpConverter::appendFusedTerm(
-    cudensitymatOperator_t cudmOperator, const FusedTerm &fusedTerm,
-    const std::vector<int64_t> &modeExtents, int32_t duality) {
-  auto subspaceExtents = getSubspaceExtents(modeExtents, fusedTerm.degrees);
-  auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(
-      flattenMatrixColumnMajor(fusedTerm.matrix));
+bool cudaq::dynamics::CuDensityMatOpConverter::appendFusedSandwichTerm(
+    cudensitymatOperator_t cudmOperator, const FusedTerm &collapseOp,
+    const std::vector<int64_t> &modeExtents) {
+  // The operator acts on L's degrees twice: once on the ket modes (from the
+  // left) and once on the bra modes (from the right).
+  std::vector<std::size_t> degrees(collapseOp.degrees);
+  degrees.insert(degrees.end(), collapseOp.degrees.begin(),
+                 collapseOp.degrees.end());
+  if (!isFusableSubspace(degrees, modeExtents))
+    return false;
+
+  // A left action contracts the operator's bra indices with the state's ket
+  // modes, and a right action contracts its ket indices with the state's bra
+  // modes. Hence, T[i_ket, i_bra, j_ket, j_bra] = L[i_ket, j_ket] *
+  // L^dagger[i_bra, j_bra] gives rho' = L rho L^dagger, where the ket half of
+  // each index varies fastest.
+  const auto &lMat = collapseOp.matrix;
+  const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
+  const std::size_t dim = lMat.rows();
+  cudaq::complex_matrix sandwich(dim * dim, dim * dim);
+  for (std::size_t colBra = 0; colBra < dim; ++colBra)
+    for (std::size_t colKet = 0; colKet < dim; ++colKet)
+      for (std::size_t rowBra = 0; rowBra < dim; ++rowBra)
+        for (std::size_t rowKet = 0; rowKet < dim; ++rowKet)
+          sandwich[{rowKet + dim * rowBra, colKet + dim * colBra}] =
+              lMat[{rowKet, colKet}] * lDagMat[{rowBra, colBra}];
+
+  auto cudmElemOp = createDenseElementaryOperator(
+      sandwich, getSubspaceExtents(modeExtents, degrees));
+  std::vector<int> dualities(collapseOp.degrees.size(), 0);
+  dualities.resize(degrees.size(), 1);
+  auto term = createProductOperatorTerm({cudmElemOp}, modeExtents, {degrees},
+                                        {dualities});
+  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+      m_handle, cudmOperator, term, /*duality=*/0,
+      make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone,
+      cudensitymatScalarGradientCallbackNone));
+  CUDAQ_INFO("Fused L rho L^dagger acting on {} degrees into one dense "
+             "operator term.",
+             collapseOp.degrees.size());
+  return true;
+}
+
+cudensitymatElementaryOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::createDenseElementaryOperator(
+    const cudaq::complex_matrix &matrix,
+    const std::vector<int64_t> &subspaceExtents) {
+  auto *elementaryMat_d =
+      cudaq::dynamics::createArrayGpu(flattenMatrixColumnMajor(matrix));
   m_deviceBuffers.emplace(elementaryMat_d);
 
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
@@ -416,7 +457,14 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendFusedTerm(
       CUDA_C_64F, elementaryMat_d, cudensitymatTensorCallbackNone,
       cudensitymatTensorGradientCallbackNone, &cudmElemOp));
   m_elementaryOperators.emplace(cudmElemOp);
+  return cudmElemOp;
+}
 
+void cudaq::dynamics::CuDensityMatOpConverter::appendFusedTerm(
+    cudensitymatOperator_t cudmOperator, const FusedTerm &fusedTerm,
+    const std::vector<int64_t> &modeExtents, int32_t duality) {
+  auto cudmElemOp = createDenseElementaryOperator(
+      fusedTerm.matrix, getSubspaceExtents(modeExtents, fusedTerm.degrees));
   auto term = createProductOperatorTerm({cudmElemOp}, modeExtents,
                                         {fusedTerm.degrees}, {});
   HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
