@@ -153,9 +153,10 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   # functions, which CUDA resolves only within a single module, so the two
   # must be device-linked together -- and the launcher belongs to the runtime,
   # not to a transport library.  Making them one archive satisfies both.
-  target_sources(cudaq-realtime-unified-dispatch-core
-    PRIVATE gpu_roce_unified_transport.cu)
-  target_include_directories(cudaq-realtime-unified-dispatch-core
+  target_sources(cudaq-realtime PRIVATE gpu_roce_unified_transport.cu)
+  set_property(GLOBAL PROPERTY CUDAQ_REALTIME_UNIFIED_TRANSPORT_TU
+    "bridge/gpu_roce/gpu_roce_unified_transport.cu")
+  target_include_directories(cudaq-realtime
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
       "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"

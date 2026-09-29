@@ -18,12 +18,14 @@ if(CUDA_FOUND)
     bridge/bridge_interface_api.cpp
   )
 
-  add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
-  # The unified dispatch kernel is part of the runtime: the dispatcher calls
-  # cudaq_launch_unified_dispatch_device directly, so it must always resolve.
-  # Linking the archive here device-links the kernel with its transport hooks
-  # (see the target below).
-  target_link_libraries(cudaq-realtime PRIVATE cudaq-realtime-unified-dispatch-core)
+  add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES}
+    # The unified dispatch kernel belongs to the runtime: the dispatcher calls
+    # cudaq_launch_unified_dispatch_device directly, so it must resolve in
+    # every configuration.  Its transport hooks are __device__ functions, which
+    # CUDA resolves only within one module, so whichever TU defines them is
+    # compiled into this library too -- bridge/gpu_roce appends its own below,
+    # and dispatcher/unified_transport_none.cu stands in when no transport does.
+    dispatcher/unified_dispatch_kernel.cu)
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
   add_library(cudaq::cudaq-realtime ALIAS cudaq-realtime)
@@ -152,56 +154,18 @@ if(CUDA_FOUND)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 
-  # ============================================================================
-  # Transport-agnostic unified dispatch kernel
-  # ============================================================================
-  # The kernel reaches its transport through the __device__ hooks in
-  # unified_device_transport.cuh.  CUDA resolves __device__ calls only within
-  # a single module, so the hook implementations must be device-linked with
-  # the kernel: bridge/gpu_roce appends its own TU to THIS target rather than
-  # to its shared library.  That keeps the launcher a runtime artifact --
-  # consumers link this archive and hand
-  # cudaq_launch_unified_dispatch_device to the dispatcher, exactly as they
-  # link cudaq-realtime-dispatch and hand over
-  # cudaq_launch_dispatch_kernel_regular.
-  #
-  # Splitting the transport into its own TU is what keeps the kernel free of
-  # DOCA today; sources here must not include transport headers.  Once the
-  # data plane is genuinely pluggable the transport TU leaves this target
-  # again, and the include isolation can go back to being build-enforced.
-  add_library(cudaq-realtime-unified-dispatch-core STATIC
-    dispatcher/unified_dispatch_kernel.cu
-  )
-  add_library(cudaq::cudaq-realtime-unified-dispatch-core
-    ALIAS cudaq-realtime-unified-dispatch-core)
-
-  target_include_directories(cudaq-realtime-unified-dispatch-core
-    PUBLIC
-      $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
-      $<INSTALL_INTERFACE:include>
-  )
-
-  target_link_libraries(cudaq-realtime-unified-dispatch-core
-    PUBLIC
-      CUDA::cudart_static
-      ${CUDADEVRT_LIBRARY}
-  )
-
-  set_target_properties(cudaq-realtime-unified-dispatch-core PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    POSITION_INDEPENDENT_CODE ON
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-  )
-
-  install(TARGETS cudaq-realtime-unified-dispatch-core
-    EXPORT cudaq-realtime-targets
-    COMPONENT realtime-lib
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
-
   if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
     add_subdirectory(bridge/gpu_roce)
   endif()
+
+  # No transport supplied the unified device hooks, so link the null data
+  # plane; see unified_transport_none.cu.
+  get_property(_cudaq_unified_transport GLOBAL
+    PROPERTY CUDAQ_REALTIME_UNIFIED_TRANSPORT_TU)
+  if (NOT _cudaq_unified_transport)
+    target_sources(cudaq-realtime PRIVATE dispatcher/unified_transport_none.cu)
+  endif()
+  unset(_cudaq_unified_transport)
   # CPU transport bridge providers (thin provider .so's over the
   # cpu_transport ring transceivers; loaded via CUDAQ_REALTIME_BRIDGE_LIB).
   add_subdirectory(bridge/udp)

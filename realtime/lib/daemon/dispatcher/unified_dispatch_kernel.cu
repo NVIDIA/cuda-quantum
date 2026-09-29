@@ -17,9 +17,9 @@
 /// unified_device_transport.cuh, which a transport implements in its own TU
 /// and device-links into the same shared library (see the LINKAGE note there).
 ///
-/// Compiled into libcudaq-realtime-unified-dispatch-core.a.  The DOCA
-/// implementation of the hooks lives in
-/// bridge/gpu_roce/gpu_roce_unified_transport.cu.
+/// Compiled into libcudaq-realtime, together with whichever TU defines the
+/// hooks: bridge/gpu_roce/gpu_roce_unified_transport.cu when that transport
+/// is configured, otherwise dispatcher/unified_transport_none.cu.
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"

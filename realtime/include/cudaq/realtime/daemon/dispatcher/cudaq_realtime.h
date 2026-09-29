@@ -265,7 +265,7 @@ typedef void (*cudaq_unified_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
 
 // Transport-agnostic unified dispatch kernel launcher (from
-// libcudaq-realtime-unified-dispatch-core.a).  The kernel it launches reaches
+// libcudaq-realtime itself).  The kernel it launches reaches
 // its transport through the three __device__ hooks in
 // unified_device_transport.cuh, so a transport wires itself up by
 // implementing those rather than by writing a kernel.
