@@ -643,6 +643,11 @@ jobs:
             // Filter server-side: an unfiltered listing returns only the 30
             // most recent artifacts repo-wide. Re-checked below before deleting.
             const target = '${{ needs.build_installer.outputs.artifact_name }}'
+            // This job runs on always(), so the name is empty when the build
+            // did not get far enough to produce an artifact.
+            if (!target)
+              return
+
             const artifacts = await github.paginate(
               github.rest.actions.listArtifactsForRepo, {
                 owner: context.repo.owner,
