@@ -139,7 +139,13 @@ class CoreOnly(MetaPathFinder):
 sys.meta_path.insert(0, CoreOnly())
 """ + _IMPORT_PREAMBLE + """
 import cudaq.logical as logical
-from cudaq.core.backends import EstimateResult
+from dataclasses import fields
+from typing import get_type_hints
+from cudaq.core.backends import CompileTarget, CustomTarget, EstimateResult, RuntimeEndpoint
+
+expected = {"runtime_endpoint": RuntimeEndpoint, "compile_target": CompileTarget}
+assert get_type_hints(CustomTarget) == expected
+assert {field.name: field.type for field in fields(CustomTarget)} == expected
 
 @logical.program
 def readout() -> bool:

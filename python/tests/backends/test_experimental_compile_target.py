@@ -71,6 +71,23 @@ def test_frontend_reexports_shared_bindings():
                 assert import_module(f"{destination.__name__}.{name}") is value
 
 
+def test_custom_target_runtime_annotations():
+    from dataclasses import fields
+    from typing import get_type_hints
+    from cudaq._experimental import RuntimeEndpoint
+    from cudaq.core import backends
+
+    expected = {
+        "runtime_endpoint": RuntimeEndpoint,
+        "compile_target": CompileTarget,
+    }
+    assert get_type_hints(CustomTarget) == expected
+    assert {
+        field.name: field.type for field in fields(CustomTarget)
+    } == expected
+    assert RuntimeEndpoint is backends.RuntimeEndpoint
+
+
 def swap_pipeline_target():
     ct = CompileTarget()
     ct.pipeline_config.override_pass_pipeline = SWAP_TO_CX_PIPELINE
