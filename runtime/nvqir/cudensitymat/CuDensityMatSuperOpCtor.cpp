@@ -112,7 +112,8 @@ std::vector<
 cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
     const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
     const std::vector<int64_t> &modeExtents,
-    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool includeAntiCommutator) {
   if (batchedCollapseOps.empty())
     return {};
   // Split the collapse operators into batched product terms.
@@ -208,6 +209,9 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
             elemOps, modeExtents, allDegrees, all_action_dual_modalities);
         lindbladTerms.emplace_back(std::make_pair(coeffs, D1_term));
       }
+
+      if (!includeAntiCommutator)
+        continue;
 
       std::vector<product_op<matrix_handler>> L_daggerTimesL;
       std::vector<scalar_operator> L_daggerTimesL_coeffs;
@@ -336,22 +340,40 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
       rightHam.emplace_back(computeDagger(ham) *
                             std::complex<double>(0.0, 1.0));
     }
-    // -i constant (left multiplication)
-    appendToCudensitymatOperator(liouvillian, parameters, leftHam, modeExtents,
-                                 /*duality=*/0);
-    // +i constant (right multiplication, i.e., dual)
-    appendToCudensitymatOperator(liouvillian, parameters, rightHam, modeExtents,
-                                 /*duality=*/1);
-
     // Check that all collapsed operator vectors have the same size
-    if (!collapseOperators.empty()) {
-      const auto collapseSize = collapseOperators[0].size();
-      for (const auto &collapseOperator : collapseOperators) {
-        if (collapseOperator.size() != collapseSize) {
-          throw std::invalid_argument(
-              "All collapse operator vectors must have the same size.");
+    const auto collapseSize =
+        collapseOperators.empty() ? 0 : collapseOperators[0].size();
+    for (const auto &collapseOperator : collapseOperators) {
+      if (collapseOperator.size() != collapseSize) {
+        throw std::invalid_argument(
+            "All collapse operator vectors must have the same size.");
+      }
+    }
+
+    // The -1/2 {L^dagger L, rho} part of each dissipator acts like the
+    // Hamiltonian from the left and the right, so fold it into those actions
+    // when possible.
+    std::vector<FusedTerm> antiCommutatorTerms;
+    std::vector<bool> isAntiCommutatorFused(collapseSize, false);
+    if (batchSize == 1 && collapseOperators.size() == 1) {
+      for (std::size_t i = 0; i < collapseSize; ++i) {
+        auto fusedTerm = computeFusedAntiCommutatorTerm(
+            collapseOperators[0][i], parameters, modeExtents);
+        if (fusedTerm) {
+          antiCommutatorTerms.push_back(std::move(*fusedTerm));
+          isAntiCommutatorFused[i] = true;
         }
       }
+    }
+
+    // -i constant (left multiplication)
+    appendToCudensitymatOperator(liouvillian, parameters, leftHam, modeExtents,
+                                 /*duality=*/0, antiCommutatorTerms);
+    // +i constant (right multiplication, i.e., dual)
+    appendToCudensitymatOperator(liouvillian, parameters, rightHam, modeExtents,
+                                 /*duality=*/1, antiCommutatorTerms);
+
+    if (collapseSize > 0) {
       // Handle collapsed operators
       for (std::size_t i = 0; i < collapseSize; ++i) {
         std::vector<sum_op<cudaq::matrix_handler>> batchedCollapseTerms;
@@ -359,7 +381,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           batchedCollapseTerms.push_back(collapseOperator[i]);
         }
         for (auto &[coeffs, term] : computeLindbladTerms(
-                 batchedCollapseTerms, modeExtents, parameters)) {
+                 batchedCollapseTerms, modeExtents, parameters,
+                 /*includeAntiCommutator=*/!isAntiCommutatorFused[i])) {
           assert(coeffs.size() == batchSize);
           appendBatchedTermToOperator(liouvillian, term, coeffs, keys);
         }

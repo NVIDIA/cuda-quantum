@@ -214,6 +214,9 @@ Any environment variables must be set prior to setting the target or running "`i
   * - ``CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL``
     - Non-negative number
     - The maximum number of diagonals for multi-diagonal representation. If the operator matrix has more diagonals than this value, the dense format will be used. Default is 1, i.e., operators with only one diagonal line (center, lower, or upper) will use the multi-diagonal sparse storage. 
+  * - ``CUDAQ_DYNAMICS_MAX_FUSED_DIMENSION``
+    - Non-negative number
+    - The maximum sub-system dimension for operator fusion. Product terms with constant coefficients that act on sub-systems of at most this dimension are summed into a single dense operator per group of degrees of freedom, with terms acting on a subset of a group's degrees folded into that group. For master equations, the :math:`-\frac{1}{2}\{L^\dagger L, \rho\}` part of each such collapse operator is folded in as well. Fusion reduces the number of passes over the state. Default is 16; 0 disables fusion.
 
 Time-Dependent Dynamics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
