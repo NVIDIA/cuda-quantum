@@ -151,9 +151,15 @@ func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq
 // NO_OPT-NOT:   llvm.stackrestore
 // NO_OPT:       llvm.return
 
+// StackFramePrealloc runs once in the common pipeline, over still-structured
+// control flow, before combine-quantum-alloc; convert-to-cfg has not run yet
+// at that point. It then runs a second time immediately after
+// convert-to-cfg further down, which is the invocation that actually strips
+// the stacksave/stackrestore calls convert-to-cfg's own scope lowering
+// inserts -- see the comment on addLowerToCFGAndCleanup in Pipelines.cpp.
 // PIPELINE: Pass Manager
 // PIPELINE-NOT: convert-to-cfg
-// PIPELINE-NOT: stack-frame-prealloc
+// PIPELINE: stack-frame-prealloc
 // PIPELINE: combine-quantum-alloc
 // PIPELINE-NOT: convert-to-cfg
 // PIPELINE-NOT: stack-frame-prealloc
