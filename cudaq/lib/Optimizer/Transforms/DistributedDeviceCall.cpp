@@ -568,12 +568,12 @@ public:
               dyn_cast<cudaq::cc::PointerType>(newDevFuncTy.getInput(0))) {
         auto eleTy = ptrTy.getElementType();
         if (isa<cudaq::cc::StructType>(eleTy)) {
-          SmallVector<Attribute> argAttrs(
-              args.size(), DictionaryAttr::get(ctx));
+          SmallVector<Attribute> argAttrs(args.size(),
+                                          DictionaryAttr::get(ctx));
           argAttrs[0] = DictionaryAttr::get(
               ctx, NamedAttribute(
-                       StringAttr::get(ctx,
-                                       LLVM::LLVMDialect::getStructRetAttrName()),
+                       StringAttr::get(
+                           ctx, LLVM::LLVMDialect::getStructRetAttrName()),
                        TypeAttr::get(ccTypeToLLVMType(eleTy))));
           callDevFunc.setArgAttrsAttr(ArrayAttr::get(ctx, argAttrs));
         }
