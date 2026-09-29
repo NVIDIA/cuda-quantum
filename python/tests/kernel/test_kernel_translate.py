@@ -75,6 +75,29 @@ def test_translate_openqasm():
     assert "qreg var0[2];" in asm
 
 
+def test_translate_openqasm_negated_custom_control():
+    cudaq.register_operation("custom_x", np.array([[0, 1], [1, 0]]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x(q[1])
+        custom_x.ctrl(~q[0], q[1])
+
+    @cudaq.kernel
+    def reference():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x(q[1])
+        x(q[0])
+        custom_x.ctrl(q[0], q[1])
+        x(q[0])
+
+    assert cudaq.translate(kernel, format="openqasm2") == cudaq.translate(
+        reference, format="openqasm2")
+
+
 def test_translate_openqasm_with_ignored_args():
     with pytest.raises(RuntimeError) as e:
         asm = cudaq.translate(bell_pair, 5, format="openqasm2")
