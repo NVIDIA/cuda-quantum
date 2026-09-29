@@ -29,15 +29,15 @@
 
 struct simple_x {
   void operator()() __qpu__ {
-    cudaq::qubit qubit;
-    x(qubit);
-    mz(qubit);
+    cudaq::qvector qubits(3);
+    x(qubits[0]);
+    mz(qubits);
   }
 };
 
 int main() {
   const auto result = cudaq::sample(32, simple_x{});
-  std::cout << "ones=" << result.count("1") << '\n';
+  std::cout << "ones=" << result.count("100") << '\n';
 }
 
 // AUTO: through 'qir-adaptive-module' transport.

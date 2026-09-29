@@ -93,7 +93,7 @@ def configureTarget(request, monkeypatch, startUpMockServer):
     else:
         cudaq.set_target("iqm", url="http://localhost:{}".format(port))
 
-    yield
+    yield request.param
     cudaq.reset_target()
 
 
@@ -391,7 +391,7 @@ def test_IQM_state_synthesis_builder():
     assert assert_close(counts["11"], 0., 2)
 
 
-def test_IQM_qubit_order_named_measurements():
+def test_IQM_qubit_order_named_measurements(configureTarget):
     shots = 1000
     # When changing the qubit count the measurements below need to be adapted.
     QUBIT_COUNT = 8
@@ -429,6 +429,20 @@ def test_IQM_qubit_order_named_measurements():
         #      f" {"PASS" if most_dominant == expected else "FAIL"}")
 
         assert (most_dominant == expected)
+
+    future = cudaq.sample_async(circuit, 0, shots_count=shots)
+    saved = str(future)
+    assert future.get().count("10000000") == shots
+    if configureTarget == "qdmi":
+        legacy = json.loads(saved)
+        del legacy["config"]["result_order"]
+        assert cudaq.AsyncSampleResult(
+            json.dumps(legacy)).get().count("10000000") == shots
+        cudaq.set_target("qdmi",
+                         device="iqm.mock",
+                         program_format="iqm-json",
+                         result_order="bit0-right")
+    assert cudaq.AsyncSampleResult(saved).get().count("10000000") == shots
 
 
 # leave for gdb debugging

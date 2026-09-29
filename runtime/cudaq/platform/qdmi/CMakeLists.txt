@@ -9,6 +9,7 @@
 set(LIBRARY_NAME cudaq-qdmi-qpu)
 
 include(FetchContent)
+# Last Core revision before its LLVM 23 upgrade; CUDA-Q uses LLVM 22.1.4.
 set(CUDAQ_QDMI_MQT_CORE_REV
     "62cf1554cf85d9a36b101833c69add91a544e41c"
     CACHE STRING "MQT Core revision used by the QDMI backend")
@@ -77,6 +78,7 @@ endif()
 set(QDMI_QPU_LIBRARY
     "${CMAKE_SHARED_LIBRARY_PREFIX}${LIBRARY_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 configure_file(qdmi.yml.in ${CMAKE_BINARY_DIR}/targets/qdmi.yml @ONLY)
+add_target_config(${CMAKE_BINARY_DIR}/targets/qdmi.yml)
 
 if (CUDAQ_BUILD_TESTS)
   mqt_copy_qdmi_runtime(${LIBRARY_NAME}

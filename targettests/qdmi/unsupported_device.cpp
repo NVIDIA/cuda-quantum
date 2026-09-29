@@ -8,11 +8,13 @@
 
 // REQUIRES: qdmi
 // clang-format off
-// RUN: nvq++ --target qdmi --qdmi-device mqt.sc.default %s -o %t
+// RUN: nvq++ %s -o %t
 // RUN: not %t 2>&1 | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
+
+#include <iostream>
 
 struct empty_kernel {
   void operator()() __qpu__ {
@@ -21,6 +23,14 @@ struct empty_kernel {
   }
 };
 
-int main() { static_cast<void>(cudaq::sample(empty_kernel{})); }
+int main() {
+  try {
+    cudaq::detail::TargetSetter target("qdmi;device;mqt.sc.default");
+    static_cast<void>(cudaq::sample(empty_kernel{}));
+  } catch (const std::exception &error) {
+    std::cerr << error.what() << '\n';
+    return 1;
+  }
+}
 
 // CHECK: QDMI device supports none of CUDA-Q's transport formats

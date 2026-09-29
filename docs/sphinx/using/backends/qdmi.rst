@@ -340,6 +340,7 @@ The persisted data contains the following information:
 * the provider job IDs
 * the CUDA-Q result and register names
 * the output and qubit-reorder metadata
+* the device result bit order
 * the execution type
 
 The persisted data does not contain credentials, native handles, device library
@@ -354,6 +355,21 @@ Convert results
 
 The QDMI QPU requests histogram results and sequential shot data. If a device
 does not provide a histogram, the QPU builds one from the shot data.
+
+Legacy QDMI devices do not share a specified result order. The target defaults
+to ``result_order="bit0-right"`` for OpenQASM and ``bit0-left`` for QIR and IQM
+JSON. These defaults match the pinned DDSIM and IQM devices: DDSIM's OpenQASM
+results need reversing, while its QIR results and IQM JSON results already
+follow CUDA-Q order. Override this setting for a device or format with a
+different order; the equivalent compiler flag is ``--qdmi-result-order``.
+Persisted jobs retain their submitted setting even if the active target's
+setting changes.
+Older persisted jobs without this setting use the active target's result order.
+
+This adapter will use the `QDMI output contract
+<https://github.com/Munich-Quantum-Software-Stack/QDMI/pull/552>`__ once compatible
+Core and device versions adopt it. Until then, use the documented order for
+the selected device version and program format.
 
 The QPU then applies the CUDA-Q output and qubit-reorder metadata. This step
 removes compiler-only qubits and restores the CUDA-Q qubit order. For
