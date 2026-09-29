@@ -386,12 +386,18 @@ static OpResult getNextResult(Value v) {
 }
 
 // AXIS-SPECIFIC: could allow controlled y and z here
+// Note: This helper identifies CNOTs supported by phase folding. The phase
+// update assumes a positive control. Gates with negated controls are excluded
+// as anchors here and as region members by `isSubCircuitTerminationPoint`.
 static bool isControlledOp(Operation *op) {
   if (!isa<cudaq::quake::XOp>(op))
     return false;
   auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
   if (!opi || opi.getControls().size() != 1)
     return false;
+  if (auto negations = opi.getNegatedControls())
+    if (llvm::is_contained(*negations, true))
+      return false;
   for (auto operand : cudaq::quake::getQuantumOperands(op))
     if (!isa<cudaq::quake::WireType>(operand.getType()))
       return false;
@@ -425,6 +431,10 @@ static bool isSubCircuitTerminationPoint(Operation *op) {
   auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
   if (!opi)
     return true;
+  // The phase polynomials below model positive-control CNOTs.
+  if (auto negations = opi.getNegatedControls())
+    if (llvm::is_contained(*negations, true))
+      return true;
   // Only allow single control (for CNOT/NOT); Z-rotations must be uncontrolled
   if (opi.getControls().size() > 0 && !isa<cudaq::quake::XOp>(op))
     return true;
