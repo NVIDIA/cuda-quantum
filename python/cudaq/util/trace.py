@@ -30,7 +30,7 @@ versions the output. Tooling keys on these span names, which tests pin:
 
 - ``cudaq.pipeline.aot`` / ``cudaq.pipeline.jit``: enclose the
   ``mlir_pass`` events of each pipeline.
-- ``cudaq.logical.target.<tag>``: one CUDA-Q Logical target backend's
+- ``cudaq.logical.target.<tag>``: one CUDA-Q Logical target `backend's`
   compile, with tag ``p0``, ``clifford_t``, ``p1``, ``p2`` or ``p3``.
 - ``cudaq.estimate.<TIER>``: one resource estimate, with tier ``LOGICAL``,
   ``STATIC``, ``ANALYTICAL`` or ``SCHEDULE``.
