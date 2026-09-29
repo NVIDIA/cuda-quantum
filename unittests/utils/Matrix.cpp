@@ -55,6 +55,44 @@ TEST(Tensor, initializationError) {
   }
 }
 
+TEST(Tensor, assignment) {
+  const cudaq::complex_matrix empty;
+  const cudaq::complex_matrix small({1., 2., 3., 4.});
+  const cudaq::complex_matrix large({1., 2., 3., 4., 5., 6.}, {2, 3},
+                                    cudaq::complex_matrix::order::column_major);
+
+  cudaq::complex_matrix copy;
+  for (std::size_t i = 0; i < 100; ++i) {
+    copy = empty;
+    EXPECT_EQ(copy, empty);
+    copy = small;
+    EXPECT_EQ(copy, small);
+    copy = large;
+    EXPECT_EQ(copy, large);
+  }
+
+  copy = copy;
+  EXPECT_EQ(copy, large);
+
+  cudaq::complex_matrix moveSource(large);
+  cudaq::complex_matrix moveConstructed(std::move(moveSource));
+  EXPECT_EQ(moveConstructed, large);
+  EXPECT_EQ(moveSource, empty);
+
+  cudaq::complex_matrix moved({7., 8., 9., 10.});
+  for (std::size_t i = 0; i < 100; ++i) {
+    moved = cudaq::complex_matrix();
+    EXPECT_EQ(moved, empty);
+    moved = cudaq::complex_matrix(small);
+    EXPECT_EQ(moved, small);
+    moved = cudaq::complex_matrix(large);
+    EXPECT_EQ(moved, large);
+  }
+
+  moved = std::move(moved);
+  EXPECT_EQ(moved, large);
+}
+
 TEST(Tensor, access) {
   {
     cudaq::complex_matrix m1({1., 0., 0., 1.});
