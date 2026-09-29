@@ -1118,12 +1118,10 @@ latest
             -   [Test
                 harness](../../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../install/install.html){.reference .internal}
     -   [Local
         Installation](../../install/local_installation.html){.reference

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA-QX &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>CUDA-Q Algorithms &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -32,7 +32,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Installation Guide" href="../install/install.html" />
-    <link rel="prev" title="CUDA-Q device_call Channels" href="../realtime/device_call.html" /> 
+    <link rel="prev" title="CUDA-Q QEC" href="../cudaq-qec/cudaq-qec.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -686,11 +686,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install/install.html">   Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#introduction">Introduction</a><ul>
@@ -1110,11 +1107,11 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">CUDA-QX</li>
+      <li class="breadcrumb-item active">CUDA-Q Algorithms</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="../realtime/device_call.html" class="btn btn-neutral float-left" title="CUDA-Q device_call Channels" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../cudaq-qec/cudaq-qec.html" class="btn btn-neutral float-left" title="CUDA-Q QEC" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../install/install.html" class="btn btn-neutral float-right" title="Installation Guide" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -1122,36 +1119,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="cuda-qx">
-<span id="cudaqx"></span><h1>CUDA-QX<a class="headerlink" href="#cuda-qx" title="Permalink to this heading">¶</a></h1>
-<p>CUDA-QX is a collection of libraries that build upon the CUDA-Q programming model to enable the rapid development of hybrid quantum-classical application code leveraging state-of-the-art CPUs, GPUs, and QPUs. It provides a collection of C++ libraries and Python packages that enable research, development, and application creation for use cases in quantum error correction and hybrid quantum-classical solvers.</p>
-<figure class="align-center">
-<a class="reference internal image-reference" href="../../_images/cudaqx.png"><img alt="../../_images/cudaqx.png" src="../../_images/cudaqx.png" style="width: 500px;" /></a>
-</figure>
-<p>You can read more about CUDA-QX in the <a class="reference external" href="https://developer.nvidia.com/blog/introducing-nvidia-cuda-qx-libraries-for-accelerated-quantum-supercomputing/">release blog</a> and see code examples in the <a class="reference external" href="https://nvidia.github.io/cudaqx/">CUDA-QX documentation</a>.</p>
-<section id="cuda-q-solvers">
-<h2>CUDA-Q Solvers<a class="headerlink" href="#cuda-q-solvers" title="Permalink to this heading">¶</a></h2>
-<p>The CUDA-Q Solvers library provides high-level quantum-classical hybrid algorithms and supporting infrastructure for quantum chemistry and optimization problems. It features implementations of VQE, ADAPT-VQE, and supporting utilities for Hamiltonian generation and operator pool management.</p>
-<p>Learn more in the <a class="reference external" href="https://nvidia.github.io/cudaqx/components/solvers/introduction.html">CUDA-Q Solvers documentation</a> and explore a number of detailed <a class="reference external" href="https://nvidia.github.io/cudaqx/examples_rst/solvers/examples.html">examples</a>.</p>
-<figure class="align-center">
-<a class="reference internal image-reference" href="../../_images/solvers.png"><img alt="../../_images/solvers.png" src="../../_images/solvers.png" style="width: 500px;" /></a>
-</figure>
-</section>
-<section id="cuda-q-qec">
-<h2>CUDA-Q QEC<a class="headerlink" href="#cuda-q-qec" title="Permalink to this heading">¶</a></h2>
-<p>The CUDA-Q QEC library provides a comprehensive framework for quantum error correction research and development.</p>
-<p>Learn more in the <a class="reference external" href="https://nvidia.github.io/cudaqx/components/qec/introduction.html">CUDA-Q QEC documentation</a> and explore a number of detailed <a class="reference external" href="https://nvidia.github.io/cudaqx/examples_rst/qec/examples.html">examples</a>.</p>
-<figure class="align-center">
-<a class="reference internal image-reference" href="../../_images/qec.png"><img alt="../../_images/qec.png" src="../../_images/qec.png" style="width: 400px;" /></a>
-</figure>
-</section>
+  <section id="cuda-q-algorithms">
+<span id="cudaq-algorithms"></span><h1>CUDA-Q Algorithms<a class="headerlink" href="#cuda-q-algorithms" title="Permalink to this heading">¶</a></h1>
+<p>CUDA-Q Algorithms is a primitive-first library of fault-tolerant quantum computing (<code class="code docutils literal notranslate"><span class="pre">FTQC</span></code>) algorithms built on CUDA-Q. It provides block encodings, <code class="code docutils literal notranslate"><span class="pre">qubitization</span></code>, <code class="code docutils literal notranslate"><span class="pre">QSVT</span></code>, Trotterization, double factorization, fermion-to-qubit transforms, and state preparation, all composed from small, reusable device kernels. CUDA-Q Algorithms supersedes the deprecated CUDA-Q Solvers library.</p>
+<p>Learn more in the <a class="reference external" href="https://nvidia.github.io/cudaq-algorithms/">CUDA-Q Algorithms documentation</a> and explore a number of detailed <a class="reference external" href="https://nvidia.github.io/cudaq-algorithms/examples_rst/getting_started.html">examples</a>.</p>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../realtime/device_call.html" class="btn btn-neutral float-left" title="CUDA-Q device_call Channels" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../cudaq-qec/cudaq-qec.html" class="btn btn-neutral float-left" title="CUDA-Q QEC" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../install/install.html" class="btn btn-neutral float-right" title="Installation Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

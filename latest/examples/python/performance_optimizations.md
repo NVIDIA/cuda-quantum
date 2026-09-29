@@ -1120,13 +1120,11 @@ latest
             -   [Test
                 harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../using/cudaq-qec/cudaq-qec.html){.reference
+    .internal}
+-   [CUDA-Q
+    Algorithms](../../using/cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../using/install/install.html){.reference
     .internal}
     -   [Local
@@ -2032,14 +2030,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![d6f8bf90f1114aed9a4589eedc39899d](../../_images/gate-fuse.png)
+![55c993f5bfb546369d1d50468b60a56b](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![c45aef8c56d84046857653aaf472d308](../../_images/gatefusion.png)
+![6bf0061cb4244b42a78fe9b9ffbd6f7c](../../_images/gatefusion.png)
 :::
 :::
 :::

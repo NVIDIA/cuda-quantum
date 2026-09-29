@@ -1087,12 +1087,10 @@ latest
                 .internal}
             -   [Running it](#running-it){.reference .internal}
             -   [Test harness](#test-harness){.reference .internal}
--   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../install/install.html){.reference .internal}
     -   [Local
         Installation](../install/local_installation.html){.reference
@@ -1952,8 +1950,8 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](cpu_transport.html "CPU RoCE Transport"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
-.float-right accesskey="n"}
+aria-hidden="true"}](../cudaq-qec/cudaq-qec.html "CUDA-Q QEC"){.btn
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -2209,8 +2207,8 @@ script:
 Previous](cpu_transport.html "CPU RoCE Transport"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
-.float-right accesskey="n" rel="next"}
+aria-hidden="true"}](../cudaq-qec/cudaq-qec.html "CUDA-Q QEC"){.btn
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

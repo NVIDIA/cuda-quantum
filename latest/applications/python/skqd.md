@@ -1105,13 +1105,11 @@ latest
             -   [Test
                 harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../using/cudaq-qec/cudaq-qec.html){.reference
+    .internal}
+-   [CUDA-Q
+    Algorithms](../../using/cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../using/install/install.html){.reference
     .internal}
     -   [Local
@@ -2545,7 +2543,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![0000fc74f84341139bd27a1a186e8929](../../_images/speedup.png){.no-scaled-link
+![066d853bea5b436aa71b1498a9048f33](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2559,9 +2557,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![85df3ac523dc4ba88f5e2e8633487b17](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![0d5aa96e48b8410c9c7c73730c49281d](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![71ceeab5f4b24ee0b4749214aef22767](../../_images/efficiency.jpeg){.no-scaled-link
+![9dbcfbebed7f4f0b981dd3d4a8b993e7](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 
