@@ -28,6 +28,11 @@ target-arguments:
     type: string
     platform-arg: program_format
     help-string: "Program transport: auto, qir-adaptive-module, qir-adaptive-string, qir-base-module, qir-base-string, qasm3, qasm2, or iqm-json."
+  - key: result-order
+    required: false
+    type: string
+    platform-arg: result_order
+    help-string: "Device result bit order: bit0-right or bit0-left. Defaults to bit0-right for OpenQASM and bit0-left for QIR and IQM JSON."
   - key: session-custom1
     required: false
     type: string

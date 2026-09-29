@@ -164,6 +164,19 @@ JobParameters getJobParameters(const BackendConfig &config) {
   return parameters;
 }
 
+bool resultBitZeroIsRightmost(const BackendConfig &config,
+                              const ProgramFormat &format) {
+  const auto defaultOrder = format.qdmi == QDMI_PROGRAM_FORMAT_QASM2 ||
+                                    format.qdmi == QDMI_PROGRAM_FORMAT_QASM3
+                                ? "bit0-right"
+                                : "bit0-left";
+  const auto order = getValue(config, "result_order").value_or(defaultOrder);
+  if (order != "bit0-right" && order != "bit0-left")
+    throw std::runtime_error("Unknown QDMI result order '" + order +
+                             "'. Expected bit0-right or bit0-left.");
+  return order == "bit0-right";
+}
+
 ProgramFormat
 selectProgramFormat(const std::vector<QDMI_Program_Format> &supported,
                     const std::optional<std::string> &requested) {
@@ -456,9 +469,10 @@ getMeasuredQubits(const cudaq::cudaq_json &outputNames) {
 }
 
 std::string projectResult(const std::string &bits,
-                          const std::vector<std::size_t> &measuredQubits) {
+                          const std::vector<std::size_t> &measuredQubits,
+                          const bool reverseResults) {
   if (measuredQubits.empty() || measuredQubits.size() == bits.size())
-    return bits;
+    return reverseResults ? std::string(bits.rbegin(), bits.rend()) : bits;
 
   std::vector<std::size_t> positions;
   positions.reserve(measuredQubits.size());
@@ -468,9 +482,11 @@ std::string projectResult(const std::string &bits,
           throw std::runtime_error(
               "CUDA-Q output_names references a qubit outside the QDMI "
               "result.");
-        return bits.size() - qubit - 1;
+        return reverseResults ? bits.size() - qubit - 1 : qubit;
       });
   std::ranges::sort(positions);
+  if (reverseResults)
+    std::ranges::reverse(positions);
 
   std::string projected;
   projected.reserve(positions.size());
@@ -481,17 +497,22 @@ std::string projectResult(const std::string &bits,
 
 void projectResults(std::map<std::string, std::size_t> &counts,
                     std::optional<std::vector<std::string>> &shots,
-                    const std::vector<std::size_t> &measuredQubits) {
-  if (measuredQubits.empty())
+                    const std::vector<std::size_t> &measuredQubits,
+                    const bool reverseResults) {
+  if (measuredQubits.empty() && !reverseResults)
     return;
 
+  // Legacy QDMI leaves result ordering device-defined. Honor the configured
+  // order until Core and the supported devices adopt the output contract:
+  // https://github.com/Munich-Quantum-Software-Stack/QDMI/pull/552
   std::map<std::string, std::size_t> projectedCounts;
   for (const auto &[bits, count] : counts)
-    projectedCounts[projectResult(bits, measuredQubits)] += count;
+    projectedCounts[projectResult(bits, measuredQubits, reverseResults)] +=
+        count;
   counts = std::move(projectedCounts);
   if (shots)
     std::ranges::transform(*shots, shots->begin(), [&](const auto &bits) {
-      return projectResult(bits, measuredQubits);
+      return projectResult(bits, measuredQubits, reverseResults);
     });
 }
 
@@ -535,10 +556,10 @@ namespace cudaq {
 class QDMIState {
 public:
   QDMIState(qdmi::Device device, ProgramFormat format, JobParameters parameters,
-            std::string deviceId, std::string basis)
+            std::string deviceId, std::string basis, bool reverseResults)
       : device(std::move(device)), format(format),
         jobParameters(std::move(parameters)), deviceId(std::move(deviceId)),
-        basis(std::move(basis)) {}
+        basis(std::move(basis)), reverseResults(reverseResults) {}
 
   ~QDMIState() {
     if (connectivityFile) {
@@ -552,13 +573,15 @@ public:
   JobParameters jobParameters;
   std::string deviceId;
   std::string basis;
+  bool reverseResults;
   std::optional<std::filesystem::path> connectivityFile;
 };
 
 namespace {
 
 sample_result normalizeJobResult(qdmi::Job &job, const KernelExecution &code,
-                                 const detail::ExecutionContextType execType) {
+                                 const detail::ExecutionContextType execType,
+                                 const bool reverseResults) {
   static_cast<void>(job.wait());
   const auto status = job.check();
   if (status != QDMI_JOB_STATUS_DONE) {
@@ -594,7 +617,8 @@ sample_result normalizeJobResult(qdmi::Job &job, const KernelExecution &code,
     counts = countsFromShots(*shots);
   }
 
-  projectResults(counts, shots, getMeasuredQubits(code.output_names));
+  projectResults(counts, shots, getMeasuredQubits(code.output_names),
+                 reverseResults);
   const auto registerName = execType == detail::ExecutionContextType::observe
                                 ? code.name
                                 : std::string(GlobalRegisterName);
@@ -643,13 +667,15 @@ std::vector<qdmi::Job> submitAllJobs(const QDMIState &state,
 
 sample_result collectJobs(std::vector<qdmi::Job> &jobs,
                           const std::vector<KernelExecution> &codes,
-                          const detail::ExecutionContextType execType) {
+                          const detail::ExecutionContextType execType,
+                          const bool reverseResults) {
   if (jobs.size() != codes.size())
     throw std::runtime_error("QDMI future metadata is inconsistent.");
 
   sample_result result;
   for (std::size_t index = 0; index < jobs.size(); ++index) {
-    auto jobResult = normalizeJobResult(jobs[index], codes[index], execType);
+    auto jobResult =
+        normalizeJobResult(jobs[index], codes[index], execType, reverseResults);
     if (index != 0)
       result += jobResult;
     else
@@ -663,7 +689,7 @@ sample_result executeJobs(const QDMIState &state,
                           const detail::ExecutionContextType execType,
                           const std::size_t shots) {
   auto jobs = submitAllJobs(state, codes, shots);
-  return collectJobs(jobs, codes, execType);
+  return collectJobs(jobs, codes, execType, state.reverseResults);
 }
 
 detail::future submitJobsAsync(QDMIQPU &qpu, const QDMIState &state,
@@ -681,7 +707,9 @@ detail::future submitJobsAsync(QDMIQPU &qpu, const QDMIState &state,
 
   std::vector<detail::future::Job> serializedJobs;
   std::map<std::string, std::string> serializedConfig{
-      {"schema", "1"}, {"device", state.deviceId}};
+      {"schema", "1"},
+      {"device", state.deviceId},
+      {"result_order", state.reverseResults ? "bit0-right" : "bit0-left"}};
   serializedJobs.reserve(pending->jobs.size());
   for (std::size_t index = 0; index < pending->jobs.size(); ++index) {
     const auto id = pending->jobs[index].getId();
@@ -694,9 +722,11 @@ detail::future submitJobsAsync(QDMIQPU &qpu, const QDMIState &state,
 
   auto promise = std::make_shared<std::promise<sample_result>>();
   auto future = promise->get_future();
-  QuantumTask task = [promise, pending, execType]() mutable {
+  QuantumTask task = [promise, pending, execType,
+                      reverseResults = state.reverseResults]() mutable {
     try {
-      promise->set_value(collectJobs(pending->jobs, pending->codes, execType));
+      promise->set_value(
+          collectJobs(pending->jobs, pending->codes, execType, reverseResults));
     } catch (...) {
       promise->set_exception(std::current_exception());
     }
@@ -758,7 +788,13 @@ public:
       reopened.emplace_back(device.retrieveJobById(id));
       codes.emplace_back(std::move(code));
     }
-    return collectJobs(reopened, codes, resultType);
+    const auto &orderConfig =
+        config.contains("result_order") ? config : runtimeTarget->runtimeConfig;
+    const auto format = selectProgramFormat(
+        device.getSupportedProgramFormats(),
+        getValue(runtimeTarget->runtimeConfig, "program_format"));
+    return collectJobs(reopened, codes, resultType,
+                       resultBitZeroIsRightmost(orderConfig, format));
   }
 };
 
@@ -825,6 +861,7 @@ void QDMIQPU::setTargetBackend(const std::string &backend) {
   const auto format =
       selectProgramFormat(device.getSupportedProgramFormats(),
                           getValue(backendConfig, "program_format"));
+  const auto reverseResults = resultBitZeroIsRightmost(backendConfig, format);
   const auto qubitCount = device.getQubitsNum();
   auto connectivity = queryConnectivity(device);
   auto parameters = getJobParameters(backendConfig);
@@ -837,9 +874,9 @@ void QDMIQPU::setTargetBackend(const std::string &backend) {
     CUDAQ_DBG("QDMI operations not used for CUDA-Q basis conversion: {}.",
               fmt::join(basis.excludedOperations, ", "));
   }
-  auto newState = std::make_unique<QDMIState>(std::move(device), format,
-                                              std::move(parameters), *deviceId,
-                                              std::move(basis.value));
+  auto newState = std::make_unique<QDMIState>(
+      std::move(device), format, std::move(parameters), *deviceId,
+      std::move(basis.value), reverseResults);
   writeConnectivity(connectivity, qubitCount, newState->connectivityFile);
 
   backendConfig["qdmi_basis"] = newState->basis;
@@ -848,6 +885,13 @@ void QDMIQPU::setTargetBackend(const std::string &backend) {
   targetBackend.CodegenEmission = std::string(format.codegen);
   if (format.qdmi == QDMI_PROGRAM_FORMAT_IQMJSON)
     targetBackend.JITMidLevelPipeline = std::string(iqmPipeline);
+  else if (format.qdmi == QDMI_PROGRAM_FORMAT_QASM2 ||
+           format.qdmi == QDMI_PROGRAM_FORMAT_QASM3)
+    // Normalize X/Y measurements and inverse rotations for OpenQASM.
+    targetBackend.JITMidLevelPipeline =
+        "quake-to-cc-prep," + targetBackend.JITMidLevelPipeline +
+        ",decomposition{enable-patterns=R1AdjToR1,RxAdjToRx,RyAdjToRy,"
+        "RzAdjToRz},func.func(canonicalize)";
   targetConfig.BackendConfig = std::move(targetBackend);
   state = std::move(newState);
 
