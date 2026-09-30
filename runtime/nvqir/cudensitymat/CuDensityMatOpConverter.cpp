@@ -12,7 +12,9 @@
 #include "CuDensityMatUtils.h"
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <ranges>
 #include <set>
@@ -95,6 +97,49 @@ cudaq::complex_matrix embedMatrix(const cudaq::complex_matrix &matrix,
     }
   }
   return result;
+}
+
+// Groups of term indices keyed by the degrees the terms act on.
+using DegreeGroups = std::map<std::vector<std::size_t>, std::vector<std::size_t>>;
+
+// Folds each group acting on a strict subset of another group's degrees into
+// the first group (in degree order) that is not itself such a subset. Returns
+// the degrees of the groups that remain.
+std::vector<std::vector<std::size_t>> foldSubsetGroups(DegreeGroups &groups) {
+  const auto isStrictSubset = [](const std::vector<std::size_t> &sub,
+                                 const std::vector<std::size_t> &super) {
+    return sub.size() < super.size() &&
+           std::includes(super.begin(), super.end(), sub.begin(), sub.end());
+  };
+  std::vector<std::vector<std::size_t>> targets;
+  for (const auto &[degrees, indices] : groups) {
+    const bool isMaximal =
+        std::none_of(groups.begin(), groups.end(), [&](const auto &other) {
+          return isStrictSubset(degrees, other.first);
+        });
+    if (isMaximal)
+      targets.push_back(degrees);
+  }
+  for (auto &[degrees, indices] : groups) {
+    for (const auto &target : targets) {
+      if (isStrictSubset(degrees, target)) {
+        auto &targetIndices = groups[target];
+        targetIndices.insert(targetIndices.end(), indices.begin(),
+                             indices.end());
+        indices.clear();
+        break;
+      }
+    }
+  }
+  return targets;
+}
+
+std::size_t subspaceDimension(const std::vector<std::size_t> &degrees,
+                              const std::vector<int64_t> &modeExtents) {
+  std::size_t dim = 1;
+  for (auto degree : degrees)
+    dim *= static_cast<std::size_t>(modeExtents[degree]);
+  return dim;
 }
 
 } // namespace
@@ -261,7 +306,7 @@ bool cudaq::dynamics::CuDensityMatOpConverter::requiresTensorCallback(
 
 bool cudaq::dynamics::CuDensityMatOpConverter::isFusableSubspace(
     const std::vector<std::size_t> &degrees,
-    const std::vector<int64_t> &modeExtents) const {
+    const std::vector<int64_t> &modeExtents, bool bothSides) const {
   if (m_maxFusedDimension <= 0 || degrees.empty())
     return false;
   int64_t dim = 1;
@@ -270,7 +315,31 @@ bool cudaq::dynamics::CuDensityMatOpConverter::isFusableSubspace(
     if (dim > m_maxFusedDimension)
       return false;
   }
-  return true;
+  return !bothSides || dim * dim <= m_maxFusedDimension;
+}
+
+std::optional<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
+cudaq::dynamics::CuDensityMatOpConverter::computeFusableProductTerm(
+    const product_op<cudaq::matrix_handler> &prodOp,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents, bool bothSides) {
+  if (!prodOp.get_coefficient().is_constant() ||
+      !isFusableSubspace(prodOp.degrees(), modeExtents, bothSides))
+    return std::nullopt;
+
+  // Factors acting on distinct degrees commute, so the fused matrix is
+  // independent of the order in which cuDensityMat applies the factors, from
+  // either side.
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
+  std::set<std::size_t> seenDegrees;
+  for (const auto &component : prodOp) {
+    if (requiresTensorCallback(component, dimensions))
+      return std::nullopt;
+    for (auto degree : component.degrees())
+      if (!seenDegrees.insert(degree).second)
+        return std::nullopt;
+  }
+  return FusedTerm{prodOp.degrees(), prodOp.to_matrix(dimensions, parameters)};
 }
 
 std::vector<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
@@ -280,26 +349,6 @@ cudaq::dynamics::CuDensityMatOpConverter::fuseProductTerms(
     const std::vector<int64_t> &modeExtents,
     const std::vector<FusedTerm> &extraTerms,
     std::vector<product_op<cudaq::matrix_handler>> &remaining) {
-  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
-
-  // A product term can be fused if its matrix is known at conversion time and
-  // its factors act on distinct degrees. Distinct-degree factors commute, so
-  // the fused matrix is independent of the order in which cuDensityMat applies
-  // the factors, from either side.
-  const auto isFusable = [&](const product_op<cudaq::matrix_handler> &prodOp) {
-    if (!prodOp.get_coefficient().is_constant())
-      return false;
-    std::set<std::size_t> seenDegrees;
-    for (const auto &component : prodOp) {
-      if (requiresTensorCallback(component, dimensions))
-        return false;
-      for (auto degree : component.degrees())
-        if (!seenDegrees.insert(degree).second)
-          return false;
-    }
-    return isFusableSubspace(prodOp.degrees(), modeExtents);
-  };
-
   struct Piece {
     FusedTerm term;
     // Set if this piece is a single-factor product term, which is left
@@ -311,48 +360,21 @@ cudaq::dynamics::CuDensityMatOpConverter::fuseProductTerms(
     pieces.push_back({extraTerm, std::nullopt});
 
   for (const auto &prodOp : op) {
-    if (!isFusable(prodOp)) {
+    auto fused = computeFusableProductTerm(prodOp, parameters, modeExtents);
+    if (!fused) {
       remaining.emplace_back(prodOp);
       continue;
     }
-    Piece piece{{prodOp.degrees(), prodOp.to_matrix(dimensions, parameters)},
-                std::nullopt};
+    Piece piece{std::move(*fused), std::nullopt};
     if (prodOp.num_ops() == 1)
       piece.singleFactorTerm = prodOp;
     pieces.push_back(std::move(piece));
   }
 
-  std::map<std::vector<std::size_t>, std::vector<std::size_t>> groups;
+  DegreeGroups groups;
   for (std::size_t i = 0; i < pieces.size(); ++i)
     groups[pieces[i].term.degrees].push_back(i);
-
-  // Fold each group acting on a strict subset of another group's degrees into
-  // the first group (in degree order) that is not itself such a subset.
-  const auto isStrictSubset = [](const std::vector<std::size_t> &sub,
-                                 const std::vector<std::size_t> &super) {
-    return sub.size() < super.size() &&
-           std::includes(super.begin(), super.end(), sub.begin(), sub.end());
-  };
-  std::vector<std::vector<std::size_t>> targets;
-  for (const auto &[degrees, indices] : groups) {
-    const bool isMaximal =
-        std::none_of(groups.begin(), groups.end(), [&](const auto &other) {
-          return isStrictSubset(degrees, other.first);
-        });
-    if (isMaximal)
-      targets.push_back(degrees);
-  }
-  for (auto &[degrees, indices] : groups) {
-    for (const auto &target : targets) {
-      if (isStrictSubset(degrees, target)) {
-        auto &targetIndices = groups[target];
-        targetIndices.insert(targetIndices.end(), indices.begin(),
-                             indices.end());
-        indices.clear();
-        break;
-      }
-    }
-  }
+  const auto targets = foldSubsetGroups(groups);
 
   std::vector<FusedTerm> fusedTerms;
   std::size_t numFusedPieces = 0;
@@ -362,9 +384,7 @@ cudaq::dynamics::CuDensityMatOpConverter::fuseProductTerms(
       remaining.emplace_back(*pieces[indices[0]].singleFactorTerm);
       continue;
     }
-    std::size_t dim = 1;
-    for (auto degree : target)
-      dim *= static_cast<std::size_t>(modeExtents[degree]);
+    const auto dim = subspaceDimension(target, modeExtents);
     FusedTerm fused{target, cudaq::complex_matrix(dim, dim)};
     for (auto idx : indices)
       fused.matrix += embedMatrix(pieces[idx].term.matrix,
@@ -382,9 +402,10 @@ std::optional<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
 cudaq::dynamics::CuDensityMatOpConverter::computeFusableCollapseOperator(
     const sum_op<cudaq::matrix_handler> &collapseOp,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents) {
+    const std::vector<int64_t> &modeExtents, bool bothSides) {
   const auto degrees = collapseOp.degrees();
-  if (collapseOp.num_terms() == 0 || !isFusableSubspace(degrees, modeExtents))
+  if (collapseOp.num_terms() == 0 ||
+      !isFusableSubspace(degrees, modeExtents, bothSides))
     return std::nullopt;
 
   cudaq::dimension_map dimensions = convertDimensions(modeExtents);
@@ -399,47 +420,102 @@ cudaq::dynamics::CuDensityMatOpConverter::computeFusableCollapseOperator(
   return FusedTerm{degrees, collapseOp.to_matrix(dimensions, parameters)};
 }
 
-bool cudaq::dynamics::CuDensityMatOpConverter::appendFusedSandwichTerm(
-    cudensitymatOperator_t cudmOperator, const FusedTerm &collapseOp,
+void cudaq::dynamics::CuDensityMatOpConverter::appendFusedSuperoperatorTerms(
+    cudensitymatOperator_t cudmOperator,
+    const std::vector<FusedSuperoperatorTerm> &terms,
     const std::vector<int64_t> &modeExtents) {
-  // The operator acts on L's degrees twice: once on the ket modes (from the
-  // left) and once on the bra modes (from the right).
-  std::vector<std::size_t> degrees(collapseOp.degrees);
-  degrees.insert(degrees.end(), collapseOp.degrees.begin(),
-                 collapseOp.degrees.end());
-  if (!isFusableSubspace(degrees, modeExtents))
-    return false;
+  if (terms.empty())
+    return;
 
-  // A left action contracts the operator's bra indices with the state's ket
-  // modes, and a right action contracts its ket indices with the state's bra
-  // modes. Hence, T[i_ket, i_bra, j_ket, j_bra] = L[i_ket, j_ket] *
-  // L^dagger[i_bra, j_bra] gives rho' = L rho L^dagger, where the ket half of
-  // each index varies fastest.
-  const auto &lMat = collapseOp.matrix;
-  const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
-  const std::size_t dim = lMat.rows();
-  cudaq::complex_matrix sandwich(dim * dim, dim * dim);
-  for (std::size_t colBra = 0; colBra < dim; ++colBra)
-    for (std::size_t colKet = 0; colKet < dim; ++colKet)
-      for (std::size_t rowBra = 0; rowBra < dim; ++rowBra)
-        for (std::size_t rowKet = 0; rowKet < dim; ++rowKet)
-          sandwich[{rowKet + dim * rowBra, colKet + dim * colBra}] =
-              lMat[{rowKet, colKet}] * lDagMat[{rowBra, colBra}];
+  DegreeGroups groups;
+  for (std::size_t i = 0; i < terms.size(); ++i)
+    groups[terms[i].degrees].push_back(i);
+  const auto targets = foldSubsetGroups(groups);
 
-  auto cudmElemOp = createDenseElementaryOperator(
-      sandwich, getSubspaceExtents(modeExtents, degrees));
-  std::vector<int> dualities(collapseOp.degrees.size(), 0);
-  dualities.resize(degrees.size(), 1);
-  auto term = createProductOperatorTerm({cudmElemOp}, modeExtents, {degrees},
-                                        {dualities});
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      m_handle, cudmOperator, term, /*duality=*/0,
-      make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone,
-      cudensitymatScalarGradientCallbackNone));
-  CUDAQ_INFO("Fused L rho L^dagger acting on {} degrees into one dense "
-             "operator term.",
-             collapseOp.degrees.size());
-  return true;
+  // Merge each group into the previous window (in degree order) if they
+  // overlap and the merged window is still fusable. On a chain of
+  // nearest-neighbor terms this gives windows of consecutive degrees that
+  // share their boundary degrees.
+  struct Window {
+    std::vector<std::size_t> degrees;
+    std::vector<std::size_t> indices;
+  };
+  std::vector<Window> windows;
+  for (const auto &target : targets) {
+    const auto &indices = groups[target];
+    if (!windows.empty()) {
+      auto &last = windows.back();
+      std::vector<std::size_t> merged;
+      std::set_union(last.degrees.begin(), last.degrees.end(), target.begin(),
+                     target.end(), std::back_inserter(merged));
+      const bool overlaps = merged.size() < last.degrees.size() + target.size();
+      if (overlaps &&
+          isFusableSubspace(merged, modeExtents, /*bothSides=*/true)) {
+        last.degrees = std::move(merged);
+        last.indices.insert(last.indices.end(), indices.begin(), indices.end());
+        continue;
+      }
+    }
+    windows.push_back({target, indices});
+  }
+
+  for (const auto &window : windows) {
+    const auto dim = subspaceDimension(window.degrees, modeExtents);
+    const auto embed = [&](const cudaq::complex_matrix &matrix,
+                           const std::vector<std::size_t> &degrees) {
+      return embedMatrix(matrix, degrees, window.degrees, modeExtents);
+    };
+    cudaq::complex_matrix leftSum(dim, dim);
+    cudaq::complex_matrix rightSum(dim, dim);
+    std::vector<std::pair<cudaq::complex_matrix, cudaq::complex_matrix>>
+        sandwiches;
+    for (auto idx : window.indices) {
+      const auto &term = terms[idx];
+      if (term.left && term.right)
+        sandwiches.emplace_back(embed(*term.left, term.degrees),
+                                embed(*term.right, term.degrees));
+      else if (term.left)
+        leftSum += embed(*term.left, term.degrees);
+      else if (term.right)
+        rightSum += embed(*term.right, term.degrees);
+    }
+
+    // A left action contracts the operator's bra indices with the state's ket
+    // modes, and a right action contracts its ket indices with the state's bra
+    // modes. Hence, T[i_ket, i_bra, j_ket, j_bra] = A[i_ket, j_ket] *
+    // B[i_bra, j_bra] gives rho' = A rho B, where the ket half of each index
+    // varies fastest.
+    cudaq::complex_matrix superoperator(dim * dim, dim * dim);
+    for (std::size_t colBra = 0; colBra < dim; ++colBra)
+      for (std::size_t colKet = 0; colKet < dim; ++colKet)
+        for (std::size_t rowBra = 0; rowBra < dim; ++rowBra)
+          for (std::size_t rowKet = 0; rowKet < dim; ++rowKet) {
+            std::complex<double> value = 0.0;
+            if (rowBra == colBra)
+              value += leftSum[{rowKet, colKet}];
+            if (rowKet == colKet)
+              value += rightSum[{rowBra, colBra}];
+            for (const auto &[left, right] : sandwiches)
+              value += left[{rowKet, colKet}] * right[{rowBra, colBra}];
+            superoperator[{rowKet + dim * rowBra, colKet + dim * colBra}] =
+                value;
+          }
+
+    std::vector<std::size_t> degrees(window.degrees);
+    degrees.insert(degrees.end(), window.degrees.begin(), window.degrees.end());
+    std::vector<int> dualities(window.degrees.size(), 0);
+    dualities.resize(degrees.size(), 1);
+    auto cudmElemOp = createDenseElementaryOperator(
+        superoperator, getSubspaceExtents(modeExtents, degrees));
+    auto term = createProductOperatorTerm({cudmElemOp}, modeExtents, {degrees},
+                                          {dualities});
+    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+        m_handle, cudmOperator, term, /*duality=*/0,
+        make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone,
+        cudensitymatScalarGradientCallbackNone));
+  }
+  CUDAQ_INFO("Fused {} Liouvillian terms into {} dense superoperator terms.",
+             terms.size(), windows.size());
 }
 
 cudensitymatElementaryOperator_t
@@ -692,7 +768,7 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
         "Operator sum cannot be empty. At least one operator is required.");
 
   const auto numberProductTerms = ops[0].num_terms();
-  if (numberProductTerms == 0)
+  if (numberProductTerms == 0 && extraFusableTerms.empty())
     throw std::invalid_argument(
         "Operator sum must have at least one product term.");
   for (const auto &op : ops) {

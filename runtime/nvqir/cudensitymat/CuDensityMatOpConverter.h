@@ -77,15 +77,33 @@ private:
     cudaq::complex_matrix matrix;
   };
 
+  /// @brief A term `left * rho * right` acting on a set of degrees, where a
+  /// missing matrix is the identity. Matrices use the `FusedTerm` order.
+  struct FusedSuperoperatorTerm {
+    std::vector<std::size_t> degrees;
+    std::optional<cudaq::complex_matrix> left;
+    std::optional<cudaq::complex_matrix> right;
+  };
+
   /// @brief Whether an elementary operator needs a tensor callback, i.e., its
   /// matrix cannot be computed once at conversion time.
   bool requiresTensorCallback(const cudaq::matrix_handler &elemOp,
                               cudaq::dimension_map &dimensions) const;
 
   /// @brief Whether the operators acting on `degrees` can be summed into a
-  /// single dense matrix.
+  /// single dense matrix. With `bothSides`, the matrix acts on the ket and the
+  /// bra modes of `degrees`, so its dimension is squared.
   bool isFusableSubspace(const std::vector<std::size_t> &degrees,
-                         const std::vector<int64_t> &modeExtents) const;
+                         const std::vector<int64_t> &modeExtents,
+                         bool bothSides = false) const;
+
+  /// @brief The matrix of `prodOp` on its degrees, if it is known at
+  /// conversion time, its factors act on distinct degrees, and it acts on a
+  /// fusable subspace.
+  std::optional<FusedTerm> computeFusableProductTerm(
+      const product_op<cudaq::matrix_handler> &prodOp,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents, bool bothSides = false);
 
   /// @brief Sum the fusable product terms of `op` (and `extraTerms`) acting on
   /// the same degrees into dense matrices. Terms acting on a subset of another
@@ -104,13 +122,16 @@ private:
   std::optional<FusedTerm> computeFusableCollapseOperator(
       const sum_op<cudaq::matrix_handler> &collapseOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents);
+      const std::vector<int64_t> &modeExtents, bool bothSides = false);
 
-  /// @brief Append L rho L^dagger as a single elementary operator acting on
-  /// the ket and the bra modes of L's degrees, if that operator is fusable.
-  bool appendFusedSandwichTerm(cudensitymatOperator_t cudmOperator,
-                               const FusedTerm &collapseOp,
-                               const std::vector<int64_t> &modeExtents);
+  /// @brief Group `terms` into windows of overlapping degrees and append each
+  /// window as a single dense elementary operator acting on the ket and the
+  /// bra modes of its degrees. Every term must act on a subspace that is
+  /// fusable from both sides.
+  void appendFusedSuperoperatorTerms(
+      cudensitymatOperator_t cudmOperator,
+      const std::vector<FusedSuperoperatorTerm> &terms,
+      const std::vector<int64_t> &modeExtents);
 
   cudensitymatElementaryOperator_t
   createDenseElementaryOperator(const cudaq::complex_matrix &matrix,
@@ -204,8 +225,9 @@ private:
   std::deque<TensorCallBackContext> m_tensorCallbacks;
   int m_minDimensionDiag = 4;
   int m_maxDiagonalsDiag = 1;
-  // Largest subspace dimension for which operator terms are summed into a
-  // single dense matrix. Zero disables fusion.
-  int64_t m_maxFusedDimension = 16;
+  // Largest dimension of a fused dense operator. An operator acting on both
+  // sides of a density matrix has the squared dimension of its subspace.
+  // Zero disables fusion.
+  int64_t m_maxFusedDimension = 64;
 };
 } // namespace cudaq::dynamics
