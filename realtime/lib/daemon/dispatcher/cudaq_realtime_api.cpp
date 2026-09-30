@@ -112,7 +112,9 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
   }
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    if (!dispatcher->unified_launch_fn || !dispatcher->transport_ctx)
+    if (!dispatcher->transport_ctx)
+      return CUDAQ_ERR_INVALID_ARG;
+    if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
   } else {
     if (!dispatcher->launch_fn)
@@ -236,7 +238,9 @@ cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx) {
-  if (!dispatcher || !unified_launch_fn || !transport_ctx)
+  // A NULL fn selects the library's own unified kernel, which is linked in
+  // and therefore always callable; the context is required either way.
+  if (!dispatcher || !transport_ctx)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->unified_launch_fn = unified_launch_fn;
   dispatcher->transport_ctx = transport_ctx;
@@ -352,10 +356,20 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // __constant__ indirection) -- nothing needed here.
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    dispatcher->unified_launch_fn(
-        dispatcher->transport_ctx, dispatcher->table.entries,
-        dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
-        dispatcher->stream);
+    // The unified kernel is linked into this library, so the direct call
+    // below always resolves.  unified_launch_fn is an override, used only by
+    // a transport that replaces the dispatch loop outright.
+    if (dispatcher->unified_launch_fn) {
+      dispatcher->unified_launch_fn(
+          dispatcher->transport_ctx, dispatcher->config.slot_size,
+          dispatcher->table.entries, dispatcher->table.count,
+          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
+    } else {
+      cudaq_launch_unified_dispatch_device(
+          dispatcher->transport_ctx, dispatcher->config.slot_size,
+          dispatcher->table.entries, dispatcher->table.count,
+          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
+    }
   } else {
     dispatcher->launch_fn(
         dispatcher->ringbuffer.rx_flags, dispatcher->ringbuffer.tx_flags,
