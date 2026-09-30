@@ -557,7 +557,7 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 
 <span class="c1"># %%</span>
 <span class="c1"># Build the physical target. Its operating point owns physical error, scaling,</span>
-<span class="c1"># and timing; only the application's failure budget is an estimate policy.</span>
+<span class="c1"># and timing; the failure budget and the SCHEDULE tier are estimate policy.</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_physical_target</span><span class="p">():</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">build_paper_device</span><span class="p">(</span>
         <span class="n">factory_lanes</span><span class="o">=</span><span class="n">factory</span><span class="o">.</span><span class="n">FACTORY_LANES</span><span class="p">,</span>
@@ -568,7 +568,10 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
         <span class="s2">"gidney_ekera_physical"</span><span class="p">,</span>
         <span class="n">device</span><span class="p">,</span>
         <span class="n">runtime_backend</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">,</span>
-        <span class="n">estimate_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"failure_budget"</span><span class="p">:</span> <span class="n">APPLICATION_FAILURE_BUDGET</span><span class="p">},</span>
+        <span class="n">estimate_options</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"failure_budget"</span><span class="p">:</span> <span class="n">APPLICATION_FAILURE_BUDGET</span><span class="p">,</span>
+            <span class="s2">"tier"</span><span class="p">:</span> <span class="s2">"SCHEDULE"</span><span class="p">,</span>
+        <span class="p">},</span>
         <span class="n">source_modules</span><span class="o">=</span><span class="p">(</span><span class="n">factory</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,),</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">target</span>
