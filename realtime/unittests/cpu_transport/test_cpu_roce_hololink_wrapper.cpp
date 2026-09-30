@@ -15,11 +15,6 @@
 
 namespace {
 
-std::size_t send_full_slot(void *, const void *, void *,
-                           std::size_t slot_size) {
-  return slot_size;
-}
-
 cpu_roce_transceiver_t create_valid(int forward = 0, int rx_only = 0,
                                     int tx_only = 0, int unified = 0) {
   return cpu_roce_create_transceiver("not-opened-by-create", 1, 2, 64, 256, 8,
@@ -73,13 +68,22 @@ TEST(CpuRoceHololinkWrapper, ReportsInvalidLocalIpWithoutBlockingSetup) {
   cpu_roce_destroy_transceiver(handle);
 }
 
-TEST(CpuRoceHololinkWrapper, InstallsLegacyUnifiedCallbackBeforeMonitor) {
-  // Invocation needs a live QP, but installation itself must remain valid
-  // when frame_size is smaller than the slot size the C callback receives.
-  auto handle = create_valid(/*forward=*/0, /*rx_only=*/0, /*tx_only=*/0,
-                             /*unified=*/1);
+TEST(CpuRoceHololinkWrapper, RejectsUnifiedAtCreate) {
+  testing::internal::CaptureStderr();
+  EXPECT_EQ(create_valid(/*forward=*/0, /*rx_only=*/0, /*tx_only=*/0,
+                         /*unified=*/1),
+            nullptr);
+  EXPECT_NE(testing::internal::GetCapturedStderr().find(
+                "not supported by the Hololink CPU RoCE backend"),
+            std::string::npos);
+}
+
+TEST(CpuRoceHololinkWrapper, UnifiedHooksRefuseEveryHandle) {
+  auto handle = create_valid();
   ASSERT_NE(handle, nullptr);
-  cpu_roce_set_unified_dispatch(handle, &send_full_slot, nullptr);
+  uint32_t slot = 0;
+  EXPECT_EQ(cpu_roce_rx_poll(handle, &slot), 0);
+  EXPECT_EQ(cpu_roce_tx_publish(handle, 0), 0);
   cpu_roce_destroy_transceiver(handle);
 }
 
@@ -110,7 +114,9 @@ TEST(CpuRoceHololinkWrapper, NullHandleAccessorsPreserveCContract) {
   cpu_roce_close(nullptr);
   cpu_roce_blocking_monitor(nullptr);
   cpu_roce_set_local_ip(nullptr, "192.0.2.1");
-  cpu_roce_set_unified_dispatch(nullptr, &send_full_slot, nullptr);
+  uint32_t slot = 0;
+  EXPECT_EQ(cpu_roce_rx_poll(nullptr, &slot), 0);
+  EXPECT_EQ(cpu_roce_tx_publish(nullptr, 0), 0);
   cpu_roce_destroy_transceiver(nullptr);
 }
 

@@ -126,6 +126,10 @@ endif()
 # target, so they run in CI without any HSB/RDMA setup.
 add_subdirectory(bridge_interface/udp)
 
+# CPU RoCE bridge provider tests: self-gated on the cpu_roce provider target;
+# they skip at run time unless CUDAQ_CPU_ROCE_TEST_* name an RDMA topology.
+add_subdirectory(bridge_interface/cpu_roce)
+
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
 # Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
 # libibverbs is not available.
