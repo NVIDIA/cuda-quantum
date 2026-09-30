@@ -9,10 +9,12 @@
 // CUDA-Q MLIR Python site initializer.
 
 #include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
 #include "mlir/Bindings/Python/Nanobind.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 
 NB_MODULE(_site_initialize_0, m) {
+  cudaq::registerAllPasses();
   m.doc() = "CUDA-Q MLIR site initializer (default dialect registration).";
 
   m.def("register_dialects", [](MlirDialectRegistry registry) {

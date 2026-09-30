@@ -37,7 +37,10 @@ ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 
 # [Prerequisites]
 ARG PYTHON=python3.11
-RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}
+RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON} && \
+    # python36, pulled in by nvidia-driver-libs, outranks ${PYTHON} in the
+    # python3 alternatives group. Pin ours so `python3` stays ${PYTHON}.
+    alternatives --set python3 /usr/bin/${PYTHON}
 
 # [Build Dependencies]
 RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip epel-release && \

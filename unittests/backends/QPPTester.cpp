@@ -7,9 +7,15 @@
  ******************************************************************************/
 
 #include <complex>
+#include <cstdint>
+#include <functional>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <math.h>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "CUDAQTestUtils.h"
 #include "QppCircuitSimulator.cpp"
@@ -61,6 +67,126 @@ bool EXPECT_EQ_KETS(qpp::ket want_ket, qpp::ket got_ket,
     assert(std::abs(want_imag - got_imag) < epsilon);
   }
   return true;
+}
+
+CUDAQ_TEST(QPPTester, checkControlValuesPreserveCoherence) {
+  using Gate =
+      std::function<void(QppSimulator &, const std::vector<std::int32_t> &)>;
+  const std::vector<std::pair<std::string, Gate>> gates{
+      {"rx",
+       [](auto &sim, const auto &values) { sim.rx(0.37, {2, 0}, 1, values); }},
+      {"ry",
+       [](auto &sim, const auto &values) { sim.ry(-0.51, {2, 0}, 1, values); }},
+      {"rz",
+       [](auto &sim, const auto &values) { sim.rz(0.83, {2, 0}, 1, values); }},
+      {"r1",
+       [](auto &sim, const auto &values) { sim.r1(-0.29, {2, 0}, 1, values); }},
+      {"u2",
+       [](auto &sim, const auto &values) {
+         sim.u2(0.31, -0.47, {2, 0}, 1, values);
+       }},
+      {"u3",
+       [](auto &sim, const auto &values) {
+         sim.u3(0.23, -0.41, 0.67, {2, 0}, 1, values);
+       }},
+      {"phased_rx",
+       [](auto &sim, const auto &values) {
+         sim.phased_rx(0.73, 0.42, {2, 0}, 1, values);
+       }},
+      {"swap",
+       [](auto &sim, const auto &values) { sim.swap({2, 0}, 1, 3, values); }},
+      {"exp_pauli",
+       [](auto &sim, const auto &values) {
+         sim.applyExpPauli(0.37, {2, 0}, {1, 3},
+                           cudaq::spin_op::from_word("XY"), values);
+       }},
+      {"custom", [](auto &sim, const auto &values) {
+         sim.applyCustomOperation({0., {0., -1.}, {0., 1.}, 0.}, {2, 0}, {1},
+                                  "custom_y", values);
+       }}};
+
+  for (const auto &[name, gate] : gates) {
+    SCOPED_TRACE(name);
+    QppSimulator actual, expected;
+    actual.allocateQubits(4);
+    expected.allocateQubits(4);
+    // Unequal superpositions expose control-order mistakes and relative phases
+    // that deterministic basis-state measurements would miss.
+    for (std::size_t i = 0; i < 4; ++i) {
+      actual.ry(0.23 * (i + 1), i);
+      expected.ry(0.23 * (i + 1), i);
+    }
+
+    std::vector<std::int32_t> values{0, 1};
+    gate(actual, values);
+    // Queued operations must own values after the caller changes its buffer.
+    values = {1, 0};
+    // Controls are ordered {2, 0}, so only q2 needs conjugation. Empty values
+    // make the reference gate act only when both control qubits are |1>.
+    expected.x(2);
+    gate(expected, {});
+    expected.x(2);
+
+    const auto actualState = actual.getStateVector();
+    const auto expectedState = expected.getStateVector();
+    ASSERT_EQ(actualState.size(), expectedState.size());
+    for (qpp::idx i = 0; i < actualState.size(); ++i)
+      EXPECT_NEAR(std::abs(actualState(i) - expectedState(i)), 0., 1e-12);
+    actual.deallocateQubits({0, 1, 2, 3});
+    expected.deallocateQubits({0, 1, 2, 3});
+  }
+}
+
+CUDAQ_TEST(QPPTester, checkControlValuesValidation) {
+  using Task = nvqir::CircuitSimulatorBase<double>::GateApplicationTask;
+  const auto matrix = nvqir::x<double>().getGate({});
+  EXPECT_THROW((Task{"x", matrix, {0, 1}, {2}, {}, {0}}),
+               std::invalid_argument);
+  EXPECT_THROW((Task{"x", matrix, {0}, {1}, {}, {2}}), std::invalid_argument);
+  // Empty values allow controls on |1> and gates without controls.
+  EXPECT_NO_THROW((Task{"x", matrix, {0}, {1}, {}, {}}));
+  EXPECT_NO_THROW((Task{"x", matrix, {}, {0}, {}, {}}));
+}
+
+CUDAQ_TEST(QPPTester, checkInvalidControlValuesPreservePendingSampling) {
+  class SamplingSimulator : public QppSimulator {
+  public:
+    std::size_t sampleCalls = 0;
+    cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
+                                  int shots,
+                                  bool includeSequentialData = true) override {
+      ++sampleCalls;
+      return QppSimulator::sample(qubits, shots, includeSequentialData);
+    }
+  } sim;
+
+  cudaq::ExecutionContext ctx("sample", 1);
+  sim.configureExecutionContext(ctx);
+  cudaq::detail::setExecutionContext(&ctx);
+  sim.allocateQubits(3);
+  sim.x(0);
+  // A valid gate would flush this pending measurement. Rejected gates must
+  // leave it pending, without consuming a sample before reporting the error.
+  sim.mz(0);
+  EXPECT_THROW(sim.x({0}, 1, {0, 1}), std::invalid_argument);
+  EXPECT_EQ(sim.sampleCalls, 0);
+
+  sim.mz(0);
+  EXPECT_THROW(sim.swap({0}, 1, 2, {-1}), std::invalid_argument);
+  EXPECT_EQ(sim.sampleCalls, 0);
+
+  sim.mz(0);
+  EXPECT_THROW(sim.applyCustomOperation(nvqir::x<double>().getGate({}), {0},
+                                        {1}, "custom_x", {2}),
+               std::invalid_argument);
+  EXPECT_EQ(sim.sampleCalls, 0);
+
+  sim.x({0}, 1, {1});
+  EXPECT_EQ(sim.sampleCalls, 1);
+  // QPP uses q0 as the least significant bit: q0 = q1 = 1 gives index 3.
+  EXPECT_NEAR(std::abs(sim.getStateVector()(3) - 1.), 0., 1e-12);
+  cudaq::detail::resetExecutionContext();
+  sim.deallocateQubits({0, 1, 2});
 }
 
 // Checks that we're initializing the backend to the expected

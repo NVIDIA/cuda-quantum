@@ -265,7 +265,9 @@ protected:
     if (state.size() == 0) {
       // If this is the first time, allocate the state
       if (!stateDataIn) {
-        state = qpp::cmat::Zero(stateDimension, stateDimension);
+        // Size from qubitCount, not stateDimension: see QppCircuitSimulator.
+        const auto dimension = calculateStateDim(qubitCount);
+        state = qpp::cmat::Zero(dimension, dimension);
         state(0, 0) = 1.0;
       } else {
         // rho = |psi><psi|

@@ -169,6 +169,50 @@ CUDAQ_TEST(CuStateVecCircuitSimulator, ImportsFullHostStateWithoutStaging) {
   EXPECT_EQ(expected, simulator.readStateVector());
 }
 
+CUDAQ_TEST(CuStateVecCircuitSimulator, ExpPauliPreservesMixedControlValues) {
+  ScopedExecutionContext context("extract-state", 0);
+  const auto pauli = cudaq::spin_op::from_word("XY");
+  const double tolerance = std::is_same_v<cudaq::real, float> ? 1e-5 : 1e-12;
+  // Note: Native Pauli rotations bypass fusion. Decomposition exercises control
+  // values on Rz through both direct and fused matrix execution.
+  for (const auto *fusionQubits : {"0", "4"}) {
+    Environment fusion("CUDAQ_FUSION_MAX_QUBITS", fusionQubits);
+    for (const auto *decompose : {"0", "1"}) {
+      SCOPED_TRACE(::testing::Message()
+                   << "fusion=" << fusionQubits << ", decompose=" << decompose);
+      Environment decomposition("CUDAQ_FORCE_EXP_PAULI_DECOMPOSE", decompose);
+      SimulatorTester actual, expected;
+      actual.allocateQubits(4);
+      expected.allocateQubits(4);
+      // Unequal amplitudes expose a predicate applied to the wrong subspace.
+      for (std::size_t i = 0; i < 4; ++i) {
+        actual.ry(0.23 * (i + 1), i);
+        expected.ry(0.23 * (i + 1), i);
+      }
+
+      // Values follow control-list order: q2 is open and q0 is closed.
+      // Conjugating q2 lets the reference gate use |1> for both controls.
+      static_cast<nvqir::CircuitSimulator &>(actual).applyExpPauli(
+          0.37, {2, 0}, {1, 3}, pauli, {0, 1});
+      expected.x(2);
+      static_cast<nvqir::CircuitSimulator &>(expected).applyExpPauli(
+          0.37, {2, 0}, {1, 3}, pauli);
+      expected.x(2);
+      static_cast<nvqir::CircuitSimulator &>(actual).flushGateQueue();
+      static_cast<nvqir::CircuitSimulator &>(expected).flushGateQueue();
+
+      // Compare amplitudes to catch sign errors that sampling would miss.
+      const auto actualState = actual.readStateVector();
+      const auto expectedState = expected.readStateVector();
+      ASSERT_EQ(actualState.size(), expectedState.size());
+      for (std::size_t i = 0; i < actualState.size(); ++i)
+        EXPECT_NEAR(std::abs(actualState[i] - expectedState[i]), 0., tolerance);
+      actual.endExecution();
+      expected.endExecution();
+    }
+  }
+}
+
 CUDAQ_TEST(CuStateVecGateEngineTester, RejectsZeroObserveTrajectories) {
   SimulatorTester simulator;
   simulator.allocateQubits(1);
