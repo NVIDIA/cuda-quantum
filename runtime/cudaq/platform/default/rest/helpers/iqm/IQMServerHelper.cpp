@@ -858,7 +858,7 @@ void IQMServerHelper::fixupTopology() {
  *
  * @return String containing the filename of the created file.
  * @throws std::runtime_error thrown when file cannot be opened for writing
- *         or exists already.
+ *         or written completely.
  */
 std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
   uint qubitCount = qubitAdjacencyMap.size();
@@ -871,25 +871,23 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
         std::string(P_tmpdir) + "/qpu-architecture-XXXXXX";
     fd = mkstemp(quantumArchitectureFilePath.data());
   } else {
-    fd = open(quantumArchitectureFilePath.data(), O_WRONLY | O_CREAT,
-              S_IRUSR | S_IRGRP | S_IROTH);
+    fd = open(quantumArchitectureFilePath.data(), O_WRONLY | O_CREAT | O_TRUNC,
+              S_IWUSR | S_IRUSR);
   }
   if (fd < 0) {
+    int err = errno;
     throw std::runtime_error("Cannot write QPU architecture file: \"" +
                              quantumArchitectureFilePath + "\" - " +
-                             std::string(strerror(errno)));
-  }
-  if (ftruncate(fd, 0)) {
-    throw std::runtime_error("Failed to truncate QPU architecture file: \"" +
-                             quantumArchitectureFilePath + "\" - " +
-                             std::string(strerror(errno)));
+                             std::string(strerror(err)));
   }
   // open also as FILE which allows easier formatting with fprintf()
   FILE *file = fdopen(fd, "w");
   if (file == NULL) {
+    int err = errno; // report error from fdopen() not close()
+    (void)close(fd);
     throw std::runtime_error("Cannot write QPU architecture file: \"" +
                              quantumArchitectureFilePath + "\" - " +
-                             std::string(strerror(errno)));
+                             std::string(strerror(err)));
   }
 
   // Header
@@ -925,13 +923,21 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
     outputLine = "# IQM qubit map:";
     for (auto &[key, value] : qubitNameMap) {
       outputLine += " \"" + key + "\"";
+      (void)value; // unused
     }
 
     fwrite(outputLine.c_str(), outputLine.length(), 1, file);
   }
 
-  fclose(file);
-  close(fd);
+  bool writeError = ferror(file) != 0;
+
+  // "file" is an alias for "fd". Closing one is sufficient.
+  if (fclose(file) != 0 || writeError) {
+    int err = errno;
+    throw std::runtime_error("Failed to write QPU architecture file: \"" +
+                             quantumArchitectureFilePath + "\" - " +
+                             std::string(strerror(err)));
+  }
 
   return quantumArchitectureFilePath;
 } // IQMServerHelper::writeQuantumArchitectureFile()
