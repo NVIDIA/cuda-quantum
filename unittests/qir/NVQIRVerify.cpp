@@ -14,7 +14,7 @@
 
 using namespace mlir;
 
-static void doCommonSetup(StringRef theQuake) {
+static void doCommonSetup(StringRef theQuake, bool expectSuccess = false) {
   DialectRegistry registry;
   registry.insert<LLVM::LLVMDialect>();
   MLIRContext ctx(registry);
@@ -26,7 +26,9 @@ static void doCommonSetup(StringRef theQuake) {
   SourceMgrDiagnosticVerifierHandler verifierHandler(sourceMgr, &ctx);
   ParserConfig config(&ctx);
   auto module = parseSourceFile<ModuleOp>(sourceMgr, config);
-  EXPECT_TRUE(failed(cudaq::verifier::checkNvqirCalls(module.get())));
+  ASSERT_TRUE(module);
+  EXPECT_EQ(succeeded(cudaq::verifier::checkNvqirCalls(module.get())),
+            expectSuccess);
   EXPECT_TRUE(succeeded(verifierHandler.verify()));
 }
 
@@ -67,4 +69,35 @@ TEST(NVQIRVerify, check3) {
     }
     )#";
   doCommonSetup(theQuake);
+}
+
+TEST(NVQIRVerify, controlValueCalls) {
+  StringRef theQuake = R"#(
+    llvm.func @generalizedInvokeWithControlValues(i64, i64, i64, !llvm.ptr, ...)
+    llvm.func @__nvqir__qis__custom_unitary__ctl_values(!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr)
+    llvm.func @__nvqir__qis__custom_unitary__adj__ctl_values(!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr)
+    llvm.func @__nvqir__qis__exp_pauli__ctl_values(f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr)
+    llvm.func @llvm.stacksave.p0() -> !llvm.ptr
+    llvm.func @llvm.stackrestore.p0(!llvm.ptr)
+    llvm.func @entryPoint(%callback: !llvm.ptr, %matrix: !llvm.ptr,
+                         %controls: !llvm.ptr, %values: !llvm.ptr,
+                         %count: i64, %targets: !llvm.ptr, %name: !llvm.ptr,
+                         %theta: f64, %word: !llvm.ptr) {
+      %zero = llvm.mlir.constant(0 : i64) : i64
+      %one = llvm.mlir.constant(1 : i64) : i64
+      %saved = llvm.call @llvm.stacksave.p0() : () -> !llvm.ptr
+      llvm.call @generalizedInvokeWithControlValues(%zero, %zero, %one, %callback, %targets)
+          vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>)
+          : (i64, i64, i64, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @__nvqir__qis__custom_unitary__ctl_values(%matrix, %controls, %values, %count, %targets, %name)
+          : (!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @__nvqir__qis__custom_unitary__adj__ctl_values(%matrix, %controls, %values, %count, %targets, %name)
+          : (!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @__nvqir__qis__exp_pauli__ctl_values(%theta, %controls, %values, %count, %targets, %word)
+          : (f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @llvm.stackrestore.p0(%saved) : (!llvm.ptr) -> ()
+      llvm.return
+    }
+    )#";
+  doCommonSetup(theQuake, /*expectSuccess=*/true);
 }

@@ -156,7 +156,6 @@ void cudaq::opt::addLowerToCFGAndCleanup(OpPassManager &pm) {
 static void
 createCommonTargetCodegenPipeline(OpPassManager &pm,
                                   const TargetCodegenPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
@@ -200,9 +199,13 @@ createTargetCodegenPipeline(OpPassManager &pm,
       cudaq::opt::createEraseCompilerGeneratedEvince());
 
   cudaq::opt::addPhaseLifecycle(pm);
-  // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
-  // to run this pass again to expand those negations.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  const auto tgt = StringRef(options.target).split(':').first;
+  const bool isFullQIR = tgt == "qir" || tgt == "qir-full";
+  // `LowerPhase` can leave negative controls on the R1/Rz it creates, so we
+  // need to run this pass again to expand those negations on non-full-QIR
+  // targets.
+  if (!isFullQIR)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
   cudaq::opt::addLowerToCFGAndCleanup(pm);
   ::addQIRConversionPipeline(pm, options.target);
@@ -210,8 +213,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
   cudaq::opt::addLowerToCFG(pm);
   cudaq::opt::ReturnToOutputLogOptions opts;
   // Only allow dynamic results with full QIR (local simulator targets).
-  auto tgt = StringRef(options.target).split(':').first;
-  opts.allowDynamicResult = tgt == "qir" || tgt == "qir-full";
+  opts.allowDynamicResult = isFullQIR;
   pm.addPass(cudaq::opt::createReturnToOutputLog(opts));
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
