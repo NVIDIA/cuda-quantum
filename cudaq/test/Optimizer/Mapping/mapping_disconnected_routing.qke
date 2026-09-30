@@ -14,8 +14,10 @@ func.func @route_line_endpoints() {
   %q5 = quake.borrow_wire @wires[5] : !quake.wire
   %q7 = quake.borrow_wire @wires[7] : !quake.wire
   %0:2 = quake.x [%q5] %q7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.return_wire %0#0 : !quake.wire
-  quake.return_wire %0#1 : !quake.wire
+  %m0, %w0 = quake.mz %0#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %0#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
   return
 }
 

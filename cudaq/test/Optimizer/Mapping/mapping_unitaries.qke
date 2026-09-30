@@ -186,18 +186,24 @@ func.func @test_07() {
   %2 = quake.borrow_wire @wires[2] : !quake.wire
   %3 = quake.borrow_wire @wires[3] : !quake.wire
   %4 = quake.borrow_wire @wires[4] : !quake.wire
-  %5 = quake.borrow_wire @wires[5] : !quake.wire  
-  quake.return_wire %5 : !quake.wire
+  %5 = quake.borrow_wire @wires[5] : !quake.wire
+  %m5, %w5 = quake.mz %5 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w5 : !quake.wire
   %6:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %7:2 = quake.x [%6#1] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %8:2 = quake.x [%7#1] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %9:2 = quake.x [%8#1] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %10:2 = quake.x [%6#0] %9#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.return_wire %7#0 : !quake.wire
-  quake.return_wire %8#0 : !quake.wire
-  quake.return_wire %9#0 : !quake.wire
-  quake.return_wire %10#0 : !quake.wire
-  quake.return_wire %10#1 : !quake.wire
+  %m0, %w0 = quake.mz %7#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %8#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m2, %w2 = quake.mz %9#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %w3 = quake.mz %10#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m4, %w4 = quake.mz %10#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  quake.return_wire %w2 : !quake.wire
+  quake.return_wire %w3 : !quake.wire
+  quake.return_wire %w4 : !quake.wire
   return
 }
 
