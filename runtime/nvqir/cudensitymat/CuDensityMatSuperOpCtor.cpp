@@ -350,39 +350,90 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
       }
     }
 
-    // The -1/2 {L^dagger L, rho} part of each dissipator acts like the
-    // Hamiltonian from the left and the right, so fold it into those actions
-    // when possible.
-    std::vector<std::optional<FusedTerm>> fusableCollapseOps(collapseSize);
-    std::vector<FusedTerm> antiCommutatorTerms;
-    if (batchSize == 1 && collapseOperators.size() == 1) {
-      for (std::size_t i = 0; i < collapseSize; ++i) {
-        fusableCollapseOps[i] = computeFusableCollapseOperator(
-            collapseOperators[0][i], parameters, modeExtents);
-        if (fusableCollapseOps[i]) {
-          const auto &lMat = fusableCollapseOps[i]->matrix;
-          const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
-          antiCommutatorTerms.push_back(
-              {fusableCollapseOps[i]->degrees,
-               std::complex<double>(-0.5, 0.0) * (lDagMat * lMat)});
+    const bool isUnbatched = batchSize == 1 && collapseOperators.size() <= 1;
+    // Constant Hamiltonian terms and dissipators on small subspaces are
+    // applied as dense superoperators, each acting on both sides of the
+    // density matrix at once.
+    std::vector<bool> isCollapseOpFused(collapseSize, false);
+    if (isUnbatched) {
+      std::vector<FusedSuperoperatorTerm> superoperatorTerms;
+      const auto extractFusable = [&](sum_op<cudaq::matrix_handler> &ham,
+                                      bool isLeft) {
+        auto remaining = sum_op<cudaq::matrix_handler>::empty();
+        for (const auto &prodOp : ham) {
+          auto fused = computeFusableProductTerm(prodOp, parameters,
+                                                 modeExtents,
+                                                 /*bothSides=*/true);
+          if (!fused) {
+            remaining += prodOp;
+            continue;
+          }
+          auto &term = superoperatorTerms.emplace_back();
+          term.degrees = std::move(fused->degrees);
+          (isLeft ? term.left : term.right) = std::move(fused->matrix);
         }
+        ham = std::move(remaining);
+      };
+      extractFusable(leftHam[0], /*isLeft=*/true);
+      extractFusable(rightHam[0], /*isLeft=*/false);
+      for (std::size_t i = 0; i < collapseSize; ++i) {
+        auto collapseOp = computeFusableCollapseOperator(
+            collapseOperators[0][i], parameters, modeExtents,
+            /*bothSides=*/true);
+        if (!collapseOp)
+          continue;
+        isCollapseOpFused[i] = true;
+        const auto &lMat = collapseOp->matrix;
+        const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
+        const auto antiCommutator =
+            std::complex<double>(-0.5, 0.0) * (lDagMat * lMat);
+        superoperatorTerms.push_back({collapseOp->degrees, lMat, lDagMat});
+        superoperatorTerms.push_back(
+            {collapseOp->degrees, antiCommutator, std::nullopt});
+        superoperatorTerms.push_back(
+            {collapseOp->degrees, std::nullopt, antiCommutator});
+      }
+      appendFusedSuperoperatorTerms(liouvillian, superoperatorTerms,
+                                    modeExtents);
+    }
+
+    // The -1/2 {L^dagger L, rho} part of each remaining dissipator acts like
+    // the Hamiltonian from the left and the right, so fold it into those
+    // actions when possible.
+    std::vector<bool> isAntiCommutatorFused(collapseSize, false);
+    std::vector<FusedTerm> antiCommutatorTerms;
+    if (isUnbatched) {
+      for (std::size_t i = 0; i < collapseSize; ++i) {
+        if (isCollapseOpFused[i])
+          continue;
+        auto collapseOp = computeFusableCollapseOperator(
+            collapseOperators[0][i], parameters, modeExtents);
+        if (!collapseOp)
+          continue;
+        isAntiCommutatorFused[i] = true;
+        const auto &lMat = collapseOp->matrix;
+        const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
+        antiCommutatorTerms.push_back(
+            {collapseOp->degrees,
+             std::complex<double>(-0.5, 0.0) * (lDagMat * lMat)});
       }
     }
 
     // -i constant (left multiplication)
-    appendToCudensitymatOperator(liouvillian, parameters, leftHam, modeExtents,
-                                 /*duality=*/0, antiCommutatorTerms);
+    if (leftHam[0].num_terms() > 0 || !antiCommutatorTerms.empty())
+      appendToCudensitymatOperator(liouvillian, parameters, leftHam,
+                                   modeExtents, /*duality=*/0,
+                                   antiCommutatorTerms);
     // +i constant (right multiplication, i.e., dual)
-    appendToCudensitymatOperator(liouvillian, parameters, rightHam, modeExtents,
-                                 /*duality=*/1, antiCommutatorTerms);
+    if (rightHam[0].num_terms() > 0 || !antiCommutatorTerms.empty())
+      appendToCudensitymatOperator(liouvillian, parameters, rightHam,
+                                   modeExtents, /*duality=*/1,
+                                   antiCommutatorTerms);
 
     if (collapseSize > 0) {
       // Handle collapsed operators
       for (std::size_t i = 0; i < collapseSize; ++i) {
-        const bool isAntiCommutatorFused = fusableCollapseOps[i].has_value();
-        if (isAntiCommutatorFused &&
-            appendFusedSandwichTerm(liouvillian, *fusableCollapseOps[i],
-                                    modeExtents))
+        if (isCollapseOpFused[i])
           continue;
 
         std::vector<sum_op<cudaq::matrix_handler>> batchedCollapseTerms;
@@ -391,7 +442,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
         }
         for (auto &[coeffs, term] : computeLindbladTerms(
                  batchedCollapseTerms, modeExtents, parameters,
-                 /*includeAntiCommutator=*/!isAntiCommutatorFused)) {
+                 /*includeAntiCommutator=*/!isAntiCommutatorFused[i])) {
           assert(coeffs.size() == batchSize);
           appendBatchedTermToOperator(liouvillian, term, coeffs, keys);
         }
