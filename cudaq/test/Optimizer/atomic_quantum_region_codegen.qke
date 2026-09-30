@@ -71,8 +71,9 @@ func.func @exposed_roundtrip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 
 // Models the post-inlining shape of a cudaq.run kernel returning a dynamic
 // sequence. Lowering its scope inserts stack save/restore operations around
-// the classical allocation. The final StackFramePrealloc must remove the
-// premature restore so the backing storage remains live through output.
+// the classical allocation. StackFramePrealloc runs before lowering and marks
+// this scope as needing no stack fence, so the backing storage remains live
+// through output.
 func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [!cc.sequence<i64>]} {
   %result = cc.scope -> (!cc.sequence<i64>) {
     %storage = cc.alloca i64[%size : i64]
@@ -153,20 +154,18 @@ func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq
 
 // PIPELINE: Pass Manager
 // PIPELINE-NOT: convert-to-cfg
-// PIPELINE-NOT: stack-frame-prealloc
+// PIPELINE: stack-frame-prealloc
+// PIPELINE-NOT: convert-to-cfg
 // PIPELINE: combine-quantum-alloc
 // PIPELINE-NOT: convert-to-cfg
-// PIPELINE-NOT: stack-frame-prealloc
 // PIPELINE: factor-quantum-alloc
 // PIPELINE-NOT: combine-quantum-alloc
 // PIPELINE-NOT: convert-to-cfg
-// PIPELINE-NOT: stack-frame-prealloc
-// PIPELINE: convert-to-cfg-prep,
+// PIPELINE: expand-control-negations
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: convert-to-cfg-prep,
 // PIPELINE-NEXT: func.func(
 // PIPELINE-NEXT: convert-to-cfg
-// PIPELINE-NEXT: ),
-// PIPELINE-NEXT: func.func(
-// PIPELINE-NEXT: stack-frame-prealloc
 // PIPELINE-NEXT: ),
 // PIPELINE-NEXT: func.func(
 // PIPELINE-NEXT: canonicalize
