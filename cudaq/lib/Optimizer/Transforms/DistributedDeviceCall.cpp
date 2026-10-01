@@ -281,6 +281,12 @@ public:
 
     if (alreadyAdded) {
       // This may happen if another kernel called this same callback.
+      // NB: There is a single marshal function per callback, which is generated
+      // from the first call that is seen. Anything about a call that is not
+      // part of the callback's signature, such as the device id or the launch
+      // geometry, is that of the first call. A later call to the same callback
+      // with different values for them still uses the first call's. This is
+      // adequate for the reference implementation, which does not use them.
       LLVM_DEBUG(llvm::dbgs() << "marshal function " << marshalName
                               << " already in module\n");
       return success();
