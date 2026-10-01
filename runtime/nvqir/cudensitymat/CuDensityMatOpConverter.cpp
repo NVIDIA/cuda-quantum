@@ -142,6 +142,43 @@ std::size_t subspaceDimension(const std::vector<std::size_t> &degrees,
   return dim;
 }
 
+// Returns `a * b` for multi-diagonal matrices of dimension `dim`. Element
+// (row, row + offset) is stored at index min(row, row + offset) of its
+// diagonal (see `cudaq::detail::create_mdiag_sparse_matrix`). Diagonals that
+// are zero in the product are dropped.
+cudaq::mdiag_sparse_matrix
+multiplyDiagonalMatrices(const cudaq::mdiag_sparse_matrix &a,
+                         const cudaq::mdiag_sparse_matrix &b, int64_t dim) {
+  std::map<int64_t, std::vector<std::complex<double>>> diagonals;
+  for (std::size_t i = 0; i < a.second.size(); ++i) {
+    const auto offsetA = a.second[i];
+    for (std::size_t j = 0; j < b.second.size(); ++j) {
+      const auto offsetB = b.second[j];
+      const auto offset = offsetA + offsetB;
+      if (offset <= -dim || offset >= dim)
+        continue;
+      auto &diagonal = diagonals.try_emplace(offset, dim).first->second;
+      for (int64_t row = 0; row < dim; ++row) {
+        const auto mid = row + offsetA;
+        const auto col = mid + offsetB;
+        if (mid < 0 || mid >= dim || col < 0 || col >= dim)
+          continue;
+        diagonal[std::min(row, col)] += a.first[i * dim + std::min(row, mid)] *
+                                        b.first[j * dim + std::min(mid, col)];
+      }
+    }
+  }
+  cudaq::mdiag_sparse_matrix product;
+  for (const auto &[offset, diagonal] : diagonals) {
+    if (std::all_of(diagonal.begin(), diagonal.end(),
+                    [](std::complex<double> x) { return x == 0.0; }))
+      continue;
+    product.second.push_back(offset);
+    product.first.insert(product.first.end(), diagonal.begin(), diagonal.end());
+  }
+  return product;
+}
+
 } // namespace
 
 // Function to flatten a matrix into a 1D array (column major)
@@ -533,6 +570,55 @@ cudaq::dynamics::CuDensityMatOpConverter::createDenseElementaryOperator(
       CUDA_C_64F, elementaryMat_d, cudensitymatTensorCallbackNone,
       cudensitymatTensorGradientCallbackNone, &cudmElemOp));
   m_elementaryOperators.emplace(cudmElemOp);
+  return cudmElemOp;
+}
+
+cudensitymatElementaryOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::createFusedMultidiagonalOperator(
+    const std::vector<cudaq::matrix_handler> &factors,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents) {
+  if (factors.size() < 2)
+    return nullptr;
+  const auto degrees = factors[0].degrees();
+  const auto dim =
+      static_cast<int64_t>(subspaceDimension(degrees, modeExtents));
+  if (dim < m_minDimensionDiag)
+    return nullptr;
+
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
+  std::optional<cudaq::mdiag_sparse_matrix> product;
+  for (const auto &factor : factors) {
+    if (factor.degrees() != degrees ||
+        requiresTensorCallback(factor, dimensions))
+      return nullptr;
+    auto matrix = factor.to_diagonal_matrix(dimensions, parameters);
+    if (matrix.second.empty())
+      return nullptr;
+    product = product ? multiplyDiagonalMatrices(*product, matrix, dim)
+                      : std::move(matrix);
+  }
+  if (product->second.empty() ||
+      product->second.size() > static_cast<std::size_t>(m_maxDiagonalsDiag))
+    return nullptr;
+
+  const auto subspaceExtents = getSubspaceExtents(modeExtents, degrees);
+  const std::vector<int32_t> offsets(product->second.begin(),
+                                     product->second.end());
+  auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(product->first);
+  m_deviceBuffers.emplace(elementaryMat_d);
+
+  cudensitymatElementaryOperator_t cudmElemOp = nullptr;
+  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+      m_handle, static_cast<int32_t>(subspaceExtents.size()),
+      subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL,
+      offsets.size(), offsets.data(), CUDA_C_64F, elementaryMat_d,
+      cudensitymatTensorCallbackNone, cudensitymatTensorGradientCallbackNone,
+      &cudmElemOp));
+  m_elementaryOperators.emplace(cudmElemOp);
+  CUDAQ_INFO("Fused {} factors into a multi-diagonal operator with {} "
+             "diagonals.",
+             factors.size(), offsets.size());
   return cudmElemOp;
 }
 
