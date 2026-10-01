@@ -9,12 +9,17 @@
 `integrator_options` must be per-instance. `BaseIntegrator.__init__` used to
 mutate a class-level dict via `.update(kwargs)` instead of assigning a fresh
 one, so two integrators created in the same process shared one options dict
-and silently inherited each other's settings. This does not need a GPU or a
-dynamics target: it is a plain object-construction bug.
+and silently inherited each other's settings. The bug itself is a plain
+object-construction bug, but `RungeKuttaIntegrator.__init__` loads the native
+dynamics bindings (`cudensitymat`), which are only present in CUDA/dynamics
+builds, so the module is gated on GPU availability like the other dynamics
+tests.
 """
 import pytest
+import cudaq
 
-pytest.importorskip("cupy")
+if cudaq.num_available_gpus() == 0:
+    pytest.skip("Skipping GPU tests", allow_module_level=True)
 
 from cudaq.dynamics.integrators.builtin_integrators import RungeKuttaIntegrator
 
