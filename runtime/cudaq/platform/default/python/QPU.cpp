@@ -9,6 +9,7 @@
 #include "QPU.h"
 #include "common/ArgumentWrapper.h"
 #include "common/CompileOptions.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
@@ -24,7 +25,6 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -47,7 +47,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
                                              const CompileOptions &options) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
 
-  auto target = createDefaultCompileTarget();
+  auto target = createDefaultCompileTarget(getQuantumPlatformInternal());
   target.fullySpecialize = true;
   // Translation consumes only the compiled MLIR artifact.
   CompileOptions compileOpts = options;
@@ -100,7 +100,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
                                              OpaqueArguments &args) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
 
-  auto target = createDefaultCompileTarget();
+  auto target = createDefaultCompileTarget(getQuantumPlatformInternal());
   target.fullySpecialize = true;
   // Translation consumes only the compiled MLIR artifact.
   CompileOptions options;

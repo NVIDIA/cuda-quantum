@@ -49,7 +49,6 @@ CUDA_VER_DASH=$(echo $CUDA_FULL_VERSION | sed 's/\./-/')
 retry apt-get install -y cuda-nvrtc-dev-$CUDA_VER_DASH 2>/dev/null || true
 
 # [Holoscan SDK]
-export CUDAQ_REALTIME_HOLOSCAN_FORCE_DEPS=1
 cudaq_realtime_install_holoscan
 
 cudaq_realtime_verify_sdks

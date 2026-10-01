@@ -117,13 +117,6 @@ protected:
 
   bool supportsBatchedTrajectories() const override { return false; }
 
-  void addQubitsToState(std::size_t count, const void *stateData) override {
-    Base::addQubitsToState(count, stateData);
-    // The initial ensureState() may defer distribution until the newly
-    // allocated wires make a valid distributed state.
-    ensureState();
-  }
-
   /// Lazily (re)build this rank's state descriptor. Below the multi-GPU
   /// threshold every rank keeps the same full (replicated) single-process state
   /// through the base class; once the circuit is large enough to distribute,

@@ -1,0 +1,35 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional.txt) placement=identity search=none' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional.txt) placement=identity search=none' %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @reverse_controlled_x() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %x:2 = quake.x [%q1] %q0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %x#1 : !quake.wire
+  quake.return_wire %x#0 : !quake.wire
+  return
+}
+
+// With the identity layout, the requested CX direction is the reverse of the
+// only device edge, producing four Hadamards around the native reverse CX.
+
+// CHECK-LABEL:   func.func @reverse_controlled_x
+// CHECK:           %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// CHECK:           %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:           %[[H1:.*]] = quake.h %[[Q1]]
+// CHECK:           %[[H0:.*]] = quake.h %[[Q0]]
+// CHECK:           %[[CX:.*]]:2 = quake.x {{\[}}%[[H0]]] %[[H1]]
+// CHECK:           %[[H1_OUT:.*]] = quake.h %[[CX]]#1
+// CHECK:           %[[H0_OUT:.*]] = quake.h %[[CX]]#0
+// CHECK-NOT:       quake.h
+// CHECK-NOT:       quake.x

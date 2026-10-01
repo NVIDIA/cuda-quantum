@@ -391,6 +391,123 @@ def test_callable_kernel_arg_signature_mismatch_arity():
         caller(callee)
 
 
+def test_control_and_adjoint_of_callable_kernel_arg():
+    # https://github.com/NVIDIA/cuda-quantum/issues/3499
+
+    @cudaq.kernel
+    def x_gate(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def apply_control(callee: Callable[[cudaq.qubit], None], q: cudaq.qubit,
+                      control_q: cudaq.qubit):
+        cudaq.control(callee, control_q, q)
+
+    @cudaq.kernel
+    def apply_adjoint(callee: Callable[[cudaq.qubit], None], q: cudaq.qubit):
+        cudaq.adjoint(callee, q)
+
+    @cudaq.kernel
+    def control_fires():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        x(c)
+        apply_control(x_gate, q, c)
+
+    @cudaq.kernel
+    def control_off():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        apply_control(x_gate, q, c)
+
+    @cudaq.kernel
+    def adjoint():
+        q = cudaq.qubit()
+        apply_adjoint(x_gate, q)
+
+    assert '11' in cudaq.sample(control_fires)
+    assert '00' in cudaq.sample(control_off)
+    assert '1' in cudaq.sample(adjoint)
+
+
+def test_control_then_adjoint_of_callable_kernel_arg():
+
+    @cudaq.kernel
+    def ry_pi(q: cudaq.qubit):
+        ry(np.pi, q)
+
+    @cudaq.kernel
+    def apply_control_then_adjoint(callee: Callable[[cudaq.qubit], None],
+                                   q: cudaq.qubit, control_q: cudaq.qubit):
+        cudaq.control(callee, control_q, q)
+        cudaq.adjoint(callee, q)
+
+    # Control is on: the rotation and its adjoint cancel, leaving the target
+    # in |0>.
+    @cudaq.kernel
+    def control_fires():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        x(c)
+        apply_control_then_adjoint(ry_pi, q, c)
+
+    # Control is off: only the adjoint rotation runs, flipping the target.
+    @cudaq.kernel
+    def control_off():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        apply_control_then_adjoint(ry_pi, q, c)
+
+    counts = cudaq.sample(control_fires)
+    assert len(counts) == 1 and '01' in counts
+
+    counts = cudaq.sample(control_off)
+    assert len(counts) == 1 and '10' in counts
+
+
+def test_control_of_adjoint_of_callable_kernel_arg():
+
+    @cudaq.kernel
+    def ry_half(q: cudaq.qubit):
+        ry(np.pi / 2., q)
+
+    @cudaq.kernel
+    def apply_adjoint(callee: Callable[[cudaq.qubit], None], q: cudaq.qubit):
+        cudaq.adjoint(callee, q)
+
+    # The callable argument is forwarded through a controlled call, so the
+    # `quake.apply` here targets a callable value rather than a symbol.
+    @cudaq.kernel
+    def apply_control_adjoint(callee: Callable[[cudaq.qubit], None],
+                              q: cudaq.qubit, control_q: cudaq.qubit):
+        cudaq.control(apply_adjoint, control_q, callee, q)
+
+    # Control is on: the rotation and its adjoint cancel, leaving the target
+    # in |0>.
+    @cudaq.kernel
+    def control_fires():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        x(c)
+        ry_half(q)
+        apply_control_adjoint(ry_half, q, c)
+
+    # Control is off: two rotations of pi/2 flip the target.
+    @cudaq.kernel
+    def control_off():
+        q = cudaq.qubit()
+        c = cudaq.qubit()
+        ry_half(q)
+        apply_control_adjoint(ry_half, q, c)
+        ry_half(q)
+
+    counts = cudaq.sample(control_fires)
+    assert len(counts) == 1 and '01' in counts
+
+    counts = cudaq.sample(control_off)
+    assert len(counts) == 1 and '10' in counts
+
+
 def test_observe():
 
     @cudaq.kernel(disable_quantum_optimization=True)
@@ -1133,7 +1250,7 @@ def test_list_boundaries():
 
         cudaq.sample(kernel15)
     assert "range step value must be non-zero" in str(e.value)
-    assert "offending source -> range(1, 4, 0)" in str(e.value)
+    assert "offending source -> [i for i in range(1, 4, 0)]" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
 
@@ -1146,7 +1263,7 @@ def test_list_boundaries():
 
         cudaq.sample(kernel16)
     assert "range step value must be a constant" in str(e.value)
-    assert "offending source -> range(1, 4, v)" in str(e.value)
+    assert "offending source -> [i for i in range(1, 4, v)]" in str(e.value)
 
 
 def test_array_value_assignment():
@@ -2169,6 +2286,23 @@ def test_nested_loops_with_continue():
     # The test here is that this compiles.
     prog.compile()
     print(prog)
+
+
+def test_nested_range_loops_with_continue_fully_unrolled():
+    # Regression test: fully unrolling the inner `range(...)` loop can
+    # constant-fold its `continue` predicate, leaving unreachable successor blocks behind in the inner loop's own body.
+
+    @cudaq.kernel
+    def prog() -> int:
+        total = 0
+        for i in range(4):
+            for w in range(4):
+                if w % 2 == 0:
+                    continue
+                total += w
+        return total
+
+    assert prog() == 16
 
 
 def test_issue_1682():

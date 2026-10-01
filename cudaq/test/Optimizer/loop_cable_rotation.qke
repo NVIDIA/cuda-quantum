@@ -1,0 +1,226 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --loop-cable-rotation %s | FileCheck %s
+
+// The motivating case: a counted loop applies a gate to each ref of a
+// statically sized veq, indexed by the loop's own induction variable. The
+// veq is rotated through a cable instead of staying in reference form.
+
+func.func @rotate_basic() {
+  %v = quake.alloca !quake.veq<3>
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %angle = arith.constant 1.0 : f64
+  cc.loop while ((%i = %c0) -> (i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %r = quake.extract_ref %v[%i] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.rx (%angle) %r : (f64, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @rotate_basic() {
+// CHECK:           %[[V:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[R0:.*]] = quake.extract_ref %[[V]][0] :
+// CHECK:           %[[W0:.*]] = quake.unwrap %[[R0]] :
+// CHECK:           %[[R1:.*]] = quake.extract_ref %[[V]][1] :
+// CHECK:           %[[W1:.*]] = quake.unwrap %[[R1]] :
+// CHECK:           %[[R2:.*]] = quake.extract_ref %[[V]][2] :
+// CHECK:           %[[W2:.*]] = quake.unwrap %[[R2]] :
+// CHECK:           %[[CABLE0:.*]] = quake.bundle_cable %[[W0]], %[[W1]], %[[W2]] : {{.*}} -> !quake.cable<3>
+// CHECK:           %[[LOOP:.*]]:2 = cc.loop while ((%{{.*}} = %{{.*}}, %[[CARG:.*]] = %[[CABLE0]]) -> (i64, !quake.cable<3>)) {
+// CHECK:             cc.condition
+// CHECK:           } do {
+// CHECK:           ^bb0(%{{.*}}: i64, %[[CARG2:.*]]: !quake.cable<3>):
+// CHECK:             %[[DW:.*]], %[[DC:.*]] = quake.detach_wire %[[CARG2]][0] : (!quake.cable<3>) -> (!quake.wire, !quake.cable<2>)
+// CHECK:             %[[WN:.*]] = quake.wrap_new %[[DW]] : (!quake.wire) -> !quake.ref
+// CHECK:             quake.rx ({{.*}}) %[[WN]] : (f64, !quake.ref) -> ()
+// CHECK:             %[[UW:.*]] = quake.unwrap %[[WN]] :
+// CHECK:             %[[AW:.*]] = quake.attach_wire %[[UW]], %[[DC]][2] : (!quake.wire, !quake.cable<2>) -> !quake.cable<3>
+// CHECK:             cc.continue %{{.*}}, %[[AW]] : i64, !quake.cable<3>
+// CHECK:           } step {
+// CHECK:           %[[SPLIT:.*]]:3 = quake.split_cable %[[LOOP]]#1 : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:           quake.wrap %[[SPLIT]]#0 to %[[R0]] :
+// CHECK:           quake.wrap %[[SPLIT]]#1 to %[[R1]] :
+// CHECK:           quake.wrap %[[SPLIT]]#2 to %[[R2]] :
+// CHECK:           return
+// CHECK:         }
+
+// A pre-existing secondary loop-carried value must be preserved in place;
+// the cable is appended after it, not disturbing its index.
+
+func.func @rotate_secondary() -> i64 {
+  %v = quake.alloca !quake.veq<3>
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %angle = arith.constant 1.0 : f64
+  %res:2 = cc.loop while ((%i = %c0, %acc = %c0) -> (i64, i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i, %acc : i64, i64)
+  } do {
+  ^bb0(%i: i64, %acc: i64):
+    %r = quake.extract_ref %v[%i] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.rx (%angle) %r : (f64, !quake.ref) -> ()
+    %acc2 = arith.addi %acc, %c1 : i64
+    cc.continue %i, %acc2 : i64, i64
+  } step {
+  ^bb0(%i: i64, %acc: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next, %acc : i64, i64
+  }
+  return %res#1 : i64
+}
+
+// CHECK-LABEL:   func.func @rotate_secondary() -> i64 {
+// CHECK:           %[[LOOP:.*]]:3 = cc.loop while ((%{{.*}} = %{{.*}}, %[[ACC:.*]] = %{{.*}}, %{{.*}} = %{{.*}}) -> (i64, i64, !quake.cable<3>)) {
+// CHECK:             cc.condition
+// CHECK:           } do {
+// CHECK:           ^bb0(%{{.*}}: i64, %[[ACC2:.*]]: i64, %{{.*}}: !quake.cable<3>):
+// CHECK:             quake.detach_wire
+// CHECK:             quake.wrap_new
+// CHECK:             quake.rx
+// CHECK:             %[[ACC3:.*]] = arith.addi %[[ACC2]], %{{.*}} : i64
+// CHECK:             quake.unwrap
+// CHECK:             %[[AW:.*]] = quake.attach_wire
+// CHECK:             cc.continue %{{.*}}, %[[ACC3]], %[[AW]] : i64, i64, !quake.cable<3>
+// CHECK:           }
+// CHECK:           quake.split_cable %[[LOOP]]#2
+// CHECK:           return %[[LOOP]]#1 : i64
+// CHECK:         }
+
+// Negative: the loop has an early exit (break), so it is not a counted
+// loop - left untouched.
+
+func.func @no_rotate_break(%cond: i1) {
+  %v = quake.alloca !quake.veq<3>
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %angle = arith.constant 1.0 : f64
+  cc.loop while ((%i = %c0) -> (i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %r = quake.extract_ref %v[%i] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.rx (%angle) %r : (f64, !quake.ref) -> ()
+    cf.cond_br %cond, ^bb1, ^bb2
+  ^bb1:
+    cc.break %i : i64
+  ^bb2:
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @no_rotate_break(
+// CHECK-NOT:       quake.bundle_cable
+// CHECK:           cc.loop
+// CHECK-NOT:       quake.detach_wire
+
+// Negative: the veq's size is not statically known - left untouched.
+
+func.func @no_rotate_dynamic_size(%n: i64) {
+  %v = quake.alloca !quake.veq<?>[%n : i64]
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %angle = arith.constant 1.0 : f64
+  cc.loop while ((%i = %c0) -> (i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %r = quake.extract_ref %v[%i] : (!quake.veq<?>, i64) -> !quake.ref
+    quake.rx (%angle) %r : (f64, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @no_rotate_dynamic_size(
+// CHECK-NOT:       quake.bundle_cable
+
+// Negative: the extract_ref's index is not exactly the loop's induction
+// variable (it is offset by a constant) - left untouched.
+
+func.func @no_rotate_offset_index() {
+  %v = quake.alloca !quake.veq<4>
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %angle = arith.constant 1.0 : f64
+  cc.loop while ((%i = %c0) -> (i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %off = arith.addi %i, %c1 : i64
+    %r = quake.extract_ref %v[%off] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.rx (%angle) %r : (f64, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @no_rotate_offset_index(
+// CHECK-NOT:       quake.bundle_cable
+
+// Negative: the veq has another use inside the loop besides the one
+// extract_ref (here, passed whole to a call) - left untouched.
+
+func.func private @callee(!quake.veq<3>)
+
+func.func @no_rotate_extra_use() {
+  %v = quake.alloca !quake.veq<3>
+  %c0 = arith.constant 0 : i64
+  %c3 = arith.constant 3 : i64
+  %c1 = arith.constant 1 : i64
+  %angle = arith.constant 1.0 : f64
+  cc.loop while ((%i = %c0) -> (i64)) {
+    %cmp = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %cmp(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %r = quake.extract_ref %v[%i] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.rx (%angle) %r : (f64, !quake.ref) -> ()
+    func.call @callee(%v) : (!quake.veq<3>) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    cc.continue %next : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @no_rotate_extra_use(
+// CHECK-NOT:       quake.bundle_cable

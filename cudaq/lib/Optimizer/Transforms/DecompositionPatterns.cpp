@@ -10,6 +10,7 @@
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
+#include "StaticQubitTarget.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -76,7 +77,7 @@ inline bool containsControlTypes(cudaq::quake::OperatorInterface op) {
 
 namespace {
 struct ExpPauliTargetPlan {
-  SmallVector<cudaq::quake::StaticQubitTarget> qubits;
+  SmallVector<cudaq::opt::StaticQubitTarget> qubits;
 };
 
 /// Validate and plan every scalar qubit represented by ExpPauli targets.
@@ -449,9 +450,9 @@ struct ExpPauliDecomposition
       // exp(i theta I) is a phase, not a removable no-op. Choose the final
       // statically identifiable source qubit only after all target validation
       // succeeds, then preserve the source predicate and wire result order.
-      auto anchorPlan = cudaq::quake::findLastStaticQubitTarget(
+      auto anchorPlan = cudaq::opt::findLastStaticQubitTarget(
           expPauliOp.getTargets(),
-          [&](const cudaq::quake::StaticQubitTarget &target) {
+          [&](const cudaq::opt::StaticQubitTarget &target) {
             return !cudaq::opt::mayPhaseAnchorAliasControl(
                 target, expPauliOp.getControls());
           });
@@ -467,8 +468,8 @@ struct ExpPauliDecomposition
       if (expPauliOp.isAdj() && !matchPattern(phase, m_AnyZeroFloat()))
         phase = arith::NegFOp::create(rewriter, loc, phase);
 
-      Value anchor = cudaq::quake::materializeStaticQubitTarget(rewriter, loc,
-                                                                *anchorPlan);
+      Value anchor =
+          cudaq::opt::materializeStaticQubitTarget(rewriter, loc, *anchorPlan);
       auto correction = cudaq::opt::emitPhaseCorrection(
           rewriter, loc, phase, controls,
           expPauliOp.getNegatedQubitControlsAttr(), anchor);
@@ -607,8 +608,7 @@ struct R1ToRz
           r1Op,
           "R1ToRz requires a scalar target to anchor its phase correction");
 
-    auto resultTypes =
-        cudaq::quake::getWireResultTypes(rewriter, controls, targets);
+    auto resultTypes = cudaq::quake::getWireResultTypes(controls, targets);
     auto rz = cudaq::quake::RzOp::create(
         rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
         r1Op.getParameters(), controls, targets,
@@ -2136,7 +2136,7 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     }
 
     // Necessary/Helpful constants
-    Type angleType = op.getParameter().getType();
+    Type angleType = op.getParameter(0).getType();
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
     Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 

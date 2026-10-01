@@ -50,16 +50,6 @@ def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
   }];
 }
 
-def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
-  let summary = "Replaces `null_wire` with `borrow_wire` from a `wire_set`.";
-  let description = [{
-    Replaces all instances of `quake.null_wire` with `quake.borrow_wire` from a
-    common `quake.wire_set` without any topological information.  Each wire is
-    assigned a unique identifier (the index into the `quake.wire_set`) through
-    this process.
-  }];
-}
-
 // ApplyOpSpecialization is a module pass because it may modify the ModuleOp
 // and add new FuncOps.
 def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
@@ -128,6 +118,16 @@ def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::ModuleOp"> {
     "mlir::cf::ControlFlowDialect"];
 }
 
+def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
+  let summary = "Replaces `null_wire` with `borrow_wire` from a `wire_set`.";
+  let description = [{
+    Replaces all instances of `quake.null_wire` with `quake.borrow_wire` from a
+    common `quake.wire_set` without any topological information.  Each wire is
+    assigned a unique identifier (the index into the `quake.wire_set`) through
+    this process.
+  }];
+}
+
 def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
@@ -169,6 +169,76 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
+def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
+  let summary = "Perform the rough-in cabling for value semantics conversion.";
+  let description = [{
+    Some higher-level aspects of the IR, such as function calls, may not be
+    obviously reducible to quake's value semantics form. This can impede other
+    passes and analyses.
+
+    This prerequisite pass will "rough-in" cabling abstractions, which are part
+    of value semantics to reduce the switching cost of having both value and
+    reference semantics present at the same time in the IR.
+  }];
+}
+
+def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
+  let summary = "Check calls between quantum kernels have been inlined.";
+  let description = [{
+    The aggressive inlining pass should fully inline any calls between quantum
+    kernels. Any residual calls will be because the call graph contains cycles.
+    This pass checks that there are no residual calls and print a diagnostic if
+    any are found.
+  }];
+}
+
+def ClassicalOptimization : Pass<"classical-optimization"> {
+  let summary = "Perform classical optimizations until a fix point is reached.";
+  let description = [{
+    Performs a number of classical optimizations greedily until a fix point
+    is reached:
+    - canonicalization
+    - simplify regions
+    - write-after-write-elimination
+    - lift-array-alloc
+    - cc-loop-normalize
+    - cc-loop-unroll
+
+    Running these together to a fix point unrolls loops that a fixed sequence
+    of the individual passes cannot, such as one whose trip count is a constant
+    array element indexed by an outer induction variable.
+
+    The two selective unrolling options mirror cc-loop-unroll and are mutually
+    exclusive. Unlike cc-loop-unroll, this pass never reports a loop it could
+    not unroll.
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
+    "mlir::cf::ControlFlowDialect"];
+
+  let options = [
+    Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
+      "Maximum iterations to unroll.">,
+    Option<"allowClosedInterval", "allow-closed-interval", "bool",
+      /*default=*/"true", "Allow loop iterations on a closed interval.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
+      "Allow unrolling of loop with early exit (i.e. break statement).">,
+    Option<"disableLoopUnrolling", "no-loop-unroll", "bool",
+      /*default=*/"false",
+      "Disable loop unrolling and preserve cc.loop operations.">,
+    Option<"unrollOnlyAliasingQuantumAccessLoops",
+      "unroll-only-aliasing-quantum-access-loops", "bool",
+      /*default=*/"false",
+      "Unroll only loops containing aliasing quantum accesses or exp_pauli "
+      "operands that must be resolved for wire-set lowering. See "
+      "cc-loop-unroll.">,
+    Option<"unrollOnlyIndexUseLoops", "unroll-only-index-use-loops", "bool",
+      /*default=*/"false",
+      "Unroll only index use loops, i.e. loops whose induction variable is "
+      "used in the loop body. See cc-loop-unroll.">
+  ];
+}
+
 def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
   let summary =
     "Approximate constant-angle Rz rotations as Clifford+T sequences.";
@@ -188,6 +258,11 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     semantics (`!quake.wire` targets, threaded) are handled. The synthesized
     per-angle helper mirrors the form of the rotation it replaces.
 
+    An angle within `epsilon` of a multiple of `pi/4` is lowered to its exact
+    named-gate form rather than approximated. This repeats what
+    `quake-simplify{rotations-to-clifford-t=true}` does earlier, catching the
+    exact angles a pass in between creates.
+
     Preconditions (must be enforced by upstream passes):
     - Rx/Ry/R1 rotations are reduced to Rz - run the `decomposition` pass with
       the `RxToRz`, `RyToRz`, `R1ToRz` patterns enabled first.
@@ -202,12 +277,14 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     complete the phase lifecycle; the `cudaq-fault-tolerant-target` pipeline
     does.
 
-    Gridsynth is probabilistic, and its cost grows sharply as `epsilon`
-    tightens: roughly 2 ms per distinct rotation at the default 1e-10, but
-    orders of magnitude more below 1e-30. Repeated angles are cached, so the
-    cost is per distinct angle rather than per operation. This pass is opt-in
-    via the `cudaq-fault-tolerant-target` pipeline only. It is not added to
-    the default target-prep pipeline.
+    Gridsynth is probabilistic. Unseeded, it may return a different (equally
+    valid) Clifford+T word for the same angle on every run. Set `seed` to make
+    the pass reproducible. Its cost grows sharply as `epsilon` tightens.
+    Roughly 2 ms per distinct rotation at the default 1e-10, but orders of
+    magnitude more below 1e-30. Repeated angles are cached, so the cost is per
+    distinct angle rather than per operation. This pass is opt-in via the
+    `cudaq-fault-tolerant-target` pipeline only. It is not added to the default
+    target-prep pipeline.
 
     The work-budget options below cap the search work gridsynth may spend on
     each rotation. They trade compile time against T-count: raise
@@ -273,117 +350,24 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       /*default=*/"false",
       "Fail instead of preserving a controlled rotation that cannot be "
       "synthesized without global-phase support.">,
+    Option<"seed", "seed", "uint64_t", /*default=*/"0",
+      "Seed for the randomized integer factoring gridsynth uses to test a "
+      "candidate circuit. Set this to make synthesis reproducible. The same "
+      "seed, angle, epsilon, and budgets always produce the same circuit. 0 "
+      "means unseeded. Targets that want reproducible synthesis set this from "
+      "`cudaq::set_random_seed` through their config.">,
     Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
       "Erase (treat as identity) rotations whose |theta| is below this "
       "threshold, rather than synthesizing a Clifford+T approximation for "
       "them. Set to 0 to disable and synthesize every constant-angle "
       "rotation.">,
   ];
+  let statistics = [
+    Statistic<"numExactRotations", "exact-rotations",
+              "Number of rotations lowered exactly instead of approximated">,
+  ];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
-}
-
-def OptimizeSingleQubitCliffordT
-    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
-  let summary =
-    "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
-  let description = [{
-    Consumes and produces the scalar linear SSA `!quake.wire` form created by
-    `convert-to-linear-values`.
-
-    Rewrites exact one-qubit Clifford+T chains on scalar `!quake.wire` values
-    into Matsumoto-Amano normal form while preserving the exact unitary.
-    Controlled chains are supported when their controls and polarities remain
-    unchanged, including through single-block `cc.scope` operations. The pass
-    optimizes the one-qubit gate sequence itself, not any subsequent
-    decomposition of its controlled gates.
-
-    The normal form is defined by K. Matsumoto and K. Amano, "Representation
-    of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,
-    https://arxiv.org/abs/0806.3834.
-
-  }];
-  let dependentDialects = ["mlir::arith::ArithDialect",
-                           "quake::QuakeDialect"];
-}
-
-def PruneNegligibleRotations
-    : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
-  let summary = "Erase constant-angle rotations that are effectively identity.";
-  let description = [{
-    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations whose
-    constant angle has magnitude below `threshold`, treating them as the
-    identity. In memory semantics (`!quake.ref` targets) the op is simply
-    dropped and in value semantics (`!quake.wire` targets) the input wire is
-    threaded straight through to the users of the result.
-
-    Only uncontrolled rotations are pruned: a controlled rotation with a
-    negligible angle is left in place (materialize controls with
-    `ApplyOpSpecialization` first if pruning them matters). Non-constant and
-    non-finite angles are also left untouched.
-
-    This is the negligible-rotation pruning used internally by
-    `clifford-t-synthesis`, exposed as a standalone pass so it can be run
-    independently of Clifford+T synthesis.
-  }];
-  let options = [
-    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
-      "Erase (treat as identity) rotations whose |theta| is below this "
-      "threshold. Set to 0 to disable.">,
-  ];
-  let dependentDialects = ["quake::QuakeDialect"];
-}
-
-def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
-  let summary = "Perform the rough-in cabling for value semantics conversion.";
-  let description = [{
-    Some higher-level aspects of the IR, such as function calls, may not be
-    obviously reducible to quake's value semantics form. This can impede other
-    passes and analyses.
-
-    This prerequisite pass will "rough-in" cabling abstractions, which are part
-    of value semantics to reduce the switching cost of having both value and
-    reference semantics present at the same time in the IR.
-  }];
-}
-
-def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
-  let summary = "Check calls between quantum kernels have been inlined.";
-  let description = [{
-    The aggressive inlining pass should fully inline any calls between quantum
-    kernels. Any residual calls will be because the call graph contains cycles.
-    This pass checks that there are no residual calls and print a diagnostic if
-    any are found.
-  }];
-}
-
-def ClassicalOptimization : Pass<"classical-optimization"> {
-  let summary = "Perform classical optimizations until a fix point is reached.";
-  let description = [{
-    Performs a number of classical optimizations greedily until a fix point
-    is reached:
-    - canonicalization
-    - simplify regions
-    - write-after-write-elimination
-    - lift-array-alloc
-    - cc-loop-normalize
-    - cc-loop-unroll
-  }];
-
-  let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
-    "mlir::cf::ControlFlowDialect"];
-
-  let options = [
-    Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
-      "Maximum iterations to unroll.">,
-    Option<"allowClosedInterval", "allow-closed-interval", "bool",
-      /*default=*/"true", "Allow loop iterations on a closed interval.">,
-    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
-      "Allow unrolling of loop with early exit (i.e. break statement).">,
-    Option<"disableLoopUnrolling", "no-loop-unroll", "bool",
-      /*default=*/"false",
-      "Disable loop unrolling and preserve cc.loop operations.">
-  ];
 }
 
 def CombineMeasurements :
@@ -425,6 +409,11 @@ def CombineQuantumAllocations :
     This pass will only process `quake.alloca` operations at the top-level of
     a function. It assumes all calls have been inlined, loops unrolled, etc.
 
+    To keep the greedy rewrite worklist small, the pass starts with only
+    existing `quake.alloca`, `quake.extract_ref`, `quake.get_member`,
+    `quake.subveq`, and `quake.concat` operations. It also considers any
+    operations created while rewriting them.
+
     If the function contains deallocations, these are combined as well. The
     combined deallocation will be added to each exit block.
   }];
@@ -433,11 +422,95 @@ def CombineQuantumAllocations :
     "cudaq::quake::QuakeDialect"];
 }
 
+def ConsolidateBroadcasts :
+    Pass<"consolidate-broadcasts", "mlir::func::FuncOp"> {
+  let summary = "Roll loops over a veq back into broadcast form.";
+  let description = [{
+    A counted loop that applies one-target operators to every element of a
+    `veq` in order is replaced by those operators applied to the `veq` itself.
+    ```mlir
+    %0 = quake.alloca !quake.veq<2>
+    cc.loop while ((%i = %c0) -> (i64)) {
+      ...
+    } do {
+    ^bb0(%i: i64):
+      %r = quake.extract_ref %0[%i] : (!quake.veq<2>, i64) -> !quake.ref
+      quake.h %r : (!quake.ref) -> ()
+      ...
+    }
+    ────────────────────────────────────────────────────────────────────────
+    %0 = quake.alloca !quake.veq<2>
+    quake.h %0 : (!quake.veq<2>) -> ()
+    ```
+    The loop is only rolled if it covers the entire vector and its body does
+    nothing but extract the element and operate on it. Only an uncontrolled
+    operator broadcasts: given a control, the last qubit is the sole target of
+    a single operation.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
 def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
   let summary = "Propagate constants to their uses.";
   let description = [{
     This is a greedy pass that will push constants from single and
     multidimensional array constants to their ultimate uses.
+  }];
+}
+
+def ConvertToCFG : Pass<"convert-to-cfg"> {
+  let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
+  let description = [{
+    This pass converts high-level control flow ops to a more primitive basic
+    CFG structure.
+
+    For example, a `quake.loop` model of a C `for` loop
+    ```mlir
+    quake.loop while {
+      // while code
+      quake.condition %cond
+    } do {
+      // loop body
+    } step {
+      // step body
+    }
+    // exit loop
+    ```
+    will be rewritten to
+    ```mlir
+    ^bb23:
+      // while code
+      cf.cond_br %cond, ^bb24, ^bb26
+    ^bb24:
+      // loop body
+      cf.br ^bb25
+    ^bb25:
+      // step body
+      cf.br ^bb23
+    ^bb26:
+      // exit loop
+    ```
+  }];
+
+  let options = [
+    Option<"unsafeQuantumAlloc", "unsafe-quantum-alloc", "bool",
+           /*default=*/"false",
+           "When true, suppress adding the cc.no_qubit_combine attribute when "
+           "lowering a cc.scope that contains a quantum allocation.  This is "
+           "unsafe in general (the subsequent combine-quantum-alloc pass may "
+           "combine allocations across scope boundaries), but useful when "
+           "lower-to-cfg is followed immediately by combine-quantum-alloc and "
+           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
+  ];
+
+  let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
+}
+
+def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare the Module to be converted to a CFG.";
+  let description = [{
+    This pass must be run before the ConvertToCFG pass.
   }];
 }
 
@@ -658,6 +731,31 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
     the calling function copying the heap data to a new vector on the stack.
     Since the callee is inlined, none of this is really required. The callee and
     caller share a common stack frame, so one copy is plenty.
+  }];
+}
+
+def ExpandBroadcasts : Pass<"expand-broadcasts", "mlir::func::FuncOp"> {
+  let summary = "Expands veqs used as targets into individual qubits.";
+  let description = [{
+    A one-target operator applied to a `veq` broadcasts that operator over
+    every element of the vector. Given a vector of constant size `n`, this
+    pass rewrites
+    ```mlir
+    quake.* %veq : (!quake.veq<n>) -> ()
+    ```
+    into the `n` operations it stands for:
+    ```mlir
+    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+    quake.* %arg0 : (!quake.ref) -> ()
+    ...
+    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
+    quake.* %argn : (!quake.ref) -> ()
+    ```
+    Parameters and attributes are replicated on each operation. Multi-qubit
+    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
+    a `veq` target is the operand list of a single N-qubit gate rather than a
+    broadcast. Controlled operators are left alone as well: only an
+    uncontrolled operator broadcasts.
   }];
 }
 
@@ -897,10 +995,10 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
 }
 
 def InjectImplicitOutput : Pass<"inject-implicit-output", "mlir::func::FuncOp"> {
-  let summary = "Inject quake.log_output ops for implicitly output quantum values.";
+  let summary = "Inject quake.evince ops for implicitly output quantum values.";
   let description = [{
-    This pass inserts `quake.log_output` operations for each `quake.alloca` at
-    the top level of a `func.func`. The log_output ops are added to a new exit
+    This pass inserts `quake.evince` operations for each `quake.alloca` at
+    the top level of a `func.func`. The evince ops are added to a new exit
     block that all return ops are redirected through, preserving the declaration
     order of the allocations. Unlike `add-dealloc`, this pass does not recurse
     into nested regions.
@@ -1011,6 +1109,73 @@ def LinearCtrlRelations : Pass<"linear-ctrl-form", "mlir::func::FuncOp"> {
   }];
 }
 
+def LoopCableRotation : Pass<"loop-cable-rotation", "mlir::func::FuncOp"> {
+  let summary = "Rotate a cable around a counted loop over a fixed-size veq.";
+  let description = [{
+    A `cc.loop` that is a compile-time counted loop (a normalized, definite
+    trip count, no early exit - see `isaCountedLoop` in `LoopAnalysis.h`)
+    whose body contains exactly one `quake.extract_ref` indexing a
+    statically sized `veq` by the loop's own induction variable touches
+    every qubit of that `veq` exactly once, in order. Each iteration
+    ordinarily still pays for reference-form traffic (`unwrap`/gate/`wrap`)
+    even though the whole access pattern is known statically.
+
+    This pass rewrites that shape to thread a single `!quake.cable<C>`
+    value around the loop instead of leaving the `veq` in reference form:
+    a `quake.detach_wire` pulls the front wire off the cable in place of
+    the `extract_ref` each iteration, and a `quake.attach_wire` puts it
+    back on the back before the iteration ends, so after all `C`
+    iterations the cable is back in its original order. The detached wire
+    is bound to a fresh reference with `quake.wrap_new` so the body's gate
+    ops are left completely unchanged in reference form; this pass does
+    not itself linearize them; the existing `memtoreg` pass, run
+    afterwards, threads `quake.wrap_new`'s fresh reference into proper wire
+    SSA form the same way it already does elsewhere.
+
+    This pass is independent of, and does not modify, `cable-rough-in` -
+    that pass handles a whole veq passed to a call; this one handles a veq
+    walked element-by-element inside a loop. A loop that does not match
+    the required shape exactly (early exit, non-constant trip count, more
+    than one `extract_ref` in the body, an index expression other than the
+    bare induction variable, a `veq` of unknown size, or a `veq` with any
+    other use inside the loop) is left completely untouched.
+  }];
+}
+
+def LoopInductionFusion : Pass<"cc-loop-induction-fusion"> {
+  let summary = "Fuse secondary loop inductions into the primary induction.";
+  let description = [{
+    For a normalized cc.loop (one that has already been through
+    cc-loop-normalize so the primary control induction starts at 0 and steps by
+    1), any additional loop-carried integer values that step by a loop-invariant
+    amount on every iteration are *secondary inductions*.  They are linear
+    functions of the primary induction variable `i`:
+
+    ```
+      j(i) = j_initial ± i * step_j
+    ```
+
+    This pass replaces every use of a secondary induction's block argument in
+    the loop body with the closed-form expression above, then removes the
+    secondary from the loop's carried-value set.  The final value of each
+    secondary after the loop is replaced in the parent block by substituting
+    the loop's primary result:
+
+    ```
+      j_final = j_initial ± loop_result_i * step_j
+    ```
+
+    The loop must be in invariant form: primary starts at 0 and steps by 1.
+    Loops stamped with the `normalized` attribute by `cc-loop-normalize`
+    satisfy this, but the pass also accepts any loop already in that form
+    without the attribute.  If the loop is not in invariant form, or has no
+    secondary inductions, the pass is a no-op for that loop.
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::cc::CCDialect"];
+}
+
 def LoopNormalize : Pass<"cc-loop-normalize"> {
   let summary = "Normalize classical compute (C++) loops.";
   let description = [{
@@ -1110,105 +1275,17 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
-def LoopInductionFusion : Pass<"cc-loop-induction-fusion"> {
-  let summary = "Fuse secondary loop inductions into the primary induction.";
-  let description = [{
-    For a normalized cc.loop (one that has already been through
-    cc-loop-normalize so the primary control induction starts at 0 and steps by
-    1), any additional loop-carried integer values that step by a loop-invariant
-    amount on every iteration are *secondary inductions*.  They are linear
-    functions of the primary induction variable `i`:
-
-    ```
-      j(i) = j_initial ± i * step_j
-    ```
-
-    This pass replaces every use of a secondary induction's block argument in
-    the loop body with the closed-form expression above, then removes the
-    secondary from the loop's carried-value set.  The final value of each
-    secondary after the loop is replaced in the parent block by substituting
-    the loop's primary result:
-
-    ```
-      j_final = j_initial ± loop_result_i * step_j
-    ```
-
-    The loop must be in invariant form: primary starts at 0 and steps by 1.
-    Loops stamped with the `normalized` attribute by `cc-loop-normalize`
-    satisfy this, but the pass also accepts any loop already in that form
-    without the attribute.  If the loop is not in invariant form, or has no
-    secondary inductions, the pass is a no-op for that loop.
-  }];
-
-  let dependentDialects = ["mlir::arith::ArithDialect",
-                           "cudaq::cc::CCDialect"];
-}
-
 def LowerPhase : Pass<"lower-phase", "mlir::func::FuncOp"> {
   let summary = "Lower phase bookkeeping operations to ordinary Quake gates";
   let description = [{
     Lowers controlled `quake.phase` operations to exact `quake.r1`/`quake.rz`
     gate sequences and erases uncontrolled phases after forwarding their wire
-    results. This pass is intentionally exposed in isolation until the global
-    phase lifecycle is integrated into production pipelines.
+    results. It remains independently invocable for tests and custom pipeline
+    composition; production pipelines invoke it through the shared phase
+    lifecycle before code generation.
   }];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "cudaq::quake::QuakeDialect"];
-}
-
-def ConvertToCFG : Pass<"convert-to-cfg"> {
-  let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
-  let description = [{
-    This pass converts high-level control flow ops to a more primitive basic
-    CFG structure.
-
-    For example, a `quake.loop` model of a C `for` loop
-    ```mlir
-    quake.loop while {
-      // while code
-      quake.condition %cond
-    } do {
-      // loop body
-    } step {
-      // step body
-    }
-    // exit loop
-    ```
-    will be rewritten to
-    ```mlir
-    ^bb23:
-      // while code
-      cf.cond_br %cond, ^bb24, ^bb26
-    ^bb24:
-      // loop body
-      cf.br ^bb25
-    ^bb25:
-      // step body
-      cf.br ^bb23
-    ^bb26:
-      // exit loop
-    ```
-  }];
-
-  let options = [
-    Option<"unsafeQuantumAlloc", "unsafe-quantum-alloc", "bool",
-           /*default=*/"false",
-           "When true, suppress adding the cc.no_qubit_combine attribute when "
-           "lowering a cc.scope that contains a quantum allocation.  This is "
-           "unsafe in general (the subsequent combine-quantum-alloc pass may "
-           "combine allocations across scope boundaries), but useful when "
-           "lower-to-cfg is followed immediately by combine-quantum-alloc and "
-           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
-  ];
-
-  let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
-}
-
-def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
-  let summary = "Prepare the Module to be converted to a CFG.";
-  let description = [{
-    This pass must be run before the ConvertToCFG pass.
-  }];
 }
 
 def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
@@ -1356,6 +1433,13 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     quantum information by reference, etc. A `wire` value does not have ordinary
     SSA semantics. A use can destroy the value itself, therefore it is required
     that `wire` values be threads in and out of each and every use.
+
+    The aliasing analysis is fail-safe: a qubit it cannot prove is reached only
+    through a single reference is left in memory form, which is never wrong but
+    is also silent. Statistics are available to make that pessimization
+    measurable, so an unmodelled op or a pipeline reordering shows up as a
+    number rather than as mysteriously worse output. Use -debug-only=memtoreg
+    to see which op forced a given qubit into memory form.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect",
     "cudaq::quake::QuakeDialect"];
@@ -1370,7 +1454,12 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     Statistic<"numProcessOpWithRegionsCalls", "process-op-with-regions-calls",
       "Number of times processOpWithRegions was called">,
     Statistic<"numWorklistIterations", "worklist-iterations",
-      "Number of worklist loop iterations in processOpWithRegions">
+      "Number of worklist loop iterations in processOpWithRegions">,
+    Statistic<"numBlacklistedRefs", "blacklisted-refs",
+      "Number of quantum references left in memory form because the qubit "
+      "they name is also reached through memory">,
+    Statistic<"numPromotedLocations", "promoted-locations",
+      "Number of distinct qubit locations promoted to wire values">
   ];
 }
 
@@ -1387,6 +1476,34 @@ def MultiControlDecomposition :
     Note: When a `veq` is used as control, we need to know its size to be able
     to decompose. In such cases, all qubits will be extracted. If the size is
     unknown at compilation-time, the pass leaves the operation as-is.
+  }];
+}
+
+def NormalizeAtomicQuantumRegions :
+    Pass<"normalize-atomic-quantum-regions"> {
+  let summary =
+      "Hoist/sink non-unitary operations from marked atomic quantum region.";
+  let description = [{
+    An `atomic_quantum_region` `cc.scope` marks a sequence of quantum
+    operations that must execute without interleaving with allocations,
+    deallocations, or measurements. When such a scope contains its own
+    `quake.alloca`s, those allocations (and their associated `quake.dealloc`s)
+    are not something that needs to stay inside the atomic region but need to
+    be moved outside of it.
+
+    This pass wraps a `cc.scope` carrying the `atomic_quantum_region`
+    attribute with a new, plain (non-atomic) `cc.scope`. Any `quake.alloca`
+    found directly in the atomic scope's body is hoisted into the new outer
+    scope, ahead of the (now-nested) atomic scope. Any `quake.dealloc` that
+    deallocates one of those hoisted allocations is sunk into the outer scope.
+    Additionally any measurement op found in the body and the transitive closure
+    of every op that consumes a measurement's result is also sunk out of the
+    region. This means an atomic region may not contain mid-circuit
+    measurements.
+
+    For now, this pass only handles reference-semantics Quake IR and requires
+    the atomic scope to have a single block and zero results; it leaves any
+    other atomic scope unmodified.
   }];
 }
 
@@ -1415,6 +1532,30 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
       "The measurement bases as a Pauli tensor product represented in binary "
       "symplectic form.">
   ];
+}
+
+def OptimizeSingleQubitCliffordT
+    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+  let summary =
+    "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
+  let description = [{
+    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Rewrites exact one-qubit Clifford+T chains on scalar `!quake.wire` values
+    into Matsumoto-Amano normal form while preserving the exact unitary.
+    Controlled chains are supported when their controls and polarities remain
+    unchanged, including through single-block `cc.scope` operations. The pass
+    optimizes the one-qubit gate sequence itself, not any subsequent
+    decomposition of its controlled gates.
+
+    The normal form is defined by K. Matsumoto and K. Amano, "Representation
+    of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,
+    https://arxiv.org/abs/0806.3834.
+
+  }];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "quake::QuakeDialect"];
 }
 
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
@@ -1490,6 +1631,33 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
   }];
 }
 
+def PruneNegligibleRotations
+    : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
+  let summary = "Erase constant-angle rotations that are effectively identity.";
+  let description = [{
+    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations whose
+    constant angle has magnitude below `threshold`, treating them as the
+    identity. In memory semantics (`!quake.ref` targets) the op is simply
+    dropped and in value semantics (`!quake.wire` targets) the input wire is
+    threaded straight through to the users of the result.
+
+    Only uncontrolled rotations are pruned: a controlled rotation with a
+    negligible angle is left in place (materialize controls with
+    `ApplyOpSpecialization` first if pruning them matters). Non-constant and
+    non-finite angles are also left untouched.
+
+    This is the negligible-rotation pruning used internally by
+    `clifford-t-synthesis`, exposed as a standalone pass so it can be run
+    independently of Clifford+T synthesis.
+  }];
+  let options = [
+    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
+      "Erase (treat as identity) rotations whose |theta| is below this "
+      "threshold. Set to 0 to disable.">,
+  ];
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def PyFrontendCleanup : Pass<"py-frontend-cleanup", "mlir::func::FuncOp"> {
   let summary = "Clean up IR residue specific to the Python AST bridge.";
   let description = [{
@@ -1520,22 +1688,6 @@ def PySynthCallableBlockArgs :
     retrieved at runtime (the name of the function passed to the kernel at the
     cc.callable block argument index).
   }];
-}
-
-def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
-  let summary =
-    "Synthesize concrete quantum program from Quake code plus runtime values.";
-  let description = [{
-    Convert Quake representing a dynamic quantum kernel to Quake
-    representing a concrete quantum program instance using known
-     runtime values.
-  }];
-
-  let dependentDialects = ["mlir::arith::ArithDialect",
-                           "mlir::complex::ComplexDialect",
-                           "cudaq::cc::CCDialect", "mlir::math::MathDialect"];
-
-  let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
 def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
@@ -1625,6 +1777,22 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     Statistic<"numCliffordTRotations", "clifford-t-rotations",
               "Number of rotations canonicalized to Clifford+T gates">,
   ];
+}
+
+def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
+  let summary =
+    "Synthesize concrete quantum program from Quake code plus runtime values.";
+  let description = [{
+    Convert Quake representing a dynamic quantum kernel to Quake
+    representing a concrete quantum program instance using known
+     runtime values.
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "mlir::complex::ComplexDialect",
+                           "cudaq::cc::CCDialect", "mlir::math::MathDialect"];
+
+  let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
 def QubitResetBeforeReuse :
@@ -1863,11 +2031,35 @@ def SROA : Pass<"cc-sroa"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def ShrinkWrap : Pass<"shrink-wrap", "mlir::func::FuncOp"> {
+  let summary = "Sink stack allocations into the conditional region that "
+                "actually needs them.";
+  let description = [{
+    A `cc.alloca` that lives at the top of a function is allocated (and, per
+    the rest of its lifetime, stored to and loaded from) on every call, even
+    when the variable it backs is only used along a specific control-flow path.
+    This pass moves such an allocation into a `cc.scope` nested within the
+    control-flow path, distributing the overhead and minimizing the variable's
+    lifetime to where it is actually used.
+
+    This is the exact converse of `stack-frame-prealloc`. It is a near converse
+    of `variable-coalesce`, which hoists allocations in the other direction
+    (into the entry block) but also performs merging on same-type,
+    disjoint-lifetime variables into a single slot to shrink total stack
+    footprint. This pass and `variable-coalesse` then are not merely
+    independent. `variable-coalesce`'s own candidate search only considers
+    allocations already nested inside a `cc.scope`. Since some front ends place
+    every local's `cc.alloca` in the entry block unconditionally, they leave
+    `variable-coalesce` no nested-scope candidates to find and coalesce at all.
+    Running `shrink-wrap` first, to push locals back down into the narrowest
+    scope their uses actually require, is what gives `variable-coalesce`
+    disjoint-lifetime candidates to work with in the first place.
+  }];
+}
+
 def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
   let summary = "Stack frame preallocation.";
   let description = [{
-    This pass is intended to be run on the CFG (low-level semantics) level.
-
     Stack slots may end up being allocated across the body of a function. It
     is generally beneficial however to collect them in the function preamble
     (or entry block).
@@ -1882,6 +2074,14 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     ```
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
+
+    The pass can be run on IR that still has high-level control flow
+    (`cc.scope`, `cc.if`, `cc.loop`) present and does not require lowering
+    to a plain CFG first. As `cc.scope` gives rise to the `stacksave` /
+    `stackrestore` primitives, it is treated as simply another form of the
+    same fencing. `cc.scope` that is in place to delimit atomic quantum regions
+    may or may not have classical allocations, and will be treated no different
+    by this pass.
 
     Not all allocations can be moved in this way, which implies that not all
     stack guards can be safely removed.  Transport layer conformity tools may
@@ -1977,43 +2177,6 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
     "mlir::func::FuncDialect"];
 }
 
-def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
-  let summary = "Lower global unwinding control-flow macros to a CFG.";
-  let description = [{
-    In C++, statements such as `return`, `break`, and `continue` are global
-    transfers of control. The control-flow does not necessarily return to the
-    next Operation in the Block containing the parent Op. Furthermore, this
-    global jumps may imply additional operations depending on the context.
-    These operations are stack unwinding operations (within an activation
-    frame) that may include calling destructors, deallocations, automatic
-    uncomputation, etc.
-
-    `continue` and `break` may only be present in the context of a loop
-    currently. The unwinding macros are matched to the nearest enclosing loop
-    structure and the body of the loop is expanded to a CFG to expose the
-    general control flow within the loop.
-
-    `return` may be present in any context. The full context from the innermost
-    structured op containing the unwinding return to the body of the function
-    is lowered to a CFG form to expose the general control flow implied.
-
-    The lower to CFG pass removed all structured operations from a function,
-    lowering the body of the function completely to a primitive CFG.
-  }];
-
-  let dependentDialects = ["mlir::cf::ControlFlowDialect",
-    "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
-}
-
-def VerifyNoCFG : Pass<"verify-no-cfg", "mlir::func::FuncOp"> {
-  let summary = "Reject functions that contain CFG branch operations.";
-  let description = [{
-    Reject a function if it contains `cf.br` or `cf.cond_br`. Targets that
-    require structured control flow can add this pass to their pipeline after
-    argument synthesis and canonicalization have removed dead branches.
-  }];
-}
-
 def UnwindByDataFlow : Pass<"unwind-by-dataflow", "mlir::func::FuncOp"> {
   let summary = "Lower unwind control-flow macros to data-flow flag variables.";
   let description = [{
@@ -2042,6 +2205,34 @@ def UnwindByDataFlow : Pass<"unwind-by-dataflow", "mlir::func::FuncOp"> {
   }];
   let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
     "mlir::func::FuncDialect"];
+}
+
+def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
+  let summary = "Lower global unwinding control-flow macros to a CFG.";
+  let description = [{
+    In C++, statements such as `return`, `break`, and `continue` are global
+    transfers of control. The control-flow does not necessarily return to the
+    next Operation in the Block containing the parent Op. Furthermore, this
+    global jumps may imply additional operations depending on the context.
+    These operations are stack unwinding operations (within an activation
+    frame) that may include calling destructors, deallocations, automatic
+    uncomputation, etc.
+
+    `continue` and `break` may only be present in the context of a loop
+    currently. The unwinding macros are matched to the nearest enclosing loop
+    structure and the body of the loop is expanded to a CFG to expose the
+    general control flow within the loop.
+
+    `return` may be present in any context. The full context from the innermost
+    structured op containing the unwinding return to the body of the function
+    is lowered to a CFG form to expose the general control flow implied.
+
+    The lower to CFG pass removed all structured operations from a function,
+    lowering the body of the function completely to a primitive CFG.
+  }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect",
+    "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

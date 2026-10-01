@@ -1,0 +1,33 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// This is the R1ToRz result after apply specialization. LowerPhase must move
+// the conditional phase residue to the outer control without changing semantics.
+// RUN: cudaq-opt --expand-control-veqs --lower-phase --canonicalize %s > %t
+// RUN: FileCheck %s --input-file=%t --implicit-check-not=quake.phase
+
+func.func @controlled_caller(%outer: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 3.700000e-01 : f64
+  %two = arith.constant 2.000000e+00 : f64
+  %controls = quake.concat %outer : (!quake.ref) -> !quake.veq<1>
+  quake.rz (%theta) [%controls] %target
+      : (f64, !quake.veq<1>, !quake.ref) -> ()
+  %half = arith.divf %theta, %two : f64
+  quake.phase (%half) [%controls] %target
+      : (f64, !quake.veq<1>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @controlled_caller(
+// CHECK-SAME: %[[OUTER:.*]]: !quake.ref, %[[TARGET:.*]]: !quake.ref
+// CHECK-DAG: %[[HALF:.*]] = arith.constant 1.850000e-01 : f64
+// CHECK-DAG: %[[THETA:.*]] = arith.constant 3.700000e-01 : f64
+// CHECK-NOT: quake.concat
+// CHECK: quake.rz (%[[THETA]]) {{\[}}%[[OUTER]]{{\]}} %[[TARGET]]
+// CHECK: quake.r1 (%[[HALF]]) %[[OUTER]]
+// CHECK: return

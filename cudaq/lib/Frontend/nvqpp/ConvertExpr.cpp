@@ -1143,6 +1143,9 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   case clang::BinaryOperatorKind::BO_XorAssign:
   case clang::BinaryOperatorKind::BO_AndAssign:
     return true; // see CompoundAssignOperator
+  case clang::BinaryOperatorKind::BO_Comma:
+    // A comma expression is an lvalue exactly when its rhs is one.
+    return pushValue(x->isGLValue() ? rhs : maybeLoadValue(rhs));
   default:
     break;
   }

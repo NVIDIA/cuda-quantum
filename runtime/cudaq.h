@@ -180,8 +180,9 @@ void set_noise(const cudaq::noise_model &model);
 [[deprecated("please use launch arguments or launch options.")]]
 void unset_noise();
 
-/// @brief Set a seed for any random number
-/// generators used in backend simulations.
+/// @brief Set a seed for any random number generators used in backend
+/// simulations, and for randomized compiler passes such as Clifford+T
+/// synthesis. A seed of 0 leaves both unseeded.
 void set_random_seed(std::size_t seed);
 
 /// @brief Get a previously set random seed

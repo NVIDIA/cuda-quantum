@@ -12,6 +12,38 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.16.0**
+
+This release integrates CUDA-Q Logical version 0.1.1. CUDA-Q Logical expands CUDA-Q with an open, extensible
+logical layer for fault-tolerant quantum computing. It provides additional language tools to express and compose
+quantum error correction gadget and understand the resources they need to run across different system architectures.
+For more information, see `our docs <https://nvidia.github.io/cuda-quantum/0.16.0/preview/logical/index.html>`__.
+
+0.16.0 also adds support for Python 3.14. It improves quantum optimization and qubit mapping capabilities,
+adds support for static rotation synthesis, and introduces atomic quantum regions among other exciting changes.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.16.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.16.0>`__
+- `CUDA-Q Realtime installer <https://github.com/NVIDIA/cuda-quantum/releases/0.16.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.16.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.16.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.16.0>`__.
+
+**0.15.0**
+
+0.15.0 adds support for detectors and observables to CUDA-Q, and builds on LLVM 22.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.15.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.15.0>`__
+- `CUDA-Q Realtime installer <https://github.com/NVIDIA/cuda-quantum/releases/0.15.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.15.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.15.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.15.0>`__.
+
 **0.14.0**
 
 This release comes with a range of exciting improvement. 

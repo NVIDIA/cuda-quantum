@@ -23,6 +23,26 @@ if ! command -v markdown-link-check &> /dev/null; then
     exit 1
 fi
 
+# markdown-link-check reaches marked >= 16, which ships only an ESM build, via a
+# CommonJS markdown-link-extractor that requires() it. That combination needs a
+# Node able to require() an ES module: 20.19 or newer. On older Node the tool
+# exits with ERR_REQUIRE_ESM, which this script would otherwise report as broken
+# links.
+REQUIRED_NODE=20.19.0
+NODE_VERSION=$(node --version 2>/dev/null | sed 's/^v//')
+
+if [ -z "$NODE_VERSION" ]; then
+    echo "ERROR: node not found; markdown-link-check needs Node >= $REQUIRED_NODE" >&2
+    exit 1
+fi
+
+if [ "$(printf '%s\n%s\n' "$REQUIRED_NODE" "$NODE_VERSION" | sort -V | head -1)" != "$REQUIRED_NODE" ]; then
+    echo "ERROR: node $NODE_VERSION is too old for markdown-link-check" >&2
+    echo "       (need >= $REQUIRED_NODE for its ESM-only 'marked' dependency)" >&2
+    echo "       See the Prerequisites section of Developing.md to install Node 20." >&2
+    exit 1
+fi
+
 EXIT_CODE=0
 FILES=("$@")
 

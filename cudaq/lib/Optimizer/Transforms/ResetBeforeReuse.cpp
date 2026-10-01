@@ -118,10 +118,10 @@ public:
           continue;
         }
 
-        // If this is a compiler-generated quake.log_output (injected by
+        // If this is a compiler-generated quake.evince (injected by
         // InjectImplicitOutput as bookkeeping, erased before codegen), it is
         // not a real reuse of the qubit. No reset is needed.
-        if (auto logOut = dyn_cast<cudaq::quake::LogOutputOp>(nextOp))
+        if (auto logOut = dyn_cast<cudaq::quake::EvinceOp>(nextOp))
           if (logOut.getCompilerGenerated())
             continue;
 

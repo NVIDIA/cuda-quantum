@@ -254,6 +254,25 @@ else:
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
 
+# If cudaq-logical is installed, check that it can be imported. Catches cases where cudaq
+# and cudaq-logical are installed in different directories, which is currently not supported.
+try:
+    from . import logical  # noqa: F401
+except ImportError:
+    from importlib.metadata import PackageNotFoundError as _PkgNotFound, distribution as _dist
+    try:
+        _dist("cudaq-logical")
+    except _PkgNotFound:
+        pass
+    else:
+        import warnings as _warnings
+        _warnings.warn(
+            "cudaq-logical is installed but cudaq.logical could not be imported. "
+            "cudaq.logical must live inside the same directory tree as cudaq "
+            "(both wheels installed into the same site-packages, non-editable).",
+            RuntimeWarning,
+            stacklevel=2)
+
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
@@ -320,15 +339,13 @@ def set_target(target, **extra_config):
         return cudaq_runtime.set_target(target, **extra_config)
 
     from cudaq._experimental import CustomTarget
-    from cudaq._experimental import set_compile_target, set_runtime_endpoint
 
     if isinstance(target, CustomTarget):
         if extra_config:
             raise TypeError(
                 "cudaq.set_target() does not accept keyword arguments when "
                 "target is a cudaq._experimental.CustomTarget.")
-        set_compile_target(target.compile_target)
-        set_runtime_endpoint(target.runtime_endpoint)
+        cudaq_runtime.set_target(target.compile_target, target.runtime_endpoint)
         return target
 
     raise TypeError(f"Unsupported target type: {type(target)}")
@@ -339,6 +356,7 @@ has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
 get_targets = cudaq_runtime.get_targets
 register_backend_path = cudaq_runtime.register_backend_path
+_register_target_config = cudaq_runtime._register_target_config
 _discover_external_backends()
 del _discover_external_backends
 set_random_seed = cudaq_runtime.set_random_seed
@@ -573,7 +591,10 @@ def __dir__():
 
 def parse_args(args: Sequence[str] | None = None):
     """
-    Parse command line arguments and initialize the CUDA-Q environment.
+    Parse CUDA-Q command-line arguments and initialize the CUDA-Q environment.
+
+    This function must be called explicitly. Importing ``cudaq`` does not
+    inspect or parse command-line arguments.
     """
     import argparse
 
@@ -598,16 +619,6 @@ def parse_args(args: Sequence[str] | None = None):
 
 
 if __name__ == '__main__':
-    parse_args()
-# TODO: remove this, see https://github.com/NVIDIA/cuda-quantum/issues/3863
-elif any(
-        w in ''.join(sys.argv) for w in
-    ['-target', '--target-option', '--emulate', '--cudaq-full-stack-trace']):
-    import warnings
-    warnings.warn(
-        "Will now parse command line arguments. This will be removed in a future "
-        "release, call cudaq.parse_args() explicitly to parse arguments.",
-        DeprecationWarning)
     parse_args()
 else:
     cudaq_runtime.initialize_cudaq()

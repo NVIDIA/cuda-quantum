@@ -358,7 +358,7 @@ setup_port() {
     run_cmd sudo ip addr flush dev "$iface"
     run_cmd sudo ip addr add "${ip}/24" dev "$iface"
 
-    local ib_dev
+    local ib_dev=""
     if command -v ibdev2netdev &>/dev/null; then
         ib_dev=$(ibdev2netdev | awk -v iface="$iface" '$5 == iface { print $1 }')
     fi
@@ -565,7 +565,9 @@ do_run() {
             --page-size="$PAGE_SIZE" \
             > "$EMULATOR_LOG" 2>&1 &
         PIDS+=($!)
-        tail -f "$EMULATOR_LOG" | stdbuf -oL awk '{ print "[EMULATOR] " $0 }' &
+        # Prefix via process substitution rather than a pipeline: $! must be
+        # tail's pid so cleanup_pids kills tail and sed sees EOF and flushes.
+        tail -f "$EMULATOR_LOG" > >(sed -u 's/^/[EMULATOR] /') &
         PIDS+=($!)
 
         sleep 2
@@ -608,7 +610,7 @@ do_run() {
     "$bridge_bin" "${bridge_args[@]}" > "$BRIDGE_LOG" 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)
-    tail -f "$BRIDGE_LOG" | stdbuf -oL awk '{ print "[BRIDGE] " $0 }' &
+    tail -f "$BRIDGE_LOG" > >(sed -u 's/^/[BRIDGE] /') &
     PIDS+=($!)
 
     local wait_elapsed=0

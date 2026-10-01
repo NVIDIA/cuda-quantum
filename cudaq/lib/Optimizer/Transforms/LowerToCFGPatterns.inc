@@ -67,34 +67,15 @@ public:
     auto *thenBlock = &ifOp.getThenRegion().front();
     bool hasElse = !ifOp.getElseRegion().empty();
     auto *elseBlock = hasElse ? &ifOp.getElseRegion().front() : endBlock;
-    updateBodyBranches(&ifOp.getThenRegion(), rewriter, endBlock);
-    updateBodyBranches(&ifOp.getElseRegion(), rewriter, endBlock);
-    rewriter.inlineRegionBefore(ifOp.getThenRegion(), endBlock);
+    cudaq::cc::spliceRegionAsCFG(rewriter, ifOp.getThenRegion(), endBlock);
     if (hasElse)
-      rewriter.inlineRegionBefore(ifOp.getElseRegion(), endBlock);
+      cudaq::cc::spliceRegionAsCFG(rewriter, ifOp.getElseRegion(), endBlock);
     rewriter.setInsertionPointToEnd(initBlock);
     cf::CondBranchOp::create(rewriter, loc, ifOp.getCondition(), thenBlock,
                              ifOp.getLinearArgs(), elseBlock,
                              ifOp.getLinearArgs());
     rewriter.replaceOp(ifOp, endBlock->getArguments());
     return success();
-  }
-
-  // Replace all the ContinueOp in the body region with branches to the correct
-  // basic blocks.
-  void updateBodyBranches(Region *bodyRegion, PatternRewriter &rewriter,
-                          Block *continueBlock) const {
-    // Walk body region and replace all continue and break ops.
-    for (Block &block : *bodyRegion) {
-      auto *terminator = block.getTerminator();
-      if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(terminator)) {
-        rewriter.setInsertionPointToEnd(&block);
-        LLVM_DEBUG(llvm::dbgs() << "replacing " << *terminator << '\n');
-        rewriter.replaceOpWithNewOp<cf::BranchOp>(cont, continueBlock,
-                                                  cont.getOperands());
-      }
-      // Other ad-hoc control flow in the region need not be rewritten.
-    }
   }
 
 private:

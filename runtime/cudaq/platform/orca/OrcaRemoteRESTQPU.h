@@ -9,8 +9,8 @@
 #pragma once
 
 #include "OrcaExecutor.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
-#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "cudaq/utils/owning_ptr.h"
@@ -95,8 +95,7 @@ public:
   using QPU::getCompileTarget;
   using QPU::launchKernel;
 
-  CompileTarget
-  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+  CompileTarget getCompileTarget(const RuntimeTarget * = nullptr) override {
     return {.overrideAOTCompilation = false};
   }
 

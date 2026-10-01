@@ -1,0 +1,61 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api='api=full' --split-input-file %s | FileCheck %s
+
+// A plain (unpredicated, uncontrolled) quake.apply that reaches codegen
+// without having been resolved by apply-op-specialization (deliberately not
+// run here) must still lower cleanly to a func.call, without a warning or a
+// trap: ApplyOpTrap's fast path handles this directly. Regression test for
+// an arity-mismatch crash in that fast path when the actual's type already
+// matched the callee's formal (no coercion needed, so no result should be
+// appended).
+
+// Wire actual, wire formal: no coercion. The callee's own result already
+// carries the threaded-through wire, so apply's single result is replaced
+// by the call's single result directly -- no appended result.
+
+func.func private @callee(!quake.wire) -> !quake.wire
+
+func.func @wire_passthrough() {
+  %0 = quake.null_wire
+  %1 = quake.apply @callee (%0) : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @wire_passthrough() {
+// CHECK:           %[[VAL_0:.*]] = call @__quantum__rt__qubit_allocate()
+// CHECK:           %[[VAL_1:.*]] = call @callee(%[[VAL_0]])
+// CHECK:           call @__quantum__rt__qubit_release(%[[VAL_1]])
+// CHECK-NOT:       could not generate the specialized form
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+// Wire actual, ref formal: coercion. The ref-taking callee has no result of
+// its own, so apply's single result is an appended result recovering the
+// same qubit handle that was passed in.
+
+func.func private @callee2(!quake.ref)
+
+func.func @wire_coerced_to_ref() {
+  %0 = quake.null_wire
+  %1 = quake.apply @callee2 (%0) : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @wire_coerced_to_ref() {
+// CHECK:           %[[VAL_0:.*]] = call @__quantum__rt__qubit_allocate()
+// CHECK:           call @callee2(%[[VAL_0]])
+// CHECK:           call @__quantum__rt__qubit_release(%[[VAL_0]])
+// CHECK-NOT:       could not generate the specialized form
+// CHECK:           return
+// CHECK:         }

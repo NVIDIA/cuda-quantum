@@ -61,7 +61,6 @@ install(TARGETS ${LIBRARY_NAME} DESTINATION lib
 install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib
         COMPONENT Runtime)
 
-add_target_config(pasqal)
 
 if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(_qrmi_include_hints)
@@ -83,10 +82,8 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
                HINTS ${_qrmi_library_hints})
 
   if(NOT QRMI_INCLUDE_DIR OR NOT QRMI_LIBRARY)
-    message(WARNING
-      "Pasqal QRMI connector requested but qrmi.h/libqrmi was not found. "
-      "Install QRMI and set QRMI_INSTALL_PREFIX=<prefix> if needed; "
-      "building pasqal target without QRMI mode support.")
+    message(STATUS
+      "QRMI not found; building pasqal target without QRMI mode support.")
   else()
     include(CheckCXXSourceCompiles)
     set(CMAKE_REQUIRED_INCLUDES "${QRMI_INCLUDE_DIR}")

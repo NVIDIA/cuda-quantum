@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+
+// A cable<N> actual may target a struq formal whose constant member sizes sum
+// to N. The cable's wires are split, wrapped, grouped per member (a ref
+// member takes a single wire; a veq member takes a concat of several), and
+// combined via make_struq. After the call, the struq's members are unwrapped
+// back via get_member (and extract_ref for veq members) and rebundled into a
+// fresh cable, mirroring quake.call_by_ref's struq handling.
+
+func.func @struq_kernel(%s : !quake.struq<!quake.veq<2>, !quake.ref>) {
+  return
+}
+
+func.func @do_struq_apply(%c : !quake.cable<3>) -> !quake.cable<3> {
+  %c1 = quake.apply @struq_kernel(%c) : (!quake.cable<3>) -> !quake.cable<3>
+  return %c1 : !quake.cable<3>
+}
+
+// CHECK-LABEL:   func.func @do_struq_apply(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.cable<3>) -> !quake.cable<3> {
+// CHECK:           %[[SPLIT_CABLE_0:.*]]:3 = quake.split_cable %[[ARG0]] : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#0 : (!quake.wire) -> !quake.ref
+// CHECK:           %[[WRAP_NEW_1:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#1 : (!quake.wire) -> !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[WRAP_NEW_0]], %[[WRAP_NEW_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           %[[WRAP_NEW_2:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#2 : (!quake.wire) -> !quake.ref
+// CHECK:           %[[MAKE_STRUQ_0:.*]] = quake.make_struq %[[CONCAT_0]], %[[WRAP_NEW_2]] : (!quake.veq<2>, !quake.ref) -> !quake.struq<!quake.veq<2>, !quake.ref>
+// CHECK:           call @struq_kernel(%[[MAKE_STRUQ_0]]) : (!quake.struq<!quake.veq<2>, !quake.ref>) -> ()
+// CHECK:           %[[GET_MEMBER_0:.*]] = quake.get_member %[[MAKE_STRUQ_0]][0] : (!quake.struq<!quake.veq<2>, !quake.ref>) -> !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[GET_MEMBER_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[GET_MEMBER_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[GET_MEMBER_1:.*]] = quake.get_member %[[MAKE_STRUQ_0]][1] : (!quake.struq<!quake.veq<2>, !quake.ref>) -> !quake.ref
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[GET_MEMBER_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[BUNDLE_CABLE_0:.*]] = quake.bundle_cable %[[UNWRAP_0]], %[[UNWRAP_1]], %[[UNWRAP_2]] : (!quake.wire, !quake.wire, !quake.wire) -> !quake.cable<3>
+// CHECK:           return %[[BUNDLE_CABLE_0]] : !quake.cable<3>
+// CHECK:         }
