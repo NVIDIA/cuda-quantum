@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeSupport.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -28,87 +29,6 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-// Any dynamic return type is supported as a device_call return type. Given a
-// real device-side SSA value of type \p devTy, decompose it into the
-// buffer's dynamic-output-slot shape. A SpanLikeType decomposes to a `{ptr,
-// count}` pair whose pointer already refers to fully-realized device values; a
-// struct decomposes member by member, recursing only into dynamic members.
-static Value valueToBufferSlot(Location loc, PatternRewriter &rewriter,
-                               Type devTy, Value realVal) {
-  auto *ctx = rewriter.getContext();
-  auto i64Ty = rewriter.getI64Type();
-  if (auto spanTy = dyn_cast<cudaq::cc::SpanLikeType>(devTy)) {
-    auto eleTy = spanTy.getElementType();
-    auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
-    Value ptr =
-        cudaq::cc::SequenceDataOp::create(rewriter, loc, elePtrTy, realVal);
-    Value count =
-        cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, realVal);
-    auto slotTy =
-        cudaq::cc::StructType::get(ctx, ArrayRef<Type>{elePtrTy, i64Ty});
-    Value slot = cudaq::cc::UndefOp::create(rewriter, loc, slotTy);
-    slot =
-        cudaq::cc::InsertValueOp::create(rewriter, loc, slotTy, slot, ptr, 0);
-    slot =
-        cudaq::cc::InsertValueOp::create(rewriter, loc, slotTy, slot, count, 1);
-    return slot;
-  }
-  auto strTy = cast<cudaq::cc::StructType>(devTy);
-  SmallVector<Type> slotMemberTys;
-  SmallVector<Value> memberVals;
-  for (auto iter : llvm::enumerate(strTy.getMembers())) {
-    std::int32_t idx = iter.index();
-    Type memTy = iter.value();
-    Value realMember =
-        cudaq::cc::ExtractValueOp::create(rewriter, loc, memTy, realVal, idx);
-    Value memVal = cudaq::cc::isDynamicType(memTy)
-                       ? valueToBufferSlot(loc, rewriter, memTy, realMember)
-                       : realMember;
-    slotMemberTys.push_back(memVal.getType());
-    memberVals.push_back(memVal);
-  }
-  auto slotTy = cudaq::cc::StructType::get(ctx, slotMemberTys);
-  Value slot = cudaq::cc::UndefOp::create(rewriter, loc, slotTy);
-  for (auto iter : llvm::enumerate(memberVals))
-    slot = cudaq::cc::InsertValueOp::create(rewriter, loc, slotTy, slot,
-                                            iter.value(), iter.index());
-  return slot;
-}
-
-// The inverse of valueToBufferSlot. Given an already-loaded buffer output-slot
-// value, reconstruct the real device-side SSA value of type \p devTy. A
-// SpanLikeType reconstructs directly via cc.sequence_init; a struct
-// reconstructs member by member.
-static Value bufferSlotToValue(Location loc, PatternRewriter &rewriter,
-                               Type devTy, Value slotVal) {
-  if (auto spanTy = dyn_cast<cudaq::cc::SpanLikeType>(devTy)) {
-    auto eleTy = spanTy.getElementType();
-    auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
-    auto i64Ty = rewriter.getI64Type();
-    Value ptr =
-        cudaq::cc::ExtractValueOp::create(rewriter, loc, elePtrTy, slotVal, 0);
-    Value count =
-        cudaq::cc::ExtractValueOp::create(rewriter, loc, i64Ty, slotVal, 1);
-    return cudaq::cc::SequenceInitOp::create(rewriter, loc, spanTy, ptr, count);
-  }
-  auto strTy = cast<cudaq::cc::StructType>(devTy);
-  auto slotStrTy = cast<cudaq::cc::StructType>(slotVal.getType());
-  Value result = cudaq::cc::UndefOp::create(rewriter, loc, strTy);
-  for (auto iter : llvm::enumerate(strTy.getMembers())) {
-    std::int32_t idx = iter.index();
-    Type memTy = iter.value();
-    Type slotMemTy = slotStrTy.getMember(idx);
-    Value memSlot = cudaq::cc::ExtractValueOp::create(rewriter, loc, slotMemTy,
-                                                      slotVal, idx);
-    Value memVal = cudaq::cc::isDynamicType(memTy)
-                       ? bufferSlotToValue(loc, rewriter, memTy, memSlot)
-                       : memSlot;
-    result = cudaq::cc::InsertValueOp::create(rewriter, loc, strTy, result,
-                                              memVal, idx);
-  }
-  return result;
-}
 
 // The `llvm.sret`/`llvm.byval`-style attributes carry a Type payload that
 // LLVM IR requires to be an LLVM-dialect type. func::FuncOp's own conversion
@@ -136,6 +56,50 @@ static Type ccTypeToLLVMType(Type ty) {
                                     arrTy.getSize());
   // Integer/float types are already the same in both type systems.
   return ty;
+}
+
+// On x86_64, a static (trivially copyable) struct that is too large to travel
+// in registers is passed as a pointer to a copy on the stack, which the callee
+// accesses with the `byval` attribute. Without that attribute at both the
+// declaration and the call site, the pointer is passed in a register and the
+// callee reads whatever happens to be on its stack instead. Mirrors the
+// handling in ASTBridge.cpp for kernel host entry points.
+//
+// Two kinds of struct are passed by a plain pointer instead, without `byval`:
+// dynamic structs (those with vectors or strings), and structs without a size.
+// The frontend leaves the size off a struct whose host layout it does not know,
+// such as a non-trivially copyable class like std::tuple, which the host
+// passes by invisible reference.
+static bool isByValStructArg(Type devArgTy, Type abiArgTy, ModuleOp module) {
+  return cudaq::opt::factory::isX86_64(module) &&
+         isa<cudaq::cc::StructType>(devArgTy) &&
+         cast<cudaq::cc::StructType>(devArgTy).getBitSize() != 0 &&
+         !cudaq::cc::isDynamicType(devArgTy) &&
+         isa<cudaq::cc::PointerType>(abiArgTy);
+}
+
+// Returns the position in the ABI-converted signature of each argument that is
+// passed `byval`. A small struct may occupy 0 or 2 slots, not 1, so the
+// positions drift from the device function's argument positions.
+static SmallVector<unsigned> getByValArgPositions(FunctionType devFuncTy,
+                                                  FunctionType abiFuncTy,
+                                                  ModuleOp module) {
+  SmallVector<unsigned> positions;
+  unsigned pos = cudaq::opt::factory::hasHiddenSRet(devFuncTy) ? 1 : 0;
+  for (Type devArgTy : devFuncTy.getInputs()) {
+    if (pos < abiFuncTy.getNumInputs() &&
+        isByValStructArg(devArgTy, abiFuncTy.getInput(pos), module)) {
+      positions.push_back(pos);
+      ++pos;
+      continue;
+    }
+    auto strTy = dyn_cast<cudaq::cc::StructType>(devArgTy);
+    if (strTy && cudaq::opt::factory::isX86_64(module) &&
+        cudaq::opt::factory::structUsesTwoArguments(strTy))
+      ++pos;
+    ++pos;
+  }
+  return positions;
 }
 
 // Rewrites the signature of a device function marked with the device-call
@@ -183,6 +147,12 @@ public:
                             TypeAttr::get(eleTy));
         }
       }
+      // Large static structs are passed byval on x86_64.
+      for (unsigned pos : getByValArgPositions(devFuncTy, newDevFuncTy, module))
+        func.setArgAttr(pos, LLVM::LLVMDialect::getByValAttrName(),
+                        TypeAttr::get(cast<cudaq::cc::PointerType>(
+                                          newDevFuncTy.getInput(pos))
+                                          .getElementType()));
     });
     return success();
   }
@@ -205,6 +175,66 @@ public:
     return success();
   }
 };
+
+// The layout of a dynamic result that travels as a message. A result is
+// encoded exactly like a single argument of a kernel launch: a buffer type
+// whose members are the pointer-free (size-slot) encodings, followed by the
+// trailing data that holds the contents of vectors and strings.
+static cudaq::cc::StructType getResultMessageType(Type resTy) {
+  return cudaq::opt::factory::buildInvokeStructType(
+      FunctionType::get(resTy.getContext(), TypeRange{resTy}, TypeRange{}), 0);
+}
+
+// This is a kernel launch in reverse. The callback, running on the host, has
+// produced its dynamic result as a real host value (\p hostResult points to
+// it). Encode that value into a new pointer-free message on the heap, release
+// the host value (it is not needed again), and return the message and its size
+// in bytes as the thunk's result. The caller takes ownership of the message.
+static Value packDynamicResultMessage(Location loc, PatternRewriter &rewriter,
+                                      ModuleOp module, Type resTy,
+                                      Value hostResult, Type thunkResultTy) {
+  auto i64Ty = rewriter.getI64Type();
+  auto ptrI8Ty = cudaq::cc::PointerType::get(rewriter.getI8Type());
+  auto msgTy = getResultMessageType(resTy);
+  Value heapTracker =
+      cudaq::opt::marshal::createEmptyHeapTracker(loc, rewriter);
+  // std::vector<bool> is not like any other vector. Unpack it, as the launch
+  // side does.
+  Value packArg = cudaq::opt::marshal::unpackAnySequenceBool(
+                      loc, rewriter, module, hostResult, resTy, heapTracker)
+                      .first;
+  SmallVector<std::tuple<unsigned, Value, Type>> zippy;
+  zippy.emplace_back(0, packArg, resTy);
+  Value sizeScratch = cudaq::cc::AllocaOp::create(rewriter, loc, i64Ty);
+  Value size = cudaq::opt::marshal::genSizeOfDynamicMessageBuffer(
+      loc, rewriter, module, msgTy, zippy, sizeScratch);
+  Value raw =
+      func::CallOp::create(rewriter, loc, ptrI8Ty, "malloc", ValueRange{size})
+          .getResult(0);
+  Value typed = cudaq::cc::CastOp::create(
+      rewriter, loc, cudaq::cc::PointerType::get(msgTy), raw);
+  Value prefixSize = cudaq::cc::SizeOfOp::create(rewriter, loc, i64Ty, msgTy);
+  auto rawArr = cudaq::cc::CastOp::create(
+      rewriter, loc,
+      cudaq::cc::PointerType::get(
+          cudaq::cc::ArrayType::get(rewriter.getI8Type())),
+      raw);
+  Value addendum = cudaq::cc::ComputePtrOp::create(
+      rewriter, loc, ptrI8Ty, rawArr,
+      ArrayRef<cudaq::cc::ComputePtrArg>{prefixSize});
+  Value addendumScratch = cudaq::cc::AllocaOp::create(rewriter, loc, ptrI8Ty);
+  cudaq::opt::marshal::populateMessageBuffer(loc, rewriter, module, typed,
+                                             zippy, addendum, addendumScratch);
+  cudaq::opt::marshal::maybeFreeHeapAllocations(loc, rewriter, heapTracker);
+  // The message is complete and self-contained. Release the host value.
+  cudaq::opt::marshal::destroyHostValue(loc, rewriter, module, resTy,
+                                        hostResult);
+  Value result = cudaq::cc::UndefOp::create(rewriter, loc, thunkResultTy);
+  result = cudaq::cc::InsertValueOp::create(rewriter, loc, thunkResultTy,
+                                            result, raw, 0);
+  return cudaq::cc::InsertValueOp::create(rewriter, loc, thunkResultTy, result,
+                                          size, 1);
+}
 
 // Generalized, distributed-memory reference lowering. Here we rewrite
 // `device_call` to a call into an autogenerated marshal function, which packs
@@ -423,19 +453,62 @@ public:
 
     assert(resTys.size() == 1);
     Type resTy = resTys.front();
-    (void)callback;
     std::int32_t numInputs = devFuncTy.getNumInputs();
     if (cudaq::cc::isDynamicType(resTy)) {
+      // As on the launch side, the callee returns a message buffer and its size
+      // in bytes if, and only if, it does not share an address space with this
+      // code. In that case the result was packed, without pointers, into the
+      // message and it must be unpacked here.
+      Value callbackResult = callback.getResult(0);
+      Value msgPtr = cudaq::cc::ExtractValueOp::create(rewriter, loc, ptrTy,
+                                                       callbackResult, 0);
+      Value msgSize = cudaq::cc::ExtractValueOp::create(rewriter, loc, i64Ty,
+                                                        callbackResult, 1);
+      Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+      Value hasMessage = arith::CmpIOp::create(
+          rewriter, loc, arith::CmpIPredicate::ne, msgSize, zero);
+      Block *messageBlock = rewriter.createBlock(&marshalFunc.getBody());
+      Block *sharedBlock = rewriter.createBlock(&marshalFunc.getBody());
+      rewriter.setInsertionPointToEnd(&marshalFunc.getBody().front());
+      cf::CondBranchOp::create(rewriter, loc, hasMessage, messageBlock,
+                               sharedBlock);
+
+      // Unpack the message, which has the same format as a single argument of
+      // a kernel launch.
+      // TODO: The spans built here refer to the message's own storage. They
+      // must eventually be copied to the caller's stack, and the message freed
+      // (by this side, which owns it), as a kernel launch does with a message
+      // it gets back.
+      rewriter.setInsertionPointToEnd(messageBlock);
+      auto msgTy = getResultMessageType(resTy);
+      Value typedMsg = cudaq::cc::CastOp::create(
+          rewriter, loc, cudaq::cc::PointerType::get(msgTy), msgPtr);
+      Value prefixSize =
+          cudaq::cc::SizeOfOp::create(rewriter, loc, i64Ty, msgTy);
+      auto rawMsg = cudaq::cc::CastOp::create(
+          rewriter, loc,
+          cudaq::cc::PointerType::get(
+              cudaq::cc::ArrayType::get(rewriter.getI8Type())),
+          msgPtr);
+      Value trailingData = cudaq::cc::ComputePtrOp::create(
+          rewriter, loc, ptrTy, rawMsg,
+          ArrayRef<cudaq::cc::ComputePtrArg>{prefixSize});
+      auto [unpacked, unusedTrailing] = cudaq::opt::marshal::processInputValue(
+          loc, rewriter, module, trailingData, typedMsg, resTy, 0, msgTy);
+      func::ReturnOp::create(rewriter, loc, unpacked);
+
       // Reference implementation: the unmarshal function (running synchronously
       // within the call above) already wrote the dynamic-output-slot-shaped
       // value for the result directly into the shared buffer. Read it back and
       // reconstruct the real result value from it.
+      rewriter.setInsertionPointToEnd(sharedBlock);
       Type slotTy = bufferTy.getMember(numInputs);
       auto outputPtr = cudaq::cc::ComputePtrOp::create(
           rewriter, loc, cudaq::cc::PointerType::get(slotTy), typedBuffer,
           ArrayRef<cudaq::cc::ComputePtrArg>{numInputs});
       Value slotVal = cudaq::cc::LoadOp::create(rewriter, loc, outputPtr);
-      Value resVal = bufferSlotToValue(loc, rewriter, resTy, slotVal);
+      Value resVal =
+          cudaq::opt::marshal::bufferSlotToValue(loc, rewriter, resTy, slotVal);
       func::ReturnOp::create(rewriter, loc, resVal);
       return;
     }
@@ -485,24 +558,30 @@ public:
     auto newDevFuncTy = cudaq::opt::factory::toHostSideFuncType(
         devFuncTy, /*addThisPtr=*/false, module);
 
-    // If the device function returns a dynamically sized value, the real host
-    // ABI passes it back via a hidden sret pointer argument that is prepended
-    // before the other arguments.
+    // If the device function returns a dynamically sized value, or a static
+    // value too large to be returned in registers, the real host ABI passes it
+    // back via a hidden sret pointer argument that is prepended before the
+    // other arguments.
     Value sretVar;
     if (devFuncTy.getNumResults() == 1 &&
-        cudaq::cc::isDynamicType(devFuncTy.getResult(0))) {
+        (cudaq::cc::isDynamicType(devFuncTy.getResult(0)) ||
+         cudaq::opt::factory::hasHiddenSRet(devFuncTy))) {
       Type sretHostTy = cudaq::opt::factory::convertToHostSideType(
           cudaq::opt::factory::getSRetElementType(devFuncTy, module), module);
       sretVar = cudaq::cc::AllocaOp::create(rewriter, loc, sretHostTy);
       args.push_back(sretVar);
     }
 
-    std::size_t offset = 0;
+    // `offset` is the drift between an argument's position in the device
+    // function's signature and its (first) position in the ABI-converted one:
+    // the hidden sret pointer shifts every argument by one, and a struct passed
+    // as two separate register arguments shifts the arguments after it by one.
+    std::size_t offset = sretVar ? 1 : 0;
     SmallVector<Value> stringArgs;
     for (auto iter : llvm::enumerate(devFuncTy.getInputs())) {
       auto [a, t] = cudaq::opt::marshal::processCallbackInputValue(
-          loc, rewriter, trailingData, argsBuffer, iter.value(), iter.index(),
-          bufferTy);
+          loc, rewriter, module, trailingData, argsBuffer, iter.value(),
+          iter.index(), bufferTy);
       // Save any strings, as we need to deconstruct them after the call.
       if (isa<cudaq::cc::CharspanType>(iter.value()))
         stringArgs.push_back(a);
@@ -563,22 +642,29 @@ public:
     // register (X8) or an ordinary argument register (X0) - the
     // declaration's attribute is not consulted for that decision, at least
     // not reliably. Mirror the same attribute onto the call site.
+    SmallVector<Attribute> argAttrs(args.size(), DictionaryAttr::get(ctx));
+    bool hasArgAttrs = false;
+    auto setCallArgAttr = [&](unsigned pos, StringRef name, Type eleTy) {
+      argAttrs[pos] = DictionaryAttr::get(
+          ctx, NamedAttribute(StringAttr::get(ctx, name),
+                              TypeAttr::get(ccTypeToLLVMType(eleTy))));
+      hasArgAttrs = true;
+    };
     if (cudaq::opt::factory::hasHiddenSRet(devFuncTy)) {
       if (auto ptrTy =
               dyn_cast<cudaq::cc::PointerType>(newDevFuncTy.getInput(0))) {
         auto eleTy = ptrTy.getElementType();
-        if (isa<cudaq::cc::StructType>(eleTy)) {
-          SmallVector<Attribute> argAttrs(args.size(),
-                                          DictionaryAttr::get(ctx));
-          argAttrs[0] = DictionaryAttr::get(
-              ctx, NamedAttribute(
-                       StringAttr::get(
-                           ctx, LLVM::LLVMDialect::getStructRetAttrName()),
-                       TypeAttr::get(ccTypeToLLVMType(eleTy))));
-          callDevFunc.setArgAttrsAttr(ArrayAttr::get(ctx, argAttrs));
-        }
+        if (isa<cudaq::cc::StructType>(eleTy))
+          setCallArgAttr(0, LLVM::LLVMDialect::getStructRetAttrName(), eleTy);
       }
     }
+    // Large static structs are passed byval on x86_64. See isByValStructArg.
+    for (unsigned pos : getByValArgPositions(devFuncTy, newDevFuncTy, module))
+      setCallArgAttr(pos, LLVM::LLVMDialect::getByValAttrName(),
+                     cast<cudaq::cc::PointerType>(newDevFuncTy.getInput(pos))
+                         .getElementType());
+    if (hasArgAttrs)
+      callDevFunc.setArgAttrsAttr(ArrayAttr::get(ctx, argAttrs));
 
     // Deconstruct any strings.
     for (Value v : stringArgs) {
@@ -594,11 +680,29 @@ public:
       auto resTy = devFuncTy.getResult(0);
       if (cudaq::cc::isDynamicType(resTy)) {
         // The real value was constructed by the call via the sret argument.
-        // Reduce it into the buffer's dynamic-output-slot shape and store that
-        // into the result slot.
+        // As on the launch side, the thunk's second argument says whether the
+        // caller is in a different address space (client-server). If so, the
+        // result must be returned as a pointer-free message and this side
+        // releases its own copy.
+        Value isRemote = entryBlock->getArgument(1);
+        Block *remoteBlock = rewriter.createBlock(entryBlock->getParent());
+        Block *sharedBlock = rewriter.createBlock(entryBlock->getParent());
+        rewriter.setInsertionPointToEnd(entryBlock);
+        cf::CondBranchOp::create(rewriter, loc, isRemote, remoteBlock,
+                                 sharedBlock);
+        rewriter.setInsertionPointToEnd(remoteBlock);
+        Value message = packDynamicResultMessage(
+            loc, rewriter, module, resTy, sretVar,
+            unmarshalFunc.getFunctionType().getResult(0));
+        func::ReturnOp::create(rewriter, loc, message);
+        // Otherwise, the caller shares this address space, so the value is
+        // handed back in place. Reduce it into the buffer's dynamic-output-slot
+        // shape and store that into the result slot.
+        rewriter.setInsertionPointToEnd(sharedBlock);
         Value realVal = cudaq::opt::marshal::reduceHostToDeviceValue(
             loc, rewriter, module, resTy, sretVar);
-        Value slotVal = valueToBufferSlot(loc, rewriter, resTy, realVal);
+        Value slotVal = cudaq::opt::marshal::valueToBufferSlot(loc, rewriter,
+                                                               resTy, realVal);
         std::int32_t numInputs = devFuncTy.getNumInputs();
         Type bufMemberTy = bufferTy.getMember(numInputs);
         auto outputPtr = cudaq::cc::ComputePtrOp::create(
@@ -618,23 +722,33 @@ public:
         // round-trip - store the raw ABI-typed result, then reload it
         // through a pointer cast to the buffer's member type - so the
         // reinterpretation is explicit rather than assumed.
-        Value callResult = callDevFunc.getResult(0);
         std::int32_t numInputs = devFuncTy.getNumInputs();
         Type bufMemberTy = bufferTy.getMember(numInputs);
         auto outputPtr = cudaq::cc::ComputePtrOp::create(
             rewriter, loc, cudaq::cc::PointerType::get(bufMemberTy), argsBuffer,
             ArrayRef<cudaq::cc::ComputePtrArg>{numInputs});
-        if (callResult.getType() == bufMemberTy) {
-          cudaq::cc::StoreOp::create(rewriter, loc, callResult, outputPtr);
+        if (sretVar) {
+          // A static result too large for registers was returned in place via
+          // the hidden sret argument.
+          auto sretPtr = cudaq::cc::CastOp::create(
+              rewriter, loc, cudaq::cc::PointerType::get(bufMemberTy), sretVar);
+          auto sretVal = cudaq::cc::LoadOp::create(rewriter, loc, sretPtr);
+          cudaq::cc::StoreOp::create(rewriter, loc, sretVal, outputPtr);
         } else {
-          auto scratch =
-              cudaq::cc::AllocaOp::create(rewriter, loc, callResult.getType());
-          cudaq::cc::StoreOp::create(rewriter, loc, callResult, scratch);
-          auto reinterpPtr = cudaq::cc::CastOp::create(
-              rewriter, loc, cudaq::cc::PointerType::get(bufMemberTy), scratch);
-          auto reinterpVal =
-              cudaq::cc::LoadOp::create(rewriter, loc, reinterpPtr);
-          cudaq::cc::StoreOp::create(rewriter, loc, reinterpVal, outputPtr);
+          Value callResult = callDevFunc.getResult(0);
+          if (callResult.getType() == bufMemberTy) {
+            cudaq::cc::StoreOp::create(rewriter, loc, callResult, outputPtr);
+          } else {
+            auto scratch = cudaq::cc::AllocaOp::create(rewriter, loc,
+                                                       callResult.getType());
+            cudaq::cc::StoreOp::create(rewriter, loc, callResult, scratch);
+            auto reinterpPtr = cudaq::cc::CastOp::create(
+                rewriter, loc, cudaq::cc::PointerType::get(bufMemberTy),
+                scratch);
+            auto reinterpVal =
+                cudaq::cc::LoadOp::create(rewriter, loc, reinterpPtr);
+            cudaq::cc::StoreOp::create(rewriter, loc, reinterpVal, outputPtr);
+          }
         }
       }
     }
@@ -745,6 +859,13 @@ public:
       signalPassFailure();
       return;
     }
+    // reduceHostToDeviceValue allocates the backing store of a returned
+    // recursively dynamic value on the heap.
+    if (failed(irBuilder.loadIntrinsic(module, "malloc"))) {
+      module.emitError("could not load malloc");
+      signalPassFailure();
+      return;
+    }
     if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic))) {
       module.emitError(std::string("could not load ") +
                        cudaq::llvmMemCopyIntrinsic);
@@ -783,6 +904,16 @@ public:
       module.emitError("could not load __nvqpp_vectorCopyCtor");
       signalPassFailure();
       return;
+    }
+    // Used to pack a dynamic result in a message and release the host value.
+    for (const char *name :
+         {cudaq::runtime::hostDeallocate, cudaq::sequenceBoolDestroy,
+          cudaq::sequenceBoolFreeTemporaryLists}) {
+      if (failed(irBuilder.loadIntrinsic(module, name))) {
+        module.emitError(std::string("could not load ") + name);
+        signalPassFailure();
+        return;
+      }
     }
 
     patterns.insert<DistributedDeviceCallPat>(ctx);

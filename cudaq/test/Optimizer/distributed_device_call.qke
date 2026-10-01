@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -canonicalize -distributed-device-call -cse -split-input-file %s | FileCheck %s
+// RUN: cudaq-opt -canonicalize -distributed-device-call -cse -split-input-file %s | FileCheck %s --check-prefixes=CHECK,X86,A64
 
 // Regression coverage for the generalized, distributed-memory reference
 // `device_call` lowering: marshal/unmarshal generation for a variety of
@@ -188,12 +188,23 @@ func.func private @cbVecInt(!cc.sequence<i32>) -> !cc.sequence<i32> attributes {
 // CHECK:           return %[[RES]] : !cc.sequence<i32>
 
 // The unmarshal (callback) side builds a real host std::vector<int> triple
-// (sret), calls the callback through it, then reduces the triple back to a
-// {ptr, count} pair by pointer subtraction for the buffer's dynamic result
-// slot.
+// (sret) and calls the callback through it. The thunk's second argument says
+// whether the caller is in another address space. If it is, the result is
+// packed, without pointers, into a new heap message, the host vector is
+// released, and the message is returned. Otherwise, the triple is reduced back
+// to a {ptr, count} pair by pointer subtraction for the buffer's dynamic result
+// slot, and the result stays in place.
 // CHECK-LABEL:   func.func @unmarshal.cbVecInt(
 // CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>
 // CHECK:           call @cbVecInt(%[[SRET]], %{{.*}})
+// CHECK:           cf.cond_br %{{.*}}, ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[MSG:.*]] = call @malloc(%{{.*}}) : (i64) -> !cc.ptr<i8>
+// CHECK:           call @llvm.memcpy.p0.p0.i64(
+// CHECK:           call @__nvqpp_hostDeallocate(%{{.*}}) : (!cc.ptr<i8>) -> ()
+// CHECK:           %[[RET:.*]] = cc.insert_value %{{.*}}[1], %{{.*}} : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           return %[[RET]] : !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:         ^bb2:
 // CHECK:           %{{.*}} = arith.subi
 // CHECK:           %{{.*}} = arith.divsi
 
@@ -247,8 +258,18 @@ func.func private @cbVecBool(!cc.sequence<i1>) -> !cc.sequence<i1> attributes {"
 // CHECK:           call @__nvqpp_initializer_list_to_vector_bool(%{{.*}}, %{{.*}}, %{{.*}})
 // CHECK:           call @cbVecBool(%{{.*}}, %{{.*}})
 // The return side unpacks the real std::vector<bool> back into a
-// std::vector<char>-shaped (unpacked) triple, then reduces it the same way
-// as any other std::vector<T>.
+// std::vector<char>-shaped (unpacked) triple. Either that is packed into a
+// message, after which the temporary is freed and the real std::vector<bool> is
+// destroyed by the runtime (the compiler does not know its layout), or it is
+// reduced the same way as any other std::vector<T>.
+// CHECK:           cf.cond_br %{{.*}}, ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           call @__nvqpp_vector_bool_to_initializer_list(%{{.*}}, %{{.*}}, %{{.*}})
+// CHECK:           call @malloc(
+// CHECK:           call @__nvqpp_vector_bool_free_temporary_initlists(
+// CHECK:           call @__nvqpp_vector_bool_destroy(%{{.*}}) : (!cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         ^bb2:
 // CHECK:           call @__nvqpp_vector_bool_to_initializer_list(%{{.*}}, %{{.*}}, %{{.*}})
 // CHECK:           %{{.*}} = arith.subi
 // CHECK:           %{{.*}} = arith.divsi
@@ -342,17 +363,51 @@ func.func @__nvqpp__mlirgen__call_vecvec_ret(%arg0 : i32) -> !cc.sequence<!cc.se
 }
 func.func private @cbVecVecRet(i32) -> !cc.sequence<!cc.sequence<i32>> attributes {"cudaq-devicecall"}
 
-// The marshal side does not need to recurse: the buffer's {ptr, count}
-// output slot already points to the fully-realized cc.sequence<i32> row
-// array built on the unmarshal side, so cc.sequence_init directly gives the
-// correctly-typed outer result.
+// The callback returns a message buffer and its size if the result was packed
+// without pointers (the caller is in another address space). The marshal side
+// unpacks the nested result from the message, building a cc.sequence<i32> per
+// row and then the outer sequence. If there is no message, the result was left
+// in place, and the buffer's {ptr, count} output slot already points to the
+// fully-realized cc.sequence<i32> row array built on the unmarshal side, so
+// cc.sequence_init directly gives the correctly-typed outer result.
+// TODO: The unpacked spans refer to the message and to a stack array in this
+// function. They must be copied to the caller's stack, and the message freed.
 // CHECK-LABEL:   func.func @marshal.cbVecVecRet(
+// CHECK:           %[[CB:.*]] = call @__nvqpp__device_callback_run(
+// CHECK:           %{{.*}} = cc.extract_value %[[CB]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
+// CHECK:           %[[MSGSZ:.*]] = cc.extract_value %[[CB]][1] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> i64
+// CHECK:           %[[HAS:.*]] = arith.cmpi ne, %[[MSGSZ]], %{{.*}} : i64
+// CHECK:           cf.cond_br %[[HAS]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           cc.loop
+// CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
+// CHECK:           %[[MSGRES:.*]] = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.array<!cc.sequence<i32> x ?>>, i64) -> !cc.sequence<!cc.sequence<i32>>
+// CHECK:           return %[[MSGRES]] : !cc.sequence<!cc.sequence<i32>>
+// CHECK:         ^bb2:
 // CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<i32>>, i64) -> !cc.sequence<!cc.sequence<i32>>
 
 // CHECK-LABEL:   func.func @unmarshal.cbVecVecRet(
 // CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>}>
 // CHECK:           call @cbVecVecRet(%[[SRET]], %{{.*}})
-// CHECK:           %[[ROWS:.*]] = cc.alloca !cc.sequence<i32>[%{{.*}} : i64]
+// CHECK:           cf.cond_br %{{.*}}, ^bb1, ^bb2
+// If the caller is in another address space, the nested result is packed into a
+// pointer-free message and then the host result is released: first each inner
+// vector, then the storage of the outer vector that holds them.
+// CHECK:         ^bb1:
+// CHECK:           %[[MSG:.*]] = call @malloc(%{{.*}}) : (i64) -> !cc.ptr<i8>
+// CHECK:           call @llvm.memcpy.p0.p0.i64(
+// CHECK:           cc.loop
+// CHECK:             call @__nvqpp_hostDeallocate(%{{.*}}) : (!cc.ptr<i8>) -> ()
+// CHECK:           call @__nvqpp_hostDeallocate(%{{.*}}) : (!cc.ptr<i8>) -> ()
+// CHECK:           return %{{.*}} : !cc.struct<{!cc.ptr<i8>, i64}>
+// Otherwise the result is handed back in place. The row array backs the
+// returned span and is read after this function returns, so it must be heap
+// allocated rather than a stack alloca.
+// CHECK:         ^bb2:
+// CHECK:           %[[BYTES:.*]] = arith.muli %{{.*}}, %{{.*}} : i64
+// CHECK:           %[[RAW:.*]] = call @malloc(%[[BYTES]]) : (i64) -> !cc.ptr<i8>
+// CHECK:           %[[ROWS:.*]] = cc.cast %[[RAW]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<!cc.sequence<i32> x ?>>
+// CHECK-NOT:       cc.alloca !cc.sequence<i32>
 // CHECK:           cc.loop
 // CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
 // CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<i32>>, i64) -> !cc.sequence<!cc.sequence<i32>>
@@ -380,6 +435,12 @@ func.func private @cbVecVecVecRet(i32) -> !cc.sequence<!cc.sequence<!cc.sequence
 
 // CHECK-LABEL:   func.func @unmarshal.cbVecVecVecRet(
 // CHECK:           call @cbVecVecVecRet(%{{.*}}, %{{.*}})
+// CHECK:           cf.cond_br %{{.*}}, ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           call @malloc(
+// CHECK:           call @__nvqpp_hostDeallocate(
+// CHECK:           return %{{.*}} : !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:         ^bb2:
 // CHECK:           cc.loop
 // CHECK:           cc.loop
 // CHECK-NOT:       cc.loop
@@ -406,6 +467,13 @@ func.func private @cbStructVecRet(i32) -> !cc.struct<{i32, !cc.sequence<i32>}> a
 // CHECK-LABEL:   func.func @unmarshal.cbStructVecRet(
 // CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>}>
 // CHECK:           call @cbStructVecRet(%[[SRET]], %{{.*}})
+// CHECK:           cf.cond_br %{{.*}}, ^bb1, ^bb2
+// Only the dynamic member of the struct holds storage to be released.
+// CHECK:         ^bb1:
+// CHECK:           call @malloc(
+// CHECK:           call @__nvqpp_hostDeallocate(
+// CHECK:           return %{{.*}} : !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:         ^bb2:
 // CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
 
 // -----
@@ -438,3 +506,89 @@ func.func private @cbShared(i32) attributes {"cudaq-devicecall"}
 // CHECK-NOT:     func.func @marshal.cbShared(
 
 // clang-format on
+
+// -----
+
+// A small struct argument together with a vector return (returned through a
+// hidden sret pointer).
+func.func @__nvqpp__mlirgen__call_struct_arg_vec_ret(%arg0 : !cc.struct<{i32, f64}>) -> !cc.sequence<i32> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbStructArgVecRet on %dev (%arg0) : (i64, !cc.struct<{i32, f64}>) -> !cc.sequence<i32>
+  return %1 : !cc.sequence<i32>
+}
+func.func private @cbStructArgVecRet(!cc.struct<{i32, f64}>) -> !cc.sequence<i32> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @unmarshal.cbStructArgVecRet(
+// CHECK:           %[[SRET:.*]] = cc.alloca !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>
+// CHECK:           call @cbStructArgVecRet(%[[SRET]], %{{.*}})
+
+// -----
+
+// A vector of structs that each hold a vector, passed to the callback. The
+// device-side elements are real structs holding spans, and the callback side
+// must build real host std::vector triples from them.
+func.func @__nvqpp__mlirgen__call_vecstructvec_arg(%arg0 : !cc.sequence<!cc.struct<{i32, !cc.sequence<i32>}>>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbVecStructVecArg on %dev (%arg0) : (i64, !cc.sequence<!cc.struct<{i32, !cc.sequence<i32>}>>) -> i32
+  return
+}
+func.func private @cbVecStructVecArg(!cc.sequence<!cc.struct<{i32, !cc.sequence<i32>}>>) -> i32 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @unmarshal.cbVecStructVecArg(
+// CHECK:           call @cbVecStructVecArg(%{{.*}})
+
+// -----
+
+// A static struct result that is too large for registers is returned through a
+// hidden sret pointer, and static structs that are too large for registers are
+// passed `byval`, on x86_64. The 16-byte struct is passed in two registers. Both attributes
+// must be on the callee's declaration and on the call itself, and each
+// argument's position must account for the sret pointer in front of it and the two-register struct.
+module attributes {llvm.triple = "x86_64-unknown-linux-gnu"} {
+func.func @__nvqpp__mlirgen__call_big_x86_64(%arg0 : i32, %arg1 : !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>, %arg2 : !cc.struct<"Two" {i64, i64} [128,8]>, %arg3 : !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbBig_x86_64 on %dev (%arg0, %arg1, %arg2, %arg3) : (i64, i32, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>, !cc.struct<"Two" {i64, i64} [128,8]>, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>) -> !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>
+  return
+}
+func.func private @cbBig_x86_64(i32, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>, !cc.struct<"Two" {i64, i64} [128,8]>, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>) -> !cc.struct<"Big" {i64, i64, i64, i64} [256,8]> attributes {"cudaq-devicecall"}
+}
+
+// X86-LABEL:   func.func private @cbBig_x86_64(
+// X86-SAME:      !cc.ptr<!cc.struct<"Big" {i64, i64, i64, i64} [256,8]>> {llvm.sret = !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>}, i32,
+// X86-SAME:      !cc.ptr<!cc.struct<"Big" {i64, i64, i64, i64} [256,8]>> {llvm.byval = !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>}, i64, i64,
+// X86-SAME:      !cc.ptr<!cc.struct<"Big" {i64, i64, i64, i64} [256,8]>> {llvm.byval = !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>})
+// X86-LABEL:   func.func @unmarshal.cbBig_x86_64(
+// X86:           %[[SRET:.*]] = cc.alloca !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>
+// X86:           call @cbBig_x86_64(%[[SRET]], %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}) {arg_attrs = [{llvm.sret = !llvm.struct<(i64, i64, i64, i64)>}, {}, {llvm.byval = !llvm.struct<(i64, i64, i64, i64)>}, {}, {}, {llvm.byval = !llvm.struct<(i64, i64, i64, i64)>}]}
+
+// -----
+
+// A static struct result that is too large for registers is returned through a
+// hidden sret pointer, and static structs that are too large for registers are
+// passed `byval`, on aarch64. AArch64 never uses byval, and the 16-byte struct is packed into one [2 x i64] value. Both attributes
+// must be on the callee's declaration and on the call itself, and each
+// argument's position must account for the sret pointer in front of it .
+module attributes {llvm.triple = "aarch64-unknown-linux-gnu"} {
+func.func @__nvqpp__mlirgen__call_big_aarch64(%arg0 : i32, %arg1 : !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>, %arg2 : !cc.struct<"Two" {i64, i64} [128,8]>, %arg3 : !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbBig_aarch64 on %dev (%arg0, %arg1, %arg2, %arg3) : (i64, i32, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>, !cc.struct<"Two" {i64, i64} [128,8]>, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>) -> !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>
+  return
+}
+func.func private @cbBig_aarch64(i32, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>, !cc.struct<"Two" {i64, i64} [128,8]>, !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>) -> !cc.struct<"Big" {i64, i64, i64, i64} [256,8]> attributes {"cudaq-devicecall"}
+}
+
+// A64-LABEL:   func.func private @cbBig_aarch64(
+// A64-SAME:      !cc.ptr<!cc.struct<"Big" {i64, i64, i64, i64} [256,8]>> {llvm.sret = !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>}, i32,
+// A64-SAME:      !cc.ptr<!cc.struct<"Big" {i64, i64, i64, i64} [256,8]>>, !cc.array<i64 x 2>,
+// A64-SAME:      !cc.ptr<!cc.struct<"Big" {i64, i64, i64, i64} [256,8]>>)
+// A64-LABEL:   func.func @unmarshal.cbBig_aarch64(
+// A64:           %[[SRET:.*]] = cc.alloca !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>
+// A64:           call @cbBig_aarch64(%[[SRET]], %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}) {arg_attrs = [{llvm.sret = !llvm.struct<(i64, i64, i64, i64)>}, {}, {}, {}, {}]}

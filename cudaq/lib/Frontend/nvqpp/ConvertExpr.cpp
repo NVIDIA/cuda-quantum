@@ -3765,6 +3765,17 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     }
     if (isa<cc::MeasureHandleType>(ctorTy))
       return pushValue(loadHandleIfPointer(builder, loc, popValue()));
+    if (ctor->isMoveConstructor() && isa<cc::StructType>(ctorTy) &&
+        cc::isDynamicType(ctorTy)) {
+      // Move constructor on a struct that has a dynamic member, such as a
+      // std::vector. As for the move constructor of a std::vector itself, the
+      // object is moved from, so its value is used as is. (A copy would be
+      // wrong, as the copy and the original would share the vector's storage.)
+      Value from = popValue();
+      if (isa<cc::PointerType>(from.getType()))
+        from = cc::LoadOp::create(builder, loc, from);
+      return pushValue(from);
+    }
   }
 
   // Default-construct `cudaq::measure_handle`: produce only the storage
@@ -3789,6 +3800,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   if (!ctor->isDefaultConstructor()) {
     LLVM_DEBUG(llvm::dbgs() << ctorName << " - unhandled ctor:\n"; x->dump());
     TODO_x(loc, x, mangler, "C++ constructor (non-default)");
+    // Stop here. The value that the rest of the lowering would produce for
+    // this constructor is not what the enclosing expression expects, such as
+    // an initializer list that has a vector member, which would then fail an
+    // assertion instead of simply reporting the error above.
+    raisedError = true;
+    return false;
   }
 
   // A C++ constructor lowers as:

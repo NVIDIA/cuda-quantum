@@ -124,16 +124,16 @@ static bool isFunctionCallable(Type t) {
   return false;
 }
 
-/// Return true if and only if \p t is a (simple) arithmetic type, an arithmetic
-/// sequence type (possibly dynamic in length), or a static product type of
-/// arithmetic types. Note that this means a product type with a dynamic
-/// sequence of arithmetic types is \em disallowed.
+/// Return true if and only if \p t is a (simple) arithmetic type or a possibly
+/// dynamic type composed of arithmetic types: a vector, a struct, or any
+/// nesting of these, such as a vector of vectors or a struct with a vector
+/// member. See the return statement in ConvertStmt.cpp for how the heap
+/// storage of a dynamic result is made to outlive the kernel.
 ///
 /// `cudaq::measure_handle` (and any aggregate that transitively names it) is
 /// also allowed in pure-device kernels.
 static bool isKernelResultType(Type t) {
-  return isArithmeticType(t) || isArithmeticSequenceType(t) ||
-         isStaticArithmeticProductType(t) ||
+  return isArithmeticType(t) || isComposedArithmeticType(t) ||
          cudaq::cc::containsMeasureHandle(t);
 }
 

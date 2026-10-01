@@ -349,6 +349,20 @@ void __nvqpp_vector_bool_to_initializer_list(
     newData[i] = static_cast<char>(inVec[i]);
 }
 
+/// Destroy the host `std::vector<bool>` that \p vec refers to, releasing its
+/// storage. The vector is left in an unspecified state and must not be used
+/// again. The compiler cannot know the layout of the host's specialization of
+/// `std::vector<bool>`, so the destruction is done here.
+/// This helper routine may only be called on the host side.
+void __nvqpp_vector_bool_destroy(std::vector<bool> &vec) { vec.~vector(); }
+
+/// Release storage that was obtained with `operator new`, such as the storage
+/// of a host `std::vector<T>`. The compiler calls this wrapper instead of the
+/// mangled name of `operator delete`, which varies by platform and standard
+/// library.
+/// This helper routine may only be called on the host side.
+void __nvqpp_hostDeallocate(void *ptr) { ::operator delete(ptr); }
+
 /// This helper routine deletes the vector that tracks all the temporaries that
 /// were created as well as the temporaries themselves.
 /// This routine may only be called on the host side.

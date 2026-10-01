@@ -689,7 +689,8 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
     cc.resolve_device_ptr operations.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["mlir::LLVM::LLVMDialect",
+                           "mlir::cf::ControlFlowDialect"];
 }
 
 def EraseNoise : Pass<"erase-noise"> {

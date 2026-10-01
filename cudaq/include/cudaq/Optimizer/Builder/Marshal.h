@@ -138,28 +138,72 @@ void maybeFreeHeapAllocations(mlir::Location loc, mlir::OpBuilder &builder,
 /// Translate the buffer data to a sequence of arguments suitable to the
 /// actual kernel call.
 ///
+/// \param module    The module being transformed. It is passed explicitly since
+/// \p builder's insertion point may be in a region not yet attached to it.
 /// \param inTy      The actual expected type of the argument.
 /// \param structTy  The modified buffer type over all the arguments at the
 /// current level.
 std::pair<mlir::Value, mlir::Value>
 processInputValue(mlir::Location loc, mlir::OpBuilder &builder,
-                  mlir::Value trailingData, mlir::Value ptrPackedStruct,
-                  mlir::Type inTy, std::int32_t off,
-                  cc::StructType packedStructTy);
+                  mlir::ModuleOp module, mlir::Value trailingData,
+                  mlir::Value ptrPackedStruct, mlir::Type inTy,
+                  std::int32_t off, cc::StructType packedStructTy);
 
 std::pair<mlir::Value, mlir::Value>
 processCallbackInputValue(mlir::Location loc, mlir::OpBuilder &builder,
-                          mlir::Value trailingData, mlir::Value ptrPackedStruct,
-                          mlir::Type inTy, std::int32_t off,
-                          cc::StructType packedStructTy);
+                          mlir::ModuleOp module, mlir::Value trailingData,
+                          mlir::Value ptrPackedStruct, mlir::Type inTy,
+                          std::int32_t off, cc::StructType packedStructTy);
 
 /// Given a pointer to a real host side value, build the real device-side SSA
 /// value (recursively, for nested dynamic types) it corresponds to. Used to
 /// reduce a callback's real host return value into a device-side value suitable
 /// for storing into a returning host-to-QPU communication buffer.
+///
+/// The value may refer to heap memory allocated with `malloc` (for a
+/// recursively dynamic type), so it is valid after the frame it was built in
+/// has returned.
 mlir::Value reduceHostToDeviceValue(mlir::Location loc,
                                     mlir::OpBuilder &builder,
                                     mlir::ModuleOp module, mlir::Type devTy,
                                     mlir::Value hostPtr);
+
+/// Release the heap storage held by the real host-ABI value that \p hostPtr
+/// points to, where the value has device type \p devTy. A host value of a
+/// dynamic type is composed of strings, vectors, structs, and trivial types, so
+/// this recursively destroys each such member and then the vector's own
+/// storage, as the value's destructor would. The value must not be used after.
+void destroyHostValue(mlir::Location loc, mlir::OpBuilder &builder,
+                      mlir::ModuleOp module, mlir::Type devTy,
+                      mlir::Value hostPtr);
+
+/// Any dynamic type is supported as a result type. Given a real device-side
+/// value of type \p devTy, decompose it into the buffer's dynamic-output-slot
+/// shape. A span decomposes to a `{ptr, count}` pair whose pointer already
+/// refers to fully-realized device values; a struct decomposes member by
+/// member, `recursing` only into dynamic members.
+mlir::Value valueToBufferSlot(mlir::Location loc, mlir::OpBuilder &builder,
+                              mlir::Type devTy, mlir::Value realVal);
+
+/// The inverse of `valueToBufferSlot`. Given an already-loaded buffer
+/// output-slot value, reconstruct the real device-side value of type \p devTy.
+mlir::Value bufferSlotToValue(mlir::Location loc, mlir::OpBuilder &builder,
+                              mlir::Type devTy, mlir::Value slotVal);
+
+/// Build, in place, the real host value that corresponds to the device-side
+/// value \p devVal of dynamic type \p devTy. \p hostDest points to
+/// uninitialized memory of the host representation of \p devTy, such as the
+/// `sret` block of a host function. This is the reverse of
+/// `reduceHostToDeviceValue`, for a kernel's result.
+///
+/// The heap storage that the device value refers to belongs to the host value
+/// afterwards. A vector of static elements adopts its storage as is. Where the
+/// host's elements are shaped differently from the device's, a new array of
+/// host elements is built, which adopts the storage of the elements, and the
+/// device's array is released. The `malloc` and `free` intrinsics must already
+/// be loaded in \p module.
+void buildHostValueFromDeviceValue(mlir::Location loc, mlir::OpBuilder &builder,
+                                   mlir::ModuleOp module, mlir::Type devTy,
+                                   mlir::Value devVal, mlir::Value hostDest);
 
 } // namespace cudaq::opt::marshal

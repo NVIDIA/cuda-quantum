@@ -572,6 +572,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      "func.func private @__nvqpp_getStringSize(%p: !cc.ptr<i8>) -> i64"},
 
+    // __nvqpp_hostDeallocate(void *): operator delete
+    {cudaq::runtime::hostDeallocate,
+     {},
+     "func.func private @__nvqpp_hostDeallocate(!cc.ptr<i8>) -> ()"},
+
     {cudaq::runtime::bindingInitializeString, {}, R"#(
   func.func private @__nvqpp_initializeStringFromSpan(!cc.ptr<i8>, !cc.ptr<i8>, i64)
 )#"},
@@ -603,6 +608,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     call @free(%from) : (!cc.ptr<i8>) -> ()
     return
   })#"},
+
+    // __nvqpp_vector_bool_destroy
+    {cudaq::sequenceBoolDestroy, {}, R"#(
+  func.func private @__nvqpp_vector_bool_destroy(!cc.ptr<i8>) -> ()
+)#"},
 
     // __nvqpp_vector_bool_free_temporary_lists
     {cudaq::sequenceBoolFreeTemporaryLists, {}, R"#(

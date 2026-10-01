@@ -7,17 +7,31 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake -verify %s
+// expected-no-diagnostics
+
+// The bridge accepts a struct with a vector member as a kernel result. Whether
+// the result of a `cudaq::run` of such a kernel can be decoded is not known to
+// the bridge. That is reported when the kernel is run.
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ std::vector<std::vector<int>> vec_of_vec() {
-  // expected-error@+2 {{unhandled vector element type is not yet supported}}
-  // expected-error@+1 {{statement not supported in qpu kernel}}
-  return {{1, 2}, {3, 4}};
-}
+__qpu__ std::vector<std::vector<int>> vec_of_vec() { return {{1, 2}, {3, 4}}; }
+
+struct Foo {
+  int bar;
+  std::vector<bool> baz;
+};
+
+struct Quark {
+  Foo operator()() __qpu__ {
+    cudaq::qvector q(3);
+    return {747, cudaq::to_bools(mz(q))};
+  }
+};
 
 int main() {
   auto const result1 = cudaq::run(10, vec_of_vec);
+  auto const result2 = cudaq::run(10, Quark{});
   return 0;
 }
