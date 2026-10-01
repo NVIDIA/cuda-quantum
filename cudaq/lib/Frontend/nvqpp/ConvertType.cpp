@@ -47,29 +47,11 @@ static bool isStaticArithmeticProductType(Type t) {
   return false;
 }
 
-/// Is \p t a recursive sequence of arithmetic types? The outer types are
-/// allowed to be dynamic (vector), but the inner types must be static. An outer
-/// type can only be a vector.
-///
-/// Return true if and only if \p t is
-///    - `vector of [vector of]* [array of]* T` or
-///    - `array of [array of]* T`,
-/// where `T` is an arithmetic type or static product type of arithmetic types.
-static bool isArithmeticSequenceType(Type t) {
-  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
-    auto eleTy = vec.getElementType();
-    return isArithmeticType(eleTy) || isStaticArithmeticProductType(eleTy) ||
-           isArithmeticSequenceType(eleTy);
-  }
-  return isStaticArithmeticSequenceType(t);
-}
-
 static bool isRecursiveArithmeticProductType(Type t);
 
-/// Is \p t a recursive sequence of arithmetic types? This is a similar but more
-/// relaxed test than isArithmeticSequenceType in that the outer types may
-/// include product types and are not restricted to vectors. Only ArrayType is
-/// considered an inner type.
+/// Is \p t a recursive sequence of arithmetic types? The outer types may be
+/// dynamic (vector) or product types. Only ArrayType is considered an inner
+/// type.
 static bool isRecursiveArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
     auto eleTy = vec.getElementType();
