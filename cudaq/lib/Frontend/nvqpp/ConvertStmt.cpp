@@ -9,6 +9,7 @@
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
@@ -345,75 +346,6 @@ bool QuakeBridgeVisitor::TraverseSwitchStmt(clang::SwitchStmt *x,
   return false;
 }
 
-/// Copy the dynamic parts of the kernel result \p val to the heap, recursively.
-/// A result that refers to the kernel's stack, or to temporary storage, would
-/// dangle once the kernel returns. The heap storage becomes the
-/// responsibility of the calling side, which frees it or adopts it. The
-/// "__nvqpp_vectorCopyCtor" and "malloc" intrinsics must have been loaded.
-static Value copyDynamicResultToHeap(OpBuilder &builder, Location loc,
-                                     Value val) {
-  Type ty = val.getType();
-  if (!cc::isDynamicType(ty))
-    return val;
-  auto i64Ty = builder.getI64Type();
-  auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
-  if (auto spanTy = dyn_cast<cc::SpanLikeType>(ty)) {
-    auto eleTy = spanTy.getElementType();
-    Value srcData = cc::SequenceDataOp::create(builder, loc, i8PtrTy, val);
-    Value count = cc::SequenceSizeOp::create(builder, loc, i64Ty, val);
-    if (!cc::isDynamicType(eleTy)) {
-      IRBuilder irb(builder);
-      Value eleSize = irb.getByteSizeOfType(loc, eleTy);
-      if (!eleSize)
-        eleSize = cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
-      Value heapCopy =
-          func::CallOp::create(builder, loc, i8PtrTy, "__nvqpp_vectorCopyCtor",
-                               ValueRange{srcData, count, eleSize})
-              .getResult(0);
-      return cc::SequenceInitOp::create(builder, loc, ty,
-                                        ValueRange{heapCopy, count});
-    }
-    // The elements are themselves dynamic, so the new array of elements is
-    // built one element at a time, each with heap storage of its own.
-    Value eleSize = cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
-    Value bytes = arith::MulIOp::create(builder, loc, count, eleSize);
-    Value rawArr =
-        func::CallOp::create(builder, loc, i8PtrTy, "malloc", ValueRange{bytes})
-            .getResult(0);
-    auto elePtrTy = cc::PointerType::get(eleTy);
-    auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-    Value srcArr = cc::CastOp::create(builder, loc, arrPtrTy, srcData);
-    Value dstArr = cc::CastOp::create(builder, loc, arrPtrTy, rawArr);
-    cudaq::opt::factory::createInvariantLoop(
-        builder, loc, count,
-        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-          Value i = block.getArgument(0);
-          Value srcPtr = cc::ComputePtrOp::create(
-              builder, loc, elePtrTy, srcArr, ArrayRef<cc::ComputePtrArg>{i});
-          Value ele = cc::LoadOp::create(builder, loc, srcPtr);
-          Value copy = copyDynamicResultToHeap(builder, loc, ele);
-          Value dstPtr = cc::ComputePtrOp::create(
-              builder, loc, elePtrTy, dstArr, ArrayRef<cc::ComputePtrArg>{i});
-          cc::StoreOp::create(builder, loc, copy, dstPtr);
-        });
-    return cc::SequenceInitOp::create(builder, loc, ty,
-                                      ValueRange{rawArr, count});
-  }
-  // A struct. Only the dynamic members refer to storage.
-  auto strTy = cast<cc::StructType>(ty);
-  Value result = val;
-  for (auto iter : llvm::enumerate(strTy.getMembers())) {
-    Type memTy = iter.value();
-    if (!cc::isDynamicType(memTy))
-      continue;
-    std::int32_t idx = iter.index();
-    Value mem = cc::ExtractValueOp::create(builder, loc, memTy, val, idx);
-    Value copy = copyDynamicResultToHeap(builder, loc, mem);
-    result = cc::InsertValueOp::create(builder, loc, strTy, result, copy, idx);
-  }
-  return result;
-}
-
 bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
   auto loc = toLocation(x->getSourceRange());
   bool isFuncScope = [&]() {
@@ -459,7 +391,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")) ||
           failed(irBuilder.loadIntrinsic(module, "malloc")))
         module.emitError("failed to load intrinsic");
-      result = copyDynamicResultToHeap(builder, loc, result);
+      result = opt::marshal::copyDynamicValueToHeap(loc, builder, result);
     }
     if (isFuncScope)
       cc::ReturnOp::create(builder, loc, result);

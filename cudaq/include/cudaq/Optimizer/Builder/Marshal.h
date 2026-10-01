@@ -163,10 +163,44 @@ processCallbackInputValue(mlir::Location loc, mlir::OpBuilder &builder,
 /// The value may refer to heap memory allocated with `malloc` (for a
 /// recursively dynamic type), so it is valid after the frame it was built in
 /// has returned.
+///
+/// If \p ownResult is false, the value refers to the storage of the host value.
+/// That value must not be destroyed while the result is in use. If
+/// \p ownResult is true, the result is a deep copy in `malloc` memory of its
+/// own, which the caller must free, and the host value may be destroyed. In
+/// that case the `__nvqpp_vectorCopyCtor` intrinsic must be loaded in
+/// \p module.
 mlir::Value reduceHostToDeviceValue(mlir::Location loc,
                                     mlir::OpBuilder &builder,
                                     mlir::ModuleOp module, mlir::Type devTy,
-                                    mlir::Value hostPtr);
+                                    mlir::Value hostPtr,
+                                    bool ownResult = false);
+
+/// Copy the dynamic parts of the device-side value \p val to the heap,
+/// recursively, and return the new value. Used for a result that refers to
+/// memory that will not outlive the function that returns it. The heap storage
+/// is the responsibility of the calling side. The `__nvqpp_vectorCopyCtor` and
+/// `malloc` intrinsics must be loaded in the module.
+mlir::Value copyDynamicValueToHeap(mlir::Location loc, mlir::OpBuilder &builder,
+                                   mlir::Value val);
+
+/// The calling side of `copyDynamicValueToHeap`. Copy the dynamic parts of the
+/// device-side value \p val, whose storage is on the heap, to the stack of the
+/// current function, recursively, and free the heap storage. Returns the new
+/// value. The `__nvqpp_vectorCopyToStack` and `free` intrinsics must be loaded
+/// in the module.
+mlir::Value copyDynamicValueToStack(mlir::Location loc,
+                                    mlir::OpBuilder &builder, mlir::Value val);
+
+/// Destroy every `std::vector<bool>` in the real host-ABI argument that
+/// \p hostPtr points to, where the argument has device type \p devTy. The
+/// callback side builds a real `std::vector<bool>` for such an argument, which
+/// owns its storage. The other parts of an argument refer to the storage of the
+/// communication buffer, and are left alone. The `__nvqpp_vector_bool_destroy`
+/// intrinsic must be loaded in \p module.
+void destroyHostBoolVectors(mlir::Location loc, mlir::OpBuilder &builder,
+                            mlir::ModuleOp module, mlir::Type devTy,
+                            mlir::Value hostPtr);
 
 /// Release the heap storage held by the real host-ABI value that \p hostPtr
 /// points to, where the value has device type \p devTy. A host value of a

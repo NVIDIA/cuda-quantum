@@ -276,8 +276,19 @@ public:
     std::string marshalName = "marshal." + devFuncName.str();
     auto [marshalFunc, alreadyAdded] = cudaq::opt::factory::getOrAddFunc(
         loc, marshalName, devFunc.getFunctionType(), module);
-    rewriter.replaceOpWithNewOp<func::CallOp>(devcall, devcall.getResultTypes(),
-                                              marshalName, devcall.getArgs());
+    auto marshalCall =
+        func::CallOp::create(rewriter, loc, devcall.getResultTypes(),
+                             marshalName, devcall.getArgs());
+    SmallVector<Value> callResults(marshalCall.getResults());
+    if (callResults.size() == 1 &&
+        cudaq::cc::isDynamicType(callResults[0].getType())) {
+      // The marshal function returns a result with dynamic parts in heap
+      // memory that this side owns. Move it to this function's stack and free
+      // the heap storage, as a call to a kernel does.
+      callResults[0] = cudaq::opt::marshal::copyDynamicValueToStack(
+          loc, rewriter, callResults[0]);
+    }
+    rewriter.replaceOp(devcall, callResults);
 
     if (alreadyAdded) {
       // This may happen if another kernel called this same callback.
@@ -480,11 +491,9 @@ public:
                                sharedBlock);
 
       // Unpack the message, which has the same format as a single argument of
-      // a kernel launch.
-      // TODO: The spans built here refer to the message's own storage. They
-      // must eventually be copied to the caller's stack, and the message freed
-      // (by this side, which owns it), as a kernel launch does with a message
-      // it gets back.
+      // a kernel launch. The spans built here refer to the message's own
+      // storage, so they are copied to the heap, like the result in the other
+      // case, and the message is freed. (This side owns it.)
       rewriter.setInsertionPointToEnd(messageBlock);
       auto msgTy = getResultMessageType(resTy);
       Value typedMsg = cudaq::cc::CastOp::create(
@@ -501,12 +510,17 @@ public:
           ArrayRef<cudaq::cc::ComputePtrArg>{prefixSize});
       auto [unpacked, unusedTrailing] = cudaq::opt::marshal::processInputValue(
           loc, rewriter, module, trailingData, typedMsg, resTy, 0, msgTy);
-      func::ReturnOp::create(rewriter, loc, unpacked);
+      Value owned =
+          cudaq::opt::marshal::copyDynamicValueToHeap(loc, rewriter, unpacked);
+      func::CallOp::create(rewriter, loc, TypeRange{}, "free",
+                           ValueRange{msgPtr});
+      func::ReturnOp::create(rewriter, loc, owned);
 
       // Reference implementation: the unmarshal function (running synchronously
       // within the call above) already wrote the dynamic-output-slot-shaped
       // value for the result directly into the shared buffer. Read it back and
-      // reconstruct the real result value from it.
+      // reconstruct the real result value from it. The result has heap storage
+      // of its own, which the caller of this function takes over.
       rewriter.setInsertionPointToEnd(sharedBlock);
       Type slotTy = bufferTy.getMember(numInputs);
       auto outputPtr = cudaq::cc::ComputePtrOp::create(
@@ -584,6 +598,7 @@ public:
     // as two separate register arguments shifts the arguments after it by one.
     std::size_t offset = sretVar ? 1 : 0;
     SmallVector<Value> stringArgs;
+    SmallVector<std::pair<Type, Value>> dynamicArgs;
     for (auto iter : llvm::enumerate(devFuncTy.getInputs())) {
       auto [a, t] = cudaq::opt::marshal::processCallbackInputValue(
           loc, rewriter, module, trailingData, argsBuffer, iter.value(),
@@ -591,6 +606,8 @@ public:
       // Save any strings, as we need to deconstruct them after the call.
       if (isa<cudaq::cc::CharspanType>(iter.value()))
         stringArgs.push_back(a);
+      else if (cudaq::cc::isDynamicType(iter.value()))
+        dynamicArgs.emplace_back(iter.value(), a);
       trailingData = t;
       if (auto strTy = dyn_cast<cudaq::cc::StructType>(iter.value())) {
         if (cudaq::opt::factory::isX86_64(module) &&
@@ -680,6 +697,12 @@ public:
                            ValueRange{cast});
     }
 
+    // Destroy any std::vector<bool> that was built for an argument. It owns
+    // its storage, unlike the other parts of an argument.
+    for (auto [devTy, hostArg] : dynamicArgs)
+      cudaq::opt::marshal::destroyHostBoolVectors(loc, rewriter, module, devTy,
+                                                  hostArg);
+
     // If the device function has a return value, then store it to the result
     // space in the buffer.
     if (!devFuncTy.getResults().empty()) {
@@ -705,8 +728,12 @@ public:
         // handed back in place. Reduce it into the buffer's dynamic-output-slot
         // shape and store that into the result slot.
         rewriter.setInsertionPointToEnd(sharedBlock);
+        // The result is a copy in heap memory, which the caller owns, so the
+        // host value is destroyed here.
         Value realVal = cudaq::opt::marshal::reduceHostToDeviceValue(
-            loc, rewriter, module, resTy, sretVar);
+            loc, rewriter, module, resTy, sretVar, /*ownResult=*/true);
+        cudaq::opt::marshal::destroyHostValue(loc, rewriter, module, resTy,
+                                              sretVar);
         Value slotVal = cudaq::opt::marshal::valueToBufferSlot(loc, rewriter,
                                                                resTy, realVal);
         std::int32_t numInputs = devFuncTy.getNumInputs();
@@ -816,7 +843,7 @@ public:
 /// marshal and unmarshal functions that dispatch through a single runtime hook.
 /// This is required if different processing units in the aggregate QPU have
 /// distributed (not shared) memory spaces. The actual reference implementation
-/// makes the simplification for the sake of implementation where the "device"
+/// makes the simplification for the sake of implementation where the `device`
 /// and host share the same process and address space. Thus the runtime hook is
 /// a same-process NOP that hands the marshaled buffer straight to the unmarshal
 /// function. This is clearly not how a distributed memory model would actually
@@ -866,11 +893,14 @@ public:
       return;
     }
     // reduceHostToDeviceValue allocates the backing store of a returned
-    // recursively dynamic value on the heap.
-    if (failed(irBuilder.loadIntrinsic(module, "malloc"))) {
-      module.emitError("could not load malloc");
-      signalPassFailure();
-      return;
+    // recursively dynamic value on the heap. A result with dynamic parts is
+    // moved from the heap to the stack of the caller.
+    for (const char *name : {"malloc", "free", "__nvqpp_vectorCopyToStack"}) {
+      if (failed(irBuilder.loadIntrinsic(module, name))) {
+        module.emitError(std::string("could not load ") + name);
+        signalPassFailure();
+        return;
+      }
     }
     if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic))) {
       module.emitError(std::string("could not load ") +

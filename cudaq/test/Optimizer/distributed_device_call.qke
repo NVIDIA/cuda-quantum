@@ -370,8 +370,9 @@ func.func private @cbVecVecRet(i32) -> !cc.sequence<!cc.sequence<i32>> attribute
 // in place, and the buffer's {ptr, count} output slot already points to the
 // fully-realized cc.sequence<i32> row array built on the unmarshal side, so
 // cc.sequence_init directly gives the correctly-typed outer result.
-// TODO: The unpacked spans refer to the message and to a stack array in this
-// function. They must be copied to the caller's stack, and the message freed.
+// The result that is returned is a copy in heap memory, which the caller takes
+// over. When it came from a message, the spans that were unpacked refer to the
+// message, so they are copied and then the message is freed.
 // CHECK-LABEL:   func.func @marshal.cbVecVecRet(
 // CHECK:           %[[CB:.*]] = call @__nvqpp__device_callback_run(
 // CHECK:           %{{.*}} = cc.extract_value %[[CB]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
@@ -382,7 +383,12 @@ func.func private @cbVecVecRet(i32) -> !cc.sequence<!cc.sequence<i32>> attribute
 // CHECK:           cc.loop
 // CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
 // CHECK:           %[[MSGRES:.*]] = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.array<!cc.sequence<i32> x ?>>, i64) -> !cc.sequence<!cc.sequence<i32>>
-// CHECK:           return %[[MSGRES]] : !cc.sequence<!cc.sequence<i32>>
+// CHECK:           call @malloc(
+// CHECK:           cc.loop
+// CHECK:           func.call @__nvqpp_vectorCopyCtor(
+// CHECK:           %[[OWNED:.*]] = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i8>, i64) -> !cc.sequence<!cc.sequence<i32>>
+// CHECK:           call @free(%{{.*}}) : (!cc.ptr<i8>) -> ()
+// CHECK:           return %[[OWNED]] : !cc.sequence<!cc.sequence<i32>>
 // CHECK:         ^bb2:
 // CHECK:           %{{.*}} = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.sequence<i32>>, i64) -> !cc.sequence<!cc.sequence<i32>>
 
@@ -592,3 +598,51 @@ func.func private @cbBig_aarch64(i32, !cc.struct<"Big" {i64, i64, i64, i64} [256
 // A64-LABEL:   func.func @unmarshal.cbBig_aarch64(
 // A64:           %[[SRET:.*]] = cc.alloca !cc.struct<"Big" {i64, i64, i64, i64} [256,8]>
 // A64:           call @cbBig_aarch64(%[[SRET]], %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}) {arg_attrs = [{llvm.sret = !llvm.struct<(i64, i64, i64, i64)>}, {}, {}, {}, {}]}
+
+// -----
+
+// A result with dynamic parts is returned from the marshal function in heap
+// memory, which the caller takes over. The caller moves it to its own stack and
+// frees the heap storage. For a nested result that is done one element at a
+// time. The unmarshal side makes the result a copy of its own, in heap memory,
+// before it destroys the host value that the callback returned.
+func.func @__nvqpp__mlirgen__call_own_vec(%arg0 : i32) -> !cc.sequence<i32> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbOwnVec on %dev (%arg0) : (i64, i32) -> !cc.sequence<i32>
+  return %1 : !cc.sequence<i32>
+}
+func.func private @cbOwnVec(i32) -> !cc.sequence<i32> attributes {"cudaq-devicecall"}
+
+func.func @__nvqpp__mlirgen__call_own_vecvec(%arg0 : i32) -> !cc.sequence<!cc.sequence<i32>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %dev = arith.constant 0 : i64
+  %1 = cc.device_call @cbOwnVecVec on %dev (%arg0) : (i64, i32) -> !cc.sequence<!cc.sequence<i32>>
+  return %1 : !cc.sequence<!cc.sequence<i32>>
+}
+func.func private @cbOwnVecVec(i32) -> !cc.sequence<!cc.sequence<i32>> attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__call_own_vec(
+// CHECK:           %[[R:.*]] = call @marshal.cbOwnVec(%{{.*}}) : (i32) -> !cc.sequence<i32>
+// CHECK:           %[[DATA:.*]] = cc.sequence_data %[[R]] : (!cc.sequence<i32>) -> !cc.ptr<i32>
+// CHECK:           %[[N:.*]] = cc.sequence_size %[[R]] : (!cc.sequence<i32>) -> i64
+// CHECK:           %[[BUF:.*]] = cc.alloca i32[%[[N]] : i64]
+// CHECK:           call @__nvqpp_vectorCopyToStack(
+// CHECK:           cc.sequence_init %[[BUF]], %[[N]] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.sequence<i32>
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__call_own_vecvec(
+// CHECK:           %[[RR:.*]] = call @marshal.cbOwnVecVec(%{{.*}}) : (i32) -> !cc.sequence<!cc.sequence<i32>>
+// CHECK:           %[[RRN:.*]] = cc.sequence_size %[[RR]] : (!cc.sequence<!cc.sequence<i32>>) -> i64
+// CHECK:           cc.alloca !cc.sequence<i32>[%[[RRN]] : i64]
+// CHECK:           cc.loop
+// CHECK:           call @__nvqpp_vectorCopyToStack(
+// CHECK:           call @free(%{{.*}}) : (!cc.ptr<i8>) -> ()
+
+// CHECK-LABEL:   func.func @unmarshal.cbOwnVecVec(
+// CHECK:           call @cbOwnVecVec(
+// CHECK:           call @malloc(
+// CHECK:           call @__nvqpp_vectorCopyCtor(
+// CHECK:           call @__nvqpp_hostDeallocate(
+
+// CHECK-LABEL:   func.func @unmarshal.cbOwnVec(
+// CHECK:           call @cbOwnVec(
+// CHECK:           call @__nvqpp_vectorCopyCtor(
+// CHECK:           call @__nvqpp_hostDeallocate(

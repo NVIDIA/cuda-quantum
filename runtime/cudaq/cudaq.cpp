@@ -391,7 +391,7 @@ void __nvqpp_customop_size_error(std::int64_t expected, std::int64_t actual) {
 }
 
 /// Dispatch hook for the generalized, distributed-memory reference
-/// `device_call` lowering. This reference implementation assumes the "device"
+/// `device_call` lowering. This reference implementation assumes the `device`
 /// and host share the same process and address space: the compiler-generated
 /// marshal code already passes the unmarshal function pointer directly (no
 /// registry lookup by name is needed here), so dispatch is just an indirect
