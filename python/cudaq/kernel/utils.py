@@ -342,8 +342,9 @@ def emitWarning(msg):
         with set_tracebacklimit(None):
             offendingSrc = traceback.format_stack()
         if len(offendingSrc):
-            msg = (Color.YELLOW + "error: " + Color.END + Color.BOLD + msg +
+            msg = (Color.YELLOW + "warning: " + Color.END + Color.BOLD + msg +
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
+    print(msg)
 
 
 def _format_missing_source_error(function, filename):
