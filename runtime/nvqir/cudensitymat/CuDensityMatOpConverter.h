@@ -137,6 +137,17 @@ private:
   createDenseElementaryOperator(const cudaq::complex_matrix &matrix,
                                 const std::vector<int64_t> &subspaceExtents);
 
+  /// @brief The product of `factors`, in order, as a single multi-diagonal
+  /// elementary operator. cuDensityMat expands the intermediate between
+  /// consecutive factors on the same mode to the full mode extent, which is
+  /// costly on modes distributed across ranks. Returns null unless every
+  /// factor acts on the same degrees, is known at conversion time, and the
+  /// product qualifies for multi-diagonal storage.
+  cudensitymatElementaryOperator_t createFusedMultidiagonalOperator(
+      const std::vector<cudaq::matrix_handler> &factors,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents);
+
   void appendFusedTerm(cudensitymatOperator_t cudmOperator,
                        const FusedTerm &fusedTerm,
                        const std::vector<int64_t> &modeExtents,

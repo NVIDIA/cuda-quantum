@@ -233,27 +233,48 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
         std::vector<std::vector<int>> all_action_dual_modalities_right;
 
         const auto numOps = L_daggerTimesL[0].num_ops();
-        for (std::size_t i = 0; i < numOps; ++i) {
-          std::vector<cudaq::matrix_handler> components;
-          for (const auto &prodOp : L_daggerTimesL) {
-            const auto &component = prodOp[i];
-            if (const auto *elemOp =
-                    dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-              components.emplace_back(*elemOp);
-            } else {
-              // Catch anything that we don't know
-              throw std::runtime_error("Unhandled type!");
+        for (std::size_t i = 0; i < numOps;) {
+          // Factors [i, end) act on the same degrees; fuse them if possible.
+          std::size_t end = i + 1;
+          cudensitymatElementaryOperator_t cudmElemOp = nullptr;
+          if (batchedSize == 1) {
+            const auto &prodOp = L_daggerTimesL[0];
+            while (end < numOps &&
+                   prodOp[end].degrees() == prodOp[i].degrees())
+              ++end;
+            if (end - i > 1) {
+              std::vector<cudaq::matrix_handler> factors;
+              for (std::size_t k = i; k < end; ++k)
+                factors.emplace_back(prodOp[k]);
+              cudmElemOp = createFusedMultidiagonalOperator(
+                  factors, parameters, modeExtents);
             }
+            if (!cudmElemOp)
+              end = i + 1;
           }
-
-          auto cudmElemOp =
-              createElementaryOperator(components, parameters, modeExtents);
+          if (!cudmElemOp) {
+            std::vector<cudaq::matrix_handler> components;
+            for (const auto &prodOp : L_daggerTimesL) {
+              const auto &component = prodOp[i];
+              if (const auto *elemOp =
+                      dynamic_cast<const cudaq::matrix_handler *>(
+                          &component)) {
+                components.emplace_back(*elemOp);
+              } else {
+                // Catch anything that we don't know
+                throw std::runtime_error("Unhandled type!");
+              }
+            }
+            cudmElemOp =
+                createElementaryOperator(components, parameters, modeExtents);
+          }
           elemOps.emplace_back(cudmElemOp);
           allDegrees.emplace_back(L_daggerTimesL[0][i].degrees());
           all_action_dual_modalities_left.emplace_back(
               std::vector<int>(L_daggerTimesL[0][i].degrees().size(), 0));
           all_action_dual_modalities_right.emplace_back(
               std::vector<int>(L_daggerTimesL[0][i].degrees().size(), 1));
+          i = end;
         }
 
         {
