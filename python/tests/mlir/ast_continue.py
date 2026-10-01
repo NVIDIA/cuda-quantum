@@ -106,20 +106,19 @@ def test_bare_continue():
 # CHECK-DAG:       %[[VAL_41:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[VAL_42:.*]] = arith.constant 0 : i64
 # CHECK-DAG:       %[[VAL_43:.*]] = arith.constant 4 : i64
-# CHECK-DAG:       %[[VAL_44:.*]] = cc.undef i64
 # CHECK-DAG:       %[[VAL_45:.*]] = quake.alloca !quake.veq<4>
-# CHECK:           %[[VAL_46:.*]]:2 = cc.loop while ((%[[VAL_47:.*]] = %[[VAL_42]], %[[VAL_48:.*]] = %[[VAL_44]]) -> (i64, i64)) {
+# CHECK:           %[[VAL_46:.*]] = cc.loop while ((%[[VAL_47:.*]] = %[[VAL_42]]) -> (i64)) {
 # CHECK:             %[[VAL_49:.*]] = arith.cmpi slt, %[[VAL_47]], %[[VAL_43]] : i64
-# CHECK:             cc.condition %[[VAL_49]](%[[VAL_47]], %[[VAL_48]] : i64, i64)
+# CHECK:             cc.condition %[[VAL_49]](%[[VAL_47]] : i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_50:.*]]: i64, %[[VAL_51:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_50:.*]]: i64):
 # CHECK:             %[[VAL_52:.*]] = quake.extract_ref %[[VAL_45]]{{\[}}%[[VAL_50]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_40]]) %[[VAL_52]] : (f64, !quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_50]], %[[VAL_50]] : i64, i64
+# CHECK:             cc.continue %[[VAL_50]] : i64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_53:.*]]: i64, %[[VAL_54:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_53:.*]]: i64):
 # CHECK:             %[[VAL_55:.*]] = arith.addi %[[VAL_53]], %[[VAL_41]] : i64
-# CHECK:             cc.continue %[[VAL_55]], %[[VAL_54]] : i64, i64
+# CHECK:             cc.continue %[[VAL_55]] : i64
 # CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_45]] : !quake.veq<4>
 # CHECK:           return
