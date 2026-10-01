@@ -28,8 +28,8 @@ from .pipeline import pipelines
 # one pre-linear transform expands only statically bounded register traversals
 # that block that conversion; clean paper-scale workload loops remain folded.
 # Note: the CUDA-Q frontend injects compiler-generated `quake.evince` ops
-# that record a kernel's implicit output, and every CUDA-Q codegen pipeline
-# erases them before lowering.
+# that record a kernel's implicit output, and every CUDA-Q code generation
+# pipeline erases them before lowering.
 CUDAQ_PREPARATION_PREFIX = (
     "builtin.module(func.func(erase-implicit-output),canonicalize,"
     "cc-loop-normalize,symbol-dce,expand-measurements)")
