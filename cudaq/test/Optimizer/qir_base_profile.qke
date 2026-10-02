@@ -178,7 +178,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // PARAMS:           %[[NEGF_3:.*]] = arith.negf %[[THETA]] : f64
 // PARAMS:           call @__quantum__qis__phased_rx{{(__body)?}}(%[[NEGF_3]], %[[PHI]], %[[Q]]) : (f64, f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
 
-// CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
+// CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i1, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__quantum__rt__qubit_allocate() -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array(i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !cc.ptr<!llvm.struct<"Array", opaque>>

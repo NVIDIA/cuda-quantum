@@ -47,6 +47,9 @@ func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-ker
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[REQUIRED_VALUE:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[IS_ARRAY:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[WITH_VALUES:.*]] = arith.constant false
 // CHECK-DAG:       %[[VAL_1:.*]] = constant @__quantum__qis__x__ctl : (!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 6 : i64
@@ -77,19 +80,19 @@ func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-ker
 // CHECK:           %[[VAL_23:.*]] = cc.load %[[VAL_22]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
 // CHECK:           %[[VAL_24:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_20]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
 // CHECK:           %[[VAL_25:.*]] = cc.load %[[VAL_24]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
-// CHECK:           %[[VAL_26:.*]] = cc.cast %[[VAL_23]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
 // CHECK:           %[[VAL_27:.*]] = cc.func_ptr %[[VAL_1]] : ((!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()) -> !llvm.ptr
 // CHECK:           %[[VAL_28:.*]] = cc.cast %[[VAL_25]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
-// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[VAL_27]], %[[VAL_26]], %[[VAL_28]]) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           %[[VAL_26:.*]] = cc.cast %[[VAL_23]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
+// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[WITH_VALUES]], %[[VAL_27]], %[[IS_ARRAY]], %[[REQUIRED_VALUE]], %[[VAL_26]], %[[VAL_28]]) : (i64, i64, i64, i1, !llvm.ptr, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           %[[VAL_29:.*]] = arith.addi %[[VAL_18]], %[[VAL_4]] : i64
 // CHECK:           cf.br ^bb1(%[[VAL_29]] : i64)
 // CHECK:         ^bb3:
 // CHECK:           %[[VAL_30:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
 // CHECK:           %[[VAL_31:.*]] = cc.load %[[VAL_30]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
-// CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_31]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
 // CHECK:           %[[VAL_33:.*]] = cc.func_ptr %[[VAL_1]] : ((!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()) -> !llvm.ptr
 // CHECK:           %[[VAL_34:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
-// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[VAL_33]], %[[VAL_32]], %[[VAL_34]]) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_31]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
+// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[WITH_VALUES]], %[[VAL_33]], %[[IS_ARRAY]], %[[REQUIRED_VALUE]], %[[VAL_32]], %[[VAL_34]]) : (i64, i64, i64, i1, !llvm.ptr, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           call @__quantum__rt__qubit_release_array(%[[VAL_8]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> ()
 // CHECK:           return
 // CHECK:         }

@@ -196,9 +196,8 @@ createTargetCodegenPipeline(OpPassManager &pm,
   cudaq::opt::addPhaseLifecycle(pm);
   const auto tgt = StringRef(options.target).split(':').first;
   const bool isFullQIR = tgt == "qir" || tgt == "qir-full";
-  // `LowerPhase` can leave negative controls on the R1/Rz it creates, so we
-  // need to run this pass again to expand those negations on non-full-QIR
-  // targets.
+  // Full QIR passes negated controls to NVQIR. Other targets expand them after
+  // `LowerPhase`, which can leave negated controls on the R1/Rz it creates.
   if (!isFullQIR)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
