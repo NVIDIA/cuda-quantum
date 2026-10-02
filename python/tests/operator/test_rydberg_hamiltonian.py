@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -36,6 +36,19 @@ def test_atom_filling_none_is_treated_as_unprovided():
                            phase=phase,
                            delta_global=delta,
                            atom_filling=None)
+    assert h.atom_filling == [1, 1]
+
+
+def test_empty_atom_filling_is_treated_as_unprovided():
+    # An explicitly empty `atom_filling` carries no per-site information, so it
+    # must behave like an unprovided value and default to all sites filled.
+    sites = [(0.0, 0.0), (0.0, 1.0)]
+    amp, phase, delta = _scalars()
+    h = RydbergHamiltonian(atom_sites=sites,
+                           amplitude=amp,
+                           phase=phase,
+                           delta_global=delta,
+                           atom_filling=[])
     assert h.atom_filling == [1, 1]
 
 
