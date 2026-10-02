@@ -8,7 +8,6 @@
 
 #include "py_resource_count.h"
 #include "common/Resources.h"
-#include "runtime/common/py_EstimateResult.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "cudaq/algorithms/estimate/policy.h"
@@ -65,8 +64,6 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {
-  bindEstimateResult(mod);
-
   mod.def("estimate_impl", estimate_impl, nanobind::arg("kernel_name"),
           nanobind::arg("kernel_mod"), nanobind::arg("choice").none(),
           nanobind::arg("args"), "See python documentation for estimate.");
