@@ -28,6 +28,7 @@ import cudaq.logical.codes as codes
 import cudaq.logical.gadgets as gadgets
 import cudaq.logical.ops as ops
 import cudaq.logical.types as types
+from cudaq.logical.algebra.gf2 import _row_bits
 from cudaq.logical.programs.decorators import objective as _objective
 
 __all__ = ()
@@ -223,9 +224,11 @@ class WSCMeasurementPlan:
 
 def _base_stabilizers(code) -> tuple[_LabeledPauli, ...]:
     output = []
+    mask = (1 << code.n) - 1
     for index, row in enumerate(code.stabilizer_basis.rows):
-        x = sum(int(bit) << qubit for qubit, bit in enumerate(row[:code.n]))
-        z = sum(int(bit) << qubit for qubit, bit in enumerate(row[code.n:]))
+        # Stabilizer rows are normalized GF(2) entries in [X | Z] order.
+        packed = _row_bits(row)
+        x, z = packed & mask, packed >> code.n
         output.append(_LabeledPauli.from_masks(x, z, 0, f"base_{index}"))
     return tuple(output)
 
