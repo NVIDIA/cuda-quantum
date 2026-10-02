@@ -147,6 +147,20 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
   }
 }
 
+// StackFramePrealloc also runs a second time here, immediately after
+// addLowerToCFG at every call site. This invocation is not optional and must
+// never be dropped: addLowerToCFG's own scope-lowering (see
+// LowerToCFG.cpp's RewriteScope) unconditionally wraps any cc.scope with a
+// classical allocation in an llvm.stacksave/llvm.stackrestore pair, because a
+// lowered CFG has no structured construct left to express "free this memory
+// when the scope exits". That stackrestore call would free a dynamically
+// sized allocation (e.g. the backing storage of a value returned from a
+// loop, or a mid-circuit measurement result) before it is read, unless
+// StackFramePrealloc's pinned-allocation analysis strips the premature
+// restore. Those stacksave/stackrestore calls do not exist before
+// addLowerToCFG runs, so this cleanup can only happen after it -- the
+// earlier invocation in createCommonTargetCodegenPipeline, which runs over
+// still-structured control flow, cannot substitute for it.
 void cudaq::opt::addLowerToCFGAndCleanup(OpPassManager &pm) {
   cudaq::opt::addLowerToCFG(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
@@ -181,6 +195,15 @@ createCommonTargetCodegenPipeline(OpPassManager &pm,
   // If there was any specialization, we want another round in inlining to
   // inline the apply calls properly.
   cudaq::opt::addAggressiveInlining(pm);
+  // Hoist loop-invariant classical allocations here, while control flow is
+  // still structured (cc.scope/cc.if/cc.loop), so combine-quantum-allocations
+  // and the rest of this pipeline see the smaller, entry-hoisted frame rather
+  // than one live allocation per loop iteration. This does not replace the
+  // addLowerToCFGAndCleanup invocation below/downstream: a dynamically sized
+  // allocation (e.g. a value returned from a loop) is never hoisted by this
+  // pass regardless of when it runs, and only the later invocation can strip
+  // the stacksave/stackrestore calls addLowerToCFG itself inserts.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -352,8 +375,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   LoopUnrollOptions luo;
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  addLowerToCFG(pm);
-  pm.addNestedPass<func::FuncOp>(createStackFramePrealloc());
+  cudaq::opt::addLowerToCFGAndCleanup(pm);
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
