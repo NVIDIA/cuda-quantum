@@ -20,6 +20,11 @@ sample_result future::get() {
   if (wrapsFutureSampling)
     return inFuture.get();
 
+  if (registry::isRegistered<JobResultRetriever>(qpuName)) {
+    auto retriever = registry::get<JobResultRetriever>(qpuName);
+    return retriever->retrieve(jobs, serverConfig, resultType);
+  }
+
 #ifdef CUDAQ_RESTCLIENT_AVAILABLE
   RestClient client;
   auto serverHelper = registry::get<ServerHelper>(qpuName);
@@ -115,7 +120,7 @@ future &future::operator=(future &&other) {
 }
 
 std::ostream &operator<<(std::ostream &os, future &f) {
-  if (f.wrapsFutureSampling)
+  if (f.wrapsFutureSampling && f.jobs.empty())
     throw std::runtime_error(
         "Cannot persist a cudaq::future for a local kernel execution.");
 
@@ -144,3 +149,5 @@ std::istream &operator>>(std::istream &is, future &f) {
 }
 
 } // namespace cudaq::detail
+
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::detail::JobResultRetriever::RegistryType)
