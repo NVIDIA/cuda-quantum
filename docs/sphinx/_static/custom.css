@@ -26,6 +26,10 @@
     background: white;
 }
 
+.notebook-entry.notebook-moved {
+    grid-template-columns: 1fr;
+}
+
 .notebook-title {
     grid-area: title;
     display: block;
