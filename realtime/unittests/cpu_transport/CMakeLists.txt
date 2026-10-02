@@ -64,11 +64,13 @@ if(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK)
     "  - test_cpu_roce_hololink_wrapper (Hololink adapter contract)")
 else()
   # Unified (thread-free) mode is legacy-backend only.  The contract cases run
-  # anywhere; the service cases skip unless CUDAQ_CPU_ROCE_TEST_* name an RDMA
-  # topology.
+  # anywhere; the service cases probe the RoCE transport and skip (or fail,
+  # under CUDAQ_REALTIME_REQUIRE_ROCE_TESTS) when it is unavailable.
   add_executable(test_cpu_roce_transceiver test_cpu_roce_transceiver.cpp)
   target_include_directories(test_cpu_roce_transceiver PRIVATE
     ${CUDAQ_REALTIME_INCLUDE_DIR})
+  target_compile_definitions(test_cpu_roce_transceiver PRIVATE
+    CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=$<BOOL:${CUDAQ_REALTIME_REQUIRE_ROCE_TESTS}>)
   target_link_libraries(test_cpu_roce_transceiver PRIVATE
     GTest::gtest_main
     cudaq-realtime-cpu-roce-transport

@@ -17,10 +17,11 @@
 /// service's Sends into its own -- after the same TCP {qp, rkey, ip}
 /// rendezvous the cpu_roce provider serves in its connect().
 ///
-/// Needs an RDMA device: skipped unless
-/// CUDAQ_CPU_ROCE_TEST_{CHANNEL,DAEMON}_{DEVICE,IP} are set, the same topology
-/// variables as test_cpu_roce_device_call.  Both endpoints may name the same
-/// port (the HCA loops the frame back internally).
+/// Needs RoCE: the fixture probes the topology from roce_test_topology()
+/// (testing/roce_probe.h) and, when it is not usable, skips -- or fails, when
+/// RoCE tests are required (build option CUDAQ_REALTIME_REQUIRE_ROCE_TESTS,
+/// env CUDAQ_REALTIME_REQUIRE_ROCE).  Both endpoints may name the same port
+/// (the HCA loops the frame back internally).
 ///
 /// CONSEQUENCE FOR THE NEGATIVE CASES, as for udp: under the ring shape the
 /// service's TX pump walks slots in strict cursor order and parks on a slot
@@ -30,6 +31,7 @@
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/testing/roce_probe.h"
 #include "cudaq/realtime/testing/server_process.h"
 #include "cudaq/realtime/testing/test_utils.h"
 
@@ -45,7 +47,6 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -61,6 +62,10 @@ using cudaq::realtime::RPC_MAGIC_REQUEST;
 using cudaq::realtime::RPC_MAGIC_RESPONSE;
 using cudaq::realtime::RPCHeader;
 using cudaq::realtime::RPCResponse;
+using cudaq::realtime::testing::roce_test_gate;
+using cudaq::realtime::testing::roce_test_topology;
+using cudaq::realtime::testing::RoceGate;
+using cudaq::realtime::testing::RoceTopology;
 using cudaq::realtime::testing::ServerProcess;
 using cudaq::realtime::testing::slot_data;
 using cudaq::realtime::testing::store_flag;
@@ -134,29 +139,25 @@ bool exchange_rendezvous(std::uint16_t port, const RendezvousInfo &self,
   return ok;
 }
 
-const char *env_or_null(const char *name) {
-  const char *v = std::getenv(name);
-  return (v && *v) ? v : nullptr;
-}
-
 class CpuRoceTwoProcess : public ::testing::TestWithParam<const char *> {
 protected:
   void SetUp() override {
-    const char *caller_dev = env_or_null("CUDAQ_CPU_ROCE_TEST_CHANNEL_DEVICE");
-    const char *caller_ip = env_or_null("CUDAQ_CPU_ROCE_TEST_CHANNEL_IP");
-    const char *service_dev = env_or_null("CUDAQ_CPU_ROCE_TEST_DAEMON_DEVICE");
-    const char *service_ip = env_or_null("CUDAQ_CPU_ROCE_TEST_DAEMON_IP");
-    if (!caller_dev || !caller_ip || !service_dev || !service_ip)
-      GTEST_SKIP() << "cpu_roce test topology not configured (set "
-                      "CUDAQ_CPU_ROCE_TEST_{CHANNEL,DAEMON}_{DEVICE,IP})";
+    topology = roce_test_topology();
+    const RoceGate gate = roce_test_gate(topology);
+    if (gate.action == RoceGate::Fail)
+      FAIL() << gate.reason;
+    if (gate.action == RoceGate::Skip)
+      GTEST_SKIP() << gate.reason;
+    const char *caller_dev = topology.caller.device.c_str();
+    const char *caller_ip = topology.caller.ip.c_str();
 
     const bool unified = std::string(GetParam()) == "unified";
     std::vector<std::string> argv = {
         CUDAQ_REALTIME_TEST_SERVER_PATH, "--transport=cpu_roce",
         std::string("--dispatch=") + GetParam(), "--timeout=120",
         // Bridge options from here on, forwarded verbatim by the server.
-        "--", std::string("--device=") + service_dev,
-        std::string("--local-ip=") + service_ip, "--port=0",
+        "--", "--device=" + topology.service.device,
+        "--local-ip=" + topology.service.ip, "--port=0",
         "--num-slots=" + std::to_string(kNumSlots),
         "--slot-size=" + std::to_string(kSlotSize)};
     if (unified)
@@ -292,6 +293,9 @@ protected:
     EXPECT_EQ(expected, count);
   }
 
+  // A member, not a SetUp() local: the transceiver keeps the device-name
+  // pointer it is created with.
+  RoceTopology topology;
   ServerProcess server;
   cpu_roce_transceiver_t caller = nullptr;
   std::thread callerMonitor;

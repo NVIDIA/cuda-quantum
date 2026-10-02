@@ -11,9 +11,9 @@
 
 # End-to-end: spawn the transport-agnostic test server on a cpu_roce bridge
 # and drive it from a caller transceiver in this process, under both dispatch
-# shapes.  Needs an RDMA device: every case skips unless
-# CUDAQ_CPU_ROCE_TEST_{CHANNEL,DAEMON}_{DEVICE,IP} are set.  The unified shape
-# is legacy-backend only (the Hololink backend refuses it).
+# shapes.  Needs RoCE: every case probes the transport and skips (or fails,
+# under CUDAQ_REALTIME_REQUIRE_ROCE_TESTS) when it is unavailable.  The unified
+# shape is legacy-backend only (the Hololink backend refuses it).
 if (TARGET cudaq-realtime-bridge-cpu-roce AND
     TARGET cudaq-realtime-test-server AND
     TARGET cudaq-realtime-cpu-roce-transport AND
@@ -26,6 +26,7 @@ if (TARGET cudaq-realtime-bridge-cpu-roce AND
 
   target_compile_definitions(test_cpu_roce_two_process PRIVATE
     CUDAQ_REALTIME_TEST_SERVER_PATH="$<TARGET_FILE:cudaq-realtime-test-server>"
+    CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=$<BOOL:${CUDAQ_REALTIME_REQUIRE_ROCE_TESTS}>
   )
 
   target_link_libraries(test_cpu_roce_two_process PRIVATE

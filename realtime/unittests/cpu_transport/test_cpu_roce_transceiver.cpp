@@ -17,24 +17,29 @@
 ///     threaded caller in the same process (the CpuRoceChannel wire pattern:
 ///     the caller Writes-with-Imm requests, the service Sends responses).  No
 ///     dispatcher is involved, so these pin the transport's half of the
-///     contract on their own.  Needs an RDMA device; skipped unless
-///     CUDAQ_CPU_ROCE_TEST_{CHANNEL,DAEMON}_{DEVICE,IP} are set, the same
-///     topology variables as test_cpu_roce_device_call.
+///     contract on their own.  Needs RoCE: the fixture probes the topology
+///     from roce_test_topology() (testing/roce_probe.h) and, when it is not
+///     usable, skips -- or fails, when RoCE tests are required (build option
+///     CUDAQ_REALTIME_REQUIRE_ROCE_TESTS, env CUDAQ_REALTIME_REQUIRE_ROCE).
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
+#include "cudaq/realtime/testing/roce_probe.h"
 #include "cudaq/realtime/testing/test_utils.h"
 
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <future>
 #include <string>
 #include <thread>
 
 using cudaq::realtime::testing::load_flag;
+using cudaq::realtime::testing::roce_test_gate;
+using cudaq::realtime::testing::roce_test_topology;
+using cudaq::realtime::testing::RoceGate;
+using cudaq::realtime::testing::RoceTopology;
 using cudaq::realtime::testing::slot_data;
 using cudaq::realtime::testing::store_flag;
 using cudaq::realtime::testing::wait_for_flag;
@@ -83,30 +88,25 @@ TEST(CpuRoceUnifiedContract, HooksRefuseTheThreadedShape) {
   cpu_roce_destroy_transceiver(xcvr);
 }
 
-const char *env_or_null(const char *name) {
-  const char *v = std::getenv(name);
-  return (v && *v) ? v : nullptr;
-}
-
 class CpuRoceUnifiedServiceTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    const char *caller_dev = env_or_null("CUDAQ_CPU_ROCE_TEST_CHANNEL_DEVICE");
-    const char *caller_ip = env_or_null("CUDAQ_CPU_ROCE_TEST_CHANNEL_IP");
-    const char *service_dev = env_or_null("CUDAQ_CPU_ROCE_TEST_DAEMON_DEVICE");
-    const char *service_ip = env_or_null("CUDAQ_CPU_ROCE_TEST_DAEMON_IP");
-    if (!caller_dev || !caller_ip || !service_dev || !service_ip)
-      GTEST_SKIP() << "cpu_roce test topology not configured (set "
-                      "CUDAQ_CPU_ROCE_TEST_{CHANNEL,DAEMON}_{DEVICE,IP})";
-    callerIp = caller_ip;
-    serviceIp = service_ip;
+    topology = roce_test_topology();
+    const RoceGate gate = roce_test_gate(topology);
+    if (gate.action == RoceGate::Fail)
+      FAIL() << gate.reason;
+    if (gate.action == RoceGate::Skip)
+      GTEST_SKIP() << gate.reason;
+    const std::string &callerIp = topology.caller.ip;
+    const std::string &serviceIp = topology.service.ip;
 
     service = cpu_roce_create_transceiver(
-        service_dev, 1, 0, kSlotSize, kSlotSize, kNumSlots, "0.0.0.0", 0, 0, 0,
-        /*unified=*/1, CPU_ROCE_TX_MODE_RDMA_SEND, 0, 0);
+        topology.service.device.c_str(), 1, 0, kSlotSize, kSlotSize, kNumSlots,
+        "0.0.0.0", 0, 0, 0, /*unified=*/1, CPU_ROCE_TX_MODE_RDMA_SEND, 0, 0);
     caller = cpu_roce_create_transceiver(
-        caller_dev, 1, 0, kSlotSize, kSlotSize, kNumSlots, "0.0.0.0", 0, 0, 0,
-        /*unified=*/0, CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM, 0, 0);
+        topology.caller.device.c_str(), 1, 0, kSlotSize, kSlotSize, kNumSlots,
+        "0.0.0.0", 0, 0, 0, /*unified=*/0, CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM,
+        0, 0);
     ASSERT_NE(nullptr, service);
     ASSERT_NE(nullptr, caller);
     cpu_roce_set_local_ip(service, serviceIp.c_str());
@@ -197,7 +197,9 @@ protected:
         len);
   }
 
-  std::string callerIp, serviceIp;
+  // A member, not a SetUp() local: the transceivers keep the device-name and
+  // peer-IP pointers they are given.
+  RoceTopology topology;
   cpu_roce_transceiver_t service = nullptr;
   cpu_roce_transceiver_t caller = nullptr;
   std::thread callerMonitor;

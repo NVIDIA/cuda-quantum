@@ -134,3 +134,13 @@ add_subdirectory(bridge_interface/cpu_roce)
 # Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
 # libibverbs is not available.
 add_subdirectory(cpu_transport)
+
+# A host that must run the RoCE tests must also build them: otherwise a
+# configuration that silently drops the binaries reports "no tests" and passes.
+if (CUDAQ_REALTIME_REQUIRE_ROCE_TESTS AND
+    NOT (TARGET test_cpu_roce_transceiver AND TARGET test_cpu_roce_two_process))
+  message(FATAL_ERROR
+    "CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=ON but the cpu_roce RDMA tests are not "
+    "built (they need libibverbs, the legacy backend "
+    "-- CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=OFF -- and the test server)")
+endif()
