@@ -71,6 +71,9 @@ func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 // PIPELINE-NEXT: convert-to-cfg
 // PIPELINE-NEXT: ),
 // PIPELINE-NEXT: func.func(
+// PIPELINE-NEXT: stack-frame-prealloc
+// PIPELINE-NEXT: ),
+// PIPELINE-NEXT: func.func(
 // PIPELINE-NEXT: canonicalize
 // PIPELINE-NEXT: ),
 // PIPELINE-NEXT: wireset-to-profile-qir-prep,

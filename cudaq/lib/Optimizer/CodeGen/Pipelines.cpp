@@ -338,6 +338,7 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
 

@@ -70,10 +70,11 @@ func.func @exposed_roundtrip() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 }
 
 // Models the post-inlining shape of a cudaq.run kernel returning a dynamic
-// sequence. Lowering its scope inserts stack save/restore operations around
-// the classical allocation. StackFramePrealloc runs before lowering and marks
-// this scope as needing no stack fence, so the backing storage remains live
-// through output.
+// sequence. Lowering a scope may insert stack save/restore operations around
+// its classical allocation, unless the scope is marked as needing no stack
+// fence. StackFramePrealloc runs before lowering and marks this scope, as it
+// cannot run more than once per function activation, so none is inserted and
+// the backing storage remains live through output.
 func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [!cc.sequence<i64>]} {
   %result = cc.scope -> (!cc.sequence<i64>) {
     %storage = cc.alloca i64[%size : i64]

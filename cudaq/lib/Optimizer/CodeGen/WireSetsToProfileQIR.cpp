@@ -754,6 +754,7 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep());
   WireSetToProfileQIROptions wopt;
