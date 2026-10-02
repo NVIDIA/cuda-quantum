@@ -783,7 +783,8 @@ void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
 void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern,
-               EraseEmptyVeqControlPattern<ExpPauliOp>>(context);
+               EraseEmptyVeqControlPattern<ExpPauliOp>,
+               EraseRedundantNegatedControlsPattern<ExpPauliOp>>(context);
 }
 
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
@@ -1325,8 +1326,8 @@ void cudaq::quake::PhaseOp::getOperatorMatrix(Matrix &matrix) {
 void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<AdjustAdjointPhasePattern, EraseZeroPhasePattern,
-               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>>(
-      context);
+               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>,
+               EraseRedundantNegatedControlsPattern<PhaseOp>>(context);
 }
 
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
@@ -1487,7 +1488,9 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
 
 void cudaq::quake::CustomUnitaryCallOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>>(context);
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>,
+               EraseRedundantNegatedControlsPattern<CustomUnitaryCallOp>>(
+      context);
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
@@ -1581,7 +1584,9 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
 
 void cudaq::quake::CustomUnitaryConstantOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>>(context);
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>,
+               EraseRedundantNegatedControlsPattern<CustomUnitaryConstantOp>>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1725,7 +1730,8 @@ WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 #define INSTANTIATE_OPERATOR_CANONICALIZATION(Op)                              \
   void cudaq::quake::Op::getCanonicalizationPatterns(                          \
       RewritePatternSet &patterns, MLIRContext *context) {                     \
-    patterns.add<EraseEmptyVeqControlPattern<Op>>(context);                    \
+    patterns.add<EraseEmptyVeqControlPattern<Op>,                              \
+                 EraseRedundantNegatedControlsPattern<Op>>(context);           \
   }
 
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)

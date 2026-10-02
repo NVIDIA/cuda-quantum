@@ -216,6 +216,22 @@ struct EraseEmptyVeqControlPattern : public OpRewritePattern<ConcreteOp> {
   }
 };
 
+// An absent polarity attribute already means that every control is positive.
+template <typename ConcreteOp>
+struct EraseRedundantNegatedControlsPattern
+    : public OpRewritePattern<ConcreteOp> {
+  using OpRewritePattern<ConcreteOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ConcreteOp op,
+                                PatternRewriter &rewriter) const override {
+    const auto negated = op.getNegatedQubitControls();
+    if (!negated || llvm::is_contained(*negated, true))
+      return failure();
+    rewriter.modifyOpInPlace(op, [&] { op.setNegatedQubitControlsAttr({}); });
+    return success();
+  }
+};
+
 // quake.apply @callee [%c, %empty] (%args) : (...) -> ()
 // ────────────────────────────────────────────────────────
 // quake.apply @callee [%c] (%args) : (...) -> ()
