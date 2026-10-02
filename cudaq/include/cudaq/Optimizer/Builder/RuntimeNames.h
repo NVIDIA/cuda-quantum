@@ -49,7 +49,7 @@ static constexpr const char CudaqRegisterCallbackName[] =
 
 /// Prefix for an analog kernel entry functions.
 static constexpr const char cudaqAHKPrefixName[] =
-    "__analog_hamiltonian_kernel__";
+    "__cudaq_analog_hamiltonian_kernel__";
 
 // Host-side helper functions for working with `cudaq::pauli_word` or a
 // `std::string`. These include both fully dynamic and binding time (library
