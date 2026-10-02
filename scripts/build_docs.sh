@@ -220,6 +220,22 @@ build_sphinx_docs() (
         done
     fi
 
+    # Fetch the intersphinx inventories up front so a transient failure at an
+    # upstream host does not fail the warnings-as-errors build. conf.py uses
+    # whatever lands here and falls back to the network for the rest.
+    inventory_dir="$docs_build_output/inventories"
+    mkdir -p "$inventory_dir"
+    retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+    fetch_inventory() {
+        if ! retry wget -q --timeout=30 -O "$inventory_dir/$1.inv" "$2"; then
+            rm -f "$inventory_dir/$1.inv"
+            echo "Could not fetch the $1 inventory; sphinx will try to retrieve it."
+        fi
+    }
+    fetch_inventory python https://docs.python.org/3/objects.inv
+    fetch_inventory numpy https://numpy.org/doc/stable/objects.inv
+    export CUDAQ_INTERSPHINX_INVENTORIES="$inventory_dir"
+
     rm -rf "$sphinx_output_dir"
     echo "Running sphinx in $PWD"
     set -x
