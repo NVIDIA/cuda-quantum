@@ -16,7 +16,9 @@
 // vector of small structs, and a large struct as an argument and return the
 // same.
 
-#define NYI /*__qpu__*/
+// The kernel calls a plain host function with a vector argument. That is not
+// supported in a kernel.
+#define NYI_HOST_CALL /*__qpu__*/
 
 void ok() { std::cout << "ok\n"; }
 void fail() { std::cout << "fail\n"; }
@@ -37,7 +39,7 @@ public:
 };
 
 struct QernelS1 {
-  S1 operator()(S1 s) NYI {
+  S1 operator()(S1 s) __qpu__ {
     if (s._1 == 4 && s._2 == 8.2)
       ok();
     else
@@ -63,8 +65,7 @@ struct QernelS2a {
 };
 
 struct QernelS2 {
-  // kernel result type not supported (bridge)
-  S2 operator()(S2 s) NYI {
+  S2 operator()(S2 s) __qpu__ {
     s._1++;
     s._2[0] = 0.0;
     s._3 = -s._3;
@@ -93,7 +94,7 @@ struct QernelS3 {
 std::vector<S1> mock_ctor(const std::vector<S1> &v) { return v; }
 
 struct QernelS4 {
-  std::vector<S1> operator()(std::vector<S1> s) NYI {
+  std::vector<S1> operator()(std::vector<S1> s) NYI_HOST_CALL {
     s[0]._1++;
     s[0]._2 = 0.0;
     return mock_ctor(s);
