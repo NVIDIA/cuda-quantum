@@ -10,6 +10,7 @@
 #include "cudaq/Frontend/nvqpp/QisBuilder.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/QEC/QECOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -2893,34 +2894,16 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       reportClangError(x, mangler, "expect exactly one return value");
       return false;
     }
-    if (auto vecTy =
-            dyn_cast<cudaq::cc::SequenceType>(call.getResult(0).getType())) {
+    if (cc::isDynamicType(call.getResult(0).getType())) {
+      // The callee returns the dynamic parts of its result, a vector or a
+      // struct that has a vector member, possibly nested, in heap memory. That
+      // is the responsibility of this side, which moves it to its own stack and
+      // frees the heap storage.
       auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
       if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyToStack")))
         module.emitError("failed to load intrinsic");
-      auto eleTy = [&]() -> Type {
-        auto et = vecTy.getElementType();
-        if (et == builder.getI1Type())
-          return builder.getI8Type();
-        return et;
-      }();
-      auto data = cudaq::cc::SequenceDataOp::create(
-          builder, loc, cudaq::cc::PointerType::get(eleTy), call.getResult(0));
-      auto i64Ty = builder.getI64Type();
-      auto len = cudaq::cc::SequenceSizeOp::create(builder, loc, i64Ty,
-                                                   call.getResult(0));
-      auto eleSize = cudaq::cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
-      auto size = arith::MulIOp::create(builder, loc, len, eleSize);
-      auto buffer = cudaq::cc::AllocaOp::create(builder, loc, eleTy, size);
-      auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-      auto cbuffer = cudaq::cc::CastOp::create(builder, loc, i8PtrTy, buffer);
-      auto cdata = cudaq::cc::CastOp::create(builder, loc, i8PtrTy, data);
-      func::CallOp::create(builder, loc, TypeRange{},
-                           "__nvqpp_vectorCopyToStack",
-                           ValueRange{cbuffer, cdata, size});
-      Value newSpan =
-          cudaq::cc::SequenceInitOp::create(builder, loc, vecTy, buffer, len);
-      return pushValue(newSpan);
+      return pushValue(opt::marshal::copyDynamicValueToStack(
+          loc, builder, call.getResult(0)));
     }
     return pushValue(call.getResult(0));
   }

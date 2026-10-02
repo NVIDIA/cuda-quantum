@@ -96,6 +96,26 @@ WithVec freeWithVec(WithVec w) __qpu__ {
   return w;
 }
 
+// A struct with a std::vector<bool> member. The host's vector<bool> is bit
+// packed, so it is built from the bytes that the kernel returns.
+struct WithBools {
+  int tag;
+  std::vector<bool> flags;
+};
+
+WithBools freeWithBools() __qpu__ {
+  cudaq::qvector q(2);
+  x(q[0]);
+  return {6, cudaq::to_bools(mz(q))};
+}
+
+// A kernel that calls a kernel that returns a result with dynamic parts.
+std::vector<std::vector<int>> nestedResult() __qpu__ {
+  return {{1, 2}, {3, 4}};
+}
+
+int callerNested() __qpu__ { return nestedResult()[1][1]; }
+
 std::vector<std::vector<double>>
 freeVecVec(std::vector<std::vector<double>> v) __qpu__ {
   hookInt("arg v.size", v.size());
@@ -156,6 +176,14 @@ int main() {
     std::cout << ' ' << x;
   std::cout << '\n';
 
+  WithBools wb = freeWithBools();
+  std::cout << "ret withbools " << wb.tag << ':';
+  for (bool x : wb.flags)
+    std::cout << ' ' << x;
+  std::cout << '\n';
+
+  std::cout << "ret callernested " << callerNested() << '\n';
+
   auto vv = freeVecVec({{1.0, 2.0}, {3.0}, {}});
   std::cout << "ret vecvec " << vv.size() << ':';
   for (auto &inner : vv) {
@@ -201,6 +229,8 @@ int main() {
 // CHECK-NEXT: arg tag 7
 // CHECK-NEXT: arg data.size 3
 // CHECK-NEXT: ret withvec 8: 100 2 3
+// CHECK-NEXT: ret withbools 6: 1 0
+// CHECK-NEXT: ret callernested 4
 // CHECK-NEXT: arg v.size 3
 // CHECK-NEXT: arg v[1].size 1
 // CHECK-NEXT: ret vecvec 3: [ -1 2 ] [ 3 ] [ ]

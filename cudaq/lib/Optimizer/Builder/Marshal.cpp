@@ -1585,9 +1585,9 @@ void cudaq::opt::marshal::buildHostValueFromDeviceValue(
     Value count = cc::SequenceSizeOp::create(builder, loc, i64Ty, devVal);
     if (eleTy == builder.getI1Type()) {
       // The host's std::vector<bool> is bit-packed, so it is built by the
-      // library from the bytes, which are no longer needed afterwards.
+      // library from the bytes. The library frees the bytes, so they must not
+      // be freed here.
       genSequenceBoolFromInitList(loc, builder, hostDest, data, count);
-      freeStorage(data);
       return;
     }
     if (!cc::isDynamicType(eleTy)) {
