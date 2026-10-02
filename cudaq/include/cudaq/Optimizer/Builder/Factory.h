@@ -45,6 +45,13 @@ T convertBitsToBytes(T bits) {
 
 constexpr const char disableQubitCombineAttrName[] = "cc.no_qubit_combine";
 
+/// Unit attribute placed on a `cc.scope` by `stack-frame-prealloc` when the
+/// scope can execute at most once per function activation. Lowering such a
+/// scope to CFG need not fence its classical allocations with a
+/// `stacksave`/`stackrestore` pair, so storage that escapes the scope stays
+/// live.
+constexpr const char noStackFenceAttrName[] = "cc.no_stack_fence";
+
 namespace factory {
 
 constexpr const char targetTripleAttrName[] = "llvm.triple";
