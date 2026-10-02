@@ -53,7 +53,7 @@ ZLIB_VERSION=1.3.2
 ZLIB_TARBALL_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
 
 BLAS_VERSION=3.11.0
-BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
+BLAS_TARBALL_URL="https://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 
 # GMP and MPFR back the Clifford+T rotation synthesis library (cudaq-synth).
 # Both are LGPL v3 (see https://gmplib.org/ and https://www.mpfr.org/). They
