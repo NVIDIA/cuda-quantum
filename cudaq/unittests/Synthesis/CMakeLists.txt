@@ -26,11 +26,14 @@ add_synthesis_test(synthesis_integer_test       Math/IntegerTest.cpp)
 add_synthesis_test(synthesis_real_test          Math/RealTest.cpp)
 add_synthesis_test(synthesis_odgp_test          Math/Grid/OdgpTest.cpp)
 add_synthesis_test(synthesis_zsqrt2_test        Math/Ring/Zsqrt2Test.cpp)
+add_synthesis_test(synthesis_zomega_test        Math/Ring/ZomegaTest.cpp)
+add_synthesis_test(synthesis_unitary_test       Math/UnitaryTest.cpp)
 add_synthesis_test(synthesis_stepper_test       Support/StepperTest.cpp)
 add_synthesis_test(synthesis_clifford_test      Circuit/CliffordTest.cpp)
 add_synthesis_test(synthesis_normalization_test Circuit/NormalizationTest.cpp)
 target_link_options(synthesis_normalization_test PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 add_synthesis_test(synthesis_gridsynth_test     Synthesis/GridsynthTest.cpp)
+add_synthesis_test(synthesis_gridsynth_sweep_test Synthesis/GridsynthSweepTest.cpp)
 
 add_custom_target(check-cudaq-synth-unittests
   COMMAND ${CMAKE_CTEST_COMMAND}
@@ -42,9 +45,12 @@ add_custom_target(check-cudaq-synth-unittests
     synthesis_real_test
     synthesis_odgp_test
     synthesis_zsqrt2_test
+    synthesis_zomega_test
+    synthesis_unitary_test
     synthesis_stepper_test
     synthesis_clifford_test
     synthesis_normalization_test
     synthesis_gridsynth_test
+    synthesis_gridsynth_sweep_test
   COMMENT "Running all cudaq-synth unit tests"
 )

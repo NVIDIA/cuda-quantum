@@ -125,6 +125,12 @@ struct GridsynthStats {
   details::Relaxed<int64_t> diophantine_calls = 0;
   details::Relaxed<int64_t> diophantine_successes = 0;
 
+  /// How many degenerate solutions the scan had to compare on gate count:
+  /// members of the unit orbit of w (`omega^j * w`, j = 0..7), other than the
+  /// selected one, that reached the same minimal T-count. Zero means a single
+  /// member reached the minimal T-count.
+  details::Relaxed<int64_t> orbit_t_count_ties = 0;
+
   /// Integer-factoring attempts, and how many returned a factor.
   /// `factoring_restarts` counts re-rolls on a composite a previous attempt
   /// failed to split.
