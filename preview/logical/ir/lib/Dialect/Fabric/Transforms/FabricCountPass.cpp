@@ -133,10 +133,8 @@ struct CallableSummaryKey {
   Operation *callee = nullptr;
   bool suppressInlineAnalysis = false;
   SmallVector<StringRef, 4> inputRegions;
-  SmallVector<std::pair<StringRef, int64_t>, 4> liveRegions;
+  SmallVector<StringRef, 4> liveRegions;
   SmallVector<StringRef, 4> tickRegions;
-  int64_t totalLive = 0;
-  int64_t logicalLive = 0;
 
   bool operator<(const CallableSummaryKey &other) const {
     if (callee != other.callee)
@@ -155,19 +153,29 @@ struct CallableSummaryKey {
       return std::lexicographical_compare(
           tickRegions.begin(), tickRegions.end(), other.tickRegions.begin(),
           other.tickRegions.end());
-    if (totalLive != other.totalLive)
-      return totalLive < other.totalLive;
-    return logicalLive < other.logicalLive;
+    return false;
   }
+};
+
+/// Entry counts needed to replay a summary without saturating a release or
+/// changing whether a locally mapped region is live at a tick.
+struct EntryLivenessRequirements {
+  int64_t patches = 0;
+  int64_t logicals = 0;
+  DenseMap<StringRef, int64_t> regionMin;
+  DenseMap<StringRef, int64_t> regionMax;
 };
 
 /// Exact additive facts for one executable callable at unit multiplicity.
 ///
-/// The key includes the exact abstract liveness state consumed by FabricCount,
-/// so balanced allocation/tick-bearing protocol bodies can be reused without
-/// changing peak or attribution semantics.  A closure whose exit liveness
-/// differs is retained on the original exact-walk path.
+/// Peaks are additional live patches/qubits above the caller's entry counts,
+/// independent of call multiplicity. The key retains region presence for tick
+/// attribution, but not absolute counts. Entry requirements guard releases and
+/// tick predicates when a callable temporarily consumes entry reservations.
+/// Closures with different exit liveness or saturating releases retain the
+/// exact-walk path.
 struct CallableSummary {
+  EntryLivenessRequirements entryLiveness;
   llvm::MapVector<StringRef, PerRegion> perRegion;
   llvm::MapVector<StringRef, ProtocolEntry> perProtocol;
   std::map<std::string, int64_t> operationCounts;
@@ -269,6 +277,12 @@ private:
   uint64_t callableSummaryHits = 0;
   uint64_t callableSummaryNegativeHits = 0;
   uint64_t callableSummarySavedOperations = 0;
+  // A probe records the entry-count bounds under which its liveness evolution
+  // and tick attribution remain identical after translating the starting
+  // counts.
+  const Walker *summaryCaller = nullptr;
+  EntryLivenessRequirements entryLiveness;
+  bool relativeLiveness = true;
   bool enableCallableSummaries = true;
   std::map<CallableSummaryKey, CachedCallableSummary> callableSummaryCache;
 
@@ -291,6 +305,7 @@ private:
   void bump(std::map<std::string, int64_t> &counts, StringRef name,
             int64_t value, Operation *source, StringRef what);
 
+  void releasePatch(Value patch, Operation *source);
   void walkBlock(Block &block, int64_t mult);
   void walkOp(Operation *op, int64_t mult);
   void walkCall(CallOp call, int64_t mult);
@@ -301,6 +316,7 @@ private:
   FailureOr<CachedCallableSummary>
   buildCallableSummary(Operation *callee, Operation *wrapper,
                        const CallableSummaryKey &key);
+  bool canApplyCallableSummary(const CallableSummary &summary) const;
   LogicalResult applyCallableSummary(Operation *wrapper,
                                      const CallableSummary &summary,
                                      int64_t multiplicity);
@@ -773,6 +789,41 @@ Block *Walker::resolveExecutableBody(Operation *callable,
   return &callable->getRegion(0).front();
 }
 
+void Walker::releasePatch(Value patch, Operation *source) {
+  auto weight = logicalWeight(patch, source);
+  if (failed(weight))
+    return;
+  StringRef region = regionForValue(patch);
+  if (!region.empty()) {
+    int64_t &live = liveByRegion[region];
+    if (summaryCaller) {
+      if (live == 0)
+        relativeLiveness = false;
+      else {
+        int64_t &required = entryLiveness.regionMin[region];
+        required = std::max(
+            required, summaryCaller->liveByRegion.lookup(region) - (live - 1));
+      }
+    }
+    if (live > 0)
+      --live;
+  }
+  if (summaryCaller) {
+    if (totalLive == 0 || logicalLive < *weight)
+      relativeLiveness = false;
+    else {
+      entryLiveness.patches = std::max(
+          entryLiveness.patches, summaryCaller->totalLive - (totalLive - 1));
+      entryLiveness.logicals =
+          std::max(entryLiveness.logicals,
+                   summaryCaller->logicalLive - (logicalLive - *weight));
+    }
+  }
+  if (totalLive > 0)
+    --totalLive;
+  logicalLive = std::max<int64_t>(0, logicalLive - *weight);
+}
+
 void Walker::walkBlock(Block &block, int64_t mult) {
   for (Operation &op : block)
     walkOp(&op, mult);
@@ -921,20 +972,9 @@ void Walker::walkOp(Operation *op, int64_t mult) {
     return;
   }
   if (auto d = dyn_cast<DeallocOp>(op)) {
-    // A patch becomes free here; decrement live concurrency (symmetric with
-    // alloc). Still counted as a gate below.
-    StringRef r = regionForValue(d.getPatch());
-    if (!r.empty()) {
-      int64_t &live = liveByRegion[r];
-      if (live > 0)
-        live -= 1;
-    }
-    if (totalLive > 0)
-      totalLive -= 1;
-    auto weight = logicalWeight(d.getPatch(), op);
-    if (failed(weight))
+    releasePatch(d.getPatch(), op);
+    if (hadError)
       return;
-    logicalLive = std::max<int64_t>(0, logicalLive - *weight);
     // fall through to gate-count handling (gate = "dealloc").
   }
   if (auto unpack = dyn_cast<EncodingUnpackOp>(op)) {
@@ -1048,11 +1088,25 @@ void Walker::walkOp(Operation *op, int64_t mult) {
     // logical round on a tick.
     llvm::SmallSet<StringRef, 4> seen;
     seen.insert(tickContextRegions.begin(), tickContextRegions.end());
-    for (const auto &[region, references] : mappedValuesByRegion)
-      if (references > 0)
-        if (auto live = liveByRegion.find(region);
-            live != liveByRegion.end() && live->second > 0)
-          seen.insert(region);
+    for (const auto &[region, references] : mappedValuesByRegion) {
+      if (references <= 0)
+        continue;
+      int64_t live = liveByRegion.lookup(region);
+      if (summaryCaller && !tickContextRegions.contains(region)) {
+        int64_t entry = summaryCaller->liveByRegion.lookup(region);
+        if (live > 0) {
+          int64_t &required = entryLiveness.regionMin[region];
+          required = std::max(required, entry - live + 1);
+        } else {
+          auto [bound, inserted] =
+              entryLiveness.regionMax.try_emplace(region, entry - live);
+          if (!inserted)
+            bound->second = std::min(bound->second, entry - live);
+        }
+      }
+      if (live > 0)
+        seen.insert(region);
+    }
     for (StringRef r : seen) {
       // Skip region-less patches (e.g. scratch allocs with no region symbol
       // map to ""). Attributing ticks to the empty region would synthesise a
@@ -1157,18 +1211,9 @@ void Walker::walkOp(Operation *op, int64_t mult) {
   if (auto pack = dyn_cast<PackResourceOp>(op)) {
     requiresExtendedAnalyticalModel = true;
     for (Value payload : pack.getPayloads()) {
-      StringRef region = regionForValue(payload);
-      if (!region.empty()) {
-        int64_t &live = liveByRegion[region];
-        if (live > 0)
-          live -= 1;
-      }
-      if (totalLive > 0)
-        totalLive -= 1;
-      auto weight = logicalWeight(payload, op);
-      if (failed(weight))
+      releasePatch(payload, op);
+      if (hadError)
         return;
-      logicalLive = std::max<int64_t>(0, logicalLive - *weight);
     }
     return;
   }
@@ -1244,10 +1289,8 @@ CallableSummaryKey Walker::callableSummaryKey(Operation *callee,
   key.liveRegions.reserve(liveByRegion.size());
   for (const auto &[region, live] : liveByRegion)
     if (live != 0)
-      key.liveRegions.emplace_back(region, live);
-  llvm::sort(key.liveRegions, [](const auto &left, const auto &right) {
-    return left.first < right.first;
-  });
+      key.liveRegions.push_back(region);
+  llvm::sort(key.liveRegions);
   llvm::SmallSet<StringRef, 8> tickRegions = tickContextRegions;
   for (const auto &[region, references] : mappedValuesByRegion) {
     auto live = liveByRegion.find(region);
@@ -1257,8 +1300,6 @@ CallableSummaryKey Walker::callableSummaryKey(Operation *callee,
   }
   llvm::append_range(key.tickRegions, tickRegions);
   llvm::sort(key.tickRegions);
-  key.totalLive = totalLive;
-  key.logicalLive = logicalLive;
   return key;
 }
 
@@ -1268,6 +1309,7 @@ Walker::buildCallableSummary(Operation *callee, Operation *wrapper,
   ++callableSummaryProbes;
   Walker probe(ctx, symTab, selectedQec);
   probe.enableCallableSummaries = false;
+  probe.summaryCaller = this;
   probe.suppressInlineAnalysis = key.suppressInlineAnalysis;
   probe.distanceByCode = distanceByCode;
   probe.logicalsByCode = logicalsByCode;
@@ -1275,12 +1317,11 @@ Walker::buildCallableSummary(Operation *callee, Operation *wrapper,
   probe.retryAttemptCache = retryAttemptCache;
   probe.tickContextRegions.insert(key.tickRegions.begin(),
                                   key.tickRegions.end());
-  probe.totalLive = key.totalLive;
-  probe.patchPeak = key.totalLive;
-  probe.logicalLive = key.logicalLive;
-  probe.logicalPeak = key.logicalLive;
-  for (const auto &[region, live] : key.liveRegions)
-    probe.liveByRegion[region] = live;
+  probe.totalLive = totalLive;
+  probe.patchPeak = totalLive;
+  probe.logicalLive = logicalLive;
+  probe.logicalPeak = logicalLive;
+  probe.liveByRegion = liveByRegion;
   for (const auto &[name, source] : perRegion) {
     PerRegion declaration = source;
     declaration.patches = probe.liveByRegion.lookup(name);
@@ -1315,28 +1356,24 @@ Walker::buildCallableSummary(Operation *callee, Operation *wrapper,
   }
 
   CachedCallableSummary result;
-  result.reusable =
-      probe.totalLive == key.totalLive && probe.logicalLive == key.logicalLive;
+  result.reusable = probe.relativeLiveness && probe.totalLive == totalLive &&
+                    probe.logicalLive == logicalLive;
   if (result.reusable) {
-    for (const auto &[region, live] : key.liveRegions)
-      if (probe.liveByRegion.lookup(region) != live) {
+    for (const auto &[region, live] : liveByRegion)
+      if (probe.liveByRegion.lookup(region) != live)
         result.reusable = false;
-        break;
-      }
-    if (result.reusable)
-      for (const auto &[region, live] : probe.liveByRegion)
-        if (live != 0 &&
-            !llvm::is_contained(key.liveRegions,
-                                std::pair<StringRef, int64_t>{region, live})) {
-          result.reusable = false;
-          break;
-        }
+    for (const auto &[region, live] : probe.liveByRegion)
+      if (liveByRegion.lookup(region) != live)
+        result.reusable = false;
   }
   if (!result.reusable)
     return result;
 
   CallableSummary &summary = result.summary;
+  summary.entryLiveness = std::move(probe.entryLiveness);
   summary.perRegion = std::move(probe.perRegion);
+  for (auto &[region, counts] : summary.perRegion)
+    counts.patches -= liveByRegion.lookup(region);
   summary.perProtocol = std::move(probe.perProtocol);
   summary.operationCounts = std::move(probe.operationCounts);
   summary.gadgetCalls = std::move(probe.gadgetCalls);
@@ -1346,8 +1383,8 @@ Walker::buildCallableSummary(Operation *callee, Operation *wrapper,
   summary.transversalEdges = std::move(probe.transversalEdges);
   summary.successCount = probe.successCount;
   summary.syndromeRounds = probe.syndromeRounds;
-  summary.patchPeak = probe.patchPeak;
-  summary.logicalPeak = probe.logicalPeak;
+  summary.patchPeak = probe.patchPeak - totalLive;
+  summary.logicalPeak = probe.logicalPeak - logicalLive;
   summary.requiresExtendedAnalyticalModel =
       probe.requiresExtendedAnalyticalModel;
   summary.sawQecSpec = probe.sawQecSpec;
@@ -1364,6 +1401,19 @@ Walker::buildCallableSummary(Operation *callee, Operation *wrapper,
     return failure();
   }
   return result;
+}
+
+bool Walker::canApplyCallableSummary(const CallableSummary &summary) const {
+  const auto &required = summary.entryLiveness;
+  if (totalLive < required.patches || logicalLive < required.logicals)
+    return false;
+  for (const auto &[region, minimum] : required.regionMin)
+    if (liveByRegion.lookup(region) < minimum)
+      return false;
+  for (const auto &[region, maximum] : required.regionMax)
+    if (liveByRegion.lookup(region) > maximum)
+      return false;
+  return true;
 }
 
 LogicalResult Walker::applyCallableSummary(Operation *wrapper,
@@ -1426,7 +1476,10 @@ LogicalResult Walker::applyCallableSummary(Operation *wrapper,
   }
   for (const auto &[name, source] : summary.perRegion) {
     PerRegion &target = regionAccum(name);
-    target.patches = std::max(target.patches, source.patches);
+    int64_t peak = liveByRegion.lookup(name);
+    if (!checkedAdd(peak, source.patches, wrapper, "live-patch count"))
+      return failure();
+    target.patches = std::max(target.patches, peak);
     if (failed(mergeNamedCounts(target.gateCounts, source.gateCounts,
                                 "gate count")) ||
         failed(mergeNamedCounts(target.roundsByKind, source.roundsByKind,
@@ -1439,8 +1492,15 @@ LogicalResult Walker::applyCallableSummary(Operation *wrapper,
                            "transport count")))
       return failure();
   }
-  patchPeak = std::max(patchPeak, summary.patchPeak);
-  logicalPeak = std::max(logicalPeak, summary.logicalPeak);
+  int64_t patches = totalLive;
+  int64_t logicals = logicalLive;
+  if (!checkedAdd(patches, summary.patchPeak, wrapper,
+                  "global live-patch count") ||
+      !checkedAdd(logicals, summary.logicalPeak, wrapper,
+                  "global logical-qubit count"))
+    return failure();
+  patchPeak = std::max(patchPeak, patches);
+  logicalPeak = std::max(logicalPeak, logicals);
   if (failed(
           mergeScalar(successCount, summary.successCount, "success count")) ||
       failed(mergeScalar(syndromeRounds, summary.syndromeRounds,
@@ -1534,7 +1594,8 @@ void Walker::walkDelegation(Operation *wrapper, FlatSymbolRefAttr calleeAttr,
       cached =
           callableSummaryCache.emplace(std::move(key), std::move(*built)).first;
     }
-    if (cached->second.reusable) {
+    if (cached->second.reusable &&
+        canApplyCallableSummary(cached->second.summary)) {
       ++callableSummaryHits;
       if (cacheHit)
         callableSummarySavedOperations += cached->second.summary.operationSites;
