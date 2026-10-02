@@ -73,6 +73,9 @@ int main() {
 
   RuntimeEndpoint endpoint;
   endpoint.impl = 0;
+  // A remote analog QPU; emulated ones run async launches on the platform
+  // queue instead.
+  endpoint.isRemote = true;
   endpoint.dispatch.set<sample_policy>(mockSample);
   endpoint.dispatch.set<async_sample_policy>(mockSampleAsync);
   auto &platform = get_platform();

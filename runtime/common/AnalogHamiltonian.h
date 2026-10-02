@@ -171,6 +171,9 @@ void from_json(const json &j, Program &p);
 /// @brief Serialize an Analog Hamiltonian Simulation program to a JSON string.
 std::string toJsonString(const Program &program);
 
+/// @brief Deserialize an Analog Hamiltonian Simulation program.
+Program fromJsonString(const std::string &program);
+
 ///////////////////////////////////////////////////////////////////////////////
 // The following classes represent the result of Analog Hamiltonian Simulation
 // program for the QuEra backend

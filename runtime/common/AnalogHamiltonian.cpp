@@ -140,6 +140,10 @@ std::string cudaq::ahs::toJsonString(const Program &program) {
   return json(program).dump();
 }
 
+cudaq::ahs::Program cudaq::ahs::fromJsonString(const std::string &program) {
+  return json::parse(program).get<Program>();
+}
+
 void cudaq::ahs::to_json(json &j, const ShotMetadata &p) {
   TO_JSON_HELPER(shotStatus);
 }
