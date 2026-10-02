@@ -36,7 +36,8 @@ ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}
 
 # [Build Dependencies]
-RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip
+# ninja-build comes from powertools, enabled above; the HSB build needs it.
+RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip ninja-build
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
@@ -63,22 +64,29 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cm
     bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
 
 # [Holoscan SDK]
-ARG HOLOSCAN_SDK_VERSION=4.0.0.1
+# Installed by the code the dev containers use, so the two cannot drift. Copied on its own
+# so that an edit elsewhere under realtime/ does not redo this, DOCA and the HSB build.
+ADD realtime/scripts/deps_common.sh /cuda-quantum/realtime/scripts/deps_common.sh
+
+# Empty ARG, never ENV: the script reads ${HOLOSCAN_SDK_VERSION:-...}, so blank keeps its
+# default while a --build-arg overrides it. An ENV would win over the build arg.
+ARG HOLOSCAN_SDK_VERSION=
 ENV HOLOSCAN_SDK_INSTALL_PREFIX=/opt/nvidia/holoscan
 
-RUN wget https://developer.download.nvidia.com/compute/holoscan/redist/holoscan/linux-$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)/holoscan-linux-$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)-${HOLOSCAN_SDK_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz -O holoscan.tar.xz && \
-    mkdir -p $HOLOSCAN_SDK_INSTALL_PREFIX && \
-    tar xf  holoscan.tar.xz --strip-components 1 -C $HOLOSCAN_SDK_INSTALL_PREFIX
-    
+RUN . /cuda-quantum/realtime/scripts/deps_common.sh && \
+    cudaq_realtime_install_holoscan
 
 # [DOCA]
-ARG DOCA_VERSION=3.3.0
-RUN wget https://www.mellanox.com/downloads/DOCA/DOCA_v${DOCA_VERSION}/host/doca-host-${DOCA_VERSION}-088000_26.01_rhel8.$(uname -m).rpm -O doca-host.rpm && \
-    rpm -i doca-host.rpm && \
-    dnf clean all && \
-    dnf -y install epel-release && \
+# Registered against the repository doca-host would otherwise deliver offline, by the same
+# code the dev containers use. epel and crb supply its dependencies. The userspace
+# profile, because doca-all pulls OFED kernel modules that DKMS cannot build in a
+# container, and this image only needs headers and libraries.
+ARG DOCA_VERSION=
+RUN dnf -y install epel-release && \
     crb enable && \
-    dnf -y install doca-all doca-sdk-gpunetio doca-sdk-gpunetio-devel
+    . /cuda-quantum/realtime/scripts/deps_common.sh && \
+    cudaq_realtime_add_doca_repo && \
+    dnf -y install doca-all-userspace doca-sdk-gpunetio doca-sdk-gpunetio-devel
 
 ## [CUDAQ Realtime Source]
 ADD realtime /cuda-quantum/realtime
@@ -86,14 +94,13 @@ ADD realtime /cuda-quantum/realtime
 ADD cmake/modules/CUDAQGtestDiscovery.cmake /cuda-quantum/cmake/modules/CUDAQGtestDiscovery.cmake
 
 # [HSB]
-ARG cuda_native_arg="80-real;90"
-ENV CUDA_NATIVE_ARCH=${cuda_native_arg}
+# Built by the code the dev containers use, which also derives the CUDA architectures
+# from the toolkit here. HSB_ROOT stays an ENV: build_realtime.sh reads it below.
 ENV HSB_ROOT=/holoscan-sensor-bridge
-ARG hsb_version="2.6.0-EA2"
-# Build HSB
-RUN cd / && git clone -b ${hsb_version} https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge && \
-    cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DHOLOLINK_BUILD_ONLY_NATIVE=OFF -DHOLOLINK_BUILD_PYTHON=OFF -DHOLOLINK_BUILD_TESTS=OFF -DHOLOLINK_BUILD_TOOLS=OFF -DHOLOLINK_BUILD_EXAMPLES=OFF -DHOLOLINK_BUILD_EMULATOR=OFF && \
-    cmake --build build --target roce_receiver gpu_roce_transceiver hololink_core
+ARG CUDAQ_REALTIME_HSB_REPO=
+ARG CUDAQ_REALTIME_HSB_REF=
+RUN . /cuda-quantum/realtime/scripts/deps_common.sh && \
+    cudaq_realtime_build_hsb
 
 # [CUDAQ Realtime]
 # Set install prefix to match where build_installer.sh expects it

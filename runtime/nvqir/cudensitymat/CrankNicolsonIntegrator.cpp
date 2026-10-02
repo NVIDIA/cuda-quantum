@@ -26,6 +26,8 @@ crank_nicolson::crank_nicolson(int num_corrector_steps,
   if (m_num_corrector_steps < 1)
     throw std::invalid_argument(
         "crank_nicolson integrator requires at least 1 corrector step.");
+  if (m_dt.has_value() && !(*m_dt > 0.0))
+    throw std::invalid_argument("max_step_size must be positive.");
 }
 
 std::shared_ptr<base_integrator> crank_nicolson::clone() {
@@ -52,9 +54,13 @@ void crank_nicolson::integrate(double targetTime) {
       "crank_nicolson::integrate");
   cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
 
-  while (m_t < targetTime) {
-    const double step_size =
-        cudmIntHelp::computeStepSize(m_t, targetTime, m_dt);
+  const double startTime = m_t;
+  const auto numSubSteps =
+      cudmIntHelp::subStepCount(startTime, targetTime, m_dt);
+  for (std::int64_t subStep = 1; subStep <= numSubSteps; ++subStep) {
+    const double nextTime =
+        cudmIntHelp::subStepTime(startTime, targetTime, subStep, numSubSteps);
+    const double step_size = nextTime - m_t;
     auto &castSimState = *cudmIntHelp::asCudmState(*m_state);
 
     auto params = cudmIntHelp::scheduleParamsAt(m_schedule, m_t);
@@ -81,7 +87,7 @@ void crank_nicolson::integrate(double targetTime) {
     }
 
     m_state = rho_iter;
-    m_t += step_size;
+    m_t = nextTime;
   }
 }
 

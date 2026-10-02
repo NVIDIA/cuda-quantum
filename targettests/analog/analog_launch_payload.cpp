@@ -17,7 +17,9 @@
 // clang-format on
 
 #include "cudaq/algorithms/evolve_internal.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
+#include "cudaq/platform/platform_test_access.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <cstdio>
 #include <future>
@@ -73,10 +75,9 @@ int main() {
   endpoint.impl = 0;
   endpoint.dispatch.set<sample_policy>(mockSample);
   endpoint.dispatch.set<async_sample_policy>(mockSampleAsync);
-  get_platform().setRuntimeEndpoint(std::move(endpoint));
-  // Installing the endpoint discards the backing QPU, so the platform installs
-  // a default compile target and warns about it.
-  // CHECK: Overriding compile target with default
+  auto &platform = get_platform();
+  detail::PlatformTestAccess::setTarget(
+      platform, createDefaultCompileTarget(&platform), endpoint);
 
   auto syncResult = detail::launchAnalogKernel(
       "__analog_hamiltonian_kernel__sync", R"({"sync":true})", 11);

@@ -1,5 +1,6 @@
 name: run-in-docker
-
+description: |
+  Run a command in a Docker container.
 inputs:
   image:
     required: true
@@ -15,11 +16,21 @@ inputs:
   volume:
     default: ""
     required: false
+  # Names of environment variables to forward into the container, not their
+  # values: docker reads each value out of this step's own environment, so a
+  # caller can forward a workflow_dispatch input without that input ever
+  # becoming part of a command line.
+  env:
+    description: Whitespace-separated names of environment variables to forward.
+    default: ""
+    required: false
 
 runs:
   using: "composite"
   steps:
     - shell: bash
+      env:
+        forward_env: ${{ inputs.env }}
       run: |
         if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
         then additional_run_args="--gpus all"
@@ -31,6 +42,15 @@ runs:
           volume_option="-v ${{ inputs.volume }}"
         fi
 
+        # -e NAME with no value tells docker to take it from the environment
+        # here, which is where the caller's env: block put it. An unset or empty
+        # one arrives empty in the container, leaving ${VAR:-default} defaults
+        # in the scripts intact.
+        env_option=()
+        for name in $forward_env; do
+          env_option+=(-e "$name")
+        done
+
         # Note: "bash -s << EOF" does not play nice with mpirun/mpiexec. It
         # silently skips any shell commands that come after the mpirun/mpiexec,
         # so don't use it. Use this instead, which seems to work better.
@@ -39,9 +59,15 @@ runs:
         ${{ inputs.run }}
         EOF
 
-        container=$(docker run --user ${{ inputs.user }} $additional_run_args $volume_option --network host -id ${{ inputs.image }})
+        container=$(docker run --user ${{ inputs.user }} $additional_run_args $volume_option "${env_option[@]}" --network host -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
         docker exec --user root $container chown -R ${{ inputs.user }} $tmpFile
-        docker exec $container ${{ inputs.shell }} $tmpFile
+
+        # GitHub runs this `shell: bash` step with `-e`, so a failed run would
+        # abort before the cleanup below and leak a running container. Capture
+        # the status, clean up, then fail the step with it.
+        status=0
+        docker exec $container ${{ inputs.shell }} $tmpFile || status=$?
         docker stop $container
-        rm $tmpFile
+        rm -f $tmpFile
+        exit $status

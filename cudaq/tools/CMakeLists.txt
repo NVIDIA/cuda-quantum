@@ -8,6 +8,8 @@
 
 include(HandleLLVMOptions)
 
+add_subdirectory(cudaq-target-db-gen)
+
 if (NOT CUDAQ_DISABLE_TOOLS)
   add_subdirectory(cudaq-opt)
   add_subdirectory(cudaq-translate)
@@ -17,7 +19,7 @@ if (NOT CUDAQ_DISABLE_TOOLS)
     add_subdirectory(cudaq-quake)
     add_subdirectory(fixup-linkage)
     add_subdirectory(nvq++)
-    add_subdirectory(cudaq-target-conf)
+    add_subdirectory(cudaq-target-resolve)
     add_subdirectory(cudaq-install-plugin)
   endif()
 endif()

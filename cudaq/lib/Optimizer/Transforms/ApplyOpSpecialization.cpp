@@ -6,6 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+/// \file
+///
+/// This pass is fully composable. As such, it has no clue what passes may or
+/// may not be run before or after it nor how those passes will or will not
+/// modify the IR that it happens to be visiting on this iteration.  It is
+/// therefore \em{deeply incorrect} for this pass to check various patterns and
+/// properties of the transient IR, assume it has the proper understanding of
+/// what will happen, and throw an error terminating the compiler mid-pipeline.
+/// \em{Do not add hard errors to this pass! They belong elsewhere.}
+
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"

@@ -74,6 +74,22 @@ CUDAQ_TEST(QbraidTester, checkSampleAsyncLoadFromFile) {
   std::remove("saveMe.json");
 }
 
+// The mock reports keys as qBraid does (classical bit 0 rightmost); the
+// helper must hand them back in CUDA-Q order (qubit 0 leftmost), so H on
+// qubit 2 of three shows up as "001", never "100".
+CUDAQ_TEST(QbraidTester, checkBitOrder) {
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(3);
+  kernel.h(qubit[2]);
+  kernel.mz(qubit);
+
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(counts.size(), 2);
+  EXPECT_GT(counts.count("001"), 0);
+  EXPECT_EQ(counts.count("100"), 0);
+}
+
 CUDAQ_TEST(QbraidTester, checkObserveSync) {
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);

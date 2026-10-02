@@ -85,7 +85,8 @@ public:
   // Note: cutensornetStateApplyControlledTensorOperator can only handle
   // single-target.
   void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
-            const std::size_t tgtIdx) override;
+            const std::size_t tgtIdx,
+            const std::vector<std::int32_t> &controlValues = {}) override;
 
   void setRandomSeed(std::size_t randomSeed) override;
 

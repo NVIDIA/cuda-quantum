@@ -16,8 +16,10 @@
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -33,6 +35,10 @@
 #define QIS_FUNCTION_NAME(GATENAME) CONCAT(__quantum__qis__, GATENAME)
 #define QIS_FUNCTION_CTRL_NAME(GATENAME)                                       \
   CONCAT(CONCAT(__quantum__qis__, GATENAME), __ctl)
+// Note: Explicit control values use NVQIR extension symbols so the existing
+// `__quantum__qis__` function signatures stay unchanged.
+#define QIS_FUNCTION_CTRL_VALUES_NAME(GATENAME)                                \
+  CONCAT(CONCAT(__nvqir__qis__, GATENAME), __ctl_values)
 #define QIS_FUNCTION_BODY_NAME(GATENAME)                                       \
   CONCAT(CONCAT(__quantum__qis__, GATENAME), __body)
 
@@ -539,6 +545,34 @@ void __quantum__rt__float_span_record_output(int8_t *data, int64_t count,
   }
 }
 
+static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
+  if (!arr)
+    return {};
+  return arrayToVectorSizeT(arr);
+}
+
+// This C ABI requires one value per control. In the C++ simulator API,
+// empty values mean the gate acts only when every control qubit is |1>.
+// The caller's values buffer need only remain valid until this call returns.
+// Queued operations own copies of qubit identities and required values.
+static std::vector<std::int32_t> readControlValues(Array *controls,
+                                                   const std::int32_t *values,
+                                                   std::int64_t valueCount) {
+  if (valueCount < 0 || static_cast<std::uint64_t>(valueCount) !=
+                            (controls ? controls->size() : 0)) {
+    throw std::invalid_argument(
+        "required control value count does not match control count");
+  }
+  if (valueCount == 0)
+    return {};
+  if (!values)
+    throw std::invalid_argument(
+        "required control values pointer is null for non-empty controls");
+  std::vector<std::int32_t> result(values, values + valueCount);
+  nvqir::CircuitSimulator::validateControlValues(controls->size(), result);
+  return result;
+}
+
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
   void QIS_FUNCTION_NAME(GATENAME)(Qubit * qubit) {                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \
@@ -551,6 +585,14 @@ void __quantum__rt__float_span_record_output(int8_t *data, int64_t count,
     ScopedTraceWithContext("NVQIR::ctrl-" + std::string(#GATENAME), ctrlIdxs,  \
                            targetIdx);                                         \
     nvqir::getCircuitSimulatorInternal()->GATENAME(ctrlIdxs, targetIdx);       \
+  }                                                                            \
+  void QIS_FUNCTION_CTRL_VALUES_NAME(GATENAME)(                                \
+      Array * ctrlQubits, const std::int32_t *requiredValues,                  \
+      std::int64_t valueCount, Qubit *qubit) {                                 \
+    auto values = readControlValues(ctrlQubits, requiredValues, valueCount);   \
+    auto ctrlIdxs = safeArrayToVectorSizeT(ctrlQubits);                        \
+    nvqir::getCircuitSimulatorInternal()->GATENAME(                            \
+        ctrlIdxs, qubitToSizeT(qubit), values);                                \
   }                                                                            \
   void QIS_FUNCTION_BODY_NAME(GATENAME)(Qubit * qubit) {                       \
     QIS_FUNCTION_NAME(GATENAME)(qubit);                                        \
@@ -593,6 +635,14 @@ void __quantum__qis__s__adj(Qubit *qubit) {
                            ctrlIdxs, targetIdx);                               \
     nvqir::getCircuitSimulatorInternal()->GATENAME(param, ctrlIdxs,            \
                                                    targetIdx);                 \
+  }                                                                            \
+  void QIS_FUNCTION_CTRL_VALUES_NAME(GATENAME)(                                \
+      double param, Array *ctrlQubits, const std::int32_t *requiredValues,     \
+      std::int64_t valueCount, Qubit *qubit) {                                 \
+    auto values = readControlValues(ctrlQubits, requiredValues, valueCount);   \
+    auto ctrlIdxs = safeArrayToVectorSizeT(ctrlQubits);                        \
+    nvqir::getCircuitSimulatorInternal()->GATENAME(                            \
+        param, ctrlIdxs, qubitToSizeT(qubit), values);                         \
   }
 
 ONE_QUBIT_PARAM_QIS_FUNCTION(rx);
@@ -618,6 +668,16 @@ void __quantum__qis__swap__body(Qubit *q, Qubit *r) {
   __quantum__qis__swap(q, r);
 }
 
+void __nvqir__qis__swap__ctl_values(Array *ctrls,
+                                    const std::int32_t *requiredValues,
+                                    std::int64_t valueCount, Qubit *q,
+                                    Qubit *r) {
+  auto values = readControlValues(ctrls, requiredValues, valueCount);
+  auto ctrlIdxs = safeArrayToVectorSizeT(ctrls);
+  nvqir::getCircuitSimulatorInternal()->swap(ctrlIdxs, qubitToSizeT(q),
+                                             qubitToSizeT(r), values);
+}
+
 void __quantum__qis__cphase(double d, Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);
@@ -632,6 +692,24 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
 
 void __quantum__qis__phased_rx__body(double theta, double phi, Qubit *q) {
   __quantum__qis__phased_rx(theta, phi, q);
+}
+
+void __nvqir__qis__phased_rx__ctl_values(double theta, double phi, Array *ctrls,
+                                         const std::int32_t *requiredValues,
+                                         std::int64_t valueCount, Qubit *q) {
+  auto values = readControlValues(ctrls, requiredValues, valueCount);
+  auto ctrlIdxs = safeArrayToVectorSizeT(ctrls);
+  nvqir::getCircuitSimulatorInternal()->phased_rx(theta, phi, ctrlIdxs,
+                                                  qubitToSizeT(q), values);
+}
+
+void __nvqir__qis__u2__ctl_values(double phi, double lambda, Array *ctrls,
+                                  const std::int32_t *requiredValues,
+                                  std::int64_t valueCount, Qubit *q) {
+  auto values = readControlValues(ctrls, requiredValues, valueCount);
+  auto ctrlIdxs = safeArrayToVectorSizeT(ctrls);
+  nvqir::getCircuitSimulatorInternal()->u2(phi, lambda, ctrlIdxs,
+                                           qubitToSizeT(q), values);
 }
 
 auto u3_matrix = [](double theta, double phi, double lambda) {
@@ -656,6 +734,16 @@ void __quantum__qis__u3__ctl(double theta, double phi, double lambda,
 }
 
 // ASKME: Do we need `__quantum__qis__u3__body(...)`?
+
+void __nvqir__qis__u3__ctl_values(double theta, double phi, double lambda,
+                                  Array *ctrls,
+                                  const std::int32_t *requiredValues,
+                                  std::int64_t valueCount, Qubit *q) {
+  auto values = readControlValues(ctrls, requiredValues, valueCount);
+  auto ctrlIdxs = safeArrayToVectorSizeT(ctrls);
+  nvqir::getCircuitSimulatorInternal()->u3(theta, phi, lambda, ctrlIdxs,
+                                           qubitToSizeT(q), values);
+}
 
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
@@ -745,32 +833,37 @@ std::int64_t __quantum__qis__mz_handle__to__register(Qubit *q,
   return handle;
 }
 
-void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
+static void applyExpPauli(double theta, Array *ctrls, Array *qubits,
+                          char *pauliWord,
+                          const std::vector<std::int32_t> &controlValues = {}) {
   struct CLikeString {
     char *ptr = nullptr;
     int64_t length = 0;
   };
   auto *castedString = reinterpret_cast<CLikeString *>(pauliWord);
   std::string pauliWordStr(castedString->ptr, castedString->length);
+  auto ctrlQubitsVec = safeArrayToVectorSizeT(ctrls);
   auto qubitsVec = arrayToVectorSizeT(qubits);
   nvqir::getCircuitSimulatorInternal()->applyExpPauli(
-      theta, {}, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
-  return;
+      theta, ctrlQubitsVec, qubitsVec, cudaq::spin_op::from_word(pauliWordStr),
+      controlValues);
+}
+
+void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
+  applyExpPauli(theta, nullptr, qubits, pauliWord);
 }
 
 void __quantum__qis__exp_pauli__ctl(double theta, Array *ctrls, Array *qubits,
                                     char *pauliWord) {
-  struct CLikeString {
-    char *ptr = nullptr;
-    int64_t length = 0;
-  };
-  auto *castedString = reinterpret_cast<CLikeString *>(pauliWord);
-  std::string pauliWordStr(castedString->ptr, castedString->length);
-  auto ctrlQubitsVec = arrayToVectorSizeT(ctrls);
-  auto qubitsVec = arrayToVectorSizeT(qubits);
-  nvqir::getCircuitSimulatorInternal()->applyExpPauli(
-      theta, ctrlQubitsVec, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
-  return;
+  applyExpPauli(theta, ctrls, qubits, pauliWord);
+}
+
+void __nvqir__qis__exp_pauli__ctl_values(double theta, Array *ctrls,
+                                         const std::int32_t *requiredValues,
+                                         std::int64_t valueCount, Array *qubits,
+                                         char *pauliWord) {
+  auto values = readControlValues(ctrls, requiredValues, valueCount);
+  applyExpPauli(theta, ctrls, qubits, pauliWord, values);
 }
 
 void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
@@ -798,12 +891,6 @@ void __quantum__rt__result_record_output(Result *r, int8_t *name) {
   if (name && qubitPtrIsIndex)
     __quantum__qis__mz__to__register(measRes2QB[r],
                                      reinterpret_cast<const char *>(name));
-}
-
-static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
-  if (!arr)
-    return {};
-  return arrayToVectorSizeT(arr);
 }
 
 // Each `Result*` in the incoming buffer is the bit pattern of an `i64` measure
@@ -1066,9 +1153,10 @@ void __quantum__qis__free_converted_stdvector(
   delete veq;
 }
 
-void __quantum__qis__custom_unitary(std::complex<double> *unitary,
-                                    Array *controls, Array *targets,
-                                    const char *name) {
+static void
+applyCustomUnitary(std::complex<double> *unitary, Array *controls,
+                   Array *targets, const char *name, bool adjoint,
+                   const std::vector<std::int32_t> &controlValues = {}) {
   auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
@@ -1079,37 +1167,46 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
   auto numElements = nToPowTwo * nToPowTwo;
   std::vector<std::complex<double>> unitaryMatrix(unitary,
                                                   unitary + numElements);
+  if (adjoint) {
+    for (auto &element : unitaryMatrix)
+      element = std::conj(element);
+    for (std::size_t r = 0; r < nToPowTwo; ++r)
+      for (std::size_t c = 0; c < r; ++c)
+        std::swap(unitaryMatrix[r * nToPowTwo + c],
+                  unitaryMatrix[c * nToPowTwo + r]);
+  }
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
-      unitaryMatrix, ctrlsVec, tgtsVec, name);
+      unitaryMatrix, ctrlsVec, tgtsVec, name, controlValues);
+}
+
+void __quantum__qis__custom_unitary(std::complex<double> *unitary,
+                                    Array *controls, Array *targets,
+                                    const char *name) {
+  applyCustomUnitary(unitary, controls, targets, name, /*adjoint=*/false);
 }
 
 void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
                                          Array *controls, Array *targets,
                                          const char *name) {
-  auto ctrlsVec = safeArrayToVectorSizeT(controls);
-  auto tgtsVec = arrayToVectorSizeT(targets);
-  auto numQubits = tgtsVec.size();
-  // 4^N matrix entries must fit in size_t; 4^32 == 2^64 overflows.
-  if (numQubits >= 32)
-    throw std::invalid_argument("Too many qubits (>=32), not supported");
-  auto nToPowTwo = (1ULL << numQubits);
+  applyCustomUnitary(unitary, controls, targets, name, /*adjoint=*/true);
+}
 
-  std::vector<std::vector<std::complex<double>>> unitaryConj2D;
-  for (std::size_t r = 0; r < nToPowTwo; r++) {
-    std::vector<std::complex<double>> row;
-    for (std::size_t c = 0; c < nToPowTwo; c++)
-      row.push_back(std::conj(unitary[r * nToPowTwo + c]));
-    unitaryConj2D.push_back(row);
-  }
-  for (std::size_t r = 0; r < nToPowTwo; r++)
-    for (std::size_t c = 0; c < r; c++)
-      std::swap(unitaryConj2D[r][c], unitaryConj2D[c][r]);
-  std::vector<std::complex<double>> unitaryFlattened;
-  for (auto const &row : unitaryConj2D)
-    unitaryFlattened.insert(unitaryFlattened.end(), row.begin(), row.end());
+void __nvqir__qis__custom_unitary__ctl_values(
+    std::complex<double> *unitary, Array *controls,
+    const std::int32_t *requiredValues, std::int64_t valueCount, Array *targets,
+    const char *name) {
+  auto values = readControlValues(controls, requiredValues, valueCount);
+  applyCustomUnitary(unitary, controls, targets, name, /*adjoint=*/false,
+                     values);
+}
 
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
-      unitaryFlattened, ctrlsVec, tgtsVec, name);
+void __nvqir__qis__custom_unitary__adj__ctl_values(
+    std::complex<double> *unitary, Array *controls,
+    const std::int32_t *requiredValues, std::int64_t valueCount, Array *targets,
+    const char *name) {
+  auto values = readControlValues(controls, requiredValues, valueCount);
+  applyCustomUnitary(unitary, controls, targets, name, /*adjoint=*/true,
+                     values);
 }
 
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
@@ -1261,25 +1358,33 @@ void __quantum__rt__clear_result_maps() {
   measHandle2Index.clear();
 }
 
-/// This is the generalized version of invoke that does not use a va_list
-/// argument. It provides a general interface to allow invoking a general
-/// quantum operation, which may contain some number of rotation arguments
-/// (double), control arguments (either qubits or arrays), and target arguments
-/// (qubits). \p numRotationOperands and \p numTargetOperands must be no more
-/// than 2. \p numTargetOperands must be at least 1. The arguments are passed as
-/// arrays (built by the caller on the stack) as: \p params, \p controls, and \p
-/// targets. \p isArrayAndLength is a buffer used to determine the type of the
-/// control arguments and must be present if \p numControlOperands is non-zero.
-/// The length of \p isArrayAndLength must also be \p numControlOperands.
-static void commonInvokeWithRotationsControlsTargets(
-    std::size_t numRotationOperands, double *params,
-    std::size_t numControlOperands, std::size_t *isArrayAndLength,
-    Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
-    void (*QISFunction)()) {
+static void validateInvokeOperandCounts(std::size_t numRotationOperands,
+                                        std::size_t numTargetOperands) {
   if (numRotationOperands > 3)
     throw std::runtime_error("Invoke has invalid number of rotations.");
   if (numTargetOperands < 1 || numTargetOperands > 2)
     throw std::runtime_error("Invoke has invalid number of targets.");
+}
+
+/// This is the generalized version of invoke that does not use a va_list
+/// argument. It provides a general interface to allow invoking a general
+/// quantum operation, which may contain some number of rotation arguments
+/// (double), control arguments (either qubits or arrays), and target arguments
+/// (qubits). \p numRotationOperands must be no more than 3, and
+/// \p numTargetOperands must be 1 or 2. The arguments are passed as
+/// arrays (built by the caller on the stack) as: \p params, \p controls, and \p
+/// targets. \p isArrayAndLength is a buffer used to determine the type of the
+/// control arguments and must be present if \p numControlOperands is non-zero.
+/// The length of \p isArrayAndLength must also be \p numControlOperands.
+/// A non-null \p operandValues selects the callback ABI with values and count,
+/// even when there are no controls. Null selects the legacy callback ABI.
+static void commonInvokeWithRotationsControlsTargets(
+    std::size_t numRotationOperands, double *params,
+    std::size_t numControlOperands, std::size_t *isArrayAndLength,
+    Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
+    void (*QISFunction)(),
+    const std::vector<std::int32_t> *operandValues = nullptr) {
+  validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
   assert(numRotationOperands == 0 || params);
   assert(numControlOperands == 0 || (isArrayAndLength && controls));
   assert(numTargetOperands && targets);
@@ -1291,8 +1396,17 @@ static void commonInvokeWithRotationsControlsTargets(
   // Create the Control Array *, This should
   // be deallocated upon function exit.
   auto ctrlArray = std::make_unique<Array>(numControls, sizeof(std::size_t));
+  std::vector<std::int32_t> controlValues;
+  if (operandValues)
+    controlValues.reserve(numControls);
 
+  // Register values expand beside their qubits so mixed scalar and register
+  // operands retain their original control/value pairing.
   for (std::size_t counter = 0, i = 0; i < numControlOperands; i++) {
+    if (operandValues)
+      controlValues.insert(controlValues.end(),
+                           isArrayAndLength[i] ? isArrayAndLength[i] : 1,
+                           (*operandValues)[i]);
     if (auto numQubitsInArray = isArrayAndLength[i]) {
       // this is an array
       Array *array = reinterpret_cast<Array *>(controls[i]);
@@ -1312,48 +1426,98 @@ static void commonInvokeWithRotationsControlsTargets(
     }
   }
 
-  // Should be one more arg in there
-
-  // Invoke the function. Only the control arguments are passed as a group to a
-  // QIR function. That implies 6 cases must be generated.
+  const auto invoke = [&](auto... rotations) {
+    if (operandValues) {
+      const auto count = static_cast<std::int64_t>(controlValues.size());
+      if (numTargetOperands == 1)
+        reinterpret_cast<void (*)(decltype(rotations)..., Array *,
+                                  const std::int32_t *, std::int64_t, Qubit *)>(
+            QISFunction)(rotations..., ctrlArray.get(), controlValues.data(),
+                         count, targets[0]);
+      else
+        reinterpret_cast<void (*)(decltype(rotations)..., Array *,
+                                  const std::int32_t *, std::int64_t, Qubit *,
+                                  Qubit *)>(QISFunction)(
+            rotations..., ctrlArray.get(), controlValues.data(), count,
+            targets[0], targets[1]);
+    } else {
+      if (numTargetOperands == 1)
+        reinterpret_cast<void (*)(decltype(rotations)..., Array *, Qubit *)>(
+            QISFunction)(rotations..., ctrlArray.get(), targets[0]);
+      else
+        reinterpret_cast<void (*)(decltype(rotations)..., Array *, Qubit *,
+                                  Qubit *)>(QISFunction)(
+            rotations..., ctrlArray.get(), targets[0], targets[1]);
+    }
+  };
   switch (numRotationOperands) {
-  case 0: // No rotations.
-    if (numTargetOperands == 1)
-      reinterpret_cast<void (*)(Array *, Qubit *)>(QISFunction)(ctrlArray.get(),
-                                                                targets[0]);
-    else
-      reinterpret_cast<void (*)(Array *, Qubit *, Qubit *)>(QISFunction)(
-          ctrlArray.get(), targets[0], targets[1]);
+  case 0:
+    invoke();
     break;
-  case 1: // One rotation.
-    if (numTargetOperands == 1)
-      reinterpret_cast<void (*)(double, Array *, Qubit *)>(QISFunction)(
-          params[0], ctrlArray.get(), targets[0]);
-    else
-      reinterpret_cast<void (*)(double, Array *, Qubit *, Qubit *)>(
-          QISFunction)(params[0], ctrlArray.get(), targets[0], targets[1]);
+  case 1:
+    invoke(params[0]);
     break;
-  case 2: // Two rotations.
-    if (numTargetOperands == 1)
-      reinterpret_cast<void (*)(double, double, Array *, Qubit *)>(QISFunction)(
-          params[0], params[1], ctrlArray.get(), targets[0]);
-    else
-      reinterpret_cast<void (*)(double, double, Array *, Qubit *, Qubit *)>(
-          QISFunction)(params[0], params[1], ctrlArray.get(), targets[0],
-                       targets[1]);
+  case 2:
+    invoke(params[0], params[1]);
     break;
-  case 3: // Three rotations.
-    if (numTargetOperands == 1)
-      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *)>(
-          QISFunction)(params[0], params[1], params[2], ctrlArray.get(),
-                       targets[0]);
-    else
-      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *,
-                                Qubit *)>(QISFunction)(
-          params[0], params[1], params[2], ctrlArray.get(), targets[0],
-          targets[1]);
+  case 3:
+    invoke(params[0], params[1], params[2]);
     break;
   }
+}
+
+/// Rotation parameters precede ordered control operand triples:
+/// (int isArray, int requiredValue, Qubit *operand). Arrays use their runtime
+/// length; an empty array contributes no controls. Scalar targets follow.
+/// The callback receives flattened controls, int32 values, and their int64
+/// count between its rotation parameters and targets. It must copy borrowed
+/// buffers before returning if execution is deferred.
+void generalizedInvokeWithControlValues(std::size_t numRotationOperands,
+                                        std::size_t numControlOperands,
+                                        std::size_t numTargetOperands,
+                                        void (*QISFunction)(...), ...) {
+  validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
+  std::vector<double> parameters(numRotationOperands);
+  std::vector<std::size_t> arrayAndLength;
+  std::vector<Qubit *> controls;
+  std::vector<std::int32_t> values;
+  std::vector<Qubit *> targets(numTargetOperands);
+  arrayAndLength.reserve(numControlOperands);
+  controls.reserve(numControlOperands);
+  values.reserve(numControlOperands);
+  va_list args;
+  va_start(args, QISFunction);
+  for (auto &param : parameters)
+    param = va_arg(args, double);
+  for (std::size_t i = 0; i < numControlOperands; ++i) {
+    const auto isArray = va_arg(args, int);
+    const auto value = va_arg(args, int);
+    auto *operand = va_arg(args, Qubit *);
+    if (isArray != 0 && isArray != 1) {
+      va_end(args);
+      throw std::invalid_argument("control operand kind must be 0 or 1");
+    }
+    if (value != 0 && value != 1) {
+      va_end(args);
+      throw std::invalid_argument("required control value must be 0 or 1");
+    }
+    const auto length =
+        isArray && operand ? reinterpret_cast<Array *>(operand)->size() : 0;
+    // The shared packer uses length zero for scalars, so empty arrays must
+    // be removed before forwarding these operands.
+    if (isArray && length == 0)
+      continue;
+    arrayAndLength.push_back(length);
+    controls.push_back(operand);
+    values.push_back(value);
+  }
+  for (auto &target : targets)
+    target = va_arg(args, Qubit *);
+  va_end(args);
+  commonInvokeWithRotationsControlsTargets(
+      numRotationOperands, parameters.data(), controls.size(),
+      arrayAndLength.data(), controls.data(), numTargetOperands, targets.data(),
+      reinterpret_cast<void (*)()>(QISFunction), &values);
 }
 
 void generalizedInvokeWithRotationsControlsTargets(
@@ -1367,25 +1531,33 @@ void generalizedInvokeWithRotationsControlsTargets(
   Qubit *controls[totalControls];
   Qubit *targets[numTargetOperands];
   std::size_t i;
+  std::size_t numPackedControls = 0;
   va_list args;
   va_start(args, QISFunction);
   for (i = 0; i < numRotationOperands; ++i)
     parameters[i] = va_arg(args, double);
   for (i = 0; i < numControlArrayOperands; ++i) {
-    arrayAndLength[i] = va_arg(args, std::size_t);
-    controls[i] = va_arg(args, Qubit *);
+    const auto length = va_arg(args, std::size_t);
+    auto *controlArray = va_arg(args, Qubit *);
+    // Zero marks a scalar in the common helper, so omit empty arrays.
+    if (length == 0) {
+      continue;
+    }
+    arrayAndLength[numPackedControls] = length;
+    controls[numPackedControls++] = controlArray;
   }
   for (i = 0; i < numControlQubitOperands; ++i) {
-    arrayAndLength[numControlArrayOperands + i] = 0;
-    controls[numControlArrayOperands + i] = va_arg(args, Qubit *);
+    arrayAndLength[numPackedControls] = 0;
+    controls[numPackedControls++] = va_arg(args, Qubit *);
   }
   for (i = 0; i < numTargetOperands; ++i)
     targets[i] = va_arg(args, Qubit *);
   va_end(args);
 
   commonInvokeWithRotationsControlsTargets(
-      numRotationOperands, parameters, totalControls, arrayAndLength, controls,
-      numTargetOperands, targets, reinterpret_cast<void (*)()>(QISFunction));
+      numRotationOperands, parameters, numPackedControls, arrayAndLength,
+      controls, numTargetOperands, targets,
+      reinterpret_cast<void (*)()>(QISFunction));
 }
 
 /// @brief Utility function used by Quake->QIR to invoke a QIR QIS function
