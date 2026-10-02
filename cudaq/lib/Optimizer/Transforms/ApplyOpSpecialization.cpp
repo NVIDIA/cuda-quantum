@@ -808,7 +808,6 @@ static Value convertLinearToRefOrVeq(OpBuilder &builder, Location loc,
   auto refTy = cudaq::quake::RefType::get(ctx);
   if (isa<cudaq::quake::WireType>(linVal.getType()))
     return cudaq::quake::WrapNewOp::create(builder, loc, refTy, linVal);
-  auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
   unsigned n = cudaq::quake::getWireCount(linVal.getType());
   SmallVector<Type> wireTys(n, cudaq::quake::WireType::get(ctx));
   auto split =
@@ -820,6 +819,7 @@ static Value convertLinearToRefOrVeq(OpBuilder &builder, Location loc,
   auto sizedVeqTy = cudaq::quake::VeqType::get(ctx, n);
   Value veqVal =
       cudaq::quake::ConcatOp::create(builder, loc, sizedVeqTy, wrappedRefs);
+  auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
   if (formalTy == unsizedVeqTy)
     veqVal =
         cudaq::quake::RelaxSizeOp::create(builder, loc, unsizedVeqTy, veqVal);
