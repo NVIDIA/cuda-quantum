@@ -36,7 +36,7 @@ nvqppPrefix = '__nvqpp__mlirgen__'
 # may reach it by an alias (`import cudaq as cq`), so this is only the default.
 cudaqModuleName = 'cudaq'
 
-ahkPrefix = '__analog_hamiltonian_kernel__'
+ahkPrefix = '__cudaq_analog_hamiltonian_kernel__'
 
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}
