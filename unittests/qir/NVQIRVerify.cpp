@@ -73,29 +73,24 @@ TEST(NVQIRVerify, check3) {
 
 TEST(NVQIRVerify, controlValueCalls) {
   StringRef theQuake = R"#(
-    llvm.func @generalizedInvokeWithControlValues(i64, i64, i64, !llvm.ptr, ...)
-    llvm.func @__nvqir__qis__custom_unitary__ctl_values(!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr)
-    llvm.func @__nvqir__qis__custom_unitary__adj__ctl_values(!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr)
-    llvm.func @__nvqir__qis__exp_pauli__ctl_values(f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr)
-    llvm.func @llvm.stacksave.p0() -> !llvm.ptr
-    llvm.func @llvm.stackrestore.p0(!llvm.ptr)
+    llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i1, !llvm.ptr, ...)
+    llvm.func @invokeCustomUnitaryWithControlValues(i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, ...)
+    llvm.func @invokeExpPauliWithControlValues(i64, f64, !llvm.ptr, !llvm.ptr, ...)
     llvm.func @entryPoint(%callback: !llvm.ptr, %matrix: !llvm.ptr,
-                         %controls: !llvm.ptr, %values: !llvm.ptr,
-                         %count: i64, %targets: !llvm.ptr, %name: !llvm.ptr,
-                         %theta: f64, %word: !llvm.ptr) {
+                         %targets: !llvm.ptr, %name: !llvm.ptr, %theta: f64,
+                         %word: !llvm.ptr) {
       %zero = llvm.mlir.constant(0 : i64) : i64
       %one = llvm.mlir.constant(1 : i64) : i64
-      %saved = llvm.call @llvm.stacksave.p0() : () -> !llvm.ptr
-      llvm.call @generalizedInvokeWithControlValues(%zero, %zero, %one, %callback, %targets)
-          vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>)
-          : (i64, i64, i64, !llvm.ptr, !llvm.ptr) -> ()
-      llvm.call @__nvqir__qis__custom_unitary__ctl_values(%matrix, %controls, %values, %count, %targets, %name)
-          : (!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
-      llvm.call @__nvqir__qis__custom_unitary__adj__ctl_values(%matrix, %controls, %values, %count, %targets, %name)
-          : (!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
-      llvm.call @__nvqir__qis__exp_pauli__ctl_values(%theta, %controls, %values, %count, %targets, %word)
-          : (f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
-      llvm.call @llvm.stackrestore.p0(%saved) : (!llvm.ptr) -> ()
+      %with_values = llvm.mlir.constant(true) : i1
+      llvm.call @generalizedInvokeWithRotationsControlsTargets(%zero, %zero, %one, %with_values, %callback, %targets)
+          vararg(!llvm.func<void (i64, i64, i64, i1, ptr, ...)>)
+          : (i64, i64, i64, i1, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @invokeCustomUnitaryWithControlValues(%zero, %matrix, %targets, %name, %callback)
+          vararg(!llvm.func<void (i64, ptr, ptr, ptr, ptr, ...)>)
+          : (i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @invokeExpPauliWithControlValues(%zero, %theta, %targets, %word)
+          vararg(!llvm.func<void (i64, f64, ptr, ptr, ...)>)
+          : (i64, f64, !llvm.ptr, !llvm.ptr) -> ()
       llvm.return
     }
     )#";

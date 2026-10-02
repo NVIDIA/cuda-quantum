@@ -16,9 +16,12 @@
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <complex>
+#include <cstdarg>
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -1358,96 +1361,150 @@ void __quantum__rt__clear_result_maps() {
   measHandle2Index.clear();
 }
 
+static constexpr std::size_t maxInvokeRotationOperands = 3;
+static constexpr std::size_t maxInvokeTargetOperands = 2;
+
 static void validateInvokeOperandCounts(std::size_t numRotationOperands,
                                         std::size_t numTargetOperands) {
-  if (numRotationOperands > 3)
+  if (numRotationOperands > maxInvokeRotationOperands)
     throw std::runtime_error("Invoke has invalid number of rotations.");
-  if (numTargetOperands < 1 || numTargetOperands > 2)
+  if (numTargetOperands < 1 || numTargetOperands > maxInvokeTargetOperands)
     throw std::runtime_error("Invoke has invalid number of targets.");
 }
 
-/// This is the generalized version of invoke that does not use a va_list
-/// argument. It provides a general interface to allow invoking a general
-/// quantum operation, which may contain some number of rotation arguments
-/// (double), control arguments (either qubits or arrays), and target arguments
-/// (qubits). \p numRotationOperands must be no more than 3, and
-/// \p numTargetOperands must be 1 or 2. The arguments are passed as
-/// arrays (built by the caller on the stack) as: \p params, \p controls, and \p
-/// targets. \p isArrayAndLength is a buffer used to determine the type of the
-/// control arguments and must be present if \p numControlOperands is non-zero.
-/// The length of \p isArrayAndLength must also be \p numControlOperands.
-/// A non-null \p operandValues selects the callback ABI with values and count,
-/// even when there are no controls. Null selects the legacy callback ABI.
-static void commonInvokeWithRotationsControlsTargets(
-    std::size_t numRotationOperands, double *params,
-    std::size_t numControlOperands, std::size_t *isArrayAndLength,
-    Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
-    void (*QISFunction)(),
-    const std::vector<std::int32_t> *operandValues = nullptr) {
-  validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
-  assert(numRotationOperands == 0 || params);
-  assert(numControlOperands == 0 || (isArrayAndLength && controls));
-  assert(numTargetOperands && targets);
+namespace {
+struct ControlOperand {
+  Qubit *operand;
+  std::size_t numQubits;
+  std::int32_t requiredValue;
+  bool isArray;
+};
 
+struct PackedControls {
+  std::unique_ptr<Array> controls;
+  std::vector<std::int32_t> values;
+};
+} // namespace
+
+static ControlOperand readControlOperand(va_list &args) {
+  const auto isArray = va_arg(args, int);
+  const auto value = va_arg(args, int);
+  auto *operand = va_arg(args, Qubit *);
+  if (isArray != 0 && isArray != 1) {
+    throw std::invalid_argument("control operand kind must be 0 or 1");
+  }
+  if (value != 0 && value != 1) {
+    throw std::invalid_argument("required control value must be 0 or 1");
+  }
+  const auto numQubits =
+      isArray ? (operand ? reinterpret_cast<Array *>(operand)->size() : 0) : 1;
+  return {operand, numQubits, value, static_cast<bool>(isArray)};
+}
+
+static void appendControlOperand(Array &controls, std::size_t &offset,
+                                 const ControlOperand &operand,
+                                 std::vector<std::int32_t> *values) {
+  if (values) {
+    values->insert(values->end(), operand.numQubits, operand.requiredValue);
+  }
+  for (std::size_t i = 0; i < operand.numQubits; ++i) {
+    auto *qubit = operand.operand;
+    if (operand.isArray) {
+      auto *array = reinterpret_cast<Array *>(operand.operand);
+      qubit = *reinterpret_cast<Qubit **>(
+          __quantum__rt__array_get_element_ptr_1d(array, i));
+    }
+    *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(&controls, offset++)) = qubit;
+  }
+}
+
+static PackedControls packVariadicControls(std::size_t numControlOperands,
+                                           bool withControlValues,
+                                           va_list &args) {
+  // Count with a copied list so packing needs only the final output buffers.
+  va_list countArgs;
+  va_copy(countArgs, args);
+  const auto numControls = cudaq::detail::try_finally(
+      [&] {
+        std::size_t count = 0;
+        for (std::size_t i = 0; i < numControlOperands; ++i) {
+          const auto operand = readControlOperand(countArgs);
+          if (!withControlValues && operand.numQubits &&
+              operand.requiredValue == 0) {
+            throw std::invalid_argument(
+                "open controls require the control-value callback ABI");
+          }
+          count += operand.numQubits;
+        }
+        return count;
+      },
+      [&] { va_end(countArgs); });
+  PackedControls packed{
+      std::make_unique<Array>(numControls, sizeof(std::size_t)), {}};
+  if (withControlValues) {
+    packed.values.reserve(numControls);
+  }
+  std::size_t offset = 0;
+  for (std::size_t i = 0; i < numControlOperands; ++i) {
+    const auto operand = readControlOperand(args);
+    appendControlOperand(*packed.controls, offset, operand,
+                         withControlValues ? &packed.values : nullptr);
+  }
+  return packed;
+}
+
+static std::unique_ptr<Array>
+packControlOperands(std::size_t numControlOperands,
+                    const std::size_t *isArrayAndLength,
+                    Qubit *const *controls) {
+  assert(numControlOperands == 0 || (isArrayAndLength && controls));
   std::size_t numControls = 0;
   for (std::size_t i = 0; i < numControlOperands; i++)
     numControls += isArrayAndLength[i] ? isArrayAndLength[i] : 1;
 
-  // Create the Control Array *, This should
-  // be deallocated upon function exit.
   auto ctrlArray = std::make_unique<Array>(numControls, sizeof(std::size_t));
-  std::vector<std::int32_t> controlValues;
-  if (operandValues)
-    controlValues.reserve(numControls);
-
-  // Register values expand beside their qubits so mixed scalar and register
-  // operands retain their original control/value pairing.
-  for (std::size_t counter = 0, i = 0; i < numControlOperands; i++) {
-    if (operandValues)
-      controlValues.insert(controlValues.end(),
-                           isArrayAndLength[i] ? isArrayAndLength[i] : 1,
-                           (*operandValues)[i]);
-    if (auto numQubitsInArray = isArrayAndLength[i]) {
-      // this is an array
-      Array *array = reinterpret_cast<Array *>(controls[i]);
-      for (std::size_t k = 0; k < numQubitsInArray; k++) {
-        auto qubitK = __quantum__rt__array_get_element_ptr_1d(array, k);
-        Qubit **ctrliRawPtr =
-            reinterpret_cast<Qubit **>(__quantum__rt__array_get_element_ptr_1d(
-                ctrlArray.get(), counter++));
-        *ctrliRawPtr = *reinterpret_cast<Qubit **>(qubitK);
-      }
-    } else {
-      // this is a qubit
-      Qubit *ctrli = controls[i];
-      Qubit **ctrliRawPtr = reinterpret_cast<Qubit **>(
-          __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), counter++));
-      *ctrliRawPtr = ctrli;
-    }
+  std::size_t offset = 0;
+  for (std::size_t i = 0; i < numControlOperands; ++i) {
+    const auto length = isArrayAndLength[i];
+    appendControlOperand(*ctrlArray, offset,
+                         {controls[i], length ? length : 1, 1, length != 0},
+                         nullptr);
   }
+  return ctrlArray;
+}
+
+// A non-null values container selects the explicit-value callback ABI even
+// when its size is zero.
+static void invokeWithPackedControls(
+    std::size_t numRotationOperands, double *params, Array *controls,
+    std::size_t numTargetOperands, Qubit **targets, void (*QISFunction)(),
+    const std::vector<std::int32_t> *controlValues = nullptr) {
+  assert(numRotationOperands == 0 || params);
+  assert(numTargetOperands && targets);
 
   const auto invoke = [&](auto... rotations) {
-    if (operandValues) {
-      const auto count = static_cast<std::int64_t>(controlValues.size());
+    if (controlValues) {
+      const auto count = static_cast<std::int64_t>(controlValues->size());
       if (numTargetOperands == 1)
         reinterpret_cast<void (*)(decltype(rotations)..., Array *,
                                   const std::int32_t *, std::int64_t, Qubit *)>(
-            QISFunction)(rotations..., ctrlArray.get(), controlValues.data(),
-                         count, targets[0]);
+            QISFunction)(rotations..., controls, controlValues->data(), count,
+                         targets[0]);
       else
         reinterpret_cast<void (*)(decltype(rotations)..., Array *,
                                   const std::int32_t *, std::int64_t, Qubit *,
                                   Qubit *)>(QISFunction)(
-            rotations..., ctrlArray.get(), controlValues.data(), count,
-            targets[0], targets[1]);
+            rotations..., controls, controlValues->data(), count, targets[0],
+            targets[1]);
     } else {
       if (numTargetOperands == 1)
         reinterpret_cast<void (*)(decltype(rotations)..., Array *, Qubit *)>(
-            QISFunction)(rotations..., ctrlArray.get(), targets[0]);
+            QISFunction)(rotations..., controls, targets[0]);
       else
         reinterpret_cast<void (*)(decltype(rotations)..., Array *, Qubit *,
                                   Qubit *)>(QISFunction)(
-            rotations..., ctrlArray.get(), targets[0], targets[1]);
+            rotations..., controls, targets[0], targets[1]);
     }
   };
   switch (numRotationOperands) {
@@ -1466,98 +1523,93 @@ static void commonInvokeWithRotationsControlsTargets(
   }
 }
 
-/// Rotation parameters precede ordered control operand triples:
-/// (int isArray, int requiredValue, Qubit *operand). Arrays use their runtime
-/// length; an empty array contributes no controls. Scalar targets follow.
-/// The callback receives flattened controls, int32 values, and their int64
-/// count between its rotation parameters and targets. It must copy borrowed
-/// buffers before returning if execution is deferred.
-void generalizedInvokeWithControlValues(std::size_t numRotationOperands,
-                                        std::size_t numControlOperands,
-                                        std::size_t numTargetOperands,
-                                        void (*QISFunction)(...), ...) {
+// A legacy length of zero denotes a scalar, so empty arrays have no encoding.
+static void commonInvokeWithRotationsControlsTargets(
+    std::size_t numRotationOperands, double *params,
+    std::size_t numControlOperands, std::size_t *isArrayAndLength,
+    Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
+    void (*QISFunction)()) {
   validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
-  std::vector<double> parameters(numRotationOperands);
-  std::vector<std::size_t> arrayAndLength;
-  std::vector<Qubit *> controls;
-  std::vector<std::int32_t> values;
-  std::vector<Qubit *> targets(numTargetOperands);
-  arrayAndLength.reserve(numControlOperands);
-  controls.reserve(numControlOperands);
-  values.reserve(numControlOperands);
-  va_list args;
-  va_start(args, QISFunction);
-  for (auto &param : parameters)
-    param = va_arg(args, double);
-  for (std::size_t i = 0; i < numControlOperands; ++i) {
-    const auto isArray = va_arg(args, int);
-    const auto value = va_arg(args, int);
-    auto *operand = va_arg(args, Qubit *);
-    if (isArray != 0 && isArray != 1) {
-      va_end(args);
-      throw std::invalid_argument("control operand kind must be 0 or 1");
-    }
-    if (value != 0 && value != 1) {
-      va_end(args);
-      throw std::invalid_argument("required control value must be 0 or 1");
-    }
-    const auto length =
-        isArray && operand ? reinterpret_cast<Array *>(operand)->size() : 0;
-    // The shared packer uses length zero for scalars, so empty arrays must
-    // be removed before forwarding these operands.
-    if (isArray && length == 0)
-      continue;
-    arrayAndLength.push_back(length);
-    controls.push_back(operand);
-    values.push_back(value);
-  }
-  for (auto &target : targets)
-    target = va_arg(args, Qubit *);
-  va_end(args);
-  commonInvokeWithRotationsControlsTargets(
-      numRotationOperands, parameters.data(), controls.size(),
-      arrayAndLength.data(), controls.data(), numTargetOperands, targets.data(),
-      reinterpret_cast<void (*)()>(QISFunction), &values);
+  auto packed =
+      packControlOperands(numControlOperands, isArrayAndLength, controls);
+  invokeWithPackedControls(numRotationOperands, params, packed.get(),
+                           numTargetOperands, targets, QISFunction);
 }
 
+/// Varargs contain double rotations, ordered control triples, then Qubit*
+/// targets. Each triple is (int isArray, int requiredValue, Qubit* operand).
+/// Empty or null arrays contribute no controls.
+///
+/// The callback receives rotations, a flattened control Array*, and targets.
+/// withControlValues inserts a const std::int32_t* and std::int64_t count after
+/// controls, even with zero controls. A false flag requires state 1 for every
+/// actual control. Deferred callbacks must copy borrowed buffers before
+/// returning.
 void generalizedInvokeWithRotationsControlsTargets(
-    std::size_t numRotationOperands, std::size_t numControlArrayOperands,
-    std::size_t numControlQubitOperands, std::size_t numTargetOperands,
+    std::size_t numRotationOperands, std::size_t numControlOperands,
+    std::size_t numTargetOperands, bool withControlValues,
     void (*QISFunction)(...), ...) {
-  const std::size_t totalControls =
-      numControlArrayOperands + numControlQubitOperands;
-  double parameters[numRotationOperands];
-  std::size_t arrayAndLength[totalControls];
-  Qubit *controls[totalControls];
-  Qubit *targets[numTargetOperands];
-  std::size_t i;
-  std::size_t numPackedControls = 0;
+  validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
+  std::array<double, maxInvokeRotationOperands> parameters;
+  std::array<Qubit *, maxInvokeTargetOperands> targets;
   va_list args;
   va_start(args, QISFunction);
-  for (i = 0; i < numRotationOperands; ++i)
-    parameters[i] = va_arg(args, double);
-  for (i = 0; i < numControlArrayOperands; ++i) {
-    const auto length = va_arg(args, std::size_t);
-    auto *controlArray = va_arg(args, Qubit *);
-    // Zero marks a scalar in the common helper, so omit empty arrays.
-    if (length == 0) {
-      continue;
-    }
-    arrayAndLength[numPackedControls] = length;
-    controls[numPackedControls++] = controlArray;
-  }
-  for (i = 0; i < numControlQubitOperands; ++i) {
-    arrayAndLength[numPackedControls] = 0;
-    controls[numPackedControls++] = va_arg(args, Qubit *);
-  }
-  for (i = 0; i < numTargetOperands; ++i)
-    targets[i] = va_arg(args, Qubit *);
-  va_end(args);
+  auto packed = cudaq::detail::try_finally(
+      [&] {
+        for (std::size_t i = 0; i < numRotationOperands; ++i)
+          parameters[i] = va_arg(args, double);
+        auto packed =
+            packVariadicControls(numControlOperands, withControlValues, args);
+        for (std::size_t i = 0; i < numTargetOperands; ++i)
+          targets[i] = va_arg(args, Qubit *);
+        return packed;
+      },
+      [&] { va_end(args); });
+  invokeWithPackedControls(numRotationOperands, parameters.data(),
+                           packed.controls.get(), numTargetOperands,
+                           targets.data(),
+                           reinterpret_cast<void (*)()>(QISFunction),
+                           withControlValues ? &packed.values : nullptr);
+}
 
-  commonInvokeWithRotationsControlsTargets(
-      numRotationOperands, parameters, numPackedControls, arrayAndLength,
-      controls, numTargetOperands, targets,
-      reinterpret_cast<void (*)()>(QISFunction));
+/// Control operand triples match generalizedInvokeWithRotationsControlsTargets.
+/// The callback must copy the packed controls and values before returning if
+/// execution is deferred. QISFunction selects the forward or adjoint operation.
+void invokeCustomUnitaryWithControlValues(
+    std::size_t numControlOperands, std::complex<double> *unitary,
+    Array *targets, const char *name,
+    void (*QISFunction)(std::complex<double> *, Array *, const std::int32_t *,
+                        std::int64_t, Array *, const char *),
+    ...) {
+  va_list args;
+  va_start(args, QISFunction);
+  auto packed = cudaq::detail::try_finally(
+      [&] {
+        return packVariadicControls(numControlOperands,
+                                    /*withControlValues=*/true, args);
+      },
+      [&] { va_end(args); });
+  QISFunction(unitary, packed.controls.get(), packed.values.data(),
+              static_cast<std::int64_t>(packed.values.size()), targets, name);
+}
+
+/// Control operand triples match generalizedInvokeWithRotationsControlsTargets.
+/// __nvqir__qis__exp_pauli__ctl_values copies these temporary buffers before
+/// returning.
+void invokeExpPauliWithControlValues(std::size_t numControlOperands,
+                                     double theta, Array *targets,
+                                     char *pauliWord, ...) {
+  va_list args;
+  va_start(args, pauliWord);
+  auto packed = cudaq::detail::try_finally(
+      [&] {
+        return packVariadicControls(numControlOperands,
+                                    /*withControlValues=*/true, args);
+      },
+      [&] { va_end(args); });
+  __nvqir__qis__exp_pauli__ctl_values(
+      theta, packed.controls.get(), packed.values.data(),
+      static_cast<std::int64_t>(packed.values.size()), targets, pauliWord);
 }
 
 /// @brief Utility function used by Quake->QIR to invoke a QIR QIS function

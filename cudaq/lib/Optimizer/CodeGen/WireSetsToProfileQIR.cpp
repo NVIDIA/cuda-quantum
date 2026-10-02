@@ -184,12 +184,16 @@ struct GeneralRewrite : OpConversionPattern<OP> {
           SmallVector<Value> callParamVals{
               arith::ConstantIntOp::create(rewriter, loc,
                                            adaptor.getParameters().size(), 64),
-              arith::ConstantIntOp::create(rewriter, loc, 0, 64),
               arith::ConstantIntOp::create(rewriter, loc, 1, 64),
-              arith::ConstantIntOp::create(rewriter, loc, 1, 64), fPtrVal};
+              arith::ConstantIntOp::create(rewriter, loc, 1, 64),
+              arith::ConstantIntOp::create(rewriter, loc, 0, 1), fPtrVal};
           auto parameters =
               ValueRange(operands).take_front(adaptor.getParameters().size());
           callParamVals.append(parameters.begin(), parameters.end());
+          callParamVals.push_back(
+              arith::ConstantIntOp::create(rewriter, loc, 0, 32));
+          callParamVals.push_back(
+              arith::ConstantIntOp::create(rewriter, loc, 1, 32));
           callParamVals.push_back(cudaq::cc::CastOp::create(
               rewriter, loc, ptrTy, *adaptor.getControls().begin()));
           callParamVals.push_back(cudaq::cc::CastOp::create(
