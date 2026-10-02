@@ -41,6 +41,30 @@ add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
 
 declare_mlir_python_sources(CUDAQCorePythonSources)
 
+# Bind shared values and dialects without importing the execution runtime.
+# Reuse the binding sources in place; only their extension owner changes.
+declare_mlir_python_extension(CUDAQCorePythonSources.Dialects
+  MODULE_NAME _quakeDialectsCore
+  ADD_TO_PARENT CUDAQCorePythonSources
+  SOURCES
+    py_core_dialects.cpp
+    ../../python/runtime/mlir/py_register_dialects.cpp
+  PRIVATE_LINK_LIBS cudaqMLIR fmt::fmt-header-only)
+declare_mlir_python_extension(CUDAQCorePythonSources.Backends
+  MODULE_NAME _backends
+  ADD_TO_PARENT CUDAQCorePythonSources
+  SOURCES
+    py_core_backends.cpp
+    ../../python/runtime/cudaq/target/py_compile_target.cpp
+    ../../python/runtime/common/py_Resources.cpp
+    ../../python/runtime/common/py_EstimateResult.cpp
+    ../../python/runtime/cudaq/trace/py_trace.cpp
+  PRIVATE_LINK_LIBS cudaq-common cudaq-logger fmt::fmt-header-only)
+foreach(_bindings Dialects Backends)
+  target_include_directories(CUDAQCorePythonSources.${_bindings} INTERFACE
+    "${CMAKE_SOURCE_DIR}/python" "${CMAKE_SOURCE_DIR}/runtime")
+endforeach()
+
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT CUDAQCorePythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
@@ -138,6 +162,25 @@ add_cudaq_python_modules(CUDAQCorePythonModules
   COMMON_CAPI_LINK_LIBS
     cudaqMLIRCAPI
 )
+
+# Shared backend values are available without the frontend package.
+cudaq_stage_python_sources(CUDAQCorePythonPackageStaging
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/cudaq"
+  SOURCES core/__init__.py core/backends.py)
+add_dependencies(CUDAQCorePythonModules CUDAQCorePythonPackageStaging)
+install(FILES core/__init__.py core/backends.py
+  DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+
+# Logical compilation uses the shared logger's tracing API without the frontend.
+# Keep its public Python path and source location; core stages and installs it.
+cudaq_stage_python_sources(CUDAQCoreTraceStaging
+  ROOT_DIR "${CMAKE_SOURCE_DIR}/python/cudaq"
+  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/cudaq"
+  SOURCES util/trace.py)
+add_dependencies(CUDAQCorePythonModules CUDAQCoreTraceStaging)
+install(FILES "${CMAKE_SOURCE_DIR}/python/cudaq/util/trace.py"
+  DESTINATION cudaq/util COMPONENT CUDAQCorePythonModules)
 
 # Suppress warnings-as-errors for upstream MLIR Python extension sources
 # that have minor GCC warnings (address-of-function, parentheses) in LLVM 22.

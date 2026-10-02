@@ -23,19 +23,18 @@ from importlib.metadata import (
 from pathlib import Path as _Path
 
 
-def _require_cudaq_runtime() -> None:
-    """Fail fast with actionable guidance when the CUDA-Q runtime is absent."""
-    spec = _find_spec("cudaq")
-    if spec is None or spec.origin is None:
+def _require_cudaq_core() -> None:
+    """Fail fast when the shared compiler bindings are absent."""
+    if _find_spec("cudaq.core") is None:
         raise ImportError(
-            "cudaq.logical requires the CUDA-Q runtime, which is not "
+            "cudaq.logical requires the CUDA-Q core bindings, which are not "
             "installed. Install it with "
             'pip install "cudaq-logical[cu13]" (CUDA 13) or '
             'pip install "cudaq-logical[cu12]" (CUDA 12), or with '
             "pip install cudaq.")
 
 
-_require_cudaq_runtime()
+_require_cudaq_core()
 
 _warnings.warn(
     "cudaq-logical is in preview. Its APIs, behavior, and documentation "

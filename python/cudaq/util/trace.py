@@ -38,7 +38,8 @@ versions the output. Tooling keys on these span names, which tests pin:
 
 from functools import wraps
 
-from ..mlir._mlir_libs._quakeDialects.cudaq_runtime.trace import (
+# The shared binding also serves logical compilation without the frontend.
+from ..mlir._mlir_libs._backends.trace import (
     span,
     TraceBackend,
     ChromeBackend,

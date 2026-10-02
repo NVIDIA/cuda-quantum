@@ -332,6 +332,9 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addPass(createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createGetConcreteMatrix());
+  // Synthesis creates ApplyOps, which activate only when every control is |1>.
+  // Expand negated controls into X conjugation before creating those calls.
+  pm.addNestedPass<func::FuncOp>(createExpandControlNegations());
   pm.addPass(createUnitarySynthesis());
   cudaq::opt::ApplySpecializationOptions aso{.legacyClassical = true};
   pm.addPass(createApplySpecialization(aso));
