@@ -46,6 +46,10 @@ static constexpr const char CudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
 static constexpr const char CudaqRegisterCallbackName[] =
     "cudaqRegisterCallbackName";
+// Same-process dispatch hook used by the generalized (distributed-memory
+// reference) `device_call` lowering. See DistributedDeviceCall.cpp.
+static constexpr const char callDeviceCallback[] =
+    "__nvqpp__device_callback_run";
 
 /// Prefix for an analog kernel entry functions.
 static constexpr const char cudaqAHKPrefixName[] =
@@ -64,6 +68,11 @@ static constexpr const char bindingInitializeString[] =
     "__nvqpp_initializeStringFromSpan";
 static constexpr const char bindingDeconstructString[] =
     "__nvqpp_deconstructString";
+
+/// Release the storage of a `std::vector<T>` built by host code. This is a
+/// wrapper with C linkage in the runtime around the C++ `operator delete`, to
+/// isolate the compiler from the mangled name, which may vary by platform.
+static constexpr const char hostDeallocate[] = "__nvqpp_hostDeallocate";
 // Runtime layer of a `device_call` application based on CUDA-Q Realtime.
 static constexpr const char deviceCallAcquireRealtimeFrame[] =
     "__cudaq_device_call_acquire_realtime_frame";
