@@ -19,12 +19,12 @@
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "cudaq/Optimizer/Dialect/QEC/QECOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h" // for GlobalizeArrayValues
-#include "llvm/ADT/SmallString.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
+#include <string>
 
 #define DEBUG_TYPE "convert-to-qir-api"
 
@@ -67,7 +67,8 @@ static SmallVector<Value> filterArgs(Operation *op, ValueRange adaptedArgs) {
   SmallVector<Value> result;
   assert(arrAttr.size() == adaptedArgs.size());
   for (auto [tyAttr, argval] : llvm::zip(arrAttr, adaptedArgs))
-    if (cudaq::quake::isQuantumValueType(cast<TypeAttr>(tyAttr).getValue()))
+    // Reusable controls have no corresponding gate result.
+    if (cudaq::quake::isLinearType(cast<TypeAttr>(tyAttr).getValue()))
       result.push_back(argval);
   return result;
 }
@@ -75,14 +76,6 @@ static SmallVector<Value> filterArgs(Operation *op, ValueRange adaptedArgs) {
 static bool hasNegatedControls(cudaq::quake::OperatorInterface gate) {
   auto negations = gate.getNegatedControls();
   return negations && llvm::is_contained(*negations, true);
-}
-
-static void forwardQuantumResults(Operation *op, ValueRange operands,
-                                  ConversionPatternRewriter &rewriter) {
-  if (op->getNumResults())
-    rewriter.replaceOp(op, filterArgs(op, operands));
-  else
-    rewriter.eraseOp(op);
 }
 
 template <typename OP>
@@ -1396,7 +1389,7 @@ struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
           rewriter, loc, TypeRange{}, functionName,
           ValueRange{unitaryData, controlArray, targetArray, nameOp});
     }
-    forwardQuantumResults(unitary, adaptor.getOperands(), rewriter);
+    rewriter.replaceOp(unitary, filterArgs(unitary, adaptor.getOperands()));
     return success();
   }
 
@@ -1530,7 +1523,7 @@ struct ExpPauliOpPattern
         func::CallOp::create(rewriter, loc, TypeRange{}, qirFunctionName,
                              operands);
       }
-      forwardQuantumResults(pauli, adaptor.getOperands(), rewriter);
+      rewriter.replaceOp(pauli, filterArgs(pauli, adaptor.getOperands()));
       return success();
     };
 
@@ -1999,8 +1992,8 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
                                     ConversionPatternRewriter &rewriter) {
     const auto loc = op.getLoc();
     auto pointerType = M::getLLVMPointerType(rewriter.getContext());
-    SmallString<64> callbackName("__nvqir__qis__");
-    callbackName += op->getName().stripDialect();
+    std::string callbackName = "__nvqir__qis__";
+    callbackName += op->getName().stripDialect().str();
     if (op.isAdj() && isa<cudaq::quake::SOp, cudaq::quake::TOp>(op))
       callbackName += "dg";
     callbackName += "__ctl_values";
@@ -2042,7 +2035,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
   matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto forwardOrEraseOp = [&]() {
-      forwardQuantumResults(op, adaptor.getOperands(), rewriter);
+      rewriter.replaceOp(op, filterArgs(op, adaptor.getOperands()));
       return success();
     };
     auto qirFunctionName = M::quakeToFuncName(op);
@@ -2121,7 +2114,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     auto ptrNoneTy = M::getLLVMPointerType(rewriter.getContext());
 
     // Process the controls, sorting them by type. Using the original
-    // type recorded by QuakeToQIRAPIPrep, since opaque pointers
+    // type recorded before conversion, since opaque pointers
     // make Array* and Qubit* indistinguishable on the live operand.
     for (auto [i, val] : llvm::enumerate(adaptor.getControls())) {
       Type origCtrlTy = getInitialType(op, opParams.size() + i);
@@ -2912,6 +2905,23 @@ struct QuakeToQIRAPIPass
     auto *op = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Before QIR API conversion:\n" << *op << '\n');
     auto *ctx = &getContext();
+    // Note: Canonicalization after preparation can remove operands. Record
+    // their types after those rewrites, before dialect conversion.
+    op->walk([&](Operation *op) {
+      if (std::all_of(
+              op->getResultTypes().begin(), op->getResultTypes().end(),
+              [&](Type ty) { return !cudaq::quake::isQuantumType(ty); }) &&
+          std::all_of(
+              op->getOperandTypes().begin(), op->getOperandTypes().end(),
+              [&](Type ty) { return !cudaq::quake::isQuantumType(ty); }))
+        return;
+      SmallVector<Attribute> typeAttrs;
+      typeAttrs.reserve(op->getOperands().size());
+      for (Type ty : op->getOperandTypes())
+        typeAttrs.push_back(TypeAttr::get(ty));
+      auto operandTypes = ArrayAttr::get(ctx, typeAttrs);
+      op->setAttr(InitialArgTypesAttrName, operandTypes);
+    });
     RewritePatternSet patterns(ctx);
     A::populateRewritePatterns(patterns, typeConverter);
     ConversionTarget target(*ctx);
@@ -3257,23 +3267,6 @@ struct QuakeToQIRAPIPrepPass
           func->setAttr("passthrough", builder.getArrayAttr(funcAttrs));
       });
     }
-
-    auto *ctx = module.getContext();
-    module.walk([&](Operation *op) {
-      if (std::all_of(
-              op->getResultTypes().begin(), op->getResultTypes().end(),
-              [&](Type ty) { return !cudaq::quake::isQuantumType(ty); }) &&
-          std::all_of(
-              op->getOperandTypes().begin(), op->getOperandTypes().end(),
-              [&](Type ty) { return !cudaq::quake::isQuantumType(ty); }))
-        return;
-      SmallVector<Attribute> typeAttrs;
-      typeAttrs.reserve(op->getOperands().size());
-      for (Type ty : op->getOperandTypes())
-        typeAttrs.push_back(TypeAttr::get(ty));
-      auto operandTypes = ArrayAttr::get(ctx, typeAttrs);
-      op->setAttr(InitialArgTypesAttrName, operandTypes);
-    });
   }
 
   static StringRef getRequiredQubitsAttrName(StringRef version) {

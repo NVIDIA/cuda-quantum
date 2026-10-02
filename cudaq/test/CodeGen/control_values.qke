@@ -249,3 +249,26 @@ func.func @wire_results(%theta: f64, %control: !quake.wire,
 // CHECK:           %[[INSERTVALUE_1:.*]] = llvm.insertvalue %[[ARG2]], %[[INSERTVALUE_0]][1] : !llvm.struct<(ptr, ptr)>
 // CHECK:           llvm.return %[[INSERTVALUE_1]] : !llvm.struct<(ptr, ptr)>
 // CHECK:         }
+
+// Reusable controls do not produce results, with either ref or wire targets.
+func.func @reusable_control(%control: !quake.control, %reference: !quake.ref,
+                           %wire: !quake.wire) -> !quake.wire {
+  quake.x [%control neg [true]] %reference
+      : (!quake.control, !quake.ref) -> ()
+  %next = quake.x [%control neg [true]] %wire
+      : (!quake.control, !quake.wire) -> !quake.wire
+  return %next : !quake.wire
+}
+
+// CHECK-LABEL:   llvm.func @reusable_control(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) -> !llvm.ptr attributes {"qir-api"} {
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.constant(0 : i32) : i32
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.addressof @__nvqir__qis__x__ctl_values : !llvm.ptr
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_2]], %[[MLIR_3]], %[[MLIR_3]], %[[MLIR_1]], %[[MLIR_0]], %[[MLIR_0]], %[[ARG0]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_2]], %[[MLIR_3]], %[[MLIR_3]], %[[MLIR_1]], %[[MLIR_0]], %[[MLIR_0]], %[[ARG0]], %[[ARG2]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.return %[[ARG2]] : !llvm.ptr
+// CHECK:         }
