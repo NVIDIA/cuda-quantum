@@ -196,6 +196,17 @@ def BorrowChecking : Pass<"borrow-checking"> {
     iteration) or when the analysis cannot tell which wire a `return_wire`
     returns.
 
+    A call is not a place where a wire can come from or go to. A borrowed wire
+    that is passed to a call that produces no wire vanishes into it, and a call
+    that produces a wire without being passed one produces it out of nowhere.
+    Either is always an error, whatever the options. Since the IR is broken, the
+    analysis stops without reporting anything else about the function.
+
+    NB: Call sites present a horizon obstacle in that the body of the called
+    kernel may be entirely unknown. It is therefore impossible to check if that
+    unknowable code has borrow violations or not. It is possible there are
+    borrow violations, but that are not statically known.
+
     This pass is not composable. (Think of it as an extension of the IR
     verifier.) It never modifies the IR.
   }];

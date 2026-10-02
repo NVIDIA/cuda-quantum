@@ -16,6 +16,7 @@
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include <optional>
 
@@ -127,9 +128,11 @@ static void buildThreads(func::FuncOp func, WireThreads &threads) {
       }
       return;
     }
-    // Quake operations thread their wire operands to their wire results, in
-    // order.
-    if (op->getDialect() && op->getDialect()->getNamespace() == "quake") {
+    // Quake operations and calls thread their wire operands to their wire
+    // results, in order. A wire that goes into a call comes out of it, since
+    // that is how wires work, whatever kind of call it is.
+    if ((op->getDialect() && op->getDialect()->getNamespace() == "quake") ||
+        isa<CallOpInterface>(op)) {
       SmallVector<Value> wireIn, wireOut;
       for (Value v : op->getOperands())
         if (isa<cudaq::quake::WireType>(v.getType()))
@@ -279,6 +282,17 @@ cudaq::opt::WireBorrowAnalysis::WireBorrowAnalysis(func::FuncOp func) {
     }
     borrowsOfKey[iter->second].push_back(borrow);
   });
+
+  auto isWire = [](Type ty) { return isa<cudaq::quake::WireType>(ty); };
+  func.walk([&](Operation *op) {
+    if (!isa<CallOpInterface>(op))
+      return;
+    if (llvm::any_of(op->getResultTypes(), isWire) &&
+        !llvm::any_of(op->getOperandTypes(), isWire))
+      conflicts.push_back(Conflict{
+          Kind::Conjured, Certainty::Definite, op, llvm::StringRef(), 0, {}});
+  });
+
   if (keyIndex.empty())
     return;
 
@@ -306,21 +320,31 @@ cudaq::opt::WireBorrowAnalysis::WireBorrowAnalysis(func::FuncOp func) {
     return iter->second;
   };
 
-  // A wire handed to an operation this analysis does not understand may have
-  // its ownership transferred, so it is never definitely lost.
-  llvm::SmallBitVector opaque(numThreads);
+  // A borrowed wire that is handed to a call that produces no wire in return
+  // vanishes into the callee. It is reported at the call.
   func.walk([&](Operation *op) {
-    if (isa<cudaq::quake::ReturnWireOp, func::ReturnOp>(op) ||
-        isa<BranchOpInterface>(op))
+    if (!isa<CallOpInterface>(op) || llvm::any_of(op->getResultTypes(), isWire))
       return;
-    if (op->getDialect() && (op->getDialect()->getNamespace() == "quake" ||
-                             op->getDialect()->getNamespace() == "cc"))
-      return;
+    SmallVector<unsigned, 2> vanished;
     for (Value v : op->getOperands())
-      if (isa<cudaq::quake::WireType>(v.getType()))
+      if (isWire(v.getType()))
         if (auto t = trackedThread(v))
-          opaque.set(*t);
+          if (!llvm::is_contained(vanished, *t))
+            vanished.push_back(*t);
+    for (unsigned t : vanished)
+      for (unsigned k : threadKeys[t])
+        conflicts.push_back(Conflict{Kind::Vanished,
+                                     Certainty::Definite,
+                                     op,
+                                     firstBorrowOfKey[k].getSetName(),
+                                     firstBorrowOfKey[k].getIdentity(),
+                                     {}});
   });
+
+  // Either one means the IR is broken, and what a dataflow over it would say
+  // is no longer reliable. Stop.
+  if (!conflicts.empty())
+    return;
 
   // Forward dataflow to a fixed point.
   DenseMap<Point, State> in;
@@ -419,8 +443,7 @@ cudaq::opt::WireBorrowAnalysis::WireBorrowAnalysis(func::FuncOp func) {
       for (unsigned t : s.may.set_bits()) {
         if (escapes.test(t))
           continue;
-        const bool definite =
-            s.must.test(t) && !opaque.test(t) && !unresolvedEscape;
+        const bool definite = s.must.test(t) && !unresolvedEscape;
         for (unsigned k : threadKeys[t])
           addConflict(Kind::Unreturned,
                       definite && threadKeys[t].size() == 1

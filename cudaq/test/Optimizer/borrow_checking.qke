@@ -356,3 +356,269 @@ func.func @unresolved_return(%w: !quake.wire) {
   quake.return_wire %w : !quake.wire // expected-warning {{cannot determine which wire is returned}}
   return
 }
+
+// -----
+
+quake.wire_set @phys[4]
+func.func private @consume(!quake.wire)
+
+// A borrowed wire that is handed to a call that produces no wire vanishes into
+// it. That is reported once, at the call, as an error, since the IR is broken.
+// The analysis stops there, so the wire is not also reported when it is
+// borrowed again, nor as never returned.
+func.func @vanish_func_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  func.call @consume(%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[0] is passed to an operation that consumes it}}
+  %1 = quake.borrow_wire @phys[0] : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// Every kind of call behaves alike. `cc.noinline_call` is not a `func.call`,
+// but it is a call all the same.
+func.func @vanish_noinline_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  cc.noinline_call @consume(%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[0] is passed to an operation that consumes it}}
+  %1 = quake.borrow_wire @phys[0] : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// `quake.apply` is a call too, though it is in the `quake` dialect. What is
+// checked is that an operation is a call, not which dialect it is in.
+func.func @vanish_quake_apply() {
+  %0 = quake.borrow_wire @phys[3] : !quake.wire
+  quake.apply @consume (%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[3] is passed to an operation that consumes it}}
+  %1 = quake.borrow_wire @phys[3] : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// A vanished wire is not also reported as never returned at the end of the
+// function.
+func.func @vanish_not_also_unreturned() {
+  %0 = quake.borrow_wire @phys[1] : !quake.wire
+  func.call @consume(%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[1] is passed to an operation that consumes it}}
+  return
+}
+
+// A wire may vanish on only one path. That is reported all the same.
+func.func @vanish_on_one_path(%c: i1) {
+  %0 = quake.borrow_wire @phys[2] : !quake.wire
+  cf.cond_br %c, ^bb1, ^bb2
+^bb1:
+  func.call @consume(%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[2] is passed to an operation that consumes it}}
+  return
+^bb2:
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+// A wire that is borrowed and handed to a call is reported identically for
+// every kind of call. `func.call` and `cc.noinline_call` once differed: one was
+// reported as possibly never returned and the other as definitely never
+// returned. Neither is the right diagnostic, since the wire is not lost at the
+// end of the function. It vanished into the callee, which is what is reported.
+quake.wire_set @phys[4]
+func.func private @consume(!quake.wire)
+
+func.func @func_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  func.call @consume(%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[0] is passed to an operation that consumes it and is never returned}}
+  return
+}
+
+func.func @cc_call() {
+  %0 = quake.borrow_wire @phys[1] : !quake.wire
+  cc.noinline_call @consume(%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[1] is passed to an operation that consumes it and is never returned}}
+  return
+}
+
+// -----
+
+quake.wire_set @phys[4]
+func.func private @make() -> !quake.wire
+
+// A call that produces a wire when it is not handed one produces a wire of
+// unknown origin. That is an error at the call. The analysis stops, so the
+// return of the wire is not also reported as imprecise.
+func.func @conjured_func_call() {
+  %0 = func.call @make() : () -> !quake.wire // expected-error {{operation returns a wire of unknown origin}}
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+func.func @conjured_noinline_call() {
+  %0 = cc.noinline_call @make() : () -> !quake.wire // expected-error {{operation returns a wire of unknown origin}}
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+func.func @conjured_quake_apply() {
+  %0 = quake.apply @make () : () -> !quake.wire // expected-error {{operation returns a wire of unknown origin}}
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// The analysis stops at the first sign that the IR is broken, so the double
+// borrow in this function is not reported.
+func.func @stops_after_conjured() {
+  %0 = func.call @make() : () -> !quake.wire // expected-error {{operation returns a wire of unknown origin}}
+  %1 = quake.borrow_wire @phys[0] : !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// A call that is handed a wire and produces one is not in either of these
+// categories.
+func.func private @passthru(!quake.wire) -> !quake.wire
+func.func @call_with_wire_in_and_out(%w: !quake.wire) {
+  %b = quake.borrow_wire @phys[0] : !quake.wire
+  quake.return_wire %b : !quake.wire
+  %0 = func.call @passthru(%w) : (!quake.wire) -> !quake.wire
+  quake.return_wire %0 : !quake.wire // expected-warning {{cannot determine which wire is returned}}
+  return
+}
+
+// -----
+
+// The wire is lost in the call, and then borrowed again. The error is at the
+// call, where the wire vanished, and not at the second borrow, which is a
+// perfectly fine borrow of a wire that nothing is holding anymore.
+quake.wire_set @phys[4]
+func.func private @consume(!quake.wire)
+func.func @f() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  func.call @consume(%0) : (!quake.wire) -> () // expected-error {{borrowed wire @phys[0] is passed to an operation that consumes it and is never returned}}
+  %1 = quake.borrow_wire @phys[0] : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @phys[4]
+func.func private @passthru(!quake.wire) -> !quake.wire
+
+// A wire that goes into a call comes out of it, since that is how wires work.
+// Every kind of call, whatever its dialect, takes the wire it is handed to the
+// wire that it produces. The wire is returned from the result, and that is not
+// reported as anything at all.
+func.func @through_func_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = func.call @passthru(%0) : (!quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+func.func @through_func_call_indirect(%fn: (!quake.wire) -> !quake.wire) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = func.call_indirect %fn(%0) : (!quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+func.func @through_cc_noinline_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = cc.noinline_call @passthru(%0) : (!quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+func.func @through_quake_apply() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = quake.apply @passthru (%0) : (!quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+func.func @through_cc_call_callable(%c: !cc.callable<(!quake.wire) -> !quake.wire>) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = cc.call_callable %c, %0 : (!cc.callable<(!quake.wire) -> !quake.wire>, !quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+func.func @through_cc_call_indirect_callable(%c: !cc.indirect_callable<(!quake.wire) -> !quake.wire>) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = cc.call_indirect_callable %c, %0 : (!cc.indirect_callable<(!quake.wire) -> !quake.wire>, !quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+func.func @through_cc_device_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = cc.device_call @passthru(%0) : (!quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// The wire that comes out of a call is still the borrowed wire. It is held
+// until it is returned, so borrowing it again before then is a double borrow.
+func.func @held_after_func_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire // expected-note {{wire is borrowed here}}
+  %1 = func.call @passthru(%0) : (!quake.wire) -> !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire // expected-error {{wire @phys[0] is borrowed while it is already borrowed}}
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+func.func @held_after_func_call_indirect(%fn: (!quake.wire) -> !quake.wire) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire // expected-note {{wire is borrowed here}}
+  %1 = func.call_indirect %fn(%0) : (!quake.wire) -> !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire // expected-error {{wire @phys[0] is borrowed while it is already borrowed}}
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+func.func @held_after_cc_noinline_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire // expected-note {{wire is borrowed here}}
+  %1 = cc.noinline_call @passthru(%0) : (!quake.wire) -> !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire // expected-error {{wire @phys[0] is borrowed while it is already borrowed}}
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+func.func @held_after_quake_apply() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire // expected-note {{wire is borrowed here}}
+  %1 = quake.apply @passthru (%0) : (!quake.wire) -> !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire // expected-error {{wire @phys[0] is borrowed while it is already borrowed}}
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+func.func @held_after_cc_call_callable(%c: !cc.callable<(!quake.wire) -> !quake.wire>) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire // expected-note {{wire is borrowed here}}
+  %1 = cc.call_callable %c, %0 : (!cc.callable<(!quake.wire) -> !quake.wire>, !quake.wire) -> !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire // expected-error {{wire @phys[0] is borrowed while it is already borrowed}}
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+func.func @held_after_cc_call_indirect_callable(%c: !cc.indirect_callable<(!quake.wire) -> !quake.wire>) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire // expected-note {{wire is borrowed here}}
+  %1 = cc.call_indirect_callable %c, %0 : (!cc.indirect_callable<(!quake.wire) -> !quake.wire>, !quake.wire) -> !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire // expected-error {{wire @phys[0] is borrowed while it is already borrowed}}
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+func.func @held_after_cc_device_call() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire // expected-note {{wire is borrowed here}}
+  %1 = cc.device_call @passthru(%0) : (!quake.wire) -> !quake.wire
+  %2 = quake.borrow_wire @phys[0] : !quake.wire // expected-error {{wire @phys[0] is borrowed while it is already borrowed}}
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}

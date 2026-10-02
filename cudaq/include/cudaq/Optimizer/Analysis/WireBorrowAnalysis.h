@@ -41,7 +41,7 @@ namespace cudaq::opt {
 /// The analysis has two parts.
 ///
 /// 1. Each `!quake.wire` value is placed in a *thread*: the set of SSA values
-///    that carry the same wire through gates, block arguments, region
+///    that carry the same wire through gates, calls, block arguments, region
 ///    arguments and results. The set of physical wires borrowed into a thread
 ///    identifies which wire a `quake.return_wire` hands back. A thread with no
 ///    borrow (an argument or call result, say) is *unresolved*.
@@ -52,12 +52,26 @@ namespace cudaq::opt {
 ///    its thread. Borrowing a wire that a must-held thread can only be is a
 ///    definite conflict. Borrowing a wire that a may-held thread can carry is
 ///    a possible conflict.
+///
+/// A call is not a place where a wire can come from or go to. Wires come from
+/// `quake.borrow_wire` and go to `quake.return_wire`. A borrowed wire that is
+/// handed to a call that does not produce a wire vanishes into the callee, and
+/// a call that produces a wire, when it is not handed one, produces a wire out
+/// of nowhere. Either is reported, at the call, and means that the IR is
+/// broken. The analysis then stops without looking at the rest of the function.
+/// A call is any operation with the call interface, whatever its dialect.
 struct WireBorrowAnalysis {
   enum class Kind {
     /// A wire was borrowed while it was already borrowed.
     DoubleBorrow,
     /// A wire was borrowed and is neither returned nor escapes the function.
-    Unreturned
+    Unreturned,
+    /// A borrowed wire was handed to a call that produces no wire, so the wire
+    /// vanished into the callee.
+    Vanished,
+    /// A call produced a wire, but it was not handed a wire. The wire is of
+    /// unknown origin.
+    Conjured
   };
 
   enum class Certainty {
@@ -71,9 +85,10 @@ struct WireBorrowAnalysis {
   struct Conflict {
     Kind kind;
     Certainty certainty;
-    /// The offending `quake.borrow_wire` for `DoubleBorrow`, or the function
-    /// exit operation for `Unreturned`.
+    /// The offending `quake.borrow_wire` for `DoubleBorrow`, the function exit
+    /// operation for `Unreturned`, or the call for `Vanished` and `Conjured`.
     mlir::Operation *op;
+    /// The wire. Empty for `Conjured`, as the wire is not known.
     llvm::StringRef setName;
     std::uint32_t identity;
     /// Other borrows of the same wire in the function. These are candidates

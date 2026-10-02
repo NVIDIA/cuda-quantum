@@ -47,6 +47,22 @@ private:
   /// Emit a diagnostic for \p c. Return true if the pass must fail.
   bool report(const WireBorrowAnalysis::Conflict &c) {
     using Certainty = WireBorrowAnalysis::Certainty;
+    // A call that a wire vanishes into, or that conjures a wire, always fails
+    // the pass. The IR is broken, and there is no sense in which that can only
+    // possibly be so.
+    if (c.kind == WireBorrowAnalysis::Kind::Vanished ||
+        c.kind == WireBorrowAnalysis::Kind::Conjured) {
+      std::string msg =
+          c.kind == WireBorrowAnalysis::Kind::Vanished
+              ? "borrowed wire @" + c.setName.str() + "[" +
+                    std::to_string(c.identity) +
+                    "] is passed to an operation that consumes it and is never "
+                    "returned; a borrowed wire that vanishes is not supported."
+              : "operation returns a wire of unknown origin; a wire "
+                "materializing out of nowhere is not supported.";
+      c.op->emitError(msg);
+      return true;
+    }
     const bool definite = c.certainty == Certainty::Definite;
     if (!definite && !warnOnPossible)
       return false;
