@@ -256,7 +256,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 
       // Lower cc.device_calls
       if (target.supportDeviceCalls) {
-        pm.addPass(cudaq::opt::createDistributedDeviceCall());
+        pm.addPass(cudaq::opt::createQIRDeviceCall());
         pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
       }
 
