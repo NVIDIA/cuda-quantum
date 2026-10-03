@@ -3241,6 +3241,10 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     return initListTy;
   }();
 
+  // An init-list for an array type always materializes as an array, even at
+  // size 1: consumers require ptr<array<T x N>>, not ptr<T>.
+  const bool asArray = numEles > 1 || isa<cc::ArrayType>(initListTy);
+
   bool lastValuesAreConstant = [&]() {
     for (Value v : last)
       if (!opt::factory::maybeValueOfFloatConstant(v))
@@ -3281,9 +3285,8 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     return pushValue(
         cudaq::quake::MakeStruqOp::create(builder, loc, eleTy, last));
 
-  Value alloca = (numEles > 1)
-                     ? cc::AllocaOp::create(builder, loc, eleTy, arrSize)
-                     : cc::AllocaOp::create(builder, loc, eleTy);
+  Value alloca = asArray ? cc::AllocaOp::create(builder, loc, eleTy, arrSize)
+                         : cc::AllocaOp::create(builder, loc, eleTy);
 
   // Store the values in the allocated memory
   for (auto iter : llvm::enumerate(last)) {
@@ -3303,7 +3306,7 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
                                        ArrayRef<cc::ComputePtrArg>{i});
       }
     } else {
-      if (numEles > 1) {
+      if (asArray) {
         auto ptrTy = cc::PointerType::get(eleTy);
         ptr = cc::ComputePtrOp::create(builder, loc, ptrTy, alloca,
                                        ArrayRef<cc::ComputePtrArg>{i});
