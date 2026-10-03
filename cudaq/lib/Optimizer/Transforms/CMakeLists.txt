@@ -18,6 +18,7 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  BorrowChecking.cpp
   CableRoughIn.cpp
   ClassicalOptimization.cpp
   CliffordTSynthesis.cpp
