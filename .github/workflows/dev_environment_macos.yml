@@ -96,6 +96,7 @@ jobs:
           # the selection strategy must force a clean rebuild.
           scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
+            scripts/prereqs_common.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
             cmake/caches/LLVM.cmake \

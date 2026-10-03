@@ -53,6 +53,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
 # [CUDA-Q Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
+ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
