@@ -127,6 +127,27 @@ def test_sample_control_no_args():
     assert '111' in result
 
 
+def test_control_rejects_measurement(capfd):
+
+    @cudaq.kernel
+    def measured(target: cudaq.qubit):
+        mz(target)
+
+    @cudaq.kernel
+    def caller():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        h(control)
+        cudaq.control(measured, control, target)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.get_state(caller)
+
+    diagnostics = str(error.value) + capfd.readouterr().err
+    assert ("contains measurements; construct the controlled operation "
+            "explicitly instead") in diagnostics
+
+
 # CHECK-LABEL: test_sample_control_no_args
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__caller..
 # CHECK-SAME:      (%[[VAL_0:.*]]: !cc.callable<() -> ()> {{.*}}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
