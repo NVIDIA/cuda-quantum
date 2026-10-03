@@ -39,7 +39,7 @@ def draw(decoratorOrFormat, *args):
     """
     if isinstance(decoratorOrFormat, str):
         # User specified output format.
-        assert (len(args) == 1) and "must have a kernel"
+        assert len(args) >= 1, "must have a kernel"
         vargs = args[1:]
         return _detail_draw(decoratorOrFormat, args[0], *vargs)
     # Default to the UTF-8 code points (confusingly named `"ascii"`).
