@@ -808,3 +808,71 @@ class TestFromQasm:
                 cudaq.contrib.from_qasm(temp_path)
         finally:
             os.unlink(temp_path)
+
+
+class TestDeprecation:
+    """Tests that the deprecated entry points point users at `cudaq-convert`."""
+
+    def test_from_qiskit_warns(self):
+        """`from_qiskit` emits a `DeprecationWarning` naming the replacement."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+
+        with pytest.warns(DeprecationWarning, match="cudaq-convert"):
+            cudaq.contrib.from_qiskit(qc)
+
+    def test_from_qasm_warns(self):
+        """`from_qasm` emits a `DeprecationWarning` naming the replacement."""
+        qasm = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        h q[0];
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".qasm",
+                                         delete=False) as f:
+            f.write(qasm)
+            temp_path = f.name
+
+        try:
+            with pytest.warns(DeprecationWarning, match="cudaq-convert"):
+                cudaq.contrib.from_qasm(temp_path)
+        finally:
+            os.unlink(temp_path)
+
+    def test_from_qasm_warns_only_once(self):
+        """`from_qasm` must not re-warn through its internal conversion step."""
+        qasm = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        h q[0];
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".qasm",
+                                         delete=False) as f:
+            f.write(qasm)
+            temp_path = f.name
+
+        try:
+            with pytest.warns(DeprecationWarning) as record:
+                cudaq.contrib.from_qasm(temp_path)
+        finally:
+            os.unlink(temp_path)
+
+        deprecations = [
+            w for w in record if issubclass(w.category, DeprecationWarning)
+        ]
+        assert len(deprecations) == 1
+
+    def test_kernel_still_works_after_warning(self):
+        """Deprecation must not change the produced kernel's behavior."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with pytest.warns(DeprecationWarning):
+            kernel = cudaq.contrib.from_qiskit(qc)
+
+        counts = cudaq.sample(kernel)
+        assert "00" in counts
+        assert "11" in counts

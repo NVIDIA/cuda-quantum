@@ -15,6 +15,7 @@ Note:
     This module requires ``qiskit`` to be installed.
 """
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -25,6 +26,18 @@ _CUSTOM_DEFINITION_EXPANSION_LIMIT = 10
 _CONTROL_FLOW_OPERATION_NAMES = {
     "if_else", "for_loop", "while_loop", "switch_case"
 }
+
+_DEPRECATION_MESSAGE = (
+    "cudaq.contrib.{name} is deprecated and will be removed in a future "
+    "release. Please use the standalone `cudaq-convert` package instead: "
+    "`pip install cudaq-convert`, then `from cudaq_convert import {name}`. "
+    "See https://github.com/QuantumRaul/cudaq-convert for details.")
+
+
+def _warn_deprecated(name):
+    warnings.warn(_DEPRECATION_MESSAGE.format(name=name),
+                  DeprecationWarning,
+                  stacklevel=3)
 
 
 def _try_import_qiskit():
@@ -403,6 +416,11 @@ def from_qasm(qasm_file):
     This function reads an OpenQASM file and converts it to a CUDA-Q kernel
     by first parsing it with Qiskit and then converting the resulting circuit.
 
+    .. warning::
+        **Deprecated.** Use the standalone ``cudaq-convert`` package instead
+        (``pip install cudaq-convert``; ``from cudaq_convert import
+        from_qasm``). This function will be removed in a future release.
+
     Args:
         `qasm_file`: Path to the OpenQASM file as a string.
 
@@ -414,6 +432,8 @@ def from_qasm(qasm_file):
         FileNotFoundError: If the QASM file does not exist.
         RuntimeError: If the QASM file cannot be parsed.
     """
+    _warn_deprecated("from_qasm")
+
     QuantumCircuit = _try_import_qiskit()
     try:
         qiskit_circuit = QuantumCircuit.from_qasm_file(qasm_file)
@@ -423,7 +443,7 @@ def from_qasm(qasm_file):
         raise RuntimeError(
             f"Could not parse QASM file '{qasm_file}': {e}") from e
 
-    return from_qiskit(qiskit_circuit)
+    return _build_kernel(qiskit_circuit)
 
 
 def from_qiskit(qiskit_circuit):
@@ -431,6 +451,11 @@ def from_qiskit(qiskit_circuit):
 
     This function converts a Qiskit `QuantumCircuit` to an equivalent CUDA-Q
     kernel by mapping Qiskit gates to their CUDA-Q counterparts.
+
+    .. warning::
+        **Deprecated.** Use the standalone ``cudaq-convert`` package instead
+        (``pip install cudaq-convert``; ``from cudaq_convert import
+        from_qiskit``). This function will be removed in a future release.
 
     Args:
         `qiskit_circuit`: A `Qiskit.QuantumCircuit` instance.
@@ -452,6 +477,16 @@ def from_qiskit(qiskit_circuit):
         - Controlled parametric: `crx`, `cry`, `crz`, `cp`, `cu1`,
           `cphase`, `cu3`
         - Special: `sx`, `sxdg`, barrier, measure, reset
+    """
+    _warn_deprecated("from_qiskit")
+    return _build_kernel(qiskit_circuit)
+
+
+def _build_kernel(qiskit_circuit):
+    """Convert a Qiskit `QuantumCircuit` into a CUDA-Q kernel.
+
+    Shared implementation behind the deprecated public entry points, so that
+    `from_qasm` does not emit a second deprecation warning via `from_qiskit`.
     """
     # Ensure Qiskit is available (validates input type indirectly)
     _try_import_qiskit()
