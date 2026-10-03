@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -canonicalize %s | FileCheck %s
+// RUN: cudaq-opt -canonicalize -mlir-print-op-generic %s | FileCheck %s --check-prefix=EMPTY
 
 func.func @canonicalize_scope(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
   %0 = cc.create_lambda {
@@ -102,4 +103,87 @@ func.func @apply_kolme() {
 // CHECK:           call @utility_gate(%[[VAL_4]]) : (!quake.veq<?>) -> ()
 // CHECK:           quake.dealloc %[[VAL_0]] : !quake.struq<!quake.ref, !quake.ref>
 // CHECK:           return
+// CHECK:         }
+
+func.func private @custom_generator(!cc.sequence<f64>) -> !cc.sequence<complex<f64>>
+cc.global constant private @custom_matrix (dense<[(0.0, 0.0), (1.0, 0.0), (1.0, 0.0), (0.0, 0.0)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+
+// Hand-written IR covers redundant polarity attributes and each operator's
+// canonicalization registration.
+func.func @canonicalize_control_polarity(%theta: f64, %c0: !quake.ref,
+                                       %c1: !quake.ref, %target: !quake.ref) {
+  quake.h %target : (!quake.ref) -> () {negated_qubit_controls = array<i1>}
+  quake.x [%c0, %c1 neg [false, false]] %target
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.phase (%theta) [%c0 neg [false]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.exp_pauli (%theta) [%c0 neg [false]] %target to "Y"
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.custom_unitary_call @custom_generator (%theta) [%c0 neg [false]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.custom_unitary_constant @custom_matrix [%c0 neg [false]] %target
+      : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @canonicalize_control_polarity(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref,
+// CHECK-SAME:      %[[ARG3:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) {
+// CHECK:           quake.h %[[ARG3]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[ARG1]], %[[ARG2]]] %[[ARG3]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.phase (%[[ARG0]]) {{\[}}%[[ARG1]]] %[[ARG3]] : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.exp_pauli (%[[ARG0]]) {{\[}}%[[ARG1]]] %[[ARG3]] to "Y" : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_unitary_call @custom_generator (%[[ARG0]]) {{\[}}%[[ARG1]]] %[[ARG3]] : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_unitary_constant @custom_matrix {{\[}}%[[ARG1]]] %[[ARG3]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// The custom assembly printer hides an empty polarity attribute.
+// EMPTY-LABEL:   "func.func"() <{function_type = (f64, !quake.ref, !quake.ref, !quake.ref) -> (), sym_name = "canonicalize_control_polarity"}> ({
+// EMPTY-NEXT:    ^bb0(%[[VAL_0:.*]]: f64, %[[VAL_1:.*]]: !quake.ref, %[[VAL_2:.*]]: !quake.ref, %[[VAL_3:.*]]: !quake.ref):
+// EMPTY-NEXT:      "quake.h"(%[[VAL_3]]) <{operandSegmentSizes = array<i32: 0, 0, 1>}> : (!quake.ref) -> ()
+
+func.func @preserve_mixed_control_polarity(%theta: f64, %c0: !quake.ref,
+                                        %c1: !quake.ref, %target: !quake.ref) {
+  quake.x [%c0, %c1 neg [false, true]] %target
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.phase (%theta) [%c0, %c1 neg [false, true]] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.exp_pauli (%theta) [%c0, %c1 neg [false, true]] %target to "Y"
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.custom_unitary_call @custom_generator (%theta) [%c0, %c1 neg [false, true]] %target
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.custom_unitary_constant @custom_matrix [%c0, %c1 neg [false, true]] %target
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @preserve_mixed_control_polarity(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref,
+// CHECK-SAME:      %[[ARG3:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.ref) {
+// CHECK:           quake.x {{\[}}%[[ARG1]], %[[ARG2]] neg [false, true]] %[[ARG3]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.phase (%[[ARG0]]) {{\[}}%[[ARG1]], %[[ARG2]] neg [false, true]] %[[ARG3]] : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.exp_pauli (%[[ARG0]]) {{\[}}%[[ARG1]], %[[ARG2]] neg [false, true]] %[[ARG3]] to "Y" : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_unitary_call @custom_generator (%[[ARG0]]) {{\[}}%[[ARG1]], %[[ARG2]] neg [false, true]] %[[ARG3]] : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_unitary_constant @custom_matrix {{\[}}%[[ARG1]], %[[ARG2]] neg [false, true]] %[[ARG3]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @canonicalize_wire_control_polarity(%control: !quake.wire,
+                                            %target: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %next:2 = quake.x [%control neg [false]] %target
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %next#0, %next#1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL:   func.func @canonicalize_wire_control_polarity(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[ARG0]]] %[[ARG1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           return %[[X_0]]#0, %[[X_0]]#1 : !quake.wire, !quake.wire
 // CHECK:         }
