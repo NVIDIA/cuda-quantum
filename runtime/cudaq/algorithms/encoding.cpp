@@ -9,6 +9,7 @@
 #include "encoding.h"
 #include "cudaq/simulators.h"
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 namespace cudaq::contrib {
@@ -19,6 +20,12 @@ std::size_t nextPowerOfTwo(std::size_t n) {
     throw std::invalid_argument("amplitude_encode: input must be non-empty.");
   if ((n & (n - 1)) == 0)
     return n;
+  constexpr std::size_t maxPowerOfTwo =
+      std::size_t{1} << (std::numeric_limits<std::size_t>::digits - 1);
+  if (n > maxPowerOfTwo)
+    throw std::invalid_argument(
+        "amplitude_encode: input size exceeds the largest representable "
+        "power of two.");
   std::size_t p = 1;
   while (p < n)
     p <<= 1;
