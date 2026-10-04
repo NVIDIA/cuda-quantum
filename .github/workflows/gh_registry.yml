@@ -1,7 +1,9 @@
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 3 * * *
+    # Half an hour before the Deployments cache rebuild: pruning untagged
+    # versions drops the build caches, so the rebuild should follow closely.
+    - cron: 30 13 * * *
 
 name: Update GHCR
 
