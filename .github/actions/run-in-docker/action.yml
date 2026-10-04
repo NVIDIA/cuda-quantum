@@ -1,5 +1,6 @@
 name: run-in-docker
-
+description: |
+  Run a command in a Docker container.
 inputs:
   image:
     required: true
@@ -61,6 +62,12 @@ runs:
         container=$(docker run --user ${{ inputs.user }} $additional_run_args $volume_option "${env_option[@]}" --network host -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
         docker exec --user root $container chown -R ${{ inputs.user }} $tmpFile
-        docker exec $container ${{ inputs.shell }} $tmpFile
+
+        # GitHub runs this `shell: bash` step with `-e`, so a failed run would
+        # abort before the cleanup below and leak a running container. Capture
+        # the status, clean up, then fail the step with it.
+        status=0
+        docker exec $container ${{ inputs.shell }} $tmpFile || status=$?
         docker stop $container
-        rm $tmpFile
+        rm -f $tmpFile
+        exit $status

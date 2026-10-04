@@ -303,7 +303,7 @@ def estimate_using_kernel_profile() -> AnalyticalResult:
 
 # %%
 # Build the physical target. Its operating point owns physical error, scaling,
-# and timing; only the application's failure budget is an estimate policy.
+# and timing; the failure budget and the SCHEDULE tier are estimate policy.
 def build_physical_target():
     device = factory.build_paper_device(
         factory_lanes=factory.FACTORY_LANES,
@@ -314,7 +314,10 @@ def build_physical_target():
         "gidney_ekera_physical",
         device,
         runtime_backend=cql.targets.estimator,
-        estimate_options={"failure_budget": APPLICATION_FAILURE_BUDGET},
+        estimate_options={
+            "failure_budget": APPLICATION_FAILURE_BUDGET,
+            "tier": "SCHEDULE",
+        },
         source_modules=(factory.__name__,),
     )
     return target

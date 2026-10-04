@@ -127,7 +127,11 @@ public:
     backendConfig["api_key"] = apiKey;
 
     CUDAQ_INFO("Initializing Quantum Machines Backend. config: {}",
-               backendConfig);
+               [redactedConfig = backendConfig]() mutable {
+                 redactedConfig["api_key"] = cudaq_fmt::format(
+                     "<redacted, {} chars>", redactedConfig["api_key"].size());
+                 return redactedConfig;
+               }());
   }
 
   inline std::string kernelExecutionToString(const KernelExecution &ke) {

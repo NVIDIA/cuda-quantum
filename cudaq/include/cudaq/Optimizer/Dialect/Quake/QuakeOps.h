@@ -125,62 +125,9 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
   return std::nullopt;
 }
 
-/// A statically selectable scalar qubit represented by a top-level Quake
-/// target. A vector target records the element that must be extracted; a
-/// scalar reference or wire has no element index.
-struct StaticQubitTarget {
-  mlir::Value source;
-  std::size_t sourceIndex;
-  std::optional<std::size_t> elementIndex;
-};
-
 /// Return whether \p target is a single quantum value rather than an aggregate
 /// vector.
 bool isScalarQubitTarget(mlir::Value target);
-
-/// Plan a statically selectable scalar target without creating IR.
-inline std::optional<StaticQubitTarget>
-planStaticQubitTarget(mlir::Value target, std::size_t sourceIndex) {
-  if (isScalarQubitTarget(target))
-    return StaticQubitTarget{target, sourceIndex, std::nullopt};
-  if (auto size = getVeqSize(target); size && *size != 0)
-    return StaticQubitTarget{target, sourceIndex, *size - 1};
-  return std::nullopt;
-}
-
-/// Plan the last scalar target accepted by \p predicate without creating IR.
-template <typename Predicate>
-inline std::optional<StaticQubitTarget>
-findLastStaticQubitTarget(mlir::ValueRange targets, Predicate predicate) {
-  for (std::size_t i = targets.size(); i != 0; --i) {
-    auto finalTarget = planStaticQubitTarget(targets[i - 1], i - 1);
-    if (!finalTarget)
-      continue;
-    if (!finalTarget->elementIndex) {
-      if (predicate(*finalTarget))
-        return finalTarget;
-      continue;
-    }
-
-    for (std::size_t element = *finalTarget->elementIndex + 1; element != 0;
-         --element) {
-      StaticQubitTarget candidate{finalTarget->source, finalTarget->sourceIndex,
-                                  element - 1};
-      if (predicate(candidate))
-        return candidate;
-    }
-  }
-  return std::nullopt;
-}
-
-/// Plan a deterministic final scalar target without creating IR.
-std::optional<StaticQubitTarget>
-findLastStaticQubitTarget(mlir::ValueRange targets);
-
-/// Materialize a target selected by findLastStaticQubitTarget.
-mlir::Value materializeStaticQubitTarget(mlir::OpBuilder &builder,
-                                         mlir::Location location,
-                                         const StaticQubitTarget &target);
 
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {

@@ -1334,13 +1334,14 @@ class QuakeOperator<string mnemonic, int numParameters = -1,
           NumParameters<numParameters>, NumTargets<numTargets>],
           traits)> {
 
-  let arguments = !con(extraArgs, (ins
+  dag commonArguments = !con(extraArgs, (ins
     UnitAttr:$is_adj,
     Variadic<AnyFloat>:$parameters,
     Variadic<AnyQType>:$controls,
     Variadic<AnyQTargetType>:$targets,
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   ));
+  let arguments = commonArguments;
   let results = (outs
     Variadic<AnyQLinearType>:$wires
   );
@@ -1394,14 +1395,27 @@ class QuakeOperator<string mnemonic, int numParameters = -1,
     }]>
   ];
 
-  let assemblyFormat = [{
+  string commonAssemblyFormat = [{
     ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
     (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-    $targets `:` functional-type(operands, results) attr-dict
+    $targets
   }];
+  string commonAssemblyTail = [{
+    `:` functional-type(operands, results) attr-dict
+  }];
+  let assemblyFormat = commonAssemblyFormat # commonAssemblyTail;
 
   let hasVerifier = 1;
   let hasCanonicalizer = 1;
+
+  code elementAccessors = !if(!eq(numParameters, 0), "",
+      !if(!eq(numParameters, 1),
+        "    mlir::Value getParameter() { return getParameters()[0]; }\n",
+        "    mlir::Value getParameter(unsigned i) { return getParameters()[i]; }\n"))
+  # !if(!eq(numTargets, 0), "",
+      !if(!eq(numTargets, 1),
+        "    mlir::Value getTarget() { return getTargets()[0]; }\n",
+        "    mlir::Value getTarget(unsigned i) { return getTargets()[i]; }\n"));
 
   code extraClassDeclaration = [{
     //===------------------------------------------------------------------===//
@@ -1430,14 +1444,7 @@ class QuakeOperator<string mnemonic, int numParameters = -1,
 
     unsigned getNumControls() { return getControls().size(); }
   }]
-  # !if(!eq(numParameters, 0), "",
-      !if(!eq(numParameters, 1),
-        "    mlir::Value getParameter() { return getParameters()[0]; }\n",
-        "    mlir::Value getParameter(unsigned i) { return getParameters()[i]; }\n"))
-  # !if(!eq(numTargets, 0), "",
-      !if(!eq(numTargets, 1),
-        "    mlir::Value getTarget() { return getTargets()[0]; }\n",
-        "    mlir::Value getTarget(unsigned i) { return getTargets()[i]; }\n"))
+  # elementAccessors
   # [{
     //===------------------------------------------------------------------===//
     // Operator interface
@@ -1462,9 +1469,7 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 // Unitary quantum transformations
 //===----------------------------------------------------------------------===//
 
-def quake_ExpPauliOp : QuakeOp<"exp_pauli",
-    [QuantumGate, AttrSizedOperandSegments, OperatorInterface,
-     DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+def quake_ExpPauliOp : QuakeOperator<"exp_pauli"> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
     This operation affects a general Pauli tensor product rotation on 
@@ -1473,28 +1478,14 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
     operation applies exp(i theta P) where P is a general Pauli tensor product. 
   }];
   
-  let arguments = (ins
-    UnitAttr:$is_adj,
-    Variadic<AnyFloat>:$parameters,
-    Variadic<AnyQType>:$controls,
-    Variadic<AnyQTargetType>:$targets,
-    OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls,
+  let arguments = !con(commonArguments, (ins
     Optional<AnyTypeOf<[cc_PointerType, cc_CharSpanType]>>:$pauli,
     OptionalAttr<StrAttr>:$pauliLiteral
-  );
-  let results = (outs
-    Variadic<AnyQLinearType>:$wires
-  );
+  ));
 
-  let assemblyFormat = [{
-    ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
-      ( `[` $controls^ ( `neg` $negated_qubit_controls^ )? `]` )? $targets
-      `to` custom<RawString>($pauli, $pauliLiteral) `:`
-      functional-type(operands, results) attr-dict
-  }];
-
-  let hasCanonicalizer = 1;
-  let hasVerifier = 1;
+  let assemblyFormat = commonAssemblyFormat # [{
+    `to` custom<RawString>($pauli, $pauliLiteral)
+  }] # commonAssemblyTail;
 
   let builders = [
     OpBuilder<(ins "mlir::UnitAttr":$is_adj,
@@ -1575,38 +1566,13 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
     }]>
   ];
 
-  code extraClassDeclaration = [{
-    //===------------------------------------------------------------------===//
-    // MemoryEffects interface
-    //===------------------------------------------------------------------===//
-
-    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
-      mlir::MemoryEffects::Effect>> &effects) {
-      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(),
-                                           getTargetsMutable());
-    }
-
-    //===------------------------------------------------------------------===//
-    // Properties
-    //===------------------------------------------------------------------===//
-
-    bool isAdj() { return getIsAdj(); }
-
-    //===------------------------------------------------------------------===//
-    // Element Access
-    //===------------------------------------------------------------------===//
-
+  // The angle is optional and the targets are variadic, so neither count is
+  // fixed. Both accessors keep a default index because callers that have
+  // already checked the counts read the first element positionally.
+  let elementAccessors = [{
     mlir::Value getParameter(unsigned i = 0u) { return getParameters()[i]; }
 
     mlir::Value getTarget(unsigned i = 0u) { return getTargets()[i]; }
-
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    void getOperatorMatrix(Matrix &matrix) { matrix.clear(); }
   }];
 }
 
@@ -1947,10 +1913,8 @@ def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call",
   ];
 
   let assemblyFormat = [{
-    $generator (`<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)`)?
-       (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-       $targets `:` functional-type(operands, results) attr-dict
-  }];
+    $generator
+  }] # commonAssemblyFormat # commonAssemblyTail;
 
   let hasVerifier = 1;
 }
@@ -1976,10 +1940,8 @@ def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant",
   ];
 
   let assemblyFormat = [{
-    $matrix (`<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)`)?
-       (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-       $targets `:` functional-type(operands, results) attr-dict
-  }];
+    $matrix
+  }] # commonAssemblyFormat # commonAssemblyTail;
 
   let hasVerifier = 1;
 }

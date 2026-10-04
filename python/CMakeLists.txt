@@ -56,6 +56,8 @@ file(GLOB_RECURSE _cudaq_package_sources
   RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
   "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/*.py")
 list(FILTER _cudaq_package_sources EXCLUDE REGEX "^mlir/")
+# Core owns the tracing wrapper; do not create a second staging producer.
+list(FILTER _cudaq_package_sources EXCLUDE REGEX "^util/trace\\.py$")
 cudaq_stage_python_sources(CUDAQPythonPackageStaging
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq"
@@ -74,6 +76,10 @@ cudaq_stage_python_sources(CUDAQPythonTestStaging
   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/tests"
   SOURCES ${_cudaq_test_sources})
 
+# Test-time target configuration needs to be installed as it's user facing in
+# `docs/sphinx/using/examples/rotation_synthesis.rst)`
+add_target_config(tests/targets/compiler-bench-ftqc-clifford-t.yml)
+
 add_custom_target(CUDAQPythonStaging ALL DEPENDS "${METADATA_FILE}")
 add_dependencies(CUDAQPythonStaging
   CUDAQPythonPackageStaging CUDAQPythonTestStaging)
@@ -82,7 +88,8 @@ add_dependencies(CUDAQuantumPythonModules CUDAQPythonStaging)
 add_subdirectory(runtime/cudaq/domains/plugins)
 
 if (NOT SKBUILD)
-  install(DIRECTORY cudaq DESTINATION . COMPONENT CUDAQuantumPythonModules)
+  install(DIRECTORY cudaq DESTINATION . COMPONENT CUDAQuantumPythonModules
+    PATTERN "util/trace.py" EXCLUDE)
 endif()
 install(FILES "${METADATA_FILE}" DESTINATION cudaq COMPONENT CUDAQuantumPythonModules)
 

@@ -14,17 +14,18 @@ static Policy::result_type
 forwardLaunchKernelToQpu(std::any &impl, const Policy &policy,
                          const cudaq::CompiledModule &module,
                          cudaq::KernelArgs args) {
-  auto &qpu = *std::any_cast<cudaq::QPU *>(impl);
+  auto &qpu = *std::any_cast<std::shared_ptr<cudaq::QPU>>(impl);
   return qpu.launchKernel(policy, module, args);
 }
 
-cudaq::RuntimeEndpoint cudaq::RuntimeEndpoint::wrapQPU(cudaq::QPU &qpu) {
+cudaq::RuntimeEndpoint
+cudaq::RuntimeEndpoint::fromQPU(std::unique_ptr<cudaq::QPU> qpu) {
   RuntimeEndpoint ep;
   ep.dispatch = detail::DispatchTable<all_policies>::create(
       []<typename P>() { return &forwardLaunchKernelToQpu<P>; });
-  ep.impl = &qpu;
-  ep.isSimulator = qpu.isSimulator();
-  ep.isRemote = qpu.isRemote();
-  ep.isEmulated = qpu.isEmulated();
+  ep.isSimulator = qpu->isSimulator();
+  ep.isRemote = qpu->isRemote();
+  ep.isEmulated = qpu->isEmulated();
+  ep.impl = std::shared_ptr<cudaq::QPU>(std::move(qpu));
   return ep;
 }

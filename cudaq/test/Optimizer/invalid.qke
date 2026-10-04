@@ -385,3 +385,13 @@ func.func @invalid_exp_pauli_nested_relaxed_literal_length(%theta : f64) {
   quake.exp_pauli (%theta) %relaxed1 to "X" : (f64, !quake.veq<?>) -> ()
   return
 }
+
+// -----
+
+func.func @invalid_exp_pauli_control_polarity_count(%theta: f64,
+                                                    %control: !quake.ref,
+                                                    %target: !quake.ref) {
+  // expected-error@+1 {{control polarity count must match control operand count}}
+  quake.exp_pauli (%theta) [%control neg [true, false]] %target to "X" : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
