@@ -108,7 +108,7 @@ jobs:
     outputs:
       tar_cache: ${{ steps.build_info.outputs.tar_cache }}
       tar_archive: ${{ steps.build_info.outputs.tar_archive }}
-      image_hash: ${{ steps.build_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+      image_hash: ${{ steps.build_info.outputs.image_name }}@${{ steps.docker_build_result.outputs.digest }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -193,6 +193,7 @@ jobs:
       - name: Build Open MPI
         id: docker_build
         uses: docker/build-push-action@v7
+        continue-on-error: true
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -210,6 +211,33 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.build_info.outputs.docker_output }}
 
+      # BuildKit caches the build, so retry only redoes the push.
+      - name: Build Open MPI (retry on transient failure)
+        id: docker_build_retry
+        if: steps.docker_build.outcome == 'failure'
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+        with:
+          context: .
+          file: ./docker/build/devcontainer.Dockerfile
+          build-args: |
+            ompidev_image=${{ inputs.ompidev_image }}
+            base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu24.04
+            cuda_version=${{ inputs.cuda_version }}
+            cuda_packages=cuda-cudart-dev
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.environment != '' }}
+          outputs: ${{ steps.build_info.outputs.docker_output }}
+
+      - name: Resolve build digest
+        id: docker_build_result
+        if: always()
+        run: |
+          echo "digest=${{ steps.docker_build.outputs.digest || steps.docker_build_retry.outputs.digest }}" >> $GITHUB_OUTPUT
+
       - name: Install Cosign
         if: inputs.environment
         uses: sigstore/cosign-installer@v3.3.0
@@ -219,7 +247,7 @@ jobs:
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment && false # Signing is disabled as long as the package is private, since we can't clean up signatures in that case
         env:
-          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          DIGEST: ${{ steps.docker_build_result.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
@@ -244,7 +272,7 @@ jobs:
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
       tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
-      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build_result.outputs.digest }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -377,6 +405,7 @@ jobs:
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
         uses: docker/build-push-action@v7
+        continue-on-error: true
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -394,6 +423,35 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      # BuildKit caches the build, so retry only redoes the push.
+      - name: Build cuda-quantum-dev image (debug) (retry on transient failure)
+        id: docker_build_retry
+        if: steps.docker_build.outcome == 'failure'
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+        with:
+          context: .
+          file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
+          build-args: |
+            base_image=${{ steps.prereqs.outputs.base_image }}
+            install="CMAKE_BUILD_TYPE=Debug"
+            cudaq_enable_projects=${{ inputs.cudaq_enable_projects }}
+            git_source_sha=${{ github.sha }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.environment != '' }}
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Resolve build digest
+        id: docker_build_result
+        if: always()
+        run: |
+          echo "digest=${{ steps.docker_build.outputs.digest || steps.docker_build_retry.outputs.digest }}" >> $GITHUB_OUTPUT
 
       - name: Extract ccache from build
         timeout-minutes: 15
@@ -429,7 +487,7 @@ jobs:
           matrix-step-name: docker_images
           matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-dev-image
           outputs: |
-            digest: ${{ steps.docker_build.outputs.digest }}
+            digest: ${{ steps.docker_build_result.outputs.digest }}
             image_tag: ${{ steps.metadata.outputs.tags }}
 
       - name: Install Cosign
@@ -441,7 +499,7 @@ jobs:
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
         env:
-          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          DIGEST: ${{ steps.docker_build_result.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
@@ -468,7 +526,7 @@ jobs:
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
       tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
-      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}
+      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build_result.outputs.digest }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -651,6 +709,7 @@ jobs:
       - name: Build cuda-quantum-dev image (release)
         id: release_build
         if: success() && !cancelled()
+        continue-on-error: true
         uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
@@ -668,6 +727,34 @@ jobs:
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: true
+
+      # BuildKit caches the build, so retry only redoes the push.
+      - name: Build cuda-quantum-dev image (release) (retry on transient failure)
+        id: release_build_retry
+        if: steps.release_build.outcome == 'failure'
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+        with:
+          context: .
+          file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
+          build-args: |
+            base_image=${{ steps.prereqs.outputs.devdeps_image }}
+            install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
+            cudaq_enable_projects=${{ inputs.cudaq_enable_projects }}
+            git_source_sha=${{ github.sha }}
+          tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
+          labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          push: true
+
+      - name: Resolve release build digest
+        id: release_build_result
+        if: always()
+        run: |
+          echo "digest=${{ steps.release_build.outputs.digest || steps.release_build_retry.outputs.digest }}" >> $GITHUB_OUTPUT
 
       - name: Extract ccache from release build
         timeout-minutes: 15
@@ -706,7 +793,7 @@ jobs:
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
         env:
-          DIGEST: ${{ steps.release_build.outputs.digest }}
+          DIGEST: ${{ steps.release_build_result.outputs.digest }}
           TAGS: ${{ steps.cudaqdev_metadata.outputs.tags }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
@@ -778,6 +865,7 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
+        continue-on-error: true
         uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
@@ -785,7 +873,7 @@ jobs:
           context: .
           file: ./docker/release/cudaq.Dockerfile
           build-args: |
-            cudaqdev_image=${{ steps.prereqs.outputs.dev_image_name }}@${{ steps.release_build.outputs.digest }}
+            cudaqdev_image=${{ steps.prereqs.outputs.dev_image_name }}@${{ steps.release_build_result.outputs.digest }}
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.image_tag }}
             deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
@@ -797,13 +885,42 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
+      # BuildKit caches the build, so retry only redoes the push.
+      - name: Build cuda-quantum image (retry on transient failure)
+        id: cudaq_build_retry
+        if: steps.cudaq_build.outcome == 'failure'
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+        with:
+          context: .
+          file: ./docker/release/cudaq.Dockerfile
+          build-args: |
+            cudaqdev_image=${{ steps.prereqs.outputs.dev_image_name }}@${{ steps.release_build_result.outputs.digest }}
+            base_image=${{ steps.prereqs.outputs.base_image }}
+            release_version=${{ steps.prereqs.outputs.image_tag }}
+            deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
+            include_logical=${{ inputs.include_logical }}
+          tags: ${{ steps.cudaq_metadata.outputs.tags }}
+          labels: ${{ steps.cudaq_metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          provenance: false
+          push: ${{ inputs.environment != '' }}
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Resolve cuda-quantum build digest
+        id: cudaq_build_result
+        if: always()
+        run: |
+          echo "digest=${{ steps.cudaq_build.outputs.digest || steps.cudaq_build_retry.outputs.digest }}" >> $GITHUB_OUTPUT
+
       - name: Write matrix outputs
         uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-image
           outputs: |
-            digest: ${{ steps.cudaq_build.outputs.digest }}
+            digest: ${{ steps.cudaq_build_result.outputs.digest }}
             image_tag: ${{ steps.cudaq_metadata.outputs.tags }}
 
       - name: Cache cuda-quantum image
@@ -816,7 +933,7 @@ jobs:
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment && needs.metadata.outputs.push_to_ngc != 'true'
         env:
-          DIGEST: ${{ steps.cudaq_build.outputs.digest }}
+          DIGEST: ${{ steps.cudaq_build_result.outputs.digest }}
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
