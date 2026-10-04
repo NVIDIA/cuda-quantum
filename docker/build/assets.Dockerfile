@@ -75,8 +75,17 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
+# Build clang/mlir/openmp/runtimes first, Flang in a separate layer
+# below. Flang needs the runtimes to configure, so it must come last.
+# BLAS needs a Fortran compiler, so it's deferred along with Flang too.
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    LLVM_PROJECTS='clang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
+    bash scripts/install_prerequisites.sh -t llvm -e "qrmi blas"
+
+# Add Flang and BLAS on top of the already-built toolchain above.
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
+    LLVM_FORCE_REBUILD=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi
 
 # Validate that the built toolchain and libraries have no GCC dependencies.

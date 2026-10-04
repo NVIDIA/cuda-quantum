@@ -250,7 +250,9 @@ fi
 
 # [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
 if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]; then
-  if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
+  # LLVM_FORCE_REBUILD re-enters even if already installed, so callers
+  # can grow LLVM_PROJECTS across invocations.
+  if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ] || [ "${LLVM_FORCE_REBUILD:-false}" = "true" ]; then
     echo "Installing LLVM libraries..."
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
