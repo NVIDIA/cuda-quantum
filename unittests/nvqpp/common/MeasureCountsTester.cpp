@@ -8,6 +8,8 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/SampleResult.h"
+#include <type_traits>
+#include <utility>
 
 using namespace cudaq;
 
@@ -15,6 +17,45 @@ CUDAQ_TEST(sample_resultTester, checkConstruction) {
   ExecutionResult r{CountsDictionary{{"0", 400}, {"1", 600}}};
   cudaq::sample_result mc(r);
   EXPECT_EQ(2, mc.size());
+}
+
+CUDAQ_TEST(MeasureCountsTester, checkMoveConstructionTransfersShotStorage) {
+  static_assert(std::is_nothrow_move_constructible_v<ExecutionResult>);
+  ExecutionResult original("measurements");
+  original.appendResult("01", 2);
+  original.appendResult("10", 1);
+  original.expectationValue = -1.0;
+  const ExecutionResult expected(original);
+  const auto *shotStorage = original.sequentialData.data();
+
+  ExecutionResult moved(std::move(original));
+
+  EXPECT_EQ(moved.sequentialData.data(), shotStorage);
+  EXPECT_EQ(moved.counts, expected.counts);
+  EXPECT_EQ(moved.sequentialData, expected.sequentialData);
+  EXPECT_EQ(moved.registerName, expected.registerName);
+  EXPECT_EQ(moved.expectationValue, expected.expectationValue);
+}
+
+CUDAQ_TEST(MeasureCountsTester, checkMoveAssignmentTransfersShotStorage) {
+  static_assert(std::is_nothrow_move_assignable_v<ExecutionResult>);
+  ExecutionResult original("measurements");
+  original.appendResult("01", 2);
+  original.appendResult("10", 1);
+  original.expectationValue = -1.0;
+  const ExecutionResult expected(original);
+  const auto *shotStorage = original.sequentialData.data();
+  ExecutionResult moved;
+  moved.appendResult("00", 4);
+  moved.expectationValue = 1.0;
+
+  moved = std::move(original);
+
+  EXPECT_EQ(moved.sequentialData.data(), shotStorage);
+  EXPECT_EQ(moved.counts, expected.counts);
+  EXPECT_EQ(moved.sequentialData, expected.sequentialData);
+  EXPECT_EQ(moved.registerName, expected.registerName);
+  EXPECT_EQ(moved.expectationValue, expected.expectationValue);
 }
 
 CUDAQ_TEST(MeasureCountsTester, checkProbability) {
