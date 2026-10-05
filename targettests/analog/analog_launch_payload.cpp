@@ -80,14 +80,14 @@ int main() {
       platform, createDefaultCompileTarget(&platform), endpoint);
 
   auto syncResult = detail::launchAnalogKernel(
-      "__analog_hamiltonian_kernel__sync", R"({"sync":true})", 11);
-  // CHECK: [sample] kernel=__analog_hamiltonian_kernel__sync shots=11
+      "__cudaq_analog_hamiltonian_kernel__sync", R"({"sync":true})", 11);
+  // CHECK: [sample] kernel=__cudaq_analog_hamiltonian_kernel__sync shots=11
   // thunk=null payload={"sync":true}
 
   auto asyncResult = detail::launchAnalogKernelAsync(
-      "__analog_hamiltonian_kernel__async", R"({"async":true})", 13);
-  // CHECK: [sample_async] kernel=__analog_hamiltonian_kernel__async shots=13
-  // thunk=null payload={"async":true}
+      "__cudaq_analog_hamiltonian_kernel__async", R"({"async":true})", 13);
+  // CHECK: [sample_async] kernel=__cudaq_analog_hamiltonian_kernel__async
+  // shots=13 thunk=null payload={"async":true}
 
   std::printf("shots sync=%zu async=%zu\n",
               static_cast<std::size_t>(syncResult.get_total_shots()),

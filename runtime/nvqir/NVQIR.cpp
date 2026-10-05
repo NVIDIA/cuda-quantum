@@ -1129,7 +1129,7 @@ void __quantum__qis__apply_kraus_channel_generalized(
 
 namespace details {
 struct FakeQubit {
-  std::int8_t *id;
+  std::size_t id;
   bool negated;
 };
 static_assert(sizeof(FakeQubit) == sizeof(cudaq::qudit<2>) &&
@@ -1139,10 +1139,10 @@ static_assert(sizeof(FakeQubit) == sizeof(cudaq::qudit<2>) &&
 std::vector<details::FakeQubit> *
 __quantum__qis__convert_array_to_stdvector(Array *arr) {
   const std::size_t size = arr->size();
-  std::vector<details::FakeQubit> *result = new std::vector<details::FakeQubit>;
-  result->reserve(size);
+  std::vector<details::FakeQubit> *result =
+      new std::vector<details::FakeQubit>(size);
   for (std::size_t i = 0; i < size; ++i) {
-    (*result)[i].id = (*arr)[i];
+    (*result)[i].id = qubitToSizeT(*reinterpret_cast<Qubit **>((*arr)[i]));
     (*result)[i].negated = false;
   }
   return result;

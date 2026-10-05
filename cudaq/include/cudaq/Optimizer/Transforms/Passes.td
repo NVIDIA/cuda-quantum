@@ -169,6 +169,60 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
+def BorrowChecking : Pass<"borrow-checking"> {
+  let summary = "Checking borrowing constraints.";
+  let description = [{
+    In the "physical qubit" form of quake, we have a constant number of qubits
+    at our disposal. These are modeled as hardware resources in our model. (This
+    differs from higher-level representations which have an "infinite" supply
+    of qubits.)
+
+    In this physical qubit form, a program may borrow and return qubits from a
+    reified `quake.wire_set`. Any particular qubit can be borrowed exactly once
+    until it is returned.
+
+    This pass performs a static analysis to verify these constraints. It
+    reports wires that are borrowed while already borrowed, and wires that are
+    borrowed but neither returned nor passed out of the function. The analysis
+    works on structured control flow (`cc.if`, `cc.scope`, `cc.loop` with
+    `cc.break` and `cc.continue`), on CFG form, and on a mix of the two, so this
+    pass has no requirements on where it is placed in a pipeline. (The
+    `cc.unwind_*` operations are not modeled. They are source-level operations,
+    and lowering to wire form necessarily eliminates them.)
+
+    A violation is *definite* when it occurs on every path reaching the
+    operation. A violation is *possible* when it occurs on only some paths
+    (such as a borrow in a loop body that is not returned before the next
+    iteration) or when the analysis cannot tell which wire a `return_wire`
+    returns.
+
+    A call is not a place where a wire can come from or go to. A borrowed wire
+    that is passed to a call that produces no wire vanishes into it, and a call
+    that produces a wire without being passed one produces it out of nowhere.
+    Either is always an error, whatever the options. Since the IR is broken, the
+    analysis stops without reporting anything else about the function.
+
+    NB: Call sites present a horizon obstacle in that the body of the called
+    kernel may be entirely unknown. It is therefore impossible to check if that
+    unknowable code has borrow violations or not. It is possible there are
+    borrow violations, but that are not statically known.
+
+    This pass is not composable. (Think of it as an extension of the IR
+    verifier.) It never modifies the IR.
+  }];
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
+  let options = [
+    Option<"raiseFailure", "raise-failure", "bool", /*default=*/"true",
+           "Emit an error and fail the pass when a wire is definitely "
+           "borrowed while already borrowed, or definitely never returned. "
+           "If false, these are emitted as warnings and the pass succeeds.">,
+    Option<"warnOnPossible", "warn-on-possible", "bool", /*default=*/"true",
+           "Emit a warning for a borrow that only possibly conflicts, or when "
+           "the wire being returned cannot be determined. If false, the "
+           "pass assumes such cases are correct and stays silent.">
+  ];
+}
+
 def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
   let summary = "Perform the rough-in cabling for value semantics conversion.";
   let description = [{
@@ -677,22 +731,20 @@ def DesugarCableOps : Pass<"desugar-cable-ops"> {
 }
 
 def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
-  let summary = "Translate cc.device_call operations";
+  let summary = "Translate cc.device_call operations to the generalized "
+                "distributed-memory reference implementation";
 
   let description = [{
-    Perform the translation of cc.device_call to a set of substeps for a
-    distributed memory model.
+    Lower cc.device_call to the generalized, distributed-memory reference
+    implementation: autogenerate marshal/unmarshal functions that reuse the
+    kernel-launch thunk buffer format and dispatch through the runtime's
+    callback hook. This is required if different processing units in the
+    aggregate QPU have distributed (not shared) memory spaces. Also resolves
+    cc.resolve_device_ptr operations.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
-
-  let options = [
-    Option<"insertTrapImplementation", "insert-trap", "bool",
-      /*default=*/"false",
-      "Enable pass to insert a default implementation (runtime trap) for "
-      "device call (default=false). The default implementation has weak "
-      "linkage, i.e., allowed to be overridden at link time.">
-  ];
+  let dependentDialects = ["mlir::LLVM::LLVMDialect",
+                           "mlir::cf::ControlFlowDialect"];
 }
 
 def EraseNoise : Pass<"erase-noise"> {
@@ -1688,6 +1740,28 @@ def PySynthCallableBlockArgs :
     retrieved at runtime (the name of the function passed to the kernel at the
     cc.callable block argument index).
   }];
+}
+
+def QIRDeviceCall : Pass<"qir-device-call", "mlir::ModuleOp"> {
+  let summary = "Translate cc.device_call operations to a QIR-vendor passthrough";
+
+  let description = [{
+    Lower cc.device_call to a QIR-vendor style passthrough call: encode a
+    stable per-callback id (via an MD5 hash of the callee name) as a
+    `passthrough` function attribute on the callee and replace the
+    device_call with a direct call, letting a vendor's runtime resolve the
+    callback out of band. Also resolves cc.resolve_device_ptr operations.
+  }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+
+  let options = [
+    Option<"insertTrapImplementation", "insert-trap", "bool",
+      /*default=*/"false",
+      "Enable pass to insert a default implementation (runtime trap) for "
+      "device call (default=false). The default implementation has weak "
+      "linkage, i.e., allowed to be overridden at link time.">
+  ];
 }
 
 def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {

@@ -48,6 +48,7 @@ on:
     # PR merged workflow runs after merge into certain branches an on pull_request_target;
     # there should hence be no need for additional branch filtering here.
   schedule:
+    # Keep this half an hour after Update GHCR, which prunes the build caches.
     - cron: "0 14 * * *"
   push:
     branches:
