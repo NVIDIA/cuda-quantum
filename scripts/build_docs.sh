@@ -290,9 +290,12 @@ if [ "$docs_exit_code" -eq "0" ]; then
             -exec cp --parents '{}' "$DOCS_INSTALL_PREFIX" \;
         echo "Markdown files copied successfully to $DOCS_INSTALL_PREFIX."
 
-        # Copy llms.txt from the repository root to the docs install prefix
+        # Copy llms.txt from the repository root to the docs install prefix.
+        # Links are relative to the directory the file is served from, so drop
+        # the version prefix here; the site root copy adds it back.
         if [ -f "$repo_root/llms.txt" ]; then
-            cp "$repo_root/llms.txt" "$DOCS_INSTALL_PREFIX/"
+            sed -E 's|\]\((latest/)?([^):]+)\)|](\2)|g' \
+                "$repo_root/llms.txt" > "$DOCS_INSTALL_PREFIX/llms.txt"
             echo "Copied llms.txt to $DOCS_INSTALL_PREFIX."
         else
             echo "Warning: llms.txt not found in $repo_root, skipping copy."
