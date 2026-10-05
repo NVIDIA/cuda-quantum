@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
@@ -379,38 +381,17 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
           result = cc::CastOp::create(builder, loc, i1Ty, result);
       }
     }
-    if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {
+    if (isa<cc::SpanLikeType>(resTy) ||
+        (isa<cc::StructType>(result.getType()) &&
+         cc::isDynamicType(result.getType()))) {
       // Returning vector data that was allocated on the stack is not valid.
       // Allocate space on the heap and make a copy of the vector instead. It
       // will be the responsibility of the calling side to free this memory.
       auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
-      if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")))
+      if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")) ||
+          failed(irBuilder.loadIntrinsic(module, "malloc")))
         module.emitError("failed to load intrinsic");
-      auto eleTy = vecTy.getElementType();
-      auto createVectorInit = [&](Value eleSize) {
-        auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-        Value resBuff = cc::SequenceDataOp::create(builder, loc, ptrTy, result);
-        Value dynSize = cc::SequenceSizeOp::create(
-            builder, loc, builder.getI64Type(), result);
-        Value heapCopy =
-            func::CallOp::create(builder, loc, ptrTy, "__nvqpp_vectorCopyCtor",
-                                 ValueRange{resBuff, dynSize, eleSize})
-                .getResult(0);
-        return cc::SequenceInitOp::create(builder, loc, resTy,
-                                          ValueRange{heapCopy, dynSize});
-      };
-      IRBuilder irb(builder);
-      Value tySize;
-      if (!cudaq::cc::isDynamicType(eleTy))
-        tySize = irb.getByteSizeOfType(loc, eleTy);
-      if (!tySize) {
-        // TODO: we need to recursively create copies of all
-        // dynamic memory used within the type. See the
-        // implementation of `visit_Return` in the Python bridge.
-        TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
-        return false;
-      }
-      result = createVectorInit(tySize);
+      result = opt::marshal::copyDynamicValueToHeap(loc, builder, result);
     }
     if (isFuncScope)
       cc::ReturnOp::create(builder, loc, result);

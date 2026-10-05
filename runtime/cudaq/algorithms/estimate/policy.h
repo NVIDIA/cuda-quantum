@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/CompileOptions.h"
-#include "cudaq/algorithms/estimate/result.h"
+#include "common/EstimateResult.h"
 #include <functional>
 #include <string>
 

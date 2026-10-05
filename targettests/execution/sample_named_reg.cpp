@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t 2>&1 | FileCheck --check-prefix=CHECK-SIM %s
-// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t 2>&1 | FileCheck --check-prefix=CHECK-EMUL %s
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t 2>&1 | FileCheck --check-prefix=CHECK-EMUL %s; fi
 // clang-format on
 
 #include <cudaq.h>

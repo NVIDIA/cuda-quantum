@@ -159,6 +159,21 @@ jobs:
             unzip -d "$target_folder"/preview/logical "$logical_docs_archive"
           fi
 
+          # llms.txt also belongs at the site root, where the convention
+          # expects it. Its links are relative to the version directory, so
+          # point them at latest/ for the root copy.
+          if [ "$target_folder" == "latest" ]; then
+            if [ -f "$target_folder/llms.txt" ]; then
+              sed -E 's|\]\((latest/)?([^):]+)\)|](latest/\2)|g' \
+                "$target_folder/llms.txt" > llms.txt
+              git add llms.txt
+            fi
+            if [ -f "$target_folder/llms-full.txt" ]; then
+              cp "$target_folder/llms-full.txt" llms-full.txt
+              git add llms-full.txt
+            fi
+          fi
+
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
 

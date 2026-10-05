@@ -40,6 +40,45 @@ TEST_F(MagnusIntegratorTest, Initialization) {
   EXPECT_NO_THROW(cudaq::integrators::magnus_expansion m3(15, 0.01));
   EXPECT_THROW(cudaq::integrators::magnus_expansion bad(0),
                std::invalid_argument);
+  EXPECT_THROW(cudaq::integrators::magnus_expansion(10, 0.0),
+               std::invalid_argument);
+  EXPECT_THROW(cudaq::integrators::magnus_expansion(10, -0.01),
+               std::invalid_argument);
+}
+
+TEST_F(MagnusIntegratorTest, IntegrateLandsExactlyOnSchedulePoints) {
+  constexpr std::size_t numIntervals = 99;
+  const double maxStepSize = 1.0 / numIntervals;
+  cudaq::integrators::magnus_expansion integrator(/*num_taylor_terms=*/1,
+                                                  maxStepSize);
+
+  const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
+                                                             {0.0, 0.0}};
+  const std::vector<int64_t> dims = {2};
+  cudaq::sum_op<cudaq::matrix_handler> ham(cudaq::spin_op::x(0));
+  SystemDynamics system(dims, ham);
+
+  auto initialState = cudaq::state::from_data(initialStateVec);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&initialState));
+  ASSERT_NE(castSimState, nullptr);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
+  integrator.setState(initialState, 0.0);
+
+  std::vector<std::complex<double>> steps;
+  for (std::size_t i = 0; i <= numIntervals; ++i)
+    steps.emplace_back(static_cast<double>(i) / numIntervals, 0.0);
+  cudaq::schedule schedule(
+      steps, {"t"}, [](const std::string &, const std::complex<double> &value) {
+        return value;
+      });
+  cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
+
+  for (std::size_t i = 1; i < steps.size(); ++i) {
+    const double targetTime = steps[i].real();
+    integrator.integrate(targetTime);
+    EXPECT_EQ(integrator.getState().first, targetTime);
+  }
 }
 
 TEST_F(MagnusIntegratorTest, CheckEvolve) {

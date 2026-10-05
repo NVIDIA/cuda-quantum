@@ -1,4 +1,5 @@
-# For any PR that touches the cudaq.logical preview folder
+# For any PR that touches the cudaq.logical preview folder (see the `changes`
+# job below, which gates every other job in this file):
 #  - retrieve cached CUDA-Q wheels (or build them),
 #  - run `cudaq_logical_build.yml` on platform x python version
 #  - run the docs `cudaq_logical_docs.yml` workflow
@@ -7,6 +8,8 @@
 
 name: Build and test cudaq.logical
 
+# No `paths:` filter: copy-pr-bot rebases make push diffs unreliable. The
+# `changes` job gates instead.
 on:
   push:
     branches:
@@ -14,7 +17,34 @@ on:
   workflow_dispatch:
 
 jobs:
+  changes:
+    name: Check for cudaq.logical changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      logical: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            preview/logical/
+            .github/workflows/cudaq_logical_on_push.yml
+            .github/workflows/cudaq_logical_build_or_retrieve.yml
+            .github/workflows/cudaq_logical_build.yml
+            .github/workflows/cudaq_logical_docs.yml
+            .github/workflows/cudaq_logical_wheel_validation.yml
+            .github/actions/check-changed-paths/
+
   build_and_test_amd64_py311:
+    needs: changes
+    if: needs.changes.outputs.logical == 'true'
     name: Build and test cudaq.logical (linux/amd64, 3.11)
     uses: ./.github/workflows/cudaq_logical_build_or_retrieve.yml
     with:
@@ -25,7 +55,7 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
   docs:
-    needs: [build_and_test_amd64_py311]
+    needs: [changes, build_and_test_amd64_py311]
     name: Build cudaq.logical docs
     uses: ./.github/workflows/cudaq_logical_docs.yml
     with:
@@ -66,6 +96,8 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
   build_and_test:
+    needs: changes
+    if: needs.changes.outputs.logical == 'true'
     strategy:
       matrix:
         platform: [linux/amd64, linux/arm64]

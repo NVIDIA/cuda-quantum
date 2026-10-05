@@ -173,6 +173,53 @@ def test_cudaq_target_estimation_lowers_a_kernel_through_p3():
     assert schedule["source_stage"] == "p3"
 
 
+def test_target_estimate_options_can_pin_a_tier(monkeypatch):
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    endpoint = target.runtime_endpoint
+    monkeypatch.setattr(endpoint, "estimate_options", {
+        **endpoint.estimate_options, "tier": "SCHEDULE"
+    })
+    builds = []
+    estimate = endpoint.estimate
+    monkeypatch.setattr(
+        endpoint, "estimate", lambda build, *args, **kwargs:
+        (builds.append(build), estimate(build, *args, **kwargs))[1])
+
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    assert set(result.annotations) == {"SCHEDULE"}
+    # An explicit tier still overrides the one the target pins.
+    assert set(estimate(builds[0], tier="LOGICAL").annotations) == {"LOGICAL"}
+
+
+def test_cudaq_target_estimation_traces_each_logical_phase():
+    from cudaq.util import trace
+
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    backend = trace.ChromeBackend()
+    trace.set_backend(backend)
+    try:
+        cudaq.set_target(target)
+        cudaq.estimate(logical_zero_readout)
+    finally:
+        trace.reset_backend()
+        cudaq.reset_target()
+
+    names = {e["name"] for e in backend.to_dict()["traceEvents"]}
+    assert {
+        f"cudaq.logical.target.{tag}" for tag in ("p0", "clifford_t", "p1",
+                                                  "p2", "p3")
+    } <= names
+    assert {
+        f"cudaq.estimate.{tier}" for tier in ("LOGICAL", "STATIC", "ANALYTICAL",
+                                              "SCHEDULE")
+    } <= names
+
+
 def test_cudaq_p3_replays_destructive_multi_carrier_measurements():
     logical_qubits = 2
     target = cudaq.logical.targets.surface_physical_target(

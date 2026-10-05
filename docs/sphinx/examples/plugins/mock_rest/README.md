@@ -71,8 +71,10 @@ build/external/mock-rest
 
 It contains:
 
-- `targets/mock_rest.yml`
-- `lib/libcudaq-serverhelper-mock_rest.so` on Linux, or the platform equivalent
+- `targets/mock_rest.so` on Linux, or `targets/mock_rest.dylib` on macOS - the
+  compiled target config produced from `mock_rest.yml.in` by
+  `cudaq-target-db-gen --plugin`
+- `lib/libcudaq-serverhelper-mock_rest.so` on Linux, or `.dylib` on macOS
 - `pyproject.toml`, `__init__.py`, and `__main__.py` for Python packaging
 
 ## Test

@@ -31,10 +31,110 @@ func.func @expand_phase(%theta: f64, %control: !quake.ref,
 }
 
 // CHECK-LABEL: func.func @expand_phase(
-// CHECK-SAME:      %[[ARG0:.*]]: f64,
-// CHECK-SAME:      %[[ARG1:.*]]: !quake.ref,
-// CHECK-SAME:      %[[ARG2:.*]]: !quake.ref) {
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.ref) {
 // CHECK:           quake.x %[[ARG1]] : (!quake.ref) -> ()
 // CHECK-NEXT:      quake.phase (%[[ARG0]]) {{\[}}%[[ARG1]]] %[[ARG2]] : (f64, !quake.ref, !quake.ref) -> ()
 // CHECK-NEXT:      quake.x %[[ARG1]] : (!quake.ref) -> ()
 // CHECK-NEXT:      return
+
+func.func @expand_u2(%phi: f64, %lambda: f64, %open: !quake.ref,
+                     %closed: !quake.ref, %target: !quake.ref) {
+  quake.u2<adj> (%phi, %lambda) [%open, %closed neg [true, false]] %target
+      : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @expand_u2(
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG4:[a-zA-Z0-9_.$-]+]]: !quake.ref) {
+// CHECK-NEXT:      quake.x %[[ARG2]] : (!quake.ref) -> ()
+// CHECK-NEXT:      quake.u2<adj> (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]], %[[ARG3]]] %[[ARG4]] : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK-NEXT:      quake.x %[[ARG2]] : (!quake.ref) -> ()
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @expand_phased_rx(%theta: f64, %phi: f64, %closed: !quake.ref,
+                            %open: !quake.ref, %target: !quake.ref) {
+  quake.phased_rx<adj> (%theta, %phi) [%closed, %open neg [false, true]] %target
+      : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @expand_phased_rx(
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG4:[a-zA-Z0-9_.$-]+]]: !quake.ref) {
+// CHECK-NEXT:      quake.x %[[ARG3]] : (!quake.ref) -> ()
+// CHECK-NEXT:      quake.phased_rx<adj> (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]], %[[ARG3]]] %[[ARG4]] : (f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK-NEXT:      quake.x %[[ARG3]] : (!quake.ref) -> ()
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @expand_u2_wires(%phi: f64, %lambda: f64, %open: !quake.wire,
+                           %closed: !quake.wire, %target: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %o, %c, %t = quake.u2 (%phi, %lambda) [%open, %closed neg [true, false]] %target
+      : (f64, f64, !quake.wire, !quake.wire, !quake.wire)
+          -> (!quake.wire, !quake.wire, !quake.wire)
+  return %o, %c, %t : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL:   func.func @expand_u2_wires(
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG4:[a-zA-Z0-9_.$-]+]]: !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK-NEXT:      %[[X_0:.*]] = quake.x %[[ARG2]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[VAL_0:.*]]:3 = quake.u2 (%[[ARG0]], %[[ARG1]]) {{\[}}%[[X_0]], %[[ARG3]]] %[[ARG4]] : (f64, f64, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK-NEXT:      %[[X_1:.*]] = quake.x %[[VAL_0]]#0 : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      return %[[X_1]], %[[VAL_0]]#1, %[[VAL_0]]#2 : !quake.wire, !quake.wire, !quake.wire
+// CHECK-NEXT:    }
+
+func.func @expand_phased_rx_wires(%theta: f64, %phi: f64, %closed: !quake.wire,
+                                  %open: !quake.wire, %target: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %c, %o, %t = quake.phased_rx (%theta, %phi) [%closed, %open neg [false, true]] %target
+      : (f64, f64, !quake.wire, !quake.wire, !quake.wire)
+          -> (!quake.wire, !quake.wire, !quake.wire)
+  return %c, %o, %t : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL:   func.func @expand_phased_rx_wires(
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.wire,
+// CHECK-SAME:      %[[ARG4:[a-zA-Z0-9_.$-]+]]: !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK-NEXT:      %[[X_0:.*]] = quake.x %[[ARG3]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[PHASED_RX_0:.*]]:3 = quake.phased_rx (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]], %[[X_0]]] %[[ARG4]] : (f64, f64, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK-NEXT:      %[[X_1:.*]] = quake.x %[[PHASED_RX_0]]#1 : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      return %[[PHASED_RX_0]]#0, %[[X_1]], %[[PHASED_RX_0]]#2 : !quake.wire, !quake.wire, !quake.wire
+// CHECK-NEXT:    }
+
+func.func @closed_parameterized_controls(%theta: f64, %phi: f64,
+                                         %control: !quake.ref,
+                                         %target: !quake.ref) {
+  quake.u2 (%theta, %phi) [%control neg [false]] %target
+      : (f64, f64, !quake.ref, !quake.ref) -> ()
+  quake.phased_rx (%theta, %phi) [%control neg [false]] %target
+      : (f64, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @closed_parameterized_controls(
+// CHECK-SAME:      %[[ARG0:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG1:[a-zA-Z0-9_.$-]+]]: f64,
+// CHECK-SAME:      %[[ARG2:[a-zA-Z0-9_.$-]+]]: !quake.ref,
+// CHECK-SAME:      %[[ARG3:[a-zA-Z0-9_.$-]+]]: !quake.ref) {
+// CHECK-NEXT:      quake.u2 (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]] neg [false]] %[[ARG3]] : (f64, f64, !quake.ref, !quake.ref) -> ()
+// CHECK-NEXT:      quake.phased_rx (%[[ARG0]], %[[ARG1]]) {{\[}}%[[ARG2]] neg [false]] %[[ARG3]] : (f64, f64, !quake.ref, !quake.ref) -> ()
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
