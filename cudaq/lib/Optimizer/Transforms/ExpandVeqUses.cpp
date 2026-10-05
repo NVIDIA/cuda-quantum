@@ -73,8 +73,9 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::quake::EvinceOp evin,
                                 PatternRewriter &rewriter) const override {
-    if (llvm::none_of(evin.getArgs(),
-                      [](Value v) { return cudaq::quake::getVeqSize(v).has_value(); }))
+    if (llvm::none_of(evin.getArgs(), [](Value v) {
+          return cudaq::quake::getVeqSize(v).has_value();
+        }))
       return failure();
 
     auto loc = evin.getLoc();
